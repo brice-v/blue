@@ -1,0 +1,129 @@
+TODO:
+
+- [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
+- [ ] (Bug) Fix lexing to identify issue when string is not escaped inside another string (such as in a stringinterp object)
+- [ ] Add file to current environment
+- [ ] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
+- [ ] Add variadic arguments (...)
+- [ ] Add continue, break
+- [ ] Add variadic arguments (...)
+- [ ] Support proper scopes
+- [ ] Allow any function to use the dot call function syntax
+- [ ] Use struct{} for set implmentation
+- [ ] Support `else if` expression
+- [ ] Make `in` expression on map go in order of insertion
+    - [ ] Rearchitect Map object to include slice of objects (with hashkey)
+        - This can then be used to range in order but there is a lot of rearchitecting to do
+- [ ] Remove uints from working with big floats and ints
+- [ ] Make Val statements work to make immutable objects
+    - see if they can work inside objects to make certain items immutable?
+- [ ] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
+- [ ] Include shift operators and assignment expressions to other types
+- [ ] Add list, map, set, etc. comprehensions to the parser and evaluator
+    - [x] List comprehensions (basically done and working)
+- [ ] Support regex literal in parser and evaluator
+    - Might just use a syntax such as `re"[0-9]+"`
+- [x] Support `in` keyword for ranges and iterable items
+    - [ ] Make it possible to unpack a list, map, set, etc. using the for (VARS in OBJECT) syntax
+        - where VARS can be a tuple of variable declarations that would signify the unpacking
+        - for (indx, elem in LIST/SET/etc.) {}
+        - for (key, value in MAP/OBJ) {}
+- [ ] Add macro system from monkey
+- [ ] Support string interpolation helper to print out objects
+    - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
+    - [ ] Add debug printing that works like ic to evaluator
+        - This is sort of related
+
+
+LATER ON:
+
+- [ ] Support unicode throughout
+- [ ] TESTS! Lots of them covering a variety of scenarios
+    - Test all math casting and max and min working
+    - Test lists with variety of data types
+    - Test maps with all types
+    - Test hashing and equality works on objects with lots of different types
+    - Write some more internal tests in go to cover other variety of things
+    - parser tests for newly added objects
+- [ ] Add way to print out ast by node name rather than strings
+- [ ] Look into the performance benefits of different hashing algorthims
+- [ ] Look into the performance benefits of enum of types rather than strings
+- [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
+- [-] Fix all Math functions that are currently lossy due to conversion
+    - In progress...
+- [ ] Think about adding types
+- [ ] Think about compiling to go
+- [ ] Think about adding channels, receivers, using the golang scheduler
+- [ ] Tagged Unions/ enums working properly with match
+- [x] Using `` to call cmd on computer - returning the output of that command
+    - [ ] Add support for piped output
+
+COMPLETED TASKS:
+
+- [x] Figure out how importing will work - might be similar to zig
+- [x] Default to running the evaluator when the binary is used
+- [x] Fix all set operations
+- [-] Make operators work with sets, maps/objects, lists, etc.
+    - ie. [1 , 2, 3, 4] | [ 1, 2, 3] == [1,2,3,4] (union)
+    - [1, 2, 3, 4] ^ [1,2,3] == [4] (symmetric difference)
+    - [1,2,3,4] & [1,2,3] == [1,2,3] (intersection)
+    - [1,2,3,4] >= [1,2] == TRUE (left is superset of right)
+    - [1,2,3,4] <= [1,2] == FALSE (left is subset of right (in this case false))
+    - set() as a function on list - this ensures unique values only
+    - DONE: [1,2,3,4,5] + [1,23] == [1,2,3,4,5,1,23]
+    - all the operators should support the object types
+    - MARKING THIS AS IN PROGRESS AND MOVING TO BOTTOM
+        - Most of this is currenly being implmemented but its not working yet and this is getting in the way and i know the operations to support now
+- [x] Support math functions between types but cast to something that makes sense
+    - This is currently being worked on - will move when done
+- [x] Implement all combinations of math functions with the casting of big floats and ints
+- [x] Add match expression support to parser (make a string method or whatever it needs)
+- [x] Implement parser string method for null
+- [x] Implement parser string method for match expression
+- [x] Include "Big" objects for float and int
+- [x] Implement hashing of all other types using HashObject Function
+    - DONE: for now until more types are added
+- [x] Make sure ranges work as expected
+- [x] Add eval support for `for` expressions
+- [-] Update string function for function literal
+- [-] Fix string printing on Inspect method
+    - Going to leave this alone as their are places where it doesnt make sense to include the quotes
+- [-] Possibly support calling convention of first argument passed to a function can be before a . then the call
+    - ie. fun add(a, b) { a + b } | To call this we could do  `6.add(4)` (ideally)
+    - maybe it will only work with identifiers but this should be supported
+    - Not able to be supported at the moment due to the way the parser works, will try with builtin functions
+- [x] Allows Non hash key items to be return a hashkey but not be used as a key in an object
+    - Even though it could be possible im not sure if this is how i want the language to work
+- [x] Support operators for string such as +, *, |, ^ (maybe only the first two)
+- [x] Add single line (and maybe multiline) comments to lexer, parser?, evaluator?
+- [x] Support default argument value in parser and evaluator
+    - ie. fun(a = 10, b = "Some String") {
+              println("a's default value is #{=a} and b's default value is #{=b}")
+          }
+- [x] May want to add hash key to other objects like list, and map literals
+- [x] Read below commit message to follow up with default parameters in functions
+    ```
+    blang: parser: parse default arguments as ast.AssignmentExpression
+        
+        We now need to create a new field for the function literal to store
+        these and the parseFunctionParameter function can return both as a
+        tuple.
+        
+        With that the evaluator can then set the environment to use these.
+        
+        Still need to figure out how to have a call expression use either
+        default or given if it is given them.
+    ```
+- [x] Propgate errors correctly
+- [x] Add assignment expressions an ast node so that they can be evaluated
+    - p.s lambdas just work now!
+- [x] Support math operators between floats
+- [x] Support math and bin operators between hex, octal, bin
+- [x] Add boolean operators for `and` and `or`
+- [x] Add eval support for lambdas
+- [x] Make sure evaluator can use maps/objects the way that is expected
+- [x] Make sure string interpolation works
+- [x] Make sure var statements can be rebound
+    - [-] Support all assignment expressions
+- [x] Make sure val statements can not be reassigned
+    - Need to figure out what to do with their children, maybe they just get a flag

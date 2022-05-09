@@ -1,0 +1,163 @@
+package repl
+
+import (
+	"blue/evaluator"
+	"blue/lexer"
+	"blue/object"
+	"blue/parser"
+	"blue/token"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"os/user"
+
+	"github.com/chzyer/readline"
+)
+
+// PROMPT is printed to the screen every time the user can type
+const PROMPT = "> "
+
+// StartLexerRepl starts the read eval print loop for the lexer
+func StartLexerRepl(version string) {
+	user, err := user.Current()
+	if err != nil {
+		fmt.Println("Unable to get current username, proceeding with none")
+		startLexerRepl(os.Stdin, os.Stdout, version, "")
+		os.Exit(0)
+	}
+	startLexerRepl(os.Stdin, os.Stdout, version, user.Username)
+	os.Exit(0)
+}
+
+// StartParserRepl start the read eval print loop for the parser
+func StartParserRepl(version string) {
+	user, err := user.Current()
+	if err != nil {
+		fmt.Println("Unable to get current username, proceeding with none")
+		startParserRepl(os.Stdin, os.Stdout, version, "")
+		os.Exit(0)
+	}
+	startParserRepl(os.Stdin, os.Stdout, version, user.Username)
+	os.Exit(0)
+}
+
+// StartEvalRepl start the read eval print loop for the parser
+func StartEvalRepl(version string) {
+	user, err := user.Current()
+	if err != nil {
+		fmt.Println("Unable to get current username, proceeding with none")
+		startEvalRepl(os.Stdin, os.Stdout, version, "")
+		os.Exit(0)
+	}
+	startEvalRepl(os.Stdin, os.Stdout, version, user.Username)
+	os.Exit(0)
+}
+
+// startEvalRepl is the entry point of the repl with an io.Reader as
+// an input and io.Writer as an output
+func startEvalRepl(in io.Reader, out io.Writer, version, username string) {
+	env := object.NewEnvironment()
+	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", version, username)
+	rl, err := readline.New(PROMPT)
+	if err != nil {
+		log.Fatalf("Failed to instantiate readline| Error: %s", err)
+	}
+	fmt.Println(header)
+	for {
+		line, err := rl.Readline()
+		if err != nil {
+			if err.Error() == "Interrupt" || err.Error() == "EOF" {
+				println(err.Error())
+				os.Exit(0)
+			}
+			log.Fatalf("Failed to read line: Unexpected Error: %s", err.Error())
+			break
+		}
+
+		l := lexer.New(line)
+		p := parser.New(l)
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			PrintParserErrors(out, p.Errors())
+			continue
+		}
+		evaluated := evaluator.Eval(program, env)
+
+		if evaluated != nil {
+			io.WriteString(out, "=> ")
+			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
+	}
+}
+
+// startLexerRepl is the entry point of the repl with an io.Reader as
+// an input and io.Writer as an output
+func startLexerRepl(in io.Reader, out io.Writer, version, username string) {
+	header := fmt.Sprintf("blue | v%s | REPL | MODE: LEXER | User: %s", version, username)
+	rl, err := readline.New(PROMPT)
+	if err != nil {
+		log.Fatalf("Failed to instantiate readline| Error: %s", err)
+	}
+	fmt.Println(header)
+	for {
+		line, err := rl.Readline()
+		if err != nil {
+			if err.Error() == "Interrupt" || err.Error() == "EOF" {
+				println(err.Error())
+				os.Exit(0)
+			}
+			log.Fatalf("Failed to read line: Unexpected Error: %s", err.Error())
+			break
+		}
+
+		l := lexer.New(line)
+
+		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
+			fmt.Printf("%+v\n", tok)
+		}
+	}
+}
+
+// PrintParserErrors prints the parser errors to the output
+func PrintParserErrors(out io.Writer, errors []string) {
+	for _, msg := range errors {
+		io.WriteString(out, "ParserError: "+msg+"\n")
+	}
+}
+
+// startParserRepl is the entry point of the repl with an io.Reader as
+// an input and io.Writer as an output
+func startParserRepl(in io.Reader, out io.Writer, version, username string) {
+	header := fmt.Sprintf("blue | v%s | REPL | MODE: PARSER | User: %s", version, username)
+	rl, err := readline.New(PROMPT)
+	if err != nil {
+		log.Fatalf("Failed to instantiate readline| Error: %s", err)
+	}
+	fmt.Println(header)
+	for {
+		line, err := rl.Readline()
+		if err != nil {
+			if err.Error() == "Interrupt" || err.Error() == "EOF" {
+				println(err.Error())
+				os.Exit(0)
+			}
+			log.Fatalf("Failed to read line: Unexpected Error: %s", err.Error())
+			break
+		}
+
+		l := lexer.New(line)
+
+		p := parser.New(l)
+
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			PrintParserErrors(out, p.Errors())
+			continue
+		}
+
+		io.WriteString(out, program.String())
+		io.WriteString(out, "\n")
+	}
+}

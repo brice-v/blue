@@ -1,0 +1,1 @@
+var x = {some: "World", another: "thing"}
