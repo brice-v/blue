@@ -196,9 +196,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalImportStatement(node, env)
 	default:
 		if node == nil {
-			// In the event that there are only statements, I think this is where we end up
-			// so we return NULL because there is nothing to return otherwise
-			return NULL
+			// Just want to get rid of this in my output
+			return nil
 		}
 		fmt.Printf("Handle this type: %T\n", node)
 	}

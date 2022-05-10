@@ -1,1 +1,1 @@
-var x = {some: "World", another: "thing"}
+var x = {some: "World", another: "thing"};
