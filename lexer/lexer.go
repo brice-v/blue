@@ -3,6 +3,7 @@ package lexer
 import (
 	"blue/token"
 	"encoding/hex"
+	"fmt"
 	"strings"
 	"unicode/utf8"
 )
@@ -192,6 +193,8 @@ func (l *Lexer) readRawString() string {
 // readString will consume tokens until the string is fully read
 func (l *Lexer) readString() (string, error) {
 	b := &strings.Builder{}
+
+	stringStart := string(l.ch)
 	for {
 		l.readChar()
 
@@ -226,12 +229,16 @@ func (l *Lexer) readString() (string, error) {
 			l.readChar()
 			continue
 		} else {
-			if l.ch == '"' || l.ch == 0 {
+			if string(l.ch) == stringStart || l.ch == 0 {
 				break
 			}
 		}
 
 		b.WriteRune(l.ch)
+	}
+
+	if l.ch != '"' && l.ch != '\'' {
+		return "", fmt.Errorf("string is not ended")
 	}
 
 	return b.String(), nil
@@ -437,6 +444,14 @@ func (l *Lexer) NextToken() token.Token {
 				tok.Type = token.STRING
 				tok.Literal = str
 			}
+		}
+	case '\'':
+		str, err := l.readString()
+		if err != nil {
+			tok = newToken(token.ILLEGAL, l.prevCh)
+		} else {
+			tok.Type = token.STRING
+			tok.Literal = str
 		}
 	default:
 		if prevTokType == token.IMPORT {

@@ -1,7 +1,7 @@
 TODO:
 
 - [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
-- [ ] (Bug) Fix lexing to identify issue when string is not escaped inside another string (such as in a stringinterp object)
+- [x] (Bug) Fix lexing to identify issue when string is not escaped inside another string (such as in a stringinterp object)
 - [ ] Add file to current environment
 - [ ] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
 - [ ] Add variadic arguments (...)

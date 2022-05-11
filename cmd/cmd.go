@@ -38,7 +38,7 @@ func Run(version string, args ...string) {
 	case argc == 2 && *versionFlag:
 		fmt.Println(args[0] + " v" + version)
 		return
-	case argc == 2 && isValidFileForEval():
+	case argc == 2 && !(*lexFlag || *parseFlag) && isValidFileForEval():
 		evalFile()
 	case argc == 2 && *lexFlag:
 		repl.StartLexerRepl(version)
