@@ -8,6 +8,9 @@ github.com/ALTree/bigfloat
 github.com/chzyer/readline
 # github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
 ## explicit
+# github.com/shopspring/decimal v1.3.1
+## explicit; go 1.13
+github.com/shopspring/decimal
 # golang.org/x/sys v0.0.0-20200409092240-59c9f1ba88fa
 ## explicit; go 1.12
 golang.org/x/sys/unix

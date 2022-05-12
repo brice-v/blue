@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -453,7 +455,13 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 	lit := &ast.FloatLiteral{Token: p.curToken}
 	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
 	value, err := strconv.ParseFloat(tokenLiteral, 64)
-	if err != nil {
+	if err != nil || len(tokenLiteral) > len(fmt.Sprintf("%f", value)) {
+		bigValue, err := decimal.NewFromString(tokenLiteral)
+		if err == nil {
+			bigLit := &ast.BigFloatLiteral{Token: p.curToken}
+			bigLit.Value = bigValue
+			return bigLit
+		}
 		msg := fmt.Sprintf("could not parse %q as a float", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil

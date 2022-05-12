@@ -17,7 +17,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ALTree/bigfloat"
+	"github.com/shopspring/decimal"
 )
 
 // EvalBasePath is the base directory from which the current file is being run
@@ -55,6 +55,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.UInteger{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
+	case *ast.BigFloatLiteral:
+		return &object.BigFloat{Value: node.Value}
 	case *ast.Boolean:
 		return nativeToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
@@ -1510,25 +1512,25 @@ func evalSetInfixExpression(operator string, left, right object.Object) object.O
 
 func evalBigFloatIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	rightVal := right.(*object.Integer).Value
-	rightBigFloat := new(big.Float).SetPrec(256).SetInt64(rightVal)
+	rightBigFloat := decimal.NewFromInt(rightVal)
 	return evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
 }
 
 func evalBigFloatFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	rightVal := right.(*object.Float).Value
-	rightBigFloat := new(big.Float).SetPrec(256).SetFloat64(rightVal)
+	rightBigFloat := decimal.NewFromFloat(rightVal)
 	return evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
 }
 
 func evalIntegerBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Integer).Value
-	leftBigFloat := new(big.Float).SetPrec(256).SetInt64(leftVal)
+	leftBigFloat := decimal.NewFromInt(leftVal)
 	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
 }
 
 func evalFloatBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Float).Value
-	leftBigFloat := new(big.Float).SetPrec(256).SetFloat64(leftVal)
+	leftBigFloat := decimal.NewFromFloat(leftVal)
 	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
 }
 
@@ -1541,12 +1543,8 @@ func evalBigIntegerIntegerInfixExpression(operator string, left, right object.Ob
 func evalBigIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := right.(*object.BigInteger).Value
 	rightVal := left.(*object.Float).Value
-	leftBigFloat := new(big.Float)
-	leftBigFloat.SetPrec(256)
-	leftBigFloat.SetInt(leftVal)
-	rightBigFloat := new(big.Float)
-	rightBigFloat.SetPrec(256)
-	rightBigFloat.SetFloat64(rightVal)
+	leftBigFloat := decimal.NewFromBigInt(leftVal, 1)
+	rightBigFloat := decimal.NewFromFloat(rightVal)
 
 	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
 }
@@ -1560,36 +1558,29 @@ func evalIntegerBigIntegerInfixExpression(operator string, left, right object.Ob
 func evalFloatBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Float).Value
 	rightVal := right.(*object.BigInteger).Value
-	leftBigFloat := new(big.Float)
-	leftBigFloat.SetPrec(256)
-	leftBigFloat.SetFloat64(leftVal)
-	rightBigFloat := new(big.Float)
-	rightBigFloat.SetPrec(256)
-	rightBigFloat.SetInt(rightVal)
+	leftBigFloat := decimal.NewFromFloat(leftVal)
+	rightBigFloat := decimal.NewFromBigInt(rightVal, 1)
 	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
 }
 
 func evalBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.BigFloat).Value
 	rightVal := right.(*object.BigFloat).Value
-	result := big.NewFloat(0)
-	result.SetPrec(256)
-
 	switch operator {
 	case "+":
-		return &object.BigFloat{Value: result.Add(leftVal, rightVal)}
+		return &object.BigFloat{Value: leftVal.Add(rightVal)}
 	case "-":
-		return &object.BigFloat{Value: result.Sub(leftVal, rightVal)}
+		return &object.BigFloat{Value: leftVal.Sub(rightVal)}
 	case "/":
-		return &object.BigFloat{Value: result.Quo(leftVal, rightVal)}
+		return &object.BigFloat{Value: leftVal.Div(rightVal)}
 	case "*":
-		return &object.BigFloat{Value: result.Mul(leftVal, rightVal)}
+		return &object.BigFloat{Value: leftVal.Mul(rightVal)}
 	case "**":
-		return &object.BigFloat{Value: bigfloat.Pow(leftVal, rightVal)}
+		return &object.BigFloat{Value: leftVal.Pow(rightVal)}
 	case "//":
-		return newError("Floor Division is not supported on BigFloats")
+		return &object.BigFloat{Value: leftVal.Div(rightVal).Floor()}
 	case "%":
-		return newError("Modulus is not supported on BigFloats")
+		return &object.BigFloat{Value: leftVal.Mod(rightVal)}
 	case "<":
 		compared := leftVal.Cmp(rightVal)
 		if compared == -1 {

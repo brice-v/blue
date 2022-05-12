@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"math/big"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 // BigIntegerLiteral is the big int literal ast node
@@ -42,6 +44,21 @@ type FloatLiteral struct {
 	Token token.Token // Token == token.FLOAT
 	Value float64     // Value stores the float as an float64
 }
+
+// BigFloatLiteral is the big float literal ast node
+type BigFloatLiteral struct {
+	Token token.Token     // token == token.FLOAT
+	Value decimal.Decimal // Value stores the big float value
+}
+
+// expressionNode satisfies the Expression interface
+func (bfl *BigFloatLiteral) expressionNode() {}
+
+// TokenLiteral returns the string value of the big int
+func (bfl *BigFloatLiteral) TokenLiteral() string { return bfl.Token.Literal }
+
+// String returns the string value of the big float
+func (bfl *BigFloatLiteral) String() string { return bfl.Token.Literal }
 
 // expressionNode satisfies the Expression interface
 func (fl *FloatLiteral) expressionNode() {}

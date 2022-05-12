@@ -8,6 +8,8 @@ import (
 	"hash/fnv"
 	"math/big"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -124,14 +126,14 @@ func (f *Float) Inspect() string { return fmt.Sprintf("%f", f.Value) }
 
 // BigFloat is the big float object struct
 type BigFloat struct {
-	Value *big.Float
+	Value decimal.Decimal
 }
 
 // Inspect returns the big float object as a string
-func (bf *BigFloat) Inspect() string { return bf.Value.String() }
+func (bf BigFloat) Inspect() string { return bf.Value.String() }
 
 // Type returns the big float object type
-func (bf *BigFloat) Type() Type { return BIG_FLOAT_OBJ }
+func (bf BigFloat) Type() Type { return BIG_FLOAT_OBJ }
 
 // ReturnValue is the struct type for the return value object
 type ReturnValue struct {

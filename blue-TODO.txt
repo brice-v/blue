@@ -1,7 +1,6 @@
 TODO:
 
 - [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
-- [x] (Bug) Fix lexing to identify issue when string is not escaped inside another string (such as in a stringinterp object)
 - [ ] Add file to current environment
 - [ ] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
 - [ ] Add variadic arguments (...)
@@ -60,6 +59,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] (Bug) Fix lexing to identify issue when string is not escaped inside another string (such as in a stringinterp object)
 - [x] Figure out how importing will work - might be similar to zig
 - [x] Default to running the evaluator when the binary is used
 - [x] Fix all set operations

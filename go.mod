@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/ALTree/bigfloat v0.0.0-20180506151649-b176f1e721fc
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+	github.com/shopspring/decimal v1.3.1
 )
 
 require (
