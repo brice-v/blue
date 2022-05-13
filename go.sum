@@ -1,5 +1,3 @@
-github.com/ALTree/bigfloat v0.0.0-20180506151649-b176f1e721fc h1:64fnazBWLWjn4wk+hpm7gVPhl5kA0TrCzYJ4GCbw1J0=
-github.com/ALTree/bigfloat v0.0.0-20180506151649-b176f1e721fc/go.mod h1:9hy2NiNR6kJzY3N2dE/x+UQtZXiYkjTRADHpAo6p9zI=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e h1:fY5BOSpyZCqRo5OhCuC+XN+r/bBCmeuuJtjz+bCNIf8=
