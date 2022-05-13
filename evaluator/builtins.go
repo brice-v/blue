@@ -2,11 +2,13 @@ package evaluator
 
 import (
 	"blue/object"
+	"bufio"
 	"fmt"
+	"os"
 )
 
 var builtins = map[string]*object.Builtin{
-	"len": &object.Builtin{
+	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
@@ -20,13 +22,11 @@ var builtins = map[string]*object.Builtin{
 			case *object.Map:
 				return &object.Integer{Value: int64(len(arg.Pairs))}
 			default:
-				// TODO: add in support for other items that will be supported with len
-				// ie. lists, maps, sets, etc.
 				return newError("argument to `len` not supported, got %s", args[0].Type())
 			}
 		},
 	},
-	"first": &object.Builtin{
+	"first": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
@@ -41,7 +41,7 @@ var builtins = map[string]*object.Builtin{
 			return NULL
 		},
 	},
-	"last": &object.Builtin{
+	"last": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
@@ -57,7 +57,7 @@ var builtins = map[string]*object.Builtin{
 			return NULL
 		},
 	},
-	"rest": &object.Builtin{
+	"rest": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
@@ -76,7 +76,7 @@ var builtins = map[string]*object.Builtin{
 			return NULL
 		},
 	},
-	"append": &object.Builtin{
+	"append": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newError("wrong number of arguments. got=%d, want=2", len(args))
@@ -93,7 +93,7 @@ var builtins = map[string]*object.Builtin{
 			return &object.List{Elements: newElements}
 		},
 	},
-	"println": &object.Builtin{
+	"println": {
 		Fun: func(args ...object.Object) object.Object {
 			for _, arg := range args {
 				fmt.Println(arg.Inspect())
@@ -101,7 +101,7 @@ var builtins = map[string]*object.Builtin{
 			return NULL
 		},
 	},
-	"print": &object.Builtin{
+	"print": {
 		Fun: func(args ...object.Object) object.Object {
 			for _, arg := range args {
 				fmt.Print(arg.Inspect())
@@ -109,4 +109,75 @@ var builtins = map[string]*object.Builtin{
 			return NULL
 		},
 	},
+	"input": {
+		Fun: func(args ...object.Object) object.Object {
+			argLen := len(args)
+			if argLen == 0 {
+				// read input with no prompt
+				scanner := bufio.NewScanner(os.Stdin)
+				if ok := scanner.Scan(); ok {
+					return &object.Stringo{Value: scanner.Text()}
+				}
+				if err := scanner.Err(); err != nil {
+					return newError("reading standard input: %s", err.Error())
+				}
+			} else if argLen == 1 {
+				// read input with prompt
+				if args[0].Type() != object.STRING_OBJ {
+					return newError("argument to `input` must be STRING, got %s", args[0].Type())
+				}
+				scanner := bufio.NewScanner(os.Stdin)
+				fmt.Print(args[0].(*object.Stringo).Value)
+				if ok := scanner.Scan(); ok {
+					return &object.Stringo{Value: scanner.Text()}
+				}
+				if err := scanner.Err(); err != nil {
+					return newError("error reading stdin: %s", err.Error())
+				}
+			}
+			return newError("wrong number of arguments to `input`. got=%d, want=1 (or none)", len(args))
+		},
+	},
+	"read": {
+		Fun: func(args ...object.Object) object.Object {
+			argLen := len(args)
+			if argLen != 1 {
+				return newError("wrong number of arguments to `read`. got=%d, want=1", argLen)
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument to `read` must be STRING, got %s", args[0].Type())
+			}
+			fnameo, ok := args[0].(*object.Stringo)
+			if !ok {
+				return newError("filename string object did not match expected object. got=%T", args[0])
+			}
+			bs, err := os.ReadFile(fnameo.Value)
+			if err != nil {
+				return newError("error reading file `%s`: %s", fnameo.Value, err.Error())
+			}
+			return &object.Stringo{Value: string(bs)}
+		},
+	},
+	"write": {
+		Fun: func(args ...object.Object) object.Object {
+			argLen := len(args)
+			if argLen != 2 {
+				return newError("wrong number of arguments to `write`. got=%d, want=2", argLen)
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("arguments to `write` must be STRING, got %s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("arguments to `write` must be STRING, got %s", args[1].Type())
+			}
+			fname := args[0].(*object.Stringo).Value
+			contents := args[1].(*object.Stringo).Value
+			err := os.WriteFile(fname, []byte(contents), 0644)
+			if err != nil {
+				return newError("error writing file `%s`: %s", fname, err.Error())
+			}
+			return NULL
+		},
+	},
+	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
 }
