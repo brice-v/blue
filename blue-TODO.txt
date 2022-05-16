@@ -1,5 +1,6 @@
 TODO:
 
+- [ ] (Bug) Handle Comment inside for loop? - multiline comment was giving me issues
 - [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
 - [ ] Add file to current environment
 - [ ] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
