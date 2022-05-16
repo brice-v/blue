@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -414,37 +415,49 @@ func evalInExpression(node *ast.InfixExpression, env *object.Environment) object
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		// This is where we handle if its a Map
 		// TODO: We need to get the key as a string/number/boolean instead of hashkey, maybe their could be some lookup method
-		// mapPairs := evaluatedRight.(*object.Map).Pairs
-		// mapKeys := make([]object.Object, 0, len(mapPairs))
-		// for k := range mapPairs {
-		// 	mapKeys = append(mapKeys, k.Value)
-		// }
-		// _, ok = env.Get(ident.Value)
-		// if !ok {
-		// 	iterCount = append(iterCount, 0)
-		// 	nestLevel++
-		// 	env.Set(ident.Value, list[iterCount[nestLevel]])
-		// 	iterCount[nestLevel]++
-		// 	if len(list) == iterCount[nestLevel] {
-		// 		// Reset iteration for other items
-		// 		iterCount[nestLevel] = 0
-		// 		nestLevel--
-		// 		cleanupTmpVar[ident.Value] = true
-		// 		return FALSE
-		// 	}
-		// 	return TRUE
-		// }
-		// env.Set(ident.Value, list[iterCount[nestLevel]])
-		// iterCount[nestLevel]++
-		// if len(list) == iterCount[nestLevel] {
-		// 	// Reset iteration for other items
-		// 	iterCount[nestLevel] = 0
-		// 	nestLevel--
-		// 	cleanupTmpVar[ident.Value] = true
-		// 	return FALSE
-		// }
-		// return TRUE
-		panic("---------------------TODO---------------------")
+
+		// Right now we are actually using a list of the pair when the left side is an ident
+		// but we can probably allow the user to use a list, that destructures to 2 idents
+		// or we will need a new ast expression for multiple ident assignments
+		// TODO: This is where we can modify if we want to only use keys
+		mapPairs := evaluatedRight.(*object.Map).Pairs
+		pairObjs := make([]*object.List, 0, len(mapPairs))
+		keys := []object.HashKey{}
+		for k := range mapPairs {
+			keys = append(keys, k)
+		}
+		sort.Slice(keys, func(p, q int) bool {
+			return keys[p].Value < keys[q].Value
+		})
+		for i := 0; i < len(mapPairs); i++ {
+			listObj := []object.Object{mapPairs[keys[i]].Key, mapPairs[keys[i]].Value}
+			pairObjs = append(pairObjs, &object.List{Elements: listObj})
+		}
+		_, ok = env.Get(ident.Value)
+		if !ok {
+			iterCount = append(iterCount, 0)
+			nestLevel++
+			env.Set(ident.Value, pairObjs[iterCount[nestLevel]])
+			iterCount[nestLevel]++
+			if len(pairObjs) == iterCount[nestLevel] {
+				// Reset iteration for other items
+				iterCount[nestLevel] = 0
+				nestLevel--
+				cleanupTmpVar[ident.Value] = true
+				return FALSE
+			}
+			return TRUE
+		}
+		env.Set(ident.Value, pairObjs[iterCount[nestLevel]])
+		iterCount[nestLevel]++
+		if len(mapPairs) == iterCount[nestLevel] {
+			// Reset iteration for other items
+			iterCount[nestLevel] = 0
+			nestLevel--
+			cleanupTmpVar[ident.Value] = true
+			return FALSE
+		}
+		return TRUE
 	} else if evaluatedRight.Type() == object.STRING_OBJ {
 		// This is where we handle if its a string
 		strVal := evaluatedRight.(*object.Stringo).Value
