@@ -189,6 +189,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalForExpression(node, env)
 	case *ast.ListCompLiteral:
 		return evalListCompLiteral(node, env)
+	case *ast.MapCompLiteral:
+		return evalMapCompLiteral(node, env)
 	case *ast.MatchExpression:
 		return evalMatchExpression(node, env)
 	case *ast.Null:
@@ -358,6 +360,21 @@ func evalListCompLiteral(node *ast.ListCompLiteral, env *object.Environment) obj
 		return nil
 	}
 	return &object.ListCompLiteral{Elements: someVal.(*object.List).Elements}
+}
+
+func evalMapCompLiteral(node *ast.MapCompLiteral, env *object.Environment) object.Object {
+	l := lexer.New(node.NonEvaluatedProgram)
+	p := parser.New(l)
+	rootNode := p.ParseProgram()
+	if len(rootNode.Statements) < 1 {
+		return nil
+	}
+	_ = Eval(rootNode, env)
+	someVal, ok := env.Get("__internal__")
+	if !ok {
+		return nil
+	}
+	return &object.MapCompLiteral{Pairs: someVal.(*object.Map).Pairs}
 }
 
 var nestLevel = -1

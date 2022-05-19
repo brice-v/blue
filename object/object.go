@@ -45,6 +45,8 @@ const (
 	SET_OBJ = "SET"
 	// LIST_COMP_OBJ is the list comprehension literal type string
 	LIST_COMP_OBJ = "LIST_COMP_OBJ"
+	// MAP_COMP_OBJ is the map comprehension literal type string
+	MAP_COMP_OBJ = "MAP_COMP_OBJ"
 	// MODULE_OBJ is the object type for an imported module
 	MODULE_OBJ = "MODULE_OBJ"
 )
@@ -302,6 +304,30 @@ func (m *Map) hashMap() uint64 {
 		h.Write(b)
 	}
 	return h.Sum64()
+}
+
+// MapCompLiteral is the list comprehension object struct
+type MapCompLiteral struct {
+	Pairs map[HashKey]MapPair // Pairs is the map of HashKey to other MapPair objects
+}
+
+// Type returns the list comprehension object type string
+func (mcl *MapCompLiteral) Type() Type { return MAP_COMP_OBJ }
+
+// Inspect returns a string representation of the mcl object
+func (mcl *MapCompLiteral) Inspect() string {
+	var out bytes.Buffer
+
+	pairs := []string{}
+	for _, pair := range mcl.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+
+	return out.String()
 }
 
 // SetPair is the set object and bool to represent its precense in the set

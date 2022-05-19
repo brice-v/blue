@@ -46,13 +46,19 @@ if (x != expectedx) {
     true
 }
 
-###
-var y = {n: n*2 for n in 1..4}
-var expectedy = {1: 2, 2: 4, 3: 6, 4: 8}
+
+var y = {n: n*2 for (n in 1..4)};
+var expectedy = {1: 2, 2: 4, 3: 6, 4: 8};
 
 if (y != expectedy) {
     false
 }
-###
 
-#true
+var asdfasdf = 10;
+var newasdf = {n: n**2 for (n in 1..x) if (n % 2 == 0)};
+var expectednewasdf = {0: 0, 2: 4, 4: 16, 6: 36, 8: 64};
+if (newasdf != expectednewasdf) {
+    false
+}
+
+true

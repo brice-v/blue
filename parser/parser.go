@@ -857,6 +857,9 @@ func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 		// get into the next exp
 		p.nextToken()
 		value := p.parseExpression(LOWEST)
+		if p.peekTokenIs(token.FOR) {
+			return p.parseMapComprehension(key, value)
+		}
 
 		exp.Pairs[key] = value
 
@@ -1065,6 +1068,43 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 	}
 	exps = append(exps, &ast.ListCompLiteral{NonEvaluatedProgram: program})
 	return exps
+}
+
+func (p *Parser) parseMapComprehension(key, value ast.Expression) ast.Expression {
+	// Skip over the for
+	p.nextToken()
+	// current token is for, expect next to be lparen
+	if !p.expectPeekIs(token.LPAREN) {
+		return nil
+	}
+	// move to the expression in the condition
+	p.nextToken()
+
+	expCond := p.parseExpression(LOWEST)
+	if !p.expectPeekIs(token.RPAREN) {
+		return nil
+	}
+
+	var ifCond ast.Expression
+	if p.peekTokenIs(token.IF) {
+		// skip RPAREN
+		p.nextToken()
+		// skip IF
+		p.nextToken()
+		ifCond = p.parseExpression(LOWEST)
+	}
+
+	var program string
+	if ifCond != nil {
+		program = fmt.Sprintf("var __internal__ = {}; for %s { if %s { __internal__[%s] = %s } };:", expCond, ifCond, key.String(), value.String())
+	} else {
+		program = fmt.Sprintf("var __internal__ = {}; for %s { __internal__[%s] = %s  };", expCond, key.String(), value.String())
+	}
+	if !p.expectPeekIs(token.RBRACE) {
+		return nil
+	}
+
+	return &ast.MapCompLiteral{NonEvaluatedProgram: program}
 }
 
 // stringLexer is used to parse string interpolation values

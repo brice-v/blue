@@ -258,6 +258,25 @@ func (ml *MapLiteral) String() string {
 	return out.String()
 }
 
+// MapCompLiteral is the struct representing a map comprehension
+type MapCompLiteral struct {
+	Token               token.Token // Doesnt really have a token
+	NonEvaluatedProgram string      // The program we will evaluate in evaluator
+}
+
+// expressionNode satisfies the expression interface
+func (mcl *MapCompLiteral) expressionNode() {}
+
+// TokenLiteral returns something but mcl currently doesnt really support it
+func (mcl *MapCompLiteral) TokenLiteral() string {
+	return mcl.Token.Literal
+}
+
+// String returns the program to execute
+func (mcl *MapCompLiteral) String() string {
+	return mcl.NonEvaluatedProgram
+}
+
 // SetLiteral is the set literal struct ast node
 type SetLiteral struct {
 	Token    token.Token  // Token == {
