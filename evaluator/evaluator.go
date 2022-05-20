@@ -191,6 +191,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalListCompLiteral(node, env)
 	case *ast.MapCompLiteral:
 		return evalMapCompLiteral(node, env)
+	case *ast.SetCompLiteral:
+		return evalSetCompLiteral(node, env)
 	case *ast.MatchExpression:
 		return evalMatchExpression(node, env)
 	case *ast.Null:
@@ -375,6 +377,21 @@ func evalMapCompLiteral(node *ast.MapCompLiteral, env *object.Environment) objec
 		return nil
 	}
 	return &object.MapCompLiteral{Pairs: someVal.(*object.Map).Pairs}
+}
+
+func evalSetCompLiteral(node *ast.SetCompLiteral, env *object.Environment) object.Object {
+	l := lexer.New(node.NonEvaluatedProgram)
+	p := parser.New(l)
+	rootNode := p.ParseProgram()
+	if len(rootNode.Statements) < 1 {
+		return nil
+	}
+	_ = Eval(rootNode, env)
+	someVal, ok := env.Get("__internal__")
+	if !ok {
+		return nil
+	}
+	return &object.Set{Elements: someVal.(*object.Set).Elements}
 }
 
 var nestLevel = -1
@@ -1458,11 +1475,10 @@ func evalSetInfixExpression(operator string, left, right object.Object) object.O
 	if len(leftE) >= len(rightE) {
 		leftElems = leftE
 		rightElems = rightE
-	} else if len(leftE) < len(rightE) {
+	} else {
 		leftElems = rightE
 		rightElems = leftE
 	}
-	// TODO: Need to take into account the size of each and loop the bigger one
 	switch operator {
 	case "|":
 		// union

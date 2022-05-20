@@ -61,4 +61,11 @@ if (newasdf != expectednewasdf) {
     false
 }
 
+
+var setCompAbc = {aaaa for (aaaa in 1..10) if (aaaa % 2 == 0)};
+var expectedSetAbc = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+if (setCompAbc != expectedSetAbc) {
+    false
+}
+
 true

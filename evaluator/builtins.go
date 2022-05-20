@@ -11,7 +11,7 @@ var builtins = map[string]*object.Builtin{
 	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
+				return newError("wrong number of arguments to `len`. got=%d, want=1", len(args))
 			}
 
 			switch arg := args[0].(type) {
@@ -21,6 +21,8 @@ var builtins = map[string]*object.Builtin{
 				return &object.Integer{Value: int64(len(arg.Elements))}
 			case *object.Map:
 				return &object.Integer{Value: int64(len(arg.Pairs))}
+			case *object.Set:
+				return &object.Integer{Value: int64(len(arg.Elements))}
 			default:
 				return newError("argument to `len` not supported, got %s", args[0].Type())
 			}
@@ -29,7 +31,7 @@ var builtins = map[string]*object.Builtin{
 	"first": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
+				return newError("wrong number of arguments to `first`. got=%d, want=1", len(args))
 			}
 			if args[0].Type() != object.LIST_OBJ {
 				return newError("argument to `first` must be LIST, got %s", args[0].Type())
@@ -44,10 +46,10 @@ var builtins = map[string]*object.Builtin{
 	"last": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
+				return newError("wrong number of arguments to `last`. got=%d, want=1", len(args))
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument to `first` must be LIST, got %s", args[0].Type())
+				return newError("argument to `last` must be LIST, got %s", args[0].Type())
 			}
 			l := args[0].(*object.List)
 			last := len(l.Elements)
@@ -60,7 +62,7 @@ var builtins = map[string]*object.Builtin{
 	"rest": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
+				return newError("wrong number of arguments to `rest`. got=%d, want=1", len(args))
 			}
 			if args[0].Type() != object.LIST_OBJ {
 				return newError("argument to `rest` must be LIST, got %s", args[0].Type())
@@ -79,7 +81,7 @@ var builtins = map[string]*object.Builtin{
 	"append": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("wrong number of arguments. got=%d, want=2", len(args))
+				return newError("wrong number of arguments to `append`. got=%d, want=2", len(args))
 			}
 			if args[0].Type() != object.LIST_OBJ {
 				return newError("argument to `append` must be LIST, got %s", args[0].Type())
@@ -119,7 +121,7 @@ var builtins = map[string]*object.Builtin{
 					return &object.Stringo{Value: scanner.Text()}
 				}
 				if err := scanner.Err(); err != nil {
-					return newError("reading standard input: %s", err.Error())
+					return newError("`input` error reading standard input: %s", err.Error())
 				}
 			} else if argLen == 1 {
 				// read input with prompt
@@ -132,7 +134,7 @@ var builtins = map[string]*object.Builtin{
 					return &object.Stringo{Value: scanner.Text()}
 				}
 				if err := scanner.Err(); err != nil {
-					return newError("error reading stdin: %s", err.Error())
+					return newError("`input` error reading stdin: %s", err.Error())
 				}
 			}
 			return newError("wrong number of arguments to `input`. got=%d, want=1 (or none)", len(args))
@@ -149,11 +151,11 @@ var builtins = map[string]*object.Builtin{
 			}
 			fnameo, ok := args[0].(*object.Stringo)
 			if !ok {
-				return newError("filename string object did not match expected object. got=%T", args[0])
+				return newError("filename string object did not match expected object in `read`. got=%T", args[0])
 			}
 			bs, err := os.ReadFile(fnameo.Value)
 			if err != nil {
-				return newError("error reading file `%s`: %s", fnameo.Value, err.Error())
+				return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
 			}
 			return &object.Stringo{Value: string(bs)}
 		},
@@ -177,6 +179,24 @@ var builtins = map[string]*object.Builtin{
 				return newError("error writing file `%s`: %s", fname, err.Error())
 			}
 			return NULL
+		},
+	},
+	"set": {
+		// This is needed so we can return a set from a list of objects
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("wrong number of arguments to `set`. got=%d, want=1", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("arguments to `set` must be LIST, got %s", args[0].Type())
+			}
+			elements := args[0].(*object.List).Elements
+			setMap := make(map[uint64]object.SetPair, len(elements))
+			for _, e := range elements {
+				hashKey := object.HashObject(e)
+				setMap[hashKey] = object.SetPair{Value: e, Present: true}
+			}
+			return &object.Set{Elements: setMap}
 		},
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff

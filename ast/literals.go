@@ -304,3 +304,22 @@ func (set *SetLiteral) String() string {
 
 	return out.String()
 }
+
+// SetCompLiteral is the struct representing a set comprehension
+type SetCompLiteral struct {
+	Token               token.Token // Doesnt really have a token
+	NonEvaluatedProgram string      // The program we will evaluate in evaluator
+}
+
+// expressionNode satisfies the expression interface
+func (scl *SetCompLiteral) expressionNode() {}
+
+// TokenLiteral returns something but scl currently doesnt really support it
+func (scl *SetCompLiteral) TokenLiteral() string {
+	return scl.Token.Literal
+}
+
+// String returns the program to execute
+func (scl *SetCompLiteral) String() string {
+	return scl.NonEvaluatedProgram
+}
