@@ -1,10 +1,10 @@
 TODO:
 
+- [ ] Implement try-catch similar to js
 - [ ] (Bug) Handle Comment inside for loop? - multiline comment was giving me issues
 - [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
 - [ ] Add file to current environment
 - [ ] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
-- [ ] Add variadic arguments (...)
 - [ ] Add continue, break
 - [ ] Add variadic arguments (...)
 - [ ] Support proper scopes
@@ -19,15 +19,8 @@ TODO:
     - see if they can work inside objects to make certain items immutable?
 - [ ] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
 - [ ] Include shift operators and assignment expressions to other types
-- [ ] Add list, map, set, etc. comprehensions to the parser and evaluator
-    - [x] List comprehensions (basically done and working)
 - [ ] Support regex literal in parser and evaluator
     - Might just use a syntax such as `re"[0-9]+"`
-- [x] Support `in` keyword for ranges and iterable items
-    - [ ] Make it possible to unpack a list, map, set, etc. using the for (VARS in OBJECT) syntax
-        - where VARS can be a tuple of variable declarations that would signify the unpacking
-        - for (indx, elem in LIST/SET/etc.) {}
-        - for (key, value in MAP/OBJ) {}
 - [ ] Add macro system from monkey
 - [ ] Support string interpolation helper to print out objects
     - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
@@ -60,6 +53,13 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Add list, map, set, etc. comprehensions to the parser and evaluator
+    - [x] List comprehensions (basically done and working)
+- [x] Support `in` keyword for ranges and iterable items
+    - [-] Make it possible to unpack a list, map, set, etc. using the for (VARS in OBJECT) syntax
+        - where VARS can be a tuple of variable declarations that would signify the unpacking
+        - [x] for (indx, elem in LIST/SET/etc.) {}
+        - [x] for (key, value in MAP/OBJ) {}
 - [x] (Bug) Fix lexing to identify issue when string is not escaped inside another string (such as in a stringinterp object)
 - [x] Figure out how importing will work - might be similar to zig
 - [x] Default to running the evaluator when the binary is used

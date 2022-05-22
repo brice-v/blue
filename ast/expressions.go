@@ -256,7 +256,6 @@ func (fe *ForExpression) String() string {
 }
 
 // AssignmentExpression is the type that supports rebinding variables
-// TODO: This should only be allowed on mutable fields/values - need to figure this out
 type AssignmentExpression struct {
 	Token token.Token // Token is the assignment token being used
 	Left  Expression  // Left is an expression to get assigned to
