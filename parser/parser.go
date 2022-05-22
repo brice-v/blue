@@ -906,7 +906,7 @@ func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 // parseForExpression parses a for expression and returns the for expressions
 // ast node
 // TODO: this function will need more work to cover the cases like ranges
-// the `in` keyword, while loop behavior(nvm use true), and traditional
+// the `in` keyword, and traditional
 // for loops like for (var x = 0; x < 10; x += 1) but maybe this should just
 // not be allowed and instead write for (i in 0..10)
 // also want to support iterating over lists, maps, etc.

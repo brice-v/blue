@@ -1880,10 +1880,7 @@ func evalListListInfixExpression(operator string, left, right object.Object) obj
 
 func twoListsEqual(leftList, rightList *object.List) bool {
 	// This is a deep equality expensive function
-	if object.HashObject(leftList) == object.HashObject(rightList) {
-		return true
-	}
-	return false
+	return object.HashObject(leftList) == object.HashObject(rightList)
 }
 
 func evalListIntegerInfixExpression(operator string, left, right object.Object) object.Object {
@@ -1923,17 +1920,11 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 
 	checkOverflow := func(leftVal, rightVal int64) bool {
 		result := leftVal + rightVal
-		if result-leftVal != rightVal {
-			return true
-		}
-		return false
+		return result-leftVal != rightVal
 	}
 	checkUnderflow := func(leftVal, rightVal int64) bool {
 		result := leftVal - rightVal
-		if result+rightVal != leftVal {
-			return true
-		}
-		return false
+		return result+rightVal != leftVal
 	}
 
 	checkOverflowMul := func(leftVal, rightVal int64) bool {
@@ -1944,10 +1935,7 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 			return true
 		}
 		result := leftVal * rightVal
-		if result/rightVal != leftVal {
-			return true
-		}
-		return false
+		return result/rightVal != leftVal
 	}
 
 	checkOverflowPow := func(leftVal, rightVal int64) bool {

@@ -8,13 +8,13 @@ import (
 func createStringList(input []string) []object.Object {
 	list := make([]object.Object, len(input))
 	for i, v := range input {
-		list[i] = &object.Stringo{v}
+		list[i] = &object.Stringo{Value: v}
 	}
 	return list
 }
 
 var stringbuiltins = map[string]*object.Builtin{
-	"startswith": &object.Builtin{
+	"startswith": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newError("wrong number of arguments. got=%d, want=2", len(args))
@@ -33,7 +33,7 @@ var stringbuiltins = map[string]*object.Builtin{
 			return FALSE
 		},
 	},
-	"endswith": &object.Builtin{
+	"endswith": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newError("wrong number of arguments. got=%d, want=2", len(args))
@@ -52,7 +52,7 @@ var stringbuiltins = map[string]*object.Builtin{
 			return FALSE
 		},
 	},
-	"split": &object.Builtin{
+	"split": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) > 2 {
 				return newError("wrong number of arguments. got=%d, want=1 and an optional separator", len(args))
@@ -80,7 +80,7 @@ var stringbuiltins = map[string]*object.Builtin{
 			return &object.List{Elements: createStringList(strList)}
 		},
 	},
-	"replace": &object.Builtin{
+	"replace": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
 				return newError("wrong number of arguments. got=%d, want=3", len(args))
@@ -101,7 +101,7 @@ var stringbuiltins = map[string]*object.Builtin{
 			return &object.Stringo{Value: replacedString}
 		},
 	},
-	"strip": &object.Builtin{
+	"strip": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1 and an optional character to strip", len(args))
