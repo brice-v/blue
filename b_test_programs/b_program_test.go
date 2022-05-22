@@ -45,8 +45,8 @@ func TestAllProgramsInDirectory(t *testing.T) {
 			repl.PrintParserErrors(os.Stderr, p.Errors())
 			t.Fatalf("File `%s`: failed to parse", f.Name())
 		}
-		env := object.NewEnvironment()
-		obj := evaluator.Eval(program, env)
+		e := evaluator.New()
+		obj := e.Eval(program)
 		if obj == nil {
 			t.Fatalf("File `%s`: evaluator returned nil", f.Name())
 		}

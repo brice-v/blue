@@ -645,8 +645,8 @@ func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	env := object.NewEnvironment()
-	return Eval(program, env)
+	e := New()
+	return e.Eval(program)
 }
 
 // testIntegerObject tests to see if the given object is an integer and if its

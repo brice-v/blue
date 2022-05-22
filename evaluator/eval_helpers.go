@@ -76,10 +76,7 @@ func nativeToBooleanObject(input bool) *object.Boolean {
 	return FALSE
 }
 
-// ArgToPassToBuiltin is the argument to be given to the builtin function
-var ArgToPassToBuiltin object.Object = nil
-
-func tryCreateValidBuiltinForDotCall(left, indx object.Object, leftNode ast.Expression) object.Object {
+func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, leftNode ast.Expression) object.Object {
 	// Try to see if the index being used is a builtin function
 	if indx.Type() != object.STRING_OBJ {
 		return nil
@@ -96,7 +93,7 @@ func tryCreateValidBuiltinForDotCall(left, indx object.Object, leftNode ast.Expr
 		return nil
 	}
 
-	ArgToPassToBuiltin = left
+	e.ArgToPassToBuiltin = left
 	// Return the builtin function object so that it can be used in the call
 	// expression
 	if isBuiltin {
@@ -109,18 +106,19 @@ func tryCreateValidBuiltinForDotCall(left, indx object.Object, leftNode ast.Expr
 	}
 }
 
-func applyFunction(fun object.Object, args []object.Object, defaultArgs map[string]object.Object) object.Object {
+func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defaultArgs map[string]object.Object) object.Object {
 	switch function := fun.(type) {
 	case *object.Function:
-		extendedEnv := extendFunctionEnv(function, args, defaultArgs)
-		evaluated := Eval(function.Body, extendedEnv)
+		newE := New()
+		newE.env = extendFunctionEnv(function, args, defaultArgs)
+		evaluated := newE.Eval(function.Body)
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
-		if ArgToPassToBuiltin != nil {
+		if e.ArgToPassToBuiltin != nil {
 			// prepend the argument to pass in to the front
-			args = append([]object.Object{ArgToPassToBuiltin}, args...)
+			args = append([]object.Object{e.ArgToPassToBuiltin}, args...)
 			// Unset the argument to pass in so itll be free next time we come to it
-			ArgToPassToBuiltin = nil
+			e.ArgToPassToBuiltin = nil
 		}
 		return function.Fun(args...)
 	default:
@@ -165,10 +163,10 @@ func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, en
 	}
 }
 
-func createFilePathFromImportPath(importPath string) string {
+func (e *Evaluator) createFilePathFromImportPath(importPath string) string {
 	var fpath bytes.Buffer
-	if EvalBasePath != "." {
-		fpath.WriteString(EvalBasePath)
+	if e.EvalBasePath != "." {
+		fpath.WriteString(e.EvalBasePath)
 		fpath.WriteString(string(os.PathSeparator))
 	}
 	importPath = strings.ReplaceAll(importPath, ".", string(os.PathSeparator))

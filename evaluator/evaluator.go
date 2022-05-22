@@ -19,9 +19,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// EvalBasePath is the base directory from which the current file is being run
-var EvalBasePath = "."
-
 var (
 	// TRUE is the true object which should be the same everywhere
 	TRUE = &object.Boolean{Value: true}
@@ -33,15 +30,49 @@ var (
 	IGNORE = &object.Null{}
 )
 
+type Evaluator struct {
+	env *object.Environment
+
+	// EvalBasePath is the base directory from which the current file is being run
+	EvalBasePath string
+
+	// ArgToPassToBuiltin is the argument to be given to the builtin function
+	ArgToPassToBuiltin object.Object
+
+	// Used for: indx, elem in for expression
+	nestLevel     int
+	iterCount     []int
+	cleanupTmpVar map[string]bool
+}
+
+func New() *Evaluator {
+	return &Evaluator{
+		env: object.NewEnvironment(),
+
+		// TRUE:   &object.Boolean{Value: true},
+		// FALSE:  &object.Boolean{Value: false},
+		// NULL:   &object.Null{},
+		// IGNORE: &object.Null{},
+
+		EvalBasePath: ".",
+
+		ArgToPassToBuiltin: nil,
+
+		nestLevel:     -1,
+		iterCount:     []int{},
+		cleanupTmpVar: make(map[string]bool),
+	}
+}
+
 // Eval takes an ast node and returns an object
-func Eval(node ast.Node, env *object.Environment) object.Object {
+func (e *Evaluator) Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
-		return evalProgram(node, env)
+		return e.evalProgram(node)
 	case *ast.ExpressionStatement:
-		return Eval(node.Expression, env)
+		return e.Eval(node.Expression)
 	case *ast.Identifier:
-		return evalIdentifier(node, env)
+		return e.evalIdentifier(node)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.BigIntegerLiteral:
@@ -59,48 +90,48 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.Boolean:
 		return nativeToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
-		right := Eval(node.Right, env)
+		right := e.Eval(node.Right)
 		if isError(right) {
 			return right
 		}
-		return evalPrefixExpression(node.Operator, right)
+		return e.evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
 		// If were in an `in` expression, it needs to be evaluated differently (for `for`)
 		if node.Operator == "in" {
-			return evalInExpression(node, env)
+			return e.evalInExpression(node)
 		}
-		left := Eval(node.Left, env)
+		left := e.Eval(node.Left)
 		if isError(left) {
 			return left
 		}
-		right := Eval(node.Right, env)
+		right := e.Eval(node.Right)
 		if isError(right) {
 			return right
 		}
-		return evalInfixExpression(node.Operator, left, right)
+		return e.evalInfixExpression(node.Operator, left, right)
 	case *ast.BlockStatement:
-		return evalBlockStatement(node, env)
+		return e.evalBlockStatement(node)
 	case *ast.IfExpression:
-		return evalIfExpression(node, env)
+		return e.evalIfExpression(node)
 	case *ast.ReturnStatement:
-		val := Eval(node.ReturnValue, env)
+		val := e.Eval(node.ReturnValue)
 		if isError(val) {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
 	case *ast.ValStatement:
-		val := Eval(node.Value, env)
+		val := e.Eval(node.Value)
 		if isError(val) {
 			return val
 		}
-		env.ImmutableSet(node.Name.Value)
-		env.Set(node.Name.Value, val)
+		e.env.ImmutableSet(node.Name.Value)
+		e.env.Set(node.Name.Value, val)
 	case *ast.VarStatement:
-		val := Eval(node.Value, env)
+		val := e.Eval(node.Value)
 		if isError(val) {
 			return val
 		}
-		env.Set(node.Name.Value, val)
+		e.env.Set(node.Name.Value, val)
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
@@ -110,13 +141,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 				defaultParams = append(defaultParams, nil)
 				continue
 			}
-			obj := Eval(val, env)
+			obj := e.Eval(val)
 			if isError(obj) {
 				return obj
 			}
 			defaultParams = append(defaultParams, obj)
 		}
-		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: env}
+		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env}
 	case *ast.FunctionStatement:
 		params := node.Parameters
 		body := node.Body
@@ -126,23 +157,23 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 				defaultParams = append(defaultParams, nil)
 				continue
 			}
-			obj := Eval(val, env)
+			obj := e.Eval(val)
 			if isError(obj) {
 				return obj
 			}
 			defaultParams = append(defaultParams, obj)
 		}
-		funObj := &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: env}
-		env.Set(node.Name.Value, funObj)
+		funObj := &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env}
+		e.env.Set(node.Name.Value, funObj)
 	case *ast.CallExpression:
-		function := Eval(node.Function, env)
+		function := e.Eval(node.Function)
 		if isError(function) {
 			return function
 		}
-		args := evalExpressions(node.Arguments, env)
+		args := e.evalExpressions(node.Arguments)
 		defaultArgs := make(map[string]object.Object)
 		for k, v := range node.DefaultArguments {
-			val := Eval(v, env)
+			val := e.Eval(v)
 			if isError(val) {
 				return val
 			}
@@ -151,54 +182,54 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
-		return applyFunction(function, args, defaultArgs)
+		return e.applyFunction(function, args, defaultArgs)
 	case *ast.StringLiteral:
 		if len(node.InterpolationValues) == 0 {
 			return &object.Stringo{Value: node.Value}
 		}
-		return evalStringWithInterpolation(node, env)
+		return e.evalStringWithInterpolation(node)
 	case *ast.ExecStringLiteral:
-		return evalExecStringLiteral(node, env)
+		return e.evalExecStringLiteral(node)
 	case *ast.ListLiteral:
-		elements := evalExpressions(node.Elements, env)
+		elements := e.evalExpressions(node.Elements)
 		if len(elements) == 1 && isError(elements[0]) {
 			return elements[0]
 		}
 		return &object.List{Elements: elements}
 	case *ast.IndexExpression:
-		left := Eval(node.Left, env)
+		left := e.Eval(node.Left)
 		if isError(left) {
 			return left
 		}
-		indx := Eval(node.Index, env)
+		indx := e.Eval(node.Index)
 		if isError(indx) {
 			return indx
 		}
-		val := tryCreateValidBuiltinForDotCall(left, indx, node.Left)
+		val := e.tryCreateValidBuiltinForDotCall(left, indx, node.Left)
 		if val != nil {
 			return val
 		}
-		return evalIndexExpression(left, indx, env)
+		return e.evalIndexExpression(left, indx)
 	case *ast.MapLiteral:
-		return evalMapLiteral(node, env)
+		return e.evalMapLiteral(node)
 	case *ast.AssignmentExpression:
-		return evalAssignmentExpression(node, env)
+		return e.evalAssignmentExpression(node)
 	case *ast.ForExpression:
-		return evalForExpression(node, env)
+		return e.evalForExpression(node)
 	case *ast.ListCompLiteral:
-		return evalListCompLiteral(node, env)
+		return e.evalListCompLiteral(node)
 	case *ast.MapCompLiteral:
-		return evalMapCompLiteral(node, env)
+		return e.evalMapCompLiteral(node)
 	case *ast.SetCompLiteral:
-		return evalSetCompLiteral(node, env)
+		return e.evalSetCompLiteral(node)
 	case *ast.MatchExpression:
-		return evalMatchExpression(node, env)
+		return e.evalMatchExpression(node)
 	case *ast.Null:
 		return NULL
 	case *ast.SetLiteral:
-		return evalSetLiteral(node, env)
+		return e.evalSetLiteral(node)
 	case *ast.ImportStatement:
-		return evalImportStatement(node, env)
+		return e.evalImportStatement(node)
 	default:
 		if node == nil {
 			// Just want to get rid of this in my output
@@ -212,9 +243,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	return NULL
 }
 
-func evalImportStatement(node *ast.ImportStatement, env *object.Environment) object.Object {
+func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object {
 	name := node.Path.Value
-	fpath := createFilePathFromImportPath(name)
+	fpath := e.createFilePathFromImportPath(name)
 	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
 	file, err := filepath.Abs(fpath)
 	if err != nil {
@@ -239,18 +270,20 @@ func evalImportStatement(node *ast.ImportStatement, env *object.Environment) obj
 		}
 		return newError("ParserError: File '%s' contains Parser Errors.", name)
 	}
-	newEnv := object.NewEnvironment()
-	val := Eval(program, newEnv)
+	// TODO: Does this need to be a newEnv?
+	// newEnv := object.NewEnvironment()
+	newE := New()
+	val := newE.Eval(program)
 	if isError(val) {
 		return val
 	}
-	mod := &object.Module{Name: modName, Env: newEnv}
-	env.Set(modName, mod)
+	mod := &object.Module{Name: modName, Env: newE.env}
+	e.env.Set(modName, mod)
 	return NULL
 }
 
-func evalSetLiteral(node *ast.SetLiteral, env *object.Environment) object.Object {
-	elements := evalExpressions(node.Elements, env)
+func (e *Evaluator) evalSetLiteral(node *ast.SetLiteral) object.Object {
+	elements := e.evalExpressions(node.Elements)
 	if len(elements) == 1 && isError(elements[0]) {
 		return elements[0]
 	}
@@ -263,7 +296,7 @@ func evalSetLiteral(node *ast.SetLiteral, env *object.Environment) object.Object
 	return &object.Set{Elements: setMap}
 }
 
-func evalMatchExpression(node *ast.MatchExpression, env *object.Environment) object.Object {
+func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {
 	conditionLen := len(node.Condition)
 	consequenceLen := len(node.Consequence)
 	if conditionLen != consequenceLen {
@@ -271,96 +304,92 @@ func evalMatchExpression(node *ast.MatchExpression, env *object.Environment) obj
 	}
 	var optVal object.Object
 	if node.OptionalValue != nil {
-		optVal = Eval(node.OptionalValue, env)
+		optVal = e.Eval(node.OptionalValue)
 		if isError(optVal) {
 			return optVal
 		}
 	}
-	env.Set("_", NULL)
+	e.env.Set("_", NULL)
 	for i := 0; i < conditionLen; i++ {
 		// Run through each condtion and if it evaluates to "true" then return the evaluated consequence
-		condVal := Eval(node.Condition[i], env)
+		condVal := e.Eval(node.Condition[i])
 		// This is our very basic form of pattern matching
 		if condVal.Type() == object.MAP_OBJ && optVal != nil && optVal.Type() == object.MAP_OBJ {
 			// Do our shape matching on it
 			if doCondAndMatchExpEqual(condVal, optVal) {
-				return Eval(node.Consequence[i], env)
+				return e.Eval(node.Consequence[i])
 			}
 		}
 		if optVal == nil {
-			evald := Eval(node.Condition[i], env)
+			evald := e.Eval(node.Condition[i])
 			if isError(evald) {
 				return evald
 			}
 			if evald == TRUE {
-				return Eval(node.Consequence[i], env)
+				return e.Eval(node.Consequence[i])
 			}
 		}
 		if object.HashObject(condVal) == object.HashObject(optVal) {
-			return Eval(node.Consequence[i], env)
+			return e.Eval(node.Consequence[i])
 		}
 		if condVal == IGNORE {
-			return Eval(node.Consequence[i], env)
+			return e.Eval(node.Consequence[i])
 		}
 	}
 	// Shouldnt reach here ideally
 	return nil
 }
 
-func evalListCompLiteral(node *ast.ListCompLiteral, env *object.Environment) object.Object {
+func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object {
 	l := lexer.New(node.NonEvaluatedProgram)
 	p := parser.New(l)
 	rootNode := p.ParseProgram()
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	_ = Eval(rootNode, env)
-	someVal, ok := env.Get("__internal__")
+	_ = e.Eval(rootNode)
+	someVal, ok := e.env.Get("__internal__")
 	if !ok {
 		return nil
 	}
 	return &object.ListCompLiteral{Elements: someVal.(*object.List).Elements}
 }
 
-func evalMapCompLiteral(node *ast.MapCompLiteral, env *object.Environment) object.Object {
+func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
 	l := lexer.New(node.NonEvaluatedProgram)
 	p := parser.New(l)
 	rootNode := p.ParseProgram()
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	_ = Eval(rootNode, env)
-	someVal, ok := env.Get("__internal__")
+	_ = e.Eval(rootNode)
+	someVal, ok := e.env.Get("__internal__")
 	if !ok {
 		return nil
 	}
 	return &object.MapCompLiteral{Pairs: someVal.(*object.Map).Pairs}
 }
 
-func evalSetCompLiteral(node *ast.SetCompLiteral, env *object.Environment) object.Object {
+func (e *Evaluator) evalSetCompLiteral(node *ast.SetCompLiteral) object.Object {
 	l := lexer.New(node.NonEvaluatedProgram)
 	p := parser.New(l)
 	rootNode := p.ParseProgram()
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	_ = Eval(rootNode, env)
-	someVal, ok := env.Get("__internal__")
+	_ = e.Eval(rootNode)
+	someVal, ok := e.env.Get("__internal__")
 	if !ok {
 		return nil
 	}
 	return &object.Set{Elements: someVal.(*object.Set).Elements}
 }
 
-var nestLevel = -1
-var iterCount = []int{}
-var cleanupTmpVar = make(map[string]bool)
-
 // evalInExpression evaluates `in` statements when they refer to a loop context
-func evalInExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
+func (e *Evaluator) evalInExpression(node *ast.InfixExpression) object.Object {
 	ident, ok := node.Left.(*ast.Identifier)
 	if ok {
-		return evalInExpressionWithIdentOnLeft(node.Right, ident, env)
+		return e.evalInExpressionWithIdentOnLeft(node.Right, ident)
 	}
 	listWithIdents, ok := node.Left.(*ast.ListLiteral)
 	if ok {
@@ -370,52 +399,52 @@ func evalInExpression(node *ast.InfixExpression, env *object.Environment) object
 			allAreIdents = allAreIdents && isI
 		}
 		if allAreIdents && len(listWithIdents.Elements) == 2 {
-			return evalInExpressionWithListOnLeft(node.Right, listWithIdents, env)
+			return e.evalInExpressionWithListOnLeft(node.Right, listWithIdents)
 		}
 	}
-	leftEval := Eval(node.Left, env)
+	leftEval := e.Eval(node.Left)
 	if isError(leftEval) {
 		return leftEval
 	}
-	rightEval := Eval(node.Right, env)
+	rightEval := e.Eval(node.Right)
 	if isError(rightEval) {
 		return rightEval
 	}
-	return evalInfixExpression(node.Operator, leftEval, rightEval)
+	return e.evalInfixExpression(node.Operator, leftEval, rightEval)
 }
 
-func evalInExpressionWithIdentOnLeft(right ast.Expression, ident *ast.Identifier, env *object.Environment) object.Object {
+func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident *ast.Identifier) object.Object {
 	// So if it is an identifier than we need to find out what we are trying to
 	// unpack/bind our value to
-	evaluatedRight := Eval(right, env)
+	evaluatedRight := e.Eval(right)
 	if isError(evaluatedRight) {
 		return evaluatedRight
 	}
 	if evaluatedRight.Type() == object.LIST_OBJ {
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
-		_, ok := env.Get(ident.Value)
+		_, ok := e.env.Get(ident.Value)
 		if !ok {
-			iterCount = append(iterCount, 0)
-			nestLevel++
-			env.Set(ident.Value, list[iterCount[nestLevel]])
-			iterCount[nestLevel]++
-			if len(list) == iterCount[nestLevel] {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			e.env.Set(ident.Value, list[e.iterCount[e.nestLevel]])
+			e.iterCount[e.nestLevel]++
+			if len(list) == e.iterCount[e.nestLevel] {
 				// Reset iteration for other items
-				iterCount[nestLevel] = 0
-				nestLevel--
-				cleanupTmpVar[ident.Value] = true
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[ident.Value] = true
 				return FALSE
 			}
 			return TRUE
 		}
-		env.Set(ident.Value, list[iterCount[nestLevel]])
-		iterCount[nestLevel]++
-		if len(list) == iterCount[nestLevel] {
+		e.env.Set(ident.Value, list[e.iterCount[e.nestLevel]])
+		e.iterCount[e.nestLevel]++
+		if len(list) == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
-			iterCount[nestLevel] = 0
-			nestLevel--
-			cleanupTmpVar[ident.Value] = true
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[ident.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -440,28 +469,28 @@ func evalInExpressionWithIdentOnLeft(right ast.Expression, ident *ast.Identifier
 			listObj := []object.Object{mapPairs[keys[i]].Key, mapPairs[keys[i]].Value}
 			pairObjs = append(pairObjs, &object.List{Elements: listObj})
 		}
-		_, ok := env.Get(ident.Value)
+		_, ok := e.env.Get(ident.Value)
 		if !ok {
-			iterCount = append(iterCount, 0)
-			nestLevel++
-			env.Set(ident.Value, pairObjs[iterCount[nestLevel]])
-			iterCount[nestLevel]++
-			if len(pairObjs) == iterCount[nestLevel] {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
+			e.iterCount[e.nestLevel]++
+			if len(pairObjs) == e.iterCount[e.nestLevel] {
 				// Reset iteration for other items
-				iterCount[nestLevel] = 0
-				nestLevel--
-				cleanupTmpVar[ident.Value] = true
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[ident.Value] = true
 				return FALSE
 			}
 			return TRUE
 		}
-		env.Set(ident.Value, pairObjs[iterCount[nestLevel]])
-		iterCount[nestLevel]++
-		if len(mapPairs) == iterCount[nestLevel] {
+		e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
+		e.iterCount[e.nestLevel]++
+		if len(mapPairs) == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
-			iterCount[nestLevel] = 0
-			nestLevel--
-			cleanupTmpVar[ident.Value] = true
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[ident.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -473,28 +502,28 @@ func evalInExpressionWithIdentOnLeft(right ast.Expression, ident *ast.Identifier
 		for _, ch := range chars {
 			stringObjs = append(stringObjs, &object.Stringo{Value: string(ch)})
 		}
-		_, ok := env.Get(ident.Value)
+		_, ok := e.env.Get(ident.Value)
 		if !ok {
-			iterCount = append(iterCount, 0)
-			nestLevel++
-			env.Set(ident.Value, stringObjs[iterCount[nestLevel]])
-			iterCount[nestLevel]++
-			if len(chars) == iterCount[nestLevel] {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			e.env.Set(ident.Value, stringObjs[e.iterCount[e.nestLevel]])
+			e.iterCount[e.nestLevel]++
+			if len(chars) == e.iterCount[e.nestLevel] {
 				// Reset iteration for other items
-				iterCount[nestLevel] = 0
-				nestLevel--
-				cleanupTmpVar[ident.Value] = true
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[ident.Value] = true
 				return FALSE
 			}
 			return TRUE
 		}
-		env.Set(ident.Value, stringObjs[iterCount[nestLevel]])
-		iterCount[nestLevel]++
-		if len(stringObjs) == iterCount[nestLevel] {
+		e.env.Set(ident.Value, stringObjs[e.iterCount[e.nestLevel]])
+		e.iterCount[e.nestLevel]++
+		if len(stringObjs) == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
-			iterCount[nestLevel] = 0
-			nestLevel--
-			cleanupTmpVar[ident.Value] = true
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[ident.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -502,7 +531,7 @@ func evalInExpressionWithIdentOnLeft(right ast.Expression, ident *ast.Identifier
 	return newError("Expected List, Map, or String on right hand side. got %T", evaluatedRight.Type())
 }
 
-func evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.ListLiteral, env *object.Environment) object.Object {
+func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.ListLiteral) object.Object {
 	// Note: We validate above that there are only 2 'ident' elements in the list
 	identLeft, ok := listWithIdents.Elements[0].(*ast.Identifier)
 	if !ok {
@@ -513,39 +542,39 @@ func evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.Li
 		return newError("List of Identifiers right element was not Identifier. got=%T", listWithIdents.Elements[1])
 	}
 
-	evaluatedRight := Eval(right, env)
+	evaluatedRight := e.Eval(right)
 	if isError(evaluatedRight) {
 		return evaluatedRight
 	}
 	if evaluatedRight.Type() == object.LIST_OBJ {
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
-		_, ok := env.Get(identRight.Value)
+		_, ok := e.env.Get(identRight.Value)
 		if !ok {
-			iterCount = append(iterCount, 0)
-			nestLevel++
-			env.Set(identLeft.Value, &object.Integer{Value: int64(iterCount[nestLevel])})
-			env.Set(identRight.Value, list[iterCount[nestLevel]])
-			iterCount[nestLevel]++
-			if len(list) == iterCount[nestLevel] {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
+			e.env.Set(identRight.Value, list[e.iterCount[e.nestLevel]])
+			e.iterCount[e.nestLevel]++
+			if len(list) == e.iterCount[e.nestLevel] {
 				// Reset iteration for other items
-				iterCount[nestLevel] = 0
-				nestLevel--
-				cleanupTmpVar[identLeft.Value] = true
-				cleanupTmpVar[identRight.Value] = true
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[identLeft.Value] = true
+				e.cleanupTmpVar[identRight.Value] = true
 				return FALSE
 			}
 			return TRUE
 		}
-		env.Set(identLeft.Value, &object.Integer{Value: int64(iterCount[nestLevel])})
-		env.Set(identRight.Value, list[iterCount[nestLevel]])
-		iterCount[nestLevel]++
-		if len(list) == iterCount[nestLevel] {
+		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
+		e.env.Set(identRight.Value, list[e.iterCount[e.nestLevel]])
+		e.iterCount[e.nestLevel]++
+		if len(list) == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
-			iterCount[nestLevel] = 0
-			nestLevel--
-			cleanupTmpVar[identLeft.Value] = true
-			cleanupTmpVar[identRight.Value] = true
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[identLeft.Value] = true
+			e.cleanupTmpVar[identRight.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -563,32 +592,32 @@ func evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.Li
 			listObj := []object.Object{mapPairs[keys[i]].Key, mapPairs[keys[i]].Value}
 			pairObjs = append(pairObjs, &object.List{Elements: listObj})
 		}
-		_, ok := env.Get(identRight.Value)
+		_, ok := e.env.Get(identRight.Value)
 		if !ok {
-			iterCount = append(iterCount, 0)
-			nestLevel++
-			env.Set(identLeft.Value, pairObjs[iterCount[nestLevel]].Elements[0])
-			env.Set(identRight.Value, pairObjs[iterCount[nestLevel]].Elements[1])
-			iterCount[nestLevel]++
-			if len(pairObjs) == iterCount[nestLevel] {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			e.env.Set(identLeft.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[0])
+			e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
+			e.iterCount[e.nestLevel]++
+			if len(pairObjs) == e.iterCount[e.nestLevel] {
 				// Reset iteration for other items
-				iterCount[nestLevel] = 0
-				nestLevel--
-				cleanupTmpVar[identLeft.Value] = true
-				cleanupTmpVar[identRight.Value] = true
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[identLeft.Value] = true
+				e.cleanupTmpVar[identRight.Value] = true
 				return FALSE
 			}
 			return TRUE
 		}
-		env.Set(identLeft.Value, pairObjs[iterCount[nestLevel]].Elements[0])
-		env.Set(identRight.Value, pairObjs[iterCount[nestLevel]].Elements[1])
-		iterCount[nestLevel]++
-		if len(mapPairs) == iterCount[nestLevel] {
+		e.env.Set(identLeft.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[0])
+		e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
+		e.iterCount[e.nestLevel]++
+		if len(mapPairs) == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
-			iterCount[nestLevel] = 0
-			nestLevel--
-			cleanupTmpVar[identLeft.Value] = true
-			cleanupTmpVar[identRight.Value] = true
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[identLeft.Value] = true
+			e.cleanupTmpVar[identRight.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -600,32 +629,32 @@ func evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.Li
 		for _, ch := range chars {
 			stringObjs = append(stringObjs, &object.Stringo{Value: string(ch)})
 		}
-		_, ok := env.Get(identRight.Value)
+		_, ok := e.env.Get(identRight.Value)
 		if !ok {
-			iterCount = append(iterCount, 0)
-			nestLevel++
-			env.Set(identLeft.Value, &object.Integer{Value: int64(iterCount[nestLevel])})
-			env.Set(identRight.Value, stringObjs[iterCount[nestLevel]])
-			iterCount[nestLevel]++
-			if len(chars) == iterCount[nestLevel] {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
+			e.env.Set(identRight.Value, stringObjs[e.iterCount[e.nestLevel]])
+			e.iterCount[e.nestLevel]++
+			if len(chars) == e.iterCount[e.nestLevel] {
 				// Reset iteration for other items
-				iterCount[nestLevel] = 0
-				nestLevel--
-				cleanupTmpVar[identLeft.Value] = true
-				cleanupTmpVar[identRight.Value] = true
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[identLeft.Value] = true
+				e.cleanupTmpVar[identRight.Value] = true
 				return FALSE
 			}
 			return TRUE
 		}
-		env.Set(identLeft.Value, &object.Integer{Value: int64(iterCount[nestLevel])})
-		env.Set(identRight.Value, stringObjs[iterCount[nestLevel]])
-		iterCount[nestLevel]++
-		if len(stringObjs) == iterCount[nestLevel] {
+		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
+		e.env.Set(identRight.Value, stringObjs[e.iterCount[e.nestLevel]])
+		e.iterCount[e.nestLevel]++
+		if len(stringObjs) == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
-			iterCount[nestLevel] = 0
-			nestLevel--
-			cleanupTmpVar[identRight.Value] = true
-			cleanupTmpVar[identRight.Value] = true
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[identRight.Value] = true
+			e.cleanupTmpVar[identRight.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -633,24 +662,24 @@ func evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.Li
 	return newError("Expected List, Map, or String on right hand side. got %T", evaluatedRight.Type())
 }
 
-func evalForExpression(node *ast.ForExpression, env *object.Environment) object.Object {
+func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 	var evalBlock object.Object
 	for {
-		evalCond := Eval(node.Condition, env)
+		evalCond := e.Eval(node.Condition)
 		if isError(evalCond) {
 			return evalCond
 		}
 		ok := evalCond.(*object.Boolean).Value
-		evalBlock = Eval(node.Consequence, env)
+		evalBlock = e.Eval(node.Consequence)
 		if isError(evalBlock) {
 			return evalBlock
 		}
 		// Cleanup any temporary for variables
-		tmpMapCopy := cleanupTmpVar
+		tmpMapCopy := e.cleanupTmpVar
 		for k, v := range tmpMapCopy {
 			if v {
-				env.RemoveIdentifier(k)
-				delete(cleanupTmpVar, k)
+				e.env.RemoveIdentifier(k)
+				delete(e.cleanupTmpVar, k)
 			}
 		}
 		// Still evaluate on the last run then break if its false
@@ -661,8 +690,8 @@ func evalForExpression(node *ast.ForExpression, env *object.Environment) object.
 	return evalBlock
 }
 
-func evalAssignmentExpression(node *ast.AssignmentExpression, env *object.Environment) object.Object {
-	left := Eval(node.Left, env)
+func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) object.Object {
+	left := e.Eval(node.Left)
 	if isError(left) {
 		return left
 	}
@@ -675,154 +704,154 @@ func evalAssignmentExpression(node *ast.AssignmentExpression, env *object.Enviro
 		// an identifier that is immutable
 		removeLeftParens := strings.ReplaceAll(node.Left.String(), "(", "")
 		rootObjIdent := strings.Split(removeLeftParens, "[")[0]
-		if ok := env.IsImmutable(rootObjIdent); ok {
+		if ok := e.env.IsImmutable(rootObjIdent); ok {
 			return newError("'" + rootObjIdent + "' is immutable")
 		}
 	}
 
-	value := Eval(node.Value, env)
+	value := e.Eval(node.Value)
 	if isError(value) {
 		return value
 	}
 
 	// If its a simple identifier allow reassigning like so
 	if ident, ok := node.Left.(*ast.Identifier); ok {
-		if env.IsImmutable(ident.Value) {
+		if e.env.IsImmutable(ident.Value) {
 			return newError("'" + ident.Value + "' is immutable")
 		}
 		switch node.Token.Literal {
 		case "=":
-			env.Set(ident.Value, value)
+			e.env.Set(ident.Value, value)
 		case "+=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("+", orig, value)
+			evaluated := e.evalInfixExpression("+", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "-=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("-", orig, value)
+			evaluated := e.evalInfixExpression("-", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "*=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("*", orig, value)
+			evaluated := e.evalInfixExpression("*", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "/=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("/", orig, value)
+			evaluated := e.evalInfixExpression("/", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "//=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("//", orig, value)
+			evaluated := e.evalInfixExpression("//", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "**=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("**", orig, value)
+			evaluated := e.evalInfixExpression("**", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "&=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("&", orig, value)
+			evaluated := e.evalInfixExpression("&", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "|=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("|", orig, value)
+			evaluated := e.evalInfixExpression("|", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "~=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("~", orig, value)
+			evaluated := e.evalInfixExpression("~", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "<<=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("<<", orig, value)
+			evaluated := e.evalInfixExpression("<<", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case ">>=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression(">>", orig, value)
+			evaluated := e.evalInfixExpression(">>", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "%=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("%", orig, value)
+			evaluated := e.evalInfixExpression("%", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		case "^=":
-			orig, ok := env.Get(ident.Value)
+			orig, ok := e.env.Get(ident.Value)
 			if !ok {
 				return newError("identifier '" + ident.String() + "' does not exist")
 			}
-			evaluated := evalInfixExpression("^", orig, value)
+			evaluated := e.evalInfixExpression("^", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
-			env.Set(ident.Value, evaluated)
+			e.env.Set(ident.Value, evaluated)
 		default:
 			return newError("assignment operator not supported `" + node.Token.Literal + "`")
 		}
@@ -830,13 +859,13 @@ func evalAssignmentExpression(node *ast.AssignmentExpression, env *object.Enviro
 		// otherwise if its an index expression
 	} else if ie, ok := node.Left.(*ast.IndexExpression); ok {
 		// TODO: Handle all assignment tokens that apply
-		obj := Eval(ie.Left, env)
+		obj := e.Eval(ie.Left)
 		if isError(obj) {
 			return obj
 		}
 
 		if list, ok := obj.(*object.List); ok {
-			index := Eval(ie.Index, env)
+			index := e.Eval(ie.Index)
 			if isError(index) {
 				return index
 			}
@@ -847,7 +876,7 @@ func evalAssignmentExpression(node *ast.AssignmentExpression, env *object.Enviro
 				return newError("cannot index list with %#v", index)
 			}
 		} else if mapObj, ok := obj.(*object.Map); ok {
-			key := Eval(ie.Index, env)
+			key := e.Eval(ie.Index)
 			if isError(key) {
 				return key
 			}
@@ -868,12 +897,12 @@ func evalAssignmentExpression(node *ast.AssignmentExpression, env *object.Enviro
 	return NULL
 }
 
-func evalMapLiteral(node *ast.MapLiteral, env *object.Environment) object.Object {
+func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	pairs := make(map[object.HashKey]object.MapPair)
 
 	for keyNode, valueNode := range node.Pairs {
 		ident, _ := keyNode.(*ast.Identifier)
-		key := Eval(keyNode, env)
+		key := e.Eval(keyNode)
 		if isError(key) && ident != nil {
 			key = &object.Stringo{Value: ident.String()}
 		} else if isError(key) {
@@ -885,7 +914,7 @@ func evalMapLiteral(node *ast.MapLiteral, env *object.Environment) object.Object
 			return newError("unusable as a map key: %s", key.Type())
 		}
 
-		value := Eval(valueNode, env)
+		value := e.Eval(valueNode)
 		if isError(value) {
 			return value
 		}
@@ -897,21 +926,21 @@ func evalMapLiteral(node *ast.MapLiteral, env *object.Environment) object.Object
 	return &object.Map{Pairs: pairs}
 }
 
-func evalIndexExpression(left, indx object.Object, env *object.Environment) object.Object {
+func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object {
 	switch {
 	case left.Type() == object.LIST_OBJ:
-		return evalListIndexExpression(left, indx, env)
+		return e.evalListIndexExpression(left, indx)
 	case left.Type() == object.MAP_OBJ:
-		return evalMapIndexExpression(left, indx, env)
+		return e.evalMapIndexExpression(left, indx)
 	case left.Type() == object.MODULE_OBJ:
-		return evalModuleIndexExpression(left, indx, env)
+		return e.evalModuleIndexExpression(left, indx)
 	default:
 		// TODO: Support all other index expressions, such as member lookup and hash literals, sets, etc.
 		return newError("index operator not supported: %s", left.Type())
 	}
 }
 
-func evalModuleIndexExpression(module, indx object.Object, env *object.Environment) object.Object {
+func (e *Evaluator) evalModuleIndexExpression(module, indx object.Object) object.Object {
 	mod := module.(*object.Module)
 	name := indx.(*object.Stringo).Value
 	val, ok := mod.Env.Get(name)
@@ -921,7 +950,7 @@ func evalModuleIndexExpression(module, indx object.Object, env *object.Environme
 	return val
 }
 
-func evalMapIndexExpression(mapObject, indx object.Object, env *object.Environment) object.Object {
+func (e *Evaluator) evalMapIndexExpression(mapObject, indx object.Object) object.Object {
 	mapObj := mapObject.(*object.Map)
 
 	key, ok := indx.(object.Hashable)
@@ -937,7 +966,7 @@ func evalMapIndexExpression(mapObject, indx object.Object, env *object.Environme
 	return pair.Value
 }
 
-func evalListIndexExpression(list, indx object.Object, env *object.Environment) object.Object {
+func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Object {
 	listObj := list.(*object.List)
 	var idx int64
 	switch indx.Type() {
@@ -945,7 +974,7 @@ func evalListIndexExpression(list, indx object.Object, env *object.Environment) 
 		idx = indx.(*object.Integer).Value
 	case object.STRING_OBJ:
 		stringVal := indx.(*object.Stringo).Value
-		envVal, ok := env.Get(stringVal)
+		envVal, ok := e.env.Get(stringVal)
 		if !ok {
 			return NULL
 		}
@@ -973,7 +1002,7 @@ func evalListIndexExpression(list, indx object.Object, env *object.Environment) 
 	return listObj.Elements[idx]
 }
 
-func evalExecStringLiteral(execStringNode *ast.ExecStringLiteral, env *object.Environment) object.Object {
+func (e *Evaluator) evalExecStringLiteral(execStringNode *ast.ExecStringLiteral) object.Object {
 	str := execStringNode.Value
 
 	splitStr := strings.Split(str, " ")
@@ -1007,8 +1036,8 @@ func evalExecStringLiteral(execStringNode *ast.ExecStringLiteral, env *object.En
 	return &object.Stringo{Value: string(output[:])}
 }
 
-func evalStringWithInterpolation(stringNode *ast.StringLiteral, env *object.Environment) object.Object {
-	someObjs := evalExpressions(stringNode.InterpolationValues, env)
+func (e *Evaluator) evalStringWithInterpolation(stringNode *ast.StringLiteral) object.Object {
+	someObjs := e.evalExpressions(stringNode.InterpolationValues)
 	if len(someObjs) == 1 && isError(someObjs[0]) {
 		return someObjs[0]
 	}
@@ -1022,11 +1051,11 @@ func evalStringWithInterpolation(stringNode *ast.StringLiteral, env *object.Envi
 	return &object.Stringo{Value: newString}
 }
 
-func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
+func (e *Evaluator) evalExpressions(exps []ast.Expression) []object.Object {
 	var result []object.Object
 
-	for _, e := range exps {
-		evaluated := Eval(e, env)
+	for _, elem := range exps {
+		evaluated := e.Eval(elem)
 		if isError(evaluated) {
 			return []object.Object{evaluated}
 		}
@@ -1040,8 +1069,8 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 	return result
 }
 
-func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	if val, ok := env.Get(node.Value); ok {
+func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
+	if val, ok := e.env.Get(node.Value); ok {
 		return val
 	}
 
@@ -1056,37 +1085,37 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 	return newError("identifier not found: " + node.Value)
 }
 
-func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
-	condition := Eval(ie.Condition, env)
+func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
+	condition := e.Eval(ie.Condition)
 	if isError(condition) {
 		return condition
 	}
 	if isTruthy(condition) {
-		return Eval(ie.Consequence, env)
+		return e.Eval(ie.Consequence)
 	} else if ie.Alternative != nil {
-		return Eval(ie.Alternative, env)
+		return e.Eval(ie.Alternative)
 	} else {
 		return NULL
 	}
 }
 
-func evalInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	// TODO: implement these similar to how list is set up with one type checked on one side
 	// and then check all the other sides in the next eval function
 	switch {
 	// These are the cases where they are the same type
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalIntegerInfixExpression(operator, left, right)
+		return e.evalIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.BIG_INTEGER_OBJ:
-		return evalBigIntegerInfixExpression(operator, left, right)
+		return e.evalBigIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalFloatInfixExpression(operator, left, right)
+		return e.evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalFloatIntInfixExpression(operator, left, right)
+		return e.evalFloatIntInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
-		return evalBigFloatInfixExpression(operator, left, right)
+		return e.evalBigFloatInfixExpression(operator, left, right)
 	case left.Type() == object.UINTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
-		return evalUintInfixExpression(operator, left, right)
+		return e.evalUintInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		leftStr := left.(*object.Stringo).Value
 		rightStr := right.(*object.Stringo).Value
@@ -1138,40 +1167,40 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
 	case left.Type() == object.SET_OBJ && right.Type() == object.SET_OBJ:
-		return evalSetInfixExpression(operator, left, right)
+		return e.evalSetInfixExpression(operator, left, right)
 	// These are the cases where they differ
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.BIG_INTEGER_OBJ:
-		return evalFloatBigIntegerInfixExpression(operator, left, right)
+		return e.evalFloatBigIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.BIG_INTEGER_OBJ:
-		return evalIntegerBigIntegerInfixExpression(operator, left, right)
+		return e.evalIntegerBigIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalBigIntegerFloatInfixExpression(operator, left, right)
+		return e.evalBigIntegerFloatInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalBigIntegerIntegerInfixExpression(operator, left, right)
+		return e.evalBigIntegerIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
-		return evalFloatBigFloatInfixExpression(operator, left, right)
+		return e.evalFloatBigFloatInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
-		return evalIntegerBigFloatInfixExpression(operator, left, right)
+		return e.evalIntegerBigFloatInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalBigFloatFloatInfixExpression(operator, left, right)
+		return e.evalBigFloatFloatInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalBigFloatIntegerInfixExpression(operator, left, right)
+		return e.evalBigFloatIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalIntegerFloatInfixExpression(operator, left, right)
+		return e.evalIntegerFloatInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
-		return evalIntegerUintegerInfixExpression(operator, left, right)
+		return e.evalIntegerUintegerInfixExpression(operator, left, right)
 	case right.Type() == object.INTEGER_OBJ && left.Type() == object.FLOAT_OBJ:
-		return evalIntegerFloatInfixExpression(operator, right, left)
+		return e.evalIntegerFloatInfixExpression(operator, right, left)
 	case right.Type() == object.INTEGER_OBJ && left.Type() == object.UINTEGER_OBJ:
-		return evalIntegerUintegerInfixExpression(operator, right, left)
+		return e.evalIntegerUintegerInfixExpression(operator, right, left)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalStringIntegerInfixExpression(operator, left, right)
+		return e.evalStringIntegerInfixExpression(operator, left, right)
 	case right.Type() == object.STRING_OBJ && left.Type() == object.INTEGER_OBJ:
-		return evalStringIntegerInfixExpression(operator, right, left)
+		return e.evalStringIntegerInfixExpression(operator, right, left)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.UINTEGER_OBJ:
-		return evalStringUintegerInfixExpression(operator, left, right)
+		return e.evalStringUintegerInfixExpression(operator, left, right)
 	case right.Type() == object.STRING_OBJ && left.Type() == object.UINTEGER_OBJ:
-		return evalStringUintegerInfixExpression(operator, right, left)
+		return e.evalStringUintegerInfixExpression(operator, right, left)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.LIST_OBJ:
 		leftVal := left.(*object.Integer)
 		righListElems := right.(*object.List).Elements
@@ -1268,9 +1297,9 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		}
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	case left.Type() == object.LIST_OBJ:
-		return evalListInfixExpression(operator, left, right)
+		return e.evalListInfixExpression(operator, left, right)
 	case right.Type() == object.SET_OBJ:
-		return evalRightSideSetInfixExpression(operator, left, right)
+		return e.evalRightSideSetInfixExpression(operator, left, right)
 	// NOTE: THESE OPERATORS MUST STAY BELOW THE TYPE CHECKING OTHERWISE IT COULD BREAK THINGS!!
 	case operator == "==":
 		return nativeToBooleanObject(left == right)
@@ -1309,7 +1338,7 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	}
 }
 
-func evalRightSideSetInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right object.Object) object.Object {
 	setElems := right.(*object.Set).Elements
 	switch left.Type() {
 	case object.INTEGER_OBJ:
@@ -1447,7 +1476,7 @@ func evalRightSideSetInfixExpression(operator string, left, right object.Object)
 }
 
 //TODO: Handle `in` and `notin` for set operations
-func evalSetInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.Object) object.Object {
 	leftE := left.(*object.Set).Elements
 	rightE := right.(*object.Set).Elements
 	newSet := &object.Set{Elements: make(map[uint64]object.SetPair)}
@@ -1536,60 +1565,59 @@ func evalSetInfixExpression(operator string, left, right object.Object) object.O
 	}
 }
 
-func evalBigFloatIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalBigFloatIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	rightVal := right.(*object.Integer).Value
 	rightBigFloat := decimal.NewFromInt(rightVal)
-	return evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
+	return e.evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
 }
 
-func evalBigFloatFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalBigFloatFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	rightVal := right.(*object.Float).Value
 	rightBigFloat := decimal.NewFromFloat(rightVal)
-	return evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
+	return e.evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
 }
 
-func evalIntegerBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalIntegerBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Integer).Value
 	leftBigFloat := decimal.NewFromInt(leftVal)
-	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
+	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
 }
 
-func evalFloatBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalFloatBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Float).Value
 	leftBigFloat := decimal.NewFromFloat(leftVal)
-	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
+	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
 }
 
-func evalBigIntegerIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalBigIntegerIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	rightVal := right.(*object.Integer).Value
 	rightBigInt := new(big.Int).SetInt64(rightVal)
-	return evalBigIntegerInfixExpression(operator, left, &object.BigInteger{Value: rightBigInt})
+	return e.evalBigIntegerInfixExpression(operator, left, &object.BigInteger{Value: rightBigInt})
 }
 
-func evalBigIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalBigIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := right.(*object.BigInteger).Value
 	rightVal := left.(*object.Float).Value
 	leftBigFloat := decimal.NewFromBigInt(leftVal, 1)
 	rightBigFloat := decimal.NewFromFloat(rightVal)
-
-	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
+	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
 }
 
-func evalIntegerBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalIntegerBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Integer).Value
 	leftBigInt := new(big.Int).SetInt64(leftVal)
-	return evalBigIntegerInfixExpression(operator, &object.BigInteger{Value: leftBigInt}, right)
+	return e.evalBigIntegerInfixExpression(operator, &object.BigInteger{Value: leftBigInt}, right)
 }
 
-func evalFloatBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalFloatBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Float).Value
 	rightVal := right.(*object.BigInteger).Value
 	leftBigFloat := decimal.NewFromFloat(leftVal)
 	rightBigFloat := decimal.NewFromBigInt(rightVal, 1)
-	return evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
+	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
 }
 
-func evalBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.BigFloat).Value
 	rightVal := right.(*object.BigFloat).Value
 	switch operator {
@@ -1648,7 +1676,7 @@ func evalBigFloatInfixExpression(operator string, left, right object.Object) obj
 	}
 }
 
-func evalBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.BigInteger).Value
 	rightVal := right.(*object.BigInteger).Value
 	result := big.NewInt(0)
@@ -1711,7 +1739,7 @@ func evalBigIntegerInfixExpression(operator string, left, right object.Object) o
 	}
 }
 
-func evalStringIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalStringIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Stringo).Value
 	rightVal := right.(*object.Integer).Value
 	switch operator {
@@ -1727,7 +1755,7 @@ func evalStringIntegerInfixExpression(operator string, left, right object.Object
 	}
 }
 
-func evalStringUintegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalStringUintegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Stringo).Value
 	rightVal := right.(*object.UInteger).Value
 	switch operator {
@@ -1743,7 +1771,7 @@ func evalStringUintegerInfixExpression(operator string, left, right object.Objec
 	}
 }
 
-func evalIntegerUintegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalIntegerUintegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftIntVal := left.(*object.Integer).Value
 	if leftIntVal < 0 {
 		return newError("Negative Integers are not allowed for Unsigned Integer operations")
@@ -1784,7 +1812,7 @@ func evalIntegerUintegerInfixExpression(operator string, left, right object.Obje
 	}
 }
 
-func evalIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := float64(left.(*object.Integer).Value)
 	rightVal := right.(*object.Float).Value
 	switch operator {
@@ -1819,20 +1847,20 @@ func evalIntegerFloatInfixExpression(operator string, left, right object.Object)
 	}
 }
 
-func evalListInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalListInfixExpression(operator string, left, right object.Object) object.Object {
 	switch right.Type() {
 	case object.INTEGER_OBJ:
-		return evalListIntegerInfixExpression(operator, left, right)
+		return e.evalListIntegerInfixExpression(operator, left, right)
 	case object.LIST_OBJ:
-		return evalListListInfixExpression(operator, left, right)
+		return e.evalListListInfixExpression(operator, left, right)
 	case object.SET_OBJ:
-		return evalRightSideSetInfixExpression(operator, left, right)
+		return e.evalRightSideSetInfixExpression(operator, left, right)
 	default:
 		return newError("unhandled type for list infix expressions: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
-func evalListListInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalListListInfixExpression(operator string, left, right object.Object) object.Object {
 	listLeftObj := left.(*object.List)
 	listRightObj := right.(*object.List)
 	listLeftElems := listLeftObj.Elements
@@ -1856,7 +1884,7 @@ func evalListListInfixExpression(operator string, left, right object.Object) obj
 	}
 }
 
-func evalListIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalListIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	listObj := left.(*object.List).Elements
 	intObj := right.(*object.Integer).Value
 	switch operator {
@@ -1874,20 +1902,20 @@ func evalListIntegerInfixExpression(operator string, left, right object.Object) 
 	}
 }
 
-func evalPrefixExpression(operator string, right object.Object) object.Object {
+func (e *Evaluator) evalPrefixExpression(operator string, right object.Object) object.Object {
 	switch operator {
 	case "not":
-		return evalNotOperatorExpression(right)
+		return e.evalNotOperatorExpression(right)
 	case "-":
-		return evalMinusPrefixOperatorExpression(right)
+		return e.evalMinusPrefixOperatorExpression(right)
 	case "~":
-		return evalBitwiseNotOperatorExpression(right)
+		return e.evalBitwiseNotOperatorExpression(right)
 	default:
 		return newError("unknown operator: %s%s", operator, right.Type())
 	}
 }
 
-func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
 
@@ -2001,15 +2029,15 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "!=":
 		return nativeToBooleanObject(leftVal != rightVal)
 	case "..":
-		return evalIntegerRange(leftVal, rightVal)
+		return e.evalIntegerRange(leftVal, rightVal)
 	case "..<":
-		return evalIntegerNonIncRange(leftVal, rightVal)
+		return e.evalIntegerNonIncRange(leftVal, rightVal)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
-func evalIntegerRange(leftVal, rightVal int64) object.Object {
+func (e *Evaluator) evalIntegerRange(leftVal, rightVal int64) object.Object {
 	var i int64
 
 	if leftVal < rightVal {
@@ -2033,7 +2061,7 @@ func evalIntegerRange(leftVal, rightVal int64) object.Object {
 	return &object.List{Elements: listElems}
 }
 
-func evalIntegerNonIncRange(leftVal, rightVal int64) object.Object {
+func (e *Evaluator) evalIntegerNonIncRange(leftVal, rightVal int64) object.Object {
 	var i int64
 
 	if leftVal < rightVal {
@@ -2054,13 +2082,13 @@ func evalIntegerNonIncRange(leftVal, rightVal int64) object.Object {
 	return newError("Can not use non inclusive range when both values equal")
 }
 
-func evalFloatIntInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalFloatIntInfixExpression(operator string, left, right object.Object) object.Object {
 	// Note: this may cause errors to print incorrectly but this is a quick way to solve
 	// for this use case
-	return evalIntegerFloatInfixExpression(operator, right, left)
+	return e.evalIntegerFloatInfixExpression(operator, right, left)
 }
 
-func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Float).Value
 	rightVal := right.(*object.Float).Value
 
@@ -2096,7 +2124,7 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 	}
 }
 
-func evalUintInfixExpression(operator string, left, right object.Object) object.Object {
+func (e *Evaluator) evalUintInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.UInteger).Value
 	rightVal := right.(*object.UInteger).Value
 
@@ -2138,7 +2166,7 @@ func evalUintInfixExpression(operator string, left, right object.Object) object.
 	}
 }
 
-func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
+func (e *Evaluator) evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	if right.Type() == object.INTEGER_OBJ {
 		value := right.(*object.Integer).Value
 		return &object.Integer{Value: -value}
@@ -2153,12 +2181,12 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	return NULL
 }
 
-func evalBitwiseNotOperatorExpression(right object.Object) object.Object {
+func (e *Evaluator) evalBitwiseNotOperatorExpression(right object.Object) object.Object {
 	value := right.(*object.UInteger).Value
 	return &object.UInteger{Value: 0xFFFFFFFFFFFFFFFF ^ value}
 }
 
-func evalNotOperatorExpression(right object.Object) object.Object {
+func (e *Evaluator) evalNotOperatorExpression(right object.Object) object.Object {
 	// here we are defining what happend on an object when the not operator is used on it
 	// to check if a list is empty we would need to put something to check it here
 	switch right {
@@ -2173,11 +2201,11 @@ func evalNotOperatorExpression(right object.Object) object.Object {
 	}
 }
 
-func evalProgram(program *ast.Program, env *object.Environment) object.Object {
+func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 	var result object.Object
 
 	for _, stmt := range program.Statements {
-		result = Eval(stmt, env)
+		result = e.Eval(stmt)
 		switch result := result.(type) {
 		case *object.ReturnValue:
 			return result.Value
@@ -2188,11 +2216,11 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 	return result
 }
 
-func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
+func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object {
 	var result object.Object
 
 	for _, stmt := range block.Statements {
-		result = Eval(stmt, env)
+		result = e.Eval(stmt)
 
 		if result != nil {
 			rt := result.Type()

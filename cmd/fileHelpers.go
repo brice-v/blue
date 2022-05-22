@@ -113,9 +113,9 @@ func evalCurrentFile() {
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
-	env := object.NewEnvironment()
-	evaluator.EvalBasePath = filepath.Dir(fpath)
-	val := evaluator.Eval(program, env)
+	e := evaluator.New()
+	e.EvalBasePath = filepath.Dir(fpath)
+	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		err := val.(*object.Error).Message
 		out.WriteString("EvaluatorError: " + err + "\n")
@@ -143,9 +143,9 @@ func evalFile() {
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
-	env := object.NewEnvironment()
-	evaluator.EvalBasePath = filepath.Dir(fpath)
-	val := evaluator.Eval(program, env)
+	e := evaluator.New()
+	e.EvalBasePath = filepath.Dir(fpath)
+	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		err := val.(*object.Error).Message
 		out.WriteString("EvaluatorError: " + err + "\n")

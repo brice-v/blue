@@ -3,7 +3,6 @@ package repl
 import (
 	"blue/evaluator"
 	"blue/lexer"
-	"blue/object"
 	"blue/parser"
 	"blue/token"
 	"fmt"
@@ -57,7 +56,7 @@ func StartEvalRepl(version string) {
 // startEvalRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
 func startEvalRepl(in io.Reader, out io.Writer, version, username string) {
-	env := object.NewEnvironment()
+	e := evaluator.New()
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", version, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {
@@ -82,7 +81,7 @@ func startEvalRepl(in io.Reader, out io.Writer, version, username string) {
 			PrintParserErrors(out, p.Errors())
 			continue
 		}
-		evaluated := evaluator.Eval(program, env)
+		evaluated := e.Eval(program)
 
 		if evaluated != nil {
 			io.WriteString(out, "=> ")
