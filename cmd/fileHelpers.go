@@ -193,9 +193,9 @@ var out = os.Stderr
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
-	env := object.NewEnvironment()
+	evaluator := evaluator.New()
 	evaluator.EvalBasePath = filepath.Dir(".")
-	val := evaluator.Eval(program, env)
+	val := evaluator.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		err := val.(*object.Error).Message
 		out.WriteString("EvaluatorError: " + err + "\n")
