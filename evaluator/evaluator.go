@@ -270,8 +270,6 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		}
 		return newError("ParserError: File '%s' contains Parser Errors.", name)
 	}
-	// TODO: Does this need to be a newEnv?
-	// newEnv := object.NewEnvironment()
 	newE := New()
 	val := newE.Eval(program)
 	if isError(val) {
@@ -934,6 +932,8 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 		return e.evalMapIndexExpression(left, indx)
 	case left.Type() == object.MODULE_OBJ:
 		return e.evalModuleIndexExpression(left, indx)
+	case left.Type() == object.STRING_OBJ:
+		return e.evalStringIndexExpression(left, indx)
 	default:
 		// TODO: Support all other index expressions, such as member lookup and hash literals, sets, etc.
 		return newError("index operator not supported: %s", left.Type())
@@ -1000,6 +1000,35 @@ func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Obj
 		return NULL
 	}
 	return listObj.Elements[idx]
+}
+
+func (e *Evaluator) evalStringIndexExpression(str, indx object.Object) object.Object {
+	strObj := str.(*object.Stringo)
+	var idx int64
+	switch indx.Type() {
+	case object.INTEGER_OBJ:
+		idx = indx.(*object.Integer).Value
+	case object.STRING_OBJ:
+		stringVal := indx.(*object.Stringo).Value
+		envVal, ok := e.env.Get(stringVal)
+		if !ok {
+			return NULL
+		}
+		intVal, ok := envVal.(*object.Integer)
+		if !ok {
+			return NULL
+		}
+		idx = intVal.Value
+	default:
+		return NULL
+	}
+	max := int64(runeLen(strObj.Value) - 1)
+	if idx < 0 || idx > max {
+		// TODO: possibly support -1 to get last element and negative numbers to go in reverse lookup of the list
+		// This would make the code below a bit more complex but still fairly easy to implement
+		return NULL
+	}
+	return &object.Stringo{Value: string([]rune(strObj.Value)[idx])}
 }
 
 func (e *Evaluator) evalExecStringLiteral(execStringNode *ast.ExecStringLiteral) object.Object {

@@ -512,11 +512,10 @@ func TestArrayIndexExpressions(t *testing.T) {
 			"val myArray = [1, 2, 3]; val i = 1; myArray.i",
 			2,
 		},
-		// TODO: this can be fixed by modifying parseMemberAccessExpression
-		// {
-		// 	"val myArray = [1, 2, 3]; val i = myArray.1; myArray.i",
-		// 	,
-		// },
+		{
+			"val myArray = [1, 2, 3]; val i = myArray.1; myArray.i",
+			3,
+		},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)

@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Add parser errors anywhere we are returning nil
+    - [ ] Eventually this should be able to point to the location via the token's location
 - [ ] Implement try-catch similar to js
 - [ ] (Bug) Handle Comment inside for loop? - multiline comment was giving me issues
 - [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)

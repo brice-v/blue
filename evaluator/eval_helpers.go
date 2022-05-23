@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"unicode/utf8"
 )
 
 func unwrapReturnValue(obj object.Object) object.Object {
@@ -201,4 +202,8 @@ func doCondAndMatchExpEqual(condVal, matchVal object.Object) bool {
 	}
 
 	return true
+}
+
+func runeLen(str string) int {
+	return utf8.RuneCountInString(str)
 }

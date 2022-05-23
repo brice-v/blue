@@ -895,12 +895,26 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 // parseMemberAccessExpression parses a dot token to use as an index expression
 func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression {
 	// first item needs to be a identifier
-	p.expectPeekIs(token.IDENT)
-	// create a string literal to use as a lookup for member access
-	indx := &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
-	// Token doesnt matter for this one but we need the rest
-	indxExp := &ast.IndexExpression{Left: left, Index: indx}
-	return indxExp
+	if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		// create a string literal to use as a lookup for member access
+		indx := &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+		// Token doesnt matter for this one but we need the rest
+		indxExp := &ast.IndexExpression{Left: left, Index: indx}
+		return indxExp
+	} else if p.peekTokenIs(token.INT) {
+		p.nextToken()
+		i, err := strconv.Atoi(p.curToken.Literal)
+		if err != nil {
+			return nil
+		}
+		indx := &ast.IntegerLiteral{Token: p.curToken, Value: int64(i)}
+		indxExp := &ast.IndexExpression{Left: left, Index: indx}
+		return indxExp
+	} else {
+		p.peekError(token.INT)
+		return nil
+	}
 }
 
 // parseForExpression parses a for expression and returns the for expressions
