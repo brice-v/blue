@@ -43,6 +43,8 @@ func Run(version string, args ...string) {
 		bundleCurrentFile()
 	case argc == 1:
 		repl.StartEvalRepl(version)
+	case argc > 2 && isValidFileForEval():
+		evalFile()
 	default:
 		log.Fatal("Invalid command line options")
 	}

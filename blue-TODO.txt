@@ -13,9 +13,6 @@ TODO:
 - [ ] Allow any function to use the dot call function syntax
 - [ ] Use struct{} for set implmentation
 - [ ] Support `else if` expression
-- [ ] Make `in` expression on map go in order of insertion
-    - [ ] Rearchitect Map object to include slice of objects (with hashkey)
-        - This can then be used to range in order but there is a lot of rearchitecting to do
 - [ ] Remove uints from working with big floats and ints
 - [ ] Make Val statements work to make immutable objects
     - see if they can work inside objects to make certain items immutable?
@@ -55,6 +52,10 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Make `in` expression on map go in order of insertion
+    - [-] Rearchitect Map object to include slice of objects (with hashkey)
+        - This can then be used to range in order but there is a lot of rearchitecting to do
+    - This was solved by sorting on hashkey when doing the 'in' expression
 - [x] Add list, map, set, etc. comprehensions to the parser and evaluator
     - [x] List comprehensions (basically done and working)
 - [x] Support `in` keyword for ranges and iterable items

@@ -853,9 +853,13 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		default:
 			return newError("assignment operator not supported `" + node.Token.Literal + "`")
 		}
-		// TODO: Figure out mutability properly, maybe need 2 environments
-		// otherwise if its an index expression
 	} else if ie, ok := node.Left.(*ast.IndexExpression); ok {
+		// Handle Assignment to Builtin Obj
+		if v, ok := ie.Left.(*ast.Identifier); ok {
+			if _, ok = builtinobjs[v.Value]; ok {
+				return e.evalAssignToBuiltinObj(ie, value)
+			}
+		}
 		// TODO: Handle all assignment tokens that apply
 		obj := e.Eval(ie.Left)
 		if isError(obj) {
@@ -893,6 +897,68 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 	}
 
 	return NULL
+}
+
+func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object.Object) object.Object {
+	ident, ok := ie.Left.(*ast.Identifier)
+	if !ok {
+		return newError("Builtin Obj was not Identifier")
+	}
+	var key string
+	var i int64
+	if ident.Value == "ENV" {
+		indexStr, ok := ie.Index.(*ast.StringLiteral)
+		if !ok {
+			return newError("Builtin Obj Index needs to be a String. got=%T", ie.Index)
+		}
+		key = indexStr.Value
+		if value.Type() != object.STRING_OBJ && value != NULL {
+			return newError("Builtin Obj Assignment value need to be string or null. got=%s", value.Type())
+		}
+	} else {
+		integer, ok := ie.Index.(*ast.IntegerLiteral)
+		if !ok {
+			return newError("Builtin Obj Index needs to be an Integer. got=%T", ie.Index)
+		}
+		i = integer.Value
+	}
+	switch ident.Value {
+	case "ENV":
+		if value == NULL {
+			// unset the var
+			err := os.Unsetenv(key)
+			if err != nil {
+				return newError("failed to unset ENV key '" + key + "'")
+			}
+		} else {
+			// set the env var
+			v := value.(*object.Stringo).Value
+			err := os.Setenv(key, v)
+			if err != nil {
+				return newError("failed to set ENV key='" + key + "', value='" + v + "'")
+			}
+		}
+		builtinobjs["ENV"].Obj = populateENVObj()
+		return NULL
+	case "ARGV":
+		v, ok := value.(*object.Stringo)
+		if !ok {
+			return newError("ARGV value must be string. got=%T", value)
+		}
+		x := e.Eval(ie.Left)
+		list, ok := x.(*object.List)
+		if !ok {
+			return newError("ARGV is not list. got=%T", x)
+		}
+		if int(i) > len(list.Elements) {
+			return newError("index %d is greater than len(ARGV) of %d", i, len(list.Elements))
+		}
+		list.Elements = append(list.Elements[:i+1], list.Elements[i:]...)
+		list.Elements[i] = v
+		return list.Elements[i]
+	}
+
+	return newError("unhandled builtin obj assignment on '" + ident.Value + "'")
 }
 
 func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
@@ -1109,6 +1175,10 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 
 	if builtin, ok := stringbuiltins[node.Value]; ok {
 		return builtin
+	}
+
+	if builtin, ok := builtinobjs[node.Value]; ok {
+		return builtin.Obj
 	}
 
 	return newError("identifier not found: " + node.Value)

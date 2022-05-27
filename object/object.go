@@ -218,6 +218,16 @@ func (b *Builtin) Type() Type { return BUILTIN_OBJ }
 // Inspect returns "builtin function"
 func (b *Builtin) Inspect() string { return "builtin function" }
 
+// BuiltinObj allows us to define a map object to be used for any builtins
+// that work better as a sort of module
+type BuiltinObj struct {
+	Obj Object
+}
+
+func (bo *BuiltinObj) Type() Type { return BUILTIN_OBJ }
+
+func (bo *BuiltinObj) Inspect() string { return "builtin object" }
+
 // List is the list object type struct
 type List struct {
 	Elements []Object
