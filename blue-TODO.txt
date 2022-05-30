@@ -1,12 +1,14 @@
 TODO:
 
+- [ ] Add docstrings
+- [ ] Fix STDIN write and reading
+    - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add parser errors anywhere we are returning nil
     - [ ] Eventually this should be able to point to the location via the token's location
 - [ ] Implement try-catch similar to js
 - [ ] (Bug) Handle Comment inside for loop? - multiline comment was giving me issues
 - [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
 - [ ] Add file to current environment
-- [ ] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
 - [ ] Add continue, break
 - [ ] Add variadic arguments (...)
 - [ ] Support proper scopes
@@ -14,8 +16,6 @@ TODO:
 - [ ] Use struct{} for set implmentation
 - [ ] Support `else if` expression
 - [ ] Remove uints from working with big floats and ints
-- [ ] Make Val statements work to make immutable objects
-    - see if they can work inside objects to make certain items immutable?
 - [ ] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
 - [ ] Include shift operators and assignment expressions to other types
 - [ ] Support regex literal in parser and evaluator
@@ -52,6 +52,10 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Make Val statements work to make immutable objects
+    - see if they can work inside objects to make certain items immutable?
+- [-] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
+    - These are pretty much implemented in a basic fashion
 - [x] Make `in` expression on map go in order of insertion
     - [-] Rearchitect Map object to include slice of objects (with hashkey)
         - This can then be used to range in order but there is a lot of rearchitecting to do

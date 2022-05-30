@@ -114,6 +114,7 @@ func evalCurrentFile() {
 		os.Exit(1)
 	}
 	e := evaluator.New()
+	e.CurrentFile = filepath.Clean(fpath)
 	e.EvalBasePath = filepath.Dir(fpath)
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
@@ -144,6 +145,7 @@ func evalFile() {
 		os.Exit(1)
 	}
 	e := evaluator.New()
+	e.CurrentFile = filepath.Clean(fpath)
 	e.EvalBasePath = filepath.Dir(fpath)
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
@@ -194,6 +196,7 @@ var out = os.Stderr
 		os.Exit(1)
 	}
 	evaluator := evaluator.New()
+	evaluator.CurrentFile = "<embed>"
 	evaluator.EvalBasePath = filepath.Dir(".")
 	val := evaluator.Eval(program)
 	if val.Type() == object.ERROR_OBJ {

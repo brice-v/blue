@@ -36,6 +36,9 @@ type Evaluator struct {
 	// EvalBasePath is the base directory from which the current file is being run
 	EvalBasePath string
 
+	// CurrentFile is the file being executed (or <stdin> if run from the REPL)
+	CurrentFile string
+
 	// ArgToPassToBuiltin is the argument to be given to the builtin function
 	ArgToPassToBuiltin object.Object
 
@@ -49,12 +52,8 @@ func New() *Evaluator {
 	return &Evaluator{
 		env: object.NewEnvironment(),
 
-		// TRUE:   &object.Boolean{Value: true},
-		// FALSE:  &object.Boolean{Value: false},
-		// NULL:   &object.Null{},
-		// IGNORE: &object.Null{},
-
 		EvalBasePath: ".",
+		CurrentFile:  "<stdin>",
 
 		ArgToPassToBuiltin: nil,
 
@@ -1179,6 +1178,10 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 
 	if builtin, ok := builtinobjs[node.Value]; ok {
 		return builtin.Obj
+	}
+
+	if node.Value == "FILE" {
+		return &object.Stringo{Value: e.CurrentFile}
 	}
 
 	return newError("identifier not found: " + node.Value)

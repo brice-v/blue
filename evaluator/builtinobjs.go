@@ -13,6 +13,18 @@ var builtinobjs = map[string]*object.BuiltinObj{
 	"ARGV": {
 		Obj: populateARGVObj(),
 	},
+	"STDIN": {
+		Obj: &object.Stringo{Value: os.Stdin.Name()},
+	},
+	"STDERR": {
+		Obj: &object.Stringo{Value: os.Stderr.Name()},
+	},
+	"STDOUT": {
+		Obj: &object.Stringo{Value: os.Stdout.Name()},
+	},
+	"CWD": {
+		Obj: getCwd(),
+	},
 }
 
 func populateENVObj() *object.Map {
@@ -46,4 +58,12 @@ func populateARGVObj() *object.List {
 		l.Elements = append(l.Elements, value)
 	}
 	return l
+}
+
+func getCwd() *object.Stringo {
+	dir, err := os.Getwd()
+	if err != nil {
+		return &object.Stringo{}
+	}
+	return &object.Stringo{Value: dir}
 }
