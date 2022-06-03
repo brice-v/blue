@@ -199,5 +199,52 @@ var builtins = map[string]*object.Builtin{
 			return &object.Set{Elements: setMap}
 		},
 	},
+	"error": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`error` expects 1 argument")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("`error` argument 1 was not STRING. got=%s", args[0].Type())
+			}
+			msg, ok := args[0].(*object.Stringo)
+			if !ok {
+				return newError("`error` argument 1 was not STRING. got=%T", args[0])
+			}
+			return &object.Error{Message: msg.Value}
+		},
+	},
+	"assert": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 && len(args) != 2 {
+				return newError("`assert` expects 1 or 2 arguments")
+			}
+			if args[0].Type() != object.BOOLEAN_OBJ {
+				return newError("`assert` expects first argument to be BOOLEAN. got=%s", args[0].Type())
+			}
+			b, ok := args[0].(*object.Boolean)
+			if !ok {
+				return newError("`assert` first argument was not BOOLEAN. got=%T", args[0])
+			}
+			if len(args) == 1 {
+				if b.Value {
+					return TRUE
+				} else {
+					return newError("`assert` failed")
+				}
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("`assert` expects second argument to be STRING. got=%s", args[1].Type())
+			}
+			msg, ok := args[1].(*object.Stringo)
+			if !ok {
+				return newError("`assert` second argument was not STRING. got=%T", args[1])
+			}
+			if b.Value {
+				return TRUE
+			}
+			return newError("`assert` failed: %s", msg.Value)
+		},
+	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
 }
