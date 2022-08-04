@@ -133,6 +133,43 @@ func (rs *ReturnStatement) String() string {
 	return out.String()
 }
 
+// TryCatchStatement is the try-catch block
+type TryCatchStatement struct {
+	Token           token.Token     // Token == token.TRY
+	TryBlock        *BlockStatement // TryBlock is a block statement containing the work to be done that may error out
+	CatchIdentifier *Identifier     // CatchIdentifier is the ident to assign the error too if it occurs in the TryBlock
+	CatchBlock      *BlockStatement // CatchBlock is a block statement containing the work to be done in event of an error in the TryBlock
+	FinallyBlock    *BlockStatement // FinallyBlock is a block statement containing the work to be done at the end of the try-catch
+}
+
+// statementNode satisfies the statement interface
+func (tcs *TryCatchStatement) statementNode() {}
+
+// TokenLiteral is the try-catch statements token literal ie. `try`
+func (tcs *TryCatchStatement) TokenLiteral() string { return tcs.Token.Literal }
+
+// String returns a stringified version of the try-catch statement ast node
+func (tcs *TryCatchStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("try {\n\t")
+	out.WriteString(tcs.TryBlock.String())
+	out.WriteString("\n} catch (")
+	out.WriteString(tcs.CatchIdentifier.Value)
+	out.WriteString(") {\n\t")
+	out.WriteString(tcs.CatchBlock.String())
+	out.WriteString("\n}")
+	if tcs.FinallyBlock != nil {
+		out.WriteString(" finally {\n\t")
+		out.WriteString(tcs.FinallyBlock.String())
+		out.WriteString("\n}\n")
+	} else {
+		out.WriteByte('\n')
+	}
+
+	return out.String()
+}
+
 // ExpressionStatement is the node for expression statements
 type ExpressionStatement struct {
 	Token      token.Token // Token is the first token of the expression

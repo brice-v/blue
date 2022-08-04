@@ -231,40 +231,50 @@ const (
 	IMPORT = "IMPORT"
 	// IMPORT_PATH is the string rep. of the import path tok
 	IMPORT_PATH = "IMPORT_PATH"
+
+	// TRY is the string rep. of the 'try' keyword token
+	TRY = "TRY"
+	// CATCH is the string rep. of the 'catch' keyword token
+	CATCH = "CATCH"
+	// FINALLY is the string rep. of the 'finally' keyword token
+	FINALLY = "FINALLY"
 )
 
 // TODO: Add all keywords wanted in blang here
 var keywords = map[string]Type{
-	"fun":    FUNCTION,
-	"var":    VAR,
-	"val":    VAL,
-	"true":   TRUE,
-	"false":  FALSE,
-	"if":     IF,
-	"else":   ELSE,
-	"return": RETURN,
-	"for":    FOR,
-	"in":     IN,
-	"notin":  NOTIN,
-	"and":    AND,
-	"or":     OR,
-	"not":    NOT,
-	"const":  CONST,
-	"int":    INT_T,
-	"uint":   UINT_T,
-	"type":   TYPE_T,
-	"str":    STR_T,
-	"obj":    OBJ_T,
-	"enum":   ENUM_T,
-	"list":   LIST_T,
-	"map":    MAP_T,
-	"any":    ANY_T,
-	"bool":   BOOL_T,
-	"char":   CHAR_T,
-	"rune":   RUNE_T,
-	"match":  MATCH,
-	"null":   NULL_KW,
-	"import": IMPORT,
+	"fun":     FUNCTION,
+	"var":     VAR,
+	"val":     VAL,
+	"true":    TRUE,
+	"false":   FALSE,
+	"if":      IF,
+	"else":    ELSE,
+	"return":  RETURN,
+	"for":     FOR,
+	"in":      IN,
+	"notin":   NOTIN,
+	"and":     AND,
+	"or":      OR,
+	"not":     NOT,
+	"const":   CONST,
+	"int":     INT_T,
+	"uint":    UINT_T,
+	"type":    TYPE_T,
+	"str":     STR_T,
+	"obj":     OBJ_T,
+	"enum":    ENUM_T,
+	"list":    LIST_T,
+	"map":     MAP_T,
+	"any":     ANY_T,
+	"bool":    BOOL_T,
+	"char":    CHAR_T,
+	"rune":    RUNE_T,
+	"match":   MATCH,
+	"null":    NULL_KW,
+	"import":  IMPORT,
+	"try":     TRY,
+	"catch":   CATCH,
+	"finally": FINALLY,
 }
 
 // LookupIdent will check if the identifer passed in matches one of the

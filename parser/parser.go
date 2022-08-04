@@ -216,7 +216,13 @@ func (p *Parser) noPrefixParseFunError(t token.Type) {
 // nextToken is a helper function to advance the tokens
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
+	if p.curToken.Type == token.HASH || p.curToken.Type == token.MULTLINE_COMMENT {
+		p.curToken = p.l.NextToken()
+	}
 	p.peekToken = p.l.NextToken()
+	if p.peekToken.Type == token.HASH || p.peekToken.Type == token.MULTLINE_COMMENT {
+		p.peekToken = p.l.NextToken()
+	}
 }
 
 // ParseProgram parses the program and returns a program as an ast
@@ -272,6 +278,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseReturnStatement()
 	case token.IMPORT:
 		return p.parseImportStatement()
+	case token.TRY:
+		return p.parseTryCatchBlock()
 	default:
 		// This is how im handling a function statement becuase otherwise all function literals
 		// will get confused and not be able to parse (due to the "fun" prefixed token)
@@ -1001,6 +1009,41 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	p.nextToken()
 
 	return me
+}
+
+func (p *Parser) parseTryCatchBlock() *ast.TryCatchStatement {
+	t := p.curToken
+	p.nextToken()
+	tryBlock := p.parseBlockStatement()
+	if !p.expectPeekIs(token.CATCH) {
+		return nil
+	}
+	if !p.expectPeekIs(token.LPAREN) {
+		return nil
+	}
+	if !p.expectPeekIs(token.IDENT) {
+		return nil
+	}
+	catchIdent := p.parseIdentifier().(*ast.Identifier)
+	if !p.expectPeekIs(token.RPAREN) {
+		return nil
+	}
+	p.nextToken()
+	catchBlock := p.parseBlockStatement()
+	var finallyBlock *ast.BlockStatement
+	finallyBlock = nil
+	if p.peekTokenIs(token.FINALLY) {
+		p.nextToken() // Skip }
+		p.nextToken() // Skip finally
+		finallyBlock = p.parseBlockStatement()
+	}
+	return &ast.TryCatchStatement{
+		Token:           t,
+		TryBlock:        tryBlock,
+		CatchIdentifier: catchIdent,
+		CatchBlock:      catchBlock,
+		FinallyBlock:    finallyBlock,
+	}
 }
 
 // Helper functions

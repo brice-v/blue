@@ -577,3 +577,42 @@ func TestUnicodeIdentifiers(t *testing.T) {
 		}
 	}
 }
+
+func TestTryCatchStatement(t *testing.T) {
+	input := `try {} catch (e) {} finally {}`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.TRY, "try"},
+		{token.LBRACE, "{"},
+		{token.RBRACE, "}"},
+		{token.CATCH, "catch"},
+		{token.LPAREN, "("},
+		{token.IDENT, "e"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.RBRACE, "}"},
+		{token.FINALLY, "finally"},
+		{token.LBRACE, "{"},
+		{token.RBRACE, "}"},
+		{token.EOF, ""},
+	}
+
+	l := New(input)
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}

@@ -229,6 +229,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		return e.evalSetLiteral(node)
 	case *ast.ImportStatement:
 		return e.evalImportStatement(node)
+	case *ast.TryCatchStatement:
+		return e.evalTryCatchStatement(node)
 	default:
 		if node == nil {
 			// Just want to get rid of this in my output
@@ -276,6 +278,26 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	}
 	mod := &object.Module{Name: modName, Env: newE.env}
 	e.env.Set(modName, mod)
+	return NULL
+}
+
+func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Object {
+	evald := e.Eval(node.TryBlock)
+	if isError(evald) {
+		e.env.Set(node.CatchIdentifier.Value, &object.Stringo{Value: evald.Inspect()})
+		evaldCatch := e.Eval(node.CatchBlock)
+		// Need to remove the catch identifier after evaluating the catch block
+		e.env.RemoveIdentifier(node.CatchIdentifier.Value)
+		if node.FinallyBlock != nil {
+			// TODO: Need to figure out the order of returns in case of errors in catch or finally block
+			e.Eval(node.FinallyBlock)
+		}
+		return evaldCatch
+	}
+	if node.FinallyBlock != nil {
+		// TODO: Need to figure out the order of returns in case of errors in catch or finally block
+		e.Eval(node.FinallyBlock)
+	}
 	return NULL
 }
 
