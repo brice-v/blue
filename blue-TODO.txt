@@ -1,14 +1,15 @@
 TODO:
 
+- [ ] sort builtin
+    - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
+- [ ] remove lambda or make it easier to use
+- [ ] support index operator for set so we can do something like `set_abc.1` or `set_abc[1]` to get 2nd element
+- [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
 - [ ] Add docstrings
 - [ ] Fix STDIN write and reading
     - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add parser errors anywhere we are returning nil
     - [ ] Eventually this should be able to point to the location via the token's location
-- [ ] Implement try-catch similar to js
-- [ ] (Bug) Handle Comment inside for loop? - multiline comment was giving me issues
-- [ ] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
-- [ ] Add file to current environment
 - [ ] Add continue, break
 - [ ] Add variadic arguments (...)
 - [ ] Support proper scopes
@@ -25,10 +26,18 @@ TODO:
     - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
         - This is sort of related
-
+- [ ] Implement `import *` from file so we dont need to use package name
+- [ ] Support not importing functions or variables that start with _
+- [ ] `this` keyword for map object?
+- [ ] Need way to call go code directly while running (use a go interpreter? or compile on the fly?)
 
 LATER ON:
 
+- [ ] Add code for http server
+- [ ] Add code for UI
+- [ ] Add code for CLI arg parser
+- [ ] Make repl better
+- [ ] Make CLI behavior better (need an alternative to 'flag' package)
 - [ ] Support unicode throughout
 - [ ] TESTS! Lots of them covering a variety of scenarios
     - Test all math casting and max and min working
@@ -46,12 +55,18 @@ LATER ON:
 - [ ] Think about adding types
 - [ ] Think about compiling to go
 - [ ] Think about adding channels, receivers, using the golang scheduler
+    - [ ] Use Context package with parallel code, should help close out channels
 - [ ] Tagged Unions/ enums working properly with match
 - [x] Using `` to call cmd on computer - returning the output of that command
     - [ ] Add support for piped output
 
 COMPLETED TASKS:
 
+- [x] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
+    - Shadowing is allowed for 'var' statements and when going from var->val but not the other way around
+- [x] Add file to current environment
+- [x] (Bug) Handle Comment inside for loop? - multiline comment was giving me issues
+- [x] Implement try-catch similar to js
 - [x] Make Val statements work to make immutable objects
     - see if they can work inside objects to make certain items immutable?
 - [-] Add ARGV, STDOUT, STDIN, STDERR, write, etc. (other os operations)
