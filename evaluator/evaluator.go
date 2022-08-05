@@ -123,12 +123,18 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		if isError(val) {
 			return val
 		}
+		if _, ok := e.env.Get(node.Name.Value); ok {
+			return newError("'" + node.Name.Value + "' is already defined")
+		}
 		e.env.ImmutableSet(node.Name.Value)
 		e.env.Set(node.Name.Value, val)
 	case *ast.VarStatement:
 		val := e.Eval(node.Value)
 		if isError(val) {
 			return val
+		}
+		if ok := e.env.IsImmutable(node.Name.Value); ok {
+			return newError("'" + node.Name.Value + "' is already defined as immutable, cannot reassign")
 		}
 		e.env.Set(node.Name.Value, val)
 	case *ast.FunctionLiteral:
