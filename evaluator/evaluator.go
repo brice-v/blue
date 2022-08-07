@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -39,8 +38,8 @@ type Evaluator struct {
 	// CurrentFile is the file being executed (or <stdin> if run from the REPL)
 	CurrentFile string
 
-	// ArgToPassToBuiltin is the argument to be given to the builtin function
-	ArgToPassToBuiltin object.Object
+	// UFCSArg is the argument to be given to the builtin function
+	UFCSArg object.Object
 
 	// Used for: indx, elem in for expression
 	nestLevel     int
@@ -55,7 +54,7 @@ func New() *Evaluator {
 		EvalBasePath: ".",
 		CurrentFile:  "<stdin>",
 
-		ArgToPassToBuiltin: nil,
+		UFCSArg: nil,
 
 		nestLevel:     -1,
 		iterCount:     []int{},
@@ -263,7 +262,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		return newError("Failed to import '%s'. Could not open file '%s' for reading.", name, file)
 	}
 	defer ofile.Close()
-	fileData, err := ioutil.ReadAll(ofile)
+	fileData, err := io.ReadAll(ofile)
 	if err != nil {
 		return newError("Failed to import '%s'. Could not read the file.", name)
 	}
@@ -1605,7 +1604,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 	}
 }
 
-//TODO: Handle `in` and `notin` for set operations
+// TODO: Handle `in` and `notin` for set operations
 func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.Object) object.Object {
 	leftE := left.(*object.Set).Elements
 	rightE := right.(*object.Set).Elements

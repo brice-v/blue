@@ -84,7 +84,11 @@ func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, le
 	}
 	_, isBuiltin := builtins[indx.Inspect()]
 	_, isStringBuiltin := stringbuiltins[indx.Inspect()]
-	if !isBuiltin && !isStringBuiltin {
+	envVar, isInEnv := e.env.Get(indx.Inspect())
+	if !isBuiltin && !isStringBuiltin && !isInEnv {
+		return nil
+	}
+	if isInEnv && envVar.Type() != object.FUNCTION_OBJ {
 		return nil
 	}
 	// Allow either a string object or identifier to be passed to the builtin
@@ -94,20 +98,29 @@ func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, le
 		return nil
 	}
 
-	e.ArgToPassToBuiltin = left
+	e.UFCSArg = left
 	// Return the builtin function object so that it can be used in the call
 	// expression
 	if isBuiltin {
 		return &object.Builtin{
 			Fun: builtins[indx.Inspect()].Fun,
 		}
-	}
-	return &object.Builtin{
-		Fun: stringbuiltins[indx.Inspect()].Fun,
+	} else if isStringBuiltin {
+		return &object.Builtin{
+			Fun: stringbuiltins[indx.Inspect()].Fun,
+		}
+	} else {
+		return envVar.(*object.Function)
 	}
 }
 
 func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defaultArgs map[string]object.Object) object.Object {
+	if e.UFCSArg != nil {
+		// prepend the argument to pass in to the front
+		args = append([]object.Object{e.UFCSArg}, args...)
+		// Unset the argument to pass in so itll be free next time we come to it
+		e.UFCSArg = nil
+	}
 	switch function := fun.(type) {
 	case *object.Function:
 		newE := New()
@@ -115,12 +128,6 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		evaluated := newE.Eval(function.Body)
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
-		if e.ArgToPassToBuiltin != nil {
-			// prepend the argument to pass in to the front
-			args = append([]object.Object{e.ArgToPassToBuiltin}, args...)
-			// Unset the argument to pass in so itll be free next time we come to it
-			e.ArgToPassToBuiltin = nil
-		}
 		return function.Fun(args...)
 	default:
 		return newError("not a function %s", function.Type())

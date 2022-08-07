@@ -13,7 +13,6 @@ TODO:
 - [ ] Add continue, break
 - [ ] Add variadic arguments (...)
 - [ ] Support proper scopes
-- [ ] Allow any function to use the dot call function syntax
 - [ ] Use struct{} for set implmentation
 - [ ] Support `else if` expression
 - [ ] Remove uints from working with big floats and ints
@@ -33,6 +32,7 @@ TODO:
 
 LATER ON:
 
+- [ ] Support TUI and colors for printing in terminal (and any other special things)
 - [ ] Add code for http server
 - [ ] Add code for UI
 - [ ] Add code for CLI arg parser
@@ -62,6 +62,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Allow any function to use the dot call function syntax
 - [x] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
     - Shadowing is allowed for 'var' statements and when going from var->val but not the other way around
 - [x] Add file to current environment
