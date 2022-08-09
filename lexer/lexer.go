@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -105,7 +106,9 @@ func (l *Lexer) readNumber() (token.Type, string) {
 // and return the string
 func (l *Lexer) readIdentifier() string {
 	position := l.position
-	for isLetter(l.ch) {
+	// Note: We can only do this because we check if the first char is a 'letter'
+	// That includes underscores which is why 1 of the lexer tests changes to accomodate that
+	for isLetter(l.ch) || unicode.IsNumber(l.ch) {
 		l.readChar()
 	}
 	return string([]rune(l.input)[position:l.position])

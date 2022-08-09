@@ -1015,23 +1015,29 @@ func (p *Parser) parseTryCatchBlock() *ast.TryCatchStatement {
 	t := p.curToken
 	p.nextToken()
 	tryBlock := p.parseBlockStatement()
-	if !p.expectPeekIs(token.CATCH) {
-		return nil
-	}
-	if !p.expectPeekIs(token.LPAREN) {
-		return nil
-	}
-	if !p.expectPeekIs(token.IDENT) {
-		return nil
-	}
-	catchIdent := p.parseIdentifier().(*ast.Identifier)
-	if !p.expectPeekIs(token.RPAREN) {
-		return nil
-	}
-	p.nextToken()
-	catchBlock := p.parseBlockStatement()
+	var catchIdent *ast.Identifier
+	var catchBlock *ast.BlockStatement
 	var finallyBlock *ast.BlockStatement
-	finallyBlock = nil
+	if p.peekTokenIs(token.CATCH) {
+		p.nextToken()
+		if !p.expectPeekIs(token.LPAREN) {
+			return nil
+		}
+		if !p.expectPeekIs(token.IDENT) {
+			return nil
+		}
+		catchIdent = p.parseIdentifier().(*ast.Identifier)
+		if !p.expectPeekIs(token.RPAREN) {
+			return nil
+		}
+		p.nextToken()
+		catchBlock = p.parseBlockStatement()
+	} else {
+		// Cant use 'expectPeekIs' because it consumes the token (which is done below)
+		if !p.peekTokenIs(token.FINALLY) {
+			return nil
+		}
+	}
 	if p.peekTokenIs(token.FINALLY) {
 		p.nextToken() // Skip }
 		p.nextToken() // Skip finally

@@ -423,8 +423,7 @@ func TestNextTokenNumbers(t *testing.T) {
 		{token.DOT, "."},
 		{token.INT, "12"},
 		{token.FLOAT, "12_1234.12345_12"},
-		{token.IDENT, "_"},
-		{token.INT, "1234"},
+		{token.IDENT, "_1234"},
 		{token.EOF, ""},
 	}
 
@@ -597,6 +596,38 @@ func TestTryCatchStatement(t *testing.T) {
 		{token.FINALLY, "finally"},
 		{token.LBRACE, "{"},
 		{token.RBRACE, "}"},
+		{token.EOF, ""},
+	}
+
+	l := New(input)
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+func TestVarWithNum(t *testing.T) {
+	input := `var abc123 = 1;`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.VAR, "var"},
+		{token.IDENT, "abc123"},
+		{token.ASSIGN, "="},
+		{token.INT, "1"},
+		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
 	}
 
