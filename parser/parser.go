@@ -593,38 +593,34 @@ func (p *Parser) parseParenGroupExpresion() ast.Expression {
 // parseIfExpression parses an if expression
 func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken}
-
 	if !p.expectPeekIs(token.LPAREN) {
 		return nil
 	}
-
 	// skip over the IF token
 	p.nextToken()
 	// parse the (group) expression as the condition
 	expression.Condition = p.parseExpression(LOWEST)
-
 	if !p.expectPeekIs(token.RPAREN) {
 		return nil
 	}
-
 	if !p.expectPeekIs(token.LBRACE) {
 		return nil
 	}
-
 	expression.Consequence = p.parseBlockStatement()
-
 	if p.peekTokenIs(token.ELSE) {
 		// if token == ELSE skip over it and parse the other block
 		p.nextToken()
 
+		if p.peekTokenIs(token.IF) {
+			p.nextToken()
+			return p.parseIfExpression()
+		}
 		if !p.expectPeekIs(token.LBRACE) {
 			return nil
 		}
 
 		expression.Alternative = p.parseBlockStatement()
-
 	}
-
 	return expression
 }
 

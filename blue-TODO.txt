@@ -3,6 +3,7 @@ TODO:
 - [ ] sort builtin
     - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
 - [ ] remove lambda or make it easier to use
+- [ ] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
 - [ ] support index operator for set so we can do something like `set_abc.1` or `set_abc[1]` to get 2nd element
 - [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
 - [ ] Add docstrings
@@ -14,7 +15,6 @@ TODO:
 - [ ] Add variadic arguments (...)
 - [ ] Support proper scopes
 - [ ] Use struct{} for set implmentation
-- [ ] Support `else if` expression
 - [ ] Remove uints from working with big floats and ints
 - [ ] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
 - [ ] Include shift operators and assignment expressions to other types
@@ -62,6 +62,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Support `else if` expression
 - [x] Allow any function to use the dot call function syntax
 - [x] (Bug) Fix variable shadowing, I was able to do val x = 123; var x = 1234; (x is immutable)
     - Shadowing is allowed for 'var' statements and when going from var->val but not the other way around
