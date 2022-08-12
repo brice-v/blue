@@ -22,7 +22,7 @@ var builtins = map[string]*object.Builtin{
 			case *object.Map:
 				return &object.Integer{Value: int64(len(arg.Pairs))}
 			case *object.Set:
-				return &object.Integer{Value: int64(len(arg.Elements))}
+				return &object.Integer{Value: int64(arg.Elements.Len())}
 			default:
 				return newError("argument to `len` not supported, got %s", args[0].Type())
 			}
@@ -191,10 +191,10 @@ var builtins = map[string]*object.Builtin{
 				return newError("arguments to `set` must be LIST, got %s", args[0].Type())
 			}
 			elements := args[0].(*object.List).Elements
-			setMap := make(map[uint64]object.SetPair, len(elements))
+			setMap := object.NewSetElements()
 			for _, e := range elements {
 				hashKey := object.HashObject(e)
-				setMap[hashKey] = object.SetPair{Value: e, Present: true}
+				setMap.Set(hashKey, object.SetPair{Value: e, Present: true})
 			}
 			return &object.Set{Elements: setMap}
 		},

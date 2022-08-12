@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/elliotchance/orderedmap/v2"
 	"github.com/shopspring/decimal"
 )
 
@@ -350,7 +351,11 @@ type SetPair struct {
 
 // Set is the set object type struct
 type Set struct {
-	Elements map[uint64]SetPair
+	Elements *orderedmap.OrderedMap[uint64, SetPair]
+}
+
+func NewSetElements() *orderedmap.OrderedMap[uint64, SetPair] {
+	return orderedmap.NewOrderedMap[uint64, SetPair]()
 }
 
 // Type returns the Set object type
@@ -361,8 +366,17 @@ func (s *Set) Inspect() string {
 	var out bytes.Buffer
 
 	out.WriteString("{")
-	for _, pair := range s.Elements {
-		out.WriteString(pair.Value.Inspect() + ", ")
+	keys := s.Elements.Keys()
+	for i, k := range keys {
+		e, ok := s.Elements.Get(k)
+		if !ok {
+			continue
+		}
+		endStr := ""
+		if i != len(keys)-1 {
+			endStr = ", "
+		}
+		out.WriteString(e.Value.Inspect() + endStr)
 	}
 	out.WriteString("}")
 	return out.String()

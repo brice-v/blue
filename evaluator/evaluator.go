@@ -312,10 +312,10 @@ func (e *Evaluator) evalSetLiteral(node *ast.SetLiteral) object.Object {
 		return elements[0]
 	}
 
-	setMap := make(map[uint64]object.SetPair, len(elements))
+	setMap := object.NewSetElements()
 	for _, e := range elements {
 		hashKey := object.HashObject(e)
-		setMap[hashKey] = object.SetPair{Value: e, Present: true}
+		setMap.Set(hashKey, object.SetPair{Value: e, Present: true})
 	}
 	return &object.Set{Elements: setMap}
 }
@@ -1020,6 +1020,8 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 	switch {
 	case left.Type() == object.LIST_OBJ:
 		return e.evalListIndexExpression(left, indx)
+	case left.Type() == object.SET_OBJ:
+		return e.evalSetIndexExpression(left, indx)
 	case left.Type() == object.MAP_OBJ:
 		return e.evalMapIndexExpression(left, indx)
 	case left.Type() == object.MODULE_OBJ:
@@ -1056,6 +1058,36 @@ func (e *Evaluator) evalMapIndexExpression(mapObject, indx object.Object) object
 	}
 
 	return pair.Value
+}
+
+func (e *Evaluator) evalSetIndexExpression(set, indx object.Object) object.Object {
+	setObj := set.(*object.Set)
+	var idx int64
+	switch indx.Type() {
+	case object.INTEGER_OBJ:
+		idx = indx.(*object.Integer).Value
+	case object.STRING_OBJ:
+		stringVal := indx.(*object.Stringo).Value
+		envVal, ok := e.env.Get(stringVal)
+		if !ok {
+			return NULL
+		}
+		intVal, ok := envVal.(*object.Integer)
+		if !ok {
+			return NULL
+		}
+		idx = intVal.Value
+	default:
+		return newError("evalSetIndexExpression:expected index to be INT or STRING. got=%s", indx.Type())
+	}
+	var i int64
+	for kv := setObj.Elements.Front(); kv != nil; kv.Next() {
+		if i == idx {
+			return kv.Value.Value
+		}
+		i++
+	}
+	return NULL
 }
 
 func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Object {
@@ -1474,12 +1506,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		intVal := object.HashObject(left.(*object.Integer))
 		switch operator {
 		case "in":
-			if _, ok := setElems[intVal]; ok {
+			if _, ok := setElems.Get(intVal); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[intVal]; ok {
+			if _, ok := setElems.Get(intVal); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1490,12 +1522,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		uintVal := left.(*object.UInteger).HashKey().Value
 		switch operator {
 		case "in":
-			if _, ok := setElems[uintVal]; ok {
+			if _, ok := setElems.Get(uintVal); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[uintVal]; ok {
+			if _, ok := setElems.Get(uintVal); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1506,12 +1538,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		funHash := object.HashObject(left.(*object.Function))
 		switch operator {
 		case "in":
-			if _, ok := setElems[funHash]; ok {
+			if _, ok := setElems.Get(funHash); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[funHash]; ok {
+			if _, ok := setElems.Get(funHash); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1522,12 +1554,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		mapHash := object.HashObject(left.(*object.Map))
 		switch operator {
 		case "in":
-			if _, ok := setElems[mapHash]; ok {
+			if _, ok := setElems.Get(mapHash); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[mapHash]; ok {
+			if _, ok := setElems.Get(mapHash); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1538,12 +1570,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		boolHash := left.(*object.Boolean).HashKey().Value
 		switch operator {
 		case "in":
-			if _, ok := setElems[boolHash]; ok {
+			if _, ok := setElems.Get(boolHash); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[boolHash]; ok {
+			if _, ok := setElems.Get(boolHash); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1554,12 +1586,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		strHash := left.(*object.Stringo).HashKey().Value
 		switch operator {
 		case "in":
-			if _, ok := setElems[strHash]; ok {
+			if _, ok := setElems.Get(strHash); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[strHash]; ok {
+			if _, ok := setElems.Get(strHash); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1570,12 +1602,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		nullHash := object.HashObject(left.(*object.Null))
 		switch operator {
 		case "in":
-			if _, ok := setElems[nullHash]; ok {
+			if _, ok := setElems.Get(nullHash); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[nullHash]; ok {
+			if _, ok := setElems.Get(nullHash); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1586,12 +1618,12 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		listHash := object.HashObject(left.(*object.List))
 		switch operator {
 		case "in":
-			if _, ok := setElems[listHash]; ok {
+			if _, ok := setElems.Get(listHash); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems[listHash]; ok {
+			if _, ok := setElems.Get(listHash); ok {
 				return FALSE
 			}
 			return TRUE
@@ -1608,9 +1640,10 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.Object) object.Object {
 	leftE := left.(*object.Set).Elements
 	rightE := right.(*object.Set).Elements
-	newSet := &object.Set{Elements: make(map[uint64]object.SetPair)}
-	var leftElems, rightElems map[uint64]object.SetPair
-	if len(leftE) >= len(rightE) {
+	newSet := &object.Set{Elements: object.NewSetElements()}
+	leftElems := object.NewSetElements()
+	rightElems := object.NewSetElements()
+	if leftE.Len() >= rightE.Len() {
 		leftElems = leftE
 		rightElems = rightE
 	} else {
@@ -1620,75 +1653,96 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 	switch operator {
 	case "|":
 		// union
-		for k, v := range leftElems {
-			newSet.Elements[k] = v
+		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
+			newSet.Elements.Set(kv.Key, kv.Value)
 		}
-		for k, v := range rightElems {
-			newSet.Elements[k] = v
+		for kv := rightElems.Front(); kv != nil; kv = kv.Next() {
+			newSet.Elements.Set(kv.Key, kv.Value)
 		}
 		return newSet
 	case "&":
 		// intersect
-		for k, v := range leftElems {
-			if rightElems[k].Present {
-				newSet.Elements[k] = v
+		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
+			v1, ok := rightElems.Get(kv.Key)
+			if !ok {
+				continue
+			}
+			if v1.Present {
+				newSet.Elements.Set(kv.Key, kv.Value)
 			}
 		}
 		return newSet
 	case "^":
 		// symmetric difference
-		for k, v := range leftElems {
-			if !rightElems[k].Present {
-				newSet.Elements[k] = v
+		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
+			v1, ok := rightElems.Get(kv.Key)
+			if !ok {
+				continue
+			}
+			if !v1.Present {
+				newSet.Elements.Set(kv.Key, kv.Value)
 			}
 		}
-		for k, v := range rightElems {
-			if !leftElems[k].Present {
-				newSet.Elements[k] = v
+		for kv := rightElems.Front(); kv != nil; kv = kv.Next() {
+			v1, ok := leftElems.Get(kv.Key)
+			if !ok {
+				continue
+			}
+			if !v1.Present {
+				newSet.Elements.Set(kv.Key, kv.Value)
 			}
 		}
 		return newSet
 	case ">=":
 		// left is superset of right
-		for k := range rightE {
-			if _, ok := leftE[k]; !ok {
+		for kv := rightE.Front(); kv != nil; kv = kv.Next() {
+			if _, ok := leftE.Get(kv.Key); !ok {
 				return FALSE
 			}
 		}
 		return TRUE
 	case "<=":
 		// right is a superset of left
-		for k := range leftE {
-			if _, ok := rightE[k]; !ok {
+		for kv := leftE.Front(); kv != nil; kv = kv.Next() {
+			if _, ok := rightE.Get(kv.Key); !ok {
 				return FALSE
 			}
 		}
 		return TRUE
 	case "-":
 		// difference
-		for k, v := range leftElems {
-			if !rightElems[k].Present {
-				newSet.Elements[k] = v
+		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
+			v1, ok := rightElems.Get(kv.Key)
+			if !ok {
+				continue
+			}
+			if !v1.Present {
+				newSet.Elements.Set(kv.Key, kv.Value)
 			}
 		}
 		return newSet
 	case "==":
-		for k := range leftElems {
-			if !rightElems[k].Present {
+		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
+			v1, ok := rightElems.Get(kv.Key)
+			if !ok {
+				continue
+			}
+			if !v1.Present {
 				return FALSE
 			}
 		}
 		return TRUE
 	case "!=":
-		for k := range leftElems {
-			if !rightElems[k].Present {
+		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
+			v1, ok := rightElems.Get(kv.Key)
+			if !ok {
+				continue
+			}
+			if !v1.Present {
 				return TRUE
 			}
 		}
 		return FALSE
-	// TODO: Should the set support `in` and `notin`
-	// case "in":
-	// case "notin":
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
