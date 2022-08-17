@@ -39,7 +39,7 @@ type Evaluator struct {
 	CurrentFile string
 
 	// UFCSArg is the argument to be given to the builtin function
-	UFCSArg object.Object
+	UFCSArg *Stack
 
 	// Used for: indx, elem in for expression
 	nestLevel     int
@@ -54,7 +54,7 @@ func New() *Evaluator {
 		EvalBasePath: ".",
 		CurrentFile:  "<stdin>",
 
-		UFCSArg: nil,
+		UFCSArg: NewStack(),
 
 		nestLevel:     -1,
 		iterCount:     []int{},
@@ -170,6 +170,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		funObj := &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env}
 		e.env.Set(node.Name.Value, funObj)
 	case *ast.CallExpression:
+		e.UFCSArg.Push(nil)
 		function := e.Eval(node.Function)
 		if isError(function) {
 			return function
@@ -552,7 +553,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		}
 		return TRUE
 	}
-	return newError("Expected List, Map, or String on right hand side. got %T", evaluatedRight.Type())
+	return newError("Expected List, Map, or String on right hand side. got=%s", evaluatedRight.Type())
 }
 
 func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.ListLiteral) object.Object {
@@ -683,7 +684,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		}
 		return TRUE
 	}
-	return newError("Expected List, Map, or String on right hand side. got %T", evaluatedRight.Type())
+	return newError("Expected List, Map, or String on right hand side. got=%s", evaluatedRight.Type())
 }
 
 func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {

@@ -478,45 +478,45 @@ func TestNextTokenNewKeywords(t *testing.T) {
 	}
 }
 
-func TestNextTokenNewTypeKeywords(t *testing.T) {
-	input := `int uint type str obj
-	enum list map any bool char rune`
+// func TestNextTokenNewTypeKeywords(t *testing.T) {
+// 	input := `int uint type str obj
+// 	enum list map any bool char rune`
 
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.INT_T, "int"},
-		{token.UINT_T, "uint"},
-		{token.TYPE_T, "type"},
-		{token.STR_T, "str"},
-		{token.OBJ_T, "obj"},
-		{token.ENUM_T, "enum"},
-		{token.LIST_T, "list"},
-		{token.MAP_T, "map"},
-		{token.ANY_T, "any"},
-		{token.BOOL_T, "bool"},
-		{token.CHAR_T, "char"},
-		{token.RUNE_T, "rune"},
-		{token.EOF, ""},
-	}
+// 	tests := []struct {
+// 		expectedType    token.Type
+// 		expectedLiteral string
+// 	}{
+// 		{token.INT_T, "int"},
+// 		{token.UINT_T, "uint"},
+// 		{token.TYPE_T, "type"},
+// 		{token.STR_T, "str"},
+// 		{token.OBJ_T, "obj"},
+// 		{token.ENUM_T, "enum"},
+// 		{token.LIST_T, "list"},
+// 		{token.MAP_T, "map"},
+// 		{token.ANY_T, "any"},
+// 		{token.BOOL_T, "bool"},
+// 		{token.CHAR_T, "char"},
+// 		{token.RUNE_T, "rune"},
+// 		{token.EOF, ""},
+// 	}
 
-	l := New(input)
+// 	l := New(input)
 
-	for i, tt := range tests {
-		tok := l.NextToken()
+// 	for i, tt := range tests {
+// 		tok := l.NextToken()
 
-		if tok.Type != tt.expectedType {
-			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
-				i, tt.expectedType, tok.Type)
-		}
+// 		if tok.Type != tt.expectedType {
+// 			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
+// 				i, tt.expectedType, tok.Type)
+// 		}
 
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
-				i, tt.expectedLiteral, tok.Literal)
-		}
-	}
-}
+// 		if tok.Literal != tt.expectedLiteral {
+// 			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
+// 				i, tt.expectedLiteral, tok.Literal)
+// 		}
+// 	}
+// }
 
 func TestNextTokenStrings(t *testing.T) {
 	input := `"Hello #{world}!";`

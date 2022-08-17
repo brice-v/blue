@@ -97,8 +97,7 @@ func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, le
 	if !ok1 && !ok2 {
 		return nil
 	}
-
-	e.UFCSArg = left
+	e.UFCSArg.Push(&left)
 	// Return the builtin function object so that it can be used in the call
 	// expression
 	if isBuiltin {
@@ -115,11 +114,10 @@ func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, le
 }
 
 func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defaultArgs map[string]object.Object) object.Object {
-	if e.UFCSArg != nil {
+	argElem := e.UFCSArg.Pop()
+	if argElem != nil {
 		// prepend the argument to pass in to the front
-		args = append([]object.Object{e.UFCSArg}, args...)
-		// Unset the argument to pass in so itll be free next time we come to it
-		e.UFCSArg = nil
+		args = append([]object.Object{*argElem}, args...)
 	}
 	switch function := fun.(type) {
 	case *object.Function:

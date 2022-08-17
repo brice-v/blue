@@ -65,7 +65,7 @@ func (vals *ValStatement) String() string {
 		out.WriteString(vals.Value.String())
 	}
 
-	out.WriteString(";")
+	out.WriteString(";\n")
 
 	return out.String()
 }
