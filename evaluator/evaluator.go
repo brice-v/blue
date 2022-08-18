@@ -48,7 +48,7 @@ type Evaluator struct {
 }
 
 func New() *Evaluator {
-	return &Evaluator{
+	e := &Evaluator{
 		env: object.NewEnvironment(),
 
 		EvalBasePath: ".",
@@ -60,6 +60,8 @@ func New() *Evaluator {
 		iterCount:     []int{},
 		cleanupTmpVar: make(map[string]bool),
 	}
+	e.AddCoreLibToEnv()
+	return e
 }
 
 // Eval takes an ast node and returns an object

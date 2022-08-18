@@ -1,12 +1,3 @@
-fun map(list, f) {
-    var newList = [];
-    for (e in list) {
-        println(e);
-        newList = newList.append(f(e));
-    }
-    return newList;
-}
-
 fun addOne(x) {
     x+1
 }
