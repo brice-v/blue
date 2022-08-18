@@ -1,11 +1,13 @@
 TODO:
 
+- [ ] Add way to get types of objects inside code
 - [ ] sort builtin
     - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
 - [ ] remove lambda or make it easier to use
 - [ ] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
 - [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
 - [ ] Add docstrings
+    - [ ] Add help() function to get the doc string for any public object in the Environment
 - [ ] Fix STDIN write and reading
     - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add parser errors anywhere we are returning nil
