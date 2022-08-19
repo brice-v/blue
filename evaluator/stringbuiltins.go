@@ -13,7 +13,7 @@ func createStringList(input []string) []object.Object {
 	return list
 }
 
-var stringbuiltins = map[string]*object.Builtin{
+var stringbuiltins = BuiltinMapType{
 	"startswith": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {

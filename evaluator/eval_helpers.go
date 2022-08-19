@@ -77,15 +77,26 @@ func nativeToBooleanObject(input bool) *object.Boolean {
 	return FALSE
 }
 
+func (e *Evaluator) getBuiltinForDotCall(key string) (*object.Builtin, bool) {
+	for b := e.Builtins.Front(); b != nil; b = b.Next() {
+		switch t := b.Value.(type) {
+		case BuiltinMapType:
+			if builtin, isBuiltin := t[key]; isBuiltin {
+				return builtin, isBuiltin
+			}
+		}
+	}
+	return nil, false
+}
+
 func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, leftNode ast.Expression) object.Object {
 	// Try to see if the index being used is a builtin function
 	if indx.Type() != object.STRING_OBJ {
 		return nil
 	}
-	_, isBuiltin := builtins[indx.Inspect()]
-	_, isStringBuiltin := stringbuiltins[indx.Inspect()]
+	builtin, isBuiltin := e.getBuiltinForDotCall(indx.Inspect())
 	envVar, isInEnv := e.env.Get(indx.Inspect())
-	if !isBuiltin && !isStringBuiltin && !isInEnv {
+	if !isBuiltin && !isInEnv {
 		return nil
 	}
 	if isInEnv && envVar.Type() != object.FUNCTION_OBJ {
@@ -101,13 +112,7 @@ func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, le
 	// Return the builtin function object so that it can be used in the call
 	// expression
 	if isBuiltin {
-		return &object.Builtin{
-			Fun: builtins[indx.Inspect()].Fun,
-		}
-	} else if isStringBuiltin {
-		return &object.Builtin{
-			Fun: stringbuiltins[indx.Inspect()].Fun,
-		}
+		return builtin
 	} else {
 		return envVar.(*object.Function)
 	}

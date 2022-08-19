@@ -6,6 +6,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"bytes"
+	"container/list"
 	"fmt"
 	"io"
 	"math"
@@ -41,6 +42,9 @@ type Evaluator struct {
 	// UFCSArg is the argument to be given to the builtin function
 	UFCSArg *Stack
 
+	// Builtins is the list of builtin elements to look through based on the files imported
+	Builtins *list.List
+
 	// Used for: indx, elem in for expression
 	nestLevel     int
 	iterCount     []int
@@ -56,10 +60,15 @@ func New() *Evaluator {
 
 		UFCSArg: NewStack(),
 
+		Builtins: list.New(),
+
 		nestLevel:     -1,
 		iterCount:     []int{},
 		cleanupTmpVar: make(map[string]bool),
 	}
+	e.Builtins.PushBack(builtins)
+	e.Builtins.PushBack(stringbuiltins)
+	e.Builtins.PushBack(builtinobjs)
 	e.AddCoreLibToEnv()
 	return e
 }
@@ -1230,16 +1239,17 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 		return val
 	}
 
-	if builtin, ok := builtins[node.Value]; ok {
-		return builtin
-	}
-
-	if builtin, ok := stringbuiltins[node.Value]; ok {
-		return builtin
-	}
-
-	if builtin, ok := builtinobjs[node.Value]; ok {
-		return builtin.Obj
+	for b := e.Builtins.Front(); b != nil; b = b.Next() {
+		switch t := b.Value.(type) {
+		case BuiltinMapType:
+			if builtin, ok := t[node.Value]; ok {
+				return builtin
+			}
+		case BuiltinObjMapType:
+			if builtin, ok := t[node.Value]; ok {
+				return builtin.Obj
+			}
+		}
 	}
 
 	if node.Value == "FILE" {

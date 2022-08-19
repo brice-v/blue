@@ -7,7 +7,9 @@ import (
 	"os"
 )
 
-var builtins = map[string]*object.Builtin{
+type BuiltinMapType map[string]*object.Builtin
+
+var builtins = BuiltinMapType{
 	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {

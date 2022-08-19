@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
-var builtinobjs = map[string]*object.BuiltinObj{
+type BuiltinObjMapType map[string]*object.BuiltinObj
+
+var builtinobjs = BuiltinObjMapType{
 	"ENV": {
 		Obj: populateENVObj(),
 	},
