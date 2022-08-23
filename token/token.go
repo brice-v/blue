@@ -238,6 +238,9 @@ const (
 	CATCH = "CATCH"
 	// FINALLY is the string rep. of the 'finally' keyword token
 	FINALLY = "FINALLY"
+
+	// EVAL is the string rep. of the 'eval' keyword token
+	EVAL = "EVAL"
 )
 
 // TODO: Add all keywords wanted in blang here
@@ -275,6 +278,7 @@ var keywords = map[string]Type{
 	"try":     TRY,
 	"catch":   CATCH,
 	"finally": FINALLY,
+	"eval":    EVAL,
 }
 
 // LookupIdent will check if the identifer passed in matches one of the

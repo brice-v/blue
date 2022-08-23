@@ -145,6 +145,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FOR, p.parseForExpression)
 	p.registerPrefix(token.MATCH, p.parseMatchExpression)
 	p.registerPrefix(token.NULL_KW, p.parseNullKeyword)
+	p.registerPrefix(token.EVAL, p.parseEvalExpression)
 	p.infixParseFuns = make(map[token.Type]infixParseFun)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -557,6 +558,26 @@ func (p *Parser) parseBoolean() ast.Expression {
 
 func (p *Parser) parseNullKeyword() ast.Expression {
 	return &ast.Null{}
+}
+
+func (p *Parser) parseEvalExpression() ast.Expression {
+	ee := &ast.EvalExpression{
+		Token: p.curToken,
+	}
+	if !p.expectPeekIs(token.LPAREN) {
+		return nil
+	}
+	strToEvalExpression := p.parseExpression(LOWEST)
+	ee.StrToEval = strToEvalExpression
+	if !p.curTokenIs(token.RPAREN) {
+		msg := fmt.Sprintf("token after EvalExpression is not ), got %s instead", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	if !p.expectPeekIs(token.SEMICOLON) {
+		return nil
+	}
+	return ee
 }
 
 func (p *Parser) parseImportStatement() ast.Statement {

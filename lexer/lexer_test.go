@@ -616,6 +616,36 @@ func TestTryCatchStatement(t *testing.T) {
 	}
 }
 
+func TestEvalExpression(t *testing.T) {
+	input := `eval()`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.EVAL, "eval"},
+		{token.LPAREN, "("},
+		{token.RPAREN, ")"},
+		{token.EOF, ""},
+	}
+
+	l := New(input)
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
 func TestVarWithNum(t *testing.T) {
 	input := `var abc123 = 1;`
 

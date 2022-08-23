@@ -248,6 +248,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		return e.evalImportStatement(node)
 	case *ast.TryCatchStatement:
 		return e.evalTryCatchStatement(node)
+	case *ast.EvalExpression:
+		return e.evalEvalExpression(node)
 	default:
 		if node == nil {
 			// Just want to get rid of this in my output
@@ -330,6 +332,19 @@ func (e *Evaluator) evalSetLiteral(node *ast.SetLiteral) object.Object {
 		setMap.Set(hashKey, object.SetPair{Value: e, Present: true})
 	}
 	return &object.Set{Elements: setMap}
+}
+
+func (e *Evaluator) evalEvalExpression(node *ast.EvalExpression) object.Object {
+	evalStr := e.Eval(node.StrToEval)
+	if evalStr.Type() != object.STRING_OBJ {
+		return newError("value after `eval` must be STRING. got %s", evalStr.Type())
+	}
+	s := evalStr.(*object.Stringo).Value
+	obj, err := e.EvalString(s)
+	if err != nil {
+		return newError(err.Error())
+	}
+	return obj
 }
 
 func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {

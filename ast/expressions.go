@@ -278,3 +278,25 @@ func (ae *AssignmentExpression) String() string {
 
 	return out.String()
 }
+
+// EvalExpression is the eval ast node
+type EvalExpression struct {
+	Token     token.Token // token == eval
+	StrToEval Expression  // StrToEval is the Expression (that should be a string) to eval in the current env context
+}
+
+// expressionNode satisfies the expression interface
+func (ee *EvalExpression) expressionNode() {}
+
+// TokenLiteral returns the for token
+func (ee *EvalExpression) TokenLiteral() string { return ee.Token.Literal }
+
+// String returns the string representation of the for expression ast node
+func (ee *EvalExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("eval(\"")
+	out.WriteString(ee.StrToEval.String())
+	out.WriteString("\");\n")
+	return out.String()
+}

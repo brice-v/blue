@@ -2,7 +2,9 @@ package evaluator
 
 import (
 	"blue/ast"
+	"blue/lexer"
 	"blue/object"
+	"blue/parser"
 	"bytes"
 	"fmt"
 	"os"
@@ -216,4 +218,19 @@ func doCondAndMatchExpEqual(condVal, matchVal object.Object) bool {
 
 func runeLen(str string) int {
 	return utf8.RuneCountInString(str)
+}
+
+func (e *Evaluator) EvalString(s string) (object.Object, error) {
+	l := lexer.New(s)
+	p := parser.New(l)
+	prog := p.ParseProgram()
+	pErrors := p.Errors()
+	if len(pErrors) != 0 {
+		for _, err := range pErrors {
+			fmt.Printf("ParserError in `eval`: %s\n", err)
+		}
+		return nil, fmt.Errorf("failed to `eval` string, found '%d' parser errors", len(pErrors))
+	}
+	result := e.Eval(prog)
+	return result, nil
 }
