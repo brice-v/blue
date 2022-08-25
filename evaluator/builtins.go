@@ -248,5 +248,13 @@ var builtins = BuiltinMapType{
 			return newError("`assert` failed: %s", msg.Value)
 		},
 	},
+	"type": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`type` expects 1 argument")
+			}
+			return &object.Stringo{Value: string(args[0].Type())}
+		},
+	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
 }
