@@ -265,6 +265,10 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 
 func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object {
 	name := node.Path.Value
+	if e.IsStd(name) {
+		e.AddStdLibToEnv(name)
+		return NULL
+	}
 	fpath := e.createFilePathFromImportPath(name)
 	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
 	file, err := filepath.Abs(fpath)
