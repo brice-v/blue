@@ -28,4 +28,19 @@ if (0x100 in someother) {
     false
 }
 
+
+val abc123 = {1,2,3,4,5};
+if (1 notin abc123) {
+    false
+}
+if (1 in abc123) {
+    true
+} else {
+    false
+}
+
+if (100 in abc123) {
+    false
+}
+
 true
