@@ -15,9 +15,18 @@ try {
 } catch (e) {
     println("#{e}");
     if (e != "EvaluatorError: argument to `get` must be string. got INTEGER") {
-        return false;
+        println("#{e}");
     }
-    return true;
+    true;
+}
+
+try {
+    println(http._get(url));
+    println("This should be unreachable");
+    return false;
+} catch (e) {
+    println("Hit exception as expected");
+    true;
 }
 
 return true;

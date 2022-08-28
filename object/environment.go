@@ -1,5 +1,10 @@
 package object
 
+import (
+	"bytes"
+	"fmt"
+)
+
 // NewEnclosedEnvironment supports adding an environment to an exisiting
 // environment.  This allows closures and proper binding within functions
 func NewEnclosedEnvironment(outer *Environment) *Environment {
@@ -21,6 +26,20 @@ type Environment struct {
 	immutableStore map[string]struct{}
 
 	outer *Environment
+}
+
+func (e *Environment) String() string {
+	var out bytes.Buffer
+	out.WriteString("Environment{\n\tstore:\n")
+	for s, elem := range e.store {
+		out.WriteString(fmt.Sprintf("\t\t%q -> %s\n", s, elem.Type()))
+	}
+	out.WriteString("\n\timmuatebleStore:\n")
+	for s := range e.immutableStore {
+		out.WriteString(fmt.Sprintf("\t\t%qs\n", s))
+	}
+	out.WriteString("}")
+	return out.String()
 }
 
 // Get returns the object from the environment store

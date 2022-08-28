@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -39,7 +38,7 @@ func isValidFile() bool {
 	}
 	ok, err := fileExists(os.Args[2])
 	if !ok {
-		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting", os.Args[1], err)
+		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting...\n", os.Args[1], err)
 		os.Stderr.WriteString(msg)
 		return false
 	}
@@ -54,7 +53,7 @@ func isValidFileForEval() bool {
 	}
 	ok, err := fileExists(os.Args[1])
 	if !ok {
-		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting", os.Args[1], err)
+		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting...\n", os.Args[1], err)
 		os.Stderr.WriteString(msg)
 		return false
 	}
@@ -64,7 +63,7 @@ func isValidFileForEval() bool {
 // lexCurrentFile lex's the second argument as a file
 func lexCurrentFile() {
 	fpath := os.Args[2]
-	data, err := ioutil.ReadFile(fpath)
+	data, err := os.ReadFile(fpath)
 	if err != nil {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
@@ -79,7 +78,7 @@ func lexCurrentFile() {
 // parseCurrentFile parse's the second argument as a file
 func parseCurrentFile() {
 	fpath, out := os.Args[2], os.Stdout
-	data, err := ioutil.ReadFile(fpath)
+	data, err := os.ReadFile(fpath)
 	if err != nil {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
@@ -100,7 +99,7 @@ func parseCurrentFile() {
 // evalCurrentFile parse's the second argument as a file
 func evalCurrentFile() {
 	fpath, out := os.Args[2], os.Stdout
-	data, err := ioutil.ReadFile(fpath)
+	data, err := os.ReadFile(fpath)
 	if err != nil {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
@@ -131,7 +130,7 @@ func evalCurrentFile() {
 // evalFile parse's the second argument as a file
 func evalFile() {
 	fpath, out := os.Args[1], os.Stdout
-	data, err := ioutil.ReadFile(fpath)
+	data, err := os.ReadFile(fpath)
 	if err != nil {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
@@ -163,7 +162,7 @@ func evalFile() {
 // and bundles the interpreter with the code into an executable
 func bundleCurrentFile() {
 	fpath := os.Args[2]
-	data, err := ioutil.ReadFile(fpath)
+	data, err := os.ReadFile(fpath)
 	if err != nil {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
@@ -182,11 +181,12 @@ import (
 	"blue/repl"
 	"os"
 	"path/filepath"
+	_ "embed"
 )
 
 var out = os.Stderr
 `
-	input := fmt.Sprintf("const input = `%s`\n", d)
+	input := fmt.Sprintf("//go:embed %s\nvar input string\n", fpath)
 	mainFunc := `func main() {
 	l := lexer.New(input)
 	p := parser.New(l)
@@ -275,7 +275,7 @@ var out = os.Stderr
 		}
 	}
 
-	// These steps need to execute in this order
+	// These steps need to executed in this order
 	renameOriginalMainGoFile()
 	writeMainGoFile(gomain)
 	buildExe()

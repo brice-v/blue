@@ -25,4 +25,12 @@ fun returnTrue() {
     true
 }
 
+fun _internalFun() {
+    "INTERNAL";
+}
+
+fun useInternalFun() {
+    return _internalFun();
+}
+
 true

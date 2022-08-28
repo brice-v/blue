@@ -16,7 +16,6 @@ TODO:
 - [ ] Support proper scopes
 - [ ] Use struct{} for set implmentation
 - [ ] Remove uints from working with big floats and ints
-- [ ] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
 - [ ] Include shift operators and assignment expressions to other types
 - [ ] Support regex literal in parser and evaluator
     - Might just use a syntax such as `re"[0-9]+"`
@@ -62,6 +61,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
 - [x] Add way to get types of objects inside code
 - [x] support index operator for set so we can do something like `set_abc.1` or `set_abc[1]` to get 2nd element
     - cant fix this until sets are in order (otherwise its unfriendly to use)

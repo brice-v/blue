@@ -1072,6 +1072,9 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 func (e *Evaluator) evalModuleIndexExpression(module, indx object.Object) object.Object {
 	mod := module.(*object.Module)
 	name := indx.(*object.Stringo).Value
+	if strings.HasPrefix(name, "_") {
+		return newError("cannot use private object '%s' from imported file '%s'", name, mod.Name)
+	}
 	val, ok := mod.Env.Get(name)
 	if !ok {
 		return newError("failed to find '%s' in imported file '%s'", name, mod.Name)

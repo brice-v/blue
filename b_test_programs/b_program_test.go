@@ -6,7 +6,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestAllProgramsInDirectory(t *testing.T) {
-	files, err := ioutil.ReadDir("./")
+	files, err := os.ReadDir("./")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestAllProgramsInDirectory(t *testing.T) {
 		}
 		defer openFile.Close()
 
-		data, err := ioutil.ReadAll(openFile)
+		data, err := io.ReadAll(openFile)
 		if err != nil {
 			t.Fatal(err)
 		}
