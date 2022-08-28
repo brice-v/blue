@@ -6,18 +6,18 @@ val res = http.get(url);
 println("url='#{url}', res=`#{res}`");
 
 if (res == "") {
-    false;
+    return false;
 }
 
 try {
     http.get(1);
-    false;
+    return false;
 } catch (e) {
     println("#{e}");
     if (e != "EvaluatorError: argument to `get` must be string. got INTEGER") {
         return false;
     }
-    true;
+    return true;
 }
 
-true;
+return true;

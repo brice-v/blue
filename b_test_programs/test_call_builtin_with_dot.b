@@ -8,4 +8,4 @@ one.println()
 
 var hey = true;
 hey.println()
-hey;
+return hey;

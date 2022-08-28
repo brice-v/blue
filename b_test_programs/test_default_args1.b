@@ -3,5 +3,5 @@ fun greet(name="Brice", greeting="Hello") {
 }
 
 if (greet() == "Hello Brice!") {
-    true
+    return true;
 }

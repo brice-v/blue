@@ -53,4 +53,4 @@ if (split(hw, " ") != [h, "World"]) {
 if (split(hw) != [h, w]) {
     return false;
 }
-true;
+return true;

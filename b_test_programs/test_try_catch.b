@@ -17,4 +17,4 @@ try {
     println("Catch1 #{e}");
 }
 
-true
+return true;

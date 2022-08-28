@@ -3,7 +3,7 @@ fun hello() {
 }
 
 if (hello() != "HELLO") {
-    return false
+    return false;
 }
 
 fun hello_a(a) {
@@ -11,7 +11,7 @@ fun hello_a(a) {
 }
 
 if ("A".hello_a() != "HELLO A") {
-    return false
+    return false;
 }
 
 fun hello_b(b, c) {
@@ -19,12 +19,12 @@ fun hello_b(b, c) {
 }
 
 if ("3".hello_b("C") != "HELLO 3 C") {
-    return false
+    return false;
 }
 
 try {
     (1 + 2).hello_b("3")
-    return false
+    return false;
 } catch (e) {}
 
-true
+return true;

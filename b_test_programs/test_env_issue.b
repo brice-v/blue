@@ -4,4 +4,4 @@ var abc = fun() {
 	x
 }
 
-abc();
+return abc();

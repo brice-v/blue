@@ -4,6 +4,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"log"
 	"testing"
 )
 
@@ -179,7 +180,9 @@ func TestEvalBooleanExpression(t *testing.T) {
 
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
-		testBooleanObject(t, evaluated, tt.expected)
+		if !testBooleanObject(t, evaluated, tt.expected) {
+			log.Printf("failed on tt.input = %s\n", tt.input)
+		}
 	}
 }
 

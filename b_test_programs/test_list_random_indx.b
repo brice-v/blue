@@ -16,7 +16,7 @@ for (i in 1..<10) {
 y[10] = "HELLO";
 
 if (x != y) {
-    false
+    return false;
 }
 
-true
+return true;

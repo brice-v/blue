@@ -15,4 +15,4 @@ try {
     assert(e == "EvaluatorError: 'y' is already defined as immutable, cannot reassign")
 }
 
-true
+return true;

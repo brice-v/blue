@@ -6,7 +6,7 @@ try {
     println(abcd123);
 } catch (e) {
     # Shouldnt reach this
-    false
+    return false;
 }
 
-true
+return true;

@@ -17,37 +17,37 @@ val t14 = type({x: "" for (x in 1..10)});
 println("t1=#{t1}, t2=#{t2}, t3=#{t3}, t4=#{t4}, t5=#{t5}, t6=#{t6}, t7=#{t7}, t8=#{t8}, t9=#{t9}, t10=#{t10}, t11=#{t11}, t12=#{t12}, t13=#{t13}, t14=#{t14}");
 
 if (t1 != "INTEGER") {
-    false;
+    return false;
 }
 if (t2 != "STRING") {
-    false;
+    return false;
 }
 if (t3 != "MAP") {
-    false;
+    return false;
 }
 if (t4 != "LIST") {
-    false;
+    return false;
 }
 if (t5 != "SET") {
-    false;
+    return false;
 }
 if (t6 != "FUNCTION") {
-    false;
+    return false;
 }
 if (t7 != "NULL") {
-    false;
+    return false;
 }
 if (t8 != "BIG_INTEGER") {
-    false;
+    return false;
 }
 if (t9 != "UINTEGER") {
-    false;
+    return false;
 }
 if (t10 != "BOOLEAN") {
-    false;
+    return false;
 }
 if (t11 != "FLOAT") {
-    false;
+    return false;
 }
 
-true;
+return true;

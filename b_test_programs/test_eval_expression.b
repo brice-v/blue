@@ -4,7 +4,7 @@ val y = 1;
 
 val z = eval("x + #{y}");
 if (z != 2) {
-    false
+    return false;
 }
 eval("println(#{z})");
 
@@ -17,4 +17,4 @@ try {
 
 eval("println('Hello World!')");
 
-true;
+return true;

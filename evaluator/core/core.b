@@ -17,13 +17,17 @@ fun filter(list, f) {
 }
 
 fun reduce(list, f, acc=null) {
+    ###
     if (acc == null) {
         if (list.len() == 0) {
             return [];
         }
         acc = list[0];
     }
+    ###
+    #println("acc=#{acc} before loop");
     for (e in list) {
+        #println("e=#{e}, acc=#{acc}");
         acc = f(acc,e)
     }
     return acc;

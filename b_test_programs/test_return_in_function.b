@@ -3,4 +3,4 @@ fun main() {
 }
 
 
-main()
+return main();

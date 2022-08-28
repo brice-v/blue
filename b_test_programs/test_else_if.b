@@ -10,4 +10,4 @@ var x = if (false) {
 
 println(x)
 
-x
+return x;

@@ -3,4 +3,4 @@ if ("openjdk" notin ver) {
     return false;
 }
 
-true;
+return true;

@@ -12,4 +12,4 @@ abc.returnTrue()
 
 import foo.bar
 
-bar.bar()
+return bar.bar();

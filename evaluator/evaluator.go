@@ -729,6 +729,10 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		if isError(evalBlock) {
 			return evalBlock
 		}
+		rv, isReturn := evalBlock.(*object.ReturnValue)
+		if isReturn {
+			return rv.Value
+		}
 		// Cleanup any temporary for variables
 		tmpMapCopy := e.cleanupTmpVar
 		for k, v := range tmpMapCopy {
@@ -1112,7 +1116,7 @@ func (e *Evaluator) evalSetIndexExpression(set, indx object.Object) object.Objec
 		return newError("evalSetIndexExpression:expected index to be INT or STRING. got=%s", indx.Type())
 	}
 	var i int64
-	for kv := setObj.Elements.Front(); kv != nil; kv.Next() {
+	for kv := setObj.Elements.Front(); kv != nil; kv = kv.Next() {
 		if i == idx {
 			return kv.Value.Value
 		}
@@ -1495,9 +1499,9 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		return e.evalRightSideSetInfixExpression(operator, left, right)
 	// NOTE: THESE OPERATORS MUST STAY BELOW THE TYPE CHECKING OTHERWISE IT COULD BREAK THINGS!!
 	case operator == "==":
-		return nativeToBooleanObject(left == right)
+		return nativeToBooleanObject(object.HashObject(left) == object.HashObject(right))
 	case operator == "!=":
-		return nativeToBooleanObject(left != right)
+		return nativeToBooleanObject(object.HashObject(left) != object.HashObject(right))
 	case operator == "and":
 		leftBool, ok := left.(*object.Boolean)
 		if !ok {

@@ -27,7 +27,7 @@ var resultToCompare = match HelloWorld {
 };
 
 if (resultToCompare != null) {
-    false
+    return false;
 }
 
-true
+return true;

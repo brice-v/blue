@@ -492,19 +492,14 @@ func HashObject(obj Object) uint64 {
 		binary.PutUvarint(b, obj.(*UInteger).Value)
 		h.Write(b)
 	case BOOLEAN_OBJ:
-		b := make([]byte, 8)
 		if obj.(*Boolean).Value {
 			// Use 1 for true
-			binary.PutVarint(b, 1)
+			return 1
 		}
-		// use 0 for false
-		binary.PutVarint(b, 0)
-		h.Write(b)
+		return 0
 	case NULL_OBJ:
-		b := make([]byte, 8)
-		// use 2 for Null/Ignored
-		binary.PutUvarint(b, 2)
-		h.Write(b)
+		// Use 2 for null
+		return 2
 	case FLOAT_OBJ:
 		b := make([]byte, 8)
 		binary.PutUvarint(b, uint64(obj.(*Float).Value))

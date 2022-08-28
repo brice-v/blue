@@ -7,4 +7,4 @@ normally reserved #{} word
 
 print(mystr)
 
-true
+return true;

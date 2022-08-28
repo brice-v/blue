@@ -5,7 +5,7 @@ println(x);
 println(y);
 println(x + y)
 if (x + y != z) {
-    false
+    return false;
 } else {
-    true
+    return true;
 }

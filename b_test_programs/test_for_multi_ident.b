@@ -7,7 +7,7 @@ for ([a, b] in abca) {
 }
 
 if (abca != abcb) {
-    false
+    return false;
 }
 
 var x = {some: "world", another: "thing"};
@@ -19,7 +19,7 @@ for ([a, b] in x) {
 }
 
 if (z != x) {
-    false
+    return false;
 }
 
 var xxx = "Hello World!";
@@ -32,9 +32,10 @@ for ([a, b] in xxx) {
     xyz[a] = b;
 }
 
+println("Here!");
+println("xyz = #{xyz}, zzz = #{zzz}, (xyz!=zzz)=#{xyz!=zzz}");
 if (xyz != zzz) {
-    false
+    return false;
 }
-
-
-true
+println("HERE 2");
+return true;

@@ -1,11 +1,9 @@
-var output = `ls`
+var output = `ls`;
 
-println(output)
+println(output);
 
-true
+var out = `ls  -l`;
 
-var out = `ls  -l`
+print(out);
 
-print(out)
-
-true
+return true;

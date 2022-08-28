@@ -18,4 +18,4 @@ println(x.somevar)
 
 y.inc()
 println(y.abc)
-true;
+return true;
