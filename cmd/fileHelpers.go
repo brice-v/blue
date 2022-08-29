@@ -45,6 +45,16 @@ func isValidFile() bool {
 	return true
 }
 
+func isValidFpath(fpath string) bool {
+	ok, err := fileExists(fpath)
+	if !ok {
+		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting...\n", os.Args[1], err)
+		os.Stderr.WriteString(msg)
+		return false
+	}
+	return true
+}
+
 // isValidFileForEval checks if the first argument is a valid file
 func isValidFileForEval() bool {
 	if !(len(os.Args) >= 2) {
@@ -160,16 +170,17 @@ func evalFile() {
 
 // bundleCurrentFile parse's the second argument as a file
 // and bundles the interpreter with the code into an executable
-func bundleCurrentFile() {
-	fpath := os.Args[2]
+func bundleCurrentFile(fpath string, isDebug bool) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
 
 	d := string(data)
-	fmt.Println("File Name: '" + fpath + "', Data: ")
-	fmt.Printf("`%s`\n\n", d)
+	if isDebug {
+		fmt.Println("File Name: '" + fpath + "', Data: ")
+		fmt.Printf("`%s`\n\n", d)
+	}
 
 	header := `package main
 
@@ -179,15 +190,27 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
+	"embed"
 	"os"
 	"path/filepath"
-	_ "embed"
 )
 
 var out = os.Stderr
+
+//go:embed **/*.b *.b
+var files embed.FS
 `
-	input := fmt.Sprintf("//go:embed %s\nvar input string\n", fpath)
+
+	entryPointPath := fmt.Sprintf("const entryPointPath = `%s`\n", fpath)
 	mainFunc := `func main() {
+	entryPoint, err := files.ReadFile(entryPointPath)
+	if err != nil {
+		out.WriteString("Failed to read EntryPoint File '" + entryPointPath + "'\n")
+		os.Exit(1)
+	}
+	input := string(entryPoint)
+	evaluator.IsEmbed = true
+	evaluator.Files = files
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -206,9 +229,11 @@ var out = os.Stderr
 	}
 }`
 
-	gomain := fmt.Sprintf("%s\n%s\n%s", header, input, mainFunc)
-	fmt.Println("gomain: -------------------------------------")
-	fmt.Println(gomain)
+	gomain := fmt.Sprintf("%s\n%s\n%s", header, entryPointPath, mainFunc)
+	if isDebug {
+		fmt.Println("gomain: -------------------------------------")
+		fmt.Println(gomain)
+	}
 
 	renameOriginalMainGoFile := func() {
 		err := os.Rename("main.go", "main.go.tmp")
@@ -247,7 +272,7 @@ var out = os.Stderr
 				os.Exit(1)
 			}
 			if len(output) == 0 {
-				os.Stderr.WriteString("got 0 bytes from `" + strings.Join(cmd, " ") + "` output, not sure if thats exepected... continuing...\n")
+				os.Stdout.WriteString("Successfully built `" + cmd[len(cmd)-1] + "` as Executable!\n")
 			}
 		} else {
 			output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
@@ -256,7 +281,7 @@ var out = os.Stderr
 				os.Exit(1)
 			}
 			if len(output) == 0 {
-				os.Stderr.WriteString("got 0 bytes from `" + strings.Join(cmd, " ") + "` output, not sure if thats exepected... continuing...\n")
+				os.Stdout.WriteString("Successfully built `" + cmd[len(cmd)-1] + "` as Executable!\n")
 			}
 		}
 	}

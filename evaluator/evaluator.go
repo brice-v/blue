@@ -7,6 +7,7 @@ import (
 	"blue/parser"
 	"bytes"
 	"container/list"
+	"embed"
 	"fmt"
 	"io"
 	"math"
@@ -18,6 +19,12 @@ import (
 
 	"github.com/shopspring/decimal"
 )
+
+// IsEmbed is a global variable to be used to determine whether the code is on the os
+// or if it has been embedded
+var IsEmbed = false
+
+var Files embed.FS
 
 var (
 	// TRUE is the true object which should be the same everywhere
@@ -271,20 +278,30 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	}
 	fpath := e.createFilePathFromImportPath(name)
 	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
-	file, err := filepath.Abs(fpath)
-	if err != nil {
-		return newError("Failed to import '%s'. Could not get absolute filepath.", name)
+	var inputStr string
+	if !IsEmbed {
+		file, err := filepath.Abs(fpath)
+		if err != nil {
+			return newError("Failed to import '%s'. Could not get absolute filepath.", name)
+		}
+		ofile, err := os.Open(file)
+		if err != nil {
+			return newError("Failed to import '%s'. Could not open file '%s' for reading.", name, file)
+		}
+		defer ofile.Close()
+		fileData, err := io.ReadAll(ofile)
+		if err != nil {
+			return newError("Failed to import '%s'. Could not read the file.", name)
+		}
+		inputStr = string(fileData)
+	} else {
+		fileData, err := Files.ReadFile(fpath)
+		if err != nil {
+			return newError("Failed to import '%s'. Could not read the file.", name)
+		}
+		inputStr = string(fileData)
 	}
-	ofile, err := os.Open(file)
-	if err != nil {
-		return newError("Failed to import '%s'. Could not open file '%s' for reading.", name, file)
-	}
-	defer ofile.Close()
-	fileData, err := io.ReadAll(ofile)
-	if err != nil {
-		return newError("Failed to import '%s'. Could not read the file.", name)
-	}
-	inputStr := string(fileData)
+
 	l := lexer.New(inputStr)
 	p := parser.New(l)
 	program := p.ParseProgram()

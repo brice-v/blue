@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 )
 
 // Run runs the cmd line parsing of arguments and kicks off the Bee language
@@ -18,6 +19,7 @@ func Run(version string, args ...string) {
 	// just missing the import part but single scripts should be fine
 	bundleFlag := flag.Bool("b", false, "Bundle the script into a go executable")
 	versionFlag := flag.Bool("v", false, "Prints the version of "+args[0])
+	debugFlag := flag.Bool("d", false, "Debug flag - currently only used for Bundling")
 
 	flag.Parse()
 	argc := len(args)
@@ -39,8 +41,14 @@ func Run(version string, args ...string) {
 		parseCurrentFile()
 	case argc == 3 && isValidFile() && *evalFlag:
 		evalCurrentFile()
-	case argc == 3 && isValidFile() && *bundleFlag:
-		bundleCurrentFile()
+	case (argc == 3 && isValidFile() && *bundleFlag) || argc == 4 && isValidFpath(os.Args[3]) && *bundleFlag && *debugFlag:
+		var fpath string
+		if argc == 3 {
+			fpath = os.Args[2]
+		} else {
+			fpath = os.Args[3]
+		}
+		bundleCurrentFile(fpath, *debugFlag)
 	case argc == 1:
 		repl.StartEvalRepl(version)
 	case argc > 2 && isValidFileForEval():
