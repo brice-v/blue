@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 // StdModFileAndBuiltins keeps the file and builtins together for each std lib module
@@ -20,10 +21,14 @@ type StdModFileAndBuiltins struct {
 //go:embed std/http.b
 var stdHttpFile string
 
+//go:embed std/time.b
+var stdTimeFile string
+
 // TODO: Could use an embed.FS and read the files that way rather then set each one individually
 // but it works well enough for now (if we used embed.FS we probably just need a helper)
 var _std_mods = map[string]StdModFileAndBuiltins{
 	"http": {File: stdHttpFile, Builtins: _http_builtin_map},
+	"time": {File: stdTimeFile, Builtins: _time_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -65,7 +70,7 @@ var _http_builtin_map = BuiltinMapType{
 				return newError("`get` expects 1 argument")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument to `get` must be string. got %s", args[0].Type())
+				return newError("argument to `get` must be STRING. got %s", args[0].Type())
 			}
 			resp, err := http.Get(args[0].(*object.Stringo).Value)
 			if err != nil {
@@ -77,6 +82,33 @@ var _http_builtin_map = BuiltinMapType{
 				return newError("`get` failed: %s", err.Error())
 			}
 			return &object.Stringo{Value: string(body)}
+		},
+	},
+}
+
+var _time_builtin_map = BuiltinMapType{
+	"_sleep": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`sleep` expects 1 argument")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument to `sleep` must be INTEGER, got %s", args[0].Type())
+			}
+			i := args[0].(*object.Integer).Value
+			if i < 0 {
+				return newError("INTEGER argument to `sleep` must be > 0, got %d", i)
+			}
+			time.Sleep(time.Duration(i) * time.Millisecond)
+			return NULL
+		},
+	},
+	"_now": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newError("`now` expects 0 arguments")
+			}
+			return &object.Integer{Value: time.Now().Unix()}
 		},
 	},
 }

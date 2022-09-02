@@ -300,3 +300,30 @@ func (ee *EvalExpression) String() string {
 	out.WriteString("\");\n")
 	return out.String()
 }
+
+// SpawnExpression is the spaws ast node
+type SpawnExpression struct {
+	Token     token.Token  // token == spawn
+	Arguments []Expression // Arguments is the list of expression to be passed as arguments
+}
+
+// expressionNode satisfies the expression interface
+func (se *SpawnExpression) expressionNode() {}
+
+// TokenLiteral returns the for token
+func (se *SpawnExpression) TokenLiteral() string { return se.Token.Literal }
+
+// String returns the string representation of the for expression ast node
+func (se *SpawnExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("spawn(")
+	for i, a := range se.Arguments {
+		out.WriteString(a.String())
+		if i < len(se.Arguments)-1 {
+			out.WriteString(", ")
+		}
+	}
+	out.WriteString(");\n")
+	return out.String()
+}
