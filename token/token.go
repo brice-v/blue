@@ -241,6 +241,8 @@ const (
 
 	// EVAL is the string rep. of the 'eval' keyword token
 	EVAL = "EVAL"
+	// SPAWN is the string rep. of the 'spawn' keyword token
+	SPAWN = "SPAWN"
 )
 
 // TODO: Add all keywords wanted in blang here
@@ -279,6 +281,7 @@ var keywords = map[string]Type{
 	"catch":   CATCH,
 	"finally": FINALLY,
 	"eval":    EVAL,
+	"spawn":   SPAWN,
 }
 
 // LookupIdent will check if the identifer passed in matches one of the

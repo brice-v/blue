@@ -52,6 +52,8 @@ const (
 	SET_COMP_OBJ = "SET_COMP_OBJ"
 	// MODULE_OBJ is the object type for an imported module
 	MODULE_OBJ = "MODULE_OBJ"
+	// PROCESS_OBJ is the process type for a process
+	PROCESS_OBJ = "PROCESS"
 )
 
 // Type is the object type represented as a string
@@ -190,6 +192,19 @@ func (f *Function) Inspect() string {
 	out.WriteString("\n}")
 
 	return out.String()
+}
+
+type Process struct {
+	Fun *Function
+	Ch  chan Object
+}
+
+func (p *Process) Inspect() string {
+	return "TODO: Process.Inspect()"
+}
+
+func (p *Process) Type() Type {
+	return PROCESS_OBJ
 }
 
 // Stringo is the string oject struct which contains a string value

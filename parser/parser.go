@@ -5,6 +5,7 @@ import (
 	"blue/lexer"
 	"blue/token"
 	"fmt"
+	"log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -146,6 +147,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MATCH, p.parseMatchExpression)
 	p.registerPrefix(token.NULL_KW, p.parseNullKeyword)
 	p.registerPrefix(token.EVAL, p.parseEvalExpression)
+	p.registerPrefix(token.SPAWN, p.parseSpawnExpression)
 	p.infixParseFuns = make(map[token.Type]infixParseFun)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -578,6 +580,21 @@ func (p *Parser) parseEvalExpression() ast.Expression {
 		return nil
 	}
 	return ee
+}
+
+func (p *Parser) parseSpawnExpression() ast.Expression {
+	se := &ast.SpawnExpression{
+		Token: p.curToken,
+	}
+	p.nextToken()
+	se.Arguments, _ = p.parseExpressionList(token.RPAREN)
+	for _, a := range se.Arguments {
+		log.Printf("a = %s", a.String())
+	}
+	if !p.expectPeekIs(token.SEMICOLON) {
+		return nil
+	}
+	return se
 }
 
 func (p *Parser) parseImportStatement() ast.Statement {

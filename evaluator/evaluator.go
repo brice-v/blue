@@ -10,12 +10,14 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync/atomic"
 
 	"github.com/shopspring/decimal"
 )
@@ -23,8 +25,10 @@ import (
 // IsEmbed is a global variable to be used to determine whether the code is on the os
 // or if it has been embedded
 var IsEmbed = false
-
 var Files embed.FS
+
+var pidCount = atomic.Int64{}
+var ProcessMap = NewMap()
 
 var (
 	// TRUE is the true object which should be the same everywhere
@@ -39,6 +43,9 @@ var (
 
 type Evaluator struct {
 	env *object.Environment
+
+	// PID is the process ID of this evaluator
+	PID int64
 
 	// EvalBasePath is the base directory from which the current file is being run
 	EvalBasePath string
@@ -62,6 +69,8 @@ func New() *Evaluator {
 	e := &Evaluator{
 		env: object.NewEnvironment(),
 
+		PID: pidCount.Load(),
+
 		EvalBasePath: ".",
 		CurrentFile:  "<stdin>",
 
@@ -77,6 +86,50 @@ func New() *Evaluator {
 	e.Builtins.PushBack(stringbuiltins)
 	e.Builtins.PushBack(builtinobjs)
 	e.AddCoreLibToEnv()
+	// These builtins are declared here so that they can access the evaluator members
+	builtins["self"] = &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newError("`self` expects 0 arguments")
+			}
+			return &object.Integer{Value: e.PID}
+		},
+	}
+	builtins["send"] = &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`send` expects 2 arguments")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("first argument to `send` must be INTEGER got %s", args[0].Type())
+			}
+			pid := args[0].(*object.Integer).Value
+			process, ok := ProcessMap.Get(pid)
+			if !ok {
+				return newError("`send` failed, pid=%d not found", pid)
+			}
+			log.Printf("GOT HERE")
+			process.Ch <- args[1]
+			log.Printf("GOT HERE1, sent to PID %d, args[1] = %+v", pid, args[1])
+			return NULL
+		},
+	}
+	builtins["recv"] = &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newError("`recv` expects 0 arguments")
+			}
+			process, ok := ProcessMap.Get(e.PID)
+			if !ok {
+				return newError("`recv` failed, pid=%d not found", e.PID)
+			}
+			log.Printf("RECV e.PID=%d", e.PID)
+			val := <-process.Ch
+			log.Printf("RECV val = %+v", val)
+			return val
+		},
+	}
+
 	return e
 }
 
@@ -257,6 +310,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		return e.evalTryCatchStatement(node)
 	case *ast.EvalExpression:
 		return e.evalEvalExpression(node)
+	case *ast.SpawnExpression:
+		return e.evalSpawnExpression(node)
 	default:
 		if node == nil {
 			// Just want to get rid of this in my output
@@ -366,6 +421,42 @@ func (e *Evaluator) evalEvalExpression(node *ast.EvalExpression) object.Object {
 		return newError(err.Error())
 	}
 	return obj
+}
+
+func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object {
+	argLen := len(node.Arguments)
+	if argLen != 1 {
+		panic("handle multi args to spawn expression")
+	}
+	arg0 := e.Eval(node.Arguments[0])
+	if isError(arg0) {
+		return arg0
+	}
+	if arg0.Type() != object.FUNCTION_OBJ {
+		return newError("`spawn` expects first argument to be FUNCTION got %s", arg0.Type())
+	}
+	fun, _ := arg0.(*object.Function)
+	process := &object.Process{
+		Fun: fun,
+		Ch:  make(chan object.Object),
+	}
+	pid := pidCount.Add(1)
+	ProcessMap.Put(pid, process)
+	go func(pid int64) {
+		e := New()
+		e.PID = pid
+		// TODO: If we take extra args we can probably put it here?
+		obj := e.applyFunction(fun, make([]object.Object, 0), make(map[string]object.Object))
+		if isError(obj) {
+			err := obj.(*object.Error).Message
+			fmt.Printf("EvaluatorError: %s\n", err)
+		}
+		// Delete from concurrent map and decrement pidCount
+		ProcessMap.Remove(pid)
+		pidCount.Store(pidCount.Load() - 1)
+	}(pid)
+
+	return &object.Integer{Value: pid}
 }
 
 func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {
