@@ -14,7 +14,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync/atomic"
 
@@ -618,15 +617,8 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		// TODO: This is where we can modify if we want to only use keys
 		mapPairs := evaluatedRight.(*object.Map).Pairs
 		pairObjs := make([]*object.List, 0, mapPairs.Len())
-		keys := []object.HashKey{}
 		for _, k := range mapPairs.Keys {
-			keys = append(keys, k)
-		}
-		sort.Slice(keys, func(p, q int) bool {
-			return keys[p].Value < keys[q].Value
-		})
-		for i := 0; i < mapPairs.Len(); i++ {
-			pair, _ := mapPairs.Get(keys[i])
+			pair, _ := mapPairs.Get(k)
 			listObj := []object.Object{pair.Key, pair.Value}
 			pairObjs = append(pairObjs, &object.List{Elements: listObj})
 		}
@@ -742,15 +734,8 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		mapPairs := evaluatedRight.(*object.Map).Pairs
 		pairObjs := make([]*object.List, 0, mapPairs.Len())
-		keys := []object.HashKey{}
 		for _, k := range mapPairs.Keys {
-			keys = append(keys, k)
-		}
-		sort.Slice(keys, func(p, q int) bool {
-			return keys[p].Value < keys[q].Value
-		})
-		for i := 0; i < mapPairs.Len(); i++ {
-			pair, _ := mapPairs.Get(keys[i])
+			pair, _ := mapPairs.Get(k)
 			listObj := []object.Object{pair.Key, pair.Value}
 			pairObjs = append(pairObjs, &object.List{Elements: listObj})
 		}
@@ -1613,9 +1598,7 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 	case operator == "==":
 		return nativeToBooleanObject(object.HashObject(left) == object.HashObject(right))
 	case operator == "!=":
-		l := object.HashObject(left)
-		r := object.HashObject(right)
-		return nativeToBooleanObject(l != r)
+		return nativeToBooleanObject(object.HashObject(left) != object.HashObject(right))
 	case operator == "and":
 		leftBool, ok := left.(*object.Boolean)
 		if !ok {
