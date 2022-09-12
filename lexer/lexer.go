@@ -13,6 +13,7 @@ import (
 // lexing needs
 type Lexer struct {
 	input        string
+	inputAsRunes []rune
 	position     int  // current pos. in input (points to current char)
 	readPosition int  // current reading pos. in input (after current char)
 	ch           rune // current char under examination
@@ -21,7 +22,7 @@ type Lexer struct {
 
 // New returns a pointer to the lexer struct
 func New(input string) *Lexer {
-	l := &Lexer{input: input}
+	l := &Lexer{input: input, inputAsRunes: []rune(input)}
 	l.readChar()
 	return l
 }
@@ -30,10 +31,10 @@ func New(input string) *Lexer {
 // in the input string
 func (l *Lexer) readChar() {
 	l.prevCh = l.ch
-	if l.readPosition >= utf8.RuneCountInString(l.input) {
+	if l.readPosition >= len(l.inputAsRunes) {
 		l.ch = 0
 	} else {
-		l.ch = []rune(l.input)[l.readPosition]
+		l.ch = l.inputAsRunes[l.readPosition]
 	}
 	l.position = l.readPosition
 	l.readPosition += utf8.RuneCountInString(string(l.ch))
@@ -41,18 +42,18 @@ func (l *Lexer) readChar() {
 
 // peekChar will return the rune that is in the readPosition without consuming any input
 func (l *Lexer) peekChar() rune {
-	if l.readPosition >= utf8.RuneCountInString(l.input) {
+	if l.readPosition >= len(l.inputAsRunes) {
 		return 0
 	}
-	return []rune(l.input)[l.readPosition]
+	return l.inputAsRunes[l.readPosition]
 }
 
 // peekSecondChar will return the rune right after the readPosition without consuming any input
 func (l *Lexer) peekSecondChar() rune {
-	if l.readPosition >= utf8.RuneCountInString(l.input) || l.readPosition+1 >= utf8.RuneCountInString(l.input) {
+	if l.readPosition >= len(l.inputAsRunes) || l.readPosition+1 >= len(l.inputAsRunes) {
 		return 0
 	}
-	return []rune(l.input)[l.readPosition+1]
+	return l.inputAsRunes[l.readPosition+1]
 }
 
 // readNumber will keep consuming valid digits of the input according to `isDigit`
@@ -68,7 +69,7 @@ func (l *Lexer) readNumber() (token.Type, string) {
 			for isHexChar(l.ch) || (l.ch == '_' && isHexChar(l.peekChar())) {
 				l.readChar()
 			}
-			return token.HEX, string([]rune(l.input)[position:l.position])
+			return token.HEX, string(l.inputAsRunes[position:l.position])
 		} else if l.peekChar() == 'o' && isOctalChar(l.peekSecondChar()) {
 			// consume the 0 and the o and continue to the number
 			l.readChar()
@@ -76,7 +77,7 @@ func (l *Lexer) readNumber() (token.Type, string) {
 			for isOctalChar(l.ch) || (l.ch == '_' && isOctalChar(l.peekChar())) {
 				l.readChar()
 			}
-			return token.OCTAL, string([]rune(l.input)[position:l.position])
+			return token.OCTAL, string(l.inputAsRunes[position:l.position])
 		} else if l.peekChar() == 'b' && isBinaryChar(l.peekSecondChar()) {
 			// consume the 0 and the b and continue to the number
 			l.readChar()
@@ -84,7 +85,7 @@ func (l *Lexer) readNumber() (token.Type, string) {
 			for isBinaryChar(l.ch) || (l.ch == '_' && isBinaryChar(l.peekChar())) {
 				l.readChar()
 			}
-			return token.BINARY, string([]rune(l.input)[position:l.position])
+			return token.BINARY, string(l.inputAsRunes[position:l.position])
 		}
 	}
 	dotFlag := false
@@ -97,9 +98,9 @@ func (l *Lexer) readNumber() (token.Type, string) {
 		l.readChar()
 	}
 	if dotFlag {
-		return token.FLOAT, string([]rune(l.input)[position:l.position])
+		return token.FLOAT, string(l.inputAsRunes[position:l.position])
 	}
-	return token.INT, string([]rune(l.input)[position:l.position])
+	return token.INT, string(l.inputAsRunes[position:l.position])
 }
 
 // readIdentifier will keep consuming valid letters out of the input according to `isLetter`
@@ -111,7 +112,7 @@ func (l *Lexer) readIdentifier() string {
 	for isLetter(l.ch) || unicode.IsNumber(l.ch) {
 		l.readChar()
 	}
-	return string([]rune(l.input)[position:l.position])
+	return string(l.inputAsRunes[position:l.position])
 }
 
 // readImportPath reads the following import chars and returns the accumulated string
@@ -120,7 +121,7 @@ func (l *Lexer) readImportPath() string {
 	for isImportChar(l.ch) {
 		l.readChar()
 	}
-	return string([]rune(l.input)[position:l.position])
+	return string(l.inputAsRunes[position:l.position])
 }
 
 // readMultiLineComment will continue to consume input until the end multiline token is reached

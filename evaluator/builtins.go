@@ -18,7 +18,7 @@ var builtins = BuiltinMapType{
 
 			switch arg := args[0].(type) {
 			case *object.Stringo:
-				return &object.Integer{Value: int64(len([]rune(arg.Value)))}
+				return &object.Integer{Value: int64(runeLen(arg.Value))}
 			case *object.List:
 				return &object.Integer{Value: int64(len(arg.Elements))}
 			case *object.Map:
