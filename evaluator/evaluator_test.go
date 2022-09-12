@@ -555,12 +555,12 @@ func TestMapLiterals(t *testing.T) {
 		FALSE.HashKey():                             6,
 	}
 
-	if len(result.Pairs) != len(expected) {
-		t.Fatalf("Hash has wrong num of pairs. got=%d", len(result.Pairs))
+	if result.Pairs.Len() != len(expected) {
+		t.Fatalf("Hash has wrong num of pairs. got=%d", result.Pairs.Len())
 	}
 
 	for expectedKey, expectedValue := range expected {
-		pair, ok := result.Pairs[expectedKey]
+		pair, ok := result.Pairs.Get(expectedKey)
 		if !ok {
 			t.Errorf("no pair for given key in Pairs")
 		}

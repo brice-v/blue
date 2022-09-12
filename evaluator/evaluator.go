@@ -10,7 +10,6 @@ import (
 	"embed"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"math/big"
 	"os"
@@ -108,9 +107,7 @@ func New() *Evaluator {
 			if !ok {
 				return newError("`send` failed, pid=%d not found", pid)
 			}
-			log.Printf("GOT HERE")
 			process.Ch <- args[1]
-			log.Printf("GOT HERE1, sent to PID %d, args[1] = %+v", pid, args[1])
 			return NULL
 		},
 	}
@@ -123,9 +120,9 @@ func New() *Evaluator {
 			if !ok {
 				return newError("`recv` failed, pid=%d not found", e.PID)
 			}
-			log.Printf("RECV e.PID=%d", e.PID)
+
 			val := <-process.Ch
-			log.Printf("RECV val = %+v", val)
+
 			return val
 		},
 	}
@@ -620,16 +617,17 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		// or we will need a new ast expression for multiple ident assignments
 		// TODO: This is where we can modify if we want to only use keys
 		mapPairs := evaluatedRight.(*object.Map).Pairs
-		pairObjs := make([]*object.List, 0, len(mapPairs))
+		pairObjs := make([]*object.List, 0, mapPairs.Len())
 		keys := []object.HashKey{}
-		for k := range mapPairs {
+		for _, k := range mapPairs.Keys {
 			keys = append(keys, k)
 		}
 		sort.Slice(keys, func(p, q int) bool {
 			return keys[p].Value < keys[q].Value
 		})
-		for i := 0; i < len(mapPairs); i++ {
-			listObj := []object.Object{mapPairs[keys[i]].Key, mapPairs[keys[i]].Value}
+		for i := 0; i < mapPairs.Len(); i++ {
+			pair, _ := mapPairs.Get(keys[i])
+			listObj := []object.Object{pair.Key, pair.Value}
 			pairObjs = append(pairObjs, &object.List{Elements: listObj})
 		}
 		_, ok := e.env.Get(ident.Value)
@@ -649,7 +647,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		}
 		e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
-		if len(mapPairs) == e.iterCount[e.nestLevel] {
+		if mapPairs.Len() == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
 			e.iterCount[e.nestLevel] = 0
 			e.nestLevel--
@@ -743,16 +741,17 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		return TRUE
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		mapPairs := evaluatedRight.(*object.Map).Pairs
-		pairObjs := make([]*object.List, 0, len(mapPairs))
+		pairObjs := make([]*object.List, 0, mapPairs.Len())
 		keys := []object.HashKey{}
-		for k := range mapPairs {
+		for _, k := range mapPairs.Keys {
 			keys = append(keys, k)
 		}
 		sort.Slice(keys, func(p, q int) bool {
 			return keys[p].Value < keys[q].Value
 		})
-		for i := 0; i < len(mapPairs); i++ {
-			listObj := []object.Object{mapPairs[keys[i]].Key, mapPairs[keys[i]].Value}
+		for i := 0; i < mapPairs.Len(); i++ {
+			pair, _ := mapPairs.Get(keys[i])
+			listObj := []object.Object{pair.Key, pair.Value}
 			pairObjs = append(pairObjs, &object.List{Elements: listObj})
 		}
 		_, ok := e.env.Get(identRight.Value)
@@ -775,7 +774,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		e.env.Set(identLeft.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[0])
 		e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
 		e.iterCount[e.nestLevel]++
-		if len(mapPairs) == e.iterCount[e.nestLevel] {
+		if mapPairs.Len() == e.iterCount[e.nestLevel] {
 			// Reset iteration for other items
 			e.iterCount[e.nestLevel] = 0
 			e.nestLevel--
@@ -1054,7 +1053,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 
 			if hashKey, ok := key.(object.Hashable); ok {
 				hashed := hashKey.HashKey()
-				mapObj.Pairs[hashed] = object.MapPair{Key: key, Value: value}
+				mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: value})
 			} else {
 				return newError("cannot index map with %T", key)
 			}
@@ -1131,7 +1130,7 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 }
 
 func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
-	pairs := make(map[object.HashKey]object.MapPair)
+	pairs := object.NewPairsMap()
 
 	for keyNode, valueNode := range node.Pairs {
 		ident, _ := keyNode.(*ast.Identifier)
@@ -1153,7 +1152,7 @@ func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
 		}
 
 		hashed := mapKey.HashKey()
-		pairs[hashed] = object.MapPair{Key: key, Value: value}
+		pairs.Set(hashed, object.MapPair{Key: key, Value: value})
 	}
 
 	return &object.Map{Pairs: pairs}
@@ -1198,7 +1197,7 @@ func (e *Evaluator) evalMapIndexExpression(mapObject, indx object.Object) object
 		return newError("unusable as map key: %s", indx.Type())
 	}
 
-	pair, ok := mapObj.Pairs[key.HashKey()]
+	pair, ok := mapObj.Pairs.Get(key.HashKey())
 	if !ok {
 		return NULL
 	}
@@ -1227,9 +1226,11 @@ func (e *Evaluator) evalSetIndexExpression(set, indx object.Object) object.Objec
 		return newError("evalSetIndexExpression:expected index to be INT or STRING. got=%s", indx.Type())
 	}
 	var i int64
-	for kv := setObj.Elements.Front(); kv != nil; kv = kv.Next() {
-		if i == idx {
-			return kv.Value.Value
+	for _, k := range setObj.Elements.Keys {
+		if v, ok := setObj.Elements.Get(k); ok {
+			if i == idx {
+				return v.Value
+			}
 		}
 		i++
 	}
@@ -1589,14 +1590,14 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		leftStr := left.(*object.Stringo)
 		rightMap := right.(*object.Map).Pairs
 		if operator == "in" {
-			for k := range rightMap {
+			for _, k := range rightMap.Keys {
 				if k.Value == leftStr.HashKey().Value {
 					return TRUE
 				}
 			}
 			return FALSE
 		} else if operator == "notin" {
-			for k := range rightMap {
+			for _, k := range rightMap.Keys {
 				if k.Value == leftStr.HashKey().Value {
 					return FALSE
 				}
@@ -1612,7 +1613,9 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 	case operator == "==":
 		return nativeToBooleanObject(object.HashObject(left) == object.HashObject(right))
 	case operator == "!=":
-		return nativeToBooleanObject(object.HashObject(left) != object.HashObject(right))
+		l := object.HashObject(left)
+		r := object.HashObject(right)
+		return nativeToBooleanObject(l != r)
 	case operator == "and":
 		leftBool, ok := left.(*object.Boolean)
 		if !ok {
@@ -1800,77 +1803,101 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 	switch operator {
 	case "|":
 		// union
-		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
-			newSet.Elements.Set(kv.Key, kv.Value)
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			newSet.Elements.Set(k, v)
 		}
-		for kv := rightElems.Front(); kv != nil; kv = kv.Next() {
-			newSet.Elements.Set(kv.Key, kv.Value)
+		for _, k := range rightElems.Keys {
+			v, ok := rightElems.Get(k)
+			if !ok {
+				continue
+			}
+			newSet.Elements.Set(k, v)
 		}
 		return newSet
 	case "&":
 		// intersect
-		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
-			v1, ok := rightElems.Get(kv.Key)
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			v1, ok := rightElems.Get(k)
 			if !ok {
 				continue
 			}
 			if v1.Present {
-				newSet.Elements.Set(kv.Key, kv.Value)
+				newSet.Elements.Set(k, v)
 			}
 		}
 		return newSet
 	case "^":
 		// symmetric difference
-		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
-			v1, ok := rightElems.Get(kv.Key)
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			v1, ok := rightElems.Get(k)
 			if !ok {
 				continue
 			}
 			if !v1.Present {
-				newSet.Elements.Set(kv.Key, kv.Value)
+				newSet.Elements.Set(k, v)
 			}
 		}
-		for kv := rightElems.Front(); kv != nil; kv = kv.Next() {
-			v1, ok := leftElems.Get(kv.Key)
+		for _, k := range rightElems.Keys {
+			v, ok := rightElems.Get(k)
+			if !ok {
+				continue
+			}
+			v1, ok := leftElems.Get(k)
 			if !ok {
 				continue
 			}
 			if !v1.Present {
-				newSet.Elements.Set(kv.Key, kv.Value)
+				newSet.Elements.Set(k, v)
 			}
 		}
 		return newSet
 	case ">=":
 		// left is superset of right
-		for kv := rightE.Front(); kv != nil; kv = kv.Next() {
-			if _, ok := leftE.Get(kv.Key); !ok {
+		for _, k := range rightE.Keys {
+			if _, ok := leftE.Get(k); !ok {
 				return FALSE
 			}
 		}
 		return TRUE
 	case "<=":
 		// right is a superset of left
-		for kv := leftE.Front(); kv != nil; kv = kv.Next() {
-			if _, ok := rightE.Get(kv.Key); !ok {
+		for _, k := range leftE.Keys {
+			if _, ok := rightE.Get(k); !ok {
 				return FALSE
 			}
 		}
 		return TRUE
 	case "-":
 		// difference
-		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
-			v1, ok := rightElems.Get(kv.Key)
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			v1, ok := rightElems.Get(k)
 			if !ok {
 				continue
 			}
 			if !v1.Present {
-				newSet.Elements.Set(kv.Key, kv.Value)
+				newSet.Elements.Set(k, v)
 			}
 		}
 		return newSet
 	case "==":
-		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
-			v1, ok := rightElems.Get(kv.Key)
+		for _, k := range leftElems.Keys {
+			v1, ok := rightElems.Get(k)
 			if !ok {
 				continue
 			}
@@ -1880,8 +1907,8 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 		}
 		return TRUE
 	case "!=":
-		for kv := leftElems.Front(); kv != nil; kv = kv.Next() {
-			v1, ok := rightElems.Get(kv.Key)
+		for _, k := range leftElems.Keys {
+			v1, ok := rightElems.Get(k)
 			if !ok {
 				continue
 			}

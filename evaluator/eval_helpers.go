@@ -191,20 +191,21 @@ func (e *Evaluator) createFilePathFromImportPath(importPath string) string {
 func doCondAndMatchExpEqual(condVal, matchVal object.Object) bool {
 	condValPairs := condVal.(*object.Map).Pairs
 	matchValPairs := matchVal.(*object.Map).Pairs
-	condValLen := len(condValPairs)
-	matchValLen := len(matchValPairs)
+	condValLen := condValPairs.Len()
+	matchValLen := matchValPairs.Len()
 	if condValLen != matchValLen {
 		return false
 	}
-	for condKey, condValue := range condValPairs {
-		_, ok := matchValPairs[condKey]
+	for _, condKey := range condValPairs.Keys {
+		condValue, _ := condValPairs.Get(condKey)
+		_, ok := matchValPairs.Get(condKey)
 		if !ok {
 			return false
 		}
 		if condValue.Value == IGNORE {
 			continue
 		}
-		val, ok := matchValPairs[condKey]
+		val, ok := matchValPairs.Get(condKey)
 		if !ok {
 			return false
 		}

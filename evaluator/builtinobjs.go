@@ -31,7 +31,7 @@ var builtinobjs = BuiltinObjMapType{
 
 func populateENVObj() *object.Map {
 	m := object.Map{
-		Pairs: make(map[object.HashKey]object.MapPair),
+		Pairs: object.NewPairsMap(),
 	}
 
 	for _, e := range os.Environ() {
@@ -43,10 +43,10 @@ func populateENVObj() *object.Map {
 			Type:  object.STRING_OBJ,
 			Value: hashKey,
 		}
-		m.Pairs[hk] = object.MapPair{
+		m.Pairs.Set(hk, object.MapPair{
 			Key:   key,
 			Value: &object.Stringo{Value: e2},
-		}
+		})
 	}
 	return &m
 }

@@ -22,7 +22,7 @@ var builtins = BuiltinMapType{
 			case *object.List:
 				return &object.Integer{Value: int64(len(arg.Elements))}
 			case *object.Map:
-				return &object.Integer{Value: int64(len(arg.Pairs))}
+				return &object.Integer{Value: int64(arg.Pairs.Len())}
 			case *object.Set:
 				return &object.Integer{Value: int64(arg.Elements.Len())}
 			default:

@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/elliotchance/orderedmap/v2"
 	"github.com/shopspring/decimal"
 )
 
@@ -299,7 +298,7 @@ type MapPair struct {
 
 // Map is the map object type struct
 type Map struct {
-	Pairs map[HashKey]MapPair // Pairs is the map of HashKey to other MapPair objects
+	Pairs OrderedMap2[HashKey, MapPair] // Pairs is the map of HashKey to other MapPair objects
 }
 
 // Type returns the map object type
@@ -310,7 +309,8 @@ func (m *Map) Inspect() string {
 	var out bytes.Buffer
 
 	pairs := []string{}
-	for _, pair := range m.Pairs {
+	for _, key := range m.Pairs.Keys {
+		pair, _ := m.Pairs.Get(key)
 		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
 	}
 
@@ -324,7 +324,8 @@ func (m *Map) Inspect() string {
 // hashMap hashes the entire map to be used for checking equality
 func (m *Map) hashMap() uint64 {
 	h := fnv.New64a()
-	for k, v := range m.Pairs {
+	for _, k := range m.Pairs.Keys {
+		v, _ := m.Pairs.Get(k)
 		// Just using xor as a way to get a unique uint64 with the value hash
 		hashedKeyObj := k.Value ^ HashObject(v.Value)
 		b := make([]byte, 8)
@@ -336,7 +337,7 @@ func (m *Map) hashMap() uint64 {
 
 // MapCompLiteral is the map comprehension object struct
 type MapCompLiteral struct {
-	Pairs map[HashKey]MapPair // Pairs is the map of HashKey to other MapPair objects
+	Pairs OrderedMap2[HashKey, MapPair] // Pairs is the map of HashKey to other MapPair objects
 }
 
 // Type returns the map comprehension object type string
@@ -347,7 +348,8 @@ func (mcl *MapCompLiteral) Inspect() string {
 	var out bytes.Buffer
 
 	pairs := []string{}
-	for _, pair := range mcl.Pairs {
+	for _, key := range mcl.Pairs.Keys {
+		pair, _ := mcl.Pairs.Get(key)
 		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
 	}
 
@@ -366,11 +368,11 @@ type SetPair struct {
 
 // Set is the set object type struct
 type Set struct {
-	Elements *orderedmap.OrderedMap[uint64, SetPair]
+	Elements *OrderedMap2[uint64, SetPair]
 }
 
-func NewSetElements() *orderedmap.OrderedMap[uint64, SetPair] {
-	return orderedmap.NewOrderedMap[uint64, SetPair]()
+func NewSetElements() *OrderedMap2[uint64, SetPair] {
+	return NewOrderedMap[uint64, SetPair]()
 }
 
 // Type returns the Set object type
@@ -381,7 +383,7 @@ func (s *Set) Inspect() string {
 	var out bytes.Buffer
 
 	out.WriteString("{")
-	keys := s.Elements.Keys()
+	keys := s.Elements.Keys
 	for i, k := range keys {
 		e, ok := s.Elements.Get(k)
 		if !ok {
