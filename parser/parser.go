@@ -138,7 +138,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.PIPE, p.parseLambdaLiteral)
-	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.STRING_DOUBLE_QUOTE, p.parseStringLiteral)
+	p.registerPrefix(token.STRING_SINGLE_QUOTE, p.parseStringLiteral)
 	p.registerPrefix(token.RAW_STRING, p.parseRawStringLiteral)
 	p.registerPrefix(token.BACKTICK, p.parseExecStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseListLiteral)
@@ -1159,9 +1160,9 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 
 	var program string
 	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { __internal__ = append(__internal__, %s); } };", expCond, ifCond, valueToBind.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { var __result__ = %s; __internal__ = append(__internal__, __result__); } };", expCond, ifCond, valueToBind.String())
 	} else {
-		program = fmt.Sprintf("var __internal__ = []; for %s { __internal__ = append(__internal__, %s);  };", expCond, valueToBind.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { var __result__ = %s; __internal__ = append(__internal__, __result__); };", expCond, valueToBind.String())
 	}
 	if !p.expectPeekIs(token.RBRACKET) {
 		return nil

@@ -32,3 +32,27 @@ fun reduce(list, f, acc=null) {
     }
     return acc;
 }
+
+fun find_all(str_to_search, query, method="regex") {
+    import search
+    return match method {
+        "regex" => {
+            search.by_regex(str_to_search, query, false)
+        },
+        "xpath" => {
+            search.by_xpath(str_to_search, query, false)
+        },
+    };
+}
+
+fun find_one(str_to_search, query, method="regex") {
+    import search
+    return match method {
+        "regex" => {
+            search.by_regex(str_to_search, query, true)
+        },
+        "xpath" => {
+            search.by_xpath(str_to_search, query, true)
+        },
+    };
+}

@@ -23,6 +23,14 @@ func TestAllProgramsInDirectory(t *testing.T) {
 		if !strings.HasSuffix(f.Name(), ".b") {
 			continue
 		}
+		// Note: Comment out this defered func to see what the panic trace is
+		defer func() {
+			// recover from panic if one occured. Set err to nil otherwise.
+			err := recover()
+			if err != nil {
+				t.Fatalf("PANIC in FILE `%s`: Error: %+v", f.Name(), err)
+			}
+		}()
 		fpath, err := filepath.Abs(f.Name())
 		if err != nil {
 			t.Fatal(err)

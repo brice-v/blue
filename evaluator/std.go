@@ -9,7 +9,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/antchfx/htmlquery"
 )
 
 // StdModFileAndBuiltins keeps the file and builtins together for each std lib module
@@ -24,11 +27,15 @@ var stdHttpFile string
 //go:embed std/time.b
 var stdTimeFile string
 
+//go:embed std/search.b
+var stdSearchFile string
+
 // TODO: Could use an embed.FS and read the files that way rather then set each one individually
 // but it works well enough for now (if we used embed.FS we probably just need a helper)
 var _std_mods = map[string]StdModFileAndBuiltins{
-	"http": {File: stdHttpFile, Builtins: _http_builtin_map},
-	"time": {File: stdTimeFile, Builtins: _time_builtin_map},
+	"http":   {File: stdHttpFile, Builtins: _http_builtin_map},
+	"time":   {File: stdTimeFile, Builtins: _time_builtin_map},
+	"search": {File: stdSearchFile, Builtins: _search_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -67,7 +74,7 @@ var _http_builtin_map = BuiltinMapType{
 	"_get": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`get` expects 1 argument")
+				return newError("`get` expects 1 argument. got %d", len(args))
 			}
 			if args[0].Type() != object.STRING_OBJ {
 				return newError("argument to `get` must be STRING. got %s", args[0].Type())
@@ -90,7 +97,7 @@ var _time_builtin_map = BuiltinMapType{
 	"_sleep": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`sleep` expects 1 argument")
+				return newError("`sleep` expects 1 argument. got %d", len(args))
 			}
 			if args[0].Type() != object.INTEGER_OBJ {
 				return newError("argument to `sleep` must be INTEGER, got %s", args[0].Type())
@@ -106,9 +113,58 @@ var _time_builtin_map = BuiltinMapType{
 	"_now": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
-				return newError("`now` expects 0 arguments")
+				return newError("`now` expects 0 arguments. got %d", len(args))
 			}
 			return &object.Integer{Value: time.Now().Unix()}
+		},
+	},
+}
+
+var _search_builtin_map = BuiltinMapType{
+	"_by_xpath": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`by_xpath` expects 3 arguments. got %d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `by_xpath` should be STRING. got %s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `by_xpath` should be STRING. got %s", args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 3 to `by_xpath` should be BOOLEAN. got %s", args[2].Type())
+			}
+			strToSearch := args[0].(*object.Stringo).Value
+			if strToSearch == "" {
+				return newError("`by_xpath` error: str_to_search argument is empty")
+			}
+			strQuery := args[1].(*object.Stringo).Value
+			if strQuery == "" {
+				return newError("`by_xpath` error: query argument is empty")
+			}
+			shouldFindOne := args[2].(*object.Boolean).Value
+			doc, err := htmlquery.Parse(strings.NewReader(strToSearch))
+			if err != nil {
+				return newError("`by_xpath` failed to parse document as html: error %s", err.Error())
+			}
+			if !shouldFindOne {
+				listToReturn := &object.List{Elements: make([]object.Object, 0)}
+				for _, e := range htmlquery.Find(doc, strQuery) {
+					result := htmlquery.OutputHTML(e, true)
+					listToReturn.Elements = append(listToReturn.Elements, &object.Stringo{Value: result})
+				}
+				return listToReturn
+			} else {
+				e := htmlquery.FindOne(doc, strQuery)
+				result := htmlquery.OutputHTML(e, true)
+				return &object.Stringo{Value: result}
+			}
+		},
+	},
+	"_by_regex": {
+		Fun: func(args ...object.Object) object.Object {
+			return NULL
 		},
 	},
 }

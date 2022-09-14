@@ -445,7 +445,7 @@ func (l *Lexer) NextToken() token.Token {
 			if err != nil {
 				tok = newToken(token.ILLEGAL, l.prevCh)
 			} else {
-				tok.Type = token.STRING
+				tok.Type = token.STRING_DOUBLE_QUOTE
 				tok.Literal = str
 			}
 		}
@@ -454,7 +454,7 @@ func (l *Lexer) NextToken() token.Token {
 		if err != nil {
 			tok = newToken(token.ILLEGAL, l.prevCh)
 		} else {
-			tok.Type = token.STRING
+			tok.Type = token.STRING_SINGLE_QUOTE
 			tok.Literal = str
 		}
 	default:

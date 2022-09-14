@@ -506,11 +506,18 @@ func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	_ = e.Eval(rootNode)
+	if len(p.Errors()) > 0 {
+		return newError("ListCompLiteral error: %s", strings.Join(p.Errors(), " | "))
+	}
+	result := e.Eval(rootNode)
+	if isError(result) {
+		return newError("ListCompLiteral error: %s", result.(*object.Error).Message)
+	}
 	someVal, ok := e.env.Get("__internal__")
 	if !ok {
 		return nil
 	}
+	e.env.RemoveIdentifier("__internal__")
 	return &object.ListCompLiteral{Elements: someVal.(*object.List).Elements}
 }
 
@@ -521,11 +528,18 @@ func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	_ = e.Eval(rootNode)
+	if len(p.Errors()) > 0 {
+		return newError("MapCompLiteral error: %s", strings.Join(p.Errors(), " | "))
+	}
+	result := e.Eval(rootNode)
+	if isError(result) {
+		return newError("MapCompLiteral error: %s", result.(*object.Error).Message)
+	}
 	someVal, ok := e.env.Get("__internal__")
 	if !ok {
 		return nil
 	}
+	e.env.RemoveIdentifier("__internal__")
 	return &object.MapCompLiteral{Pairs: someVal.(*object.Map).Pairs}
 }
 
@@ -536,11 +550,18 @@ func (e *Evaluator) evalSetCompLiteral(node *ast.SetCompLiteral) object.Object {
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	_ = e.Eval(rootNode)
+	if len(p.Errors()) > 0 {
+		return newError("SetCompLiteral error: %s", strings.Join(p.Errors(), " | "))
+	}
+	result := e.Eval(rootNode)
+	if isError(result) {
+		return newError("SetCompLiteral error: %s", result.(*object.Error).Message)
+	}
 	someVal, ok := e.env.Get("__internal__")
 	if !ok {
 		return nil
 	}
+	e.env.RemoveIdentifier("__internal__")
 	return &object.Set{Elements: someVal.(*object.Set).Elements}
 }
 
@@ -582,6 +603,9 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 	if evaluatedRight.Type() == object.LIST_OBJ {
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
+		if len(list) == 0 {
+			return FALSE
+		}
 		_, ok := e.env.Get(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
@@ -616,6 +640,9 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		// or we will need a new ast expression for multiple ident assignments
 		// TODO: This is where we can modify if we want to only use keys
 		mapPairs := evaluatedRight.(*object.Map).Pairs
+		if mapPairs.Len() == 0 {
+			return FALSE
+		}
 		pairObjs := make([]*object.List, 0, mapPairs.Len())
 		for _, k := range mapPairs.Keys {
 			pair, _ := mapPairs.Get(k)
@@ -650,7 +677,10 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 	} else if evaluatedRight.Type() == object.STRING_OBJ {
 		// This is where we handle if its a string
 		strVal := evaluatedRight.(*object.Stringo).Value
-		chars := []byte(strVal)
+		chars := []rune(strVal)
+		if len(chars) == 0 {
+			return FALSE
+		}
 		stringObjs := make([]*object.Stringo, 0, len(chars))
 		for _, ch := range chars {
 			stringObjs = append(stringObjs, &object.Stringo{Value: string(ch)})
@@ -811,20 +841,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 
 func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 	var evalBlock object.Object
-	for {
-		evalCond := e.Eval(node.Condition)
-		if isError(evalCond) {
-			return evalCond
-		}
-		ok := evalCond.(*object.Boolean).Value
-		evalBlock = e.Eval(node.Consequence)
-		if isError(evalBlock) {
-			return evalBlock
-		}
-		rv, isReturn := evalBlock.(*object.ReturnValue)
-		if isReturn {
-			return rv.Value
-		}
+	defer func() {
 		// Cleanup any temporary for variables
 		tmpMapCopy := e.cleanupTmpVar
 		for k, v := range tmpMapCopy {
@@ -832,6 +849,28 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 				e.env.RemoveIdentifier(k)
 				delete(e.cleanupTmpVar, k)
 			}
+		}
+	}()
+	firstRun := true
+	for {
+		evalCond := e.Eval(node.Condition)
+		if isError(evalCond) {
+			return evalCond
+		}
+		ok := evalCond.(*object.Boolean).Value
+		if !ok && firstRun {
+			// If the condition is FALSE to begin with we need to return early
+			// The evaluated block may not be valid in that case (ie. a list could be empty)
+			return NULL
+		}
+		firstRun = false
+		evalBlock = e.Eval(node.Consequence)
+		if isError(evalBlock) {
+			return evalBlock
+		}
+		rv, isReturn := evalBlock.(*object.ReturnValue)
+		if isReturn {
+			return rv.Value
 		}
 		// Still evaluate on the last run then break if its false
 		if !ok {

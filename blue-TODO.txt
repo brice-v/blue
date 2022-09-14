@@ -1,5 +1,8 @@
 TODO:
 
+- `go clean -testcache && go test ./...`
+- `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
+- `go tool pprof -http localhost:9999 cpu.prof` (or mem.prof)
 - [ ] Make sure send is non-blocking and recv is blocking
 - [ ] Also need to figure out how were closing the channels after being used and non-buffered vs buffered channels
 - [ ] We then probably need some wait groups and other concurrent features to make everything nicer

@@ -35,8 +35,10 @@ const (
 	OCTAL = "OCTAL"
 	// BINARY is the string rep. of a binary tok.
 	BINARY = "BINARY"
-	// STRING is the string rep. of a string literal tok.
-	STRING = "STRING"
+	// STRING_DOUBLE_QUOTE is the string rep. of a string literal tok. with "
+	STRING_DOUBLE_QUOTE = "STRING_DOUBLE_QUOTE"
+	// STRING_SINGLE_QUOTE is the string rep. of a string literal tok. with '
+	STRING_SINGLE_QUOTE = "STRING_SINGLE_QUOTE"
 
 	// Operators
 

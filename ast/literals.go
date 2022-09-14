@@ -147,7 +147,7 @@ func (fl *FunctionLiteral) String() string {
 	return out.String()
 }
 
-// ExecStringLiteral is the contents of a string within backticks ``
+// ExecStringLiteral is the contents of a string within backticks `
 type ExecStringLiteral struct {
 	Token token.Token
 	Value string
@@ -178,7 +178,14 @@ func (sl *StringLiteral) expressionNode() {}
 func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 
 // String returns the string representation of the string literal ast node
-func (sl *StringLiteral) String() string { return `"` + sl.Value + `"` }
+func (sl *StringLiteral) String() string {
+	// The reason we differentiate is so that the quotes are properly escaped when parsed internally
+	if sl.Token.Type == token.STRING_DOUBLE_QUOTE {
+		return `"` + sl.Value + `"`
+	} else {
+		return `'` + sl.Value + `'`
+	}
+}
 
 // StringWithoutQuotes returns the string value without quotes
 func (sl *StringLiteral) StringWithoutQuotes() string { return sl.Value }
