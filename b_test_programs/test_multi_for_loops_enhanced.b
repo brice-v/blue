@@ -66,10 +66,17 @@ for (true) {
     }
     println("after loop, i=#{i}");
     if (i > 30) {
+        i += 100;
         println("i > 30, breaking");
         break;
     }
 }
-println("LAST LINE HERE");
+println("LAST LINE HERE #{i}");
 
-true;
+if (i != 131) {
+    false
+} else {
+    true
+}
+
+#true;
