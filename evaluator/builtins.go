@@ -219,7 +219,7 @@ var builtins = BuiltinMapType{
 	"assert": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 && len(args) != 2 {
-				return newError("`assert` expects 1 or 2 arguments")
+				return newError("`assert` expects 1 or 2 arguments. got=%d", len(args))
 			}
 			if args[0].Type() != object.BOOLEAN_OBJ {
 				return newError("`assert` expects first argument to be BOOLEAN. got=%s", args[0].Type())
@@ -251,9 +251,53 @@ var builtins = BuiltinMapType{
 	"type": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`type` expects 1 argument")
+				return newError("`type` expects 1 argument. got=%d", len(args))
 			}
 			return &object.Stringo{Value: string(args[0].Type())}
+		},
+	},
+	"exec": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`exec` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("`exec` expects first argument to be STRING. got=%s", args[0].Type())
+			}
+			return ExecStringCommand(args[0].(*object.Stringo).Value)
+		},
+	},
+	"is_alive": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`is_alive` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("`is_alive` expects argument to be INTEGER. got=%s", args[0].Type())
+			}
+			_, isAlive := ProcessMap.Get(args[0].(*object.Integer).Value)
+			if isAlive {
+				return TRUE
+			}
+			return FALSE
+		},
+	},
+	"exit": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) == 0 {
+				os.Exit(0)
+				// Unreachable
+				return NULL
+			} else if len(args) == 1 {
+				if args[0].Type() != object.INTEGER_OBJ {
+					return newError("argument passed to `exit` must be INTEGER. got=%s", args[0].Type())
+				}
+				os.Exit(int(args[0].(*object.Integer).Value))
+				// Unreachable
+				return NULL
+			} else {
+				return newError("`exit` expects 1 or no arguments. got=%d", len(args))
+			}
 		},
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff

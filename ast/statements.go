@@ -228,3 +228,33 @@ func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
 func (is *ImportStatement) String() string {
 	return fmt.Sprintf("%s %s", is.Token.Literal, is.Path)
 }
+
+type BreakStatement struct {
+	Token token.Token // Token == break
+}
+
+// statementNode satisfies the statement interface
+func (bks *BreakStatement) statementNode() {}
+
+// TokenLiteral returns the break token as a string
+func (bks *BreakStatement) TokenLiteral() string { return bks.Token.Literal }
+
+// String returns the string representation of the break literal ast node
+func (bks *BreakStatement) String() string {
+	return bks.TokenLiteral() + ";"
+}
+
+type ContinueStatement struct {
+	Token token.Token // Token == continue
+}
+
+// statementNode satisfies the statement interface
+func (cs *ContinueStatement) statementNode() {}
+
+// TokenLiteral returns the continue token as a string
+func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+
+// String returns the string representation of the continue literal ast node
+func (cs *ContinueStatement) String() string {
+	return cs.TokenLiteral() + ";"
+}

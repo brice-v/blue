@@ -53,6 +53,11 @@ const (
 	MODULE_OBJ = "MODULE_OBJ"
 	// PROCESS_OBJ is the process type for a process
 	PROCESS_OBJ = "PROCESS"
+
+	// BREAK_OBJ is the break statement type
+	BREAK_OBJ = "BREAK_OBJ"
+	// CONTINUE_OBJ is the continue statement type
+	CONTINUE_OBJ = "CONTINUE_OBJ"
 )
 
 // Type is the object type represented as a string
@@ -434,6 +439,27 @@ func (m *Module) Type() Type { return MODULE_OBJ }
 // Inspect only returns the modules name for now
 func (m *Module) Inspect() string {
 	return fmt.Sprintf("Module '%s'", m.Name)
+}
+
+// For loop stuff
+type BreakStatement struct{}
+
+func (bks *BreakStatement) Type() Type {
+	return BREAK_OBJ
+}
+
+func (bks *BreakStatement) Inspect() string {
+	return "break;"
+}
+
+type ContinueStatement struct{}
+
+func (cs *ContinueStatement) Type() Type {
+	return CONTINUE_OBJ
+}
+
+func (cs *ContinueStatement) Inspect() string {
+	return "continue;"
 }
 
 // ------------------------------- HashKey Stuff --------------------------------

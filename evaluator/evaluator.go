@@ -37,6 +37,11 @@ var (
 	NULL = &object.Null{}
 	// IGNORE is the object which is used to ignore variables when necessary
 	IGNORE = &object.Null{}
+
+	// BREAK is the break object to be used the same everywhere
+	BREAK = &object.BreakStatement{}
+	// CONTINUE is the continue object to be used the same everywhere
+	CONTINUE = &object.ContinueStatement{}
 )
 
 type Evaluator struct {
@@ -134,6 +139,10 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
 		return e.evalProgram(node)
+	case *ast.BreakStatement:
+		return BREAK
+	case *ast.ContinueStatement:
+		return CONTINUE
 	case *ast.ExpressionStatement:
 		return e.Eval(node.Expression)
 	case *ast.Identifier:
@@ -421,8 +430,8 @@ func (e *Evaluator) evalEvalExpression(node *ast.EvalExpression) object.Object {
 
 func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object {
 	argLen := len(node.Arguments)
-	if argLen != 1 {
-		panic("handle multi args to spawn expression")
+	if argLen > 2 {
+		return newError("`spawn` expects 2 arguments max, got %d", argLen)
 	}
 	arg0 := e.Eval(node.Arguments[0])
 	if isError(arg0) {
@@ -430,6 +439,16 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 	}
 	if arg0.Type() != object.FUNCTION_OBJ {
 		return newError("`spawn` expects first argument to be FUNCTION got %s", arg0.Type())
+	}
+	arg1 := MakeEmptyList()
+	if argLen == 2 {
+		arg1 = e.Eval(node.Arguments[1])
+		if isError(arg1) {
+			return arg1
+		}
+		if arg1.Type() != object.LIST_OBJ {
+			return newError("`spawn` expects second argument to be LIST got %s", arg1.Type())
+		}
 	}
 	fun, _ := arg0.(*object.Function)
 	process := &object.Process{
@@ -441,8 +460,7 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 	go func(pid int64) {
 		e := New()
 		e.PID = pid
-		// TODO: If we take extra args we can probably put it here?
-		obj := e.applyFunction(fun, make([]object.Object, 0), make(map[string]object.Object))
+		obj := e.applyFunction(fun, arg1.(*object.List).Elements, make(map[string]object.Object))
 		if isError(obj) {
 			err := obj.(*object.Error).Message
 			fmt.Printf("EvaluatorError: %s\n", err)
@@ -867,6 +885,14 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		evalBlock = e.Eval(node.Consequence)
 		if isError(evalBlock) {
 			return evalBlock
+		}
+		if evalBlock == BREAK {
+			evalBlock = NULL
+			break
+		}
+		if evalBlock == CONTINUE {
+			evalBlock = NULL
+			continue
 		}
 		rv, isReturn := evalBlock.(*object.ReturnValue)
 		if isReturn {
@@ -1328,36 +1354,7 @@ func (e *Evaluator) evalStringIndexExpression(str, indx object.Object) object.Ob
 
 func (e *Evaluator) evalExecStringLiteral(execStringNode *ast.ExecStringLiteral) object.Object {
 	str := execStringNode.Value
-
-	splitStr := strings.Split(str, " ")
-	if len(splitStr) == 0 {
-		return newError("unable to exec the string `%s`", str)
-	}
-	if len(splitStr) == 1 {
-		output, err := execCommand(splitStr[0]).Output()
-		if err != nil {
-			return newError("unable to exec the string `%s`. Error: %s", str, err)
-		}
-		return &object.Stringo{Value: string(output[:])}
-	}
-	cleanedStrings := make([]string, 0)
-	for _, v := range splitStr {
-		if v != "" {
-			cleanedStrings = append(cleanedStrings, v)
-			continue
-		}
-	}
-	first := cleanedStrings[0]
-	rest := cleanedStrings[1:]
-
-	output, err := execCommand(first, rest...).CombinedOutput()
-	if err != nil {
-		return newError("unable to exec the string `%s`. Error: %s", str, err)
-	}
-	if len(output) == 0 {
-		return newError("got 0 bytes from exec string output of `%s`.", str)
-	}
-	return &object.Stringo{Value: string(output[:])}
+	return ExecStringCommand(str)
 }
 
 func (e *Evaluator) evalStringWithInterpolation(stringNode *ast.StringLiteral) object.Object {
@@ -2605,6 +2602,12 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 			rt := result.Type()
 			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
 				return result
+			}
+			if result == BREAK {
+				return BREAK
+			}
+			if result == CONTINUE {
+				return CONTINUE
 			}
 		}
 	}

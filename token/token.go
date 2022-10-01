@@ -204,31 +204,31 @@ const (
 	NULL_KW = "NULL_KW"
 
 	// type reservations
+	// // INT_T is the string rep. of the int type tok
+	// INT_T = "INT_T"
+	// // UINT_T is the string rep. of the uint type tok
+	// UINT_T = "UINT_T"
+	// // TYPE_T is the string rep. of the type tok
+	// TYPE_T = "TYPE_T"
+	// // STR_T is the string rep. of the str type tok
+	// STR_T = "STR_T"
+	// // OBJ_T is the string rep. of the obj type tok
+	// OBJ_T = "OBJ_T"
+	// // ENUM_T is the string rep. of the enum type tok
+	// ENUM_T = "ENUM_T"
+	// // LIST_T is the string rep. of the list type tok
+	// LIST_T = "LIST_T"
+	// // MAP_T is the string rep. of the map type tok
+	// MAP_T = "MAP_T"
+	// // ANY_T is the string rep. of the any type tok
+	// ANY_T = "ANY_T"
+	// // BOOL_T is the string rep. of the bool type tok
+	// BOOL_T = "BOOL_T"
+	// // CHAR_T is the string rep. of the char type tok
+	// CHAR_T = "CHAR_T"
+	// // RUNE_T is the string rep. of the rune type tok
+	// RUNE_T = "RUNE_T"
 
-	// INT_T is the string rep. of the int type tok
-	INT_T = "INT_T"
-	// UINT_T is the string rep. of the uint type tok
-	UINT_T = "UINT_T"
-	// TYPE_T is the string rep. of the type tok
-	TYPE_T = "TYPE_T"
-	// STR_T is the string rep. of the str type tok
-	STR_T = "STR_T"
-	// OBJ_T is the string rep. of the obj type tok
-	OBJ_T = "OBJ_T"
-	// ENUM_T is the string rep. of the enum type tok
-	ENUM_T = "ENUM_T"
-	// LIST_T is the string rep. of the list type tok
-	LIST_T = "LIST_T"
-	// MAP_T is the string rep. of the map type tok
-	MAP_T = "MAP_T"
-	// ANY_T is the string rep. of the any type tok
-	ANY_T = "ANY_T"
-	// BOOL_T is the string rep. of the bool type tok
-	BOOL_T = "BOOL_T"
-	// CHAR_T is the string rep. of the char type tok
-	CHAR_T = "CHAR_T"
-	// RUNE_T is the string rep. of the rune type tok
-	RUNE_T = "RUNE_T"
 	// IMPORT is the string rep. of the import tok
 	IMPORT = "IMPORT"
 	// IMPORT_PATH is the string rep. of the import path tok
@@ -245,6 +245,11 @@ const (
 	EVAL = "EVAL"
 	// SPAWN is the string rep. of the 'spawn' keyword token
 	SPAWN = "SPAWN"
+
+	// BREAK is the string rep. of the 'break' keyword token
+	BREAK = "BREAK"
+	// CONTINUE is the string rep. of the 'continue' keyword token
+	CONTINUE = "CONTINUE"
 )
 
 // TODO: Add all keywords wanted in blang here
@@ -276,14 +281,16 @@ var keywords = map[string]Type{
 	// "bool":    BOOL_T,
 	// "char":    CHAR_T,
 	// "rune":    RUNE_T,
-	"match":   MATCH,
-	"null":    NULL_KW,
-	"import":  IMPORT,
-	"try":     TRY,
-	"catch":   CATCH,
-	"finally": FINALLY,
-	"eval":    EVAL,
-	"spawn":   SPAWN,
+	"match":    MATCH,
+	"null":     NULL_KW,
+	"import":   IMPORT,
+	"try":      TRY,
+	"catch":    CATCH,
+	"finally":  FINALLY,
+	"eval":     EVAL,
+	"spawn":    SPAWN,
+	"break":    BREAK,
+	"continue": CONTINUE,
 }
 
 // LookupIdent will check if the identifer passed in matches one of the

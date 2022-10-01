@@ -284,6 +284,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseImportStatement()
 	case token.TRY:
 		return p.parseTryCatchBlock()
+	case token.BREAK:
+		return p.parseBreakStatement()
+	case token.CONTINUE:
+		return p.parseContinueStatement()
 	default:
 		// This is how im handling a function statement becuase otherwise all function literals
 		// will get confused and not be able to parse (due to the "fun" prefixed token)
@@ -592,9 +596,6 @@ func (p *Parser) parseSpawnExpression() ast.Expression {
 	for _, a := range se.Arguments {
 		log.Printf("a = %s", a.String())
 	}
-	if !p.expectPeekIs(token.SEMICOLON) {
-		return nil
-	}
 	return se
 }
 
@@ -613,6 +614,26 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	stmt.Path = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	// p.nextToken()
 	return stmt
+}
+
+func (p *Parser) parseBreakStatement() ast.Statement {
+	bks := &ast.BreakStatement{
+		Token: p.curToken,
+	}
+	if !p.expectPeekIs(token.SEMICOLON) {
+		return nil
+	}
+	return bks
+}
+
+func (p *Parser) parseContinueStatement() ast.Statement {
+	cs := &ast.ContinueStatement{
+		Token: p.curToken,
+	}
+	if !p.expectPeekIs(token.SEMICOLON) {
+		return nil
+	}
+	return cs
 }
 
 // parseParenGroupExpression parses a parenthesis grouped expression

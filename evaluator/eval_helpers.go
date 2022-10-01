@@ -49,6 +49,38 @@ func isError(obj object.Object) bool {
 	return false
 }
 
+func ExecStringCommand(str string) object.Object {
+	splitStr := strings.Split(str, " ")
+	if len(splitStr) == 0 {
+		return newError("unable to exec the string `%s`", str)
+	}
+	if len(splitStr) == 1 {
+		output, err := execCommand(splitStr[0]).Output()
+		if err != nil {
+			return newError("unable to exec the string `%s`. Error: %s", str, err)
+		}
+		return &object.Stringo{Value: string(output[:])}
+	}
+	cleanedStrings := make([]string, 0)
+	for _, v := range splitStr {
+		if v != "" {
+			cleanedStrings = append(cleanedStrings, v)
+			continue
+		}
+	}
+	first := cleanedStrings[0]
+	rest := cleanedStrings[1:]
+
+	output, err := execCommand(first, rest...).CombinedOutput()
+	if err != nil {
+		return newError("unable to exec the string `%s`. Error: %s", str, err)
+	}
+	if len(output) == 0 {
+		return newError("got 0 bytes from exec string output of `%s`.", str)
+	}
+	return &object.Stringo{Value: string(output[:])}
+}
+
 func execCommand(arg0 string, args ...string) *exec.Cmd {
 	if args == nil {
 		if runtime.GOOS == "windows" {
@@ -234,4 +266,10 @@ func (e *Evaluator) EvalString(s string) (object.Object, error) {
 	}
 	result := e.Eval(prog)
 	return result, nil
+}
+
+func MakeEmptyList() object.Object {
+	return &object.List{
+		Elements: make([]object.Object, 0),
+	}
 }
