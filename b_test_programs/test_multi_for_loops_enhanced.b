@@ -59,7 +59,7 @@ for (true) {
             println("break inside for loop (inside for loop)");
             #time.sleep(1000);
             break;
-            println("UNREACHABLE!");
+            error("UNREACHABLE");
         }
         i += 1;
         println("inside loop, i=#{i}");
@@ -69,6 +69,7 @@ for (true) {
         i += 100;
         println("i > 30, breaking");
         break;
+        error("UNREACHABLE");
     }
 }
 println("LAST LINE HERE #{i}");

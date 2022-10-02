@@ -639,15 +639,15 @@ func TestForExpression(t *testing.T) {
 		expected interface{}
 	}{
 		{
-			`var x = 0; for (i in 1..10) { x+=1; if (i == 5) { break; } }; x`,
+			`var x = 0; for (i in 1..10) { x+=1; if (i == 5) { break; error("UNREACHABLE"); } }; x`,
 			5,
 		},
 		{
-			`var x = 0; for (i in 1..10) { x+=1; if (i == 5) { break; x += 10;} }; x`,
+			`var x = 0; for (i in 1..10) { x+=1; if (i == 5) { break; error("UNREACHABLE"); x += 10;} }; x`,
 			5,
 		},
 		{
-			`var i = 0; for (true) { for (x in 1..10) { if (i > 30) { break; i += 100; } i += 1; }; i += 1; if (i < 100) { continue; } else { i += 2000; break; i += 300; } }; i`,
+			`var i = 0; for (true) { for (x in 1..10) { if (i > 30) { break; error("UNREACHABLE"); i += 100; } i += 1; }; i += 1; if (i < 100) { continue; error("UNREACHABLE"); } else { i += 2000; break; error("UNREACHABLE"); i += 300; } }; i`,
 			2100,
 		},
 	}
