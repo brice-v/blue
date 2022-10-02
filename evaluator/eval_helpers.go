@@ -115,7 +115,7 @@ func (e *Evaluator) getBuiltinForDotCall(key string) (*object.Builtin, bool) {
 	for b := e.Builtins.Front(); b != nil; b = b.Next() {
 		switch t := b.Value.(type) {
 		case BuiltinMapType:
-			if builtin, isBuiltin := t[key]; isBuiltin {
+			if builtin, isBuiltin := t.Get(key); isBuiltin {
 				return builtin, isBuiltin
 			}
 		}

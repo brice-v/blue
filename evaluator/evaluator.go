@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/shopspring/decimal"
@@ -26,7 +27,7 @@ var IsEmbed = false
 var Files embed.FS
 
 var pidCount = atomic.Int64{}
-var ProcessMap = NewMap()
+var ProcessMap = NewPidMap()
 
 var (
 	// TRUE is the true object which should be the same everywhere
@@ -68,7 +69,13 @@ type Evaluator struct {
 	cleanupTmpVar map[string]bool
 }
 
+// Note: When creating multiple new evaluators with `spawn` there were race conditions
+// this mostly solves that issue but parallel code still needs some work
+var NewEvaluatorLock = &sync.Mutex{}
+
 func New() *Evaluator {
+	NewEvaluatorLock.Lock()
+	defer NewEvaluatorLock.Unlock()
 	e := &Evaluator{
 		env: object.NewEnvironment(),
 
@@ -90,15 +97,15 @@ func New() *Evaluator {
 	e.Builtins.PushBack(builtinobjs)
 	e.AddCoreLibToEnv()
 	// These builtins are declared here so that they can access the evaluator members
-	builtins["self"] = &object.Builtin{
+	builtins.Put("self", &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
 				return newError("`self` expects 0 arguments")
 			}
 			return &object.Integer{Value: e.PID}
 		},
-	}
-	builtins["send"] = &object.Builtin{
+	})
+	builtins.Put("send", &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newError("`send` expects 2 arguments")
@@ -114,8 +121,8 @@ func New() *Evaluator {
 			process.Ch <- args[1]
 			return NULL
 		},
-	}
-	builtins["recv"] = &object.Builtin{
+	})
+	builtins.Put("recv", &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
 				return newError("`recv` expects 0 arguments")
@@ -129,7 +136,7 @@ func New() *Evaluator {
 
 			return val
 		},
-	}
+	})
 
 	return e
 }
@@ -1398,7 +1405,7 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 	for b := e.Builtins.Front(); b != nil; b = b.Next() {
 		switch t := b.Value.(type) {
 		case BuiltinMapType:
-			if builtin, ok := t[node.Value]; ok {
+			if builtin, ok := t.Get(node.Value); ok {
 				return builtin
 			}
 		case BuiltinObjMapType:

@@ -7,9 +7,9 @@ import (
 	"os"
 )
 
-type BuiltinMapType map[string]*object.Builtin
+type BuiltinMapTypeInternal map[string]*object.Builtin
 
-var builtins = BuiltinMapType{
+var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -301,4 +301,4 @@ var builtins = BuiltinMapType{
 		},
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
-}
+})

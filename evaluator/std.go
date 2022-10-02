@@ -70,7 +70,7 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 }
 
 // Note: Look at how we import the get function in http.b
-var _http_builtin_map = BuiltinMapType{
+var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_get": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -91,9 +91,9 @@ var _http_builtin_map = BuiltinMapType{
 			return &object.Stringo{Value: string(body)}
 		},
 	},
-}
+})
 
-var _time_builtin_map = BuiltinMapType{
+var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_sleep": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -118,9 +118,9 @@ var _time_builtin_map = BuiltinMapType{
 			return &object.Integer{Value: time.Now().Unix()}
 		},
 	},
-}
+})
 
-var _search_builtin_map = BuiltinMapType{
+var _search_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_by_xpath": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
@@ -167,4 +167,4 @@ var _search_builtin_map = BuiltinMapType{
 			return NULL
 		},
 	},
-}
+})

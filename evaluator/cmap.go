@@ -5,32 +5,42 @@ import (
 	"sync"
 )
 
-type ConcurrentMap struct {
-	kv   map[int64]*object.Process
+type ConcurrentMap[K comparable, V any] struct {
+	kv   map[K]V
 	lock sync.RWMutex
 }
 
-func NewMap() *ConcurrentMap {
-	return &ConcurrentMap{
+func NewPidMap() *ConcurrentMap[int64, *object.Process] {
+	return &ConcurrentMap[int64, *object.Process]{
 		kv: make(map[int64]*object.Process),
 	}
 }
 
-func (cm *ConcurrentMap) Put(pid int64, process *object.Process) {
-	cm.lock.Lock()
-	defer cm.lock.Unlock()
-	cm.kv[pid] = process
+type BuiltinMapType struct {
+	*ConcurrentMap[string, *object.Builtin]
 }
 
-func (cm *ConcurrentMap) Get(pid int64) (*object.Process, bool) {
-	cm.lock.Lock()
-	defer cm.lock.Unlock()
-	process, ok := cm.kv[pid]
-	return process, ok
+func NewBuiltinObjMap(input map[string]*object.Builtin) BuiltinMapType {
+	return BuiltinMapType{&ConcurrentMap[string, *object.Builtin]{
+		kv: input,
+	}}
 }
 
-func (cm *ConcurrentMap) Remove(pid int64) {
+func (cm *ConcurrentMap[K, V]) Put(k K, v V) {
 	cm.lock.Lock()
 	defer cm.lock.Unlock()
-	delete(cm.kv, pid)
+	cm.kv[k] = v
+}
+
+func (cm *ConcurrentMap[K, V]) Get(k K) (V, bool) {
+	cm.lock.Lock()
+	defer cm.lock.Unlock()
+	value, ok := cm.kv[k]
+	return value, ok
+}
+
+func (cm *ConcurrentMap[K, V]) Remove(k K) {
+	cm.lock.Lock()
+	defer cm.lock.Unlock()
+	delete(cm.kv, k)
 }
