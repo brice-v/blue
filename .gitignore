@@ -5,3 +5,4 @@ blang.exe
 blue
 blue.exe
 *.exe
+ignored/*
