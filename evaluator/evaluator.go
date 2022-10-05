@@ -29,6 +29,9 @@ var Files embed.FS
 var pidCount = atomic.Int64{}
 var ProcessMap = NewPidMap()
 
+var dbCount = atomic.Int64{}
+var DBMap = NewDBMap()
+
 var (
 	// TRUE is the true object which should be the same everywhere
 	TRUE = &object.Boolean{Value: true}

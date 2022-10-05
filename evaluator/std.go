@@ -4,6 +4,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"database/sql"
 	_ "embed"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/antchfx/htmlquery"
+	_ "modernc.org/sqlite"
 )
 
 // StdModFileAndBuiltins keeps the file and builtins together for each std lib module
@@ -30,12 +32,16 @@ var stdTimeFile string
 //go:embed std/search.b
 var stdSearchFile string
 
+//go:embed std/db.b
+var stdDbFile string
+
 // TODO: Could use an embed.FS and read the files that way rather then set each one individually
 // but it works well enough for now (if we used embed.FS we probably just need a helper)
 var _std_mods = map[string]StdModFileAndBuiltins{
 	"http":   {File: stdHttpFile, Builtins: _http_builtin_map},
 	"time":   {File: stdTimeFile, Builtins: _time_builtin_map},
 	"search": {File: stdSearchFile, Builtins: _search_builtin_map},
+	"db":     {File: stdDbFile, Builtins: _db_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -165,6 +171,70 @@ var _search_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_by_regex": {
 		Fun: func(args ...object.Object) object.Object {
 			return NULL
+		},
+	},
+})
+
+var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_open": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`open` expects 1 argument. got %d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `open` should be STRING. got %s", args[0].Type())
+			}
+			dbName := args[0].(*object.Stringo).Value
+			if dbName == "" {
+				return newError("`open` error: db_name argument is empty")
+			}
+			db, err := sql.Open("sqlite", dbName)
+			if err != nil {
+				return newError("`open` error: %s", err.Error())
+			}
+			curDB := dbCount.Add(1)
+			DBMap.Put(curDB, db)
+			return object.CreateBasicMapObject("DB", curDB)
+		},
+	},
+	"_ping": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`ping` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `ping` should be INTEGER. got=%s", args[0].Type())
+			}
+			i := args[0].(*object.Integer).Value
+			if db, ok := DBMap.Get(i); ok {
+				err := db.Ping()
+				if err != nil {
+					return &object.Stringo{Value: err.Error()}
+				}
+				return NULL
+			}
+			return newError("`ping` error: DB not found")
+		},
+	},
+	"_close": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`close` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `close` should be INTEGER. got=%s", args[0].Type())
+			}
+			i := args[0].(*object.Integer).Value
+			if db, ok := DBMap.Get(i); ok {
+				err := db.Close()
+				if err != nil {
+					return newError("`close` error: %s", err.Error())
+				}
+				DBMap.Remove(i)
+				dbCount.Store(dbCount.Load() - 1)
+				return NULL
+			}
+			return newError("`close` error: DB not found")
 		},
 	},
 })

@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"blue/object"
+	"database/sql"
 	"sync"
 )
 
@@ -13,6 +14,12 @@ type ConcurrentMap[K comparable, V any] struct {
 func NewPidMap() *ConcurrentMap[int64, *object.Process] {
 	return &ConcurrentMap[int64, *object.Process]{
 		kv: make(map[int64]*object.Process),
+	}
+}
+
+func NewDBMap() *ConcurrentMap[int64, *sql.DB] {
+	return &ConcurrentMap[int64, *sql.DB]{
+		kv: make(map[int64]*sql.DB),
 	}
 }
 

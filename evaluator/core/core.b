@@ -56,3 +56,29 @@ fun find_one(str_to_search, query, method="regex") {
         },
     };
 }
+
+# DB Object Methods
+# TODO: If these methods need to be used for more than one obj we can expand the match scenarios
+fun ping(db_obj) {
+    import db
+    return match db_obj {
+        {t: "DB", v: _} => {
+            db.ping_(db_obj.v)
+        },
+        _ => {
+            error("db_obj `#{db_obj}` is invalid type")
+        },
+    };
+}
+
+fun close(db_obj) {
+    import db
+    return match db_obj {
+        {t: "DB", v: _} => {
+            db.close_(db_obj.v)
+        },
+        _ => {
+            error("db_obj `#{db_obj}` is invalid type")
+        },
+    };
+}
