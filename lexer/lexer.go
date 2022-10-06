@@ -184,13 +184,10 @@ func (l *Lexer) readRawString() string {
 		if (l.ch == '"' && l.peekChar() == '"' && l.peekSecondChar() == '"') || l.ch == 0 {
 			l.readChar()
 			l.readChar()
-			l.readChar()
 			break
 		}
 		b.WriteRune(l.ch)
 	}
-	// Skip the final part of the raw string token
-	// l.readChar()
 	return b.String()
 }
 

@@ -29,3 +29,37 @@ func CreateBasicMapObject(objType string, objValue int64) *Map {
 
 	return m
 }
+
+func CreateMapObjectForGoMap(input OrderedMap2[string, Object]) *Map {
+	m := &Map{
+		Pairs: NewPairsMap(),
+	}
+
+	for _, k := range input.Keys {
+		v, _ := input.Get(k)
+		kStr := &Stringo{Value: k}
+
+		hkStr := HashObject(kStr)
+		hk := HashKey{Type: STRING_OBJ, Value: hkStr}
+		m.Pairs.Set(hk, MapPair{
+			Key:   kStr,
+			Value: v,
+		})
+	}
+
+	return m
+}
+
+// TODO: Still need to handle BLOB type
+func CreateObjectFromDbInterface(input interface{}) Object {
+	switch x := input.(type) {
+	case int64:
+		return &Integer{Value: x}
+	case string:
+		return &Stringo{Value: x}
+	case float64:
+		return &Float{Value: x}
+	default:
+		return nil
+	}
+}

@@ -237,4 +237,147 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return newError("`close` error: DB not found")
 		},
 	},
+	"_exec": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`exec` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `exec` should be INTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `exec` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.LIST_OBJ {
+				return newError("argument 3 to `exec` should be LIST. got=%s", args[2].Type())
+			}
+			i := args[0].(*object.Integer).Value
+			s := args[1].(*object.Stringo).Value
+			l := args[2].(*object.List).Elements
+			if db, ok := DBMap.Get(i); ok {
+				var result sql.Result
+				var err error
+				if len(l) > 1 {
+					execArgs := make([]any, len(l))
+					for idx, e := range l {
+						// TODO: Type checking l elements for exec? (allow not only string)
+						if e.Type() != object.STRING_OBJ {
+							return newError("argument list to `exec` should all be STRING. got=%s", e.Type())
+						}
+						execArgs[idx] = e.(*object.Stringo).Value
+					}
+					result, err = db.Exec(s, execArgs...)
+				} else {
+					result, err = db.Exec(s)
+				}
+				if err != nil {
+					return newError("`exec` error: %s", err.Error())
+				}
+				lastInsertId, err := result.LastInsertId()
+				if err != nil {
+					return newError("`exec` error: %s", err.Error())
+				}
+				rowsAffected, err := result.RowsAffected()
+				if err != nil {
+					return newError("`exec` error: %s", err.Error())
+				}
+				mapToConvert := object.NewOrderedMap[string, object.Object]()
+				mapToConvert.Set("last_insert_id", &object.Integer{Value: lastInsertId})
+				mapToConvert.Set("rows_affected", &object.Integer{Value: rowsAffected})
+				return object.CreateMapObjectForGoMap(*mapToConvert)
+			}
+			return newError("`exec` error: DB not found")
+		},
+	},
+	"_query": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newError("`query` expects 4 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `query` should be INTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `query` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.LIST_OBJ {
+				return newError("argument 3 to `query` should be LIST. got=%s", args[2].Type())
+			}
+			if args[3].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 4 to `query` should be BOOLEAN. got=%s", args[3].Type())
+			}
+			i := args[0].(*object.Integer).Value
+			s := args[1].(*object.Stringo).Value
+			l := args[2].(*object.List).Elements
+			isNamedCols := args[3].(*object.Boolean).Value
+			if db, ok := DBMap.Get(i); ok {
+				var rows *sql.Rows
+				var err error
+				if len(l) > 1 {
+					execArgs := make([]any, len(l))
+					for idx, e := range l {
+						// TODO: Type checking l elements for query? (allow not only string)
+						if e.Type() != object.STRING_OBJ {
+							return newError("argument list to `query` should all be STRING. got=%s", e.Type())
+						}
+						execArgs[idx] = e.(*object.Stringo).Value
+					}
+					rows, err = db.Query(s, execArgs...)
+				} else {
+					rows, err = db.Query(s)
+				}
+				defer rows.Close()
+				if err != nil {
+					return newError("`query` error: %s", err.Error())
+				}
+				colNames, err := rows.Columns()
+				if err != nil {
+					return newError("`query` error: %s", err.Error())
+				}
+				// Get Types to properly scan
+				// https://www.sqlite.org/datatype3.html
+				// NULL. The value is a NULL value.
+				// INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
+				// REAL. The value is a floating point value, stored as an 8-byte IEEE floating point number.
+				// TEXT. The value is a text string, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
+				// BLOB. The value is a blob of data, stored exactly as it was input.
+				cols := make([]interface{}, len(colNames))
+				colPtrs := make([]interface{}, len(colNames))
+				for i := 0; i < len(colNames); i++ {
+					colPtrs[i] = &cols[i]
+				}
+				returnList := &object.List{
+					Elements: make([]object.Object, 0),
+				}
+				for rows.Next() {
+					err = rows.Scan(colPtrs...)
+					if err != nil {
+						return newError("`query` error: %s", err.Error())
+					}
+					rowList := &object.List{
+						Elements: make([]object.Object, len(cols)),
+					}
+					rowMap := object.NewOrderedMap[string, object.Object]()
+					for idx, e := range cols {
+						obj := object.CreateObjectFromDbInterface(e)
+						if obj == nil {
+							obj = NULL
+						}
+						if !isNamedCols {
+							rowList.Elements[idx] = obj
+						} else {
+							rowMap.Set(colNames[idx], obj)
+						}
+					}
+					if !isNamedCols {
+						returnList.Elements = append(returnList.Elements, rowList)
+					} else {
+						returnList.Elements = append(returnList.Elements, object.CreateMapObjectForGoMap(*rowMap))
+					}
+				}
+				return returnList
+			}
+			return newError("`exec` error: DB not found")
+		},
+	},
 })

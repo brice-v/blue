@@ -519,7 +519,7 @@ func TestNextTokenNewKeywords(t *testing.T) {
 // }
 
 func TestNextTokenStrings(t *testing.T) {
-	input := `"Hello #{world}!";'Hello #{world}!';"""Hello #{world}!"""`
+	input := `"Hello #{world}!";'Hello #{world}!';"""Hello #{world}!""")`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -530,6 +530,7 @@ func TestNextTokenStrings(t *testing.T) {
 		{token.STRING_SINGLE_QUOTE, "Hello #{world}!"},
 		{token.SEMICOLON, ";"},
 		{token.RAW_STRING, "Hello #{world}!"},
+		{token.RPAREN, ")"},
 		{token.EOF, ""},
 	}
 

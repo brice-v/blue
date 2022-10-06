@@ -82,3 +82,27 @@ fun close(db_obj) {
         },
     };
 }
+
+fun execute(db_obj, exec_query, exec_args=[]) {
+    import db
+    return match db_obj {
+        {t: "DB", v: _} => {
+            db.exec_(db_obj.v, exec_query, exec_args)
+        },
+        _ => {
+            error("db_obj `#{db_obj}` is invalid type")
+        },
+    };
+}
+
+fun query(db_obj, query_s, query_args=[], named_cols=false) {
+    import db
+    return match db_obj {
+        {t: "DB", v: _} => {
+            db.query_(db_obj.v, query_s, query_args, named_cols)
+        },
+        _ => {
+            error("db_obj `#{db_obj}` is invalid type")
+        },
+    };
+}
