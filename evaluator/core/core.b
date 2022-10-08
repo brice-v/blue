@@ -57,6 +57,14 @@ fun find_one(str_to_search, query, method="regex") {
     };
 }
 
+fun json_to_map(json_str) {
+    try {
+        return eval(json_str);
+    } catch (e) {
+        return error("json_to_map error: invalid json_str #{json_str}, e=#{e}");
+    }
+}
+
 # DB Object Methods
 # TODO: If these methods need to be used for more than one obj we can expand the match scenarios
 fun ping(db_obj) {

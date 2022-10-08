@@ -409,7 +409,7 @@ func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Ob
 		// TODO: Need to figure out the order of returns in case of errors in catch or finally block
 		e.Eval(node.FinallyBlock)
 	}
-	return NULL
+	return evald
 }
 
 func (e *Evaluator) evalSetLiteral(node *ast.SetLiteral) object.Object {

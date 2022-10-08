@@ -156,7 +156,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: jsonString.String()}
 		},
 	},
-	"json_to_map": {},
+	// TODO: Work on the 2 below
 
 	// TODO: join (list of strings)
 	// TODO: We can probably create a solid regex object to use in the string methods

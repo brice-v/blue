@@ -26,3 +26,12 @@ if (actual_json != expected_json) {
 } else {
     true
 }
+
+val expected_json_back_to_map = expected_json.json_to_map();
+println("expected_json_back_to_map = #{expected_json_back_to_map}");
+
+if (expected_json_back_to_map != xyz) {
+    false
+} else {
+    true
+}
