@@ -6,6 +6,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -272,4 +273,115 @@ func MakeEmptyList() object.Object {
 	return &object.List{
 		Elements: make([]object.Object, 0),
 	}
+}
+
+func isValidJsonValueType(t object.Type) bool {
+	return t == object.STRING_OBJ || t == object.INTEGER_OBJ || t == object.FLOAT_OBJ || t == object.NULL_OBJ || t == object.BOOLEAN_OBJ || t == object.MAP_OBJ || t == object.LIST_OBJ
+}
+
+func checkListElementsForValidJsonValues(elements []object.Object) (bool, error) {
+	for _, e := range elements {
+		elType := e.Type()
+		if !isValidJsonValueType(elType) {
+			return false, errors.New("all values should be of the types STRING, INTEGER, FLOAT, BOOLEAN, NULL, LIST, or MAP. found " + string(elType))
+		}
+		if elType == object.LIST_OBJ {
+			elements2 := e.(*object.List).Elements
+			return checkListElementsForValidJsonValues(elements2)
+		}
+		if elType == object.MAP_OBJ {
+			mapPairs := e.(*object.Map).Pairs
+			return checkMapObjPairsForValidJsonKeysAndValues(mapPairs)
+		}
+	}
+	return true, nil
+}
+
+func checkMapObjPairsForValidJsonKeysAndValues(pairs object.OrderedMap2[object.HashKey, object.MapPair]) (bool, error) {
+	for _, hk := range pairs.Keys {
+		mp, _ := pairs.Get(hk)
+		keyType := mp.Key.Type()
+		valueType := mp.Value.Type()
+		if keyType != object.STRING_OBJ {
+			return false, errors.New("all keys should be STRING, found invalid key type " + string(keyType))
+		}
+		if !isValidJsonValueType(valueType) {
+			return false, errors.New("all values should be of the types STRING, INTEGER, FLOAT, BOOLEAN, NULL, LIST, or MAP. found " + string(valueType))
+		}
+		// These types are all okay but if its
+		if valueType == object.MAP_OBJ {
+			mapPairs := mp.Value.(*object.Map).Pairs
+			return checkMapObjPairsForValidJsonKeysAndValues(mapPairs)
+		}
+		if valueType == object.LIST_OBJ {
+			elements := mp.Value.(*object.List).Elements
+			return checkListElementsForValidJsonValues(elements)
+		}
+	}
+	// Empty pairs should be okay
+	return true, nil
+}
+
+func generateJsonStringFromOtherValidTypes(buf bytes.Buffer, element object.Object) bytes.Buffer {
+	switch t := element.(type) {
+	case *object.Integer:
+		buf.WriteString(fmt.Sprintf("%d", t.Value))
+	case *object.Stringo:
+		buf.WriteString(fmt.Sprintf("%q", t.Value))
+	case *object.Null:
+		buf.WriteString("null")
+	case *object.Float:
+		buf.WriteString(fmt.Sprintf("%f", t.Value))
+	case *object.Boolean:
+		buf.WriteString(fmt.Sprintf("%t", t.Value))
+	}
+	return buf
+}
+
+func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []object.Object) bytes.Buffer {
+	buf.WriteRune('[')
+	for i, e := range elements {
+		elemType := e.Type()
+		if elemType == object.LIST_OBJ {
+			elements1 := e.(*object.List).Elements
+			buf = generateJsonStringFromValidListElements(buf, elements1)
+		} else if elemType == object.MAP_OBJ {
+			pairs := e.(*object.Map).Pairs
+			buf = generateJsonStringFromValidMapObjPairs(buf, pairs)
+		} else {
+			buf = generateJsonStringFromOtherValidTypes(buf, e)
+		}
+		if i < len(elements)-1 {
+			buf.WriteRune(',')
+		}
+	}
+	buf.WriteRune(']')
+	return buf
+}
+
+func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.OrderedMap2[object.HashKey, object.MapPair]) bytes.Buffer {
+	buf.WriteRune('{')
+	length := len(pairs.Keys)
+	i := 0
+	for _, hk := range pairs.Keys {
+		mp, _ := pairs.Get(hk)
+		// log.Printf("got mp.Key = %#v, mp.Value = %#v", mp.Key, mp.Value)
+		buf.WriteString(fmt.Sprintf("%q:", mp.Key.Inspect()))
+		valueType := mp.Value.Type()
+		if valueType == object.MAP_OBJ {
+			pairs1 := mp.Value.(*object.Map).Pairs
+			buf = generateJsonStringFromValidMapObjPairs(buf, pairs1)
+		} else if valueType == object.LIST_OBJ {
+			elements := mp.Value.(*object.List).Elements
+			buf = generateJsonStringFromValidListElements(buf, elements)
+		} else {
+			buf = generateJsonStringFromOtherValidTypes(buf, mp.Value)
+		}
+		if i < length-1 {
+			buf.WriteRune(',')
+		}
+		i++
+	}
+	buf.WriteRune('}')
+	return buf
 }

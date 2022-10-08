@@ -4,6 +4,7 @@ import (
 	"blue/token"
 	"bytes"
 	"math/big"
+	"sort"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -239,8 +240,9 @@ func (lcl *ListCompLiteral) TokenLiteral() string {
 
 // MapLiteral is the representation of the map literal ast node
 type MapLiteral struct {
-	Token token.Token               // Token == {
-	Pairs map[Expression]Expression // Pairs is a map of expressions to expressions
+	Token      token.Token               // Token == {
+	Pairs      map[Expression]Expression // Pairs is a map of expressions to expressions
+	PairsIndex map[int]Expression        // Insertion Index -> Key Expression
 }
 
 // expressionNode satisfies the expression interface
@@ -253,8 +255,15 @@ func (ml *MapLiteral) TokenLiteral() string { return ml.Token.Literal }
 func (ml *MapLiteral) String() string {
 	var out bytes.Buffer
 
+	indices := []int{}
+	for k := range ml.PairsIndex {
+		indices = append(indices, k)
+	}
+	sort.Ints(indices)
 	pairs := []string{}
-	for k, v := range ml.Pairs {
+	for _, i := range indices {
+		k := ml.PairsIndex[i]
+		v := ml.Pairs[k]
 		pairs = append(pairs, k.String()+": "+v.String())
 	}
 

@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1192,7 +1193,14 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	pairs := object.NewPairsMap()
 
-	for keyNode, valueNode := range node.Pairs {
+	indices := []int{}
+	for k := range node.PairsIndex {
+		indices = append(indices, k)
+	}
+	sort.Ints(indices)
+	for _, i := range indices {
+		keyNode := node.PairsIndex[i]
+		valueNode := node.Pairs[keyNode]
 		ident, _ := keyNode.(*ast.Identifier)
 		key := e.Eval(keyNode)
 		if isError(key) && ident != nil {

@@ -906,7 +906,9 @@ func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 	firstTok := p.curToken
 	exp := &ast.MapLiteral{Token: firstTok}
 	exp.Pairs = make(map[ast.Expression]ast.Expression)
+	exp.PairsIndex = make(map[int]ast.Expression)
 
+	i := 0
 	for !p.peekTokenIs(token.RBRACE) {
 		// get into the map
 		p.nextToken()
@@ -929,6 +931,8 @@ func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 		}
 
 		exp.Pairs[key] = value
+		exp.PairsIndex[i] = key
+		i++
 
 		if !p.peekTokenIs(token.RBRACE) && !p.expectPeekIs(token.COMMA) {
 			return nil

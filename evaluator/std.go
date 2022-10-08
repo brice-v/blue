@@ -5,11 +5,12 @@ import (
 	"blue/object"
 	"blue/parser"
 	"database/sql"
-	_ "embed"
+	"embed"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,25 +24,23 @@ type StdModFileAndBuiltins struct {
 	Builtins BuiltinMapType // Builtins is the map of functions to be used by the module
 }
 
-//go:embed std/http.b
-var stdHttpFile string
+//go:embed std/*
+var stdFs embed.FS
 
-//go:embed std/time.b
-var stdTimeFile string
+func readStdFileToString(fname string) string {
+	bs, err := stdFs.ReadFile("std" + string(filepath.Separator) + fname)
+	if err != nil {
+		panic(err)
+	}
+	return string(bs)
+}
 
-//go:embed std/search.b
-var stdSearchFile string
-
-//go:embed std/db.b
-var stdDbFile string
-
-// TODO: Could use an embed.FS and read the files that way rather then set each one individually
-// but it works well enough for now (if we used embed.FS we probably just need a helper)
 var _std_mods = map[string]StdModFileAndBuiltins{
-	"http":   {File: stdHttpFile, Builtins: _http_builtin_map},
-	"time":   {File: stdTimeFile, Builtins: _time_builtin_map},
-	"search": {File: stdSearchFile, Builtins: _search_builtin_map},
-	"db":     {File: stdDbFile, Builtins: _db_builtin_map},
+	"http":   {File: readStdFileToString("http.b"), Builtins: _http_builtin_map},
+	"time":   {File: readStdFileToString("time.b"), Builtins: _time_builtin_map},
+	"search": {File: readStdFileToString("search.b"), Builtins: _search_builtin_map},
+	"db":     {File: readStdFileToString("db.b"), Builtins: _db_builtin_map},
+	"math":   {File: readStdFileToString("math.b"), Builtins: _math_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -80,10 +79,10 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_get": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`get` expects 1 argument. got %d", len(args))
+				return newError("`get` expects 1 argument. got=%d", len(args))
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument to `get` must be STRING. got %s", args[0].Type())
+				return newError("argument to `get` must be STRING. got=%s", args[0].Type())
 			}
 			resp, err := http.Get(args[0].(*object.Stringo).Value)
 			if err != nil {
@@ -97,20 +96,50 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: string(body)}
 		},
 	},
+	"_post": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`post` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `post` must be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `post` must be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newError("argument 3 to `post` must be STRING. got=%s", args[2].Type())
+			}
+			urlInput := args[0].(*object.Stringo).Value
+			mimeTypeInput := args[1].(*object.Stringo).Value
+			bodyInput := args[2].(*object.Stringo).Value
+
+			resp, err := http.Post(urlInput, mimeTypeInput, strings.NewReader(bodyInput))
+			if err != nil {
+				return newError("`post` failed: %s", err.Error())
+			}
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return newError("`post` failed: %s", err.Error())
+			}
+			return &object.Stringo{Value: string(body)}
+		},
+	},
 })
 
 var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_sleep": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`sleep` expects 1 argument. got %d", len(args))
+				return newError("`sleep` expects 1 argument. got=%d", len(args))
 			}
 			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument to `sleep` must be INTEGER, got %s", args[0].Type())
+				return newError("argument to `sleep` must be INTEGER, got=%s", args[0].Type())
 			}
 			i := args[0].(*object.Integer).Value
 			if i < 0 {
-				return newError("INTEGER argument to `sleep` must be > 0, got %d", i)
+				return newError("INTEGER argument to `sleep` must be > 0, got=%d", i)
 			}
 			time.Sleep(time.Duration(i) * time.Millisecond)
 			return NULL
@@ -119,7 +148,7 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_now": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
-				return newError("`now` expects 0 arguments. got %d", len(args))
+				return newError("`now` expects 0 arguments. got=%d", len(args))
 			}
 			return &object.Integer{Value: time.Now().Unix()}
 		},
@@ -130,16 +159,16 @@ var _search_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_by_xpath": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`by_xpath` expects 3 arguments. got %d", len(args))
+				return newError("`by_xpath` expects 3 arguments. got=%d", len(args))
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `by_xpath` should be STRING. got %s", args[0].Type())
+				return newError("argument 1 to `by_xpath` should be STRING. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `by_xpath` should be STRING. got %s", args[1].Type())
+				return newError("argument 2 to `by_xpath` should be STRING. got=%s", args[1].Type())
 			}
 			if args[2].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 3 to `by_xpath` should be BOOLEAN. got %s", args[2].Type())
+				return newError("argument 3 to `by_xpath` should be BOOLEAN. got=%s", args[2].Type())
 			}
 			strToSearch := args[0].(*object.Stringo).Value
 			if strToSearch == "" {
@@ -179,10 +208,10 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_open": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`open` expects 1 argument. got %d", len(args))
+				return newError("`open` expects 1 argument. got=%d", len(args))
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `open` should be STRING. got %s", args[0].Type())
+				return newError("argument 1 to `open` should be STRING. got=%s", args[0].Type())
 			}
 			dbName := args[0].(*object.Stringo).Value
 			if dbName == "" {
@@ -380,4 +409,76 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return newError("`exec` error: DB not found")
 		},
 	},
+})
+
+var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	// "_abs": {},
+	// TODO: Do we need to / want to support BigFloat/BigDecimal as well? with whatever is there
+	// func Abs(x float64) float64
+	// func Acos(x float64) float64
+	// func Acosh(x float64) float64
+	// func Asin(x float64) float64
+	// func Asinh(x float64) float64
+	// func Atan(x float64) float64
+	// func Atan2(y, x float64) float64
+	// func Atanh(x float64) float64
+	// func Cbrt(x float64) float64
+	// func Ceil(x float64) float64
+	// func Copysign(f, sign float64) float64
+	// func Cos(x float64) float64
+	// func Cosh(x float64) float64
+	// func Dim(x, y float64) float64
+	// func Erf(x float64) float64
+	// func Erfc(x float64) float64
+	// func Erfcinv(x float64) float64
+	// func Erfinv(x float64) float64
+	// func Exp(x float64) float64
+	// func Exp2(x float64) float64
+	// func Expm1(x float64) float64
+	// func FMA(x, y, z float64) float64
+	// func Float32bits(f float32) uint32
+	// func Float32frombits(b uint32) float32
+	// func Float64bits(f float64) uint64
+	// func Float64frombits(b uint64) float64
+	// func Floor(x float64) float64
+	// func Frexp(f float64) (frac float64, exp int)
+	// func Gamma(x float64) float64
+	// func Hypot(p, q float64) float64
+	// func Ilogb(x float64) int
+	// func Inf(sign int) float64
+	// func IsInf(f float64, sign int) bool
+	// func IsNaN(f float64) (is bool)
+	// func J0(x float64) float64
+	// func J1(x float64) float64
+	// func Jn(n int, x float64) float64
+	// func Ldexp(frac float64, exp int) float64
+	// func Lgamma(x float64) (lgamma float64, sign int)
+	// func Log(x float64) float64
+	// func Log10(x float64) float64
+	// func Log1p(x float64) float64
+	// func Log2(x float64) float64
+	// func Logb(x float64) float64
+	// func Max(x, y float64) float64
+	// func Min(x, y float64) float64
+	// func Mod(x, y float64) float64
+	// func Modf(f float64) (int float64, frac float64)
+	// func NaN() float64
+	// func Nextafter(x, y float64) (r float64)
+	// func Nextafter32(x, y float32) (r float32)
+	// func Pow(x, y float64) float64
+	// func Pow10(n int) float64
+	// func Remainder(x, y float64) float64
+	// func Round(x float64) float64
+	// func RoundToEven(x float64) float64
+	// func Signbit(x float64) bool
+	// func Sin(x float64) float64
+	// func Sincos(x float64) (sin, cos float64)
+	// func Sinh(x float64) float64
+	// func Sqrt(x float64) float64
+	// func Tan(x float64) float64
+	// func Tanh(x float64) float64
+	// func Trunc(x float64) float64
+	// func Y0(x float64) float64
+	// func Y1(x float64) float64
+	// func Yn(n int, x float64) float64
 })

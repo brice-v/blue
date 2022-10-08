@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"blue/object"
+	"bytes"
 	"strings"
 )
 
@@ -129,4 +130,57 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return newError("wrong number of arguments. got=%d want 2", len(args))
 		},
 	},
+	"to_json": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`to_json` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newError("argument 1 to `to_json` should be MAP. got=%s", args[0].Type())
+			}
+			mObj := args[0].(*object.Map)
+			// https://www.w3schools.com/Js/js_json_objects.asp
+			// Keys must be strings, and values must be a valid JSON data type:
+			// string
+			// number
+			// object
+			// array
+			// boolean
+			// null
+			ok, err := checkMapObjPairsForValidJsonKeysAndValues(mObj.Pairs)
+			if !ok {
+				return newError("`to_json` error validating MAP object. %s", err.Error())
+			}
+			var buf bytes.Buffer
+			jsonString := generateJsonStringFromValidMapObjPairs(buf, mObj.Pairs)
+			return &object.Stringo{Value: jsonString.String()}
+		},
+	},
+	"json_to_map": {},
+
+	// TODO: join (list of strings)
+	// TODO: We can probably create a solid regex object to use in the string methods
+	// "test": {
+	// 	Fun: func(args ...object.Object) object.Object {
+	// 		if len(args) != 2 {
+	// 			return newError("wrong number of arguments to `test`. got=%d want 2", len(args))
+	// 		}
+	// 		arg0, ok := args[0].(*object.Stringo)
+	// 		if !ok {
+	// 			return newError("first argument to `test` must be string. got=%T", args[0])
+	// 		}
+	// 		arg1, ok := args[1].(*object.Stringo)
+	// 		if !ok {
+	// 			return newError("second argument to `test` must be string. got=%T", args[1])
+	// 		}
+	// 		re, err := regexp.Compile(arg1.Value)
+	// 		if err != nil {
+	// 			return newError("second argument to `test` must be regex. got error: %s", err.Error())
+	// 		}
+	// 		if re.MatchString(arg0.Value) {
+	// 			return TRUE
+	// 		}
+	// 		return FALSE
+	// 	},
+	// },
 })
