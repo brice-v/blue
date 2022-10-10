@@ -5,6 +5,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type BuiltinMapTypeInternal map[string]*object.Builtin
@@ -298,6 +300,45 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			} else {
 				return newError("`exit` expects 1 or no arguments. got=%d", len(args))
 			}
+		},
+	},
+	"cwd": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) > 0 {
+				return newError("`cwd` expects no arguments. got=%d", len(args))
+			}
+			dir, err := os.Getwd()
+			if err != nil {
+				return newError("`cwd` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: dir}
+		},
+	},
+	"cd": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`cd` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("`cd` argument must be STRING. got=%s", args[0].Type())
+			}
+			path := args[0].(*object.Stringo).Value
+			if strings.HasPrefix(path, "~") {
+				home, err := os.UserHomeDir()
+				if err != nil {
+					return newError("`cd` error: %s", err.Error())
+				}
+				path = strings.ReplaceAll(path, "~", home)
+			}
+			p, err := filepath.Abs(path)
+			if err != nil {
+				return newError("`cd` error: %s", err.Error())
+			}
+			err = os.Chdir(p)
+			if err != nil {
+				return newError("`cd` error: %s", err.Error())
+			}
+			return NULL
 		},
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff

@@ -24,9 +24,6 @@ var builtinobjs = BuiltinObjMapType{
 	"STDOUT": {
 		Obj: &object.Stringo{Value: os.Stdout.Name()},
 	},
-	"CWD": {
-		Obj: getCwd(),
-	},
 }
 
 func populateENVObj() *object.Map {
@@ -60,12 +57,4 @@ func populateARGVObj() *object.List {
 		l.Elements = append(l.Elements, value)
 	}
 	return l
-}
-
-func getCwd() *object.Stringo {
-	dir, err := os.Getwd()
-	if err != nil {
-		return &object.Stringo{}
-	}
-	return &object.Stringo{Value: dir}
 }
