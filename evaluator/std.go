@@ -15,6 +15,12 @@ import (
 	"time"
 
 	"github.com/antchfx/htmlquery"
+	"github.com/gookit/config/v2"
+	"github.com/gookit/config/v2/ini"
+	"github.com/gookit/config/v2/properties"
+	"github.com/gookit/config/v2/toml"
+	"github.com/gookit/config/v2/yamlv3"
+	"github.com/gookit/ini/v2/dotenv"
 	_ "modernc.org/sqlite"
 )
 
@@ -41,6 +47,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"search": {File: readStdFileToString("search.b"), Builtins: _search_builtin_map},
 	"db":     {File: readStdFileToString("db.b"), Builtins: _db_builtin_map},
 	"math":   {File: readStdFileToString("math.b"), Builtins: _math_builtin_map},
+	"config": {File: readStdFileToString("config.b"), Builtins: _config_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -481,4 +488,37 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	// func Y0(x float64) float64
 	// func Y1(x float64) float64
 	// func Yn(n int, x float64) float64
+})
+
+var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_load_file": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`load_file` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `load_file` should be STRING. got=%s", args[0].Type())
+			}
+			c := config.NewWithOptions("config", config.ParseEnv, config.Readonly)
+			c.WithDriver(yamlv3.Driver, ini.Driver, toml.Driver, properties.Driver)
+			err := c.LoadFiles(args[0].(*object.Stringo).Value)
+			if err != nil {
+				if err.Error() == "not exists or not register decoder for the format: env" {
+					fpath := args[0].(*object.Stringo).Value
+					err = dotenv.LoadFiles(fpath)
+					builtinobjs["ENV"] = &object.BuiltinObj{
+						Obj: populateENVObj(),
+					}
+					if err != nil {
+						return newError("`load_file` error: %s", err.Error())
+					} else {
+						// Need to return a valid JSON value
+						return &object.Stringo{Value: "{}"}
+					}
+				}
+				return newError("`load_file` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: c.ToJSON()}
+		},
+	},
 })

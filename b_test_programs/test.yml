@@ -1,0 +1,13 @@
+name: app2
+debug: false
+baseKey: value2
+shell: ${SHELL}
+envKey1: ${NotExist|defValue}
+
+map1:
+    key: val2
+    key2: val20
+
+arr1:
+    - val1
+    - val21
