@@ -71,6 +71,8 @@ type Evaluator struct {
 	nestLevel     int
 	iterCount     []int
 	cleanupTmpVar map[string]bool
+
+	IsInScopeBlock bool
 }
 
 // Note: When creating multiple new evaluators with `spawn` there were race conditions
@@ -95,6 +97,8 @@ func New() *Evaluator {
 		nestLevel:     -1,
 		iterCount:     []int{},
 		cleanupTmpVar: make(map[string]bool),
+
+		IsInScopeBlock: false,
 	}
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
@@ -212,6 +216,9 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		if _, ok := e.env.Get(node.Name.Value); ok {
 			return newError("'" + node.Name.Value + "' is already defined")
 		}
+		if e.IsInScopeBlock {
+			e.cleanupTmpVar[node.Name.Value] = true
+		}
 		e.env.ImmutableSet(node.Name.Value)
 		e.env.Set(node.Name.Value, val)
 	case *ast.VarStatement:
@@ -221,6 +228,9 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		}
 		if ok := e.env.IsImmutable(node.Name.Value); ok {
 			return newError("'" + node.Name.Value + "' is already defined as immutable, cannot reassign")
+		}
+		if e.IsInScopeBlock {
+			e.cleanupTmpVar[node.Name.Value] = true
 		}
 		e.env.Set(node.Name.Value, val)
 	case *ast.FunctionLiteral:
@@ -1434,6 +1444,18 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 }
 
 func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
+	e.IsInScopeBlock = true
+	defer func() {
+		e.IsInScopeBlock = false
+		// Cleanup any temporary for variables
+		tmpMapCopy := e.cleanupTmpVar
+		for k, v := range tmpMapCopy {
+			if v {
+				e.env.RemoveIdentifier(k)
+				delete(e.cleanupTmpVar, k)
+			}
+		}
+	}()
 	condition := e.Eval(ie.Condition)
 	if isError(condition) {
 		return condition
@@ -2612,6 +2634,19 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 
 func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object {
 	var result object.Object
+
+	e.IsInScopeBlock = true
+	defer func() {
+		e.IsInScopeBlock = false
+		// Cleanup any temporary for variables
+		tmpMapCopy := e.cleanupTmpVar
+		for k, v := range tmpMapCopy {
+			if v {
+				e.env.RemoveIdentifier(k)
+				delete(e.cleanupTmpVar, k)
+			}
+		}
+	}()
 
 	for _, stmt := range block.Statements {
 		result = e.Eval(stmt)

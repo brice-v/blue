@@ -7,8 +7,8 @@ for (x in 1..10) {
 }
 
 for (x in 1..<10) {
-    println(x)
-    alsoElems = append(alsoElems, x)
+    println(x);
+    alsoElems = append(alsoElems, x);
 }
 var expectedElems = [1,2,3,4,5,6,7,8,9,10];
 var alsoExpected = [1,2,3,4,5,6,7,8,9];

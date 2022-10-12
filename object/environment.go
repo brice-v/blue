@@ -75,5 +75,9 @@ func (e *Environment) IsImmutable(name string) bool {
 // RemoveIdentifier removes a key from the environment
 // this is used in for loops to remove temporary variables
 func (e *Environment) RemoveIdentifier(name string) {
+	if name == "__internal__" {
+		return
+	}
 	delete(e.store, name)
+	delete(e.immutableStore, name)
 }

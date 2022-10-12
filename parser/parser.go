@@ -5,7 +5,6 @@ import (
 	"blue/lexer"
 	"blue/token"
 	"fmt"
-	"log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -593,9 +592,9 @@ func (p *Parser) parseSpawnExpression() ast.Expression {
 	}
 	p.nextToken()
 	se.Arguments, _ = p.parseExpressionList(token.RPAREN)
-	for _, a := range se.Arguments {
-		log.Printf("a = %s", a.String())
-	}
+	// for _, a := range se.Arguments {
+	// 	log.Printf("a = %s", a.String())
+	// }
 	return se
 }
 
