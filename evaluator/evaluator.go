@@ -72,7 +72,10 @@ type Evaluator struct {
 	iterCount     []int
 	cleanupTmpVar map[string]bool
 
-	IsInScopeBlock bool
+	isInScopeBlock bool
+	scopeNestLevel int
+	// scopeVars is the map of scopeNestLevel to the variables that need to be removed
+	scopeVars map[int][]string
 }
 
 // Note: When creating multiple new evaluators with `spawn` there were race conditions
@@ -98,7 +101,9 @@ func New() *Evaluator {
 		iterCount:     []int{},
 		cleanupTmpVar: make(map[string]bool),
 
-		IsInScopeBlock: false,
+		isInScopeBlock: false,
+		scopeNestLevel: 0,
+		scopeVars:      make(map[int][]string),
 	}
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
@@ -216,8 +221,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		if _, ok := e.env.Get(node.Name.Value); ok {
 			return newError("'" + node.Name.Value + "' is already defined")
 		}
-		if e.IsInScopeBlock {
-			e.cleanupTmpVar[node.Name.Value] = true
+		if e.isInScopeBlock {
+			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], node.Name.Value)
 		}
 		e.env.ImmutableSet(node.Name.Value)
 		e.env.Set(node.Name.Value, val)
@@ -229,8 +234,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		if ok := e.env.IsImmutable(node.Name.Value); ok {
 			return newError("'" + node.Name.Value + "' is already defined as immutable, cannot reassign")
 		}
-		if e.IsInScopeBlock {
-			e.cleanupTmpVar[node.Name.Value] = true
+		if e.isInScopeBlock {
+			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], node.Name.Value)
 		}
 		e.env.Set(node.Name.Value, val)
 	case *ast.FunctionLiteral:
@@ -1444,18 +1449,6 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 }
 
 func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
-	e.IsInScopeBlock = true
-	defer func() {
-		e.IsInScopeBlock = false
-		// Cleanup any temporary for variables
-		tmpMapCopy := e.cleanupTmpVar
-		for k, v := range tmpMapCopy {
-			if v {
-				e.env.RemoveIdentifier(k)
-				delete(e.cleanupTmpVar, k)
-			}
-		}
-	}()
 	condition := e.Eval(ie.Condition)
 	if isError(condition) {
 		return condition
@@ -2635,17 +2628,20 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object {
 	var result object.Object
 
-	e.IsInScopeBlock = true
+	e.isInScopeBlock = true
+	e.scopeNestLevel++
+
 	defer func() {
-		e.IsInScopeBlock = false
-		// Cleanup any temporary for variables
-		tmpMapCopy := e.cleanupTmpVar
-		for k, v := range tmpMapCopy {
-			if v {
-				e.env.RemoveIdentifier(k)
-				delete(e.cleanupTmpVar, k)
+		e.isInScopeBlock = false
+		if vars, ok := e.scopeVars[e.scopeNestLevel]; ok {
+			// Cleanup any temporary for variables
+			for _, v := range vars {
+				e.env.RemoveIdentifier(v)
+				delete(e.cleanupTmpVar, v)
 			}
+			delete(e.scopeVars, e.scopeNestLevel)
 		}
+		e.scopeNestLevel--
 	}()
 
 	for _, stmt := range block.Statements {

@@ -2,6 +2,21 @@ var x = 123;
 
 if (x == 123) {
     var y = "abc";
+    if (y == "abc") {
+        var abc = 999;
+        println("abc should be found here #{abc}");
+        assert(abc == 999);
+        assert(x == 123);
+    }
+    println(y);
+    assert(y == 'abc');
+    assert(x == 123);
+    try {
+        assert(x == 123);
+        println(abc);
+    } catch (e) {
+        assert(e == 'EvaluatorError: identifier not found: abc');
+    }
 }
 
 try {
