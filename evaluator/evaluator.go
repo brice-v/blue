@@ -33,6 +33,9 @@ var ProcessMap = NewPidMap()
 var dbCount = atomic.Int64{}
 var DBMap = NewDBMap()
 
+var serverCount = atomic.Int64{}
+var ServerMap = NewServerMap()
+
 var (
 	// TRUE is the true object which should be the same everywhere
 	TRUE = &object.Boolean{Value: true}
@@ -150,6 +153,8 @@ func New() *Evaluator {
 			return val
 		},
 	})
+
+	_http_builtin_map.Put("_handle", createHttpHandleBuiltinWithEvaluator(e))
 
 	return e
 }

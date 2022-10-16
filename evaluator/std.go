@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/antchfx/htmlquery"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/ini"
 	"github.com/gookit/config/v2/properties"
@@ -131,6 +132,44 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`post` failed: %s", err.Error())
 			}
 			return &object.Stringo{Value: string(body)}
+		},
+	},
+	"_new_server": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newError("`new_server` expects 0 args. got=%d", len(args))
+			}
+			app := fiber.New(fiber.Config{
+				Immutable:         true,
+				EnablePrintRoutes: true,
+			})
+			curServer := serverCount.Add(1)
+			ServerMap.Put(curServer, app)
+			return &object.Integer{Value: curServer}
+		},
+	},
+	"_serve": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`serve` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `serve` should be INTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `serve` should be STRING. got=%s", args[1].Type())
+			}
+			app, ok := ServerMap.Get(args[0].(*object.Integer).Value)
+			if !ok {
+				return newError("`serve` could not find Server Object")
+			}
+			addrPort := args[1].(*object.Stringo).Value
+			// nil here means use the default server mux (ie. things that were http.HandleFunc's)
+			err := app.Listen(addrPort)
+			if err != nil {
+				return newError("`serve` error: %s", err.Error())
+			}
+			return NULL
 		},
 	},
 })

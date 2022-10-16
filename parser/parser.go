@@ -220,11 +220,15 @@ func (p *Parser) noPrefixParseFunError(t token.Type) {
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
 	if p.curToken.Type == token.HASH || p.curToken.Type == token.MULTLINE_COMMENT {
-		p.curToken = p.l.NextToken()
+		for p.curToken.Type == token.HASH || p.curToken.Type == token.MULTLINE_COMMENT {
+			p.curToken = p.l.NextToken()
+		}
 	}
 	p.peekToken = p.l.NextToken()
 	if p.peekToken.Type == token.HASH || p.peekToken.Type == token.MULTLINE_COMMENT {
-		p.peekToken = p.l.NextToken()
+		for p.peekToken.Type == token.HASH || p.peekToken.Type == token.MULTLINE_COMMENT {
+			p.peekToken = p.l.NextToken()
+		}
 	}
 }
 

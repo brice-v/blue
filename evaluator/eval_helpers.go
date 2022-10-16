@@ -6,13 +6,19 @@ import (
 	"blue/object"
 	"blue/parser"
 	"bytes"
+	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func unwrapReturnValue(obj object.Object) object.Object {
@@ -384,4 +390,177 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.Order
 	}
 	buf.WriteRune('}')
 	return buf
+}
+
+func decodeInterfaceToObject(value interface{}) object.Object {
+	switch x := value.(type) {
+	case int64:
+		return &object.Integer{Value: x}
+	case float64:
+		return &object.Float{Value: x}
+	case string:
+		return &object.Stringo{Value: x}
+	case bool:
+		if x {
+			return TRUE
+		} else {
+			return FALSE
+		}
+	case []interface{}:
+		list := &object.List{Elements: make([]object.Object, len(x))}
+		for i, e := range x {
+			list.Elements[i] = decodeInterfaceToObject(e)
+		}
+		return list
+	case map[string]interface{}:
+		mapObj := object.NewOrderedMap[string, object.Object]()
+		for k, v := range x {
+			mapObj.Set(k, decodeInterfaceToObject(v))
+		}
+		return object.CreateMapObjectForGoMap(*mapObj)
+	default:
+		log.Fatalf("HANDLE TYPE = %T", x)
+	}
+	return NULL
+}
+
+func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Object, error) {
+	returnMap := make(map[string]object.Object)
+	var v map[string]interface{}
+	if strings.Contains(contentType, "xml") {
+		xmld := xml.NewDecoder(body)
+		err := xmld.Decode(&v)
+		if err != nil {
+			return nil, err
+		}
+	} else if strings.Contains(contentType, "json") {
+		jsond := json.NewDecoder(body)
+		err := jsond.Decode(&v)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil
+	}
+	log.Printf("v = %#v", v)
+	for key, value := range v {
+		returnMap[key] = decodeInterfaceToObject(value)
+	}
+	return returnMap, nil
+}
+
+func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newError("`handle` expects 4 aguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `handle` should be INTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `handle` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.FUNCTION_OBJ {
+				return newError("argument 3 to `handle` should be FUNCTION. got=%s", args[2].Type())
+			}
+			if args[3].Type() != object.STRING_OBJ {
+				return newError("argument 4 to `handle` should be STRING. got=%s", args[3].Type())
+			}
+			serverId := args[0].(*object.Integer).Value
+			app, ok := ServerMap.Get(serverId)
+			if !ok {
+				return newError("`handle` could not find Server Object")
+			}
+			method := strings.ToUpper(args[3].(*object.Stringo).Value)
+			pattern := args[1].(*object.Stringo).Value
+			fn := args[2].(*object.Function)
+			switch method {
+			case "GET":
+				app.Get(pattern, func(c *fiber.Ctx) error {
+					for k, v := range fn.DefaultParameters {
+						if v != nil && fn.Parameters[k].Value == "query_params" {
+							// Handle query_params
+							if v.Type() != object.LIST_OBJ {
+								return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("query_params must be LIST. got=%s", v.Type()))
+							}
+							l := v.(*object.List).Elements
+							for _, elem := range l {
+								if elem.Type() != object.STRING_OBJ {
+									return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("query_params must be LIST of STRINGs. found=%s", elem.Type()))
+								}
+								// Now we know its a list of strings so we can set the variables accordingly for the fn
+								s := elem.(*object.Stringo).Value
+								fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+							}
+						}
+						// TODO: Otherwise chcek that it is null?
+					}
+					fnArgs := make([]object.Object, len(fn.Parameters))
+					for i, v := range fn.Parameters {
+						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+					}
+					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object))
+					if respObj.Type() != object.STRING_OBJ {
+						return c.Status(fiber.StatusInternalServerError).SendString("STRING NOT RETURNED FROM FUNCTION")
+					}
+					respStr := respObj.(*object.Stringo).Value
+					if json.Valid([]byte(respStr)) {
+						c.Set("Content-Type", "application/json")
+						return c.Send([]byte(respStr))
+					}
+					return c.Format(respStr)
+				})
+			case "POST":
+				app.Post(pattern, func(c *fiber.Ctx) error {
+					for k, v := range fn.DefaultParameters {
+						if v != nil && fn.Parameters[k].Value == "post_values" {
+							// Handle post_values
+							if v.Type() != object.LIST_OBJ {
+								return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("post_values must be LIST. got=%s", v.Type()))
+							}
+							l := v.(*object.List).Elements
+
+							contentType := c.Get("Content-Type")
+							log.Printf("content-type = %s", contentType)
+							body := strings.NewReader(string(c.Body()))
+							log.Printf("body = %s", string(c.Body()))
+
+							returnMap, err := decodeBodyToMap(contentType, body)
+							if err != nil {
+								return c.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
+							}
+							for _, elem := range l {
+								if elem.Type() != object.STRING_OBJ {
+									return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("post_values must be LIST of STRINGs. found=%s", elem.Type()))
+								}
+								s := elem.(*object.Stringo).Value
+								if v, ok := returnMap[s]; ok {
+									fn.Env.Set(s, v)
+								} else {
+									fn.Env.Set(s, &object.Stringo{Value: c.FormValue(s)})
+								}
+								// Now we know its a list of strings so we can set the variables accordingly for the fn
+							}
+						}
+						// TODO: Otherwise chcek that it is null?
+					}
+					fnArgs := make([]object.Object, len(fn.Parameters))
+					for i, v := range fn.Parameters {
+						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+					}
+					// TODO: Allow different things to be returned
+					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object))
+					if respObj.Type() != object.NULL_OBJ {
+						return c.Status(fiber.StatusInternalServerError).SendString("NULL NOT RETURNED FROM FUNCTION")
+					}
+					return c.SendStatus(fiber.StatusOK)
+				})
+				// case "PATCH":
+				// case "POST":
+				// case "DELETE":
+			}
+			return NULL
+		},
+	}
 }
