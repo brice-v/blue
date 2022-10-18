@@ -148,6 +148,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.NULL_KW, p.parseNullKeyword)
 	p.registerPrefix(token.EVAL, p.parseEvalExpression)
 	p.registerPrefix(token.SPAWN, p.parseSpawnExpression)
+	p.registerPrefix(token.SELF, p.parseSelfExpression)
 	p.infixParseFuns = make(map[token.Type]infixParseFun)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -596,9 +597,19 @@ func (p *Parser) parseSpawnExpression() ast.Expression {
 	}
 	p.nextToken()
 	se.Arguments, _ = p.parseExpressionList(token.RPAREN)
-	// for _, a := range se.Arguments {
-	// 	log.Printf("a = %s", a.String())
-	// }
+	return se
+}
+
+func (p *Parser) parseSelfExpression() ast.Expression {
+	se := &ast.SelfExpression{
+		Token: p.curToken,
+	}
+	if !p.expectPeekIs(token.LPAREN) {
+		return nil
+	}
+	if !p.expectPeekIs(token.RPAREN) {
+		return nil
+	}
 	return se
 }
 

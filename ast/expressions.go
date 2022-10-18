@@ -327,3 +327,18 @@ func (se *SpawnExpression) String() string {
 	out.WriteString(");\n")
 	return out.String()
 }
+
+type SelfExpression struct {
+	Token token.Token // token == spawn
+}
+
+// expressionNode satisfies the expression interface
+func (se *SelfExpression) expressionNode() {}
+
+// TokenLiteral returns the for token
+func (se *SelfExpression) TokenLiteral() string { return se.Token.Literal }
+
+// String returns the string representation of the for expression ast node
+func (se *SelfExpression) String() string {
+	return "self();"
+}

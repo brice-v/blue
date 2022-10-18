@@ -9,7 +9,6 @@ TODO:
     - also we need to consider when processes are loaded on other computer hosts
 - [ ] Use send in recv() match block to make sure we can send and recv without issue (maybe in a for loop)
     - [ ] Will need to update SpawnExpression to support passing args such as the pid to send back to
-- [ ] Make sure self works inside the spawned process
 - [ ] Remove createProcess function if it ends up being simple (like it is currently)
 - [ ] Should we pass in current env when spawning? It would allow globals declared before hand to be copied but not updated
 - [ ] Add test cases to cover all the basic functions
@@ -77,6 +76,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Make sure self works inside the spawned process
 - [x] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
 - [x] Add way to get types of objects inside code
 - [x] support index operator for set so we can do something like `set_abc.1` or `set_abc[1]` to get 2nd element

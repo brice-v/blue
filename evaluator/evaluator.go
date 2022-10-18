@@ -112,47 +112,12 @@ func New() *Evaluator {
 	e.Builtins.PushBack(stringbuiltins)
 	e.Builtins.PushBack(builtinobjs)
 	e.AddCoreLibToEnv()
-	// These builtins are declared here so that they can access the evaluator members
-	builtins.Put("self", &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newError("`self` expects 0 arguments")
-			}
-			return &object.Integer{Value: e.PID}
-		},
-	})
-	builtins.Put("send", &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("`send` expects 2 arguments")
-			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("first argument to `send` must be INTEGER got %s", args[0].Type())
-			}
-			pid := args[0].(*object.Integer).Value
-			process, ok := ProcessMap.Get(pid)
-			if !ok {
-				return newError("`send` failed, pid=%d not found", pid)
-			}
-			process.Ch <- args[1]
-			return NULL
-		},
-	})
-	builtins.Put("recv", &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newError("`recv` expects 0 arguments")
-			}
-			process, ok := ProcessMap.Get(e.PID)
-			if !ok {
-				return newError("`recv` failed, pid=%d not found", e.PID)
-			}
-
-			val := <-process.Ch
-
-			return val
-		},
-	})
+	// Create an empty process so we can recv without spawning
+	process := &object.Process{
+		Fun: nil,
+		Ch:  make(chan object.Object),
+	}
+	ProcessMap.Put(e.PID, process)
 
 	_http_builtin_map.Put("_handle", createHttpHandleBuiltinWithEvaluator(e))
 
@@ -348,6 +313,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		return e.evalEvalExpression(node)
 	case *ast.SpawnExpression:
 		return e.evalSpawnExpression(node)
+	case *ast.SelfExpression:
+		return e.evalSelfExpression(node)
 	default:
 		if node == nil {
 			// Just want to get rid of this in my output
@@ -489,9 +456,9 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 	pid := pidCount.Add(1)
 	ProcessMap.Put(pid, process)
 	go func(pid int64) {
-		e := New()
-		e.PID = pid
-		obj := e.applyFunction(fun, arg1.(*object.List).Elements, make(map[string]object.Object))
+		newE := New()
+		newE.PID = pid
+		obj := newE.applyFunction(fun, arg1.(*object.List).Elements, make(map[string]object.Object))
 		if isError(obj) {
 			err := obj.(*object.Error).Message
 			fmt.Printf("EvaluatorError: %s\n", err)
@@ -502,6 +469,10 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 	}(pid)
 
 	return &object.Integer{Value: pid}
+}
+
+func (e *Evaluator) evalSelfExpression(node *ast.SelfExpression) object.Object {
+	return &object.Integer{Value: e.PID}
 }
 
 func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {

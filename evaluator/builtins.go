@@ -341,5 +341,40 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return NULL
 		},
 	},
+	"recv": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`recv` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `recv` should be INTEGER. got=%s", args[0].Type())
+			}
+			pid := args[0].(*object.Integer).Value
+			process, ok := ProcessMap.Get(pid)
+			if !ok {
+				return newError("`recv` failed, pid=%d not found", pid)
+			}
+			val := <-process.Ch
+
+			return val
+		},
+	},
+	"send": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`send` expects 2 arguments")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("first argument to `send` must be INTEGER got %s", args[0].Type())
+			}
+			pid := args[0].(*object.Integer).Value
+			process, ok := ProcessMap.Get(pid)
+			if !ok {
+				return newError("`send` failed, pid=%d not found", pid)
+			}
+			process.Ch <- args[1]
+			return NULL
+		},
+	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
 })

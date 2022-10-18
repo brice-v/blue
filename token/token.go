@@ -245,6 +245,8 @@ const (
 	EVAL = "EVAL"
 	// SPAWN is the string rep. of the 'spawn' keyword token
 	SPAWN = "SPAWN"
+	// SELF is the string rep. of the 'self' keyword token
+	SELF = "SELF"
 
 	// BREAK is the string rep. of the 'break' keyword token
 	BREAK = "BREAK"
@@ -289,6 +291,7 @@ var keywords = map[string]Type{
 	"finally":  FINALLY,
 	"eval":     EVAL,
 	"spawn":    SPAWN,
+	"self":     SELF,
 	"break":    BREAK,
 	"continue": CONTINUE,
 }
