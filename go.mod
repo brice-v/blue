@@ -9,6 +9,7 @@ require (
 	github.com/gookit/config/v2 v2.1.6
 	github.com/gookit/ini/v2 v2.1.2
 	github.com/shopspring/decimal v1.3.1
+	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
 	modernc.org/sqlite v1.19.1
 )
 

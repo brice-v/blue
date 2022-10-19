@@ -362,7 +362,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"send": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`send` expects 2 arguments")
+				return newError("`send` expects 2 arguments. got=%d", len(args))
 			}
 			if args[0].Type() != object.INTEGER_OBJ {
 				return newError("first argument to `send` must be INTEGER got %s", args[0].Type())

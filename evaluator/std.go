@@ -4,9 +4,14 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
 	"database/sql"
 	"embed"
 	"fmt"
+	"hash"
 	"io"
 	"net/http"
 	"os"
@@ -22,6 +27,7 @@ import (
 	"github.com/gookit/config/v2/toml"
 	"github.com/gookit/config/v2/yamlv3"
 	"github.com/gookit/ini/v2/dotenv"
+	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
 
@@ -49,6 +55,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"db":     {File: readStdFileToString("db.b"), Builtins: _db_builtin_map},
 	"math":   {File: readStdFileToString("math.b"), Builtins: _math_builtin_map},
 	"config": {File: readStdFileToString("config.b"), Builtins: _config_builtin_map},
+	"crypto": {File: readStdFileToString("crypto.b"), Builtins: _crypto_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -558,6 +565,89 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`load_file` error: %s", err.Error())
 			}
 			return &object.Stringo{Value: c.ToJSON()}
+		},
+	},
+})
+
+var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_sha": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`sha` expects 2 arguments. got=%d", len(args))
+			}
+			// TODO: Support Bytes object?
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `sha` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newError("argument 2 to `sha` should be INTEGER. got=%s", args[1].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			i := args[1].(*object.Integer).Value
+			var hasher hash.Hash
+			switch i {
+			case 1:
+				hasher = sha1.New()
+			case 256:
+				hasher = sha256.New()
+			case 512:
+				hasher = sha512.New()
+			default:
+				return newError("argument 2 to `sha` should be 1, 256, or 512. got=%d", i)
+			}
+			hasher.Write([]byte(s))
+			return &object.Stringo{Value: fmt.Sprintf("%x", hasher.Sum(nil))}
+		},
+	},
+	"_md5": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`md5` expects 1 argument. got=%d", len(args))
+			}
+			// TODO: Support Bytes object?
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `sha` should be STRING. got=%s", args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			hasher := md5.New()
+			hasher.Write([]byte(s))
+			return &object.Stringo{Value: fmt.Sprintf("%x", hasher.Sum(nil))}
+		},
+	},
+	"_generate_from_password": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`generate_from_password` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `generate_from_password` should be STRING. got=%s", args[0].Type())
+			}
+			pw := []byte(args[0].(*object.Stringo).Value)
+			hashedPw, err := bcrypt.GenerateFromPassword(pw, bcrypt.DefaultCost)
+			if err != nil {
+				return newError("bcrypt error: %s", err.Error())
+			}
+			return &object.Stringo{Value: string(hashedPw)}
+		},
+	},
+	"_compare_hash_and_password": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`compare_hash_and_password` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `compare_hash_and_password` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `compare_hash_and_password` should be STRING. got=%s", args[1].Type())
+			}
+			hashedPw := []byte(args[0].(*object.Stringo).Value)
+			pw := []byte(args[1].(*object.Stringo).Value)
+			err := bcrypt.CompareHashAndPassword(hashedPw, pw)
+			if err != nil {
+				return newError("bcrypt error: %s", err.Error())
+			}
+			return TRUE
 		},
 	},
 })
