@@ -179,6 +179,36 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return NULL
 		},
 	},
+	"_static": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newError("`static` expects 4 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `static` should be INTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `static` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newError("argument 3 to `static` should be STRING. got=%s", args[2].Type())
+			}
+			if args[3].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 4 to `static` should be BOOLEAN. got=%s", args[3].Type())
+			}
+			app, ok := ServerMap.Get(args[0].(*object.Integer).Value)
+			if !ok {
+				return newError("`static` could not find Server Object")
+			}
+			prefix := args[1].(*object.Stringo).Value
+			fpath := args[2].(*object.Stringo).Value
+			shouldBrowse := args[3].(*object.Boolean).Value
+			app.Static(prefix, fpath, fiber.Static{
+				Browse: shouldBrowse,
+			})
+			return NULL
+		},
+	},
 })
 
 var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
