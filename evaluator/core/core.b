@@ -1,3 +1,7 @@
+fun read(fname, as_bytes=false) {
+    _read(fname, as_bytes)
+}
+
 fun map(list, f) {
     var __internal__ = [];
     for (e in list) {

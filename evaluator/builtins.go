@@ -144,14 +144,16 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return newError("wrong number of arguments to `input`. got=%d, want=1 (or none)", len(args))
 		},
 	},
-	"read": {
+	"_read": {
 		Fun: func(args ...object.Object) object.Object {
-			argLen := len(args)
-			if argLen != 1 {
-				return newError("wrong number of arguments to `read`. got=%d, want=1", argLen)
+			if len(args) != 2 {
+				return newError("`read` expected 2 arguments. got=%d", len(args))
 			}
 			if args[0].Type() != object.STRING_OBJ {
 				return newError("argument to `read` must be STRING, got %s", args[0].Type())
+			}
+			if args[1].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 2 to `read` must be BOOLEAN, got %s", args[0].Type())
 			}
 			fnameo, ok := args[0].(*object.Stringo)
 			if !ok {
@@ -160,6 +162,9 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			bs, err := os.ReadFile(fnameo.Value)
 			if err != nil {
 				return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
+			}
+			if args[1].(*object.Boolean).Value {
+				return &object.Bytes{Value: bs}
 			}
 			return &object.Stringo{Value: string(bs)}
 		},
@@ -171,14 +176,19 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("wrong number of arguments to `write`. got=%d, want=2", argLen)
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("arguments to `write` must be STRING, got %s", args[0].Type())
+				return newError("argument 1 to `write` must be STRING, got %s", args[0].Type())
 			}
-			if args[1].Type() != object.STRING_OBJ {
-				return newError("arguments to `write` must be STRING, got %s", args[1].Type())
+			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
+				return newError("argument 2 to `write` must be STRING or BYTES, got %s", args[1].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
-			contents := args[1].(*object.Stringo).Value
-			err := os.WriteFile(fname, []byte(contents), 0644)
+			var contents []byte
+			if args[1].Type() == object.STRING_OBJ {
+				contents = []byte(args[1].(*object.Stringo).Value)
+			} else {
+				contents = args[1].(*object.Bytes).Value
+			}
+			err := os.WriteFile(fname, contents, 0644)
 			if err != nil {
 				return newError("error writing file `%s`: %s", fname, err.Error())
 			}
@@ -374,6 +384,24 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			process.Ch <- args[1]
 			return NULL
+		},
+	},
+	"to_bytes": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`to_bytes` expects 1 argument. got=%d", len(args))
+			}
+			switch x := args[0].(type) {
+			case *object.Stringo:
+				// TODO: Support hexadecimal string? like what is currently returned in crypto
+				return &object.Bytes{Value: []byte(x.Value)}
+			// case *object.List:
+			// Confirm all elements are ints and then convert?
+			// All the ints also have to be less than 255
+			default:
+				// TODO: Could we maybe take the string representation and convert it to bytes?
+				return newError("type '%s' not supported for `to_bytes`", args[0].Type())
+			}
 		},
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff

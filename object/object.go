@@ -35,6 +35,8 @@ const (
 	FUNCTION_OBJ = "FUNCTION"
 	// STRING_OBJ is the string object type string
 	STRING_OBJ = "STRING"
+	// BYTES_OBJ is the string object type string
+	BYTES_OBJ = "BYTES"
 	// BUILTIN_OBJ is the builtin function object type string
 	BUILTIN_OBJ = "BUILTIN"
 	// LIST_OBJ is the list object type string
@@ -222,6 +224,17 @@ func (s *Stringo) Type() Type { return STRING_OBJ }
 
 // Inspect returns the string value
 func (s *Stringo) Inspect() string { return s.Value }
+
+// Bytes is the bytes oject struct which contains a []byte value
+type Bytes struct {
+	Value []byte
+}
+
+// Type returns the string object type
+func (b *Bytes) Type() Type { return BYTES_OBJ }
+
+// Inspect returns the string value
+func (b *Bytes) Inspect() string { return fmt.Sprintf("%#v", b.Value) }
 
 // BuiltinFunction is the type that will allow us to support
 // adding functions from the host language (ie. go)
