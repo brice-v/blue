@@ -156,7 +156,18 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: jsonString.String()}
 		},
 	},
-	// TODO: Work on the 2 below
+	"trim": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`trim` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `trim` should be STRING. got=%s", args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: strings.TrimSpace(s)}
+		},
+	},
 
 	// TODO: join (list of strings)
 	// TODO: We can probably create a solid regex object to use in the string methods
