@@ -17,8 +17,7 @@ require (
 	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/antchfx/xpath v1.2.1 // indirect
-	github.com/chzyer/logex v1.1.10 // indirect
-	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/chzyer/test v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gookit/goutil v0.5.12 // indirect
@@ -32,11 +31,11 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.40.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/mod v0.3.0 // indirect
+	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78 // indirect
+	golang.org/x/tools v0.1.8-0.20211022200916-316ba0b74098 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/uint128 v1.1.1 // indirect
