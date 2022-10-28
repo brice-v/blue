@@ -19,6 +19,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 )
 
 func unwrapReturnValue(obj object.Object) object.Object {
@@ -561,6 +562,92 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 				// case "DELETE":
 			}
 			return NULL
+		},
+	}
+}
+
+func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`handle_ws` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `handle_ws` should be INTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `handle_ws` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.FUNCTION_OBJ {
+				return newError("argument 3 to `handle_ws` should be FUNCTION. got=%s", args[2].Type())
+			}
+			pattern := args[1].(*object.Stringo).Value
+			fn := args[2].(*object.Function)
+			if len(fn.Parameters) == 0 {
+				return newError("function arguments should be at least 1 to store the websocket connection")
+			}
+			serverId := args[0].(*object.Integer).Value
+			app, ok := ServerMap.Get(serverId)
+			if !ok {
+				return newError("`handle_ws` could not find Server Object")
+			}
+			getRootPath := func(s string) string {
+				x := strings.SplitAfterN(s, "/", 2)[1]
+				x1 := strings.SplitAfterN(x, "/", 2)[0]
+				var x2 string
+				if strings.HasSuffix(x1, "/") {
+					x2 = x1[:len(x1)-1]
+				} else {
+					x2 = x1
+				}
+				return "/" + x2
+			}
+			rootPath := getRootPath(pattern)
+			app.Use(rootPath, func(c *fiber.Ctx) error {
+				if websocket.IsWebSocketUpgrade(c) {
+					return c.Next()
+				}
+				return fiber.ErrUpgradeRequired
+			})
+
+			var returnObj object.Object = NULL
+			app.Get(pattern, websocket.New(func(c *websocket.Conn) {
+				connCount := wsConnCount.Add(1)
+				WSConnMap.Put(connCount, c)
+				for k, v := range fn.DefaultParameters {
+					if v != nil && fn.Parameters[k].Value == "query_params" {
+						// Handle query_params
+						if v.Type() != object.LIST_OBJ {
+							log.Printf("query_params must be LIST. got=%s", v.Type())
+							return
+						}
+						l := v.(*object.List).Elements
+						for _, elem := range l {
+							if elem.Type() != object.STRING_OBJ {
+								log.Printf("query_params must be LIST of STRINGs. found=%s", elem.Type())
+								return
+							}
+							// Now we know its a list of strings so we can set the variables accordingly for the fn
+							s := elem.(*object.Stringo).Value
+							fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+						}
+					}
+					// TODO: Otherwise chcek that it is null?
+				}
+				fnArgs := make([]object.Object, len(fn.Parameters))
+				for i, v := range fn.Parameters {
+					if i == 0 {
+						fnArgs[i] = object.CreateBasicMapObject("WS", connCount)
+					} else {
+						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+					}
+				}
+				returnObj = e.applyFunction(fn, fnArgs, make(map[string]object.Object))
+				log.Printf("`handle_ws` returned with %#v", returnObj)
+				// TODO: On error what can we do?
+			}))
+			// TODO: Does the return obj above get returned here?
+			return returnObj
 		},
 	}
 }

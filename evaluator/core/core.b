@@ -1,3 +1,33 @@
+fun send(obj, value) {
+    return match obj {
+        {t: "PID", v: _} => {
+            _send(obj.v, value)
+        },
+        {t: "WS", v: _} => {
+            import http
+            http.ws_send(obj.v, value)
+        },
+        _ => {
+            error("obj `#{obj}` is invalid type")
+        },
+    };
+}
+
+fun recv(obj) {
+    return match obj {
+        {t: "PID", v: _} => {
+            _recv(obj.v)
+        },
+        {t: "WS", v: _} => {
+            import http
+            http.ws_recv(obj.v)
+        },
+        _ => {
+            error("obj `#{obj}` is invalid type")
+        },
+    };
+}
+
 fun read(fname, as_bytes=false) {
     _read(fname, as_bytes)
 }

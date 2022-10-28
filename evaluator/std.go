@@ -4,6 +4,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/antchfx/htmlquery"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/ini"
 	"github.com/gookit/config/v2/properties"
@@ -207,6 +209,65 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				Browse: shouldBrowse,
 			})
 			return NULL
+		},
+	},
+	"_ws_send": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`ws_send` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `ws_send` should be INTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
+				return newError("argument 2 to `ws_send` should be STRING or BYTES. got=%s", args[1].Type())
+			}
+			connId := args[0].(*object.Integer).Value
+			c, ok := WSConnMap.Get(connId)
+			if !ok {
+				return newError("`ws_send` could not find ws object")
+			}
+			var err error
+			if args[1].Type() == object.STRING_OBJ {
+				err = c.WriteMessage(websocket.TextMessage, []byte(args[1].(*object.Stringo).Value))
+			} else {
+				err = c.WriteMessage(websocket.BinaryMessage, args[1].(*object.Bytes).Value)
+			}
+			if err != nil {
+				return newError("`ws_send` error: %s", err.Error())
+			}
+			return NULL
+		},
+	},
+	"_ws_recv": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`ws_recv` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument 1 to `ws_recv` should be INTEGER. got=%s", args[0].Type())
+			}
+			connId := args[0].(*object.Integer).Value
+			c, ok := WSConnMap.Get(connId)
+			if !ok {
+				return newError("`ws_recv` could not find ws object")
+			}
+			mt, msg, err := c.ReadMessage()
+			if err != nil {
+				if strings.Contains(err.Error(), "websocket: close") {
+					return NULL
+				}
+				return newError("`ws_recv` error: %s", err.Error())
+			}
+			switch mt {
+			case websocket.BinaryMessage:
+				return &object.Bytes{Value: msg}
+			case websocket.TextMessage:
+				return &object.Stringo{Value: string(msg)}
+			default:
+				// Any close message we will just swallow and ignore
+				return NULL
+			}
 		},
 	},
 })
@@ -595,6 +656,45 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`load_file` error: %s", err.Error())
 			}
 			return &object.Stringo{Value: c.ToJSON()}
+		},
+	},
+	"_dump_config": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`dump_config` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `dump_config` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `dump_config` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newError("argument 3 to `dump_config` should be STRING. got=%s", args[2].Type())
+			}
+			c := config.New("config")
+			configAsJson := args[0].(*object.Stringo).Value
+			c.LoadStrings(config.JSON, configAsJson)
+			fpath := args[1].(*object.Stringo).Value
+			format := args[2].(*object.Stringo).Value
+			out := new(bytes.Buffer)
+			switch format {
+			case "JSON":
+				config.DumpTo(out, config.JSON)
+			case "TOML":
+				config.DumpTo(out, config.Toml)
+			case "YAML":
+				config.DumpTo(out, config.Yaml)
+			case "INI":
+				config.DumpTo(out, config.Ini)
+			case "PROPERTIES":
+				config.DumpTo(out, config.Prop)
+			}
+			err := os.WriteFile(fpath, out.Bytes(), 0755)
+			if err != nil {
+				return newError("`dump_config` error: %s", err.Error())
+			}
+			return NULL
 		},
 	},
 })

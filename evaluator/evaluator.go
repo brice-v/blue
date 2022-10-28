@@ -36,6 +36,9 @@ var DBMap = NewDBMap()
 var serverCount = atomic.Int64{}
 var ServerMap = NewServerMap()
 
+var wsConnCount = atomic.Int64{}
+var WSConnMap = NewWSConnMap()
+
 var (
 	// TRUE is the true object which should be the same everywhere
 	TRUE = &object.Boolean{Value: true}
@@ -120,6 +123,7 @@ func New() *Evaluator {
 	ProcessMap.Put(e.PID, process)
 
 	_http_builtin_map.Put("_handle", createHttpHandleBuiltinWithEvaluator(e))
+	_http_builtin_map.Put("_handle_ws", createHttpHandleWSBuiltinWithEvaluator(e))
 
 	return e
 }
@@ -467,12 +471,11 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 		ProcessMap.Remove(pid)
 		pidCount.Store(pidCount.Load() - 1)
 	}(pid)
-
-	return &object.Integer{Value: pid}
+	return object.CreateBasicMapObject("PID", pid)
 }
 
 func (e *Evaluator) evalSelfExpression(node *ast.SelfExpression) object.Object {
-	return &object.Integer{Value: e.PID}
+	return object.CreateBasicMapObject("PID", e.PID)
 }
 
 func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {

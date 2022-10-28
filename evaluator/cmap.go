@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 )
 
 type ConcurrentMap[K comparable, V any] struct {
@@ -28,6 +29,12 @@ func NewDBMap() *ConcurrentMap[int64, *sql.DB] {
 func NewServerMap() *ConcurrentMap[int64, *fiber.App] {
 	return &ConcurrentMap[int64, *fiber.App]{
 		kv: make(map[int64]*fiber.App),
+	}
+}
+
+func NewWSConnMap() *ConcurrentMap[int64, *websocket.Conn] {
+	return &ConcurrentMap[int64, *websocket.Conn]{
+		kv: make(map[int64]*websocket.Conn),
 	}
 }
 

@@ -16,18 +16,22 @@ github.com/antchfx/xpath
 github.com/chzyer/readline
 # github.com/chzyer/test v1.0.0
 ## explicit; go 1.15
-# github.com/gofiber/fiber/v2 v2.38.1
+# github.com/fasthttp/websocket v1.5.0
+## explicit; go 1.15
+github.com/fasthttp/websocket
+# github.com/gofiber/fiber/v2 v2.39.0
 ## explicit; go 1.19
 github.com/gofiber/fiber/v2
 github.com/gofiber/fiber/v2/internal/bytebufferpool
-github.com/gofiber/fiber/v2/internal/colorable
 github.com/gofiber/fiber/v2/internal/dictpool
 github.com/gofiber/fiber/v2/internal/fwd
-github.com/gofiber/fiber/v2/internal/isatty
 github.com/gofiber/fiber/v2/internal/msgp
 github.com/gofiber/fiber/v2/internal/schema
 github.com/gofiber/fiber/v2/internal/uuid
 github.com/gofiber/fiber/v2/utils
+# github.com/gofiber/websocket/v2 v2.1.1
+## explicit; go 1.14
+github.com/gofiber/websocket/v2
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 ## explicit
 github.com/golang/groupcache/lru
@@ -79,15 +83,27 @@ github.com/kballard/go-shellquote
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
+# github.com/mattn/go-colorable v0.1.13
+## explicit; go 1.15
+github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.16
 ## explicit; go 1.15
 github.com/mattn/go-isatty
+# github.com/mattn/go-runewidth v0.0.14
+## explicit; go 1.9
+github.com/mattn/go-runewidth
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
 # github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0
 ## explicit; go 1.12
 github.com/remyoudompheng/bigfft
+# github.com/rivo/uniseg v0.2.0
+## explicit; go 1.12
+github.com/rivo/uniseg
+# github.com/savsgio/gotils v0.0.0-20211223103454-d0aaa54c5899
+## explicit; go 1.12
+github.com/savsgio/gotils/strconv
 # github.com/shopspring/decimal v1.3.1
 ## explicit; go 1.13
 github.com/shopspring/decimal

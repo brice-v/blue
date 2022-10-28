@@ -351,7 +351,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return NULL
 		},
 	},
-	"recv": {
+	"_recv": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("`recv` expects 1 argument. got=%d", len(args))
@@ -369,7 +369,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return val
 		},
 	},
-	"send": {
+	"_send": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newError("`send` expects 2 arguments. got=%d", len(args))

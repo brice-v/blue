@@ -168,6 +168,30 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: strings.TrimSpace(s)}
 		},
 	},
+	"to_upper": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`to_upper` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `to_upper` should be STRING. got=%s", args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: strings.ToUpper(s)}
+		},
+	},
+	"to_lower": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`to_lower` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `to_lower` should be STRING. got=%s", args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: strings.ToLower(s)}
+		},
+	},
 
 	// TODO: join (list of strings)
 	// TODO: We can probably create a solid regex object to use in the string methods

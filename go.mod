@@ -5,7 +5,8 @@ go 1.18
 require (
 	github.com/antchfx/htmlquery v1.2.5
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
-	github.com/gofiber/fiber/v2 v2.38.1
+	github.com/gofiber/fiber/v2 v2.39.0
+	github.com/gofiber/websocket/v2 v2.1.1
 	github.com/gookit/config/v2 v2.1.6
 	github.com/gookit/ini/v2 v2.1.2
 	github.com/shopspring/decimal v1.3.1
@@ -18,6 +19,7 @@ require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/chzyer/test v1.0.0 // indirect
+	github.com/fasthttp/websocket v1.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gookit/goutil v0.5.12 // indirect
@@ -25,9 +27,13 @@ require (
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.15.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/savsgio/gotils v0.0.0-20211223103454-d0aaa54c5899 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.40.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect

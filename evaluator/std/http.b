@@ -1,23 +1,30 @@
 val get = _get;
-val post_ = _post;
-val serve_ = _serve;
-val static_ = _static;
-val handle_ = _handle;
+val __post = _post;
+val __serve = _serve;
+val __static = _static;
+val __handle = _handle;
+val __handle_ws = _handle_ws;
+val ws_send = _ws_send;
+val ws_recv = _ws_recv;
 # _server is an id that corresponds to the gofiber server object
 val _server = _new_server();
 
 fun post(url, body, mime_type="application/json") {
-    post_(url, mime_type, body)
+    __post(url, mime_type, body)
 }
 
 fun serve(addr="localhost:3001") {
-    serve_(_server, addr)
+    __serve(_server, addr)
 }
 
 fun handle(pattern, fn, method="GET") {
-    handle_(_server, pattern, fn, method)
+    __handle(_server, pattern, fn, method)
+}
+
+fun handle_ws(pattern, fn) {
+    __handle_ws(_server, pattern, fn)
 }
 
 fun static(prefix="/", dir_path=".", browse=false) {
-    static_(_server, prefix, dir_path, browse)
+    __static(_server, prefix, dir_path, browse)
 }
