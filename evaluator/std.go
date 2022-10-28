@@ -254,25 +254,27 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			mt, msg, err := c.ReadMessage()
 			if err != nil {
-				if strings.Contains(err.Error(), "websocket: close") {
-					// Remove this conn
-					wsConnCount.Store(wsConnCount.Load() - 1)
-					WSConnMap.Remove(connId)
-					return NULL
-				}
-				return newError("`ws_recv` error: %s", err.Error())
+				// Remove this conn
+				wsConnCount.Store(wsConnCount.Load() - 1)
+				WSConnMap.Remove(connId)
+				// If its closed we still want to return an error so that the handler fn wont try to send NULL
+				return newError("`ws_recv`: %s", err.Error())
 			}
 			switch mt {
 			case websocket.BinaryMessage:
 				return &object.Bytes{Value: msg}
 			case websocket.TextMessage:
 				return &object.Stringo{Value: string(msg)}
+			case websocket.PingMessage:
+				return newError("`ws_recv`: ping message type not supported.")
+			case websocket.PongMessage:
+				return newError("`ws_recv`: pong message type not supported.")
 			default:
 				// Remove the conn
 				wsConnCount.Store(wsConnCount.Load() - 1)
 				WSConnMap.Remove(connId)
-				// Any close message we will just swallow and ignore
-				return NULL
+				// If its closed we still want to return an error so that the handler fn wont try to send NULL
+				return newError("`ws_recv`: websocket closed.")
 			}
 		},
 	},
