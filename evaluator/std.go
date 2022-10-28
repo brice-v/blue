@@ -255,6 +255,9 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			mt, msg, err := c.ReadMessage()
 			if err != nil {
 				if strings.Contains(err.Error(), "websocket: close") {
+					// Remove this conn
+					wsConnCount.Store(wsConnCount.Load() - 1)
+					WSConnMap.Remove(connId)
 					return NULL
 				}
 				return newError("`ws_recv` error: %s", err.Error())
@@ -265,6 +268,9 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case websocket.TextMessage:
 				return &object.Stringo{Value: string(msg)}
 			default:
+				// Remove the conn
+				wsConnCount.Store(wsConnCount.Load() - 1)
+				WSConnMap.Remove(connId)
 				// Any close message we will just swallow and ignore
 				return NULL
 			}
