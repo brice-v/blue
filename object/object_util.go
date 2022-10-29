@@ -50,7 +50,6 @@ func CreateMapObjectForGoMap(input OrderedMap2[string, Object]) *Map {
 	return m
 }
 
-// TODO: Still need to handle BLOB type
 func CreateObjectFromDbInterface(input interface{}) Object {
 	switch x := input.(type) {
 	case int64:
@@ -59,6 +58,10 @@ func CreateObjectFromDbInterface(input interface{}) Object {
 		return &Stringo{Value: x}
 	case float64:
 		return &Float{Value: x}
+	case []byte:
+		return &Bytes{Value: x}
+	case bool:
+		return &Boolean{Value: x}
 	default:
 		return nil
 	}

@@ -441,11 +441,22 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if len(l) > 1 {
 					execArgs := make([]any, len(l))
 					for idx, e := range l {
-						// TODO: Type checking l elements for exec? (allow not only string)
-						if e.Type() != object.STRING_OBJ {
-							return newError("argument list to `exec` should all be STRING. got=%s", e.Type())
+						switch e.Type() {
+						case object.STRING_OBJ:
+							execArgs[idx] = e.(*object.Stringo).Value
+						case object.INTEGER_OBJ:
+							execArgs[idx] = e.(*object.Integer).Value
+						case object.FLOAT_OBJ:
+							execArgs[idx] = e.(*object.Float).Value
+						case object.NULL_OBJ:
+							execArgs[idx] = nil
+						case object.BOOLEAN_OBJ:
+							execArgs[idx] = e.(*object.Boolean).Value
+						case object.BYTES_OBJ:
+							execArgs[idx] = e.(*object.Bytes).Value
+						default:
+							return newError("argument list to `exec` included invalid type. got=%s", e.Type())
 						}
-						execArgs[idx] = e.(*object.Stringo).Value
 					}
 					result, err = db.Exec(s, execArgs...)
 				} else {
@@ -497,11 +508,22 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if len(l) > 1 {
 					execArgs := make([]any, len(l))
 					for idx, e := range l {
-						// TODO: Type checking l elements for query? (allow not only string)
-						if e.Type() != object.STRING_OBJ {
-							return newError("argument list to `query` should all be STRING. got=%s", e.Type())
+						switch e.Type() {
+						case object.STRING_OBJ:
+							execArgs[idx] = e.(*object.Stringo).Value
+						case object.INTEGER_OBJ:
+							execArgs[idx] = e.(*object.Integer).Value
+						case object.FLOAT_OBJ:
+							execArgs[idx] = e.(*object.Float).Value
+						case object.NULL_OBJ:
+							execArgs[idx] = nil
+						case object.BOOLEAN_OBJ:
+							execArgs[idx] = e.(*object.Boolean).Value
+						case object.BYTES_OBJ:
+							execArgs[idx] = e.(*object.Bytes).Value
+						default:
+							return newError("argument list to `query` included invalid type. got=%s", e.Type())
 						}
-						execArgs[idx] = e.(*object.Stringo).Value
 					}
 					rows, err = db.Query(s, execArgs...)
 				} else {

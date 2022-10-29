@@ -581,6 +581,8 @@ func HashObject(obj Object) uint64 {
 		mapObj := obj.(*Map)
 		binary.BigEndian.PutUint64(b, mapObj.hashMap())
 		h.Write(b)
+	case BYTES_OBJ:
+		h.Write(obj.(*Bytes).Value)
 	default:
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)
