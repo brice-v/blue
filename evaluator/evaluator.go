@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/shopspring/decimal"
 )
@@ -26,18 +25,6 @@ import (
 // or if it has been embedded
 var IsEmbed = false
 var Files embed.FS
-
-var pidCount = atomic.Int64{}
-var ProcessMap = NewPidMap()
-
-var dbCount = atomic.Int64{}
-var DBMap = NewDBMap()
-
-var serverCount = atomic.Int64{}
-var ServerMap = NewServerMap()
-
-var wsConnCount = atomic.Int64{}
-var WSConnMap = NewWSConnMap()
 
 var (
 	// TRUE is the true object which should be the same everywhere

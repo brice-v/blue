@@ -4,13 +4,13 @@ var x = db.open();
 println("AFTER OPEN");
 x.ping();
 println("AFTER PING");
-# TODO: Handle BLOB (may need a new datatype in blue)
 # Also Note that NULL isnt a real datatype so its kind of like 'any'
+val bytes_example = "Hello World!".to_bytes();
 val result = x.execute(
     """drop table if exists t;
-    create table t(i INTEGER, a TEXT, b REAL, c NULL);
-    insert into t values(42, 'Hello', 3.14159, null), (314, 'World!', 0.09991234, 'asf');
-    """);
+    create table t(i INTEGER, a TEXT, b REAL, c NULL, d BLOB);
+    insert into t values(42, 'Hello', 3.14159, null, ?), (314, 'World!', 0.09991234, 'asf', ?);
+    """, [bytes_example, bytes_example]);
 println("execute result = #{result}");
 if (result != {last_insert_id: 2, rows_affected: 2}) {
     false

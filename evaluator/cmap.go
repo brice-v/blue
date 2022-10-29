@@ -2,40 +2,12 @@ package evaluator
 
 import (
 	"blue/object"
-	"database/sql"
 	"sync"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
 )
 
 type ConcurrentMap[K comparable, V any] struct {
 	kv   map[K]V
 	lock sync.RWMutex
-}
-
-func NewPidMap() *ConcurrentMap[int64, *object.Process] {
-	return &ConcurrentMap[int64, *object.Process]{
-		kv: make(map[int64]*object.Process),
-	}
-}
-
-func NewDBMap() *ConcurrentMap[int64, *sql.DB] {
-	return &ConcurrentMap[int64, *sql.DB]{
-		kv: make(map[int64]*sql.DB),
-	}
-}
-
-func NewServerMap() *ConcurrentMap[int64, *fiber.App] {
-	return &ConcurrentMap[int64, *fiber.App]{
-		kv: make(map[int64]*fiber.App),
-	}
-}
-
-func NewWSConnMap() *ConcurrentMap[int64, *websocket.Conn] {
-	return &ConcurrentMap[int64, *websocket.Conn]{
-		kv: make(map[int64]*websocket.Conn),
-	}
 }
 
 type BuiltinMapType struct {
