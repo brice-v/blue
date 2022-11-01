@@ -456,8 +456,8 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 			if len(args) != 4 {
 				return newError("`handle` expects 4 aguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `handle` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `handle` should be UINTEGER. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newError("argument 2 to `handle` should be STRING. got=%s", args[1].Type())
@@ -468,7 +468,7 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 			if args[3].Type() != object.STRING_OBJ {
 				return newError("argument 4 to `handle` should be STRING. got=%s", args[3].Type())
 			}
-			serverId := args[0].(*object.Integer).Value
+			serverId := args[0].(*object.UInteger).Value
 			app, ok := ServerMap.Get(serverId)
 			if !ok {
 				return newError("`handle` could not find Server Object")
@@ -572,8 +572,8 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 			if len(args) != 3 {
 				return newError("`handle_ws` expects 3 arguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `handle_ws` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `handle_ws` should be UINTEGER. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newError("argument 2 to `handle_ws` should be STRING. got=%s", args[1].Type())
@@ -586,7 +586,7 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 			if len(fn.Parameters) == 0 {
 				return newError("function arguments should be at least 1 to store the websocket connection")
 			}
-			serverId := args[0].(*object.Integer).Value
+			serverId := args[0].(*object.UInteger).Value
 			app, ok := ServerMap.Get(serverId)
 			if !ok {
 				return newError("`handle_ws` could not find Server Object")
@@ -637,7 +637,7 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 				fnArgs := make([]object.Object, len(fn.Parameters))
 				for i, v := range fn.Parameters {
 					if i == 0 {
-						fnArgs[i] = object.CreateBasicMapObject("WS", connCount)
+						fnArgs[i] = object.CreateBasicMapObject("ws", connCount)
 					} else {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 					}

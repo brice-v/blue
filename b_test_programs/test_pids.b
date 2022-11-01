@@ -14,12 +14,13 @@ var thisPid = self();
 for (i in 0..5) {
     println(i);
     var newPid = spawn(thing, [thisPid]);
-    assert(newPid.v == i+1);
+    assert(newPid.v >= thisPid.v+1);
     println("newPid = #{newPid}");
     var newVal = thisPid.recv();
     println("newVal = #{newVal}");
-    assert(newVal.v == i+1);
+    assert(newVal.v >= thisPid.v+1);
 }
 
 println("thisPid = #{thisPid}");
-assert(thisPid.v == 0);
+# Need a UINT here now
+assert(thisPid.v >= 0x0);

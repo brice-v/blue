@@ -4,6 +4,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"bufio"
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
@@ -14,6 +15,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -58,6 +60,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"math":   {File: readStdFileToString("math.b"), Builtins: _math_builtin_map},
 	"config": {File: readStdFileToString("config.b"), Builtins: _config_builtin_map},
 	"crypto": {File: readStdFileToString("crypto.b"), Builtins: _crypto_builtin_map},
+	"net":    {File: readStdFileToString("net.b"), Builtins: _net_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -154,7 +157,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			})
 			curServer := serverCount.Add(1)
 			ServerMap.Put(curServer, app)
-			return &object.Integer{Value: curServer}
+			return &object.UInteger{Value: curServer}
 		},
 	},
 	"_serve": {
@@ -162,13 +165,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newError("`serve` expects 2 arguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `serve` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `serve` should be UINTEGER. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newError("argument 2 to `serve` should be STRING. got=%s", args[1].Type())
 			}
-			app, ok := ServerMap.Get(args[0].(*object.Integer).Value)
+			app, ok := ServerMap.Get(args[0].(*object.UInteger).Value)
 			if !ok {
 				return newError("`serve` could not find Server Object")
 			}
@@ -186,8 +189,8 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 4 {
 				return newError("`static` expects 4 arguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `static` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `static` should be UINTEGER. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newError("argument 2 to `static` should be STRING. got=%s", args[1].Type())
@@ -198,7 +201,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[3].Type() != object.BOOLEAN_OBJ {
 				return newError("argument 4 to `static` should be BOOLEAN. got=%s", args[3].Type())
 			}
-			app, ok := ServerMap.Get(args[0].(*object.Integer).Value)
+			app, ok := ServerMap.Get(args[0].(*object.UInteger).Value)
 			if !ok {
 				return newError("`static` could not find Server Object")
 			}
@@ -216,13 +219,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newError("`ws_send` expects 2 arguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `ws_send` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `ws_send` should be UINTEGER. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
 				return newError("argument 2 to `ws_send` should be STRING or BYTES. got=%s", args[1].Type())
 			}
-			connId := args[0].(*object.Integer).Value
+			connId := args[0].(*object.UInteger).Value
 			c, ok := WSConnMap.Get(connId)
 			if !ok {
 				return newError("`ws_send` could not find ws object")
@@ -244,10 +247,10 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newError("`ws_recv` expects 1 argument. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `ws_recv` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `ws_recv` should be UINTEGER. got=%s", args[0].Type())
 			}
-			connId := args[0].(*object.Integer).Value
+			connId := args[0].(*object.UInteger).Value
 			c, ok := WSConnMap.Get(connId)
 			if !ok {
 				return newError("`ws_recv` could not find ws object")
@@ -255,7 +258,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			mt, msg, err := c.ReadMessage()
 			if err != nil {
 				// Remove this conn
-				wsConnCount.Store(wsConnCount.Load() - 1)
 				WSConnMap.Remove(connId)
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: %s", err.Error())
@@ -271,7 +273,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`ws_recv`: pong message type not supported.")
 			default:
 				// Remove the conn
-				wsConnCount.Store(wsConnCount.Load() - 1)
 				WSConnMap.Remove(connId)
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: websocket closed.")
@@ -302,7 +303,7 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newError("`now` expects 0 arguments. got=%d", len(args))
 			}
-			return &object.Integer{Value: time.Now().Unix()}
+			return &object.Integer{Value: time.Now().UnixNano()}
 		},
 	},
 })
@@ -357,7 +358,7 @@ var _search_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 })
 
 var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
-	"_open": {
+	"_db_open": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("`open` expects 1 argument. got=%d", len(args))
@@ -375,18 +376,18 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			curDB := dbCount.Add(1)
 			DBMap.Put(curDB, db)
-			return object.CreateBasicMapObject("DB", curDB)
+			return object.CreateBasicMapObject("db", curDB)
 		},
 	},
-	"_ping": {
+	"_db_ping": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("`ping` expects 1 argument. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `ping` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `ping` should be UINTEGER. got=%s", args[0].Type())
 			}
-			i := args[0].(*object.Integer).Value
+			i := args[0].(*object.UInteger).Value
 			if db, ok := DBMap.Get(i); ok {
 				err := db.Ping()
 				if err != nil {
@@ -397,34 +398,33 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return newError("`ping` error: DB not found")
 		},
 	},
-	"_close": {
+	"_db_close": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newError("`close` expects 1 argument. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `close` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `close` should be UINTEGER. got=%s", args[0].Type())
 			}
-			i := args[0].(*object.Integer).Value
+			i := args[0].(*object.UInteger).Value
 			if db, ok := DBMap.Get(i); ok {
 				err := db.Close()
 				if err != nil {
 					return newError("`close` error: %s", err.Error())
 				}
 				DBMap.Remove(i)
-				dbCount.Store(dbCount.Load() - 1)
 				return NULL
 			}
 			return newError("`close` error: DB not found")
 		},
 	},
-	"_exec": {
+	"_db_exec": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
 				return newError("`exec` expects 3 arguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `exec` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `exec` should be UINTEGER. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newError("argument 2 to `exec` should be STRING. got=%s", args[1].Type())
@@ -432,7 +432,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[2].Type() != object.LIST_OBJ {
 				return newError("argument 3 to `exec` should be LIST. got=%s", args[2].Type())
 			}
-			i := args[0].(*object.Integer).Value
+			i := args[0].(*object.UInteger).Value
 			s := args[1].(*object.Stringo).Value
 			l := args[2].(*object.List).Elements
 			if db, ok := DBMap.Get(i); ok {
@@ -481,13 +481,13 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return newError("`exec` error: DB not found")
 		},
 	},
-	"_query": {
+	"_db_query": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
 				return newError("`query` expects 4 arguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `query` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `query` should be UINTEGER. got=%s", args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newError("argument 2 to `query` should be STRING. got=%s", args[1].Type())
@@ -498,7 +498,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[3].Type() != object.BOOLEAN_OBJ {
 				return newError("argument 4 to `query` should be BOOLEAN. got=%s", args[3].Type())
 			}
-			i := args[0].(*object.Integer).Value
+			i := args[0].(*object.UInteger).Value
 			s := args[1].(*object.Stringo).Value
 			l := args[2].(*object.List).Elements
 			isNamedCols := args[3].(*object.Boolean).Value
@@ -668,10 +668,10 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			c := config.NewWithOptions("config", config.ParseEnv, config.Readonly)
 			c.WithDriver(yamlv3.Driver, ini.Driver, toml.Driver, properties.Driver)
-			err := c.LoadFiles(args[0].(*object.Stringo).Value)
+			fpath := args[0].(*object.Stringo).Value
+			err := c.LoadFiles(fpath)
 			if err != nil {
 				if err.Error() == "not exists or not register decoder for the format: env" {
-					fpath := args[0].(*object.Stringo).Value
 					err = dotenv.LoadFiles(fpath)
 					builtinobjs["ENV"] = &object.BuiltinObj{
 						Obj: populateENVObj(),
@@ -808,6 +808,186 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("bcrypt error: %s", err.Error())
 			}
 			return TRUE
+		},
+	},
+})
+
+// TODO: Listen should return the addr port its listending on?
+// TODO: If we return a larger map how does the match statement react
+var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_connect": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`connect` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `connect` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `connect` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newError("argument 3 to `connect` should be STRING. got=%s", args[2].Type())
+			}
+			transport := strings.ToLower(args[0].(*object.Stringo).Value)
+			addr := args[1].(*object.Stringo).Value
+			port := args[2].(*object.Stringo).Value
+			addrStr := fmt.Sprintf("%s:%s", addr, port)
+			conn, err := net.Dial(transport, addrStr)
+			// TODO: remember to close the conn (need to figure that out)
+			if err != nil {
+				return newError("`connect` error: %s", err.Error())
+			}
+			curConn := netConnCount.Add(1)
+			NetConnMap.Put(curConn, conn)
+			return object.CreateBasicMapObject("net", curConn)
+		},
+	},
+	"_listen": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`listen` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `listen` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `listen` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newError("argument 3 to `listen` should be STRING. got=%s", args[2].Type())
+			}
+			transport := strings.ToLower(args[0].(*object.Stringo).Value)
+			addr := args[1].(*object.Stringo).Value
+			port := args[2].(*object.Stringo).Value
+			addrStr := fmt.Sprintf("%s:%s", addr, port)
+			// TODO: I dont think this will work as expected for UDP so we need to think about that
+			l, err := net.Listen(transport, addrStr)
+			if err != nil {
+				return newError("`listen` error: %s", err.Error())
+			}
+			curServer := netTCPServerCount.Add(1)
+			NetTCPServerMap.Put(curServer, l)
+			return object.CreateBasicMapObject("net/tcp", curServer)
+		},
+	},
+	"_accept": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`accept` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `accept` should be UINTEGER. got=%s", args[0].Type())
+			}
+			l, ok := NetTCPServerMap.Get(args[0].(*object.UInteger).Value)
+			if !ok {
+				return newError("`accept` error: listener not found")
+			}
+			conn, err := l.Accept()
+			if err != nil {
+				return newError("`accept` error: %s", err.Error())
+			}
+			curConn := netConnCount.Add(1)
+			NetConnMap.Put(curConn, conn)
+			return object.CreateBasicMapObject("net", curConn)
+		},
+	},
+	"_listener_close": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`listener_close` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `listener_close` should be INTEGER. got=%s", args[0].Type())
+			}
+			id := args[0].(*object.UInteger).Value
+			listener, ok := NetTCPServerMap.Get(id)
+			if !ok {
+				// Dont error out if were just trying to close
+				return NULL
+			}
+			listener.Close()
+			NetTCPServerMap.Remove(id)
+			return NULL
+		},
+	},
+	"_conn_close": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`conn_close` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `conn_close` should be UINTEGER. got=%s", args[0].Type())
+			}
+			id := args[0].(*object.UInteger).Value
+			conn, ok := NetConnMap.Get(id)
+			if !ok {
+				// Dont error out if were just trying to close
+				return NULL
+			}
+			conn.Close()
+			NetConnMap.Remove(id)
+			return NULL
+		},
+	},
+	"_tcp_read": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`tcp_read` expects 1 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `tcp_read` should be UINTEGER. got=%s", args[0].Type())
+			}
+			connId := args[0].(*object.UInteger).Value
+			conn, ok := NetConnMap.Get(connId)
+			if !ok {
+				return newError("`tcp_read` error: connection not found")
+			}
+			s, err := bufio.NewReader(conn).ReadString('\n')
+			if err != nil {
+				return newError("`tcp_read` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: s[:len(s)-1]}
+		},
+	},
+	"_tcp_write": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`tcp_write` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `tcp_write` should be UINTEGER. got=%s", args[0].Type())
+			}
+			// TODO: Support bytes object (but then we cant always use '\n' by default)
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `tcp_write` should be STRING. got=%s", args[1].Type())
+			}
+			connId := args[0].(*object.UInteger).Value
+			conn, ok := NetConnMap.Get(connId)
+			if !ok {
+				return newError("`tcp_write` error: connection not found")
+			}
+			s := args[1].(*object.Stringo).Value
+			bs := []byte(s)
+			n, err := conn.Write(bs)
+			if n != len(bs) {
+				return newError("`tcp_write` error: did not write the entire string")
+			}
+			if err != nil {
+				return newError("`tcp_write` error: %s", err.Error())
+			}
+			// If the string contains a \n its going to break off anyways
+			// TODO: FIXME - allow user to decide there cutoff byte? or
+			if !strings.Contains(s, "\n") {
+				n, err = conn.Write([]byte{'\n'})
+				if n != 1 {
+					return newError("`tcp_write` error: did not write the last byte")
+				}
+				if err != nil {
+					return newError("`tcp_write` error: %s", err.Error())
+				}
+			}
+			return NULL
 		},
 	},
 })

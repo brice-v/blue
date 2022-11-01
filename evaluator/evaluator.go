@@ -46,7 +46,7 @@ type Evaluator struct {
 	env *object.Environment
 
 	// PID is the process ID of this evaluator
-	PID int64
+	PID uint64
 
 	// EvalBasePath is the base directory from which the current file is being run
 	EvalBasePath string
@@ -446,7 +446,7 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 	}
 	pid := pidCount.Add(1)
 	ProcessMap.Put(pid, process)
-	go func(pid int64) {
+	go func(pid uint64) {
 		newE := New()
 		newE.PID = pid
 		obj := newE.applyFunction(fun, arg1.(*object.List).Elements, make(map[string]object.Object))
@@ -456,13 +456,12 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 		}
 		// Delete from concurrent map and decrement pidCount
 		ProcessMap.Remove(pid)
-		pidCount.Store(pidCount.Load() - 1)
 	}(pid)
-	return object.CreateBasicMapObject("PID", pid)
+	return object.CreateBasicMapObject("pid", pid)
 }
 
 func (e *Evaluator) evalSelfExpression(node *ast.SelfExpression) object.Object {
-	return object.CreateBasicMapObject("PID", e.PID)
+	return object.CreateBasicMapObject("pid", e.PID)
 }
 
 func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {

@@ -1,9 +1,11 @@
+# TODO/Note: When we match, we HAVE to return otherwise a method will get overridden?
+
 fun send(obj, value) {
     return match obj {
-        {t: "PID", v: _} => {
+        {t: "pid", v: _} => {
             _send(obj.v, value)
         },
-        {t: "WS", v: _} => {
+        {t: "ws", v: _} => {
             import http
             http.ws_send(obj.v, value)
         },
@@ -15,10 +17,10 @@ fun send(obj, value) {
 
 fun recv(obj) {
     return match obj {
-        {t: "PID", v: _} => {
+        {t: "pid", v: _} => {
             _recv(obj.v)
         },
-        {t: "WS", v: _} => {
+        {t: "ws", v: _} => {
             import http
             http.ws_recv(obj.v)
         },
@@ -28,8 +30,28 @@ fun recv(obj) {
     };
 }
 
-fun read(fname, as_bytes=false) {
-    _read(fname, as_bytes)
+fun read(obj, as_bytes=false) {
+    return match obj {
+        {t: "net", v: _} => {
+            import net
+            net.tcp_read(obj.v)
+        },
+        _ => {
+            _read(obj, as_bytes)
+        },
+    };
+}
+
+fun write(obj, value) {
+    return match obj {
+        {t: "net", v: _} => {
+            import net
+            net.tcp_write(obj.v, value)
+        },
+        _ => {
+            _write(obj, value)
+        },
+    };
 }
 
 fun map(list, f) {
@@ -76,6 +98,9 @@ fun find_all(str_to_search, query, method="regex") {
         "xpath" => {
             search.by_xpath(str_to_search, query, false)
         },
+        _ => {
+            error("`find_all` unsupported method '#{method}'")
+        },
     };
 }
 
@@ -88,6 +113,9 @@ fun find_one(str_to_search, query, method="regex") {
         "xpath" => {
             search.by_xpath(str_to_search, query, true)
         },
+        _ => {
+            error("`find_one` unsupported method '#{method}'")
+        },
     };
 }
 
@@ -99,37 +127,48 @@ fun json_to_map(json_str) {
     }
 }
 
-# DB Object Methods
-# TODO: If these methods need to be used for more than one obj we can expand the match scenarios
-fun ping(db_obj) {
-    import db
-    return match db_obj {
-        {t: "DB", v: _} => {
-            db.ping_(db_obj.v)
+fun ping(obj) {
+    return match obj {
+        {t: "db", v: _} => {
+            import db
+            db.db_ping(obj.v)
+        },
+        {t: "ws", v: _} => {
+            #import http
+            #http.ws_ping(obj.v)
+            null
         },
         _ => {
-            error("db_obj `#{db_obj}` is invalid type")
+            error("obj `#{obj}` is invalid type")
         },
     };
 }
 
-fun close(db_obj) {
-    import db
-    return match db_obj {
-        {t: "DB", v: _} => {
-            db.close_(db_obj.v)
+fun close(obj) {
+    return match obj {
+        {t: "db", v: _} => {
+            import db
+            db.db_close(obj.v)
+        },
+        {t: "net/tcp", v: _} => {
+            import net
+            net.listener_close(obj.v)
+        },
+        {t: "net", v: _} => {
+            import net
+            net.conn_close(obj.v)
         },
         _ => {
-            error("db_obj `#{db_obj}` is invalid type")
+            error("obj `#{obj}` is invalid type")
         },
     };
 }
 
 fun execute(db_obj, exec_query, exec_args=[]) {
-    import db
     return match db_obj {
-        {t: "DB", v: _} => {
-            db.exec_(db_obj.v, exec_query, exec_args)
+        {t: "db", v: _} => {
+            import db
+            db.db_exec(db_obj.v, exec_query, exec_args)
         },
         _ => {
             error("db_obj `#{db_obj}` is invalid type")
@@ -138,13 +177,25 @@ fun execute(db_obj, exec_query, exec_args=[]) {
 }
 
 fun query(db_obj, query_s, query_args=[], named_cols=false) {
-    import db
     return match db_obj {
-        {t: "DB", v: _} => {
-            db.query_(db_obj.v, query_s, query_args, named_cols)
+        {t: "db", v: _} => {
+            import db
+            db.db_query(db_obj.v, query_s, query_args, named_cols)
         },
         _ => {
             error("db_obj `#{db_obj}` is invalid type")
+        },
+    };
+}
+
+fun accept(obj) {
+    return match obj {
+        {t: "net/tcp", v: _} => {
+            import net
+            net.net_accept(obj.v)
+        },
+        _ => {
+            error("obj `#{obj}` is invalid type")
         },
     };
 }

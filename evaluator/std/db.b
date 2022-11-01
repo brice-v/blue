@@ -1,8 +1,8 @@
-val __open = _open;
+val __db_open = _db_open;
 fun open(db_name=":memory:") {
-    __open(db_name)
+    __db_open(db_name)
 }
-val ping_ = _ping;
-val exec_ = _exec;
-val query_ = _query;
-val close_ = _close;
+val db_ping = _db_ping;
+val db_exec = _db_exec;
+val db_query = _db_query;
+val db_close = _db_close;

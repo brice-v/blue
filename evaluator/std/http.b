@@ -13,8 +13,8 @@ fun post(url, body, mime_type="application/json") {
     __post(url, mime_type, body)
 }
 
-fun serve(addr="localhost:3001") {
-    __serve(_server, addr)
+fun serve(addr_port="localhost:3001") {
+    __serve(_server, addr_port)
 }
 
 fun handle(pattern, fn, method="GET") {

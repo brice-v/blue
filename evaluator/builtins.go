@@ -169,7 +169,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: string(bs)}
 		},
 	},
-	"write": {
+	"_write": {
 		Fun: func(args ...object.Object) object.Object {
 			argLen := len(args)
 			if argLen != 2 {
@@ -284,10 +284,10 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newError("`is_alive` expects 1 argument. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("`is_alive` expects argument to be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("`is_alive` expects argument to be UINTEGER. got=%s", args[0].Type())
 			}
-			_, isAlive := ProcessMap.Get(args[0].(*object.Integer).Value)
+			_, isAlive := ProcessMap.Get(args[0].(*object.UInteger).Value)
 			if isAlive {
 				return TRUE
 			}
@@ -356,10 +356,10 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newError("`recv` expects 1 argument. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument 1 to `recv` should be INTEGER. got=%s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `recv` should be UINTEGER. got=%s", args[0].Type())
 			}
-			pid := args[0].(*object.Integer).Value
+			pid := args[0].(*object.UInteger).Value
 			process, ok := ProcessMap.Get(pid)
 			if !ok {
 				return newError("`recv` failed, pid=%d not found", pid)
@@ -374,10 +374,10 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newError("`send` expects 2 arguments. got=%d", len(args))
 			}
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("first argument to `send` must be INTEGER got %s", args[0].Type())
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("first argument to `send` must be UINTEGER got %s", args[0].Type())
 			}
-			pid := args[0].(*object.Integer).Value
+			pid := args[0].(*object.UInteger).Value
 			process, ok := ProcessMap.Get(pid)
 			if !ok {
 				return newError("`send` failed, pid=%d not found", pid)
