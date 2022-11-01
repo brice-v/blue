@@ -41,3 +41,8 @@ var netTCPServerCount = atomic.Uint64{}
 var NetTCPServerMap = &ConcurrentMap[uint64, net.Listener]{
 	kv: make(map[uint64]net.Listener),
 }
+
+var netUDPServerCount = atomic.Uint64{}
+var NetUDPServerMap = &ConcurrentMap[uint64, *net.UDPConn]{
+	kv: make(map[uint64]*net.UDPConn),
+}

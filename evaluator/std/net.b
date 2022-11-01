@@ -3,8 +3,8 @@ val __listen = _listen;
 val net_accept = _accept;
 val listener_close = _listener_close;
 val conn_close = _conn_close;
-val tcp_read = _tcp_read;
-val tcp_write = _tcp_write;
+val net_read = _net_read;
+val net_write = _net_write;
 
 fun connect(transport="tcp", addr="localhost", port="18650") {
     __connect(transport, addr, port)

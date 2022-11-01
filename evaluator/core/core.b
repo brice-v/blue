@@ -32,9 +32,11 @@ fun recv(obj) {
 
 fun read(obj, as_bytes=false) {
     return match obj {
-        {t: "net", v: _} => {
-            import net
-            net.tcp_read(obj.v)
+        {t: _, v: _} => {
+            if ("net" in obj.t) {
+                import net
+                net.net_read(obj.v, obj.t)
+            }
         },
         _ => {
             _read(obj, as_bytes)
@@ -44,9 +46,11 @@ fun read(obj, as_bytes=false) {
 
 fun write(obj, value) {
     return match obj {
-        {t: "net", v: _} => {
-            import net
-            net.tcp_write(obj.v, value)
+        {t: _, v: _} => {
+            if ("net" in obj.t) {
+                import net
+                net.net_write(obj.v, obj.t, value)
+            }
         },
         _ => {
             _write(obj, value)

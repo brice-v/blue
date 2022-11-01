@@ -812,8 +812,6 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 })
 
-// TODO: Listen should return the addr port its listending on?
-// TODO: If we return a larger map how does the match statement react
 var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_connect": {
 		Fun: func(args ...object.Object) object.Object {
@@ -834,7 +832,6 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			port := args[2].(*object.Stringo).Value
 			addrStr := fmt.Sprintf("%s:%s", addr, port)
 			conn, err := net.Dial(transport, addrStr)
-			// TODO: remember to close the conn (need to figure that out)
 			if err != nil {
 				return newError("`connect` error: %s", err.Error())
 			}
@@ -861,7 +858,19 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			addr := args[1].(*object.Stringo).Value
 			port := args[2].(*object.Stringo).Value
 			addrStr := fmt.Sprintf("%s:%s", addr, port)
-			// TODO: I dont think this will work as expected for UDP so we need to think about that
+			if strings.Contains(transport, "udp") {
+				s, err := net.ResolveUDPAddr(transport, ":"+port)
+				if err != nil {
+					return newError("`listen` udp error: %s", err.Error())
+				}
+				l, err := net.ListenUDP(transport, s)
+				if err != nil {
+					return newError("`listen` udp error: %s", err.Error())
+				}
+				curServer := netUDPServerCount.Add(1)
+				NetUDPServerMap.Put(curServer, l)
+				return object.CreateBasicMapObject("net/udp", curServer)
+			}
 			l, err := net.Listen(transport, addrStr)
 			if err != nil {
 				return newError("`listen` error: %s", err.Error())
@@ -930,61 +939,89 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return NULL
 		},
 	},
-	"_tcp_read": {
+	"_net_read": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("`tcp_read` expects 1 arguments. got=%d", len(args))
+			if len(args) != 2 {
+				return newError("`net_read` expects 2 arguments. got=%d", len(args))
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `tcp_read` should be UINTEGER. got=%s", args[0].Type())
+				return newError("argument 1 to `net_read` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `net_read` should be STRING. got=%s", args[1].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
-			conn, ok := NetConnMap.Get(connId)
-			if !ok {
-				return newError("`tcp_read` error: connection not found")
+			t := args[1].(*object.Stringo).Value
+			var conn net.Conn
+			if t == "net/udp" {
+				c, ok := NetUDPServerMap.Get(connId)
+				if !ok {
+					return newError("`net_read` udp error: connection not found")
+				}
+				conn = c
+			} else {
+				c, ok := NetConnMap.Get(connId)
+				if !ok {
+					return newError("`net_read` error: connection not found")
+				}
+				conn = c
 			}
 			s, err := bufio.NewReader(conn).ReadString('\n')
 			if err != nil {
-				return newError("`tcp_read` error: %s", err.Error())
+				return newError("`net_read` error: %s", err.Error())
 			}
 			return &object.Stringo{Value: s[:len(s)-1]}
 		},
 	},
-	"_tcp_write": {
+	"_net_write": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("`tcp_write` expects 2 arguments. got=%d", len(args))
+			if len(args) != 3 {
+				return newError("`net_write` expects 3 arguments. got=%d", len(args))
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `tcp_write` should be UINTEGER. got=%s", args[0].Type())
+				return newError("argument 1 to `net_write` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `net_write` should be STRING. got=%s", args[1].Type())
 			}
 			// TODO: Support bytes object (but then we cant always use '\n' by default)
-			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `tcp_write` should be STRING. got=%s", args[1].Type())
+			if args[2].Type() != object.STRING_OBJ {
+				return newError("argument 3 to `net_write` should be STRING. got=%s", args[2].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
-			conn, ok := NetConnMap.Get(connId)
-			if !ok {
-				return newError("`tcp_write` error: connection not found")
+			t := args[1].(*object.Stringo).Value
+			var conn net.Conn
+			if t == "net/udp" {
+				c, ok := NetUDPServerMap.Get(connId)
+				if !ok {
+					return newError("`net_write` udp error: connection not found")
+				}
+				conn = c
+			} else {
+				c, ok := NetConnMap.Get(connId)
+				if !ok {
+					return newError("`net_write` error: connection not found")
+				}
+				conn = c
 			}
-			s := args[1].(*object.Stringo).Value
+			s := args[2].(*object.Stringo).Value
 			bs := []byte(s)
 			n, err := conn.Write(bs)
 			if n != len(bs) {
-				return newError("`tcp_write` error: did not write the entire string")
+				return newError("`net_write` error: did not write the entire string")
 			}
 			if err != nil {
-				return newError("`tcp_write` error: %s", err.Error())
+				return newError("`net_write` error: %s", err.Error())
 			}
 			// If the string contains a \n its going to break off anyways
 			// TODO: FIXME - allow user to decide there cutoff byte? or
 			if !strings.Contains(s, "\n") {
 				n, err = conn.Write([]byte{'\n'})
 				if n != 1 {
-					return newError("`tcp_write` error: did not write the last byte")
+					return newError("`net_write` error: did not write the last byte")
 				}
 				if err != nil {
-					return newError("`tcp_write` error: %s", err.Error())
+					return newError("`net_write` error: %s", err.Error())
 				}
 			}
 			return NULL
