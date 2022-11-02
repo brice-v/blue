@@ -137,11 +137,6 @@ fun ping(obj) {
             import db
             db.db_ping(obj.v)
         },
-        {t: "ws", v: _} => {
-            #import http
-            #http.ws_ping(obj.v)
-            null
-        },
         _ => {
             error("obj `#{obj}` is invalid type")
         },
