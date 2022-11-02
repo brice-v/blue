@@ -7,6 +7,7 @@ fun something(parent_pid) {
 
     var c = l.accept();
     println("c = #{c}");
+    println("c.inspect() = #{net.inspect(c)}");
     var x = c.read();
     println("x = #{x}");
     parent_pid.send(true);

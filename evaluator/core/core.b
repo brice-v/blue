@@ -149,13 +149,11 @@ fun close(obj) {
             import db
             db.db_close(obj.v)
         },
-        {t: "net/tcp", v: _} => {
-            import net
-            net.listener_close(obj.v)
-        },
-        {t: "net", v: _} => {
-            import net
-            net.conn_close(obj.v)
+        {t: _, v: _} => {
+            if ("net" in obj.t) {
+                import net
+                net.net_close(obj.v, obj.t)
+            }
         },
         _ => {
             error("obj `#{obj}` is invalid type")

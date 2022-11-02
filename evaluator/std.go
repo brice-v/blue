@@ -901,41 +901,46 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return object.CreateBasicMapObject("net", curConn)
 		},
 	},
-	"_listener_close": {
+	"_net_close": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("`listener_close` expects 1 argument. got=%d", len(args))
+			if len(args) != 2 {
+				return newError("`net_close` expects 2 arguments. got=%d", len(args))
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `listener_close` should be INTEGER. got=%s", args[0].Type())
+				return newError("argument 1 to `net_close` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `net_close` should be STRING. got=%s", args[1].Type())
 			}
 			id := args[0].(*object.UInteger).Value
-			listener, ok := NetTCPServerMap.Get(id)
-			if !ok {
-				// Dont error out if were just trying to close
-				return NULL
+			t := args[1].(*object.Stringo).Value
+			switch t {
+			case "net/udp":
+				c, ok := NetUDPServerMap.Get(id)
+				if !ok {
+					return NULL
+				}
+				c.Close()
+				NetUDPServerMap.Remove(id)
+			case "net/tcp":
+				listener, ok := NetTCPServerMap.Get(id)
+				if !ok {
+					// Dont error out if were just trying to close
+					return NULL
+				}
+				listener.Close()
+				NetTCPServerMap.Remove(id)
+			case "net":
+				conn, ok := NetConnMap.Get(id)
+				if !ok {
+					// Dont error out if were just trying to close
+					return NULL
+				}
+				conn.Close()
+				NetConnMap.Remove(id)
+			default:
+				return newError("`net_close` expects type of 'net/tcp', 'net/udp', or 'net'")
 			}
-			listener.Close()
-			NetTCPServerMap.Remove(id)
-			return NULL
-		},
-	},
-	"_conn_close": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("`conn_close` expects 1 argument. got=%d", len(args))
-			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `conn_close` should be UINTEGER. got=%s", args[0].Type())
-			}
-			id := args[0].(*object.UInteger).Value
-			conn, ok := NetConnMap.Get(id)
-			if !ok {
-				// Dont error out if were just trying to close
-				return NULL
-			}
-			conn.Close()
-			NetConnMap.Remove(id)
 			return NULL
 		},
 	},
@@ -1025,6 +1030,56 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 			}
 			return NULL
+		},
+	},
+	"_inspect": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`inspect` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `inspect` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `inspect` should be STRING. got=%s", args[1].Type())
+			}
+			id := args[0].(*object.UInteger).Value
+			t := args[1].(*object.Stringo).Value
+			switch t {
+			case "net/udp":
+				c, ok := NetUDPServerMap.Get(id)
+				if !ok {
+					return newError("`inspect` udp server connection not found")
+				}
+				mapObj := object.NewOrderedMap[string, object.Object]()
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				return object.CreateMapObjectForGoMap(*mapObj)
+			case "net/tcp":
+				l, ok := NetTCPServerMap.Get(id)
+				if !ok {
+					return newError("`inspect` tcp server connection not found")
+				}
+				mapObj := object.NewOrderedMap[string, object.Object]()
+				mapObj.Set("addr", &object.Stringo{Value: l.Addr().String()})
+				mapObj.Set("addr_network", &object.Stringo{Value: l.Addr().Network()})
+				return object.CreateMapObjectForGoMap(*mapObj)
+			case "net":
+				c, ok := NetConnMap.Get(id)
+				if !ok {
+					return newError("`inspect` connection not found")
+				}
+				mapObj := object.NewOrderedMap[string, object.Object]()
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				return object.CreateMapObjectForGoMap(*mapObj)
+			default:
+				return newError("`inspect` expects type of 'net/tcp', 'net/udp', or 'net'")
+			}
 		},
 	},
 })

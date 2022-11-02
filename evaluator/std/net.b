@@ -1,8 +1,8 @@
 val __connect = _connect;
 val __listen = _listen;
+val __inspect = _inspect;
 val net_accept = _accept;
-val listener_close = _listener_close;
-val conn_close = _conn_close;
+val net_close = _net_close;
 val net_read = _net_read;
 val net_write = _net_write;
 
@@ -14,7 +14,13 @@ fun listen(transport="tcp", addr="localhost", port="18650") {
     __listen(transport, addr, port)
 }
 
-# listen just gives you a listener that you can accept new connections with (for tcp)
-# for UDP we need to use a different listener which allows us to read directly from it
-
-# connect should work the same for either, but we can read/write from tcp conn, not udp?
+fun inspect(obj) {
+    return match obj {
+        {t: _, v: _} => {
+            __inspect(obj.v, obj.t)
+        },
+        _ => {
+            error("`inspect` expects object")
+        },
+    };
+}
