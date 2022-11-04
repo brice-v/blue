@@ -551,11 +551,16 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 					}
 					// TODO: Allow different things to be returned
+					// TODO: Need to figure this out, it should be allowed to return anything Im pretty sure
 					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object))
-					if respObj.Type() != object.NULL_OBJ {
-						return c.Status(fiber.StatusInternalServerError).SendString("NULL NOT RETURNED FROM FUNCTION")
+					if respObj.Type() == object.STRING_OBJ {
+						return c.SendString(respObj.(*object.Stringo).Value)
 					}
-					return c.SendStatus(fiber.StatusOK)
+					if respObj.Type() == object.NULL_OBJ {
+						return c.SendStatus(fiber.StatusOK)
+					} else {
+						return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("POST Response Type is not NULL or STRING. got=%s", respObj.Type()))
+					}
 				})
 				// case "PATCH":
 				// case "POST":

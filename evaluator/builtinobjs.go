@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"blue/consts"
 	"blue/object"
 	"os"
 	"strings"
@@ -23,6 +24,9 @@ var builtinobjs = BuiltinObjMapType{
 	},
 	"STDOUT": {
 		Obj: &object.Stringo{Value: os.Stdout.Name()},
+	},
+	"VERSION": {
+		Obj: &object.Stringo{Value: consts.VERSION},
 	},
 }
 
