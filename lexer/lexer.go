@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"blue/token"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -18,6 +19,9 @@ type Lexer struct {
 	readPosition int  // current reading pos. in input (after current char)
 	ch           rune // current char under examination
 	prevCh       rune // previous char read
+
+	lineNo    int
+	posInLine int
 }
 
 // New returns a pointer to the lexer struct
@@ -27,9 +31,37 @@ func New(input string) *Lexer {
 	return l
 }
 
+func (l *Lexer) GetErrorLineMessage(tok token.Token) string {
+	lineNo := tok.LineNumber
+	posInLine := tok.PositionInLine
+
+	// TODO: This will be VERY SLOW but I just want to test it out
+	lines := strings.Split(l.input, "\n")
+	var out bytes.Buffer
+	// First Write the line
+	out.WriteString(lines[lineNo])
+	// Then a newline (so we can play a ^ on the following line)
+	out.WriteByte('\n')
+	for i := range lines[lineNo] {
+		if i == posInLine {
+			// TODO: This is where we could incoporate a length
+			out.WriteByte('^')
+		} else {
+			out.WriteByte(' ')
+		}
+	}
+	return out.String()
+}
+
 // readChar gives us the next character and advances out position
 // in the input string
 func (l *Lexer) readChar() {
+	if l.ch == '\n' {
+		l.lineNo++
+		l.posInLine = 0
+	} else {
+		l.posInLine++
+	}
 	l.prevCh = l.ch
 	if l.readPosition >= len(l.inputAsRunes) {
 		l.ch = 0
@@ -253,25 +285,6 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
-// makeTwoCharToken takes a tokens type and returns the new token
-// while advancing the readPosition and current char
-func (l *Lexer) makeTwoCharToken(typ token.Type) token.Token {
-	ch := l.ch
-	// consume next char because we know it is an =
-	l.readChar()
-	return token.Token{Type: typ, Literal: string(ch) + string(l.ch)}
-}
-
-// makeThreeCharToken takes a tokens type and returns the new token
-// while advancing the readPosition and current char to the proper position
-func (l *Lexer) makeThreeCharToken(typ token.Type) token.Token {
-	ch := l.ch
-	l.readChar()
-	ch1 := l.ch
-	l.readChar()
-	return token.Token{Type: typ, Literal: string(ch) + string(ch1) + string(l.ch)}
-}
-
 // GLOBAL STATE IS BAD ! DONT DO THIS
 // Only used when trying to evaluate import path
 var prevTokType = token.ILLEGAL
@@ -291,41 +304,41 @@ func (l *Lexer) NextToken() token.Token {
 		} else if l.peekChar() == '>' {
 			tok = l.makeTwoCharToken(token.RARROW)
 		} else {
-			tok = newToken(token.ASSIGN, l.ch)
+			tok = l.newToken(token.ASSIGN, l.ch)
 		}
 	case ';':
-		tok = newToken(token.SEMICOLON, l.ch)
+		tok = l.newToken(token.SEMICOLON, l.ch)
 	case '(':
-		tok = newToken(token.LPAREN, l.ch)
+		tok = l.newToken(token.LPAREN, l.ch)
 	case ')':
-		tok = newToken(token.RPAREN, l.ch)
+		tok = l.newToken(token.RPAREN, l.ch)
 	case '{':
-		tok = newToken(token.LBRACE, l.ch)
+		tok = l.newToken(token.LBRACE, l.ch)
 	case '}':
-		tok = newToken(token.RBRACE, l.ch)
+		tok = l.newToken(token.RBRACE, l.ch)
 	case '[':
-		tok = newToken(token.LBRACKET, l.ch)
+		tok = l.newToken(token.LBRACKET, l.ch)
 	case ']':
-		tok = newToken(token.RBRACKET, l.ch)
+		tok = l.newToken(token.RBRACKET, l.ch)
 	case ',':
-		tok = newToken(token.COMMA, l.ch)
+		tok = l.newToken(token.COMMA, l.ch)
 	case '+':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.PLUSEQ)
 		} else {
-			tok = newToken(token.PLUS, l.ch)
+			tok = l.newToken(token.PLUS, l.ch)
 		}
 	case '!':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.NEQ)
 		} else {
-			tok = newToken(token.BANG, l.ch)
+			tok = l.newToken(token.BANG, l.ch)
 		}
 	case '-':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.MINUSEQ)
 		} else {
-			tok = newToken(token.MINUS, l.ch)
+			tok = l.newToken(token.MINUS, l.ch)
 		}
 	case '/':
 		if l.peekChar() == '=' {
@@ -335,7 +348,7 @@ func (l *Lexer) NextToken() token.Token {
 		} else if l.peekChar() == '/' && l.peekSecondChar() == '=' {
 			tok = l.makeThreeCharToken(token.FDIVEQ)
 		} else {
-			tok = newToken(token.FSLASH, l.ch)
+			tok = l.newToken(token.FSLASH, l.ch)
 		}
 	case '*':
 		if l.peekChar() == '=' {
@@ -345,7 +358,7 @@ func (l *Lexer) NextToken() token.Token {
 		} else if l.peekChar() == '*' && l.peekSecondChar() == '=' {
 			tok = l.makeThreeCharToken(token.POWEQ)
 		} else {
-			tok = newToken(token.STAR, l.ch)
+			tok = l.newToken(token.STAR, l.ch)
 		}
 	case '<':
 		if l.peekChar() == '<' {
@@ -357,7 +370,7 @@ func (l *Lexer) NextToken() token.Token {
 		} else if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.LTEQ)
 		} else {
-			tok = newToken(token.LT, l.ch)
+			tok = l.newToken(token.LT, l.ch)
 		}
 	case '>':
 		if l.peekChar() == '>' {
@@ -369,25 +382,25 @@ func (l *Lexer) NextToken() token.Token {
 		} else if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.GTEQ)
 		} else {
-			tok = newToken(token.GT, l.ch)
+			tok = l.newToken(token.GT, l.ch)
 		}
 	case '|':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.OREQ)
 		} else {
-			tok = newToken(token.PIPE, l.ch)
+			tok = l.newToken(token.PIPE, l.ch)
 		}
 	case '&':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.ANDEQ)
 		} else {
-			tok = newToken(token.AMPERSAND, l.ch)
+			tok = l.newToken(token.AMPERSAND, l.ch)
 		}
 	case '^':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.XOREQ)
 		} else {
-			tok = newToken(token.HAT, l.ch)
+			tok = l.newToken(token.HAT, l.ch)
 		}
 	case '#':
 		if l.peekChar() == '{' {
@@ -396,14 +409,14 @@ func (l *Lexer) NextToken() token.Token {
 			tok = l.makeThreeCharToken(token.MULTLINE_COMMENT)
 			l.readMultiLineComment()
 		} else {
-			tok = newToken(token.HASH, l.ch)
+			tok = l.newToken(token.HASH, l.ch)
 			l.readSingleLineComment()
 		}
 	case '%':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.PERCENTEQ)
 		} else {
-			tok = newToken(token.PERCENT, l.ch)
+			tok = l.newToken(token.PERCENT, l.ch)
 		}
 	case '.':
 		if l.peekChar() == '.' {
@@ -415,20 +428,20 @@ func (l *Lexer) NextToken() token.Token {
 				tok = l.makeTwoCharToken(token.RANGE)
 			}
 		} else {
-			tok = newToken(token.DOT, l.ch)
+			tok = l.newToken(token.DOT, l.ch)
 		}
 	case '~':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.BINNOTEQ)
 		} else {
-			tok = newToken(token.TILDE, l.ch)
+			tok = l.newToken(token.TILDE, l.ch)
 		}
 	case '`':
 		tok.Type = token.BACKTICK
 		tok.Literal = l.readExecString()
 		return tok
 	case ':':
-		tok = newToken(token.COLON, l.ch)
+		tok = l.newToken(token.COLON, l.ch)
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -440,7 +453,7 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			str, err := l.readString()
 			if err != nil {
-				tok = newToken(token.ILLEGAL, l.prevCh)
+				tok = l.newToken(token.ILLEGAL, l.prevCh)
 			} else {
 				tok.Type = token.STRING_DOUBLE_QUOTE
 				tok.Literal = str
@@ -449,7 +462,7 @@ func (l *Lexer) NextToken() token.Token {
 	case '\'':
 		str, err := l.readString()
 		if err != nil {
-			tok = newToken(token.ILLEGAL, l.prevCh)
+			tok = l.newToken(token.ILLEGAL, l.prevCh)
 		} else {
 			tok.Type = token.STRING_SINGLE_QUOTE
 			tok.Literal = str
@@ -472,7 +485,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type, tok.Literal = l.readNumber()
 			return tok
 		}
-		tok = newToken(token.ILLEGAL, l.ch)
+		tok = l.newToken(token.ILLEGAL, l.ch)
 	}
 
 	l.readChar()

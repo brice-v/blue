@@ -10,6 +10,9 @@ type Type string
 type Token struct {
 	Type    Type
 	Literal string
+
+	LineNumber     int
+	PositionInLine int
 }
 
 const (

@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"blue/consts"
 	"blue/evaluator"
 	"blue/lexer"
 	"blue/parser"
@@ -122,7 +123,7 @@ func startLexerRepl(in io.Reader, out io.Writer, version, username string) {
 // PrintParserErrors prints the parser errors to the output
 func PrintParserErrors(out io.Writer, errors []string) {
 	for _, msg := range errors {
-		io.WriteString(out, "ParserError: "+msg+"\n")
+		io.WriteString(out, consts.PARSER_ERROR_PREFIX+msg+"\n")
 	}
 }
 

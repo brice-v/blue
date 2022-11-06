@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"blue/ast"
+	"blue/consts"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
@@ -356,9 +357,9 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		for _, msg := range p.Errors() {
-			io.WriteString(os.Stdout, "ParserError: "+msg+"\n")
+			io.WriteString(os.Stdout, consts.PARSER_ERROR_PREFIX+msg+"\n")
 		}
-		return newError("ParserError: File '%s' contains Parser Errors.", name)
+		return newError("%sFile '%s' contains Parser Errors.", consts.PARSER_ERROR_PREFIX, name)
 	}
 	newE := New()
 	val := newE.Eval(program)
