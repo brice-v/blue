@@ -14,7 +14,7 @@ import (
 var coreFile string
 
 func (e *Evaluator) AddCoreLibToEnv() {
-	l := lexer.New(coreFile)
+	l := lexer.New(coreFile, "<embed: core/core.b>")
 
 	p := parser.New(l)
 	program := p.ParseProgram()

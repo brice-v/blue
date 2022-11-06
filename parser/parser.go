@@ -1354,7 +1354,7 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 			}
 		}
 		if sl.ch == '}' {
-			l := lexer.New(toLex.String())
+			l := lexer.New(toLex.String(), "<internal: StringInterpolation>")
 			lcpy := *l
 			var tok token.Token
 			for {

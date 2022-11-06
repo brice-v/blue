@@ -75,7 +75,7 @@ func startEvalRepl(in io.Reader, out io.Writer, version, username string) {
 			break
 		}
 
-		l := lexer.New(line)
+		l := lexer.New(line, "<repl>")
 		p := parser.New(l)
 		program := p.ParseProgram()
 		if len(p.Errors()) != 0 {
@@ -112,7 +112,7 @@ func startLexerRepl(in io.Reader, out io.Writer, version, username string) {
 			break
 		}
 
-		l := lexer.New(line)
+		l := lexer.New(line, "<repl>")
 
 		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 			fmt.Printf("%+v\n", tok)
@@ -147,7 +147,7 @@ func startParserRepl(in io.Reader, out io.Writer, version, username string) {
 			break
 		}
 
-		l := lexer.New(line)
+		l := lexer.New(line, "<repl>")
 
 		p := parser.New(l)
 

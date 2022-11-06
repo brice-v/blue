@@ -75,7 +75,7 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 		os.Exit(1)
 	}
 	fb := _std_mods[name]
-	l := lexer.New(fb.File)
+	l := lexer.New(fb.File, "<std: "+name+">")
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {

@@ -20,13 +20,15 @@ type Lexer struct {
 	ch           rune // current char under examination
 	prevCh       rune // previous char read
 
+	// For error printing
 	lineNo    int
 	posInLine int
+	fname     string
 }
 
 // New returns a pointer to the lexer struct
-func New(input string) *Lexer {
-	l := &Lexer{input: input, inputAsRunes: []rune(input)}
+func New(input string, fname string) *Lexer {
+	l := &Lexer{input: input, inputAsRunes: []rune(input), fname: fname}
 	l.readChar()
 	return l
 }
@@ -38,10 +40,17 @@ func (l *Lexer) GetErrorLineMessage(tok token.Token) string {
 	// TODO: This will be VERY SLOW but I just want to test it out
 	lines := strings.Split(l.input, "\n")
 	var out bytes.Buffer
-	// First Write the line
+	// Fist write the filename of the input
+	fileErrorLine := fmt.Sprintf("%s:%d:%d ", l.fname, lineNo+1, posInLine+1)
+	out.WriteString(fileErrorLine)
+	// Write the line
 	out.WriteString(lines[lineNo])
 	// Then a newline (so we can play a ^ on the following line)
 	out.WriteByte('\n')
+	// Write Spaces to pad the following line
+	for range fileErrorLine {
+		out.WriteByte(' ')
+	}
 	for i := range lines[lineNo] {
 		if i == posInLine {
 			// TODO: This is where we could incoporate a length

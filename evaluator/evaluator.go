@@ -352,7 +352,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		inputStr = string(fileData)
 	}
 
-	l := lexer.New(inputStr)
+	l := lexer.New(inputStr, fpath)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
@@ -510,7 +510,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 }
 
 func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object {
-	l := lexer.New(node.NonEvaluatedProgram)
+	l := lexer.New(node.NonEvaluatedProgram, "<internal: ListCompLiteral>")
 	p := parser.New(l)
 	rootNode := p.ParseProgram()
 	if len(rootNode.Statements) < 1 {
@@ -532,7 +532,7 @@ func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object
 }
 
 func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
-	l := lexer.New(node.NonEvaluatedProgram)
+	l := lexer.New(node.NonEvaluatedProgram, "<internal: MapCompLiteral>")
 	p := parser.New(l)
 	rootNode := p.ParseProgram()
 	if len(rootNode.Statements) < 1 {
@@ -554,7 +554,7 @@ func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
 }
 
 func (e *Evaluator) evalSetCompLiteral(node *ast.SetCompLiteral) object.Object {
-	l := lexer.New(node.NonEvaluatedProgram)
+	l := lexer.New(node.NonEvaluatedProgram, "<internal: SetCompLiteral>")
 	p := parser.New(l)
 	rootNode := p.ParseProgram()
 	if len(rootNode.Statements) < 1 {

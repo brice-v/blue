@@ -78,7 +78,7 @@ func lexCurrentFile() {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
 
-	l := lexer.New(string(data))
+	l := lexer.New(string(data), fpath)
 
 	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 		fmt.Printf("%+v\n", tok)
@@ -93,7 +93,7 @@ func parseCurrentFile() {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
 
-	l := lexer.New(string(data))
+	l := lexer.New(string(data), fpath)
 
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -114,7 +114,7 @@ func evalCurrentFile() {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
 
-	l := lexer.New(string(data))
+	l := lexer.New(string(data), fpath)
 
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -145,7 +145,7 @@ func evalFile() {
 		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
 	}
 
-	l := lexer.New(string(data))
+	l := lexer.New(string(data), fpath)
 
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -211,7 +211,7 @@ var files embed.FS
 	input := string(entryPoint)
 	evaluator.IsEmbed = true
 	evaluator.Files = files
-	l := lexer.New(input)
+	l := lexer.New(input, "<embed: "+entryPointPath+">)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {

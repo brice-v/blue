@@ -45,7 +45,7 @@ func TestAllProgramsInDirectory(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		l := lexer.New(string(data))
+		l := lexer.New(string(data), fpath)
 
 		p := parser.New(l)
 		program := p.ParseProgram()

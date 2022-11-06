@@ -262,7 +262,7 @@ func runeLen(str string) int {
 }
 
 func (e *Evaluator) EvalString(s string) (object.Object, error) {
-	l := lexer.New(s)
+	l := lexer.New(s, "<internal: string>")
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	pErrors := p.Errors()
