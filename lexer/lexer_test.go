@@ -30,7 +30,7 @@ import name.foo.bar`
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -98,7 +98,7 @@ func TestNextToken1(t *testing.T) {
 		{token.SEMICOLON, ";"},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -138,7 +138,7 @@ func TestNextToken2(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -182,7 +182,7 @@ func TestNextToken3(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -217,7 +217,7 @@ func TestNextToken4(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -256,7 +256,7 @@ func TestNextToken5(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -314,7 +314,7 @@ func TestNextTokenMulti(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -353,7 +353,7 @@ func TestNextTokenMulti1(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -381,7 +381,7 @@ func testNextTokenBacktick(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -427,7 +427,7 @@ func TestNextTokenNumbers(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -461,7 +461,7 @@ func TestNextTokenNewKeywords(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -501,7 +501,7 @@ func TestNextTokenNewKeywords(t *testing.T) {
 // 		{token.EOF, ""},
 // 	}
 
-// 	l := New(input)
+// 	l := New(input, "<internal: test>")
 
 // 	for i, tt := range tests {
 // 		tok := l.NextToken()
@@ -534,7 +534,7 @@ func TestNextTokenStrings(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -564,7 +564,7 @@ func TestUnicodeIdentifiers(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -603,7 +603,7 @@ func TestTryCatchStatement(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -633,7 +633,7 @@ func TestEvalExpression(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -665,7 +665,7 @@ func TestVarWithNum(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, "<internal: test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()

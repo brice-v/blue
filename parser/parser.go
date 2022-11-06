@@ -503,7 +503,7 @@ func (p *Parser) parseHexLiteral() ast.Expression {
 	value, err := strconv.ParseUint(tokenLiteral, 16, 64)
 	if err != nil {
 		errorLine := p.l.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", errorLine, p.curToken.Literal, errorLine)
+		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
