@@ -19,7 +19,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -46,7 +45,7 @@ type StdModFileAndBuiltins struct {
 var stdFs embed.FS
 
 func readStdFileToString(fname string) string {
-	bs, err := stdFs.ReadFile("std" + string(filepath.Separator) + fname)
+	bs, err := stdFs.ReadFile("std/" + fname)
 	if err != nil {
 		panic(err)
 	}
