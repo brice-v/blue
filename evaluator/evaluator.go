@@ -583,7 +583,7 @@ func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
 			// so this actually just puts the tokens out in a simpler way
 			buf.WriteString(fmt.Sprintf("%#v\n", newE.ErrorTokens.PopBack()))
 		}
-		fmt.Printf("EvaluatorError: %s\n", err)
+		fmt.Printf("ProcessError: %s\n", err)
 	}
 	// Delete from concurrent map and decrement pidCount
 	ProcessMap.Remove(pid)
