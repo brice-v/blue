@@ -1242,4 +1242,31 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return object.CreateBasicMapObject("ui", vboxId)
 		},
 	},
+	"_col": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`col` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("argument 1 to `col` should be LIST. got=%s", args[0].Type())
+			}
+			elements := args[0].(*object.List).Elements
+			canvasObjects := make([]fyne.CanvasObject, len(elements))
+			for i, e := range elements {
+				if e.Type() != object.UINTEGER_OBJ {
+					return newError("`col` error: all children should be UINTEGER. found=%s", e.Type())
+				}
+				elemId := e.(*object.UInteger).Value
+				o, ok := UICanvasObjectMap.Get(elemId)
+				if !ok {
+					return newError("`col` error: could not find ui element")
+				}
+				canvasObjects[i] = o
+			}
+			vboxId := uiCanvasObjectCount.Add(1)
+			vbox := container.NewHBox(canvasObjects...)
+			UICanvasObjectMap.Put(vboxId, vbox)
+			return object.CreateBasicMapObject("ui", vboxId)
+		},
+	},
 })

@@ -3,6 +3,7 @@ val _app = __new_app();
 val __window = _window;
 val label = _label;
 val __row = _row;
+val __col = _col;
 
 fun window(width=400, height=400, title="blue ui window", content) {
     return match content {
@@ -29,4 +30,20 @@ fun row(children=[]) {
     var ids = [child.v for (child in children)];
     # get the ids of all the child 'canvas object elements' to put into the row
     __row(ids)
+}
+
+fun col(children=[]) {
+    if (children.len() == 0) {
+        return error("ui col: children length should be greater than 0")
+    }
+
+    for (child in children) {
+        if (child.t != "ui") {
+            return error("ui col: found child without 'ui' type, got=#{child}");
+        }
+    }
+
+    var ids = [child.v for (child in children)];
+    # get the ids of all the child 'canvas object elements' to put into the col
+    __col(ids)
 }
