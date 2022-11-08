@@ -118,6 +118,8 @@ func New() *Evaluator {
 	_http_builtin_map.Put("_handle", createHttpHandleBuiltinWithEvaluator(e))
 	_http_builtin_map.Put("_handle_ws", createHttpHandleWSBuiltinWithEvaluator(e))
 
+	_ui_builtin_map.Put("_button", createUIButtonBuiltinWithEvaluator(e))
+
 	return e
 }
 

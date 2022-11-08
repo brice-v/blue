@@ -18,6 +18,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"fyne.io/fyne/v2/widget"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 )
@@ -653,6 +655,40 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 			}))
 			// TODO: Does the return obj above get returned here?
 			return returnObj
+		},
+	}
+}
+
+func createUIButtonBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`button` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `button` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.FUNCTION_OBJ {
+				return newError("argument 2 to `button` should be FUNCTION. got=%s", args[1].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			fn := args[1].(*object.Function)
+			buttonId := uiCanvasObjectCount.Add(1)
+			button := widget.NewButton(s, func() {
+				obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object))
+				if isError(obj) {
+					err := obj.(*object.Error)
+					var buf bytes.Buffer
+					buf.WriteString(err.Message)
+					buf.WriteByte('\n')
+					for e.ErrorTokens.Len() > 0 {
+						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+					}
+					fmt.Printf("EvaluatorError: `button` click handler error: %s\n", err)
+				}
+			})
+			UICanvasObjectMap.Put(buttonId, button)
+			return object.CreateBasicMapObject("ui", buttonId)
 		},
 	}
 }

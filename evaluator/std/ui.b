@@ -1,9 +1,10 @@
 val __new_app = _new_app;
 val _app = __new_app();
 val __window = _window;
-val label = _label;
 val __row = _row;
 val __col = _col;
+val label = _label;
+val button = _button;
 
 fun window(width=400, height=400, title="blue ui window", content) {
     return match content {
