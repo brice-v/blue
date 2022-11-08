@@ -196,3 +196,15 @@ fun accept(obj) {
         },
     };
 }
+
+fun get_text(obj) {
+    return match obj {
+        {t: "ui/entry", v: _} => {
+            import ui
+            ui.entry_get_text(obj.v)
+        },
+        _ => {
+            error("obj `#{obj}` is invalid type")
+        },
+    };
+}

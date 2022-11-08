@@ -5,6 +5,8 @@ val __row = _row;
 val __col = _col;
 val label = _label;
 val button = _button;
+val entry = _entry;
+val entry_get_text = _entry_get_text;
 
 fun window(width=400, height=400, title="blue ui window", content) {
     return match content {
@@ -23,7 +25,7 @@ fun row(children=[]) {
     }
 
     for (child in children) {
-        if (child.t != "ui") {
+        if ("ui" notin child.t) {
             return error("ui row: found child without 'ui' type, got=#{child}");
         }
     }
@@ -39,7 +41,7 @@ fun col(children=[]) {
     }
 
     for (child in children) {
-        if (child.t != "ui") {
+        if ("ui" notin child.t) {
             return error("ui col: found child without 'ui' type, got=#{child}");
         }
     }

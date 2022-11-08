@@ -1269,4 +1269,36 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return object.CreateBasicMapObject("ui", vboxId)
 		},
 	},
+	"_entry": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newError("`entry` expects 0 arguments. got=%d", len(args))
+			}
+			entry := widget.NewEntry()
+			entryId := uiCanvasObjectCount.Add(1)
+			UICanvasObjectMap.Put(entryId, entry)
+			return object.CreateBasicMapObject("ui/entry", entryId)
+		},
+	},
+	"_entry_get_text": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`entry_get_text` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `entry_get_text` should be UINTEGER. got=%s", args[0].Type())
+			}
+			entryId := args[0].(*object.UInteger).Value
+			entry, ok := UICanvasObjectMap.Get(entryId)
+			if !ok {
+				return newError("`entry_get_text` error: could not find ui element")
+			}
+			switch x := entry.(type) {
+			case *widget.Entry:
+				return &object.Stringo{Value: x.Text}
+			default:
+				return newError("`entry_get_text` error: entry id did not match entry")
+			}
+		},
+	},
 })
