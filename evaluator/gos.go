@@ -8,6 +8,8 @@ import (
 	"net"
 	"sync/atomic"
 
+	"fyne.io/fyne/v2"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 )
@@ -45,4 +47,15 @@ var NetTCPServerMap = &ConcurrentMap[uint64, net.Listener]{
 var netUDPServerCount = atomic.Uint64{}
 var NetUDPServerMap = &ConcurrentMap[uint64, *net.UDPConn]{
 	kv: make(map[uint64]*net.UDPConn),
+}
+
+// UI Object stores
+var uiAppCount = atomic.Uint64{}
+var UIAppMap = &ConcurrentMap[uint64, fyne.App]{
+	kv: make(map[uint64]fyne.App),
+}
+
+var uiCanvasObjectCount = atomic.Uint64{}
+var UICanvasObjectMap = &ConcurrentMap[uint64, fyne.CanvasObject]{
+	kv: make(map[uint64]fyne.CanvasObject),
 }

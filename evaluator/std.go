@@ -22,6 +22,10 @@ import (
 	"strings"
 	"time"
 
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 	"github.com/antchfx/htmlquery"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -61,6 +65,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"config": {File: readStdFileToString("config.b"), Builtins: _config_builtin_map},
 	"crypto": {File: readStdFileToString("crypto.b"), Builtins: _crypto_builtin_map},
 	"net":    {File: readStdFileToString("net.b"), Builtins: _net_builtin_map},
+	"ui":     {File: readStdFileToString("ui.b"), Builtins: _ui_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -87,7 +92,15 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 	newE.Builtins.PushBack(fb.Builtins)
 	val := newE.Eval(program)
 	if isError(val) {
-		fmt.Printf("EvaluatorError in `%s` module: %s\n", name, val.(*object.Error).Message)
+		errorObj := val.(*object.Error)
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		for newE.ErrorTokens.Len() > 0 {
+			buf.WriteString(l.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
+			buf.WriteByte('\n')
+		}
+		fmt.Printf("EvaluatorError in `%s` module: %s", name, buf.String())
 		os.Exit(1)
 	}
 	mod := &object.Module{Name: name, Env: newE.env}
@@ -1131,6 +1144,102 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			default:
 				return newError("`inspect` expects type of 'net/tcp', 'net/udp', or 'net'")
 			}
+		},
+	},
+})
+
+var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_new_app": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newError("`new_app` expects 0 arguments. got=%d", len(args))
+			}
+			app := app.New()
+			appId := uiAppCount.Add(1)
+			UIAppMap.Put(appId, app)
+			return &object.UInteger{Value: appId}
+		},
+	},
+	"_window": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 5 {
+				return newError("`window` expects 5 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `window` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newError("argument 2 to `window` should be INTEGER. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.INTEGER_OBJ {
+				return newError("argument 3 to `window` should be INTEGER. got=%s", args[2].Type())
+			}
+			if args[3].Type() != object.STRING_OBJ {
+				return newError("argument 4 to `window` should be STRING. got=%s", args[3].Type())
+			}
+			if args[4].Type() != object.UINTEGER_OBJ {
+				return newError("argument 5 to `window` should be UINTEGER. got=%s", args[4].Type())
+			}
+			appId := args[0].(*object.UInteger).Value
+			width := args[1].(*object.Integer).Value
+			height := args[2].(*object.Integer).Value
+			title := args[3].(*object.Stringo).Value
+			contentId := args[4].(*object.UInteger).Value
+			app, ok := UIAppMap.Get(appId)
+			if !ok {
+				return newError("`window` could not find app object")
+			}
+			content, ok := UICanvasObjectMap.Get(contentId)
+			if !ok {
+				return newError("`window` could not find content object")
+			}
+			w := app.NewWindow(title)
+			w.Resize(fyne.Size{Width: float32(width), Height: float32(height)})
+			w.SetContent(content)
+			w.ShowAndRun()
+			return NULL
+		},
+	},
+	"_label": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`label` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `label` should be STRING. got=%s", args[0].Type())
+			}
+			label := args[0].(*object.Stringo).Value
+			labelId := uiCanvasObjectCount.Add(1)
+			l := widget.NewLabel(label)
+			UICanvasObjectMap.Put(labelId, l)
+			return object.CreateBasicMapObject("ui", labelId)
+		},
+	},
+	"_row": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`row` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("argument 1 to `row` should be LIST. got=%s", args[0].Type())
+			}
+			elements := args[0].(*object.List).Elements
+			canvasObjects := make([]fyne.CanvasObject, len(elements))
+			for i, e := range elements {
+				if e.Type() != object.UINTEGER_OBJ {
+					return newError("`row` error: all children should be UINTEGER. found=%s", e.Type())
+				}
+				elemId := e.(*object.UInteger).Value
+				o, ok := UICanvasObjectMap.Get(elemId)
+				if !ok {
+					return newError("`row` error: could not find ui element")
+				}
+				canvasObjects[i] = o
+			}
+			vboxId := uiCanvasObjectCount.Add(1)
+			vbox := container.NewVBox(canvasObjects...)
+			UICanvasObjectMap.Put(vboxId, vbox)
+			return object.CreateBasicMapObject("ui", vboxId)
 		},
 	},
 })
