@@ -127,8 +127,9 @@ func evalCurrentFile() {
 	e.EvalBasePath = filepath.Dir(fpath)
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
-		err := val.(*object.Error).Message
-		out.WriteString("EvaluatorError: " + err + "\n")
+		errorObj := val.(*object.Error)
+		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
+		out.WriteString(fmt.Sprintf("EvaluatorError: %s\n", errMsg))
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values
@@ -158,8 +159,9 @@ func evalFile() {
 	e.EvalBasePath = filepath.Dir(fpath)
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
-		err := val.(*object.Error).Message
-		out.WriteString("EvaluatorError: " + err + "\n")
+		errorObj := val.(*object.Error)
+		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
+		out.WriteString(fmt.Sprintf("EvaluatorError: %s\n", errMsg))
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values
@@ -223,8 +225,9 @@ var files embed.FS
 	evaluator.EvalBasePath = filepath.Dir(".")
 	val := evaluator.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
-		err := val.(*object.Error).Message
-		out.WriteString("EvaluatorError: " + err + "\n")
+		errorObj := val.(*object.Error)
+		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
+		out.WriteString(fmt.Sprintf("EvaluatorError: %s\n", errMsg))
 		os.Exit(1)
 	}
 }`

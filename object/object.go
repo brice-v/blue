@@ -2,6 +2,7 @@ package object
 
 import (
 	"blue/ast"
+	"blue/token"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -162,6 +163,8 @@ func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
 // Error is the error object struct.  It conatins a message as a string
 type Error struct {
 	Message string
+	// Token is used to figure out the line that the error is on
+	Token token.Token
 }
 
 // Type returns the error object type

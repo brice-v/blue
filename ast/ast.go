@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"blue/token"
 	"bytes"
 )
 
@@ -9,6 +10,8 @@ import (
 type Node interface {
 	// TokenLiteral is used for debugging and testing
 	TokenLiteral() string
+	// GetToken is used to get the token associate with the node for reporting errors
+	GetToken() token.Token
 	// String
 	String() string // String will allow the printing of ast nodes
 }
@@ -50,4 +53,9 @@ func (p *Program) String() string {
 	}
 
 	return out.String()
+}
+
+// GetToken returns the token to satisfy Node interface (it returns whatever the default is for token.Token)
+func (p *Program) GetToken() token.Token {
+	return token.Token{}
 }

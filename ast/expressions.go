@@ -15,6 +15,11 @@ type Identifier struct {
 // expressionNode makes identifers expressions
 func (i *Identifier) expressionNode() {}
 
+// GetToken returns the token
+func (i *Identifier) GetToken() token.Token {
+	return i.Token
+}
+
 // TokenLiteral returns IDENT
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
 
@@ -27,6 +32,10 @@ type Null struct {
 }
 
 func (n *Null) expressionNode() {}
+
+func (n *Null) GetToken() token.Token {
+	return n.Token
+}
 
 // TokenLiteral returns the string token literal
 func (n *Null) TokenLiteral() string {
@@ -44,6 +53,11 @@ type Boolean struct {
 // expressionNode satisfies the Expression interface
 func (b *Boolean) expressionNode() {}
 
+// GetToken returns the token
+func (b *Boolean) GetToken() token.Token {
+	return b.Token
+}
+
 // TokenLiteral returns true or false
 func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
 
@@ -59,6 +73,11 @@ type PrefixExpression struct {
 
 // expressionNode satisfies the Expression interface
 func (pe *PrefixExpression) expressionNode() {}
+
+// GetToken returns the token
+func (pe *PrefixExpression) GetToken() token.Token {
+	return pe.Token
+}
 
 // TokenLiteral returns the prefix expressions token
 func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
@@ -84,21 +103,26 @@ type InfixExpression struct {
 }
 
 // expressionNode satisfies the Expression interface
-func (oe *InfixExpression) expressionNode() {}
+func (ie *InfixExpression) expressionNode() {}
+
+// GetToken returns the token
+func (ie *InfixExpression) GetToken() token.Token {
+	return ie.Token
+}
 
 // TokenLiteral returns the infix expressions token
-func (oe *InfixExpression) TokenLiteral() string { return oe.Token.Literal }
+func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
 
 // String returns the string representation of the infix expression ast node
-func (oe *InfixExpression) String() string {
+func (ie *InfixExpression) String() string {
 	var out bytes.Buffer
 
 	out.WriteString("(")
-	out.WriteString(oe.Left.String())
+	out.WriteString(ie.Left.String())
 	out.WriteString(" ")
-	out.WriteString(oe.Operator)
+	out.WriteString(ie.Operator)
 	out.WriteString(" ")
-	out.WriteString(oe.Right.String())
+	out.WriteString(ie.Right.String())
 	out.WriteString(")")
 
 	return out.String()
@@ -114,6 +138,11 @@ type IfExpression struct {
 
 // expressionNode satisfies the Expression Interface
 func (ie *IfExpression) expressionNode() {}
+
+// GetToken returns the token
+func (ie *IfExpression) GetToken() token.Token {
+	return ie.Token
+}
 
 // TokenLiteral returns the string IF token
 func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
@@ -146,6 +175,11 @@ type MatchExpression struct {
 
 // expressionNode satisfies the expression interface
 func (me *MatchExpression) expressionNode() {}
+
+// GetToken returns the token
+func (me *MatchExpression) GetToken() token.Token {
+	return me.Token
+}
 
 // TokenLiteral returns the match literal token
 func (me *MatchExpression) TokenLiteral() string { return me.Token.Literal }
@@ -180,6 +214,11 @@ type CallExpression struct {
 // expressionNode satisfies the expression interface
 func (ce *CallExpression) expressionNode() {}
 
+// GetToken returns the token
+func (ce *CallExpression) GetToken() token.Token {
+	return ce.Token
+}
+
 // TokenLiteral returns the ( token
 func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
 
@@ -208,6 +247,11 @@ type IndexExpression struct {
 
 // expressionNode satisfies the expression interface
 func (ie *IndexExpression) expressionNode() {}
+
+// GetToken returns the token
+func (ie *IndexExpression) GetToken() token.Token {
+	return ie.Token
+}
 
 // TokenLiteral returns the [ token
 func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
@@ -246,6 +290,11 @@ type ForExpression struct {
 // expressionNode satisfies the expression interface
 func (fe *ForExpression) expressionNode() {}
 
+// GetToken returns the token
+func (fe *ForExpression) GetToken() token.Token {
+	return fe.Token
+}
+
 // TokenLiteral returns the for token
 func (fe *ForExpression) TokenLiteral() string { return fe.Token.Literal }
 
@@ -270,6 +319,11 @@ type AssignmentExpression struct {
 
 // expressionNode satisfies the expression interface
 func (ae *AssignmentExpression) expressionNode() {}
+
+// GetToken returns the token
+func (ae *AssignmentExpression) GetToken() token.Token {
+	return ae.Token
+}
 
 // TokenLiteral prints the literal value of the token associated with this node
 func (ae *AssignmentExpression) TokenLiteral() string { return ae.Token.Literal }
@@ -296,6 +350,11 @@ type EvalExpression struct {
 // expressionNode satisfies the expression interface
 func (ee *EvalExpression) expressionNode() {}
 
+// GetToken returns the token
+func (ee *EvalExpression) GetToken() token.Token {
+	return ee.Token
+}
+
 // TokenLiteral returns the for token
 func (ee *EvalExpression) TokenLiteral() string { return ee.Token.Literal }
 
@@ -317,6 +376,11 @@ type SpawnExpression struct {
 
 // expressionNode satisfies the expression interface
 func (se *SpawnExpression) expressionNode() {}
+
+// GetToken returns the token
+func (se *SpawnExpression) GetToken() token.Token {
+	return se.Token
+}
 
 // TokenLiteral returns the for token
 func (se *SpawnExpression) TokenLiteral() string { return se.Token.Literal }
@@ -342,6 +406,11 @@ type SelfExpression struct {
 
 // expressionNode satisfies the expression interface
 func (se *SelfExpression) expressionNode() {}
+
+// GetToken returns the token
+func (se *SelfExpression) GetToken() token.Token {
+	return se.Token
+}
 
 // TokenLiteral returns the for token
 func (se *SelfExpression) TokenLiteral() string { return se.Token.Literal }

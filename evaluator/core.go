@@ -26,8 +26,9 @@ func (e *Evaluator) AddCoreLibToEnv() {
 	}
 	result := e.Eval(program)
 	if result.Type() == object.ERROR_OBJ {
-		err := result.(*object.Error).Message
-		fmt.Printf("EvaluatorError in core.b: %s\n", err)
+		errorObj := result.(*object.Error)
+		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
+		fmt.Printf("EvaluatorError: %s\n", errMsg)
 		os.Exit(1)
 	}
 }

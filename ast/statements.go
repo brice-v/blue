@@ -18,6 +18,11 @@ type VarStatement struct {
 // statementNode makes var a statement
 func (vars *VarStatement) statementNode() {}
 
+// GetToken returns the token
+func (vars *VarStatement) GetToken() token.Token {
+	return vars.Token
+}
+
 // TokenLiteral returns VAR
 func (vars *VarStatement) TokenLiteral() string { return vars.Token.Literal }
 
@@ -48,6 +53,11 @@ type ValStatement struct {
 
 // statementNode makes val a statement
 func (vals *ValStatement) statementNode() {}
+
+// GetToken returns the token
+func (vals *ValStatement) GetToken() token.Token {
+	return vals.Token
+}
 
 // TokenLiteral returns VAL
 func (vals *ValStatement) TokenLiteral() string { return vals.Token.Literal }
@@ -83,6 +93,11 @@ type FunctionStatement struct {
 // statementNode satisfies the statement interface
 func (fs *FunctionStatement) statementNode() {}
 
+// GetToken returns the token
+func (fs *FunctionStatement) GetToken() token.Token {
+	return fs.Token
+}
+
 // TokenLiteral is the function statements token literal ie. `fun`
 func (fs *FunctionStatement) TokenLiteral() string { return fs.Token.Literal }
 
@@ -115,6 +130,11 @@ type ReturnStatement struct {
 
 func (rs *ReturnStatement) statementNode() {}
 
+// GetToken returns the token
+func (rs *ReturnStatement) GetToken() token.Token {
+	return rs.Token
+}
+
 // TokenLiteral returns RETURN
 func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
 
@@ -143,6 +163,11 @@ type TryCatchStatement struct {
 
 // statementNode satisfies the statement interface
 func (tcs *TryCatchStatement) statementNode() {}
+
+// GetToken returns the token
+func (tcs *TryCatchStatement) GetToken() token.Token {
+	return tcs.Token
+}
 
 // TokenLiteral is the try-catch statements token literal ie. `try`
 func (tcs *TryCatchStatement) TokenLiteral() string { return tcs.Token.Literal }
@@ -176,6 +201,11 @@ type ExpressionStatement struct {
 // statementNode satisfys the statement interface and allows it to be added to the program
 func (es *ExpressionStatement) statementNode() {}
 
+// GetToken returns the token
+func (es *ExpressionStatement) GetToken() token.Token {
+	return es.Token
+}
+
 // TokenLiteral returns the first token of the expression
 func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
 
@@ -195,6 +225,11 @@ type BlockStatement struct {
 
 // statementNode satisifes the statement interface
 func (bs *BlockStatement) statementNode() {}
+
+// GetToken returns the token
+func (bs *BlockStatement) GetToken() token.Token {
+	return bs.Token
+}
 
 // TokenLiteral returns the { token
 func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
@@ -234,6 +269,11 @@ type ImportStatement struct {
 // statementNode satisfies the statement interface
 func (is *ImportStatement) statementNode() {}
 
+// GetToken returns the token
+func (is *ImportStatement) GetToken() token.Token {
+	return is.Token
+}
+
 // TokenLiteral returns the import token as a string
 func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
 
@@ -249,6 +289,11 @@ type BreakStatement struct {
 // statementNode satisfies the statement interface
 func (bks *BreakStatement) statementNode() {}
 
+// GetToken returns the token
+func (bks *BreakStatement) GetToken() token.Token {
+	return bks.Token
+}
+
 // TokenLiteral returns the break token as a string
 func (bks *BreakStatement) TokenLiteral() string { return bks.Token.Literal }
 
@@ -263,6 +308,11 @@ type ContinueStatement struct {
 
 // statementNode satisfies the statement interface
 func (cs *ContinueStatement) statementNode() {}
+
+// GetToken returns the token
+func (cs *ContinueStatement) GetToken() token.Token {
+	return cs.Token
+}
 
 // TokenLiteral returns the continue token as a string
 func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }

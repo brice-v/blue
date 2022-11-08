@@ -2585,6 +2585,7 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 		case *object.ReturnValue:
 			return result.Value
 		case *object.Error:
+			result.Token = stmt.GetToken()
 			return result
 		}
 	}

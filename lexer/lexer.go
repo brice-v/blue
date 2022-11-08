@@ -446,16 +446,22 @@ func (l *Lexer) NextToken() token.Token {
 			tok = l.newToken(token.TILDE, l.ch)
 		}
 	case '`':
+		tok.LineNumber = l.lineNo
+		tok.PositionInLine = l.posInLine
 		tok.Type = token.BACKTICK
 		tok.Literal = l.readExecString()
 		return tok
 	case ':':
 		tok = l.newToken(token.COLON, l.ch)
 	case 0:
+		tok.LineNumber = l.lineNo
+		tok.PositionInLine = l.posInLine
 		tok.Literal = ""
 		tok.Type = token.EOF
 	case '"':
 		if l.peekChar() == '"' && l.peekSecondChar() == '"' {
+			tok.LineNumber = l.lineNo
+			tok.PositionInLine = l.posInLine
 			str := l.readRawString()
 			tok.Type = token.RAW_STRING
 			tok.Literal = str
@@ -464,6 +470,8 @@ func (l *Lexer) NextToken() token.Token {
 			if err != nil {
 				tok = l.newToken(token.ILLEGAL, l.prevCh)
 			} else {
+				tok.LineNumber = l.lineNo
+				tok.PositionInLine = l.posInLine
 				tok.Type = token.STRING_DOUBLE_QUOTE
 				tok.Literal = str
 			}
@@ -475,14 +483,20 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok.Type = token.STRING_SINGLE_QUOTE
 			tok.Literal = str
+			tok.LineNumber = l.lineNo
+			tok.PositionInLine = l.posInLine
 		}
 	default:
 		if prevTokType == token.IMPORT {
 			prevTokType = token.ILLEGAL
+			tok.LineNumber = l.lineNo
+			tok.PositionInLine = l.posInLine
 			tok.Literal = l.readImportPath()
 			tok.Type = token.IMPORT_PATH
 			return tok
 		} else if isLetter(l.ch) {
+			tok.LineNumber = l.lineNo
+			tok.PositionInLine = l.posInLine
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			// This is only used to determine that we need to read an import path
@@ -491,6 +505,8 @@ func (l *Lexer) NextToken() token.Token {
 			}
 			return tok
 		} else if isDigit(l.ch) {
+			tok.LineNumber = l.lineNo
+			tok.PositionInLine = l.posInLine
 			tok.Type, tok.Literal = l.readNumber()
 			return tok
 		}

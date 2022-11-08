@@ -6,6 +6,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -59,7 +60,9 @@ func TestAllProgramsInDirectory(t *testing.T) {
 			t.Fatalf("File `%s`: evaluator returned nil", f.Name())
 		}
 		if obj.Type() == object.ERROR_OBJ {
-			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), obj.(*object.Error).Message)
+			errorObj := obj.(*object.Error)
+			errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
+			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), errMsg)
 		}
 		if obj.Inspect() != "true" {
 			t.Fatalf("File `%s`: Did not return true as last statement. Failed", f.Name())
