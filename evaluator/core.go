@@ -4,6 +4,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"bytes"
 	"fmt"
 	"os"
 
@@ -27,8 +28,14 @@ func (e *Evaluator) AddCoreLibToEnv() {
 	result := e.Eval(program)
 	if result.Type() == object.ERROR_OBJ {
 		errorObj := result.(*object.Error)
-		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
-		fmt.Printf("EvaluatorError: %s\n", errMsg)
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		for e.ErrorTokens.Len() > 0 {
+			buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteByte('\n')
+		}
+		fmt.Printf("EvaluatorError: %s", buf.String())
 		os.Exit(1)
 	}
 }

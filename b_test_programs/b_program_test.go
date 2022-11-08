@@ -6,7 +6,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
-	"fmt"
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -61,8 +61,14 @@ func TestAllProgramsInDirectory(t *testing.T) {
 		}
 		if obj.Type() == object.ERROR_OBJ {
 			errorObj := obj.(*object.Error)
-			errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
-			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), errMsg)
+			var buf bytes.Buffer
+			buf.WriteString(errorObj.Message)
+			buf.WriteByte('\n')
+			for e.ErrorTokens.Len() > 0 {
+				buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+				buf.WriteByte('\n')
+			}
+			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), buf.String())
 		}
 		if obj.Inspect() != "true" {
 			t.Fatalf("File `%s`: Did not return true as last statement. Failed", f.Name())

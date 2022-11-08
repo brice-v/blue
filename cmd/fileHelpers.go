@@ -7,6 +7,7 @@ import (
 	"blue/parser"
 	"blue/repl"
 	"blue/token"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -25,7 +26,7 @@ func fileExists(fpath string) (bool, error) {
 	if err == nil {
 		return true, nil
 	} else if os.IsNotExist(err) {
-		return false, errors.New("Filepath does not exist")
+		return false, errors.New("filepath does not exist")
 	}
 	return false, err
 }
@@ -128,8 +129,14 @@ func evalCurrentFile() {
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		errorObj := val.(*object.Error)
-		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
-		out.WriteString(fmt.Sprintf("EvaluatorError: %s\n", errMsg))
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		for e.ErrorTokens.Len() > 0 {
+			buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteByte('\n')
+		}
+		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values
@@ -160,8 +167,14 @@ func evalFile() {
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		errorObj := val.(*object.Error)
-		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
-		out.WriteString(fmt.Sprintf("EvaluatorError: %s\n", errMsg))
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		for e.ErrorTokens.Len() > 0 {
+			buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteByte('\n')
+		}
+		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values
@@ -192,7 +205,9 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
+	"bytes"
 	"embed"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -213,7 +228,7 @@ var files embed.FS
 	input := string(entryPoint)
 	evaluator.IsEmbed = true
 	evaluator.Files = files
-	l := lexer.New(input, "<embed: "+entryPointPath+">)
+	l := lexer.New(input, "<embed: "+entryPointPath+">")
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
@@ -226,8 +241,14 @@ var files embed.FS
 	val := evaluator.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		errorObj := val.(*object.Error)
-		errMsg := fmt.Sprintf("%s\n%s", errorObj.Message, l.GetErrorLineMessage(errorObj.Token))
-		out.WriteString(fmt.Sprintf("EvaluatorError: %s\n", errMsg))
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		for evaluator.ErrorTokens.Len() > 0 {
+			buf.WriteString(l.GetErrorLineMessage(evaluator.ErrorTokens.PopBack()))
+			buf.WriteByte('\n')
+		}
+		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
 		os.Exit(1)
 	}
 }`
@@ -263,6 +284,7 @@ var files embed.FS
 			os.Exit(1)
 		}
 	}
+	// TODO: Return an error here instead of os.Exit so it can be handled (and we swap back main files)
 	buildExe := func() {
 		exeName := filepath.Base(fpath)
 		cmd := []string{"go", "build", "-o", exeName + ".exe"}

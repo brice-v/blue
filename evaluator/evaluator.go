@@ -6,6 +6,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"blue/token"
 	"bytes"
 	"container/list"
 	"embed"
@@ -56,10 +57,12 @@ type Evaluator struct {
 	CurrentFile string
 
 	// UFCSArg is the argument to be given to the builtin function
-	UFCSArg *Stack
+	UFCSArg *Stack[*object.Object]
 
 	// Builtins is the list of builtin elements to look through based on the files imported
 	Builtins *list.List
+
+	ErrorTokens *Stack[token.Token]
 
 	// Used for: indx, elem in for expression
 	nestLevel     int
@@ -87,9 +90,11 @@ func New() *Evaluator {
 		EvalBasePath: ".",
 		CurrentFile:  "<stdin>",
 
-		UFCSArg: NewStack(),
+		UFCSArg: NewStack[*object.Object](),
 
 		Builtins: list.New(),
+
+		ErrorTokens: NewStack[token.Token](),
 
 		nestLevel:     -1,
 		iterCount:     []int{},
@@ -126,9 +131,17 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	case *ast.ContinueStatement:
 		return CONTINUE
 	case *ast.ExpressionStatement:
-		return e.Eval(node.Expression)
+		obj := e.Eval(node.Expression)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.Identifier:
-		return e.evalIdentifier(node)
+		obj := e.evalIdentifier(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.BigIntegerLiteral:
@@ -148,39 +161,65 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	case *ast.PrefixExpression:
 		right := e.Eval(node.Right)
 		if isError(right) {
+			e.ErrorTokens.Push(node.Token)
 			return right
 		}
-		return e.evalPrefixExpression(node.Operator, right)
+		obj := e.evalPrefixExpression(node.Operator, right)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.InfixExpression:
 		// If were in an `in` expression, it needs to be evaluated differently (for `for`)
 		if node.Operator == "in" {
-			return e.evalInExpression(node)
+			obj := e.evalInExpression(node)
+			if isError(obj) {
+				e.ErrorTokens.Push(node.Token)
+			}
+			return obj
 		}
 		left := e.Eval(node.Left)
 		if isError(left) {
+			e.ErrorTokens.Push(node.Token)
 			return left
 		}
 		right := e.Eval(node.Right)
 		if isError(right) {
+			e.ErrorTokens.Push(node.Token)
 			return right
 		}
-		return e.evalInfixExpression(node.Operator, left, right)
+		obj := e.evalInfixExpression(node.Operator, left, right)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.BlockStatement:
-		return e.evalBlockStatement(node)
+		obj := e.evalBlockStatement(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.IfExpression:
-		return e.evalIfExpression(node)
+		obj := e.evalIfExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.ReturnStatement:
 		val := e.Eval(node.ReturnValue)
 		if isError(val) {
+			e.ErrorTokens.Push(node.Token)
 			return val
 		}
 		return &object.ReturnValue{Value: val}
 	case *ast.ValStatement:
 		val := e.Eval(node.Value)
 		if isError(val) {
+			e.ErrorTokens.Push(node.Token)
 			return val
 		}
 		if _, ok := e.env.Get(node.Name.Value); ok {
+			e.ErrorTokens.Push(node.Token)
 			return newError("'" + node.Name.Value + "' is already defined")
 		}
 		if e.isInScopeBlock {
@@ -191,9 +230,11 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	case *ast.VarStatement:
 		val := e.Eval(node.Value)
 		if isError(val) {
+			e.ErrorTokens.Push(node.Token)
 			return val
 		}
 		if ok := e.env.IsImmutable(node.Name.Value); ok {
+			e.ErrorTokens.Push(node.Token)
 			return newError("'" + node.Name.Value + "' is already defined as immutable, cannot reassign")
 		}
 		if e.isInScopeBlock {
@@ -211,6 +252,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			}
 			obj := e.Eval(val)
 			if isError(obj) {
+				e.ErrorTokens.Push(node.Token)
 				return obj
 			}
 			defaultParams = append(defaultParams, obj)
@@ -227,6 +269,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			}
 			obj := e.Eval(val)
 			if isError(obj) {
+				e.ErrorTokens.Push(node.Token)
 				return obj
 			}
 			defaultParams = append(defaultParams, obj)
@@ -237,6 +280,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		e.UFCSArg.Push(nil)
 		function := e.Eval(node.Function)
 		if isError(function) {
+			e.ErrorTokens.Push(node.Token)
 			return function
 		}
 		args := e.evalExpressions(node.Arguments)
@@ -244,69 +288,142 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		for k, v := range node.DefaultArguments {
 			val := e.Eval(v)
 			if isError(val) {
+				e.ErrorTokens.Push(node.Token)
 				return val
 			}
 			defaultArgs[k] = val
 		}
 		if len(args) == 1 && isError(args[0]) {
+			e.ErrorTokens.Push(node.Token)
 			return args[0]
 		}
-		return e.applyFunction(function, args, defaultArgs)
+		val := e.applyFunction(function, args, defaultArgs)
+		if isError(val) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return val
 	case *ast.StringLiteral:
 		if len(node.InterpolationValues) == 0 {
 			return &object.Stringo{Value: node.Value}
 		}
-		return e.evalStringWithInterpolation(node)
+		obj := e.evalStringWithInterpolation(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.ExecStringLiteral:
-		return e.evalExecStringLiteral(node)
+		obj := e.evalExecStringLiteral(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.ListLiteral:
 		elements := e.evalExpressions(node.Elements)
 		if len(elements) == 1 && isError(elements[0]) {
+			e.ErrorTokens.Push(node.Token)
 			return elements[0]
 		}
 		return &object.List{Elements: elements}
 	case *ast.IndexExpression:
 		left := e.Eval(node.Left)
 		if isError(left) {
+			e.ErrorTokens.Push(node.Token)
 			return left
 		}
 		indx := e.Eval(node.Index)
 		if isError(indx) {
+			e.ErrorTokens.Push(node.Token)
 			return indx
 		}
 		val := e.tryCreateValidBuiltinForDotCall(left, indx, node.Left)
 		if val != nil {
 			return val
 		}
-		return e.evalIndexExpression(left, indx)
+		obj := e.evalIndexExpression(left, indx)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.MapLiteral:
-		return e.evalMapLiteral(node)
+		obj := e.evalMapLiteral(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.AssignmentExpression:
-		return e.evalAssignmentExpression(node)
+		obj := e.evalAssignmentExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.ForExpression:
-		return e.evalForExpression(node)
+		obj := e.evalForExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.ListCompLiteral:
-		return e.evalListCompLiteral(node)
+		obj := e.evalListCompLiteral(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.MapCompLiteral:
-		return e.evalMapCompLiteral(node)
+		obj := e.evalMapCompLiteral(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.SetCompLiteral:
-		return e.evalSetCompLiteral(node)
+		obj := e.evalSetCompLiteral(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.MatchExpression:
-		return e.evalMatchExpression(node)
+		obj := e.evalMatchExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.Null:
 		return NULL
 	case *ast.SetLiteral:
-		return e.evalSetLiteral(node)
+		obj := e.evalSetLiteral(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.ImportStatement:
-		return e.evalImportStatement(node)
+		obj := e.evalImportStatement(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.TryCatchStatement:
-		return e.evalTryCatchStatement(node)
+		obj := e.evalTryCatchStatement(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.EvalExpression:
-		return e.evalEvalExpression(node)
+		obj := e.evalEvalExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.SpawnExpression:
-		return e.evalSpawnExpression(node)
+		obj := e.evalSpawnExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.SelfExpression:
-		return e.evalSelfExpression(node)
+		obj := e.evalSelfExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	default:
 		if node == nil {
 			// Just want to get rid of this in my output
@@ -447,18 +564,29 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 	}
 	pid := pidCount.Add(1)
 	ProcessMap.Put(pid, process)
-	go func(pid uint64) {
-		newE := New()
-		newE.PID = pid
-		obj := newE.applyFunction(fun, arg1.(*object.List).Elements, make(map[string]object.Object))
-		if isError(obj) {
-			err := obj.(*object.Error).Message
-			fmt.Printf("EvaluatorError: %s\n", err)
-		}
-		// Delete from concurrent map and decrement pidCount
-		ProcessMap.Remove(pid)
-	}(pid)
+	go spawnFunction(pid, fun, arg1)
 	return object.CreateBasicMapObject("pid", pid)
+}
+
+func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
+	newE := New()
+	newE.PID = pid
+	newObj := newE.applyFunction(fun, arg1.(*object.List).Elements, make(map[string]object.Object))
+	if isError(newObj) {
+		err := newObj.(*object.Error)
+		var buf bytes.Buffer
+		buf.WriteString(err.Message)
+		buf.WriteByte('\n')
+		for newE.ErrorTokens.Len() > 0 {
+			// TODO: IF we want spawned functions to have nice error tracebacks we'd have to add an arg
+			// TODO: copy of the lexer (which is potentially a large allocation)
+			// so this actually just puts the tokens out in a simpler way
+			buf.WriteString(fmt.Sprintf("%#v\n", newE.ErrorTokens.PopBack()))
+		}
+		fmt.Printf("EvaluatorError: %s\n", err)
+	}
+	// Delete from concurrent map and decrement pidCount
+	ProcessMap.Remove(pid)
 }
 
 func (e *Evaluator) evalSelfExpression(node *ast.SelfExpression) object.Object {
@@ -2585,7 +2713,6 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 		case *object.ReturnValue:
 			return result.Value
 		case *object.Error:
-			result.Token = stmt.GetToken()
 			return result
 		}
 	}

@@ -192,8 +192,30 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: strings.ToLower(s)}
 		},
 	},
+	"join": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`join` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("argument 1 to `join` should be LIST. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `join` should be STRING. got=%s", args[1].Type())
+			}
+			joiner := args[1].(*object.Stringo).Value
+			elements := args[0].(*object.List).Elements
+			strsToJoin := make([]string, len(elements))
+			for i, e := range elements {
+				if e.Type() != object.STRING_OBJ {
+					return newError("found a type that was not a STRING in `join`. found=%s", e.Type())
+				}
+				strsToJoin[i] = e.(*object.Stringo).Value
+			}
+			return &object.Stringo{Value: strings.Join(strsToJoin, joiner)}
+		},
+	},
 
-	// TODO: join (list of strings)
 	// TODO: We can probably create a solid regex object to use in the string methods
 	// "test": {
 	// 	Fun: func(args ...object.Object) object.Object {

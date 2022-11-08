@@ -1,31 +1,41 @@
 package evaluator
 
 import (
-	"blue/object"
 	"container/list"
 )
 
-type Stack struct {
+type Stack[T any] struct {
 	s *list.List
 }
 
-func NewStack() *Stack {
-	return &Stack{s: list.New()}
+func NewStack[T any]() *Stack[T] {
+	return &Stack[T]{s: list.New()}
 }
 
-func (s *Stack) Push(item *object.Object) {
+func (s *Stack[T]) Push(item T) {
 	s.s.PushFront(item)
 }
 
-func (s *Stack) Pop() *object.Object {
+func (s *Stack[T]) Pop() T {
+	var result T
 	if s.s.Len() == 0 {
-		return nil
+		return result
 	}
 	e := s.s.Front()
 	s.s.Remove(e)
-	return e.Value.(*object.Object)
+	return e.Value.(T)
 }
 
-func (s *Stack) Len() int {
+func (s *Stack[T]) PopBack() T {
+	var result T
+	if s.s.Len() == 0 {
+		return result
+	}
+	e := s.s.Back()
+	s.s.Remove(e)
+	return e.Value.(T)
+}
+
+func (s *Stack[T]) Len() int {
 	return s.s.Len()
 }

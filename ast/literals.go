@@ -19,11 +19,6 @@ type BigIntegerLiteral struct {
 // expressionNode satisfies the Expression interface
 func (bil *BigIntegerLiteral) expressionNode() {}
 
-// GetToken returns the token
-func (bil *BigIntegerLiteral) GetToken() token.Token {
-	return bil.Token
-}
-
 // TokenLiteral returns the string value of the big int
 func (bil *BigIntegerLiteral) TokenLiteral() string { return bil.Token.Literal }
 
@@ -38,11 +33,6 @@ type IntegerLiteral struct {
 
 // expressionNode satisfies the Expression interface
 func (il *IntegerLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (il *IntegerLiteral) GetToken() token.Token {
-	return il.Token
-}
 
 // TokenLiteral returns the string value of the int
 func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
@@ -65,11 +55,6 @@ type BigFloatLiteral struct {
 // expressionNode satisfies the Expression interface
 func (bfl *BigFloatLiteral) expressionNode() {}
 
-// GetToken returns the token
-func (bfl *BigFloatLiteral) GetToken() token.Token {
-	return bfl.Token
-}
-
 // TokenLiteral returns the string value of the big int
 func (bfl *BigFloatLiteral) TokenLiteral() string { return bfl.Token.Literal }
 
@@ -78,11 +63,6 @@ func (bfl *BigFloatLiteral) String() string { return bfl.Token.Literal }
 
 // expressionNode satisfies the Expression interface
 func (fl *FloatLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (fl *FloatLiteral) GetToken() token.Token {
-	return fl.Token
-}
 
 // TokenLiteral returns the string value of the float
 func (fl *FloatLiteral) TokenLiteral() string { return fl.Token.Literal }
@@ -99,11 +79,6 @@ type HexLiteral struct {
 // expressionNode satisfies the Expression interface
 func (hl *HexLiteral) expressionNode() {}
 
-// GetToken returns the token
-func (hl *HexLiteral) GetToken() token.Token {
-	return hl.Token
-}
-
 // TokenLiteral returns the string value of the hex number
 func (hl *HexLiteral) TokenLiteral() string { return hl.Token.Literal }
 
@@ -117,11 +92,6 @@ type OctalLiteral struct {
 }
 
 func (ol *OctalLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (ol *OctalLiteral) GetToken() token.Token {
-	return ol.Token
-}
 
 // TokenLiteral returns the string value of the ocatal number
 func (ol *OctalLiteral) TokenLiteral() string { return ol.Token.Literal }
@@ -137,11 +107,6 @@ type BinaryLiteral struct {
 
 // expressionNode satisfies the Expression interface
 func (bl *BinaryLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (bl *BinaryLiteral) GetToken() token.Token {
-	return bl.Token
-}
 
 // TokenLiteral returns the string value of the binary number
 func (bl *BinaryLiteral) TokenLiteral() string { return bl.Token.Literal }
@@ -160,11 +125,6 @@ type FunctionLiteral struct {
 
 // expressionNode satisfies the expression interface
 func (fl *FunctionLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (fl *FunctionLiteral) GetToken() token.Token {
-	return fl.Token
-}
 
 // TokenLiteral returns the FUNCTION token
 func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
@@ -197,11 +157,6 @@ type ExecStringLiteral struct {
 // expressionNode satisfies the expression interface
 func (esl *ExecStringLiteral) expressionNode() {}
 
-// GetToken returns the token
-func (esl *ExecStringLiteral) GetToken() token.Token {
-	return esl.Token
-}
-
 // TokenLiteral returns the backtick token
 func (esl *ExecStringLiteral) TokenLiteral() string { return esl.Token.Literal }
 
@@ -219,11 +174,6 @@ type StringLiteral struct {
 
 // expressionNode satisfies the expression interface
 func (sl *StringLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (sl *StringLiteral) GetToken() token.Token {
-	return sl.Token
-}
 
 // TokenLiteral returns the " token
 func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
@@ -249,11 +199,6 @@ type ListLiteral struct {
 
 // expressionNode satisfies the
 func (ll *ListLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (ll *ListLiteral) GetToken() token.Token {
-	return ll.Token
-}
 
 // TokenLiteral returns the [ token
 func (ll *ListLiteral) TokenLiteral() string { return ll.Token.Literal }
@@ -283,11 +228,6 @@ type ListCompLiteral struct {
 // expressionNode satisfies the expression interface
 func (lcl *ListCompLiteral) expressionNode() {}
 
-// GetToken returns the token
-func (lcl *ListCompLiteral) GetToken() token.Token {
-	return lcl.Token
-}
-
 // String returns the program to execute
 func (lcl *ListCompLiteral) String() string {
 	return lcl.NonEvaluatedProgram
@@ -307,11 +247,6 @@ type MapLiteral struct {
 
 // expressionNode satisfies the expression interface
 func (ml *MapLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (ml *MapLiteral) GetToken() token.Token {
-	return ml.Token
-}
 
 // TokenLiteral returns the { token as a string
 func (ml *MapLiteral) TokenLiteral() string { return ml.Token.Literal }
@@ -348,11 +283,6 @@ type MapCompLiteral struct {
 // expressionNode satisfies the expression interface
 func (mcl *MapCompLiteral) expressionNode() {}
 
-// GetToken returns the token
-func (mcl *MapCompLiteral) GetToken() token.Token {
-	return mcl.Token
-}
-
 // TokenLiteral returns something but mcl currently doesnt really support it
 func (mcl *MapCompLiteral) TokenLiteral() string {
 	return mcl.Token.Literal
@@ -371,11 +301,6 @@ type SetLiteral struct {
 
 // expressionNode satisfies the expression interface
 func (set *SetLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (set *SetLiteral) GetToken() token.Token {
-	return set.Token
-}
 
 // TokenLiteral prints the set token literal
 func (set *SetLiteral) TokenLiteral() string { return set.Token.Literal }
@@ -404,11 +329,6 @@ type SetCompLiteral struct {
 
 // expressionNode satisfies the expression interface
 func (scl *SetCompLiteral) expressionNode() {}
-
-// GetToken returns the token
-func (scl *SetCompLiteral) GetToken() token.Token {
-	return scl.Token
-}
 
 // TokenLiteral returns something but scl currently doesnt really support it
 func (scl *SetCompLiteral) TokenLiteral() string {
