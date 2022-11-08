@@ -46,6 +46,7 @@ func (p *Program) String() string {
 
 	for _, s := range p.Statements {
 		out.WriteString(s.String())
+		out.WriteByte('\n')
 	}
 
 	return out.String()

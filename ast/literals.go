@@ -141,9 +141,9 @@ func (fl *FunctionLiteral) String() string {
 	out.WriteString(fl.TokenLiteral())
 	out.WriteString("(")
 	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(" ) {\n\t")
+	out.WriteString(" ) { ")
 	out.WriteString(fl.Body.String())
-	out.WriteString("\n}\n")
+	out.WriteString(" } ")
 
 	return out.String()
 }

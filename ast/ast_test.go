@@ -23,7 +23,7 @@ func TestString(t *testing.T) {
 		},
 	}
 
-	if program.String() != "var myVar = anotherVar;\n" {
+	if program.String() != "var myVar = anotherVar\n" {
 		t.Errorf("program.String() wrong. got=%q", program.String())
 	}
 }
@@ -46,7 +46,7 @@ func TestString2(t *testing.T) {
 		},
 	}
 
-	if program.String() != "var myVar += anotherVar;\n" {
+	if program.String() != "var myVar += anotherVar\n" {
 		t.Errorf("program.String() wrong. got=%q", program.String())
 	}
 }

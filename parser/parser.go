@@ -325,7 +325,8 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 		return nil
 	}
 	if p.peekTokenIsAssignmentToken() {
-		// p.nextToken()
+		// nextToken used to be in the peekTokenIsAssignmentToken method which meant it would assign this to nothing
+		p.nextToken()
 		stmt.AssignmentToken = p.curToken
 	}
 
@@ -987,13 +988,14 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 
 // parseMemberAccessExpression parses a dot token to use as an index expression
 func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression {
+	dotTok := p.curToken
 	// first item needs to be a identifier
 	if p.peekTokenIs(token.IDENT) {
 		p.nextToken()
 		// create a string literal to use as a lookup for member access
 		indx := &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
 		// Token doesnt matter for this one but we need the rest
-		indxExp := &ast.IndexExpression{Left: left, Index: indx}
+		indxExp := &ast.IndexExpression{Token: dotTok, Left: left, Index: indx}
 		return indxExp
 	} else if p.peekTokenIs(token.INT) {
 		p.nextToken()
@@ -1002,7 +1004,7 @@ func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 			return nil
 		}
 		indx := &ast.IntegerLiteral{Token: p.curToken, Value: int64(i)}
-		indxExp := &ast.IndexExpression{Left: left, Index: indx}
+		indxExp := &ast.IndexExpression{Token: dotTok, Left: left, Index: indx}
 		return indxExp
 	} else {
 		p.peekError(token.INT)
@@ -1418,7 +1420,6 @@ func (p *Parser) peekTokenIsAssignmentToken() bool {
 		p.peekTokenIs(token.RSHIFTEQ) ||
 		p.peekTokenIs(token.PERCENTEQ) ||
 		p.peekTokenIs(token.XOREQ) {
-		p.nextToken()
 		return true
 	}
 	return false

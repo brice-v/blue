@@ -122,19 +122,16 @@ func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IfExpression) String() string {
 	var out bytes.Buffer
 
-	out.WriteString("if")
+	out.WriteString("if (")
 	out.WriteString(ie.Condition.String())
-	out.WriteString(" {\n\t")
-	out.WriteString(ie.Consequence.String())
-	out.WriteString("\n}")
-	if ie.Alternative == nil {
-		out.WriteString("\n")
-	}
+	out.WriteString(") { ")
+	out.WriteString(ie.Consequence.ExpressionString())
+	out.WriteString(" } ")
 
 	if ie.Alternative != nil {
-		out.WriteString("else ")
-		out.WriteString(ie.Alternative.String())
-		out.WriteString("\n")
+		out.WriteString("else { ")
+		out.WriteString(ie.Alternative.ExpressionString())
+		out.WriteString(" }")
 	}
 	return out.String()
 }
@@ -159,15 +156,14 @@ func (me *MatchExpression) String() string {
 
 	out.WriteString("match ")
 	out.WriteString(me.OptionalValue.String())
-	out.WriteString(" {\n")
+	out.WriteString(" { ")
 	for i, e := range me.Condition {
-		out.WriteString("\t")
 		out.WriteString(e.String())
-		out.WriteString(" => {")
-		out.WriteString(me.Consequence[i].String())
-		out.WriteString("},\n")
+		out.WriteString(" => { ")
+		out.WriteString(me.Consequence[i].ExpressionString())
+		out.WriteString(" }, ")
 	}
-	out.WriteString("}\n")
+	out.WriteString(" } ")
 
 	return out.String()
 }
@@ -196,17 +192,16 @@ func (ce *CallExpression) String() string {
 	}
 
 	out.WriteString(ce.Function.String())
-	out.WriteString("(")
+	out.WriteByte('(')
 	out.WriteString(strings.Join(args, ", "))
-	// TODO: Put a \n here to make the ast print nicer.  This makes tests fail though
-	out.WriteString(")")
+	out.WriteByte(')')
 
 	return out.String()
 }
 
 // IndexExpression is the ast node of an index call expression
 type IndexExpression struct {
-	Token token.Token // Token == [
+	Token token.Token // Token is [ or .
 	Left  Expression
 	Index Expression
 }
@@ -221,11 +216,22 @@ func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IndexExpression) String() string {
 	var out bytes.Buffer
 
-	out.WriteString("(")
+	isDotCall := ie.Token.Literal == "."
+
+	out.WriteByte('(')
 	out.WriteString(ie.Left.String())
-	out.WriteString("[")
-	out.WriteString(ie.Index.String())
-	out.WriteString("])")
+	if isDotCall {
+		out.WriteByte('.')
+	} else {
+		out.WriteByte('[')
+	}
+	if isDotCall {
+		out.WriteString(strings.ReplaceAll(ie.Index.String(), "'", ""))
+	} else {
+		out.WriteString(ie.Index.String())
+		out.WriteByte(']')
+	}
+	out.WriteByte(')')
 
 	return out.String()
 }
@@ -249,9 +255,9 @@ func (fe *ForExpression) String() string {
 
 	out.WriteString("for (")
 	out.WriteString(fe.Condition.String())
-	out.WriteString(") {\n\t")
-	out.WriteString(fe.Consequence.String())
-	out.WriteString("\n}\n")
+	out.WriteString(") { ")
+	out.WriteString(fe.Consequence.ExpressionString())
+	out.WriteString(" } ")
 	return out.String()
 }
 
@@ -272,9 +278,11 @@ func (ae *AssignmentExpression) TokenLiteral() string { return ae.Token.Literal 
 func (ae *AssignmentExpression) String() string {
 	var out bytes.Buffer
 
-	out.WriteString(ae.Left.String() + " ")
+	out.WriteString(ae.Left.String())
+	out.WriteByte(' ')
 	out.WriteString(ae.TokenLiteral())
-	out.WriteString(" " + ae.Value.String())
+	out.WriteByte(' ')
+	out.WriteString(ae.Value.String())
 
 	return out.String()
 }
@@ -297,7 +305,7 @@ func (ee *EvalExpression) String() string {
 
 	out.WriteString("eval(\"")
 	out.WriteString(ee.StrToEval.String())
-	out.WriteString("\");\n")
+	out.WriteString("\")")
 	return out.String()
 }
 
@@ -324,7 +332,7 @@ func (se *SpawnExpression) String() string {
 			out.WriteString(", ")
 		}
 	}
-	out.WriteString(");\n")
+	out.WriteByte(')')
 	return out.String()
 }
 
@@ -340,5 +348,5 @@ func (se *SelfExpression) TokenLiteral() string { return se.Token.Literal }
 
 // String returns the string representation of the for expression ast node
 func (se *SelfExpression) String() string {
-	return "self();"
+	return "self()"
 }

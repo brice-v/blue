@@ -59,7 +59,7 @@ func TestAllProgramsInDirectory(t *testing.T) {
 			t.Fatalf("File `%s`: evaluator returned nil", f.Name())
 		}
 		if obj.Type() == object.ERROR_OBJ {
-			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), obj)
+			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), obj.(*object.Error).Message)
 		}
 		if obj.Inspect() != "true" {
 			t.Fatalf("File `%s`: Did not return true as last statement. Failed", f.Name())

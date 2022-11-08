@@ -25,17 +25,16 @@ func (vars *VarStatement) TokenLiteral() string { return vars.Token.Literal }
 func (vars *VarStatement) String() string {
 	var out bytes.Buffer
 
-	out.WriteString(vars.TokenLiteral() + " ")
+	out.WriteString(vars.TokenLiteral())
+	out.WriteByte(' ')
 	out.WriteString(vars.Name.String())
-	out.WriteString(" ")
+	out.WriteByte(' ')
 	out.WriteString(vars.AssignmentToken.Literal)
-	out.WriteString(" ")
+	out.WriteByte(' ')
 
 	if vars.Value != nil {
 		out.WriteString(vars.Value.String())
 	}
-
-	out.WriteString(";\n")
 
 	return out.String()
 }
@@ -57,15 +56,14 @@ func (vals *ValStatement) TokenLiteral() string { return vals.Token.Literal }
 func (vals *ValStatement) String() string {
 	var out bytes.Buffer
 
-	out.WriteString(vals.TokenLiteral() + " ")
+	out.WriteString(vals.TokenLiteral())
+	out.WriteByte(' ')
 	out.WriteString(vals.Name.String())
 	out.WriteString(" = ")
 
 	if vals.Value != nil {
 		out.WriteString(vals.Value.String())
 	}
-
-	out.WriteString(";\n")
 
 	return out.String()
 }
@@ -98,11 +96,13 @@ func (fs *FunctionStatement) String() string {
 	}
 
 	out.WriteString("fun ")
-	out.WriteString(fs.Name.String() + "(")
-	out.WriteString(strings.Join(params, ", ") + ")")
-	out.WriteString(" {\n\t")
+	out.WriteString(fs.Name.String())
+	out.WriteByte('(')
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteByte(')')
+	out.WriteString(" { ")
 	out.WriteString(fs.Body.String())
-	out.WriteString("\n}\n")
+	out.WriteString(" } ")
 
 	return out.String()
 }
@@ -122,13 +122,12 @@ func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
 func (rs *ReturnStatement) String() string {
 	var out bytes.Buffer
 
-	out.WriteString(rs.TokenLiteral() + " ")
+	out.WriteString(rs.TokenLiteral())
+	out.WriteByte(' ')
 
 	if rs.ReturnValue != nil {
 		out.WriteString(rs.ReturnValue.String())
 	}
-
-	out.WriteString(";")
 
 	return out.String()
 }
@@ -152,19 +151,17 @@ func (tcs *TryCatchStatement) TokenLiteral() string { return tcs.Token.Literal }
 func (tcs *TryCatchStatement) String() string {
 	var out bytes.Buffer
 
-	out.WriteString("try {\n\t")
-	out.WriteString(tcs.TryBlock.String())
-	out.WriteString("\n} catch (")
+	out.WriteString("try { ")
+	out.WriteString(tcs.TryBlock.ExpressionString())
+	out.WriteString(" } catch (")
 	out.WriteString(tcs.CatchIdentifier.Value)
-	out.WriteString(") {\n\t")
-	out.WriteString(tcs.CatchBlock.String())
-	out.WriteString("\n}")
+	out.WriteString(") { ")
+	out.WriteString(tcs.CatchBlock.ExpressionString())
+	out.WriteString(" } ")
 	if tcs.FinallyBlock != nil {
-		out.WriteString(" finally {\n\t")
-		out.WriteString(tcs.FinallyBlock.String())
-		out.WriteString("\n}\n")
-	} else {
-		out.WriteByte('\n')
+		out.WriteString(" finally { ")
+		out.WriteString(tcs.FinallyBlock.ExpressionString())
+		out.WriteString(" } ")
 	}
 
 	return out.String()
@@ -208,6 +205,22 @@ func (bs *BlockStatement) String() string {
 
 	for _, s := range bs.Statements {
 		out.WriteString(s.String())
+		out.WriteByte('\n')
+	}
+	return out.String()
+}
+
+// ExpressionString returns the BlockStatement string without any newlines to be used by other AST Nodes
+func (bs *BlockStatement) ExpressionString() string {
+	var out bytes.Buffer
+
+	for i, s := range bs.Statements {
+		out.WriteString(s.String())
+		// We use the semicolon here to make it clear how its being broken up (all other areas should not be using the ;)
+		out.WriteByte(';')
+		if i+1 != len(bs.Statements) {
+			out.WriteString(", ")
+		}
 	}
 	return out.String()
 }
@@ -241,7 +254,7 @@ func (bks *BreakStatement) TokenLiteral() string { return bks.Token.Literal }
 
 // String returns the string representation of the break literal ast node
 func (bks *BreakStatement) String() string {
-	return bks.TokenLiteral() + ";"
+	return bks.TokenLiteral()
 }
 
 type ContinueStatement struct {
@@ -256,5 +269,5 @@ func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
 
 // String returns the string representation of the continue literal ast node
 func (cs *ContinueStatement) String() string {
-	return cs.TokenLiteral() + ";"
+	return cs.TokenLiteral()
 }
