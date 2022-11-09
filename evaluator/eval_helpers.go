@@ -692,3 +692,128 @@ func createUIButtonBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 		},
 	}
 }
+
+func createUICheckBoxBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`check_box` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `check_box` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.FUNCTION_OBJ {
+				return newError("argument 2 to `check_box` should be FUNCTION. got=%s", args[1].Type())
+			}
+			lbl := args[0].(*object.Stringo).Value
+			fn := args[1].(*object.Function)
+			if len(fn.Parameters) != 1 {
+				return newError("`check_box` error: handler needs 1 argument. got=%d", len(fn.Parameters))
+			}
+			checkBox := widget.NewCheck(lbl, func(value bool) {
+				obj := e.applyFunction(fn, []object.Object{&object.Boolean{Value: value}}, make(map[string]object.Object))
+				if isError(obj) {
+					err := obj.(*object.Error)
+					var buf bytes.Buffer
+					buf.WriteString(err.Message)
+					buf.WriteByte('\n')
+					for e.ErrorTokens.Len() > 0 {
+						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+					}
+					fmt.Printf("EvaluatorError: `check_box` handler error: %s\n", err)
+				}
+			})
+			checkBoxId := uiCanvasObjectCount.Add(1)
+			UICanvasObjectMap.Put(checkBoxId, checkBox)
+			return object.CreateBasicMapObject("ui/check", checkBoxId)
+		},
+	}
+}
+
+func createUIRadioBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`radio_group` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("argument 1 to `radio_group` should be LIST. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.FUNCTION_OBJ {
+				return newError("argument 2 to `radio_group` should be FUNCTION. got=%s", args[1].Type())
+			}
+			elems := args[0].(*object.List).Elements
+			fn := args[1].(*object.Function)
+			options := make([]string, len(elems))
+			for i, e := range elems {
+				if e.Type() != object.STRING_OBJ {
+					return newError("`radio_group` error: all elements in list should be STRING. found=%s", e.Type())
+				}
+				options[i] = e.(*object.Stringo).Value
+			}
+			if len(fn.Parameters) != 1 {
+				return newError("`radio_group` error: handler needs 1 argument. got=%d", len(fn.Parameters))
+			}
+			radio := widget.NewRadioGroup(options, func(value string) {
+				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object))
+				if isError(obj) {
+					err := obj.(*object.Error)
+					var buf bytes.Buffer
+					buf.WriteString(err.Message)
+					buf.WriteByte('\n')
+					for e.ErrorTokens.Len() > 0 {
+						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+					}
+					fmt.Printf("EvaluatorError: `radio_group` handler error: %s\n", err)
+				}
+			})
+			radioId := uiCanvasObjectCount.Add(1)
+			UICanvasObjectMap.Put(radioId, radio)
+			return object.CreateBasicMapObject("ui/radio", radioId)
+		},
+	}
+}
+
+func createUIOptionSelectBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`option_select` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("argument 1 to `option_select` should be LIST. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.FUNCTION_OBJ {
+				return newError("argument 2 to `option_select` should be FUNCTION. got=%s", args[1].Type())
+			}
+			elems := args[0].(*object.List).Elements
+			fn := args[1].(*object.Function)
+			options := make([]string, len(elems))
+			for i, e := range elems {
+				if e.Type() != object.STRING_OBJ {
+					return newError("`option_select` error: all elements in list should be STRING. found=%s", e.Type())
+				}
+				options[i] = e.(*object.Stringo).Value
+			}
+			if len(fn.Parameters) != 1 {
+				return newError("`option_select` error: handler needs 1 argument. got=%d", len(fn.Parameters))
+			}
+			option := widget.NewSelect(options, func(value string) {
+				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object))
+				if isError(obj) {
+					err := obj.(*object.Error)
+					var buf bytes.Buffer
+					buf.WriteString(err.Message)
+					buf.WriteByte('\n')
+					for e.ErrorTokens.Len() > 0 {
+						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+					}
+					fmt.Printf("EvaluatorError: `option_select` handler error: %s\n", err)
+				}
+			})
+			optionId := uiCanvasObjectCount.Add(1)
+			UICanvasObjectMap.Put(optionId, option)
+			return object.CreateBasicMapObject("ui/option", optionId)
+		},
+	}
+}

@@ -7,6 +7,9 @@ val label = _label;
 val button = _button;
 val entry = _entry;
 val entry_get_text = _entry_get_text;
+val checkbox = _check_box;
+val radio_group = _radio_group;
+val option_select = _option_select;
 
 fun window(width=400, height=400, title="blue ui window", content) {
     return match content {
