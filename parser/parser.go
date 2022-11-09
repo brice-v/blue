@@ -898,8 +898,7 @@ func (p *Parser) parseListLiteral() ast.Expression {
 // parseSetLiteral tries to parse and return a Set Literal ast node
 func (p *Parser) parseSetLiteral(firstTok token.Token, firstExp ast.Expression) ast.Expression {
 	exp := &ast.SetLiteral{Token: firstTok}
-	exp.Elements = make([]ast.Expression, 0, 1)
-	exp.Elements = append(exp.Elements, firstExp)
+	exp.Elements = []ast.Expression{firstExp}
 	if !p.expectPeekIs(token.COMMA) {
 		return nil
 	}
@@ -1064,8 +1063,8 @@ func (p *Parser) parseAssignmentExpression(exp ast.Expression) ast.Expression {
 
 func (p *Parser) parseMatchExpression() ast.Expression {
 	me := &ast.MatchExpression{Token: p.curToken,
-		Condition:   make([]ast.Expression, 0),
-		Consequence: make([]*ast.BlockStatement, 0),
+		Condition:   []ast.Expression{},
+		Consequence: []*ast.BlockStatement{},
 	}
 	if !p.peekTokenIs(token.LBRACE) {
 		// Skip over the `match` statement to the value to bind
@@ -1187,7 +1186,6 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 }
 
 func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expression {
-	exps := make([]ast.Expression, 0, 1)
 	// Skip over the for
 	p.nextToken()
 	// current token is for, expect next to be lparen
@@ -1220,8 +1218,7 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 	if !p.expectPeekIs(token.RBRACKET) {
 		return nil
 	}
-	exps = append(exps, &ast.ListCompLiteral{NonEvaluatedProgram: program})
-	return exps
+	return []ast.Expression{&ast.ListCompLiteral{NonEvaluatedProgram: program}}
 }
 
 func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expression) ast.Expression {

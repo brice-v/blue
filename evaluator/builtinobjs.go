@@ -54,11 +54,11 @@ func populateENVObj() *object.Map {
 
 func populateARGVObj() *object.List {
 	l := &object.List{
-		Elements: make([]object.Object, 0),
+		Elements: make([]object.Object, len(os.Args)),
 	}
-	for _, e := range os.Args {
+	for i, e := range os.Args {
 		value := &object.Stringo{Value: e}
-		l.Elements = append(l.Elements, value)
+		l.Elements[i] = value
 	}
 	return l
 }

@@ -32,7 +32,6 @@ func unwrapReturnValue(obj object.Object) object.Object {
 }
 
 // for now everything that is not null or false returns true
-// TODO: Update this list to include non truthy for empty objects, lists, etc.
 func isTruthy(obj object.Object) bool {
 	switch obj {
 	case NULL:
@@ -42,6 +41,15 @@ func isTruthy(obj object.Object) bool {
 	case FALSE:
 		return false
 	default:
+		if obj.Type() == object.MAP_OBJ {
+			return len(obj.(*object.Map).Pairs.Keys) > 0
+		}
+		if obj.Type() == object.LIST_OBJ {
+			return len(obj.(*object.List).Elements) > 0
+		}
+		if obj.Type() == object.SET_OBJ {
+			return len(obj.(*object.Set).Elements.Keys) > 0
+		}
 		return true
 	}
 }
@@ -71,7 +79,7 @@ func ExecStringCommand(str string) object.Object {
 		}
 		return &object.Stringo{Value: string(output[:])}
 	}
-	cleanedStrings := make([]string, 0)
+	cleanedStrings := []string{}
 	for _, v := range splitStr {
 		if v != "" {
 			cleanedStrings = append(cleanedStrings, v)
@@ -280,7 +288,7 @@ func (e *Evaluator) EvalString(s string) (object.Object, error) {
 
 func MakeEmptyList() object.Object {
 	return &object.List{
-		Elements: make([]object.Object, 0),
+		Elements: []object.Object{},
 	}
 }
 

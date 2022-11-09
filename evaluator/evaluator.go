@@ -504,14 +504,20 @@ func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Ob
 		// Need to remove the catch identifier after evaluating the catch block
 		e.env.RemoveIdentifier(node.CatchIdentifier.Value)
 		if node.FinallyBlock != nil {
-			// TODO: Need to figure out the order of returns in case of errors in catch or finally block
-			e.Eval(node.FinallyBlock)
+			obj := e.Eval(node.FinallyBlock)
+			if isError(obj) {
+				e.ErrorTokens.Push(node.Token)
+				return obj
+			}
 		}
 		return evaldCatch
 	}
 	if node.FinallyBlock != nil {
-		// TODO: Need to figure out the order of returns in case of errors in catch or finally block
-		e.Eval(node.FinallyBlock)
+		obj := e.Eval(node.FinallyBlock)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+			return obj
+		}
 	}
 	return evald
 }
@@ -746,6 +752,16 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 	if isError(evaluatedRight) {
 		return evaluatedRight
 	}
+	_, identExists := e.env.Get(ident.Value)
+	// IF the iterCount is -1 and this item exists then we fallback to regular evalInfixExpression code
+	if e.nestLevel == -1 && identExists {
+		evaluatedLeft := e.Eval(ident)
+		if isError(evaluatedLeft) {
+			return evaluatedLeft
+		}
+		return e.evalInfixExpression("in", evaluatedLeft, evaluatedRight)
+	}
+
 	if evaluatedRight.Type() == object.LIST_OBJ {
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
@@ -782,12 +798,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		return TRUE
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		// This is where we handle if its a Map
-		// TODO: We need to get the key as a string/number/boolean instead of hashkey, maybe their could be some lookup method
-
-		// Right now we are actually using a list of the pair when the left side is an ident
-		// but we can probably allow the user to use a list, that destructures to 2 idents
-		// or we will need a new ast expression for multiple ident assignments
-		// TODO: This is where we can modify if we want to only use keys
 		mapPairs := evaluatedRight.(*object.Map).Pairs
 		if mapPairs.Len() == 0 {
 			return FALSE
@@ -795,11 +805,11 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		if mapPairs.Len() == 1 {
 			e.oneElementForIn = true
 		}
-		pairObjs := make([]*object.List, 0, mapPairs.Len())
-		for _, k := range mapPairs.Keys {
+		pairObjs := make([]*object.List, mapPairs.Len())
+		for i, k := range mapPairs.Keys {
 			pair, _ := mapPairs.Get(k)
 			listObj := []object.Object{pair.Key, pair.Value}
-			pairObjs = append(pairObjs, &object.List{Elements: listObj})
+			pairObjs[i] = &object.List{Elements: listObj}
 		}
 		_, ok := e.env.Get(ident.Value)
 		if !ok {
@@ -836,9 +846,9 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		if len(chars) == 1 {
 			e.oneElementForIn = true
 		}
-		stringObjs := make([]*object.Stringo, 0, len(chars))
-		for _, ch := range chars {
-			stringObjs = append(stringObjs, &object.Stringo{Value: string(ch)})
+		stringObjs := make([]*object.Stringo, len(chars))
+		for i, ch := range chars {
+			stringObjs[i] = &object.Stringo{Value: string(ch)}
 		}
 		_, ok := e.env.Get(ident.Value)
 		if !ok {
@@ -865,8 +875,60 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			return FALSE
 		}
 		return TRUE
+	} else if evaluatedRight.Type() == object.SET_OBJ {
+		// This is where we handle if its a set
+		set := evaluatedRight.(*object.Set).Elements
+		if set.Len() == 0 {
+			return FALSE
+		}
+		if set.Len() == 1 {
+			e.oneElementForIn = true
+		}
+		_, ok := e.env.Get(ident.Value)
+		if !ok {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			var val object.Object
+			for i, k := range set.Keys {
+				if i == e.iterCount[e.nestLevel] {
+					sp, _ := set.Get(k)
+					if sp.Present {
+						val = sp.Value
+					}
+				}
+			}
+			e.env.Set(ident.Value, val)
+			e.iterCount[e.nestLevel]++
+			if set.Len() == e.iterCount[e.nestLevel] {
+				// Reset iteration for other items
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[ident.Value] = true
+				return FALSE
+			}
+			return TRUE
+		}
+		var val object.Object
+		for i, k := range set.Keys {
+			if i == e.iterCount[e.nestLevel] {
+				sp, _ := set.Get(k)
+				if sp.Present {
+					val = sp.Value
+				}
+			}
+		}
+		e.env.Set(ident.Value, val)
+		e.iterCount[e.nestLevel]++
+		if set.Len() == e.iterCount[e.nestLevel] {
+			// Reset iteration for other items
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[ident.Value] = true
+			return FALSE
+		}
+		return TRUE
 	}
-	return newError("Expected List, Map, or String on right hand side. got=%s", evaluatedRight.Type())
+	return newError("Expected List, Map, Set, or String on right hand side. got=%s", evaluatedRight.Type())
 }
 
 func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWithIdents *ast.ListLiteral) object.Object {
@@ -930,11 +992,11 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		if mapPairs.Len() == 1 {
 			e.oneElementForIn = true
 		}
-		pairObjs := make([]*object.List, 0, mapPairs.Len())
-		for _, k := range mapPairs.Keys {
+		pairObjs := make([]*object.List, mapPairs.Len())
+		for i, k := range mapPairs.Keys {
 			pair, _ := mapPairs.Get(k)
 			listObj := []object.Object{pair.Key, pair.Value}
-			pairObjs = append(pairObjs, &object.List{Elements: listObj})
+			pairObjs[i] = &object.List{Elements: listObj}
 		}
 		_, ok := e.env.Get(identRight.Value)
 		if !ok {
@@ -975,9 +1037,9 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		if len(chars) == 1 {
 			e.oneElementForIn = true
 		}
-		stringObjs := make([]*object.Stringo, 0, len(chars))
-		for _, ch := range chars {
-			stringObjs = append(stringObjs, &object.Stringo{Value: string(ch)})
+		stringObjs := make([]*object.Stringo, len(chars))
+		for i, ch := range chars {
+			stringObjs[i] = &object.Stringo{Value: string(ch)}
 		}
 		_, ok := e.env.Get(identRight.Value)
 		if !ok {
@@ -1008,8 +1070,64 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			return FALSE
 		}
 		return TRUE
+	} else if evaluatedRight.Type() == object.SET_OBJ {
+		// This is where we handle if its a set
+		set := evaluatedRight.(*object.Set).Elements
+		if set.Len() == 0 {
+			return FALSE
+		}
+		if set.Len() == 1 {
+			e.oneElementForIn = true
+		}
+		_, ok := e.env.Get(identRight.Value)
+		if !ok {
+			e.iterCount = append(e.iterCount, 0)
+			e.nestLevel++
+			e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
+			var val object.Object
+			for i, k := range set.Keys {
+				if i == e.iterCount[e.nestLevel] {
+					sp, _ := set.Get(k)
+					if sp.Present {
+						val = sp.Value
+					}
+				}
+			}
+			e.env.Set(identRight.Value, val)
+			e.iterCount[e.nestLevel]++
+			if set.Len() == e.iterCount[e.nestLevel] {
+				// Reset iteration for other items
+				e.iterCount[e.nestLevel] = 0
+				e.nestLevel--
+				e.cleanupTmpVar[identLeft.Value] = true
+				e.cleanupTmpVar[identRight.Value] = true
+				return FALSE
+			}
+			return TRUE
+		}
+		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
+		var val object.Object
+		for i, k := range set.Keys {
+			if i == e.iterCount[e.nestLevel] {
+				sp, _ := set.Get(k)
+				if sp.Present {
+					val = sp.Value
+				}
+			}
+		}
+		e.env.Set(identRight.Value, val)
+		e.iterCount[e.nestLevel]++
+		if set.Len() == e.iterCount[e.nestLevel] {
+			// Reset iteration for other items
+			e.iterCount[e.nestLevel] = 0
+			e.nestLevel--
+			e.cleanupTmpVar[identLeft.Value] = true
+			e.cleanupTmpVar[identRight.Value] = true
+			return FALSE
+		}
+		return TRUE
 	}
-	return newError("Expected List, Map, or String on right hand side. got=%s", evaluatedRight.Type())
+	return newError("Expected List, Map, Set, or String on right hand side. got=%s", evaluatedRight.Type())
 }
 
 func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
@@ -1385,7 +1503,6 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 	case left.Type() == object.STRING_OBJ:
 		return e.evalStringIndexExpression(left, indx)
 	default:
-		// TODO: Support all other index expressions, such as member lookup and hash literals, sets, etc.
 		return newError("index operator not supported: %s", left.Type())
 	}
 }
@@ -1480,9 +1597,7 @@ func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Obj
 	}
 	max := int64(len(listObj.Elements) - 1)
 	if idx < 0 || idx > max {
-		// TODO: possibly support -1 to get last element and negative numbers to go in reverse lookup of the list
-		// This would make the code below a bit more complex but still fairly easy to implement
-		return NULL
+		return newError("index out of bounds: length=%d, index=%d", len(listObj.Elements), idx)
 	}
 	return listObj.Elements[idx]
 }
@@ -1509,9 +1624,7 @@ func (e *Evaluator) evalStringIndexExpression(str, indx object.Object) object.Ob
 	}
 	max := int64(runeLen(strObj.Value) - 1)
 	if idx < 0 || idx > max {
-		// TODO: possibly support -1 to get last element and negative numbers to go in reverse lookup of the list
-		// This would make the code below a bit more complex but still fairly easy to implement
-		return NULL
+		return newError("index out of bounds: length=%d, index=%d", runeLen(strObj.Value), idx)
 	}
 	return &object.Stringo{Value: string([]rune(strObj.Value)[idx])}
 }
@@ -1594,8 +1707,6 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 }
 
 func (e *Evaluator) evalInfixExpression(operator string, left, right object.Object) object.Object {
-	// TODO: implement these similar to how list is set up with one type checked on one side
-	// and then check all the other sides in the next eval function
 	switch {
 	// These are the cases where they are the same type
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -1643,7 +1754,6 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		switch operator {
 		case "+":
 			newList := make([]object.Object, 0, leftSize+rightSize)
-			// TODO: Consider using copy in cases like this, if its more efficient, need to measure
 			newList = append(newList, leftElements...)
 			newList = append(newList, rightElements...)
 			return &object.List{Elements: newList}
@@ -1683,8 +1793,6 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		return e.evalIntegerFloatInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
 		return e.evalIntegerUintegerInfixExpression(operator, left, right)
-	case right.Type() == object.INTEGER_OBJ && left.Type() == object.FLOAT_OBJ:
-		return e.evalIntegerFloatInfixExpression(operator, right, left)
 	case right.Type() == object.INTEGER_OBJ && left.Type() == object.UINTEGER_OBJ:
 		return e.evalIntegerUintegerInfixExpression(operator, right, left)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -1963,7 +2071,38 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		default:
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
-	// TODO: Do we want to support, BigFloat, BigInt, in sets
+	case object.BIG_FLOAT_OBJ:
+		bigFloat := object.HashObject(left.(*object.BigFloat))
+		switch operator {
+		case "in":
+			if _, ok := setElems.Get(bigFloat); ok {
+				return TRUE
+			}
+			return FALSE
+		case "notin":
+			if _, ok := setElems.Get(bigFloat); ok {
+				return FALSE
+			}
+			return TRUE
+		default:
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		}
+	case object.BIG_INTEGER_OBJ:
+		bigInt := object.HashObject(left.(*object.BigInteger))
+		switch operator {
+		case "in":
+			if _, ok := setElems.Get(bigInt); ok {
+				return TRUE
+			}
+			return FALSE
+		case "notin":
+			if _, ok := setElems.Get(bigInt); ok {
+				return FALSE
+			}
+			return TRUE
+		default:
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		}
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -2596,9 +2735,7 @@ func (e *Evaluator) evalIntegerRange(leftVal, rightVal int64) object.Object {
 		return &object.List{Elements: listElems}
 	}
 	// When they are equal just return a value (leftVal in this case)
-	listElems := make([]object.Object, 0, 1)
-	listElems = append(listElems, &object.Integer{Value: leftVal})
-	return &object.List{Elements: listElems}
+	return &object.List{Elements: []object.Object{&object.Integer{Value: leftVal}}}
 }
 
 func (e *Evaluator) evalIntegerNonIncRange(leftVal, rightVal int64) object.Object {

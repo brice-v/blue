@@ -614,7 +614,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					colPtrs[i] = &cols[i]
 				}
 				returnList := &object.List{
-					Elements: make([]object.Object, 0),
+					Elements: []object.Object{},
 				}
 				for rows.Next() {
 					err = rows.Scan(colPtrs...)

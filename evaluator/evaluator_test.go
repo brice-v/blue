@@ -509,7 +509,7 @@ func TestArrayIndexExpressions(t *testing.T) {
 		},
 		{
 			"[1, 2, 3][-1]",
-			nil,
+			&object.Error{Message: "index out of bounds: length=3, index=-1"},
 		},
 		{
 			"val myArray = [1, 2, 3]; val i = 1; myArray.i",
@@ -522,10 +522,12 @@ func TestArrayIndexExpressions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
-		integer, ok := tt.expected.(int)
-		if ok {
-			testIntegerObject(t, evaluated, int64(integer))
-		} else {
+		switch obj := tt.expected.(type) {
+		case int:
+			testIntegerObject(t, evaluated, int64(obj))
+		case *object.Error:
+			testErrorObject(t, evaluated, tt.expected.(*object.Error).Message)
+		default:
 			testNullObject(t, evaluated)
 		}
 	}
@@ -691,6 +693,21 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 
 	if result.Value != expected {
 		t.Errorf("object has wrong value. got=%d want=%d", result.Value, expected)
+		return false
+	}
+
+	return true
+}
+
+func testErrorObject(t *testing.T, obj object.Object, expected string) bool {
+	result, ok := obj.(*object.Error)
+	if !ok {
+		t.Errorf("obj is not *object.Error. got=%T", obj)
+		return false
+	}
+
+	if result.Message != expected {
+		t.Errorf("object has wrong value. got=%s want=%s", result.Message, expected)
 		return false
 	}
 

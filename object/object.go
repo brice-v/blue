@@ -583,6 +583,18 @@ func HashObject(obj Object) uint64 {
 		h.Write(b)
 	case BYTES_OBJ:
 		h.Write(obj.(*Bytes).Value)
+	case BIG_FLOAT_OBJ:
+		bs, err := obj.(*BigFloat).Value.GobEncode()
+		if err != nil {
+			panic("big float hash failed " + err.Error())
+		}
+		h.Write(bs)
+	case BIG_INTEGER_OBJ:
+		bs, err := obj.(*BigInteger).Value.GobEncode()
+		if err != nil {
+			panic("big int hash failed " + err.Error())
+		}
+		h.Write(bs)
 	default:
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)
