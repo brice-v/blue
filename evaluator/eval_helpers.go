@@ -658,10 +658,19 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 					}
 				}
 				returnObj = e.applyFunction(fn, fnArgs, make(map[string]object.Object))
-				log.Printf("`handle_ws` returned with %#v", returnObj)
-				// TODO: On error what can we do?
+				if isError(returnObj) {
+					var buf bytes.Buffer
+					buf.WriteString(returnObj.(*object.Error).Message)
+					buf.WriteByte('\n')
+					for e.ErrorTokens.Len() > 0 {
+						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+					}
+					fmt.Printf("EvaluatorError: `handle_ws` returnerror: %s\n", buf.String())
+				} else {
+					log.Printf("`handle_ws` returned with %#v", returnObj)
+				}
 			}))
-			// TODO: Does the return obj above get returned here?
+			// Always returns NULL here
 			return returnObj
 		},
 	}
@@ -692,7 +701,7 @@ func createUIButtonBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 					for e.ErrorTokens.Len() > 0 {
 						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
 					}
-					fmt.Printf("EvaluatorError: `button` click handler error: %s\n", err)
+					fmt.Printf("EvaluatorError: `button` click handler error: %s\n", buf.String())
 				}
 			})
 			UICanvasObjectMap.Put(buttonId, button)
@@ -728,7 +737,7 @@ func createUICheckBoxBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 					for e.ErrorTokens.Len() > 0 {
 						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
 					}
-					fmt.Printf("EvaluatorError: `check_box` handler error: %s\n", err)
+					fmt.Printf("EvaluatorError: `check_box` handler error: %s\n", buf.String())
 				}
 			})
 			checkBoxId := uiCanvasObjectCount.Add(1)
@@ -772,7 +781,7 @@ func createUIRadioBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 					for e.ErrorTokens.Len() > 0 {
 						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
 					}
-					fmt.Printf("EvaluatorError: `radio_group` handler error: %s\n", err)
+					fmt.Printf("EvaluatorError: `radio_group` handler error: %s\n", buf.String())
 				}
 			})
 			radioId := uiCanvasObjectCount.Add(1)
@@ -816,7 +825,7 @@ func createUIOptionSelectBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 					for e.ErrorTokens.Len() > 0 {
 						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
 					}
-					fmt.Printf("EvaluatorError: `option_select` handler error: %s\n", err)
+					fmt.Printf("EvaluatorError: `option_select` handler error: %s\n", buf.String())
 				}
 			})
 			optionId := uiCanvasObjectCount.Add(1)
@@ -878,7 +887,7 @@ func createUIFormBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 						for e.ErrorTokens.Len() > 0 {
 							buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
 						}
-						fmt.Printf("EvaluatorError: `form` on_submit error: %s\n", err)
+						fmt.Printf("EvaluatorError: `form` on_submit error: %s\n", buf.String())
 					}
 				},
 			}
