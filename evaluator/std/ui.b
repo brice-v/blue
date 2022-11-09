@@ -64,11 +64,9 @@ fun entry(is_multiline=false) {
 }
 
 fun form(children=[], on_submit) {
-    println("children = #{children}")
     for (child in children) {
         match child {
             {'label': _, 'elem': _} => {
-                println("elem = #{child.elem}");
                 if ("ui" notin child.elem.t) {
                     return error("`form` children elements should all be {t: '*ui*', v: _}. got=`#{child.elem}`")
                 }
