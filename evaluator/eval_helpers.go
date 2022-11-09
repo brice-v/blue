@@ -817,3 +817,66 @@ func createUIOptionSelectBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 		},
 	}
 }
+
+func createUIFormBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`form` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("argument 1 to `form` should be LIST. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.LIST_OBJ {
+				return newError("argument 2 to `form` should be LIST. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.FUNCTION_OBJ {
+				return newError("argument 3 to `form` should be FUNCTION. got=%s", args[2].Type())
+			}
+			var formItems []*widget.FormItem
+			labels := args[0].(*object.List).Elements
+			widgetIds := args[1].(*object.List).Elements
+			if len(labels) != len(widgetIds) {
+				return newError("`form` error: labels and widget ids must be the same length. len(labels)=%d, len(widgetIds)=%d", len(labels), len(widgetIds))
+			}
+			fn := args[2].(*object.Function)
+			for i := 0; i < len(labels); i++ {
+				if labels[i].Type() != object.STRING_OBJ {
+					return newError("`form` error: labels were not all STRINGs. found=%s", labels[i].Type())
+				}
+				if widgetIds[i].Type() != object.UINTEGER_OBJ {
+					return newError("`form` error: widgetIds were not all UINTEGERs. found=%s", widgetIds[i].Type())
+				}
+				w, ok := UICanvasObjectMap.Get(widgetIds[i].(*object.UInteger).Value)
+				if !ok {
+					return newError("`form` error: widget not found")
+				}
+				formItem := &widget.FormItem{
+					Text: labels[i].(*object.Stringo).Value, Widget: w,
+				}
+
+				formItems = append(formItems, formItem)
+			}
+
+			form := &widget.Form{
+				Items: formItems,
+				OnSubmit: func() {
+					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object))
+					if isError(obj) {
+						err := obj.(*object.Error)
+						var buf bytes.Buffer
+						buf.WriteString(err.Message)
+						buf.WriteByte('\n')
+						for e.ErrorTokens.Len() > 0 {
+							buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+						}
+						fmt.Printf("EvaluatorError: `form` on_submit error: %s\n", err)
+					}
+				},
+			}
+			formId := uiCanvasObjectCount.Add(1)
+			UICanvasObjectMap.Put(formId, form)
+			return object.CreateBasicMapObject("ui", formId)
+		},
+	}
+}

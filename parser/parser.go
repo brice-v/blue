@@ -250,7 +250,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 		tok = lcpy.NextToken()
 		if tok.Type == token.ILLEGAL {
 			errorLine := p.l.GetErrorLineMessage(tok)
-			msg := fmt.Sprintf("%s token encountered. got=%s\n%s", tok.Type, tok.Literal, errorLine)
+			msg := fmt.Sprintf("%s token encountered. got=%q\n%s", tok.Type, tok.Literal, errorLine)
 			p.errors = append(p.errors, msg)
 			return nil
 		}
@@ -1363,7 +1363,7 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 				tok = lcpy.NextToken()
 				if tok.Type == token.ILLEGAL {
 					errorLine := p.l.GetErrorLineMessage(tok)
-					msg := fmt.Sprintf("%s token encountered. got=%s\n%s", tok.Type, tok.Literal, errorLine)
+					msg := fmt.Sprintf("%s token encountered. got=%q\n%s", tok.Type, tok.Literal, errorLine)
 					p.errors = append(p.errors, msg)
 				}
 				if tok.Type == token.EOF {

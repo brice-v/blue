@@ -75,7 +75,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			length := len(l.Elements)
 			if length > 0 {
 				// NOTE: This is an efficient way of copying slices/lists so use elsewhere
-				newElements := make([]object.Object, length-1, length-1)
+				newElements := make([]object.Object, length-1)
 				copy(newElements, l.Elements[1:length])
 				return &object.List{Elements: newElements}
 			}
@@ -93,7 +93,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			l := args[0].(*object.List)
 			length := len(l.Elements)
 			// NOTE: This is an efficient way of appending but probably could just append onto the list
-			newElements := make([]object.Object, length+1, length+1)
+			newElements := make([]object.Object, length+1)
 			copy(newElements, l.Elements)
 			newElements[length] = args[1]
 			return &object.List{Elements: newElements}

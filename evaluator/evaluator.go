@@ -65,9 +65,10 @@ type Evaluator struct {
 	ErrorTokens *Stack[token.Token]
 
 	// Used for: indx, elem in for expression
-	nestLevel     int
-	iterCount     []int
-	cleanupTmpVar map[string]bool
+	nestLevel       int
+	iterCount       []int
+	cleanupTmpVar   map[string]bool
+	oneElementForIn bool
 
 	isInScopeBlock bool
 	scopeNestLevel int
@@ -96,9 +97,10 @@ func New() *Evaluator {
 
 		ErrorTokens: NewStack[token.Token](),
 
-		nestLevel:     -1,
-		iterCount:     []int{},
-		cleanupTmpVar: make(map[string]bool),
+		nestLevel:       -1,
+		iterCount:       []int{},
+		cleanupTmpVar:   make(map[string]bool),
+		oneElementForIn: false,
 
 		isInScopeBlock: false,
 		scopeNestLevel: 0,
@@ -122,6 +124,7 @@ func New() *Evaluator {
 	_ui_builtin_map.Put("_check_box", createUICheckBoxBuiltinWithEvaluator(e))
 	_ui_builtin_map.Put("_radio_group", createUIRadioBuiltinWithEvaluator(e))
 	_ui_builtin_map.Put("_option_select", createUIOptionSelectBuiltinWithEvaluator(e))
+	_ui_builtin_map.Put("_form", createUIFormBuiltinWithEvaluator(e))
 
 	return e
 }
@@ -749,6 +752,9 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		if len(list) == 0 {
 			return FALSE
 		}
+		if len(list) == 1 {
+			e.oneElementForIn = true
+		}
 		_, ok := e.env.Get(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
@@ -785,6 +791,9 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		mapPairs := evaluatedRight.(*object.Map).Pairs
 		if mapPairs.Len() == 0 {
 			return FALSE
+		}
+		if mapPairs.Len() == 1 {
+			e.oneElementForIn = true
 		}
 		pairObjs := make([]*object.List, 0, mapPairs.Len())
 		for _, k := range mapPairs.Keys {
@@ -823,6 +832,9 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		chars := []rune(strVal)
 		if len(chars) == 0 {
 			return FALSE
+		}
+		if len(chars) == 1 {
+			e.oneElementForIn = true
 		}
 		stringObjs := make([]*object.Stringo, 0, len(chars))
 		for _, ch := range chars {
@@ -875,6 +887,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 	if evaluatedRight.Type() == object.LIST_OBJ {
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
+		if len(list) == 0 {
+			return FALSE
+		}
+		if len(list) == 1 {
+			e.oneElementForIn = true
+		}
 		_, ok := e.env.Get(identRight.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
@@ -906,6 +924,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		return TRUE
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		mapPairs := evaluatedRight.(*object.Map).Pairs
+		if mapPairs.Len() == 0 {
+			return FALSE
+		}
+		if mapPairs.Len() == 1 {
+			e.oneElementForIn = true
+		}
 		pairObjs := make([]*object.List, 0, mapPairs.Len())
 		for _, k := range mapPairs.Keys {
 			pair, _ := mapPairs.Get(k)
@@ -945,6 +969,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		// This is where we handle if its a string
 		strVal := evaluatedRight.(*object.Stringo).Value
 		chars := []byte(strVal)
+		if len(chars) == 0 {
+			return FALSE
+		}
+		if len(chars) == 1 {
+			e.oneElementForIn = true
+		}
 		stringObjs := make([]*object.Stringo, 0, len(chars))
 		for _, ch := range chars {
 			stringObjs = append(stringObjs, &object.Stringo{Value: string(ch)})
@@ -1001,12 +1031,14 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 			return evalCond
 		}
 		ok := evalCond.(*object.Boolean).Value
-		if !ok && firstRun {
+		// If theres one element on the right hand side of a for in list expression then we dont want to return early
+		if !e.oneElementForIn && !ok && firstRun {
 			// If the condition is FALSE to begin with we need to return early
 			// The evaluated block may not be valid in that case (ie. a list could be empty)
 			return NULL
 		}
 		firstRun = false
+		e.oneElementForIn = false
 		evalBlock = e.Eval(node.Consequence)
 		if isError(evalBlock) {
 			return evalBlock

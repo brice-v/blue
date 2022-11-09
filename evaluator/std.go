@@ -1271,10 +1271,19 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"_entry": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newError("`entry` expects 0 arguments. got=%d", len(args))
+			if len(args) != 1 {
+				return newError("`entry` expects 1 arguments. got=%d", len(args))
 			}
-			entry := widget.NewEntry()
+			if args[0].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 1 to `entry` should be BOOLEAN. got=%s", args[0].Type())
+			}
+			isMultiline := args[0].(*object.Boolean).Value
+			var entry *widget.Entry
+			if isMultiline {
+				entry = widget.NewMultiLineEntry()
+			} else {
+				entry = widget.NewEntry()
+			}
 			entryId := uiCanvasObjectCount.Add(1)
 			UICanvasObjectMap.Put(entryId, entry)
 			return object.CreateBasicMapObject("ui/entry", entryId)
@@ -1299,6 +1308,41 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			default:
 				return newError("`entry_get_text` error: entry id did not match entry")
 			}
+		},
+	},
+	"_append_form": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`append_form` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `append_form` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `append_form` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.UINTEGER_OBJ {
+				return newError("argument 3 to `append_form` should be UINTEGER. got=%s", args[2].Type())
+			}
+			formId := args[0].(*object.UInteger).Value
+			maybeForm, ok := UICanvasObjectMap.Get(formId)
+			if !ok {
+				return newError("`append_form` error: form not found")
+			}
+			var form *widget.Form
+			switch x := maybeForm.(type) {
+			case *widget.Form:
+				form = x
+			default:
+				return newError("`append_form` error: id used for form is not form. got=%T", x)
+			}
+			wId := args[2].(*object.UInteger).Value
+			w, ok := UICanvasObjectMap.Get(wId)
+			if !ok {
+				return newError("`append_form` error: widget not found")
+			}
+			form.Append(args[1].(*object.Stringo).Value, w)
+			return NULL
 		},
 	},
 })
