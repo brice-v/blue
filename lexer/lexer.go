@@ -24,11 +24,13 @@ type Lexer struct {
 	lineNo    int
 	posInLine int
 	fname     string
+
+	prevTokType token.Type
 }
 
 // New returns a pointer to the lexer struct
 func New(input string, fname string) *Lexer {
-	l := &Lexer{input: input, inputAsRunes: []rune(input), fname: fname}
+	l := &Lexer{input: input, inputAsRunes: []rune(input), fname: fname, prevTokType: token.ILLEGAL}
 	l.readChar()
 	return l
 }
@@ -294,10 +296,6 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
-// GLOBAL STATE IS BAD ! DONT DO THIS
-// Only used when trying to evaluate import path
-var prevTokType = token.ILLEGAL
-
 // NextToken matches against a byte and if it succeeds it will
 // read the next char and return a token struct
 func (l *Lexer) NextToken() token.Token {
@@ -487,8 +485,8 @@ func (l *Lexer) NextToken() token.Token {
 			tok.PositionInLine = l.posInLine
 		}
 	default:
-		if prevTokType == token.IMPORT {
-			prevTokType = token.ILLEGAL
+		if l.prevTokType == token.IMPORT {
+			l.prevTokType = token.ILLEGAL
 			tok.LineNumber = l.lineNo
 			tok.PositionInLine = l.posInLine
 			tok.Literal = l.readImportPath()
@@ -501,7 +499,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.LookupIdent(tok.Literal)
 			// This is only used to determine that we need to read an import path
 			if tok.Type == token.IMPORT {
-				prevTokType = token.IMPORT
+				l.prevTokType = token.IMPORT
 			}
 			return tok
 		} else if isDigit(l.ch) {
