@@ -1,14 +1,32 @@
 # blue - a fun programming language
 
+## Background
+
+I started this project in 2020 and have been on and off adding features to it and developing it since then.  The language draws inspiration from many others but mostly I just wanted a scripting language that was fun to use and fun to develop.
+
+Note: Its not *blazingly fast* but that was never the point. It may be practical to eventually compile the language to `go` which could improve its speed?!
+
+## Details
+
+* recursive descent parser
+* one pass (non-parallel) tokenizer
+* interpreted
+* 3rd party libs used liberally and appropriate licenses should be found within their respective vendored folder
+* there are bugs!
+* Fun! (imo)
+
+
 ## Building
 
+- go1.19 required
+    - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
 - Install deps for fyne
 - make sure no errors with `go build`
     - [had this error](https://stackoverflow.com/questions/65387167/glfw-pkg-config-error-when-building-a-fyne-app)
     - windows has no requirements
     - still havent tested on macos
     - `fyne-cross` giving issues due to go1.19
-- Install `upx` to make the binary super small
+- Install `upx` [here](https://upx.github.io/) (or other methods) to make the binary super small
     - small exe cmd = `go build -ldflags="-s -w -extldflags='-static'" && strip blue && upx --ultra-brute blue`
 
 ## Notes
@@ -17,6 +35,76 @@
     - probably wont work with ui unless its setup
     - needs the file to be built in the same dir as this project
 
-## Bugs
+### Features
 
-- Currently have a race condition/concurrency issue happening
+* builtin libs for ui, math, http, net, crypto, time, db, config, more to come!
+* default args
+* string interpolation
+* list, set, map comprehensions
+* first class functions
+* return last expression
+* "immutable" and mutable variables (`val` vs `var`)
+* eval()
+* processes (builtin on goroutine with channels)
+* (x in y) - sets, lists, str, maps
+* errors, assert, try-catch-finally
+* match - basic sort of pattern matching
+* if's are expressions
+
+### Examples
+
+* default args
+```kotlin
+fun main(name="You") {
+    println('Hello #{name}!');
+}
+
+main() # "Hello You!"
+main('me') # 'Hello me!' 
+# also works with main(name='World')
+```
+
+* http client
+
+```kotlin
+import http
+
+http.get("https://danluu.com/")
+```
+
+* matching (not quite pattern matching - more like switch)
+
+```kotlin
+# from core.b
+fun send(obj, value) {
+    return match obj {
+        {t: "pid", v: _} => {
+            _send(obj.v, value)
+        },
+        {t: "ws", v: _} => {
+            import http
+            http.ws_send(obj.v, value)
+        },
+        _ => {
+            error("obj `#{obj}` is invalid type")
+        },
+    };
+}
+```
+
+* check out files in `b_test_programs` for more
+
+### Usage
+
+```
+Usage of ./blue:
+  -b    Bundle the script into a go executable
+  -d    Debug flag - currently only used for Bundling
+  -eval
+        Start the eval REPL or eval the given file path
+  -lex
+        Start the lexer REPL or lex the given file path
+  -parse
+        Start the parser REPL or parse the given file path
+  -v    Prints the version of ./blue
+```
