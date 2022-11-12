@@ -5,48 +5,57 @@ on:
     - 'v*.*.*'
 
 jobs:
-  release-linux-amd64:
-    name: release linux/amd64
-    runs-on: ubuntu-latest
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [1.19]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Get dependencies for fyne
-      run: sudo apt-get update && sudo apt-get install pkg-config gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libwayland-dev libxkbcommon-dev bc
-
-    - uses: wangyoucao577/go-release-action@v1.32
+    - uses: actions/checkout@v2
       with:
-        goversion: 1.19
-        executable_compression: upx
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: linux
-        goarch: amd64
-        ldflags: -s -w -extldflags="-static"
-  release-windows-amd64:
-    name: release windows/amd64
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - uses: wangyoucao577/go-release-action@v1.32
+        persist-credentials: false
+    - uses: WillAbides/setup-go-faster@v1.7.0
       with:
-        goversion: 1.19
-        executable_compression: upx
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: windows
-        goarch: amd64
-        ldflags: -s -w -extldflags="-static" -H=windowsgui
-  release-darwin-amd64:
-    name: release darwin/amd64
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v3
+        go-version: ${{ matrix.go-version }}
 
-    - uses: wangyoucao577/go-release-action@v1.32
+    - name: Get dependencies
+      run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libwayland-dev libxkbcommon-dev bc
+      if: ${{ runner.os == 'Linux' }}
+
+    - name: Tests
+      run: go test ./...
+    
+    - name: Build Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: go build . -ldflags='-s -w -extldflags="-static" -H=windowsgui'
+    
+    - name: Build Linux
+      run: |
+        go build . -ldflags='-s -w -extldflags="-static"'
+        strip blue
+        upx blue
+
+    - name: Build Macos
+      run: |
+        go build . -ldflags='-s -w -extldflags="-static"'
+        strip blue
+
+    # This will draft a new release & will attach the binaries produced by the above outputs.
+    # You still need to publish this release though after job ends.
+    - name: Release
+      uses: softprops/action-gh-release@v1
       with:
-        goversion: 1.19
-        executable_compression: upx
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: darwin
-        goarch: amd64
-        ldflags: -s -w -extldflags="-static"
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: true
+        files: |
+          ./blue.exe
+          ./blue
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # You don't need to add this in secrets it's by default.
+
+
+
