@@ -11,13 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         go-version: [1.19.3]
-        inlcude:
-          - os: ubuntu-latest
-            file: blue
-          - os: windows-latest
-            file: blue.exe
-          - os: macos-latest
-            file: blue
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -46,10 +40,23 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: go build -ldflags='-s -w' -o blue-mac .
       
-    - name: Compress binaries
+    - name: Compress windows binaries
+      if: matrix.os == 'windows-latest'
       uses: svenstaro/upx-action@v2
       with:
-        file: ${{ matrix.file }}
+        file: blue-win.exe
+    
+    - name: Compress linux binaries
+      if: matrix.os == 'ubuntu-latest'
+      uses: svenstaro/upx-action@v2
+      with:
+        file: blue-linux
+
+    - name: Compress macos binaries
+      if: matrix.os == 'macos-latest'
+      uses: svenstaro/upx-action@v2
+      with:
+        file: blue-mac
 
     # This will draft a new release & will attach the binaries produced by the above outputs.
     # You still need to publish this release though after job ends.
