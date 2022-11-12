@@ -1,7 +1,8 @@
 name: Release
-on:
-  release:
-    types: [created]
+on: 
+  push:
+    tags:
+    - 'v*.*.*'
 
 jobs:
   release-linux-amd64:
@@ -16,7 +17,7 @@ jobs:
     - uses: wangyoucao577/go-release-action@v1.32
       with:
         goversion: 1.19
-        executable_compression: true
+        executable_compression: upx
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: linux
         goarch: amd64
@@ -30,7 +31,7 @@ jobs:
     - uses: wangyoucao577/go-release-action@v1.32
       with:
         goversion: 1.19
-        executable_compression: true
+        executable_compression: upx
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: windows
         goarch: amd64
@@ -44,7 +45,7 @@ jobs:
     - uses: wangyoucao577/go-release-action@v1.32
       with:
         goversion: 1.19
-        executable_compression: true
+        executable_compression: upx
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: darwin
         goarch: amd64
