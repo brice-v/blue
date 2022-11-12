@@ -1,5 +1,7 @@
-on: release
 name: Build Release
+on: 
+  push:
+    tags: 'v*.*.*'
 jobs:
   release-linux-amd64:
     name: release linux/amd64
