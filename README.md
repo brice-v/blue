@@ -96,6 +96,11 @@ fun send(obj, value) {
 
 ### Usage
 
+* Download the binary from the [latest release](https://github.com/brice-v/blue/releases)
+    * only amd64 being built and tested
+* Ensure the binary is executable
+    * `chmod +x BINARY_NAME`
+
 ```
 Usage of ./blue:
   -b    Bundle the script into a go executable
