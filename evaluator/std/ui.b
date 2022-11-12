@@ -1,5 +1,11 @@
 val __new_app = _new_app;
-val _app = __new_app();
+var __app = null;
+val _app = fun() {
+    if (__app == null) {
+        __app = __new_app();
+    }
+    return __app;
+}();
 val __window = _window;
 # Layout
 val __row = _row;

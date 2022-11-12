@@ -8,7 +8,14 @@ val __handle_ws = _handle_ws;
 val ws_send = _ws_send;
 val ws_recv = _ws_recv;
 # _server is an id that corresponds to the gofiber server object
-val _server = _new_server();
+var __server = null;
+val __new_server = _new_server;
+val _server = fun() {
+    if (__server == null) {
+        __server = __new_server();
+    }
+    return __server;
+}();
 
 # Default headers seem to be host, user-agent, accept-encoding (not case sensitive for these check pictures)
 # deno also used accept: */* (not sure what that is)
