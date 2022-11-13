@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	ws "github.com/gorilla/websocket"
 )
 
 var pidCount = atomic.Uint64{}
@@ -32,6 +33,11 @@ var ServerMap = &ConcurrentMap[uint64, *fiber.App]{
 var wsConnCount = atomic.Uint64{}
 var WSConnMap = &ConcurrentMap[uint64, *websocket.Conn]{
 	kv: make(map[uint64]*websocket.Conn),
+}
+
+var wsClientConnCount = atomic.Uint64{}
+var WSClientConnMap = &ConcurrentMap[uint64, *ws.Conn]{
+	kv: make(map[uint64]*ws.Conn),
 }
 
 var netConnCount = atomic.Uint64{}

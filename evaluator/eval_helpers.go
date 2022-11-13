@@ -460,7 +460,7 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 	return returnMap, nil
 }
 
-func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
@@ -489,8 +489,8 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 			switch method {
 			case "GET":
 				app.Get(pattern, func(c *fiber.Ctx) error {
-					for k, v := range fn.DefaultParameters {
-						if v != nil && fn.Parameters[k].Value == "query_params" {
+					for i, v := range fn.DefaultParameters {
+						if v != nil && fn.Parameters[i].Value == "query_params" {
 							// Handle query_params
 							if v.Type() != object.LIST_OBJ {
 								return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("query_params must be LIST. got=%s", v.Type()))
@@ -505,11 +505,21 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 								fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
 							}
 						}
-						// TODO: Otherwise chcek that it is null?
+						// TODO: Otherwise check that it is null?
 					}
 					fnArgs := make([]object.Object, len(fn.Parameters))
 					for i, v := range fn.Parameters {
-						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+						if v != nil && v.Value == "headers" {
+							// Handle headers
+							headers := c.GetReqHeaders()
+							mapObj := object.NewOrderedMap[string, object.Object]()
+							for k1, v1 := range headers {
+								mapObj.Set(k1, &object.Stringo{Value: v1})
+							}
+							fnArgs[i] = object.CreateMapObjectForGoMap(*mapObj)
+						} else {
+							fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+						}
 					}
 					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object))
 					if respObj.Type() != object.STRING_OBJ {
@@ -554,7 +564,7 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 								// Now we know its a list of strings so we can set the variables accordingly for the fn
 							}
 						}
-						// TODO: Otherwise chcek that it is null?
+						// TODO: Otherwise check that it is null?
 					}
 					fnArgs := make([]object.Object, len(fn.Parameters))
 					for i, v := range fn.Parameters {
@@ -581,7 +591,7 @@ func createHttpHandleBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 	}
 }
 
-func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
@@ -647,7 +657,7 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 							fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
 						}
 					}
-					// TODO: Otherwise chcek that it is null?
+					// TODO: Otherwise check that it is null?
 				}
 				fnArgs := make([]object.Object, len(fn.Parameters))
 				for i, v := range fn.Parameters {
@@ -665,7 +675,7 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 					for e.ErrorTokens.Len() > 0 {
 						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
 					}
-					fmt.Printf("EvaluatorError: `handle_ws` returnerror: %s\n", buf.String())
+					fmt.Printf("EvaluatorError: `handle_ws` return error: %s\n", buf.String())
 				} else {
 					log.Printf("`handle_ws` returned with %#v", returnObj)
 				}
@@ -676,7 +686,7 @@ func createHttpHandleWSBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 	}
 }
 
-func createUIButtonBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
@@ -710,7 +720,7 @@ func createUIButtonBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 	}
 }
 
-func createUICheckBoxBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
@@ -747,7 +757,7 @@ func createUICheckBoxBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 	}
 }
 
-func createUIRadioBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
@@ -791,7 +801,7 @@ func createUIRadioBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 	}
 }
 
-func createUIOptionSelectBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
@@ -835,7 +845,7 @@ func createUIOptionSelectBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
 	}
 }
 
-func createUIFormBuiltinWithEvaluator(e *Evaluator) *object.Builtin {
+func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {

@@ -113,3 +113,7 @@ Usage of ./blue:
         Start the parser REPL or parse the given file path
   -v    Prints the version of ./blue
 ```
+
+#### Notes
+
+* set `DISABLE_HTTP_SERVER_DEBUG` to `true` to disable http server route/welcome message printing

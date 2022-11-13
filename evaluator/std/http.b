@@ -7,6 +7,10 @@ val __handle = _handle;
 val __handle_ws = _handle_ws;
 val ws_send = _ws_send;
 val ws_recv = _ws_recv;
+# used as a websocket client
+val new_ws = _new_ws;
+val ws_client_send = _ws_client_send;
+val ws_client_recv = _ws_client_recv;
 # _server is an id that corresponds to the gofiber server object
 var __server = null;
 val __new_server = _new_server;

@@ -117,14 +117,14 @@ func New() *Evaluator {
 	}
 	ProcessMap.Put(e.PID, process)
 
-	_http_builtin_map.Put("_handle", createHttpHandleBuiltinWithEvaluator(e))
-	_http_builtin_map.Put("_handle_ws", createHttpHandleWSBuiltinWithEvaluator(e))
+	_http_builtin_map.Put("_handle", createHttpHandleBuiltin(e))
+	_http_builtin_map.Put("_handle_ws", createHttpHandleWSBuiltin(e))
 
-	_ui_builtin_map.Put("_button", createUIButtonBuiltinWithEvaluator(e))
-	_ui_builtin_map.Put("_check_box", createUICheckBoxBuiltinWithEvaluator(e))
-	_ui_builtin_map.Put("_radio_group", createUIRadioBuiltinWithEvaluator(e))
-	_ui_builtin_map.Put("_option_select", createUIOptionSelectBuiltinWithEvaluator(e))
-	_ui_builtin_map.Put("_form", createUIFormBuiltinWithEvaluator(e))
+	_ui_builtin_map.Put("_button", createUIButtonBuiltin(e))
+	_ui_builtin_map.Put("_check_box", createUICheckBoxBuiltin(e))
+	_ui_builtin_map.Put("_radio_group", createUIRadioBuiltin(e))
+	_ui_builtin_map.Put("_option_select", createUIOptionSelectBuiltin(e))
+	_ui_builtin_map.Put("_form", createUIFormBuiltin(e))
 
 	return e
 }

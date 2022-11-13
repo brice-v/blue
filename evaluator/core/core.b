@@ -9,6 +9,10 @@ fun send(obj, value) {
             import http
             http.ws_send(obj.v, value)
         },
+        {t: "ws/client", v: _} => {
+            import http
+            http.ws_client_send(obj.v, value)
+        },
         _ => {
             error("obj `#{obj}` is invalid type")
         },
@@ -23,6 +27,10 @@ fun recv(obj) {
         {t: "ws", v: _} => {
             import http
             http.ws_recv(obj.v)
+        },
+        {t: "ws/client", v: _} => {
+            import http
+            http.ws_client_recv(obj.v)
         },
         _ => {
             error("obj `#{obj}` is invalid type")

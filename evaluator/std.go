@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ import (
 	"github.com/gookit/config/v2/toml"
 	"github.com/gookit/config/v2/yamlv3"
 	"github.com/gookit/ini/v2/dotenv"
+	ws "github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
@@ -215,9 +217,16 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newError("`new_server` expects 0 args. got=%d", len(args))
 			}
+			var disableStartupDebug bool
+			disableStartupMessageStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
+			disableStartupDebug, err := strconv.ParseBool(disableStartupMessageStr)
+			if err != nil {
+				disableStartupDebug = false
+			}
 			app := fiber.New(fiber.Config{
-				Immutable:         true,
-				EnablePrintRoutes: true,
+				Immutable:             true,
+				EnablePrintRoutes:     disableStartupDebug,
+				DisableStartupMessage: disableStartupDebug,
 			})
 			curServer := serverCount.Add(1)
 			ServerMap.Put(curServer, app)
@@ -338,6 +347,91 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			default:
 				// Remove the conn
 				WSConnMap.Remove(connId)
+				// If its closed we still want to return an error so that the handler fn wont try to send NULL
+				return newError("`ws_recv`: websocket closed.")
+			}
+		},
+	},
+	"_new_ws": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`new_ws` expects 1 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `new_ws` should be STRING. got=%s", args[0].Type())
+			}
+			url := args[0].(*object.Stringo).Value
+
+			conn, _, err := ws.DefaultDialer.Dial(url, nil)
+			if err != nil {
+				return newError("`new_ws` error: %s", err.Error())
+			}
+			// log.Printf("resp = %#v", resp)
+			connId := wsClientConnCount.Add(1)
+			WSClientConnMap.Put(connId, conn)
+			return object.CreateBasicMapObject("ws/client", connId)
+		},
+	},
+	"_ws_client_send": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`ws_send` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `ws_send` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
+				return newError("argument 2 to `ws_send` should be STRING or BYTES. got=%s", args[1].Type())
+			}
+			connId := args[0].(*object.UInteger).Value
+			c, ok := WSClientConnMap.Get(connId)
+			if !ok {
+				return newError("`ws_send` could not find ws object")
+			}
+			var err error
+			if args[1].Type() == object.STRING_OBJ {
+				err = c.WriteMessage(websocket.TextMessage, []byte(args[1].(*object.Stringo).Value))
+			} else {
+				err = c.WriteMessage(websocket.BinaryMessage, args[1].(*object.Bytes).Value)
+			}
+			if err != nil {
+				return newError("`ws_send` error: %s", err.Error())
+			}
+			return NULL
+		},
+	},
+	"_ws_client_recv": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`ws_recv` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `ws_recv` should be UINTEGER. got=%s", args[0].Type())
+			}
+			connId := args[0].(*object.UInteger).Value
+			c, ok := WSClientConnMap.Get(connId)
+			if !ok {
+				return newError("`ws_recv` could not find ws object")
+			}
+			mt, msg, err := c.ReadMessage()
+			if err != nil {
+				// Remove this conn
+				WSClientConnMap.Remove(connId)
+				// If its closed we still want to return an error so that the handler fn wont try to send NULL
+				return newError("`ws_recv`: %s", err.Error())
+			}
+			switch mt {
+			case websocket.BinaryMessage:
+				return &object.Bytes{Value: msg}
+			case websocket.TextMessage:
+				return &object.Stringo{Value: string(msg)}
+			case websocket.PingMessage:
+				return newError("`ws_recv`: ping message type not supported.")
+			case websocket.PongMessage:
+				return newError("`ws_recv`: pong message type not supported.")
+			default:
+				// Remove the conn
+				WSClientConnMap.Remove(connId)
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: websocket closed.")
 			}

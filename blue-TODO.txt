@@ -1,5 +1,8 @@
 TODO:
 
+- add filename (with abs path) to token so that we can get the exact line
+    - then GetErrorLineMessage wont have to live in lexer (and we can print errors elsewhere)
+- [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
 - `go tool pprof -http localhost:9999 cpu.prof` (or mem.prof)

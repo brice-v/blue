@@ -1,7 +1,9 @@
 package evaluator
 
 import (
+	"bytes"
 	"container/list"
+	"fmt"
 )
 
 type Stack[T any] struct {
@@ -38,4 +40,14 @@ func (s *Stack[T]) PopBack() T {
 
 func (s *Stack[T]) Len() int {
 	return s.s.Len()
+}
+
+func (s *Stack[T]) String() string {
+	var out bytes.Buffer
+	out.WriteString("Stack{")
+	for e := s.s.Front(); e != nil; e = e.Next() {
+		out.WriteString(fmt.Sprintf("%#v,", e.Value))
+	}
+	out.WriteString("}")
+	return out.String()
 }
