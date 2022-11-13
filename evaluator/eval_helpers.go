@@ -20,6 +20,7 @@ import (
 
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/clbanning/mxj/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 )
@@ -382,7 +383,6 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.Order
 	i := 0
 	for _, hk := range pairs.Keys {
 		mp, _ := pairs.Get(hk)
-		// log.Printf("got mp.Key = %#v, mp.Value = %#v", mp.Key, mp.Value)
 		buf.WriteString(fmt.Sprintf("%q:", mp.Key.Inspect()))
 		valueType := mp.Value.Type()
 		if valueType == object.MAP_OBJ {
@@ -442,7 +442,22 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 		xmld := xml.NewDecoder(body)
 		err := xmld.Decode(&v)
 		if err != nil {
-			return nil, err
+			err = nil
+			for {
+				mv, err := mxj.NewMapXmlReader(body)
+				if err != nil {
+					break
+				}
+				if mv == nil {
+					break
+				}
+				if v == nil {
+					v = make(map[string]interface{})
+				}
+				for k1, v1 := range mv {
+					v[k1] = v1
+				}
+			}
 		}
 	} else if strings.Contains(contentType, "json") {
 		jsond := json.NewDecoder(body)
@@ -453,7 +468,6 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 	} else {
 		return nil, nil
 	}
-	log.Printf("v = %#v", v)
 	for key, value := range v {
 		returnMap[key] = decodeInterfaceToObject(value)
 	}
@@ -543,9 +557,7 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 							l := v.(*object.List).Elements
 
 							contentType := c.Get("Content-Type")
-							log.Printf("content-type = %s", contentType)
 							body := strings.NewReader(string(c.Body()))
-							log.Printf("body = %s", string(c.Body()))
 
 							returnMap, err := decodeBodyToMap(contentType, body)
 							if err != nil {

@@ -6,6 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.2.3
 	github.com/antchfx/htmlquery v1.2.5
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+	github.com/clbanning/mxj/v2 v2.5.7
 	github.com/gofiber/fiber/v2 v2.39.0
 	github.com/gofiber/websocket/v2 v2.1.1
 	github.com/gookit/config/v2 v2.1.6

@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"time"
@@ -110,6 +111,9 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 	e.env.Set(name, mod)
 }
 
+// Used to catch Interupt to shutdown server
+var c = make(chan os.Signal, 1)
+
 // Note: Look at how we import the get function in http.b
 var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_fetch": {
@@ -184,35 +188,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: string(body)}
 		},
 	},
-	"_post": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 3 {
-				return newError("`post` expects 3 arguments. got=%d", len(args))
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `post` must be STRING. got=%s", args[0].Type())
-			}
-			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `post` must be STRING. got=%s", args[1].Type())
-			}
-			if args[2].Type() != object.STRING_OBJ {
-				return newError("argument 3 to `post` must be STRING. got=%s", args[2].Type())
-			}
-			urlInput := args[0].(*object.Stringo).Value
-			mimeTypeInput := args[1].(*object.Stringo).Value
-			bodyInput := args[2].(*object.Stringo).Value
-			resp, err := http.Post(urlInput, mimeTypeInput, strings.NewReader(bodyInput))
-			if err != nil {
-				return newError("`post` failed: %s", err.Error())
-			}
-			defer resp.Body.Close()
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return newError("`post` failed: %s", err.Error())
-			}
-			return &object.Stringo{Value: string(body)}
-		},
-	},
 	"_new_server": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
@@ -250,11 +225,26 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`serve` could not find Server Object")
 			}
 			addrPort := args[1].(*object.Stringo).Value
+			signal.Notify(c, os.Interrupt)
+			go func() {
+				<-c
+				fmt.Println("Interupt... Shutting down http server")
+				_ = app.Shutdown()
+			}()
 			// nil here means use the default server mux (ie. things that were http.HandleFunc's)
 			err := app.Listen(addrPort)
 			if err != nil {
 				return newError("`serve` error: %s", err.Error())
 			}
+			return NULL
+		},
+	},
+	"_shutdown_server": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newError("`shutdown_server` expects 0 arguments. got=%d", len(args))
+			}
+			c <- os.Interrupt
 			return NULL
 		},
 	},

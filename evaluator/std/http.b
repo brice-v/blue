@@ -21,6 +21,7 @@ val _server = fun() {
     }
     return __server;
 }();
+val shutdown_server = _shutdown_server;
 
 # Default headers seem to be host, user-agent, accept-encoding (not case sensitive for these check pictures)
 # deno also used accept: */* (not sure what that is)
@@ -48,9 +49,6 @@ fun fetch(resource, options=null) {
                 return error("`fetch` error:  options.headers must be MAP. got=#{ht}");
             }
         }
-        if (options.body == null and options.method != 'GET') {
-            return error("`fetch` options.body must not be null when method is not 'GET'");
-        }
     }
     __fetch(resource, options.method, options.headers, options.body)
 }
@@ -60,6 +58,9 @@ fun get(url) {
 }
 
 fun post(url, post_body, mime_type="application/json") {
+    if (mime_type.to_lower().startswith('content-type')) {
+        return error("`post` error: mime_type should not start with 'content-type'");
+    }
     val options = {
         method: 'POST',
         body: post_body,
