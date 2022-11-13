@@ -29,6 +29,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/antchfx/htmlquery"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/websocket/v2"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/ini"
@@ -225,7 +226,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			app := fiber.New(fiber.Config{
 				Immutable:             true,
-				EnablePrintRoutes:     disableStartupDebug,
+				EnablePrintRoutes:     !disableStartupDebug,
 				DisableStartupMessage: disableStartupDebug,
 			})
 			curServer := serverCount.Add(1)
@@ -435,6 +436,35 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: websocket closed.")
 			}
+		},
+	},
+	"_handle_monitor": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`handle_monitor` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newError("argument 1 to `handle_monitor` should be UINTEGER. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `handle_monitor` should be STRING. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 3 to `handle_monitor` should be BOOLEAN got=%s", args[2].Type())
+			}
+			serverId := args[0].(*object.UInteger).Value
+			path := args[1].(*object.Stringo).Value
+			shouldShow := args[2].(*object.Boolean).Value
+			app, ok := ServerMap.Get(serverId)
+			if !ok {
+				return newError("`handle_monitor` could not find server object")
+			}
+			app.Get(path, monitor.New(monitor.Config{
+				Next: func(c *fiber.Ctx) bool {
+					return !shouldShow
+				},
+			}))
+			return NULL
 		},
 	},
 })

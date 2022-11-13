@@ -5,6 +5,7 @@ val __serve = _serve;
 val __static = _static;
 val __handle = _handle;
 val __handle_ws = _handle_ws;
+val __handle_monitor = _handle_monitor;
 val ws_send = _ws_send;
 val ws_recv = _ws_recv;
 # used as a websocket client
@@ -83,4 +84,8 @@ fun handle_ws(pattern, fn) {
 
 fun static(prefix="/", dir_path=".", browse=false) {
     __static(_server, prefix, dir_path, browse)
+}
+
+fun handle_monitor(path, should_show=true) {
+    __handle_monitor(_server, path, should_show)
 }
