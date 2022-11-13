@@ -11,6 +11,7 @@ type Token struct {
 	Type    Type
 	Literal string
 
+	Filepath       string
 	LineNumber     int
 	PositionInLine int
 }

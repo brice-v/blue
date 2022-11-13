@@ -32,7 +32,7 @@ func (e *Evaluator) AddCoreLibToEnv() {
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
 		for e.ErrorTokens.Len() > 0 {
-			buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
 		fmt.Printf("EvaluatorError: %s", buf.String())

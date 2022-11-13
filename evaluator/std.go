@@ -101,7 +101,7 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
 		for newE.ErrorTokens.Len() > 0 {
-			buf.WriteString(l.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
+			buf.WriteString(lexer.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
 		fmt.Printf("EvaluatorError in `%s` module: %s", name, buf.String())

@@ -133,7 +133,7 @@ func evalCurrentFile() {
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
 		for e.ErrorTokens.Len() > 0 {
-			buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
 		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
@@ -171,7 +171,7 @@ func evalFile() {
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
 		for e.ErrorTokens.Len() > 0 {
-			buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
 		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
@@ -245,7 +245,7 @@ var files embed.FS
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
 		for evaluator.ErrorTokens.Len() > 0 {
-			buf.WriteString(l.GetErrorLineMessage(evaluator.ErrorTokens.PopBack()))
+			buf.WriteString(lexer.GetErrorLineMessage(evaluator.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
 		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))

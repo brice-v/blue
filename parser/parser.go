@@ -207,14 +207,14 @@ func (p *Parser) Errors() []string {
 // peekError is a peekToken error and will append the error
 // to the list of parser errors
 func (p *Parser) peekError(t token.Type) {
-	errorLine := p.l.GetErrorLineMessage(p.peekToken)
+	errorLine := lexer.GetErrorLineMessage(p.peekToken)
 	msg := fmt.Sprintf("expected next token to be %s, got %s instead\n%s", t, p.peekToken.Type, errorLine)
 	p.errors = append(p.errors, msg)
 }
 
 // noPrefixParseFunError will append an error if no prefix parse function is found
 func (p *Parser) noPrefixParseFunError(t token.Type) {
-	errorLine := p.l.GetErrorLineMessage(p.curToken)
+	errorLine := lexer.GetErrorLineMessage(p.curToken)
 	msg := fmt.Sprintf("no prefix parse function for %s found\n%s", t, errorLine)
 	p.errors = append(p.errors, msg)
 }
@@ -249,7 +249,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	for {
 		tok = lcpy.NextToken()
 		if tok.Type == token.ILLEGAL {
-			errorLine := p.l.GetErrorLineMessage(tok)
+			errorLine := lexer.GetErrorLineMessage(tok)
 			msg := fmt.Sprintf("%s token encountered. got=%q\n%s", tok.Type, tok.Literal, errorLine)
 			p.errors = append(p.errors, msg)
 			return nil
@@ -466,7 +466,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 			bigLit.Value = bigValue
 			return bigLit
 		}
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("could not parse %q as an integer\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
@@ -487,7 +487,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 			bigLit.Value = bigValue
 			return bigLit
 		}
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("could not parse %q as a float\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
@@ -503,7 +503,7 @@ func (p *Parser) parseHexLiteral() ast.Expression {
 	tokenLiteral = strings.Replace(tokenLiteral, "0x", "", -1)
 	value, err := strconv.ParseUint(tokenLiteral, 16, 64)
 	if err != nil {
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
@@ -519,7 +519,7 @@ func (p *Parser) parseOctalLiteral() ast.Expression {
 	tokenLiteral = strings.Replace(tokenLiteral, "0o", "", -1)
 	value, err := strconv.ParseUint(tokenLiteral, 8, 64)
 	if err != nil {
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
@@ -535,7 +535,7 @@ func (p *Parser) parseBinaryLiteral() ast.Expression {
 	tokenLiteral = strings.Replace(tokenLiteral, "0b", "", -1)
 	value, err := strconv.ParseUint(tokenLiteral, 2, 64)
 	if err != nil {
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
@@ -590,7 +590,7 @@ func (p *Parser) parseEvalExpression() ast.Expression {
 	strToEvalExpression := p.parseExpression(LOWEST)
 	ee.StrToEval = strToEvalExpression
 	if !p.curTokenIs(token.RPAREN) {
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("token after EvalExpression is not ), got %s instead\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
@@ -769,7 +769,7 @@ func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression)
 		identifiers = append(identifiers, ident)
 		defaultParameters = append(defaultParameters, nil)
 	default:
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("expected assignment expression or identifier. got=%T\n%s", val, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil, nil
@@ -790,7 +790,7 @@ func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression)
 			identifiers = append(identifiers, ident)
 			defaultParameters = append(defaultParameters, nil)
 		default:
-			errorLine := p.l.GetErrorLineMessage(p.curToken)
+			errorLine := lexer.GetErrorLineMessage(p.curToken)
 			msg := fmt.Sprintf("expected assignment expression or identifier. got=%T\n%s", val, errorLine)
 			p.errors = append(p.errors, msg)
 			return nil, nil
@@ -1046,7 +1046,7 @@ func (p *Parser) parseAssignmentExpression(exp ast.Expression) ast.Expression {
 	switch node := exp.(type) {
 	case *ast.Identifier, *ast.IndexExpression:
 	default:
-		errorLine := p.l.GetErrorLineMessage(p.curToken)
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("expected identifier or index expression on left but got %T %#v\n%s", node, exp, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
@@ -1359,7 +1359,7 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 			for {
 				tok = lcpy.NextToken()
 				if tok.Type == token.ILLEGAL {
-					errorLine := p.l.GetErrorLineMessage(tok)
+					errorLine := lexer.GetErrorLineMessage(tok)
 					msg := fmt.Sprintf("%s token encountered. got=%q\n%s", tok.Type, tok.Literal, errorLine)
 					p.errors = append(p.errors, msg)
 				}

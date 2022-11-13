@@ -182,6 +182,11 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		newE := New()
 		newE.env = extendFunctionEnv(function, args, defaultArgs)
 		evaluated := newE.Eval(function.Body)
+		// TODO: Support getting error token out of function
+		for newE.ErrorTokens.Len() != 0 {
+			// log.Printf("\n\n----------------------\nnewE.ErrorTokens = %s\n\n", newE.ErrorTokens)
+			e.ErrorTokens.s.PushBack(newE.ErrorTokens.Pop())
+		}
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
 		return function.Fun(args...)

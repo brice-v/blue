@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -35,15 +37,20 @@ func New(input string, fname string) *Lexer {
 	return l
 }
 
-func (l *Lexer) GetErrorLineMessage(tok token.Token) string {
+func GetErrorLineMessage(tok token.Token) string {
 	lineNo := tok.LineNumber
 	posInLine := tok.PositionInLine
 
+	fdata, err := os.ReadFile(tok.Filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// TODO: This will be VERY SLOW but I just want to test it out
-	lines := strings.Split(l.input, "\n")
+	lines := strings.Split(string(fdata), "\n")
 	var out bytes.Buffer
 	// Fist write the filename of the input
-	fileErrorLine := fmt.Sprintf("%s:%d:%d ", l.fname, lineNo+1, posInLine+1)
+	fileErrorLine := fmt.Sprintf("%s:%d:%d ", tok.Filepath, lineNo+1, posInLine+1)
 	out.WriteString(fileErrorLine)
 	// Write the line
 	out.WriteString(lines[lineNo])
@@ -444,6 +451,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok = l.newToken(token.TILDE, l.ch)
 		}
 	case '`':
+		tok.Filepath = l.fname
 		tok.LineNumber = l.lineNo
 		tok.PositionInLine = l.posInLine
 		tok.Type = token.BACKTICK
@@ -452,12 +460,14 @@ func (l *Lexer) NextToken() token.Token {
 	case ':':
 		tok = l.newToken(token.COLON, l.ch)
 	case 0:
+		tok.Filepath = l.fname
 		tok.LineNumber = l.lineNo
 		tok.PositionInLine = l.posInLine
 		tok.Literal = ""
 		tok.Type = token.EOF
 	case '"':
 		if l.peekChar() == '"' && l.peekSecondChar() == '"' {
+			tok.Filepath = l.fname
 			tok.LineNumber = l.lineNo
 			tok.PositionInLine = l.posInLine
 			str := l.readRawString()
@@ -468,6 +478,7 @@ func (l *Lexer) NextToken() token.Token {
 			if err != nil {
 				tok = l.newToken(token.ILLEGAL, l.prevCh)
 			} else {
+				tok.Filepath = l.fname
 				tok.LineNumber = l.lineNo
 				tok.PositionInLine = l.posInLine
 				tok.Type = token.STRING_DOUBLE_QUOTE
@@ -479,6 +490,7 @@ func (l *Lexer) NextToken() token.Token {
 		if err != nil {
 			tok = l.newToken(token.ILLEGAL, l.prevCh)
 		} else {
+			tok.Filepath = l.fname
 			tok.Type = token.STRING_SINGLE_QUOTE
 			tok.Literal = str
 			tok.LineNumber = l.lineNo
@@ -487,12 +499,14 @@ func (l *Lexer) NextToken() token.Token {
 	default:
 		if l.prevTokType == token.IMPORT {
 			l.prevTokType = token.ILLEGAL
+			tok.Filepath = l.fname
 			tok.LineNumber = l.lineNo
 			tok.PositionInLine = l.posInLine
 			tok.Literal = l.readImportPath()
 			tok.Type = token.IMPORT_PATH
 			return tok
 		} else if isLetter(l.ch) {
+			tok.Filepath = l.fname
 			tok.LineNumber = l.lineNo
 			tok.PositionInLine = l.posInLine
 			tok.Literal = l.readIdentifier()
@@ -503,6 +517,7 @@ func (l *Lexer) NextToken() token.Token {
 			}
 			return tok
 		} else if isDigit(l.ch) {
+			tok.Filepath = l.fname
 			tok.LineNumber = l.lineNo
 			tok.PositionInLine = l.posInLine
 			tok.Type, tok.Literal = l.readNumber()
