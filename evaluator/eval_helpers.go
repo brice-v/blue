@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"blue/ast"
+	"blue/consts"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
@@ -690,9 +691,10 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 					buf.WriteString(returnObj.(*object.Error).Message)
 					buf.WriteByte('\n')
 					for e.ErrorTokens.Len() > 0 {
-						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+						tok := e.ErrorTokens.PopBack()
+						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 					}
-					fmt.Printf("EvaluatorError: `handle_ws` return error: %s\n", buf.String())
+					fmt.Printf("%s`handle_ws` return error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 				} else {
 					log.Printf("`handle_ws` returned with %#v", returnObj)
 				}
@@ -726,9 +728,10 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 					buf.WriteString(err.Message)
 					buf.WriteByte('\n')
 					for e.ErrorTokens.Len() > 0 {
-						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+						tok := e.ErrorTokens.PopBack()
+						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 					}
-					fmt.Printf("EvaluatorError: `button` click handler error: %s\n", buf.String())
+					fmt.Printf("%s`button` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 				}
 			})
 			UICanvasObjectMap.Put(buttonId, button)
@@ -762,9 +765,10 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 					buf.WriteString(err.Message)
 					buf.WriteByte('\n')
 					for e.ErrorTokens.Len() > 0 {
-						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+						tok := e.ErrorTokens.PopBack()
+						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 					}
-					fmt.Printf("EvaluatorError: `check_box` handler error: %s\n", buf.String())
+					fmt.Printf("%s`check_box` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 				}
 			})
 			checkBoxId := uiCanvasObjectCount.Add(1)
@@ -806,9 +810,10 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 					buf.WriteString(err.Message)
 					buf.WriteByte('\n')
 					for e.ErrorTokens.Len() > 0 {
-						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+						tok := e.ErrorTokens.PopBack()
+						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 					}
-					fmt.Printf("EvaluatorError: `radio_group` handler error: %s\n", buf.String())
+					fmt.Printf("%s`radio_group` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 				}
 			})
 			radioId := uiCanvasObjectCount.Add(1)
@@ -850,9 +855,10 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 					buf.WriteString(err.Message)
 					buf.WriteByte('\n')
 					for e.ErrorTokens.Len() > 0 {
-						buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+						tok := e.ErrorTokens.PopBack()
+						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 					}
-					fmt.Printf("EvaluatorError: `option_select` handler error: %s\n", buf.String())
+					fmt.Printf("%s`option_select` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 				}
 			})
 			optionId := uiCanvasObjectCount.Add(1)
@@ -912,9 +918,10 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 						buf.WriteString(err.Message)
 						buf.WriteByte('\n')
 						for e.ErrorTokens.Len() > 0 {
-							buf.WriteString(fmt.Sprintf("%#v\n", e.ErrorTokens.PopBack()))
+							tok := e.ErrorTokens.PopBack()
+							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 						}
-						fmt.Printf("EvaluatorError: `form` on_submit error: %s\n", buf.String())
+						fmt.Printf("%s`form` on_submit error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				},
 			}

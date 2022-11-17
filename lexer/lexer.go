@@ -1,11 +1,12 @@
 package lexer
 
 import (
+	"blue/consts"
+	"blue/lib"
 	"blue/token"
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"unicode"
@@ -41,16 +42,28 @@ func GetErrorLineMessage(tok token.Token) string {
 	lineNo := tok.LineNumber
 	posInLine := tok.PositionInLine
 
-	fdata, err := os.ReadFile(tok.Filepath)
-	if err != nil {
-		log.Fatal(err)
+	fpath := tok.Filepath
+	var fullFile string
+	if fpath == consts.CORE_FILE_PATH {
+		fullFile = lib.CoreFile
+	} else if strings.HasPrefix(fpath, "<std/") {
+		// This shouldnt fail because we set the filepaths
+		file := strings.ReplaceAll(strings.Split(fpath, "<std/")[1], ">", "")
+		fullFile = lib.ReadStdFileToString(file)
+	} else {
+		fdata, err := os.ReadFile(fpath)
+		if err != nil {
+			// fallback option if the filepath doesnt exist or if its internal
+			return fmt.Sprint(tok.DisplayForErrorLine())
+		}
+		fullFile = string(fdata)
 	}
 
 	// TODO: This will be VERY SLOW but I just want to test it out
-	lines := strings.Split(string(fdata), "\n")
+	lines := strings.Split(fullFile, "\n")
 	var out bytes.Buffer
 	// Fist write the filename of the input
-	fileErrorLine := fmt.Sprintf("%s:%d:%d ", tok.Filepath, lineNo+1, posInLine+1)
+	fileErrorLine := fmt.Sprintf("%s:%d:%d ", fpath, lineNo+1, posInLine+1)
 	out.WriteString(fileErrorLine)
 	// Write the line
 	out.WriteString(lines[lineNo])

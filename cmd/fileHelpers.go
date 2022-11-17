@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"blue/consts"
 	"blue/evaluator"
 	"blue/lexer"
 	"blue/object"
@@ -136,7 +137,7 @@ func evalCurrentFile() {
 			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
-		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
+		out.WriteString(fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String()))
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values
@@ -174,7 +175,7 @@ func evalFile() {
 			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
-		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
+		out.WriteString(fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String()))
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values

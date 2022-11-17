@@ -2,6 +2,8 @@
 
 package token
 
+import "fmt"
+
 // Type is the string representation of the Token
 type Type string
 
@@ -14,6 +16,10 @@ type Token struct {
 	Filepath       string
 	LineNumber     int
 	PositionInLine int
+}
+
+func (t Token) DisplayForErrorLine() string {
+	return fmt.Sprintf("Filepath: %q, LineNumber: %d, PositionInLine: %d", t.Filepath, t.LineNumber, t.PositionInLine)
 }
 
 const (

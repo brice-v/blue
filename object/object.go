@@ -2,6 +2,7 @@ package object
 
 import (
 	"blue/ast"
+	"blue/consts"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -168,7 +169,7 @@ type Error struct {
 func (e *Error) Type() Type { return ERROR_OBJ }
 
 // Inspect returns a string representation of the error
-func (e *Error) Inspect() string { return "EvaluatorError: " + e.Message }
+func (e *Error) Inspect() string { return consts.EVAL_ERROR_PREFIX + e.Message }
 
 // Function is the function object struct
 type Function struct {
