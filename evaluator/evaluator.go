@@ -592,12 +592,10 @@ func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
 		buf.WriteString(err.Message)
 		buf.WriteByte('\n')
 		for newE.ErrorTokens.Len() > 0 {
-			// TODO: IF we want spawned functions to have nice error tracebacks we'd have to add an arg
-			// TODO: copy of the lexer (which is potentially a large allocation)
-			// so this actually just puts the tokens out in a simpler way
-			buf.WriteString(fmt.Sprintf("%#v\n", newE.ErrorTokens.PopBack()))
+			tok := newE.ErrorTokens.PopBack()
+			buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 		}
-		fmt.Printf("ProcessError: %s\n", buf.String())
+		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, buf.String())
 	}
 	// Delete from concurrent map and decrement pidCount
 	ProcessMap.Remove(pid)

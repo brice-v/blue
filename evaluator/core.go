@@ -1,21 +1,18 @@
 package evaluator
 
 import (
+	"blue/consts"
 	"blue/lexer"
+	"blue/lib"
 	"blue/object"
 	"blue/parser"
 	"bytes"
 	"fmt"
 	"os"
-
-	_ "embed"
 )
 
-//go:embed core/core.b
-var coreFile string
-
 func (e *Evaluator) AddCoreLibToEnv() {
-	l := lexer.New(coreFile, "<embed: core/core.b>")
+	l := lexer.New(lib.CoreFile, consts.CORE_FILE_PATH)
 
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -32,10 +29,10 @@ func (e *Evaluator) AddCoreLibToEnv() {
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
 		for e.ErrorTokens.Len() > 0 {
-			buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
-		fmt.Printf("EvaluatorError: %s", buf.String())
+		fmt.Printf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String())
 		os.Exit(1)
 	}
 }

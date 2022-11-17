@@ -6,7 +6,7 @@ import (
 )
 
 func (l *Lexer) newToken(tokenType token.Type, ch rune) token.Token {
-	return token.Token{Type: tokenType, Literal: string(ch), LineNumber: l.lineNo, PositionInLine: l.posInLine}
+	return token.Token{Type: tokenType, Literal: string(ch), LineNumber: l.lineNo, PositionInLine: l.posInLine, Filepath: l.fname}
 }
 
 // makeTwoCharToken takes a tokens type and returns the new token
@@ -18,7 +18,7 @@ func (l *Lexer) makeTwoCharToken(typ token.Type) token.Token {
 	// consume next char because we know it is an =
 	l.readChar()
 	// TODO: Could add length here of 2?
-	return token.Token{Type: typ, Literal: string(ch) + string(l.ch), LineNumber: lineNo, PositionInLine: posInLine}
+	return token.Token{Type: typ, Literal: string(ch) + string(l.ch), LineNumber: lineNo, PositionInLine: posInLine, Filepath: l.fname}
 }
 
 // makeThreeCharToken takes a tokens type and returns the new token
@@ -31,7 +31,7 @@ func (l *Lexer) makeThreeCharToken(typ token.Type) token.Token {
 	ch1 := l.ch
 	l.readChar()
 	// TODO: Could add length here of 3?
-	return token.Token{Type: typ, Literal: string(ch) + string(ch1) + string(l.ch), LineNumber: lineNo, PositionInLine: posInLine}
+	return token.Token{Type: typ, Literal: string(ch) + string(ch1) + string(l.ch), LineNumber: lineNo, PositionInLine: posInLine, Filepath: l.fname}
 }
 
 // isLetter will return true if the rune given matches the pattern below

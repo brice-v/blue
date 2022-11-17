@@ -65,7 +65,7 @@ func TestAllProgramsInDirectory(t *testing.T) {
 			buf.WriteString(errorObj.Message)
 			buf.WriteByte('\n')
 			for e.ErrorTokens.Len() > 0 {
-				buf.WriteString(l.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+				buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 				buf.WriteByte('\n')
 			}
 			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), buf.String())

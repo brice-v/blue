@@ -3,6 +3,7 @@ package evaluator
 import (
 	"blue/consts"
 	"blue/lexer"
+	"blue/lib"
 	"blue/object"
 	"blue/parser"
 	"bufio"
@@ -12,7 +13,6 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"database/sql"
-	"embed"
 	"fmt"
 	"hash"
 	"io"
@@ -49,27 +49,16 @@ type StdModFileAndBuiltins struct {
 	Builtins BuiltinMapType // Builtins is the map of functions to be used by the module
 }
 
-//go:embed std/*
-var stdFs embed.FS
-
-func readStdFileToString(fname string) string {
-	bs, err := stdFs.ReadFile("std/" + fname)
-	if err != nil {
-		panic(err)
-	}
-	return string(bs)
-}
-
 var _std_mods = map[string]StdModFileAndBuiltins{
-	"http":   {File: readStdFileToString("http.b"), Builtins: _http_builtin_map},
-	"time":   {File: readStdFileToString("time.b"), Builtins: _time_builtin_map},
-	"search": {File: readStdFileToString("search.b"), Builtins: _search_builtin_map},
-	"db":     {File: readStdFileToString("db.b"), Builtins: _db_builtin_map},
-	"math":   {File: readStdFileToString("math.b"), Builtins: _math_builtin_map},
-	"config": {File: readStdFileToString("config.b"), Builtins: _config_builtin_map},
-	"crypto": {File: readStdFileToString("crypto.b"), Builtins: _crypto_builtin_map},
-	"net":    {File: readStdFileToString("net.b"), Builtins: _net_builtin_map},
-	"ui":     {File: readStdFileToString("ui.b"), Builtins: _ui_builtin_map},
+	"http":   {File: lib.ReadStdFileToString("http.b"), Builtins: _http_builtin_map},
+	"time":   {File: lib.ReadStdFileToString("time.b"), Builtins: _time_builtin_map},
+	"search": {File: lib.ReadStdFileToString("search.b"), Builtins: _search_builtin_map},
+	"db":     {File: lib.ReadStdFileToString("db.b"), Builtins: _db_builtin_map},
+	"math":   {File: lib.ReadStdFileToString("math.b"), Builtins: _math_builtin_map},
+	"config": {File: lib.ReadStdFileToString("config.b"), Builtins: _config_builtin_map},
+	"crypto": {File: lib.ReadStdFileToString("crypto.b"), Builtins: _crypto_builtin_map},
+	"net":    {File: lib.ReadStdFileToString("net.b"), Builtins: _net_builtin_map},
+	"ui":     {File: lib.ReadStdFileToString("ui.b"), Builtins: _ui_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -101,7 +90,7 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
 		for newE.ErrorTokens.Len() > 0 {
-			buf.WriteString(l.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
+			buf.WriteString(lexer.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
 		fmt.Printf("EvaluatorError in `%s` module: %s", name, buf.String())
