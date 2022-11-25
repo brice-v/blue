@@ -19,46 +19,46 @@ import (
 const PROMPT = "> "
 
 // StartLexerRepl starts the read eval print loop for the lexer
-func StartLexerRepl(version string) {
+func StartLexerRepl() {
 	user, err := user.Current()
 	if err != nil {
 		fmt.Println("Unable to get current username, proceeding with none")
-		startLexerRepl(os.Stdin, os.Stdout, version, "")
+		startLexerRepl(os.Stdin, os.Stdout, "")
 		os.Exit(0)
 	}
-	startLexerRepl(os.Stdin, os.Stdout, version, user.Username)
+	startLexerRepl(os.Stdin, os.Stdout, user.Username)
 	os.Exit(0)
 }
 
 // StartParserRepl start the read eval print loop for the parser
-func StartParserRepl(version string) {
+func StartParserRepl() {
 	user, err := user.Current()
 	if err != nil {
 		fmt.Println("Unable to get current username, proceeding with none")
-		startParserRepl(os.Stdin, os.Stdout, version, "")
+		startParserRepl(os.Stdin, os.Stdout, "")
 		os.Exit(0)
 	}
-	startParserRepl(os.Stdin, os.Stdout, version, user.Username)
+	startParserRepl(os.Stdin, os.Stdout, user.Username)
 	os.Exit(0)
 }
 
 // StartEvalRepl start the read eval print loop for the parser
-func StartEvalRepl(version string) {
+func StartEvalRepl() {
 	user, err := user.Current()
 	if err != nil {
 		fmt.Println("Unable to get current username, proceeding with none")
-		startEvalRepl(os.Stdin, os.Stdout, version, "")
+		startEvalRepl(os.Stdin, os.Stdout, "")
 		os.Exit(0)
 	}
-	startEvalRepl(os.Stdin, os.Stdout, version, user.Username)
+	startEvalRepl(os.Stdin, os.Stdout, user.Username)
 	os.Exit(0)
 }
 
 // startEvalRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startEvalRepl(in io.Reader, out io.Writer, version, username string) {
+func startEvalRepl(in io.Reader, out io.Writer, username string) {
 	e := evaluator.New()
-	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", version, username)
+	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", consts.VERSION, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {
 		log.Fatalf("Failed to instantiate readline| Error: %s", err)
@@ -94,8 +94,8 @@ func startEvalRepl(in io.Reader, out io.Writer, version, username string) {
 
 // startLexerRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startLexerRepl(in io.Reader, out io.Writer, version, username string) {
-	header := fmt.Sprintf("blue | v%s | REPL | MODE: LEXER | User: %s", version, username)
+func startLexerRepl(in io.Reader, out io.Writer, username string) {
+	header := fmt.Sprintf("blue | v%s | REPL | MODE: LEXER | User: %s", consts.VERSION, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {
 		log.Fatalf("Failed to instantiate readline| Error: %s", err)
@@ -129,8 +129,8 @@ func PrintParserErrors(out io.Writer, errors []string) {
 
 // startParserRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startParserRepl(in io.Reader, out io.Writer, version, username string) {
-	header := fmt.Sprintf("blue | v%s | REPL | MODE: PARSER | User: %s", version, username)
+func startParserRepl(in io.Reader, out io.Writer, username string) {
+	header := fmt.Sprintf("blue | v%s | REPL | MODE: PARSER | User: %s", consts.VERSION, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {
 		log.Fatalf("Failed to instantiate readline| Error: %s", err)

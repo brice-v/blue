@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"blue/consts"
 	"blue/repl"
 	"flag"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 )
 
 // Run runs the cmd line parsing of arguments and kicks off the Bee language
-func Run(version string, args ...string) {
+func Run(args ...string) {
 	// TODO: Handle command line better, maybe use external package
 
 	lexFlag := flag.Bool("lex", false, "Start the lexer REPL or lex the given file path")
@@ -25,16 +26,16 @@ func Run(version string, args ...string) {
 	argc := len(args)
 	switch {
 	case argc == 2 && *versionFlag:
-		fmt.Println(args[0] + " v" + version)
+		fmt.Println(args[0] + " v" + consts.VERSION)
 		return
 	case argc == 2 && !(*lexFlag || *parseFlag) && isValidFileForEval():
 		evalFile()
 	case argc == 2 && *lexFlag:
-		repl.StartLexerRepl(version)
+		repl.StartLexerRepl()
 	case argc == 2 && *parseFlag:
-		repl.StartParserRepl(version)
+		repl.StartParserRepl()
 	case argc == 2 && *evalFlag:
-		repl.StartEvalRepl(version)
+		repl.StartEvalRepl()
 	case argc == 3 && isValidFile() && *lexFlag:
 		lexCurrentFile()
 	case argc == 3 && isValidFile() && *parseFlag:
@@ -50,7 +51,7 @@ func Run(version string, args ...string) {
 		}
 		bundleCurrentFile(fpath, *debugFlag)
 	case argc == 1:
-		repl.StartEvalRepl(version)
+		repl.StartEvalRepl()
 	case argc > 2 && isValidFileForEval():
 		evalFile()
 	default:

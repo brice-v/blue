@@ -2,11 +2,10 @@ package main
 
 import (
 	"blue/cmd"
-	"blue/consts"
 	"os"
 )
 
 func main() {
-	cmd.Run(consts.VERSION, os.Args...)
+	cmd.Run(os.Args...)
 	os.Exit(0)
 }
