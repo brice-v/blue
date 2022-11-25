@@ -12,8 +12,12 @@ require (
 	github.com/gookit/config/v2 v2.1.6
 	github.com/gookit/ini/v2 v2.1.2
 	github.com/gorilla/websocket v1.5.0
+	github.com/microcosm-cc/bluemonday v1.0.21
+	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/shopspring/decimal v1.3.1
+	github.com/tdewolff/minify/v2 v2.12.4
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
+	golang.org/x/net v0.0.0-20221002022538-bcab6841153b
 	modernc.org/sqlite v1.19.1
 )
 
@@ -22,6 +26,7 @@ require (
 	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/antchfx/xpath v1.2.1 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/chzyer/test v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fasthttp/websocket v1.5.0 // indirect
@@ -39,6 +44,7 @@ require (
 	github.com/gookit/goutil v0.5.12 // indirect
 	github.com/gookit/properties v0.2.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
@@ -54,6 +60,7 @@ require (
 	github.com/srwiley/oksvg v0.0.0-20200311192757-870daf9aa564 // indirect
 	github.com/srwiley/rasterx v0.0.0-20200120212402-85cb7272f5e9 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
+	github.com/tdewolff/parse/v2 v2.6.4 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.40.0 // indirect
@@ -62,7 +69,6 @@ require (
 	golang.org/x/image v0.0.0-20220601225756-64ec528b34cd // indirect
 	golang.org/x/mobile v0.0.0-20211207041440-4e6c2922fdee // indirect
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.8-0.20211022200916-316ba0b74098 // indirect

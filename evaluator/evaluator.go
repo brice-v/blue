@@ -106,6 +106,7 @@ func New() *Evaluator {
 		scopeNestLevel: 0,
 		scopeVars:      make(map[int][]string),
 	}
+	builtins.Put("eval_template", createEvalTemplateBuiltin(e))
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
 	e.Builtins.PushBack(builtinobjs)

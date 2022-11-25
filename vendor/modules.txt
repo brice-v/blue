@@ -57,6 +57,10 @@ github.com/antchfx/htmlquery
 # github.com/antchfx/xpath v1.2.1
 ## explicit; go 1.14
 github.com/antchfx/xpath
+# github.com/aymerick/douceur v0.2.0
+## explicit
+github.com/aymerick/douceur/css
+github.com/aymerick/douceur/parser
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 ## explicit
 github.com/chzyer/readline
@@ -179,6 +183,9 @@ github.com/gookit/properties
 # github.com/gopherjs/gopherjs v1.17.2
 ## explicit; go 1.17
 github.com/gopherjs/gopherjs/js
+# github.com/gorilla/css v1.0.0
+## explicit
+github.com/gorilla/css/scanner
 # github.com/gorilla/websocket v1.5.0
 ## explicit; go 1.12
 github.com/gorilla/websocket
@@ -205,6 +212,10 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.14
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
+# github.com/microcosm-cc/bluemonday v1.0.21
+## explicit; go 1.19
+github.com/microcosm-cc/bluemonday
+github.com/microcosm-cc/bluemonday/css
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
@@ -217,6 +228,9 @@ github.com/remyoudompheng/bigfft
 # github.com/rivo/uniseg v0.2.0
 ## explicit; go 1.12
 github.com/rivo/uniseg
+# github.com/russross/blackfriday/v2 v2.1.0
+## explicit
+github.com/russross/blackfriday/v2
 # github.com/savsgio/gotils v0.0.0-20211223103454-d0aaa54c5899
 ## explicit; go 1.12
 github.com/savsgio/gotils/strconv
@@ -233,6 +247,16 @@ github.com/srwiley/rasterx
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+# github.com/tdewolff/minify/v2 v2.12.4
+## explicit; go 1.13
+github.com/tdewolff/minify/v2
+github.com/tdewolff/minify/v2/html
+# github.com/tdewolff/parse/v2 v2.6.4
+## explicit; go 1.13
+github.com/tdewolff/parse/v2
+github.com/tdewolff/parse/v2/buffer
+github.com/tdewolff/parse/v2/html
+github.com/tdewolff/parse/v2/strconv
 # github.com/tevino/abool v1.2.0
 ## explicit; go 1.14
 github.com/tevino/abool
@@ -275,7 +299,7 @@ golang.org/x/mobile/exp/f32
 # golang.org/x/mod v0.4.2
 ## explicit; go 1.12
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220225172249-27dd8689420f
+# golang.org/x/net v0.0.0-20221002022538-bcab6841153b
 ## explicit; go 1.17
 golang.org/x/net/html
 golang.org/x/net/html/atom

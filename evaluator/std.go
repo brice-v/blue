@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -39,6 +40,10 @@ import (
 	"github.com/gookit/config/v2/yamlv3"
 	"github.com/gookit/ini/v2/dotenv"
 	ws "github.com/gorilla/websocket"
+	"github.com/microcosm-cc/bluemonday"
+	"github.com/russross/blackfriday/v2"
+	"github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/html"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
@@ -444,6 +449,58 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				},
 			}))
 			return NULL
+		},
+	},
+	"_md_to_html": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`md_to_html` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `md_to_html` should be STRING. got=%s", args[0].Type())
+			}
+			bs := []byte(args[0].(*object.Stringo).Value)
+			output := blackfriday.Run(bs)
+			return &object.Stringo{Value: string(output)}
+		},
+	},
+	"_sanitize_and_minify": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`sanitize_and_minify` expects 1 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `sanitize_and_minify` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 2 to `sanitize_and_minify` should be BOOLEAN. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newError("argument 3 to `sanitize_and_minify` should be BOOLEAN. got=%s", args[2].Type())
+			}
+			bs := []byte(args[0].(*object.Stringo).Value)
+			shouldSanitize := args[1].(*object.Boolean).Value
+			shouldMinify := args[2].(*object.Boolean).Value
+			var htmlContent []byte = bs
+			if shouldSanitize {
+				p := bluemonday.UGCPolicy()
+				// allow code to still get syntax highlighting
+				p.AllowAttrs("class").Matching(regexp.MustCompile("^language-[a-zA-Z0-9]+$")).OnElements("code")
+				htmlContent = p.SanitizeBytes(htmlContent)
+			}
+			if shouldMinify {
+				m := minify.New()
+				m.Add("text/html", &html.Minifier{
+					KeepWhitespace:   true,
+					KeepDocumentTags: true,
+				})
+				htmlContent1, err := m.Bytes("text/html", htmlContent)
+				if err != nil {
+					return newError("`sanitize_and_minify` error: %s", err.Error())
+				}
+				htmlContent = htmlContent1
+			}
+			return &object.Stringo{Value: string(htmlContent)}
 		},
 	},
 })

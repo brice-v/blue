@@ -1,24 +1,19 @@
 TODO:
 
-- add filename (with abs path) to token so that we can get the exact line
-    - then GetErrorLineMessage wont have to live in lexer (and we can print errors elsewhere)
+- NOTE: `send()` will block if nothing is recveiving on it (maybe this is okay?)
+    - We could maybe optimize this with a buffered channel
 - [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
 - `go tool pprof -http localhost:9999 cpu.prof` (or mem.prof)
-- [ ] Make sure send is non-blocking and recv is blocking
-- [ ] Also need to figure out how were closing the channels after being used and non-buffered vs buffered channels
 - [ ] We then probably need some wait groups and other concurrent features to make everything nicer
     - also we need to consider when processes are loaded on other computer hosts
-- [ ] Use send in recv() match block to make sure we can send and recv without issue (maybe in a for loop)
-    - [ ] Will need to update SpawnExpression to support passing args such as the pid to send back to
 - [ ] Remove createProcess function if it ends up being simple (like it is currently)
 - [ ] Should we pass in current env when spawning? It would allow globals declared before hand to be copied but not updated
 - [ ] Add test cases to cover all the basic functions
 - [ ] sort builtin
     - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
 - [ ] Add time related functions (and expand stdlb)
-- [ ] Add more http methods to stdlib (and expand upon stdlib work)
 - [ ] remove lambda or make it easier to use
 - [ ] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
 - [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
@@ -49,8 +44,6 @@ TODO:
 LATER ON:
 
 - [ ] Support TUI and colors for printing in terminal (and any other special things)
-- [ ] Add code for http server
-- [ ] Add code for UI
 - [ ] Add code for CLI arg parser
 - [ ] Make repl better
 - [ ] Make CLI behavior better (need an alternative to 'flag' package)
@@ -79,6 +72,15 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [-] Add more http methods to stdlib (and expand upon stdlib work)
+- [x] Add code for http server
+- [x] Add code for UI
+- [-] Also need to figure out how were closing the channels after being used and non-buffered vs buffered channels
+- [-] Use send in recv() match block to make sure we can send and recv without issue (maybe in a for loop)
+    - [x] Will need to update SpawnExpression to support passing args such as the pid to send back to
+- [x] Make sure send is non-blocking and recv is blocking
+- add filename (with abs path) to token so that we can get the exact line
+    - then GetErrorLineMessage wont have to live in lexer (and we can print errors elsewhere)
 - [x] Make sure self works inside the spawned process
 - [x] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
 - [x] Add way to get types of objects inside code

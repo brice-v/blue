@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 	"unicode/utf8"
@@ -24,6 +25,7 @@ import (
 	"github.com/clbanning/mxj/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"golang.org/x/net/html"
 )
 
 func unwrapReturnValue(obj object.Object) object.Object {
@@ -480,6 +482,77 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 	return returnMap, nil
 }
 
+// For Builtins
+
+func createEvalTemplateBuiltin(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`eval_template` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `eval_template` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.MAP_OBJ {
+				return newError("argument 2 to `eval_template` should be MAP. got=%s", args[1].Type())
+			}
+			m := args[1].(*object.Map)
+			inputStr := args[0].(*object.Stringo).Value
+			r := regexp.MustCompile("[<%|<%=].*%>")
+			if e.env.IsImmutable("ctx") {
+				return newError("`eval_template` error: `ctx` is immutable and can't be used in template")
+			}
+			savedObj, isThere := e.env.Get("ctx")
+			e.env.Set("ctx", m)
+
+			inputToMutate := inputStr
+			for {
+				ss := r.FindAllString(inputToMutate, -1)
+				if len(ss) == 0 {
+					break
+				}
+				for _, s := range ss {
+					if strings.HasPrefix(s, "<%=") {
+						// inject
+						lexerInput := strings.ReplaceAll(strings.ReplaceAll(s, "<%=", ""), "%>", "")
+						l := lexer.New(lexerInput, "<internal: eval_template>")
+						p := parser.New(l)
+						prog := p.ParseProgram()
+						if len(p.Errors()) != 0 {
+							return newError("`eval_template` error: %s", strings.Join(p.Errors(), " | "))
+						}
+						returnObj := e.Eval(prog)
+						if returnObj.Type() != object.STRING_OBJ {
+							return newError("`eval_template` error: input `%s` should return STRING. got=%s", s, returnObj.Type())
+						}
+						newStr := returnObj.(*object.Stringo).Value
+						inputToMutate = strings.Replace(inputToMutate, s, newStr, 1)
+						break
+					} else if strings.HasPrefix(s, "<%") {
+						// dont inject (second in if branch because it will match the above)
+						lexerInput := strings.ReplaceAll(strings.ReplaceAll(s, "<%", ""), "%>", "")
+						l := lexer.New(lexerInput, "<internal: eval_template>")
+						p := parser.New(l)
+						prog := p.ParseProgram()
+						if len(p.Errors()) != 0 {
+							return newError("`eval_template` error: %s", strings.Join(p.Errors(), " | "))
+						}
+						e.Eval(prog)
+						inputToMutate = strings.Replace(inputToMutate, s, "", 1)
+						break
+					}
+				}
+			}
+			if isThere {
+				e.env.Set("ctx", savedObj)
+			} else {
+				e.env.RemoveIdentifier("ctx")
+			}
+			return &object.Stringo{Value: inputToMutate}
+		},
+	}
+}
+
 func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
@@ -549,6 +622,18 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 					if json.Valid([]byte(respStr)) {
 						c.Set("Content-Type", "application/json")
 						return c.Send([]byte(respStr))
+					}
+					// If this is a <html></html> snippet being returned then we will manually set
+					// the content type so that other things could be included in the <head>
+					if strings.HasPrefix(strings.TrimLeft(respStr, "\n\r \t"), "<html") {
+						if strings.HasSuffix(strings.TrimRight(respStr, "\n\r \t"), "</html>") {
+							_, err := html.Parse(strings.NewReader(respStr))
+							if err == nil {
+								// This will allow things like <head> to be properly populated
+								c.Set("Content-Type", "text/html")
+								return c.Send([]byte(respStr))
+							}
+						}
 					}
 					return c.Format(respStr)
 				})

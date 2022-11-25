@@ -1,6 +1,4 @@
-#val get = _get;
 val __fetch = _fetch;
-#val __post = _post;
 val __serve = _serve;
 val __static = _static;
 val __handle = _handle;
@@ -22,6 +20,8 @@ val _server = fun() {
     return __server;
 }();
 val shutdown_server = _shutdown_server;
+val md_to_html = _md_to_html;
+val __sanitize_and_minify = _sanitize_and_minify;
 
 # Default headers seem to be host, user-agent, accept-encoding (not case sensitive for these check pictures)
 # deno also used accept: */* (not sure what that is)
@@ -89,4 +89,8 @@ fun static(prefix="/", dir_path=".", browse=false) {
 
 fun handle_monitor(path, should_show=true) {
     __handle_monitor(_server, path, should_show)
+}
+
+fun sanitize_and_minify(content, should_sanitize=true, should_minify=true) {
+    __sanitize_and_minify(content, should_sanitize, should_minify)
 }
