@@ -22,7 +22,8 @@ Note: Its not *blazingly fast* but that was never the point. It may be practical
     - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
 - Install deps for fyne
 - make sure no errors with `go build`
-    - [had this error](https://stackoverflow.com/questions/65387167/glfw-pkg-config-error-when-building-a-fyne-app)
+    - [had this error on mint](https://stackoverflow.com/questions/65387167/glfw-pkg-config-error-when-building-a-fyne-app)
+        - added `export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig` to `~/.bashrc`
     - windows has no requirements
     - still havent tested on macos
     - `fyne-cross` giving issues due to go1.19
