@@ -638,6 +638,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 			if evald == TRUE {
 				return e.Eval(node.Consequence[i])
 			}
+			continue
 		}
 		if object.HashObject(condVal) == object.HashObject(optVal) {
 			return e.Eval(node.Consequence[i])
@@ -647,7 +648,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 		}
 	}
 	// Shouldnt reach here ideally
-	return nil
+	return NULL
 }
 
 func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object {
