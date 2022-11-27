@@ -1552,8 +1552,31 @@ func (e *Evaluator) evalSetIndexExpression(set, indx object.Object) object.Objec
 			return NULL
 		}
 		idx = intVal.Value
+	case object.LIST_OBJ:
+		// Handle range expressions (1..3) or (1..<3) => they come back as a list
+		indxList := indx.(*object.List).Elements
+		indexes := make([]int64, len(indxList))
+		for i, e := range indxList {
+			if e.Type() != object.INTEGER_OBJ {
+				return newError("index range needs to be INTEGER. got=%s", e.Type())
+			}
+			indexes[i] = e.(*object.Integer).Value
+		}
+		newSet := &object.Set{Elements: object.NewSetElements()}
+		for _, index := range indexes {
+			var j int64
+			for _, k := range setObj.Elements.Keys {
+				if v, ok := setObj.Elements.Get(k); ok {
+					if j == index {
+						newSet.Elements.Set(k, v)
+					}
+				}
+				j++
+			}
+		}
+		return newSet
 	default:
-		return newError("evalSetIndexExpression:expected index to be INT or STRING. got=%s", indx.Type())
+		return newError("evalSetIndexExpression:expected index to be INT, STRING, or LIST. got=%s", indx.Type())
 	}
 	var i int64
 	for _, k := range setObj.Elements.Keys {
@@ -1584,6 +1607,36 @@ func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Obj
 			return NULL
 		}
 		idx = intVal.Value
+	case object.LIST_OBJ:
+		// Handle range expressions (1..3) or (1..<3) => they come back as a list
+		indxList := indx.(*object.List).Elements
+		indexes := make([]int64, len(indxList))
+		for i, e := range indxList {
+			if e.Type() != object.INTEGER_OBJ {
+				return newError("index range needs to be INTEGER. got=%s", e.Type())
+			}
+			indexes[i] = e.(*object.Integer).Value
+		}
+		// Support setting arbitrary index with value for list
+		if listObj.Elements == nil {
+			listObj.Elements = []object.Object{}
+		}
+		for _, index := range indexes {
+			for index > int64(len(listObj.Elements)-1) {
+				listObj.Elements = append(listObj.Elements, NULL)
+			}
+		}
+		max := int64(len(listObj.Elements) - 1)
+		for _, index := range indexes {
+			if index < 0 || index > max {
+				return newError("index out of bounds: length=%d, index=%d", len(listObj.Elements), index)
+			}
+		}
+		newList := &object.List{Elements: make([]object.Object, len(indexes))}
+		for i, index := range indexes {
+			newList.Elements[i] = listObj.Elements[index]
+		}
+		return newList
 	default:
 		return NULL
 	}
@@ -1618,6 +1671,28 @@ func (e *Evaluator) evalStringIndexExpression(str, indx object.Object) object.Ob
 			return NULL
 		}
 		idx = intVal.Value
+	case object.LIST_OBJ:
+		// Handle range expressions (1..3) or (1..<3) => they come back as a list
+		indxList := indx.(*object.List).Elements
+		indexes := make([]int64, len(indxList))
+		for i, e := range indxList {
+			if e.Type() != object.INTEGER_OBJ {
+				return newError("index range needs to be INTEGER. got=%s", e.Type())
+			}
+			indexes[i] = e.(*object.Integer).Value
+		}
+		max := int64(runeLen(strObj.Value) - 1)
+		for _, index := range indexes {
+			if index < 0 || index > max {
+				return newError("index out of bounds: length=%d, index=%d", runeLen(strObj.Value), index)
+			}
+		}
+		newStr := make([]rune, len(indexes))
+		runeStr := []rune(strObj.Value)
+		for i, index := range indexes {
+			newStr[i] = runeStr[index]
+		}
+		return &object.Stringo{Value: string(newStr)}
 	default:
 		return NULL
 	}
