@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -402,6 +403,63 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				// TODO: Could we maybe take the string representation and convert it to bytes?
 				return newError("type '%s' not supported for `to_bytes`", args[0].Type())
 			}
+		},
+	},
+	"is_file": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`is_file` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `is_file` should be STRING. got=%s", args[0].Type())
+			}
+			fpath := args[0].(*object.Stringo).Value
+			info, err := os.Stat(fpath)
+			if os.IsNotExist(err) {
+				return FALSE
+			}
+			if info.IsDir() {
+				return FALSE
+			}
+			return TRUE
+		},
+	},
+	"is_dir": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`is_dir` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `is_dir` should be STRING. got=%s", args[0].Type())
+			}
+			fpath := args[0].(*object.Stringo).Value
+			info, err := os.Stat(fpath)
+			if err != nil {
+				return FALSE
+			}
+			if info.IsDir() {
+				return TRUE
+			}
+			return FALSE
+		},
+	},
+	"find_exe": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`find_exe` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `find_exe` should be STRING. got=%s", args[0].Type())
+			}
+			exePath := args[0].(*object.Stringo).Value
+			fname, err := exec.LookPath(exePath)
+			if err == nil {
+				fname, err = filepath.Abs(fname)
+			}
+			if err != nil {
+				return newError("`find_exe` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: fname}
 		},
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
