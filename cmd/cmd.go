@@ -115,7 +115,11 @@ func handleBundleCommand(argc int, arguments []string, debugFlag bool) {
 	if argc == 2 || argc == 3 {
 		fpath := arguments[1]
 		if isFile(fpath) {
-			bundleFile(fpath, debugFlag)
+			err := bundleFile(fpath, debugFlag)
+			if err != nil {
+				fmt.Printf("`bundle` error: %s\n", err.Error())
+				os.Exit(1)
+			}
 		} else {
 			fmt.Printf("`bundle` command expects valid file as argument. got=%s\n", fpath)
 			os.Exit(1)

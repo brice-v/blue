@@ -77,7 +77,7 @@ const mainFunc = `func main() {
 // bundleFile takes the given file as an entry point
 // and bundles the interpreter with the code into a go executable
 // TODO: Eventually once this is working well, remove the 'debug' stuff?
-func bundleFile(fpath string, isDebug bool) {
+func bundleFile(fpath string, isDebug bool) error {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
 		log.Fatalf("`bundleFile` error trying to read file `%s`. error: %s", fpath, err.Error())
@@ -100,62 +100,54 @@ func bundleFile(fpath string, isDebug bool) {
 	// save current directory
 	savedCurrentDir, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("`savedCurrentDir` error: %s\n", err.Error())
+		return fmt.Errorf("`savedCurrentDir` error: %s", err.Error())
 	}
 
 	// These steps need to executed in this order
 
 	// change dir to tmp
-	err = createTmpWorkspace()
+	tmpDir, err := createTmpWorkspace()
+	defer changeBackToSavedDir(savedCurrentDir)
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`createTmpWorkspace` error: %s\n", err.Error())
+		return fmt.Errorf("`createTmpWorkspace` error: %s", err.Error())
 	}
 	// check BLUE_INSTALL_PATH is set with files, if not git clone them else error out
 	err = checkAndGetBlueSouce()
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`checkAndGetBlueSource` error: %s\n", err.Error())
+		return fmt.Errorf("`checkAndGetBlueSource` error: %s", err.Error())
 	}
 	// Copy files from BLUE_INSTALL_PATH into current tmp dir
 	err = copyFilesFromBlueSourceToTmpDir()
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`copyFilesFromBlueSourceToTmpDir` error: %s\n", err.Error())
+		return fmt.Errorf("`copyFilesFromBlueSourceToTmpDir` error: %s", err.Error())
 	}
 	// Copy currentSavedDir files into . as well, (we are in the tmpWorkspace)
 	err = copyFilesFromDirToTmpDir(savedCurrentDir)
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`copyFilesFromDirToTmpDir` error: %s\n", err.Error())
+		return fmt.Errorf("`copyFilesFromDirToTmpDir` error: %s", err.Error())
 	}
 	// TODO: Can we remove this and the revert step if using tmp works?
 	err = renameOriginalMainGoFile()
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`renameOriginalMainGoFile` error: %s\n", err.Error())
+		return fmt.Errorf("`renameOriginalMainGoFile` error: %s", err.Error())
 	}
 	err = writeMainGoFile(gomain)
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`writeMainGoFile` error: %s\n", err.Error())
+		return fmt.Errorf("`writeMainGoFile` error: %s", err.Error())
 	}
-	err = buildExeAndWriteToSavedDir(fpath, savedCurrentDir)
+	err = buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir)
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`buildExe` error: %s\n", err.Error())
+		return fmt.Errorf("`buildExe` error: %s", err.Error())
 	}
 	err = removeMainGoFile()
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`removeMainGoFile` error: %s\n", err.Error())
+		return fmt.Errorf("`removeMainGoFile` error: %s", err.Error())
 	}
 	err = revertRenameOfOriginalGoFile()
 	if err != nil {
-		changeBackToSavedDir(savedCurrentDir)
-		log.Fatalf("`revertRenameOfOriginalGoFile` error: %s\n", err.Error())
+		return fmt.Errorf("`revertRenameOfOriginalGoFile` error: %s", err.Error())
 	}
-	changeBackToSavedDir(savedCurrentDir)
+	return nil
 }
 
 func changeBackToSavedDir(savedCurrentDir string) {
@@ -164,13 +156,13 @@ func changeBackToSavedDir(savedCurrentDir string) {
 	}
 }
 
-func createTmpWorkspace() error {
+func createTmpWorkspace() (string, error) {
 	tmpDir := os.TempDir() + string(os.PathSeparator) + "blue-build-" + uuid.NewString()
 	err := os.Mkdir(tmpDir, 0700)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return os.Chdir(tmpDir)
+	return tmpDir, os.Chdir(tmpDir)
 }
 
 func checkAndGetBlueSouce() error {
@@ -243,7 +235,7 @@ func writeMainGoFile(fdata string) error {
 	return nil
 }
 
-func buildExeAndWriteToSavedDir(fpath, savedCurrentDir string) error {
+func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) error {
 	exeName := filepath.Base(fpath)
 	extension := ""
 	if runtime.GOOS == "windows" {
@@ -253,7 +245,9 @@ func buildExeAndWriteToSavedDir(fpath, savedCurrentDir string) error {
 	if runtime.GOOS == "windows" {
 		winArgs := []string{"/c"}
 		winArgs = append(winArgs, cmd...)
-		output, err := exec.Command("cmd", winArgs...).CombinedOutput()
+		command := exec.Command("cmd", winArgs...)
+		command.Dir = tmpDir
+		output, err := command.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(winArgs, " "), err.Error())
 		}
@@ -262,7 +256,9 @@ func buildExeAndWriteToSavedDir(fpath, savedCurrentDir string) error {
 			return copyFileToSavedDir(exeName+extension, savedCurrentDir)
 		}
 	} else {
-		output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
+		command := exec.Command(cmd[0], cmd[1:]...)
+		command.Dir = tmpDir
+		output, err := command.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(cmd, " "), err.Error())
 		}
