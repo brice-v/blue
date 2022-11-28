@@ -9,7 +9,6 @@ import (
 	"blue/repl"
 	"blue/token"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -20,64 +19,23 @@ import (
 	"strings"
 )
 
-// fileExists is a helper function to check if the fpath given
-// exists and if not return false and the error
-func fileExists(fpath string) (bool, error) {
-	_, err := os.Stat(fpath)
+var out = os.Stdout
+
+// isFile is a helper function to check if the fpath given
+// exists and if not return false
+func isFile(fpath string) bool {
+	info, err := os.Stat(fpath)
 	if err == nil {
-		return true, nil
-	} else if os.IsNotExist(err) {
-		return false, errors.New("filepath does not exist")
+		return !info.IsDir()
 	}
-	return false, err
+	return false
 }
 
-// isValidFile checks if the second argument is a valid file
-func isValidFile() bool {
-	if !(len(os.Args) >= 2) {
-		os.Stderr.WriteString("Filepath not given")
-		return false
-	}
-	ok, err := fileExists(os.Args[2])
-	if !ok {
-		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting...\n", os.Args[1], err)
-		os.Stderr.WriteString(msg)
-		return false
-	}
-	return true
-}
-
-func isValidFpath(fpath string) bool {
-	ok, err := fileExists(fpath)
-	if !ok {
-		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting...\n", os.Args[1], err)
-		os.Stderr.WriteString(msg)
-		return false
-	}
-	return true
-}
-
-// isValidFileForEval checks if the first argument is a valid file
-func isValidFileForEval() bool {
-	if !(len(os.Args) >= 2) {
-		os.Stderr.WriteString("Filepath not given")
-		return false
-	}
-	ok, err := fileExists(os.Args[1])
-	if !ok {
-		msg := fmt.Sprintf("Unexpected error when trying to open %s | Error: %s | Exiting...\n", os.Args[1], err)
-		os.Stderr.WriteString(msg)
-		return false
-	}
-	return true
-}
-
-// lexCurrentFile lex's the second argument as a file
-func lexCurrentFile() {
-	fpath := os.Args[2]
+// lexFile tokenizes and lexically analyzes the given file
+func lexFile(fpath string) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
+		log.Fatalf("`lexFile` error trying to read file `%s`. error: %s", fpath, err.Error())
 	}
 
 	l := lexer.New(string(data), fpath)
@@ -87,12 +45,11 @@ func lexCurrentFile() {
 	}
 }
 
-// parseCurrentFile parse's the second argument as a file
-func parseCurrentFile() {
-	fpath, out := os.Args[2], os.Stdout
+// parseFile parses the given file
+func parseFile(fpath string) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
+		log.Fatalf("`parseFile` error trying to read file `%s`. error: %s", fpath, err.Error())
 	}
 
 	l := lexer.New(string(data), fpath)
@@ -108,12 +65,11 @@ func parseCurrentFile() {
 	io.WriteString(out, "\n")
 }
 
-// evalCurrentFile parse's the second argument as a file
-func evalCurrentFile() {
-	fpath, out := os.Args[2], os.Stdout
+// evalFile evaluates the given file
+func evalFile(fpath string) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
+		log.Fatalf("`evalFile` error trying to read file `%s`. error: %s", fpath, err.Error())
 	}
 
 	l := lexer.New(string(data), fpath)
@@ -146,15 +102,9 @@ func evalCurrentFile() {
 	// }
 }
 
-// evalFile parse's the second argument as a file
-func evalFile() {
-	fpath, out := os.Args[1], os.Stdout
-	data, err := os.ReadFile(fpath)
-	if err != nil {
-		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
-	}
-
-	l := lexer.New(string(data), fpath)
+// evalString evaluates the given string
+func evalString(strToEval string) {
+	l := lexer.New(strToEval, "<stdin>")
 
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -163,8 +113,6 @@ func evalFile() {
 		os.Exit(1)
 	}
 	e := evaluator.New()
-	e.CurrentFile = filepath.Clean(fpath)
-	e.EvalBasePath = filepath.Dir(fpath)
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		errorObj := val.(*object.Error)
@@ -184,12 +132,12 @@ func evalFile() {
 	// }
 }
 
-// bundleCurrentFile parse's the second argument as a file
-// and bundles the interpreter with the code into an executable
-func bundleCurrentFile(fpath string, isDebug bool) {
+// bundleFile takes the given file as an entry point
+// and bundles the interpreter with the code into a go executable
+func bundleFile(fpath string, isDebug bool) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		log.Fatalf("Error trying to readfile `%s` | Error: %s", fpath, err)
+		log.Fatalf("`bundleFile` error trying to read file `%s`. error: %s", fpath, err.Error())
 	}
 
 	d := string(data)

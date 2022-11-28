@@ -103,16 +103,28 @@ fun send(obj, value) {
     * `chmod +x BINARY_NAME`
 
 ```
-Usage of ./blue:
-  -b    Bundle the script into a go executable
-  -d    Debug flag - currently only used for Bundling
-  -eval
-        Start the eval REPL or eval the given file path
-  -lex
-        Start the lexer REPL or lex the given file path
-  -parse
-        Start the parser REPL or parse the given file path
-  -v    Prints the version of ./blue
+blue is a tool for running blue source code
+
+Usage:
+    blue <command> [arguments]
+
+The commands are:
+
+    lex     start the lexer repl or lex the given file
+            (converts the file to tokens and prints)
+    parse   start the parser repl or parse the given file
+            (converts the file to an inspectable AST
+            without node names)
+    bundle  bundle the given file into a go executable
+            with the runtime included
+            (bundle accepts a '-d' flag for debugging)
+    eval    eval the given string
+    help    prints this help message
+    version prints the current version
+
+The default behavior for no command/arguments will start
+an evaluator repl. (If given a file, the file will be 
+evaluated)
 ```
 
 #### Notes

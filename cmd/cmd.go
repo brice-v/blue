@@ -5,56 +5,133 @@ import (
 	"blue/repl"
 	"flag"
 	"fmt"
-	"log"
 	"os"
+	"strings"
 )
 
-// Run runs the cmd line parsing of arguments and kicks off the Bee language
+// TODO: Include `doc` once its figured out
+const USAGE = `blue is a tool for running blue source code
+
+Usage:
+    blue <command> [arguments]
+
+The commands are:
+
+    lex     start the lexer repl or lex the given file
+            (converts the file to tokens and prints)
+    parse   start the parser repl or parse the given file
+            (converts the file to an inspectable AST
+            without node names)
+    bundle  bundle the given file into a go executable
+            with the runtime included
+            (bundle accepts a '-d' flag for debugging)
+    eval    eval the given string
+    help    prints this help message
+    version prints the current version
+
+The default behavior for no command/arguments will start
+an evaluator repl. (If given a file, the file will be 
+evaluated)
+`
+
+// Run runs the cmd line parsing of arguments and kicks off blue
 func Run(args ...string) {
-	// TODO: Handle command line better, maybe use external package
-
-	lexFlag := flag.Bool("lex", false, "Start the lexer REPL or lex the given file path")
-	parseFlag := flag.Bool("parse", false, "Start the parser REPL or parse the given file path")
-	evalFlag := flag.Bool("eval", false, "Start the eval REPL or eval the given file path")
-	// TODO: See if we can build a whole directory with imports (embedding it all with the interpreter and running)
-	// just missing the import part but single scripts should be fine
-	bundleFlag := flag.Bool("b", false, "Bundle the script into a go executable")
-	versionFlag := flag.Bool("v", false, "Prints the version of "+args[0])
 	debugFlag := flag.Bool("d", false, "Debug flag - currently only used for Bundling")
-
 	flag.Parse()
-	argc := len(args)
-	switch {
-	case argc == 2 && *versionFlag:
-		fmt.Println(args[0] + " v" + consts.VERSION)
-		return
-	case argc == 2 && !(*lexFlag || *parseFlag) && isValidFileForEval():
-		evalFile()
-	case argc == 2 && *lexFlag:
-		repl.StartLexerRepl()
-	case argc == 2 && *parseFlag:
-		repl.StartParserRepl()
-	case argc == 2 && *evalFlag:
+	arguments := args[1:]
+	argc := len(arguments)
+	if argc == 0 {
+		// This means there was no command given
+		// so perform the default behavior of starting
+		// an evaluator repl.
 		repl.StartEvalRepl()
-	case argc == 3 && isValidFile() && *lexFlag:
-		lexCurrentFile()
-	case argc == 3 && isValidFile() && *parseFlag:
-		parseCurrentFile()
-	case argc == 3 && isValidFile() && *evalFlag:
-		evalCurrentFile()
-	case (argc == 3 && isValidFile() && *bundleFlag) || argc == 4 && isValidFpath(os.Args[3]) && *bundleFlag && *debugFlag:
-		var fpath string
-		if argc == 3 {
-			fpath = os.Args[2]
-		} else {
-			fpath = os.Args[3]
-		}
-		bundleCurrentFile(fpath, *debugFlag)
-	case argc == 1:
-		repl.StartEvalRepl()
-	case argc > 2 && isValidFileForEval():
-		evalFile()
+	}
+	command := strings.ToLower(arguments[0])
+	switch command {
+	case "version":
+		printVersion()
+	case "help":
+		printUsage()
+	case "lex":
+		handleLexCommand(argc, arguments)
+	case "parse":
+		handleParseCommand(argc, arguments)
+	case "bundle":
+		handleBundleCommand(argc, arguments, *debugFlag)
+	case "eval":
+		handleEvalCommand(argc, arguments)
 	default:
-		log.Fatal("Invalid command line options")
+		if isFile(command) {
+			// Eval the file
+			evalFile(command)
+		} else {
+			printUsage()
+		}
+	}
+}
+
+// printVersion prints the version of the executable
+func printVersion() {
+	fmt.Printf("blue v%s\n", consts.VERSION)
+}
+
+// printUsage prints the USAGE string
+func printUsage() {
+	fmt.Print(USAGE)
+}
+
+func handleLexCommand(argc int, arguments []string) {
+	if argc == 1 {
+		repl.StartLexerRepl()
+	} else {
+		// Check if the file exists and if so, run the lexer on it
+		fpath := arguments[1]
+		if isFile(fpath) {
+			lexFile(fpath)
+		} else {
+			fmt.Printf("`lex` command expects valid file as argument. got=%s\n", fpath)
+			os.Exit(1)
+		}
+	}
+}
+
+func handleParseCommand(argc int, arguments []string) {
+	if argc == 1 {
+		repl.StartParserRepl()
+	} else {
+		// Check if the file exists and if so, run the parser on it
+		fpath := arguments[1]
+		if isFile(fpath) {
+			parseFile(fpath)
+		} else {
+			fmt.Printf("`parse` command expects valid file as argument. got=%s\n", fpath)
+			os.Exit(1)
+		}
+	}
+}
+
+func handleBundleCommand(argc int, arguments []string, debugFlag bool) {
+	// account for debug flag
+	if argc == 2 || argc == 3 {
+		fpath := arguments[1]
+		if isFile(fpath) {
+			bundleFile(fpath, debugFlag)
+		} else {
+			fmt.Printf("`bundle` command expects valid file as argument. got=%s\n", fpath)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Printf("unexpected `bundle` arguments. got=%+v\n", arguments)
+		os.Exit(1)
+	}
+}
+
+func handleEvalCommand(argc int, arguments []string) {
+	if argc == 2 {
+		strToEval := arguments[1]
+		evalString(strToEval)
+	} else {
+		fmt.Printf("unexpected `eval` arguments. got=%+v\n", arguments)
+		os.Exit(1)
 	}
 }
