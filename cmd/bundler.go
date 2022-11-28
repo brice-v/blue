@@ -236,7 +236,7 @@ func writeMainGoFile(fdata string) error {
 }
 
 func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) error {
-	exeName := filepath.Base(fpath)
+	exeName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
 	extension := ""
 	if runtime.GOOS == "windows" {
 		extension = ".exe"
