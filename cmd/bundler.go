@@ -70,32 +70,14 @@ const mainFunc = `func main() {
 		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
 		os.Exit(1)
 	}
-}`
-
-// TODO: Support bundling current dir with mainEntyPoint file?
+}
+`
 
 // bundleFile takes the given file as an entry point
 // and bundles the interpreter with the code into a go executable
-// TODO: Eventually once this is working well, remove the 'debug' stuff?
-func bundleFile(fpath string, isDebug bool) error {
-	data, err := os.ReadFile(fpath)
-	if err != nil {
-		log.Fatalf("`bundleFile` error trying to read file `%s`. error: %s", fpath, err.Error())
-	}
-
-	d := string(data)
-	if isDebug {
-		fmt.Println("File Name: '" + fpath + "', Data: ")
-		fmt.Printf("`%s`\n\n", d)
-	}
-
+func bundleFile(fpath string) error {
 	entryPointPath := fmt.Sprintf("const entryPointPath = `%s`\n", fpath)
 	gomain := fmt.Sprintf("%s\n%s\n%s", header, entryPointPath, mainFunc)
-
-	if isDebug {
-		fmt.Println("gomain: -------------------------------------")
-		fmt.Println(gomain)
-	}
 
 	// save current directory
 	savedCurrentDir, err := os.Getwd()
@@ -126,7 +108,6 @@ func bundleFile(fpath string, isDebug bool) error {
 	if err != nil {
 		return fmt.Errorf("`copyFilesFromDirToTmpDir` error: %s", err.Error())
 	}
-	// TODO: Can we remove this and the revert step if using tmp works?
 	err = renameOriginalMainGoFile()
 	if err != nil {
 		return fmt.Errorf("`renameOriginalMainGoFile` error: %s", err.Error())
@@ -271,28 +252,40 @@ func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) error {
 }
 
 func copyFileToSavedDir(exeName, savedCurrentDir string) error {
-	srcFile, err := os.Open(exeName)
+	src, err := os.Open(exeName)
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer src.Close()
 
-	dstFile, err := os.Create(savedCurrentDir + string(os.PathSeparator) + exeName)
+	dstFile := savedCurrentDir + string(os.PathSeparator) + exeName
+	dst, err := os.Create(dstFile)
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
+	defer dst.Close()
 
-	_, err = io.Copy(dstFile, srcFile)
+	_, err = io.Copy(dst, src)
 	if err != nil {
 		return err
 	}
 
-	err = dstFile.Sync()
+	err = dst.Sync()
 	if err != nil {
 		return err
 	}
-	return err
+
+	si, err := os.Stat(exeName)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(dstFile, si.Mode())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func removeMainGoFile() error {

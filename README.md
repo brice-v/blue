@@ -101,6 +101,10 @@ fun send(obj, value) {
     * only amd64 being built and tested
 * Ensure the binary is executable
     * `chmod +x BINARY_NAME`
+* For bundler
+    * ensure `BLUE_INSTALL_PATH` is set to an empty dir
+        * ex: `export BLUE_INSTALL_PATH=~/.blue/src`
+    * `blue bundle my_prog.b` - files should all be in the same directory with 1 file at the root level
 
 ```
 blue is a tool for running blue source code
@@ -133,3 +137,5 @@ evaluated)
 * set `BLUE_INSTALL_PATH` to the directory where `blue` is installed to
     * this is used for the bundler currently
     * if there are no files at the given path `git` will be used to clone the repo there once to cache it
+* my `BLUE_INSTALL_PATH` is set as `export BLUE_INSTALL_PATH=~/.blue/src`
+* my `blue` exe is located at `~/.blue/bin` with PATH set to `export PATH=$PATH:~/.blue/bin`

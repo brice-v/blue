@@ -3,7 +3,6 @@ package cmd
 import (
 	"blue/consts"
 	"blue/repl"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -36,8 +35,6 @@ evaluated)
 
 // Run runs the cmd line parsing of arguments and kicks off blue
 func Run(args ...string) {
-	debugFlag := flag.Bool("d", false, "Debug flag - currently only used for Bundling")
-	flag.Parse()
 	arguments := args[1:]
 	argc := len(arguments)
 	if argc == 0 {
@@ -57,7 +54,7 @@ func Run(args ...string) {
 	case "parse":
 		handleParseCommand(argc, arguments)
 	case "bundle":
-		handleBundleCommand(argc, arguments, *debugFlag)
+		handleBundleCommand(argc, arguments)
 	case "eval":
 		handleEvalCommand(argc, arguments)
 	default:
@@ -110,12 +107,11 @@ func handleParseCommand(argc int, arguments []string) {
 	}
 }
 
-func handleBundleCommand(argc int, arguments []string, debugFlag bool) {
-	// account for debug flag
-	if argc == 2 || argc == 3 {
+func handleBundleCommand(argc int, arguments []string) {
+	if argc == 2 {
 		fpath := arguments[1]
 		if isFile(fpath) {
-			err := bundleFile(fpath, debugFlag)
+			err := bundleFile(fpath)
 			if err != nil {
 				fmt.Printf("`bundle` error: %s\n", err.Error())
 				os.Exit(1)
