@@ -9,10 +9,12 @@ require (
 	github.com/clbanning/mxj/v2 v2.5.7
 	github.com/gofiber/fiber/v2 v2.39.0
 	github.com/gofiber/websocket/v2 v2.1.1
+	github.com/google/uuid v1.3.0
 	github.com/gookit/config/v2 v2.1.6
 	github.com/gookit/ini/v2 v2.1.2
 	github.com/gorilla/websocket v1.5.0
 	github.com/microcosm-cc/bluemonday v1.0.21
+	github.com/otiai10/copy v1.9.0
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/tdewolff/minify/v2 v2.12.4
@@ -40,7 +42,6 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/goki/freetype v0.0.0-20181231101311-fa8a33aabaff // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/gookit/goutil v0.5.12 // indirect
 	github.com/gookit/properties v0.2.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect

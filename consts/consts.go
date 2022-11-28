@@ -9,3 +9,5 @@ const PROCESS_ERROR_PREFIX = "ProcessError: "
 const EVAL_ERROR_PREFIX = "EvaluatorError: "
 
 const CORE_FILE_PATH = "<embed: core/core.b>"
+
+const BLUE_INSTALL_PATH = "BLUE_INSTALL_PATH"
