@@ -137,7 +137,7 @@ func bundleFile(fpath string, isDebug bool) error {
 	}
 	err = buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir)
 	if err != nil {
-		return fmt.Errorf("`buildExe` error: %s", err.Error())
+		return fmt.Errorf("`buildExeAndWriteToSavedDir` error: %s", err.Error())
 	}
 	err = removeMainGoFile()
 	if err != nil {
