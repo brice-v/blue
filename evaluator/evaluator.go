@@ -1165,9 +1165,11 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 			evalBlock = NULL
 			break
 		}
-		if evalBlock == CONTINUE {
+		if evalBlock == CONTINUE && ok {
 			evalBlock = NULL
 			continue
+		} else if evalBlock == CONTINUE && !ok {
+			break
 		}
 		rv, isReturn := evalBlock.(*object.ReturnValue)
 		if isReturn {
