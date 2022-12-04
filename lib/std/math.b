@@ -39,3 +39,11 @@ fun abs(x) {
 fun sqrt(x) {
     x ** 0.5
 }
+
+fun sum(x) {
+    var _sum = 0;
+    for (i in x) {
+        _sum += i;
+    }
+    return _sum;
+}
