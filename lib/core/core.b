@@ -216,3 +216,7 @@ fun get_text(obj) {
         },
     };
 }
+
+fun substr(s, start=0, end=-1) {
+    _substr(s, start, end)
+}

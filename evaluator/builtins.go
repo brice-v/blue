@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -460,6 +461,22 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`find_exe` error: %s", err.Error())
 			}
 			return &object.Stringo{Value: fname}
+		},
+	},
+	// TODO: Support uint, and big int?
+	"to_num": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`to_num` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `to_num` should be STRING. got=%s", args[0].Type())
+			}
+			i, err := strconv.ParseInt(args[0].(*object.Stringo).Value, 10, 64)
+			if err != nil {
+				return newError("`to_num` error: %s", err.Error())
+			}
+			return &object.Integer{Value: i}
 		},
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff

@@ -51,14 +51,17 @@ if (not intersect_result) {
 
 
 var is_subset_result = (y <= x) == true;
+println("is_subset_result = #{is_subset_result}");
 if (not is_subset_result) {
     return false;
 }
 var is_superset_result = (x >= y) == true;
+println("is_superset_result = #{is_superset_result}");
 if (not is_superset_result) {
     return false;
 }
 var difference_result = (x - y) == {4,5};
+println("difference_result = #{difference_result} (#{x-y})");
 if (not difference_result) {
     return false;
 }

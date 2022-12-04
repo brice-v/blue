@@ -215,7 +215,45 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: strings.Join(strsToJoin, joiner)}
 		},
 	},
-
+	"_substr": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newError("`substr` expects 3 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `substr` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newError("argument 2 to `substr` should be INTEGER. got=%s", args[1].Type())
+			}
+			if args[2].Type() != object.INTEGER_OBJ {
+				return newError("argument 3 to `substr` should be INTEGER. got=%s", args[2].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			start := args[1].(*object.Integer).Value
+			end := args[2].(*object.Integer).Value
+			if end == -1 {
+				end = int64(len(s))
+			}
+			return &object.Stringo{Value: s[start:end]}
+		},
+	},
+	"index_of": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`index_of` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `index_of` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `index_of` should be STRING. got=%s", args[1].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			subs := args[1].(*object.Stringo).Value
+			return &object.Integer{Value: int64(strings.Index(s, subs))}
+		},
+	},
 	// TODO: We can probably create a solid regex object to use in the string methods
 	// "test": {
 	// 	Fun: func(args ...object.Object) object.Object {

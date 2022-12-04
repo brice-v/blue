@@ -1158,6 +1158,9 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		firstRun = false
 		e.oneElementForIn = false
 		evalBlock = e.Eval(node.Consequence)
+		if evalBlock == nil {
+			return NULL
+		}
 		if isError(evalBlock) {
 			return evalBlock
 		}
@@ -1355,24 +1358,157 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return e.evalAssignToBuiltinObj(ie, value)
 			}
 		}
-		// TODO: Handle all assignment tokens that apply
-		obj := e.Eval(ie.Left)
-		if isError(obj) {
-			return obj
+		leftObj := e.Eval(ie.Left)
+		if isError(leftObj) {
+			return leftObj
 		}
-
-		if list, ok := obj.(*object.List); ok {
+		if list, ok := leftObj.(*object.List); ok {
 			index := e.Eval(ie.Index)
 			if isError(index) {
 				return index
 			}
 
 			if idx, ok := index.(*object.Integer); ok {
-				list.Elements[idx.Value] = value
+				switch node.Token.Literal {
+				case "=":
+					list.Elements[idx.Value] = value
+				case "+=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("+", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "-=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("-", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "*=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("*", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "/=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("/", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "//=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("//", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "**=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("**", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "&=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("&", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "|=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("|", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "~=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("~", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "<<=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("<<", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case ">>=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression(">>", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "%=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("&", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				case "^=":
+					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+						return newError("index out of bounds: %d", idx.Value)
+					}
+					orig := list.Elements[idx.Value]
+					evaluated := e.evalInfixExpression("^", orig, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					list.Elements[idx.Value] = evaluated
+				default:
+					return newError("unknown assignment operator: MAP INDEX %s", node.Token.Literal)
+				}
 			} else {
 				return newError("cannot index list with %#v", index)
 			}
-		} else if mapObj, ok := obj.(*object.Map); ok {
+		} else if mapObj, ok := leftObj.(*object.Map); ok {
 			key := e.Eval(ie.Index)
 			if isError(key) {
 				return key
@@ -1380,12 +1516,147 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 
 			if hashKey, ok := key.(object.Hashable); ok {
 				hashed := hashKey.HashKey()
-				mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: value})
+				switch node.Token.Literal {
+				case "=":
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: value})
+				case "+=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("+", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "-=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("-", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "*=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("*", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "/=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("/", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "//=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("//", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "**=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("**", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "&=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("&", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "|=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("|", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "~=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("~", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "<<=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("<<", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case ">>=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression(">>", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "%=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("&", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				case "^=":
+					orig, ok := mapObj.Pairs.Get(hashed)
+					if !ok {
+						return newError("map key `%s` does not exist", key.Inspect())
+					}
+					evaluated := e.evalInfixExpression("^", orig.Value, value)
+					if isError(evaluated) {
+						return evaluated
+					}
+					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
+				default:
+					return newError("unknown assignment operator: MAP INDEX %s", node.Token.Literal)
+				}
 			} else {
 				return newError("cannot index map with %T", key)
 			}
 		} else {
-			return newError("object type %T does not support item assignment", obj)
+			return newError("object type %T does not support item assignment", leftObj)
 		}
 	} else {
 		return newError("expected identifier or index expression got=%T", left)
@@ -2242,7 +2513,7 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 			}
 			v1, ok := rightElems.Get(k)
 			if !ok {
-				continue
+				newSet.Elements.Set(k, v)
 			}
 			if !v1.Present {
 				newSet.Elements.Set(k, v)
@@ -2255,7 +2526,7 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 			}
 			v1, ok := leftElems.Get(k)
 			if !ok {
-				continue
+				newSet.Elements.Set(k, v)
 			}
 			if !v1.Present {
 				newSet.Elements.Set(k, v)
@@ -2287,7 +2558,7 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 			}
 			v1, ok := rightElems.Get(k)
 			if !ok {
-				continue
+				newSet.Elements.Set(k, v)
 			}
 			if !v1.Present {
 				newSet.Elements.Set(k, v)
@@ -2298,7 +2569,7 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 		for _, k := range leftElems.Keys {
 			v1, ok := rightElems.Get(k)
 			if !ok {
-				continue
+				return FALSE
 			}
 			if !v1.Present {
 				return FALSE
@@ -2309,7 +2580,7 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 		for _, k := range leftElems.Keys {
 			v1, ok := rightElems.Get(k)
 			if !ok {
-				continue
+				return TRUE
 			}
 			if !v1.Present {
 				return TRUE
