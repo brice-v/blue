@@ -101,6 +101,19 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.List{Elements: newElements}
 		},
 	},
+	"push": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("wrong number of arguments to `push`. got=%d, want=2", len(args))
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newError("argument to `push` must be LIST, got %s", args[0].Type())
+			}
+			l := args[0].(*object.List).Elements
+			l = append([]object.Object{args[1]}, l...)
+			return &object.List{Elements: l}
+		},
+	},
 	"println": {
 		Fun: func(args ...object.Object) object.Object {
 			for _, arg := range args {

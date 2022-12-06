@@ -1148,6 +1148,9 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		if isError(evalCond) {
 			return evalCond
 		}
+		if evalCond.Type() != object.BOOLEAN_OBJ {
+			return newError("for expression condition expects BOOLEAN. got=%s", evalCond.Type())
+		}
 		ok := evalCond.(*object.Boolean).Value
 		// If theres one element on the right hand side of a for in list expression then we dont want to return early
 		if !e.oneElementForIn && !ok && firstRun {
