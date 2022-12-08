@@ -1063,8 +1063,8 @@ func (p *Parser) parseAssignmentExpression(exp ast.Expression) ast.Expression {
 
 func (p *Parser) parseMatchExpression() ast.Expression {
 	me := &ast.MatchExpression{Token: p.curToken,
-		Condition:   []ast.Expression{},
-		Consequence: []*ast.BlockStatement{},
+		Conditions:   []ast.Expression{},
+		Consequences: []*ast.BlockStatement{},
 	}
 	if !p.peekTokenIs(token.LBRACE) {
 		// Skip over the `match` statement to the value to bind
@@ -1076,13 +1076,13 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	}
 	p.nextToken()
 	for {
-		me.Condition = append(me.Condition, p.parseExpression(LOWEST))
+		me.Conditions = append(me.Conditions, p.parseExpression(LOWEST))
 		if !p.expectPeekIs(token.RARROW) {
 			return nil
 		}
 		p.nextToken()
 
-		me.Consequence = append(me.Consequence, p.parseBlockStatement())
+		me.Consequences = append(me.Consequences, p.parseBlockStatement())
 		if !p.expectPeekIs(token.COMMA) {
 			return nil
 		}

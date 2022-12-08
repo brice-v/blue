@@ -607,10 +607,10 @@ func (e *Evaluator) evalSelfExpression(node *ast.SelfExpression) object.Object {
 }
 
 func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {
-	conditionLen := len(node.Condition)
-	consequenceLen := len(node.Consequence)
+	conditionLen := len(node.Conditions)
+	consequenceLen := len(node.Consequences)
 	if conditionLen != consequenceLen {
-		return newError("conditons length is not equal to consequences length in match expression")
+		return newError("conditions length is not equal to consequences length in match expression")
 	}
 	var optVal object.Object
 	if node.OptionalValue != nil {
@@ -621,30 +621,34 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 	}
 	e.env.Set("_", NULL)
 	for i := 0; i < conditionLen; i++ {
+		if node.Conditions[i].String() == "_" {
+			// Default case should always run (even if its before others)
+			return e.Eval(node.Consequences[i])
+		}
 		// Run through each condtion and if it evaluates to "true" then return the evaluated consequence
-		condVal := e.Eval(node.Condition[i])
+		condVal := e.Eval(node.Conditions[i])
 		// This is our very basic form of pattern matching
 		if condVal.Type() == object.MAP_OBJ && optVal != nil && optVal.Type() == object.MAP_OBJ {
 			// Do our shape matching on it
 			if doCondAndMatchExpEqual(condVal, optVal) {
-				return e.Eval(node.Consequence[i])
+				return e.Eval(node.Consequences[i])
 			}
 		}
 		if optVal == nil {
-			evald := e.Eval(node.Condition[i])
+			evald := e.Eval(node.Conditions[i])
 			if isError(evald) {
 				return evald
 			}
 			if evald == TRUE {
-				return e.Eval(node.Consequence[i])
+				return e.Eval(node.Consequences[i])
 			}
 			continue
 		}
 		if object.HashObject(condVal) == object.HashObject(optVal) {
-			return e.Eval(node.Consequence[i])
+			return e.Eval(node.Consequences[i])
 		}
 		if condVal == IGNORE {
-			return e.Eval(node.Consequence[i])
+			return e.Eval(node.Consequences[i])
 		}
 	}
 	// Shouldnt reach here ideally
@@ -2040,7 +2044,7 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 		return &object.Stringo{Value: e.CurrentFile}
 	}
 
-	return newError("identifier not found: " + node.Value)
+	return newError("identifier not found: %s", node.Value)
 }
 
 func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {

@@ -140,8 +140,8 @@ func (ie *IfExpression) String() string {
 type MatchExpression struct {
 	Token         token.Token       // Token == MATCH
 	OptionalValue Expression        // OptionalValue is the value that could be used to check against the conditions
-	Condition     []Expression      // Condition is an expression to determine whether to run the Consequence
-	Consequence   []*BlockStatement // Consequence is a block statement to run if the condition in the same position is true
+	Conditions    []Expression      // Condition is an expression to determine whether to run the Consequence
+	Consequences  []*BlockStatement // Consequence is a block statement to run if the condition in the same position is true
 }
 
 // expressionNode satisfies the expression interface
@@ -157,10 +157,10 @@ func (me *MatchExpression) String() string {
 	out.WriteString("match ")
 	out.WriteString(me.OptionalValue.String())
 	out.WriteString(" { ")
-	for i, e := range me.Condition {
+	for i, e := range me.Conditions {
 		out.WriteString(e.String())
 		out.WriteString(" => { ")
-		out.WriteString(me.Consequence[i].ExpressionString())
+		out.WriteString(me.Consequences[i].ExpressionString())
 		out.WriteString(" }, ")
 	}
 	out.WriteString(" } ")
