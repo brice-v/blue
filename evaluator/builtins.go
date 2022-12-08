@@ -9,11 +9,27 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	clone "github.com/huandu/go-clone"
 )
 
 type BuiltinMapTypeInternal map[string]*object.Builtin
 
 var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"new": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`new` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newError("argument 1 to `new` should be MAP. got=%s", args[0].Type())
+			}
+			m := args[0].(*object.Map)
+			newMap := clone.Clone(m).(*object.Map)
+
+			return newMap
+		},
+	},
 	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {

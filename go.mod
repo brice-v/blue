@@ -13,6 +13,7 @@ require (
 	github.com/gookit/config/v2 v2.1.6
 	github.com/gookit/ini/v2 v2.1.2
 	github.com/gorilla/websocket v1.5.0
+	github.com/huandu/go-clone v1.4.1
 	github.com/microcosm-cc/bluemonday v1.0.21
 	github.com/otiai10/copy v1.9.0
 	github.com/russross/blackfriday/v2 v2.1.0
