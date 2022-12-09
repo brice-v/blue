@@ -38,7 +38,7 @@ for (true) {
     val x = parent_pid.recv()
     if (x) {
         println("DONE");
-        return null;
+        break;
     }
     time.sleep(100);
 }

@@ -1183,7 +1183,7 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		}
 		rv, isReturn := evalBlock.(*object.ReturnValue)
 		if isReturn {
-			return rv.Value
+			return rv
 		}
 		// Still evaluate on the last run then break if its false
 		if !ok {
@@ -3111,7 +3111,7 @@ func (e *Evaluator) evalIntegerNonIncRange(leftVal, rightVal int64) object.Objec
 		}
 		return &object.List{Elements: listElems}
 	}
-	return newError("Can not use non inclusive range when both values equal")
+	return &object.List{Elements: []object.Object{}}
 }
 
 func (e *Evaluator) evalFloatIntInfixExpression(operator string, left, right object.Object) object.Object {
