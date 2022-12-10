@@ -106,10 +106,10 @@ func (ie *InfixExpression) String() string {
 
 // IfExpression is the if expression ast node
 type IfExpression struct {
-	Token       token.Token     // Token == IF
-	Condition   Expression      // Condition is an expression for if statements
-	Consequence *BlockStatement // Consequence is a block of statemenets that evaluate if true
-	Alternative *BlockStatement // Alternative is a block of statements that evaluate if false
+	Token        token.Token       // Token == IF
+	Conditions   []Expression      // Conditions is a list of expressions for if statements
+	Consequences []*BlockStatement // Consequences is a list of block statemenets that evaluate if true
+	Alternative  *BlockStatement   // Alternative is a block of statements that evaluate if false
 }
 
 // expressionNode satisfies the Expression Interface
@@ -122,11 +122,17 @@ func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IfExpression) String() string {
 	var out bytes.Buffer
 
-	out.WriteString("if (")
-	out.WriteString(ie.Condition.String())
-	out.WriteString(") { ")
-	out.WriteString(ie.Consequence.ExpressionString())
-	out.WriteString(" } ")
+	for i := 0; i < len(ie.Conditions); i++ {
+		if i == 0 {
+			out.WriteString("if (")
+		} else {
+			out.WriteString("else if (")
+		}
+		out.WriteString(ie.Conditions[i].String())
+		out.WriteString(") {")
+		out.WriteString(ie.Consequences[i].ExpressionString())
+		out.WriteString(" } ")
+	}
 
 	if ie.Alternative != nil {
 		out.WriteString("else { ")

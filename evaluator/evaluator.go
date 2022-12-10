@@ -2048,13 +2048,16 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 }
 
 func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
-	condition := e.Eval(ie.Condition)
-	if isError(condition) {
-		return condition
+	for i := 0; i < len(ie.Conditions); i++ {
+		condition := e.Eval(ie.Conditions[i])
+		if isError(condition) {
+			return condition
+		}
+		if isTruthy(condition) {
+			return e.Eval(ie.Consequences[i])
+		}
 	}
-	if isTruthy(condition) {
-		return e.Eval(ie.Consequence)
-	} else if ie.Alternative != nil {
+	if ie.Alternative != nil {
 		return e.Eval(ie.Alternative)
 	} else {
 		return NULL
