@@ -65,15 +65,18 @@ type Evaluator struct {
 	ErrorTokens *TokenStackSet
 
 	// Used for: indx, elem in for expression
-	nestLevel       int
-	iterCount       []int
-	cleanupTmpVar   map[string]bool
-	oneElementForIn bool
+	nestLevel         int
+	iterCount         []int
+	cleanupTmpVar     map[string]int
+	cleanupTmpVarIter map[string]int
+	oneElementForIn   bool
+	doneWithFor       bool
 
 	isInScopeBlock bool
 	scopeNestLevel int
 	// scopeVars is the map of scopeNestLevel to the variables that need to be removed
-	scopeVars map[int][]string
+	scopeVars       map[int][]string
+	cleanupScopeVar map[string]bool
 }
 
 // Note: When creating multiple new evaluators with `spawn` there were race conditions
@@ -97,14 +100,17 @@ func New() *Evaluator {
 
 		ErrorTokens: NewTokenStackSet(),
 
-		nestLevel:       -1,
-		iterCount:       []int{},
-		cleanupTmpVar:   make(map[string]bool),
-		oneElementForIn: false,
+		nestLevel:         -1,
+		iterCount:         []int{},
+		cleanupTmpVar:     make(map[string]int),
+		cleanupTmpVarIter: make(map[string]int),
+		oneElementForIn:   false,
+		doneWithFor:       false,
 
-		isInScopeBlock: false,
-		scopeNestLevel: 0,
-		scopeVars:      make(map[int][]string),
+		isInScopeBlock:  false,
+		scopeNestLevel:  0,
+		scopeVars:       make(map[int][]string),
+		cleanupScopeVar: make(map[string]bool),
 	}
 	builtins.Put("eval_template", createEvalTemplateBuiltin(e))
 	e.Builtins.PushBack(builtins)
@@ -759,15 +765,18 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		return evaluatedRight
 	}
 	_, identExists := e.env.Get(ident.Value)
-	// IF the iterCount is -1 and this item exists then we fallback to regular evalInfixExpression code
-	if e.nestLevel == -1 && identExists {
+	if _, ok := e.cleanupScopeVar[ident.Value]; !ok {
+		e.cleanupScopeVar[ident.Value] = identExists
+	}
+	// IF the item existed originally then we fallback to regular evalInfixExpression code
+	if existedOriginally, ok := e.cleanupScopeVar[ident.Value]; ok && existedOriginally {
+		delete(e.cleanupScopeVar, ident.Value)
 		evaluatedLeft := e.Eval(ident)
 		if isError(evaluatedLeft) {
 			return evaluatedLeft
 		}
 		return e.evalInfixExpression("in", evaluatedLeft, evaluatedRight)
 	}
-
 	if evaluatedRight.Type() == object.LIST_OBJ {
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
@@ -777,6 +786,10 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		if len(list) == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			e.cleanupTmpVar[ident.Value] = e.nestLevel
+			e.cleanupTmpVarIter[ident.Value] = len(list)
+		}()
 		_, ok := e.env.Get(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
@@ -784,10 +797,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.env.Set(ident.Value, list[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
 			if len(list) == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[ident.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -795,10 +804,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		e.env.Set(ident.Value, list[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
 		if len(list) == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[ident.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -811,6 +816,10 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		if mapPairs.Len() == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			e.cleanupTmpVar[ident.Value] = e.nestLevel
+			e.cleanupTmpVarIter[ident.Value] = mapPairs.Len()
+		}()
 		pairObjs := make([]*object.List, mapPairs.Len())
 		for i, k := range mapPairs.Keys {
 			pair, _ := mapPairs.Get(k)
@@ -824,10 +833,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
 			if len(pairObjs) == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[ident.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -835,10 +840,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
 		if mapPairs.Len() == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[ident.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -852,6 +853,10 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		if len(chars) == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			e.cleanupTmpVar[ident.Value] = e.nestLevel
+			e.cleanupTmpVarIter[ident.Value] = len(chars)
+		}()
 		stringObjs := make([]*object.Stringo, len(chars))
 		for i, ch := range chars {
 			stringObjs[i] = &object.Stringo{Value: string(ch)}
@@ -863,10 +868,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.env.Set(ident.Value, stringObjs[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
 			if len(chars) == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[ident.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -874,10 +875,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		e.env.Set(ident.Value, stringObjs[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
 		if len(stringObjs) == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[ident.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -890,6 +887,11 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		if set.Len() == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			// Getting marked for deletion here but we only want to delete it if its a new var
+			e.cleanupTmpVar[ident.Value] = e.nestLevel
+			e.cleanupTmpVarIter[ident.Value] = set.Len()
+		}()
 		_, ok := e.env.Get(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
@@ -906,10 +908,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.env.Set(ident.Value, val)
 			e.iterCount[e.nestLevel]++
 			if set.Len() == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[ident.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -926,10 +924,6 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		e.env.Set(ident.Value, val)
 		e.iterCount[e.nestLevel]++
 		if set.Len() == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[ident.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -961,6 +955,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		if len(list) == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			e.cleanupTmpVar[identLeft.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identLeft.Value] = len(list)
+			e.cleanupTmpVar[identRight.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identRight.Value] = len(list)
+		}()
 		_, ok := e.env.Get(identRight.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
@@ -969,11 +969,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.env.Set(identRight.Value, list[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
 			if len(list) == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[identLeft.Value] = true
-				e.cleanupTmpVar[identRight.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -982,11 +977,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		e.env.Set(identRight.Value, list[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
 		if len(list) == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[identLeft.Value] = true
-			e.cleanupTmpVar[identRight.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -998,6 +988,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		if mapPairs.Len() == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			e.cleanupTmpVar[identLeft.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identLeft.Value] = mapPairs.Len()
+			e.cleanupTmpVar[identRight.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identRight.Value] = mapPairs.Len()
+		}()
 		pairObjs := make([]*object.List, mapPairs.Len())
 		for i, k := range mapPairs.Keys {
 			pair, _ := mapPairs.Get(k)
@@ -1012,11 +1008,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
 			e.iterCount[e.nestLevel]++
 			if len(pairObjs) == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[identLeft.Value] = true
-				e.cleanupTmpVar[identRight.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -1025,11 +1016,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
 		e.iterCount[e.nestLevel]++
 		if mapPairs.Len() == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[identLeft.Value] = true
-			e.cleanupTmpVar[identRight.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -1043,6 +1029,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		if len(chars) == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			e.cleanupTmpVar[identLeft.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identLeft.Value] = len(chars)
+			e.cleanupTmpVar[identRight.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identRight.Value] = len(chars)
+		}()
 		stringObjs := make([]*object.Stringo, len(chars))
 		for i, ch := range chars {
 			stringObjs[i] = &object.Stringo{Value: string(ch)}
@@ -1055,11 +1047,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.env.Set(identRight.Value, stringObjs[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
 			if len(chars) == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[identLeft.Value] = true
-				e.cleanupTmpVar[identRight.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -1068,11 +1055,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		e.env.Set(identRight.Value, stringObjs[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
 		if len(stringObjs) == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[identRight.Value] = true
-			e.cleanupTmpVar[identRight.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -1085,6 +1067,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		if set.Len() == 1 {
 			e.oneElementForIn = true
 		}
+		defer func() {
+			e.cleanupTmpVar[identLeft.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identLeft.Value] = set.Len()
+			e.cleanupTmpVar[identRight.Value] = e.nestLevel
+			e.cleanupTmpVarIter[identRight.Value] = set.Len()
+		}()
 		_, ok := e.env.Get(identRight.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
@@ -1102,11 +1090,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.env.Set(identRight.Value, val)
 			e.iterCount[e.nestLevel]++
 			if set.Len() == e.iterCount[e.nestLevel] {
-				// Reset iteration for other items
-				e.iterCount[e.nestLevel] = 0
-				e.nestLevel--
-				e.cleanupTmpVar[identLeft.Value] = true
-				e.cleanupTmpVar[identRight.Value] = true
 				return FALSE
 			}
 			return TRUE
@@ -1124,11 +1107,6 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		e.env.Set(identRight.Value, val)
 		e.iterCount[e.nestLevel]++
 		if set.Len() == e.iterCount[e.nestLevel] {
-			// Reset iteration for other items
-			e.iterCount[e.nestLevel] = 0
-			e.nestLevel--
-			e.cleanupTmpVar[identLeft.Value] = true
-			e.cleanupTmpVar[identRight.Value] = true
 			return FALSE
 		}
 		return TRUE
@@ -1140,11 +1118,25 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 	var evalBlock object.Object
 	defer func() {
 		// Cleanup any temporary for variables
-		tmpMapCopy := e.cleanupTmpVar
-		for k, v := range tmpMapCopy {
-			if v {
-				e.env.RemoveIdentifier(k)
-				delete(e.cleanupTmpVar, k)
+		for k, v := range e.cleanupTmpVar {
+			if maxIter, ok := e.cleanupTmpVarIter[k]; ok {
+				if v == e.nestLevel && maxIter >= e.iterCount[e.nestLevel] && e.doneWithFor {
+					e.iterCount[e.nestLevel] = 0
+					if e.nestLevel != 0 {
+						e.nestLevel--
+					}
+					e.env.RemoveIdentifier(k)
+					delete(e.cleanupTmpVar, k)
+					delete(e.cleanupScopeVar, k)
+					delete(e.cleanupTmpVarIter, k)
+					e.doneWithFor = false
+				}
+			} else {
+				if v > e.nestLevel {
+					e.env.RemoveIdentifier(k)
+					delete(e.cleanupTmpVar, k)
+					delete(e.cleanupScopeVar, k)
+				}
 			}
 		}
 	}()
@@ -1162,12 +1154,14 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		if !e.oneElementForIn && !ok && firstRun {
 			// If the condition is FALSE to begin with we need to return early
 			// The evaluated block may not be valid in that case (ie. a list could be empty)
+			e.doneWithFor = true
 			return NULL
 		}
 		firstRun = false
 		e.oneElementForIn = false
 		evalBlock = e.Eval(node.Consequence)
 		if evalBlock == nil {
+			e.doneWithFor = true
 			return NULL
 		}
 		if isError(evalBlock) {
@@ -1181,17 +1175,21 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 			evalBlock = NULL
 			continue
 		} else if evalBlock == CONTINUE && !ok {
+			//e.doneWithFor = true
 			break
 		}
 		rv, isReturn := evalBlock.(*object.ReturnValue)
 		if isReturn {
+			e.doneWithFor = true
 			return rv
 		}
 		// Still evaluate on the last run then break if its false
 		if !ok {
+			//e.doneWithFor = true
 			break
 		}
 	}
+	e.doneWithFor = true
 	return evalBlock
 }
 
@@ -3261,8 +3259,13 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 		if vars, ok := e.scopeVars[e.scopeNestLevel]; ok {
 			// Cleanup any temporary for variables
 			for _, v := range vars {
-				e.env.RemoveIdentifier(v)
-				delete(e.cleanupTmpVar, v)
+				if existedOriginally, ok := e.cleanupScopeVar[v]; ok && !existedOriginally {
+					e.env.RemoveIdentifier(v)
+					delete(e.cleanupTmpVar, v)
+					delete(e.cleanupScopeVar, v)
+				} else {
+					e.env.RemoveIdentifier(v)
+				}
 			}
 			delete(e.scopeVars, e.scopeNestLevel)
 		}
