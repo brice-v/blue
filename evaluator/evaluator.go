@@ -6,7 +6,6 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
-	"blue/token"
 	"bytes"
 	"container/list"
 	"embed"
@@ -62,7 +61,8 @@ type Evaluator struct {
 	// Builtins is the list of builtin elements to look through based on the files imported
 	Builtins *list.List
 
-	ErrorTokens *Stack[token.Token]
+	// TODO: Use some sort of 'Set Stack' (so we wont have duplicates)
+	ErrorTokens *TokenStackSet
 
 	// Used for: indx, elem in for expression
 	nestLevel       int
@@ -95,7 +95,7 @@ func New() *Evaluator {
 
 		Builtins: list.New(),
 
-		ErrorTokens: NewStack[token.Token](),
+		ErrorTokens: NewTokenStackSet(),
 
 		nestLevel:       -1,
 		iterCount:       []int{},
@@ -511,6 +511,7 @@ func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Ob
 				return obj
 			}
 		}
+		e.ErrorTokens.RemoveAllEntries()
 		return evaldCatch
 	}
 	if node.FinallyBlock != nil {
@@ -520,6 +521,7 @@ func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Ob
 			return obj
 		}
 	}
+	e.ErrorTokens.RemoveAllEntries()
 	return evald
 }
 
