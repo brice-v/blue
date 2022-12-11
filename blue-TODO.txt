@@ -1,5 +1,6 @@
 TODO:
 
+- Make templating system actually work well, or have some builtin to automatically return an elem but continue execution?
 - NOTE: `send()` will block if nothing is recveiving on it (maybe this is okay?)
     - We could maybe optimize this with a buffered channel
 - [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
@@ -22,10 +23,8 @@ TODO:
 - [ ] Fix STDIN write and reading
     - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add parser errors anywhere we are returning nil
-    - [ ] Eventually this should be able to point to the location via the token's location
-- [ ] Add continue, break
+    - [x] Eventually this should be able to point to the location via the token's location
 - [ ] Add variadic arguments (...)
-- [ ] Support proper scopes
 - [ ] Use struct{} for set implmentation
 - [ ] Remove uints from working with big floats and ints
 - [ ] Include shift operators and assignment expressions to other types
@@ -37,7 +36,6 @@ TODO:
     - [ ] Add debug printing that works like ic to evaluator
         - This is sort of related
 - [ ] Implement `import *` from file so we dont need to use package name
-- [ ] Support not importing functions or variables that start with _
 - [ ] `this` keyword for map object?
 - [ ] Need way to call go code directly while running (use a go interpreter? or compile on the fly?)
 
@@ -64,7 +62,7 @@ LATER ON:
     - In progress...
 - [ ] Think about adding types
 - [ ] Think about compiling to go
-- [ ] Think about adding channels, receivers, using the golang scheduler
+- [x] Think about adding channels, receivers, using the golang scheduler
     - [ ] Use Context package with parallel code, should help close out channels
 - [ ] Tagged Unions/ enums working properly with match
 - [x] Using `` to call cmd on computer - returning the output of that command
@@ -72,6 +70,11 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Support not importing functions or variables that start with _
+- [x] Support proper scopes
+- [x] Add continue, break
+- Add builtins for is_file, is_dir, find_exe
+- Make x[1..3] or x[1..<3] work with lists, sets, strings, etc.
 - [-] Add more http methods to stdlib (and expand upon stdlib work)
 - [x] Add code for http server
 - [x] Add code for UI

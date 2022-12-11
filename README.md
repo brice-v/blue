@@ -20,7 +20,7 @@ Note: Its not *blazingly fast* but that was never the point. It may be practical
 
 - go1.19 required
     - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
-- Install deps for fyne
+- Install deps for [fyne](https://fyne.io)
 - make sure no errors with `go build`
     - [had this error on mint](https://stackoverflow.com/questions/65387167/glfw-pkg-config-error-when-building-a-fyne-app)
         - added `export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig` to `~/.bashrc`
@@ -32,9 +32,8 @@ Note: Its not *blazingly fast* but that was never the point. It may be practical
 
 ## Notes
 
-- bundler still not working perfectly
-    - probably wont work with ui unless its setup
-    - needs the file to be built in the same dir as this project
+- bundler will only work with ui deps installed (on linux/mac)
+    - does not work cross-platform yet for building (gh actions handles it)
 
 ### Features
 

@@ -1175,7 +1175,6 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 			evalBlock = NULL
 			continue
 		} else if evalBlock == CONTINUE && !ok {
-			//e.doneWithFor = true
 			break
 		}
 		rv, isReturn := evalBlock.(*object.ReturnValue)
