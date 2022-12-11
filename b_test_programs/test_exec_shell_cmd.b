@@ -1,9 +1,15 @@
-var output = `ls`;
+try {
+    var output = `ls`;
 
-println(output);
+    println(output);
 
-var out = `ls  -l`;
+    var out = `ls  -l`;
 
-print(out);
+    print(out);
+} catch (ignored) {
+    var output = `dir`;
+
+    println(output);
+}
 
 return true;

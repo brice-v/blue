@@ -20,7 +20,7 @@ $ ls
 4060174 j
 8033020 d.log
 5626152 d.ext
-7214296 k""";
+7214296 k""".replace("\r", "");
 
 val expected = """cmd = $ cd /cmd = $ lsdir = dir afile = 14848514 b.txtfile = 8504156 c.datdir = dir dcmd = $ cd acmd = $ lsdir = dir efile = 29116 ffile = 2557 gfile = 62596 h.lstcmd = $ cd ecmd = $ lsfile = 584 icmd = $ cd ..cmd = $ cd ..cmd = $ cd dcmd = $ lsfile = 4060174 jfile = 8033020 d.logfile = 5626152 d.extfile = 7214296 kcmd = $ cd /cmd = $ lsdir = dir adir = dir dcmd = $ cd acmd = $ lsdir = dir ecmd = $ cd ecmd = $ lscmd = $ cd ..cmd = $ cd ..cmd = $ cd dcmd = $ ls""";
 
