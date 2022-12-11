@@ -61,7 +61,7 @@ type Evaluator struct {
 	// Builtins is the list of builtin elements to look through based on the files imported
 	Builtins *list.List
 
-	// TODO: Use some sort of 'Set Stack' (so we wont have duplicates)
+	// ErrorTokens is the set 'stack' of tokens which can get the error with file:line:col
 	ErrorTokens *TokenStackSet
 
 	// Used for: indx, elem in for expression
@@ -2465,7 +2465,6 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 	}
 }
 
-// TODO: Handle `in` and `notin` for set operations
 func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.Object) object.Object {
 	leftE := left.(*object.Set).Elements
 	rightE := right.(*object.Set).Elements

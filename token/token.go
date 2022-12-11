@@ -213,32 +213,6 @@ const (
 	// NULL_KW is the string rep. of the `null` tok
 	NULL_KW = "NULL_KW"
 
-	// type reservations
-	// // INT_T is the string rep. of the int type tok
-	// INT_T = "INT_T"
-	// // UINT_T is the string rep. of the uint type tok
-	// UINT_T = "UINT_T"
-	// // TYPE_T is the string rep. of the type tok
-	// TYPE_T = "TYPE_T"
-	// // STR_T is the string rep. of the str type tok
-	// STR_T = "STR_T"
-	// // OBJ_T is the string rep. of the obj type tok
-	// OBJ_T = "OBJ_T"
-	// // ENUM_T is the string rep. of the enum type tok
-	// ENUM_T = "ENUM_T"
-	// // LIST_T is the string rep. of the list type tok
-	// LIST_T = "LIST_T"
-	// // MAP_T is the string rep. of the map type tok
-	// MAP_T = "MAP_T"
-	// // ANY_T is the string rep. of the any type tok
-	// ANY_T = "ANY_T"
-	// // BOOL_T is the string rep. of the bool type tok
-	// BOOL_T = "BOOL_T"
-	// // CHAR_T is the string rep. of the char type tok
-	// CHAR_T = "CHAR_T"
-	// // RUNE_T is the string rep. of the rune type tok
-	// RUNE_T = "RUNE_T"
-
 	// IMPORT is the string rep. of the import tok
 	IMPORT = "IMPORT"
 	// IMPORT_PATH is the string rep. of the import path tok
@@ -264,35 +238,22 @@ const (
 	CONTINUE = "CONTINUE"
 )
 
-// TODO: Add all keywords wanted in blang here
 var keywords = map[string]Type{
-	"fun":    FUNCTION,
-	"var":    VAR,
-	"val":    VAL,
-	"true":   TRUE,
-	"false":  FALSE,
-	"if":     IF,
-	"else":   ELSE,
-	"return": RETURN,
-	"for":    FOR,
-	"in":     IN,
-	"notin":  NOTIN,
-	"and":    AND,
-	"or":     OR,
-	"not":    NOT,
-	"const":  CONST,
-	// "int":     INT_T,
-	// "uint":    UINT_T,
-	// "type":    TYPE_T,
-	// "str":     STR_T,
-	// "obj":     OBJ_T,
-	// "enum":    ENUM_T,
-	// "list":    LIST_T,
-	// "map":     MAP_T,
-	// "any":     ANY_T,
-	// "bool":    BOOL_T,
-	// "char":    CHAR_T,
-	// "rune":    RUNE_T,
+	"fun":      FUNCTION,
+	"var":      VAR,
+	"val":      VAL,
+	"true":     TRUE,
+	"false":    FALSE,
+	"if":       IF,
+	"else":     ELSE,
+	"return":   RETURN,
+	"for":      FOR,
+	"in":       IN,
+	"notin":    NOTIN,
+	"and":      AND,
+	"or":       OR,
+	"not":      NOT,
+	"const":    CONST,
 	"match":    MATCH,
 	"null":     NULL_KW,
 	"import":   IMPORT,

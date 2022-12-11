@@ -746,7 +746,6 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 }
 
 // parseFunctionParameters parses function parameters
-// TODO: Update this function to include default parameters may need new ast node for default parameters instead of just idents
 func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression) {
 	identifiers := []*ast.Identifier{}
 	defaultParameters := []ast.Expression{}
@@ -820,7 +819,6 @@ func (p *Parser) parseLambdaLiteral() ast.Expression {
 }
 
 // parseLambdaParameters will parse the parameters of a lambda expression and return the identitiers
-// TODO: still need to figure out parsing of default parameters
 func (p *Parser) parseLambdaParameters() []*ast.Identifier {
 	identifiers := []*ast.Identifier{}
 
@@ -1013,11 +1011,6 @@ func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 
 // parseForExpression parses a for expression and returns the for expressions
 // ast node
-// TODO: this function will need more work to cover the cases like ranges
-// the `in` keyword, and traditional
-// for loops like for (var x = 0; x < 10; x += 1) but maybe this should just
-// not be allowed and instead write for (i in 0..10)
-// also want to support iterating over lists, maps, etc.
 func (p *Parser) parseForExpression() ast.Expression {
 	exp := &ast.ForExpression{
 		Token: p.curToken,

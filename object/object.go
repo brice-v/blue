@@ -478,7 +478,7 @@ func (cs *ContinueStatement) Inspect() string {
 
 // ------------------------------- HashKey Stuff --------------------------------
 
-// TODO: cache the return value of HashKey to improve performance
+// TODO: cache the return value of HashKey to improve performance -- memory may grow unbounded however
 
 // Hashable allows us to check if an object is hashable
 type Hashable interface {
@@ -565,7 +565,7 @@ func HashObject(obj Object) uint64 {
 		s := []byte(obj.(*Stringo).Value)
 		h.Write([]byte(s))
 	case FUNCTION_OBJ:
-		// TODO: This is a naive way of determining if two functions are identical
+		// Note: This is a naive way of determining if two functions are identical
 		// come back and fix this or make it smarter if possible
 		funObj := obj.(*Function).Inspect()
 		h.Write([]byte(funObj))

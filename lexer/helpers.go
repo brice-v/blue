@@ -55,7 +55,6 @@ func isImportChar(ch rune) bool {
 }
 
 // isDigit will return true if the rune give is 0-9
-// TODO: isDigit and the corresponding code in readNumber can be used to support other types of numbers, ie. float, hex, octal, etc
 // TODO: Support isDigit for unicode values
 func isDigit(ch rune) bool {
 	return '0' <= ch && ch <= '9'

@@ -1212,6 +1212,9 @@ func TestStringLiteralExpression2(t *testing.T) {
 		return
 	}
 	exp1, ok := literal.InterpolationValues[1].(*ast.Identifier)
+	if !ok {
+		t.Fatalf("literal.InterpolationValues[1] is not an identifier. got=%T", literal.InterpolationValues[1])
+	}
 	if !testIdentifier(t, exp1, "world") {
 		return
 	}
@@ -1226,6 +1229,9 @@ func TestParsingListLiterals(t *testing.T) {
 	checkParserErrors(t, p)
 
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast *ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
 	list, ok := stmt.Expression.(*ast.ListLiteral)
 	if !ok {
 		t.Fatalf("exp not ast.ListLiteral. got=%T", stmt.Expression)
@@ -1459,6 +1465,9 @@ func TestParsingIndexExpressions(t *testing.T) {
 	checkParserErrors(t, p)
 
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not an *ast.ExpressionStatment. got=%T", program.Statements[0])
+	}
 	indexExp, ok := stmt.Expression.(*ast.IndexExpression)
 	if !ok {
 		t.Fatalf("indxExp not *ast.IndexExpression. got=%T", stmt.Expression)
@@ -1473,31 +1482,6 @@ func TestParsingIndexExpressions(t *testing.T) {
 	}
 }
 
-// TODO: Potentially make it so you can use any expression on the other side of a `.`
-// This needs to be fixed in parseMemberAcessExpression
-// func TestParsingIndexWithDotExpressions(t *testing.T) {
-// 	input := "mylist.(1_1 + 1_1)"
-
-// 	l := lexer.New(input, "<internal: test>")
-// 	p := New(l)
-// 	program := p.ParseProgram()
-// 	checkParserErrors(t, p)
-
-// 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
-// 	indexExp, ok := stmt.Expression.(*ast.IndexExpression)
-// 	if !ok {
-// 		t.Fatalf("indxExp not *ast.IndexExpression. got=%T", stmt.Expression)
-// 	}
-
-// 	if !testIdentifier(t, indexExp.Left, "mylist") {
-// 		return
-// 	}
-
-// 	if !testInfixExpression(t, indexExp.Index, 11, "+", 11) {
-// 		return
-// 	}
-// }
-
 func TestParsingMemberAccessExpression(t *testing.T) {
 	input := "test.foo"
 
@@ -1506,6 +1490,9 @@ func TestParsingMemberAccessExpression(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not an *ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
 	t.Logf("stmt: %#v", stmt)
 
 	exp, ok := stmt.Expression.(*ast.IndexExpression)
@@ -1534,7 +1521,6 @@ func TestParsingMemberAccessExpression(t *testing.T) {
 
 // TODO: handle returning last expression in return
 // handle expression like var x = 1; x < 10; x +=1
-// and for (var i in 1..13) or maybe without the var
 func TestForExpression(t *testing.T) {
 	input := `for (x < y) { var z = x + y; };`
 
