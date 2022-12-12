@@ -149,6 +149,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.EVAL, p.parseEvalExpression)
 	p.registerPrefix(token.SPAWN, p.parseSpawnExpression)
 	p.registerPrefix(token.SELF, p.parseSelfExpression)
+	p.registerPrefix(token.LSHIFT, p.parsePrefixExpression)
 	p.infixParseFuns = make(map[token.Type]infixParseFun)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -565,7 +566,19 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	}
 
 	precedence := p.curPrecedence()
+	if p.curTokenIs(token.RSHIFT) && p.peekTokenIs(token.SEMICOLON) {
+		expression := &ast.PostfixExpression{
+			Operator: p.curToken.Literal,
+			Token:    p.curToken,
+			Left:     left,
+		}
+		if !p.expectPeekIs(token.SEMICOLON) {
+			return nil
+		}
+		return expression
+	}
 	p.nextToken()
+
 	expression.Right = p.parseExpression(precedence)
 	return expression
 }

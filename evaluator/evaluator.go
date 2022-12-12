@@ -208,6 +208,17 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 		}
 		return obj
+	case *ast.PostfixExpression:
+		left := e.Eval(node.Left)
+		if isError(left) {
+			e.ErrorTokens.Push(node.Token)
+			return left
+		}
+		obj := e.evalPostfixExpression(node.Operator, left)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.BlockStatement:
 		obj := e.evalBlockStatement(node)
 		if isError(obj) {
@@ -2065,6 +2076,15 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 
 func (e *Evaluator) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	switch {
+	// Special cases for shift operators
+	case left.Type() == object.LIST_OBJ && operator == "<<":
+		l := left.(*object.List)
+		l.Elements = append(l.Elements, right)
+		return NULL
+	case right.Type() == object.LIST_OBJ && operator == ">>":
+		l := right.(*object.List)
+		l.Elements = append([]object.Object{left}, l.Elements...)
+		return NULL
 	// These are the cases where they are the same type
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalIntegerInfixExpression(operator, left, right)
@@ -2945,8 +2965,39 @@ func (e *Evaluator) evalPrefixExpression(operator string, right object.Object) o
 		return e.evalMinusPrefixOperatorExpression(right)
 	case "~":
 		return e.evalBitwiseNotOperatorExpression(right)
+	case "<<":
+		return e.evalLshiftPrefixOperatorExpression(right)
 	default:
 		return newError("unknown operator: %s%s", operator, right.Type())
+	}
+}
+
+func (e *Evaluator) evalPostfixExpression(operator string, left object.Object) object.Object {
+	switch operator {
+	case ">>":
+		return e.evalRshiftPostfixExpression(left)
+	default:
+		return newError("unknown operator: %s%s", left.Type(), operator)
+	}
+}
+
+func (e *Evaluator) evalRshiftPostfixExpression(left object.Object) object.Object {
+	switch left.Type() {
+	case object.LIST_OBJ:
+		l := left.(*object.List)
+		listLen := len(l.Elements)
+		if listLen == 0 {
+			return NULL
+		}
+		e := l.Elements[listLen-1]
+		if listLen == 1 {
+			l.Elements = []object.Object{}
+		} else {
+			l.Elements = l.Elements[0 : listLen-1]
+		}
+		return e
+	default:
+		return newError("unknown operator: %s >>", left.Type())
 	}
 }
 
@@ -3231,6 +3282,26 @@ func (e *Evaluator) evalNotOperatorExpression(right object.Object) object.Object
 		return TRUE
 	default:
 		return FALSE
+	}
+}
+
+func (e *Evaluator) evalLshiftPrefixOperatorExpression(right object.Object) object.Object {
+	switch right.Type() {
+	case object.LIST_OBJ:
+		l := right.(*object.List)
+		listLen := len(l.Elements)
+		if listLen == 0 {
+			return NULL
+		}
+		e := l.Elements[0]
+		if listLen == 1 {
+			l.Elements = []object.Object{}
+		} else {
+			l.Elements = l.Elements[1:listLen]
+		}
+		return e
+	default:
+		return newError("unknown operator: << %s", right.Type())
 	}
 }
 

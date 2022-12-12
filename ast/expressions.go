@@ -75,6 +75,31 @@ func (pe *PrefixExpression) String() string {
 	return out.String()
 }
 
+// PostfixExpression is the postfix expression ast node
+type PostfixExpression struct {
+	Token    token.Token // Token is the postfix token, ! -
+	Operator string      // Operator is the string rep. of the operation
+	Left     Expression  // Left is the left expression to evaluate after
+}
+
+// expressionNode satisfies the Expression interface
+func (pe *PostfixExpression) expressionNode() {}
+
+// TokenLiteral returns the prefix expressions token
+func (pe *PostfixExpression) TokenLiteral() string { return pe.Token.Literal }
+
+// String returns the string representation of the prefix expression ast node
+func (pe *PostfixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(pe.Left.String())
+	out.WriteString(pe.Operator)
+	out.WriteString(")")
+
+	return out.String()
+}
+
 // InfixExpression is the infix expression ast node
 type InfixExpression struct {
 	Token    token.Token // Token is the infix token
