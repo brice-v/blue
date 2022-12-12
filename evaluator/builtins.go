@@ -30,6 +30,44 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return newMap
 		},
 	},
+	"keys": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`keys` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newError("argument 1 to `keys` should be MAP. got=%s", args[0].Type())
+			}
+			returnList := &object.List{
+				Elements: []object.Object{},
+			}
+			m := args[0].(*object.Map)
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				returnList.Elements = append(returnList.Elements, mp.Key)
+			}
+			return returnList
+		},
+	},
+	"values": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`values` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newError("argument 1 to `values` should be MAP. got=%s", args[0].Type())
+			}
+			returnList := &object.List{
+				Elements: []object.Object{},
+			}
+			m := args[0].(*object.Map)
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				returnList.Elements = append(returnList.Elements, mp.Value)
+			}
+			return returnList
+		},
+	},
 	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
