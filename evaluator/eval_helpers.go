@@ -98,7 +98,7 @@ func ExecStringCommand(str string) object.Object {
 		return newError("unable to exec the string `%s`. Error: %s", str, err)
 	}
 	if len(output) == 0 {
-		return newError("got 0 bytes from exec string output of `%s`.", str)
+		return NULL
 	}
 	return &object.Stringo{Value: string(output[:])}
 }
