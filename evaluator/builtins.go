@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -539,7 +540,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[0].Type() != object.STRING_OBJ {
 				return newError("argument 1 to `to_num` should be STRING. got=%s", args[0].Type())
 			}
-			i, err := strconv.ParseInt(args[0].(*object.Stringo).Value, 10, 64)
+			s := args[0].(*object.Stringo).Value
+			// This is an overkill way of making sure the string is cleaned for parsing
+			// - at least with regards to whitespace
+			re := regexp.MustCompile("[\r\n\t ]")
+			cleanS := string(re.ReplaceAll([]byte(s), []byte("")))
+			i, err := strconv.ParseInt(cleanS, 10, 64)
 			if err != nil {
 				return newError("`to_num` error: %s", err.Error())
 			}

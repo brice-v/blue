@@ -1,4 +1,5 @@
 val __fetch = _fetch;
+val __download = _download;
 val __serve = _serve;
 val __static = _static;
 val __handle = _handle;
@@ -55,6 +56,10 @@ fun fetch(resource, options=null) {
 
 fun get(url) {
     fetch(url)
+}
+
+fun download(url, filename="") {
+    __download(url, filename)
 }
 
 fun post(url, post_body, mime_type="application/json") {

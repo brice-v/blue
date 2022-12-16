@@ -571,8 +571,8 @@ func (e *Evaluator) evalEvalExpression(node *ast.EvalExpression) object.Object {
 
 func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object {
 	argLen := len(node.Arguments)
-	if argLen > 2 {
-		return newError("`spawn` expects 2 arguments. got=%d", argLen)
+	if argLen > 2 || argLen == 0 {
+		return newError("`spawn` expects 2 or 1 arguments. got=%d", argLen)
 	}
 	arg0 := e.Eval(node.Arguments[0])
 	if isError(arg0) {

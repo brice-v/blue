@@ -18,6 +18,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"regexp"
@@ -180,6 +181,47 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`get` failed: %s", err.Error())
 			}
 			return &object.Stringo{Value: string(body)}
+		},
+	},
+	"_download": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`download` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `download` must be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newError("argument 2 to `download` must be STRING. got=%s", args[1].Type())
+			}
+			urlS := args[0].(*object.Stringo).Value
+			fname := args[1].(*object.Stringo).Value
+			if urlS == "" {
+				return newError("argument 1 to `download` is ''")
+			}
+			if fname == "" {
+				// Build fileName from fullPath
+				fileURL, err := url.Parse(urlS)
+				if err != nil {
+					return newError("`download` error: %s", err.Error())
+				}
+				path := fileURL.Path
+				segments := strings.Split(path, "/")
+				fname = segments[len(segments)-1]
+			}
+			resp, err := http.Get(urlS)
+			if err != nil {
+				return newError("`download` error: %s", err.Error())
+			}
+			defer resp.Body.Close()
+			f, err := os.Create(fname)
+			if err != nil {
+				return newError("`download` error: %s", err.Error())
+			}
+			defer f.Close()
+
+			io.Copy(f, resp.Body)
+			return NULL
 		},
 	},
 	"_new_server": {
