@@ -572,7 +572,7 @@ func (e *Evaluator) evalEvalExpression(node *ast.EvalExpression) object.Object {
 func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object {
 	argLen := len(node.Arguments)
 	if argLen > 2 {
-		return newError("`spawn` expects 2 arguments max, got %d", argLen)
+		return newError("`spawn` expects 2 arguments. got=%d", argLen)
 	}
 	arg0 := e.Eval(node.Arguments[0])
 	if isError(arg0) {
@@ -715,7 +715,7 @@ func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
 		return nil
 	}
 	e.env.RemoveIdentifier("__internal__")
-	return &object.MapCompLiteral{Pairs: someVal.(*object.Map).Pairs}
+	return &object.Map{Pairs: someVal.(*object.Map).Pairs}
 }
 
 func (e *Evaluator) evalSetCompLiteral(node *ast.SetCompLiteral) object.Object {
@@ -2275,9 +2275,9 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 			return TRUE
 		}
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	case left.Type() == object.LIST_OBJ:
+	case left.Type() == object.LIST_OBJ && !isBooleanOperator(operator):
 		return e.evalListInfixExpression(operator, left, right)
-	case right.Type() == object.SET_OBJ:
+	case right.Type() == object.SET_OBJ && !isBooleanOperator(operator):
 		return e.evalRightSideSetInfixExpression(operator, left, right)
 	// NOTE: THESE OPERATORS MUST STAY BELOW THE TYPE CHECKING OTHERWISE IT COULD BREAK THINGS!!
 	case operator == "==":

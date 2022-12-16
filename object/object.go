@@ -347,7 +347,7 @@ func (m *Map) hashMap() uint64 {
 		v, _ := m.Pairs.Get(k)
 		// Just using xor as a way to get a unique uint64 with the value hash
 		hashedKeyObj := k.Value ^ HashObject(v.Value)
-		b := make([]byte, 8)
+		b := new8ByteBuf()
 		binary.BigEndian.PutUint64(b, hashedKeyObj)
 		h.Write(b)
 	}
@@ -522,12 +522,16 @@ func (s *Stringo) HashKey() HashKey {
 	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
 
+func new8ByteBuf() []byte {
+	return make([]byte, 8)
+}
+
 // hashList implements hashing for list objects
 func (l *List) hashList() uint64 {
 	h := fnv.New64a()
 	for _, obj := range l.Elements {
 		hashedObj := HashObject(obj)
-		b := make([]byte, 8)
+		b := new8ByteBuf()
 		binary.BigEndian.PutUint64(b, hashedObj)
 		h.Write(b)
 	}
@@ -541,11 +545,11 @@ func HashObject(obj Object) uint64 {
 	h := fnv.New64a()
 	switch obj.Type() {
 	case INTEGER_OBJ:
-		b := make([]byte, 8)
+		b := new8ByteBuf()
 		binary.PutVarint(b, obj.(*Integer).Value)
 		h.Write(b)
 	case UINTEGER_OBJ:
-		b := make([]byte, 8)
+		b := new8ByteBuf()
 		binary.PutUvarint(b, obj.(*UInteger).Value)
 		h.Write(b)
 	case BOOLEAN_OBJ:
@@ -558,7 +562,7 @@ func HashObject(obj Object) uint64 {
 		// Use 2 for null
 		return 2
 	case FLOAT_OBJ:
-		b := make([]byte, 8)
+		b := new8ByteBuf()
 		binary.PutUvarint(b, uint64(obj.(*Float).Value))
 		h.Write(b)
 	case STRING_OBJ:
@@ -573,12 +577,12 @@ func HashObject(obj Object) uint64 {
 		// Although i dont think this should happen, lets give it a hash anyways
 		h.Write([]byte(obj.(*Error).Message))
 	case LIST_OBJ:
-		b := make([]byte, 8)
+		b := new8ByteBuf()
 		listObj := obj.(*List)
 		binary.BigEndian.PutUint64(b, listObj.hashList())
 		h.Write(b)
 	case MAP_OBJ:
-		b := make([]byte, 8)
+		b := new8ByteBuf()
 		mapObj := obj.(*Map)
 		binary.BigEndian.PutUint64(b, mapObj.hashMap())
 		h.Write(b)

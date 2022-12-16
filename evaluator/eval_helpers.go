@@ -279,6 +279,14 @@ func runeLen(str string) int {
 	return utf8.RuneCountInString(str)
 }
 
+// isBooleanOperator checks if the given operator is considered a 'boolean' operator
+// this currently includes ==, !=, and, or, not
+// Note: not is a prefix operator and the rest are infix (notin and in technically
+// are boolean ops but we dont include them here)
+func isBooleanOperator(operator string) bool {
+	return operator == "==" || operator == "!=" || operator == "and" || operator == "or" || operator == "not"
+}
+
 func (e *Evaluator) EvalString(s string) (object.Object, error) {
 	l := lexer.New(s, "<internal: string>")
 	p := parser.New(l)
