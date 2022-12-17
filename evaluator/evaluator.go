@@ -2008,8 +2008,9 @@ func (e *Evaluator) evalStringWithInterpolation(stringNode *ast.StringLiteral) o
 	for i, obj := range someObjs {
 		if obj != nil {
 			newString = strings.Replace(newString, stringNode.OriginalInterpolationString[i], obj.Inspect(), 1)
+		} else {
+			newString = strings.Replace(newString, stringNode.OriginalInterpolationString[i], "", 1)
 		}
-		newString = strings.Replace(newString, stringNode.OriginalInterpolationString[i], "", 1)
 	}
 	return &object.Stringo{Value: newString}
 }
