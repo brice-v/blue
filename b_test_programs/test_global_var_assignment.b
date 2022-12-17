@@ -143,7 +143,7 @@ addx -6
 addx -11
 noop
 noop
-noop""";
+noop""".replace("\r", "");
 
 val lines = input.split("\n");
 
