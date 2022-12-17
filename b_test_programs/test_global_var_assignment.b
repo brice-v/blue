@@ -155,6 +155,8 @@ fun decode_and_execute(op) {
             pc += 1;
         },
         _ => {
+            var addx_in_op = "addx" in op;
+            println("addx_in_op = #{addx_in_op}, op = `#{op}`");
             assert("addx" in op);
             var value_to_add = to_num(op.split(" ")[1]);
             x += value_to_add;

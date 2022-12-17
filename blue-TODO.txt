@@ -1,9 +1,9 @@
 TODO:
 
-- Make templating system actually work well, or have some builtin to automatically return an elem but continue execution?
-- NOTE: `send()` will block if nothing is recveiving on it (maybe this is okay?)
-    - We could maybe optimize this with a buffered channel
-- [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
+- add way to convert numbers to different formats (possibly for printing?)
+- debugger statement that pops user into repl with access to variables (then just need a way to exit repl and continue execution)
+- still want to have way of starting a blue process like Erlang/Elixr with ways to connect and send over the network, etc.
+- in children, see if we can bind and convert strings to label with binding?
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
 - `go tool pprof -http localhost:9999 cpu.prof` (or mem.prof)
