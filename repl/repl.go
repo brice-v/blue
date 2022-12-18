@@ -6,11 +6,13 @@ import (
 	"blue/lexer"
 	"blue/parser"
 	"blue/token"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/user"
+	"strings"
 
 	"github.com/chzyer/readline"
 )
@@ -64,6 +66,8 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 		log.Fatalf("Failed to instantiate readline| Error: %s", err)
 	}
 	fmt.Println(header)
+	fmt.Println("type .help for more information")
+	var filebuf bytes.Buffer
 	for {
 		line, err := rl.Readline()
 		if err != nil {
@@ -73,6 +77,20 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 			}
 			log.Fatalf("Failed to read line: Unexpected Error: %s", err.Error())
 			break
+		}
+
+		if strings.HasPrefix(line, ".") {
+			if strings.HasPrefix(line, ".exit") {
+				io.WriteString(out, "\n")
+				break
+			}
+			err := handleDotCommand(line, out, &filebuf, e)
+			if err != nil {
+				io.WriteString(out, "repl command error: ")
+				io.WriteString(out, err.Error())
+				io.WriteString(out, "\n")
+			}
+			continue
 		}
 
 		l := lexer.New(line, "<repl>")
@@ -89,6 +107,8 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 			io.WriteString(out, evaluated.Inspect())
 			io.WriteString(out, "\n")
 		}
+		filebuf.WriteString(line)
+		filebuf.WriteByte('\n')
 	}
 }
 

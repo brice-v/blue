@@ -50,9 +50,6 @@ LATER ON:
 
 - [ ] Support TUI and colors for printing in terminal (and any other special things)
 - [ ] Add code for CLI arg parser
-- [ ] Make repl better
-- [ ] Make CLI behavior better (need an alternative to 'flag' package)
-    - [ ] Update repl to support loading files, saving files, help, etc. (look at node repl)
 - [ ] Support unicode throughout
 - [ ] TESTS! Lots of them covering a variety of scenarios
     - Test all math casting and max and min working
@@ -77,6 +74,9 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Make repl better
+- [x] Make CLI behavior better (need an alternative to 'flag' package)
+    - [x] Update repl to support loading files, saving files, help, etc. (look at node repl)
 - [-] Fix closures (possibly due to below error)
     - This is another thing due to extendFunctionEnv that we'll keep as is.
     - eventually having 'this' in a map may fix this (or 'self')

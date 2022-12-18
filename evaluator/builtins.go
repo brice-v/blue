@@ -552,5 +552,65 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Integer{Value: i}
 		},
 	},
+	// TODO: Do we want to do that thing where we shell expand home dir? or other things like that?
+	"rm": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("`rm` expects 1 argument. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `rm` should be STRING. got=%s", args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			finfo, err := os.Stat(s)
+			if err != nil {
+				return newError("`rm` error: %s", err.Error())
+			}
+			if finfo.IsDir() {
+				err = os.RemoveAll(s)
+				if err != nil {
+					return newError("`rm` error: %s", err.Error())
+				}
+				return NULL
+			}
+			err = os.Remove(s)
+			if err != nil {
+				return newError("`rm` error: %s", err.Error())
+			}
+			return NULL
+		},
+	},
+	// TODO: Do we want to do that thing where we shell expand home dir? or other things like that?
+	"ls": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) > 1 {
+				return newError("`ls` expects 1 or 0 arguments. got=%d", len(args))
+			}
+			var cwd string
+			if len(args) == 0 {
+				// use cwd to ls
+				dir, err := os.Getwd()
+				if err != nil {
+					return newError("`ls` error: %s", err.Error())
+				}
+				cwd = dir
+			} else {
+				// use argument passed in
+				if args[0].Type() != object.STRING_OBJ {
+					return newError("argument 1 to `ls` should be STRING. got=%s", args[0].Type())
+				}
+				cwd = args[0].(*object.Stringo).Value
+			}
+			fileOrDirs, err := os.ReadDir(cwd)
+			if err != nil {
+				return newError("`ls` error: %s", err.Error())
+			}
+			result := &object.List{Elements: make([]object.Object, len(fileOrDirs))}
+			for i := 0; i < len(fileOrDirs); i++ {
+				result.Elements[i] = &object.Stringo{Value: fileOrDirs[i].Name()}
+			}
+			return result
+		},
+	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
 })
