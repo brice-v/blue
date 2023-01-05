@@ -1,4 +1,4 @@
-# TODO/Note: When we match, we HAVE to return otherwise a method will get overridden?
+# TODO/Note: When we match, we HAVE to return otherwise a method will get overridden
 
 fun send(obj, value) {
     return match obj {

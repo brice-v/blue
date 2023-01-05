@@ -75,7 +75,6 @@ func GetErrorLineMessage(tok token.Token) string {
 	}
 	for i := range lines[lineNo] {
 		if i == posInLine {
-			// TODO: This is where we could incoporate a length
 			out.WriteByte('^')
 		} else {
 			out.WriteByte(' ')
@@ -119,36 +118,49 @@ func (l *Lexer) peekSecondChar() rune {
 	return l.inputAsRunes[l.readPosition+1]
 }
 
+// readHexNumber will read the hex number as a helper
+func (l *Lexer) readHexNumber(ogPos int) (token.Type, string) {
+	// consume the 0 and x and continue to the number
+	l.readChar()
+	l.readChar()
+	for isHexChar(l.ch) || (l.ch == '_' && isHexChar(l.peekChar())) {
+		l.readChar()
+	}
+	return token.HEX, string(l.inputAsRunes[ogPos:l.position])
+}
+
+// readOctalNumber will read the hex number as a helper
+func (l *Lexer) readOctalNumber(ogPos int) (token.Type, string) {
+	// consume the 0 and the o and continue to the number
+	l.readChar()
+	l.readChar()
+	for isOctalChar(l.ch) || (l.ch == '_' && isOctalChar(l.peekChar())) {
+		l.readChar()
+	}
+	return token.OCTAL, string(l.inputAsRunes[ogPos:l.position])
+}
+
+func (l *Lexer) readBinaryNumber(ogPos int) (token.Type, string) {
+	// consume the 0 and the b and continue to the number
+	l.readChar()
+	l.readChar()
+	for isBinaryChar(l.ch) || (l.ch == '_' && isBinaryChar(l.peekChar())) {
+		l.readChar()
+	}
+	return token.BINARY, string(l.inputAsRunes[ogPos:l.position])
+}
+
 // readNumber will keep consuming valid digits of the input according to `isDigit`
 // and return the string
-// TODO: readNumber can be refactored to be cleaner
 func (l *Lexer) readNumber() (token.Type, string) {
 	position := l.position
 	if l.ch == '0' {
 		if l.peekChar() == 'x' && isHexChar(l.peekSecondChar()) {
-			// consume the 0 and x and continue to the number
-			l.readChar()
-			l.readChar()
-			for isHexChar(l.ch) || (l.ch == '_' && isHexChar(l.peekChar())) {
-				l.readChar()
-			}
-			return token.HEX, string(l.inputAsRunes[position:l.position])
+			return l.readHexNumber(position)
 		} else if l.peekChar() == 'o' && isOctalChar(l.peekSecondChar()) {
-			// consume the 0 and the o and continue to the number
-			l.readChar()
-			l.readChar()
-			for isOctalChar(l.ch) || (l.ch == '_' && isOctalChar(l.peekChar())) {
-				l.readChar()
-			}
-			return token.OCTAL, string(l.inputAsRunes[position:l.position])
+			return l.readOctalNumber(position)
 		} else if l.peekChar() == 'b' && isBinaryChar(l.peekSecondChar()) {
-			// consume the 0 and the b and continue to the number
-			l.readChar()
-			l.readChar()
-			for isBinaryChar(l.ch) || (l.ch == '_' && isBinaryChar(l.peekChar())) {
-				l.readChar()
-			}
-			return token.BINARY, string(l.inputAsRunes[position:l.position])
+			return l.readBinaryNumber(position)
 		}
 	}
 	dotFlag := false

@@ -185,7 +185,6 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		newE := New()
 		newE.env = extendFunctionEnv(function, args, defaultArgs)
 		evaluated := newE.Eval(function.Body)
-		// TODO: Support getting error token out of function
 		for newE.ErrorTokens.Len() != 0 {
 			e.ErrorTokens.s.PushBack(newE.ErrorTokens.Pop())
 		}

@@ -10,9 +10,6 @@ val z = [2,3,4];
 assert(y == z);
 assert(yy == z);
 
-# TODO: Do the same test with sets and strings
-# TODO: Also need to see how this would work for setting things in a list?
-
 val a = {1,2,3,4,5,6,7,8,9,10};
 
 val y1 = a[1..3];

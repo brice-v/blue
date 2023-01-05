@@ -550,22 +550,6 @@ func TestParsingInfixExpressions(t *testing.T) {
 		{"5..5;", 5, "..", 5},
 		{"5..<5;", 5, "..<", 5},
 		{"5 in 5", 5, "in", 5},
-		// These dont count as infix because they are assignment
-		// as well
-		// TODO: Figure out where these precedences come into play
-		// {"5 *= 5;", 5, "*=", 5},
-		// {"5 += 5;", 5, "+=", 5},
-		// {"5 -= 5;", 5, "-=", 5},
-		// {"5 /= 5;", 5, "/=", 5},
-		// {"5 |= 5;", 5, "|=", 5},
-		// {"5 &= 5;", 5, "&=", 5},
-		// {"5 ^= 5;", 5, "^=", 5},
-		// {"5 ~= 5;", 5, "~=", 5},
-		// {"5 **= 5;", 5, "**=", 5},
-		// {"5 //= 5;", 5, "//=", 5},
-		// {"5 <<= 5;", 5, "<<=", 5},
-		// {"5 >>= 5;", 5, ">>=", 5},
-		// {"5 %= 5;", 5, "%=", 5},
 	}
 	for _, tt := range infixTests {
 		l := lexer.New(tt.input, "<internal: test>")
@@ -1519,8 +1503,6 @@ func TestParsingMemberAccessExpression(t *testing.T) {
 	}
 }
 
-// TODO: handle returning last expression in return
-// handle expression like var x = 1; x < 10; x +=1
 func TestForExpression(t *testing.T) {
 	input := `for (x < y) { var z = x + y; };`
 

@@ -44,7 +44,6 @@ fun fetch(resource, options=null) {
         if (options.headers == null) {
             options.headers = {};
         } else {
-            # TODO: Need to support options.headers.type();
             val ht = type(options.headers);
             if (ht != 'MAP') {
                 return error("`fetch` error:  options.headers must be MAP. got=#{ht}");

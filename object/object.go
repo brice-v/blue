@@ -116,7 +116,6 @@ func (n *Null) Type() Type { return NULL_OBJ }
 func (n *Null) Inspect() string { return "null" }
 
 // UInteger is the hex, octal, bin object struct
-// TODO: Separate these all out to their own structs and objects
 type UInteger struct {
 	Value uint64
 }
@@ -477,8 +476,6 @@ func (cs *ContinueStatement) Inspect() string {
 }
 
 // ------------------------------- HashKey Stuff --------------------------------
-
-// TODO: cache the return value of HashKey to improve performance -- memory may grow unbounded however
 
 // Hashable allows us to check if an object is hashable
 type Hashable interface {

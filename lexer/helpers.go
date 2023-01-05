@@ -17,7 +17,6 @@ func (l *Lexer) makeTwoCharToken(typ token.Type) token.Token {
 	posInLine := l.posInLine
 	// consume next char because we know it is an =
 	l.readChar()
-	// TODO: Could add length here of 2?
 	return token.Token{Type: typ, Literal: string(ch) + string(l.ch), LineNumber: lineNo, PositionInLine: posInLine, Filepath: l.fname}
 }
 
@@ -30,7 +29,6 @@ func (l *Lexer) makeThreeCharToken(typ token.Type) token.Token {
 	l.readChar()
 	ch1 := l.ch
 	l.readChar()
-	// TODO: Could add length here of 3?
 	return token.Token{Type: typ, Literal: string(ch) + string(ch1) + string(l.ch), LineNumber: lineNo, PositionInLine: posInLine, Filepath: l.fname}
 }
 
@@ -54,10 +52,9 @@ func isImportChar(ch rune) bool {
 	return isLetter(ch) || ch == '.'
 }
 
-// isDigit will return true if the rune give is 0-9
-// TODO: Support isDigit for unicode values
+// isDigit will return true if the rune give is 0-9 or any unicode Digit
 func isDigit(ch rune) bool {
-	return '0' <= ch && ch <= '9'
+	return unicode.IsDigit(ch)
 }
 
 // isHexChar will return true if the rune given is a hex character
