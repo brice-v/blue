@@ -457,7 +457,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		}
 		fmt.Printf("Handle this type: %T\n", node)
 	}
-
+	// Remove any 'errors' if we reach this because no error must've been encountered
+	e.ErrorTokens.RemoveAllEntries()
 	// In the event that there are only statements, I think this is where we end up
 	// so we return NULL because there is nothing to return otherwise
 	return NULL
