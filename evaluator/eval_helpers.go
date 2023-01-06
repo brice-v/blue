@@ -15,7 +15,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"regexp"
 	"runtime"
 	"strings"
 	"unicode/utf8"
@@ -488,76 +487,49 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 	return returnMap, nil
 }
 
-// For Builtins
-
-func createEvalTemplateBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("`eval_template` expects 2 arguments. got=%d", len(args))
+func blueObjectToGoObject(blueObject object.Object) interface{} {
+	switch blueObject.Type() {
+	case object.STRING_OBJ:
+		return blueObject.(*object.Stringo).Value
+	case object.INTEGER_OBJ:
+		return blueObject.(*object.Integer).Value
+	case object.FLOAT_OBJ:
+		return blueObject.(*object.Float).Value
+	case object.NULL_OBJ:
+		return nil
+	case object.BOOLEAN_OBJ:
+		return blueObject.(*object.Boolean).Value
+	case object.MAP_OBJ:
+		m := blueObject.(*object.Map)
+		pairs := make(map[string]interface{})
+		for _, k := range m.Pairs.Keys {
+			mp, _ := m.Pairs.Get(k)
+			if mp.Key.Type() != object.STRING_OBJ {
+				log.Fatalf("blueObjectToGoObject: Map must only have string keys. got=%s", mp.Key.Type())
 			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `eval_template` should be STRING. got=%s", args[0].Type())
+			if mp.Value.Type() == object.MAP_OBJ {
+				log.Fatalf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
 			}
-			if args[1].Type() != object.MAP_OBJ {
-				return newError("argument 2 to `eval_template` should be MAP. got=%s", args[1].Type())
+			pairs[mp.Key.(*object.Stringo).Value] = blueObjectToGoObject(mp.Value)
+		}
+		return pairs
+	case object.LIST_OBJ:
+		l := blueObject.(*object.List).Elements
+		elements := make([]interface{}, len(l))
+		for i, e := range l {
+			if e.Type() == object.LIST_OBJ {
+				log.Fatalf("blueObjectToGoObject: List of lists unsupported")
 			}
-			m := args[1].(*object.Map)
-			inputStr := args[0].(*object.Stringo).Value
-			r := regexp.MustCompile("[<%|<%=].*%>")
-			if e.env.IsImmutable("ctx") {
-				return newError("`eval_template` error: `ctx` is immutable and can't be used in template")
-			}
-			savedObj, isThere := e.env.Get("ctx")
-			e.env.Set("ctx", m)
-
-			inputToMutate := inputStr
-			for {
-				ss := r.FindAllString(inputToMutate, -1)
-				if len(ss) == 0 {
-					break
-				}
-				for _, s := range ss {
-					if strings.HasPrefix(s, "<%=") {
-						// inject
-						lexerInput := strings.ReplaceAll(strings.ReplaceAll(s, "<%=", ""), "%>", "")
-						l := lexer.New(lexerInput, "<internal: eval_template>")
-						p := parser.New(l)
-						prog := p.ParseProgram()
-						if len(p.Errors()) != 0 {
-							return newError("`eval_template` error: %s", strings.Join(p.Errors(), " | "))
-						}
-						returnObj := e.Eval(prog)
-						if returnObj.Type() != object.STRING_OBJ {
-							return newError("`eval_template` error: input `%s` should return STRING. got=%s", s, returnObj.Type())
-						}
-						newStr := returnObj.(*object.Stringo).Value
-						inputToMutate = strings.Replace(inputToMutate, s, newStr, 1)
-						break
-					} else if strings.HasPrefix(s, "<%") {
-						// dont inject (second in if branch because it will match the above)
-						lexerInput := strings.ReplaceAll(strings.ReplaceAll(s, "<%", ""), "%>", "")
-						l := lexer.New(lexerInput, "<internal: eval_template>")
-						p := parser.New(l)
-						prog := p.ParseProgram()
-						if len(p.Errors()) != 0 {
-							return newError("`eval_template` error: %s", strings.Join(p.Errors(), " | "))
-						}
-						e.Eval(prog)
-						inputToMutate = strings.Replace(inputToMutate, s, "", 1)
-						break
-					}
-				}
-			}
-			if isThere {
-				e.env.Set("ctx", savedObj)
-			} else {
-				e.env.RemoveIdentifier("ctx")
-			}
-			return &object.Stringo{Value: inputToMutate}
-		},
+			elements[i] = blueObjectToGoObject(e)
+		}
+		return elements
+	default:
+		log.Fatalf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
 	}
+	return nil
 }
+
+// For Builtins
 
 func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gobuffalo/plush"
 	clone "github.com/huandu/go-clone"
 )
 
@@ -281,6 +282,34 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				setMap.Set(hashKey, object.SetPair{Value: e, Present: true})
 			}
 			return &object.Set{Elements: setMap}
+		},
+	},
+	"eval_template": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("`eval_template` expects 2 arguments. got=%d", len(args))
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newError("argument 1 to `eval_template` should be STRING. got=%s", args[0].Type())
+			}
+			if args[1].Type() != object.MAP_OBJ {
+				return newError("argument 2 to `eval_template` should be MAP. got=%s", args[1].Type())
+			}
+			m := args[1].(*object.Map)
+			ctx := plush.NewContext()
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				if mp.Key.Type() != object.STRING_OBJ {
+					return newError("`eval_template` error: found key in MAP that was not STRING. got=%s", mp.Key.Type())
+				}
+				ctx.Set(mp.Key.(*object.Stringo).Value, blueObjectToGoObject(mp.Value))
+			}
+			inputStr := args[0].(*object.Stringo).Value
+			s, err := plush.Render(inputStr, ctx)
+			if err != nil {
+				return newError("`eval_template` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: s}
 		},
 	},
 	"error": {

@@ -1,29 +1,56 @@
-<%= ctx.stylesheet %>
-    <p>
-        <% println("Nothing returned here"); %>
-    </p>
+<html>
 
-    <h1>Hello World</h1>
+<head>
+    <title>Hello World!</title>
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+</head>
 
-    <h2>Another thing here</h2>
+<body>
+    <%= top_html %>
+        <p>
+            <% "Nothing returned here" %>
+        </p>
 
-    <ul>
-        <li>A list</li>
-        <li>of</li>
-        <li>things</li>
-    </ul>
+        <h1>Hello World</h1>
 
-    <pre><code class="language-go">func (c *Cow) Moo() string {
+        <h2>Another thing here</h2>
+
+        <ul>
+            <li>A list</li>
+            <li>of</li>
+            <li>things</li>
+            <li>
+                <%= thing %>
+            </li>
+        </ul>
+
+        <pre><code class="language-go">func (c *Cow) Moo() string {
     return "MOOOOO"
 }
 </code></pre>
 
-    <ul>
-        <li>[ ] Maybe</li>
-        <li>[ ] Checkboxes?</li>
-        <li>[x] Idk</li>
-    </ul>
+        <ul>
+            <li>[ ] Maybe</li>
+            <li>[ ] Checkboxes?</li>
+            <li>[x] Idk</li>
+        </ul>
 
-    <h4>Last thing</h4>
+        <h4>Last thing</h4>
 
-    <p>Some random text</p>
+        <p>Some random text</p>
+        <%= if (list_thing && len(list_thing)> 0) { %>
+            <ul>
+                <%= for (n) in list_thing { %>
+                    <li>
+                        <%= capitalize(n) %>
+                    </li>
+                    <% } %>
+            </ul>
+            <% } else { %>
+                <h1>Sorry, no names. :(</h1>
+                <% } %>
+
+                    <%= for (key, value) in map_thing { %>
+                        <h4>key=<%= key %>, value=<%= value %>
+                        </h4>
+                        <% } %>

@@ -75,6 +75,9 @@ github.com/davecgh/go-spew/spew
 # github.com/fasthttp/websocket v1.5.0
 ## explicit; go 1.15
 github.com/fasthttp/websocket
+# github.com/fatih/structs v1.1.0
+## explicit
+github.com/fatih/structs
 # github.com/fredbi/uri v0.0.0-20181227131451-3dcfdacbaaf3
 ## explicit
 github.com/fredbi/uri
@@ -107,6 +110,53 @@ github.com/go-gl/glfw/v3.3/glfw/glfw/deps/mingw
 github.com/go-gl/glfw/v3.3/glfw/glfw/deps/vs2008
 github.com/go-gl/glfw/v3.3/glfw/glfw/include/GLFW
 github.com/go-gl/glfw/v3.3/glfw/glfw/src
+# github.com/gobuffalo/flect v0.3.0
+## explicit; go 1.16
+github.com/gobuffalo/flect
+github.com/gobuffalo/flect/name
+# github.com/gobuffalo/github_flavored_markdown v1.1.3
+## explicit; go 1.16
+github.com/gobuffalo/github_flavored_markdown
+github.com/gobuffalo/github_flavored_markdown/internal/russross/blackfriday
+github.com/gobuffalo/github_flavored_markdown/internal/shurcooL/highlight_diff
+github.com/gobuffalo/github_flavored_markdown/internal/shurcooL/highlight_go
+github.com/gobuffalo/github_flavored_markdown/internal/shurcooL/octicon
+github.com/gobuffalo/github_flavored_markdown/internal/shurcooL/sanitized_anchor_name
+# github.com/gobuffalo/helpers v0.6.7
+## explicit; go 1.16
+github.com/gobuffalo/helpers
+github.com/gobuffalo/helpers/content
+github.com/gobuffalo/helpers/debug
+github.com/gobuffalo/helpers/encoders
+github.com/gobuffalo/helpers/env
+github.com/gobuffalo/helpers/escapes
+github.com/gobuffalo/helpers/forms
+github.com/gobuffalo/helpers/forms/bootstrap
+github.com/gobuffalo/helpers/hctx
+github.com/gobuffalo/helpers/inflections
+github.com/gobuffalo/helpers/iterators
+github.com/gobuffalo/helpers/meta
+github.com/gobuffalo/helpers/paths
+github.com/gobuffalo/helpers/tags
+github.com/gobuffalo/helpers/text
+# github.com/gobuffalo/plush v3.8.3+incompatible
+## explicit
+github.com/gobuffalo/plush
+github.com/gobuffalo/plush/ast
+github.com/gobuffalo/plush/lexer
+github.com/gobuffalo/plush/parser
+github.com/gobuffalo/plush/token
+# github.com/gobuffalo/tags v2.1.7+incompatible
+## explicit
+# github.com/gobuffalo/tags/v3 v3.1.4
+## explicit; go 1.16
+github.com/gobuffalo/tags/v3
+github.com/gobuffalo/tags/v3/form
+github.com/gobuffalo/tags/v3/form/bootstrap
+# github.com/gobuffalo/validate/v3 v3.3.3
+## explicit; go 1.16
+github.com/gobuffalo/validate/v3
+github.com/gobuffalo/validate/v3/validators
 # github.com/godbus/dbus/v5 v5.1.0
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
@@ -135,6 +185,9 @@ github.com/gofiber/fiber/v2/utils
 # github.com/gofiber/websocket/v2 v2.1.1
 ## explicit; go 1.14
 github.com/gofiber/websocket/v2
+# github.com/gofrs/uuid v4.2.0+incompatible
+## explicit
+github.com/gofrs/uuid
 # github.com/goki/freetype v0.0.0-20181231101311-fa8a33aabaff
 ## explicit
 github.com/goki/freetype
@@ -225,6 +278,9 @@ github.com/mitchellh/mapstructure
 # github.com/otiai10/copy v1.9.0
 ## explicit; go 1.14
 github.com/otiai10/copy
+# github.com/pkg/errors v0.8.1
+## explicit
+github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
@@ -240,9 +296,18 @@ github.com/russross/blackfriday/v2
 # github.com/savsgio/gotils v0.0.0-20211223103454-d0aaa54c5899
 ## explicit; go 1.12
 github.com/savsgio/gotils/strconv
+# github.com/sergi/go-diff v1.2.0
+## explicit; go 1.12
+github.com/sergi/go-diff/diffmatchpatch
 # github.com/shopspring/decimal v1.3.1
 ## explicit; go 1.13
 github.com/shopspring/decimal
+# github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d
+## explicit
+github.com/sourcegraph/annotate
+# github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e
+## explicit
+github.com/sourcegraph/syntaxhighlight
 # github.com/srwiley/oksvg v0.0.0-20200311192757-870daf9aa564
 ## explicit
 github.com/srwiley/oksvg
