@@ -795,7 +795,9 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				} else {
 					rows, err = db.Query(s)
 				}
-				defer rows.Close()
+				if rows != nil {
+					defer rows.Close()
+				}
 				if err != nil {
 					return newError("`query` error: %s", err.Error())
 				}

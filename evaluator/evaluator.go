@@ -1130,18 +1130,15 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 	var evalBlock object.Object
 	defer func() {
 		// Cleanup any temporary for variables
+		doCleanup := false
 		for k, v := range e.cleanupTmpVar {
 			if maxIter, ok := e.cleanupTmpVarIter[k]; ok {
 				if v == e.nestLevel && maxIter >= e.iterCount[e.nestLevel] && e.doneWithFor {
-					e.iterCount[e.nestLevel] = 0
-					if e.nestLevel != 0 {
-						e.nestLevel--
-					}
 					e.env.RemoveIdentifier(k)
 					delete(e.cleanupTmpVar, k)
 					delete(e.cleanupScopeVar, k)
 					delete(e.cleanupTmpVarIter, k)
-					e.doneWithFor = false
+					doCleanup = true
 				}
 			} else {
 				if v > e.nestLevel {
@@ -1150,6 +1147,16 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 					delete(e.cleanupScopeVar, k)
 				}
 			}
+		}
+		if doCleanup {
+			e.iterCount[e.nestLevel] = 0
+			if e.nestLevel != 0 {
+				if len(e.iterCount) > 1 {
+					e.iterCount = e.iterCount[:len(e.iterCount)-1]
+				}
+				e.nestLevel--
+			}
+			e.doneWithFor = false
 		}
 	}()
 	firstRun := true
@@ -1196,7 +1203,6 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		}
 		// Still evaluate on the last run then break if its false
 		if !ok {
-			//e.doneWithFor = true
 			break
 		}
 	}
