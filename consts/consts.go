@@ -2,7 +2,7 @@ package consts
 
 // VERSION is the version number of the blang repl and language
 // it will be incremented as seen fit
-const VERSION = "0.1.6"
+const VERSION = "0.1.7"
 
 const PARSER_ERROR_PREFIX = "ParserError: "
 const PROCESS_ERROR_PREFIX = "ProcessError: "
