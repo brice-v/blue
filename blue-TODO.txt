@@ -74,6 +74,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] For errors in handler functions in http - allow the stacktrace/error to be printed in the c.Status... stuff if there is an env variable set
 - [x] Make repl better
 - [x] Make CLI behavior better (need an alternative to 'flag' package)
     - [x] Update repl to support loading files, saving files, help, etc. (look at node repl)

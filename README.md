@@ -133,6 +133,7 @@ evaluated)
 #### Notes
 
 * set `DISABLE_HTTP_SERVER_DEBUG` to `true` to disable http server route/welcome message printing
+    * it will also prevent the stack trace from returning in http request failures
 * set `BLUE_INSTALL_PATH` to the directory where `blue` is installed to
     * this is used for the bundler currently
     * if there are no files at the given path `git` will be used to clone the repo there once to cache it

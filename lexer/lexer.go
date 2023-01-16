@@ -38,6 +38,54 @@ func New(input string, fname string) *Lexer {
 	return l
 }
 
+// TODO: Cache the split lines per fpath
+func GetErrorLineMessageForJson(tok token.Token) (string, string) {
+	lineNo := tok.LineNumber
+	posInLine := tok.PositionInLine
+
+	fpath := tok.Filepath
+	var fullFile string
+	if fpath == consts.CORE_FILE_PATH {
+		fullFile = lib.CoreFile
+	} else if strings.HasPrefix(fpath, "<std/") {
+		// This shouldnt fail because we set the filepaths
+		file := strings.ReplaceAll(strings.Split(fpath, "<std/")[1], ">", "")
+		fullFile = lib.ReadStdFileToString(file)
+	} else {
+		fdata, err := os.ReadFile(fpath)
+		if err != nil {
+			// fallback option if the filepath doesnt exist or if its internal
+			return fmt.Sprint(tok.DisplayForErrorLine()), ""
+		}
+		fullFile = string(fdata)
+	}
+
+	// TODO: This will be VERY SLOW but I just want to test it out
+	lines := strings.Split(fullFile, "\n")
+	var out bytes.Buffer
+	// Fist write the filename of the input
+	fileErrorLine := fmt.Sprintf("%s:%d:%d ", fpath, lineNo+1, posInLine+1)
+	out.WriteString(fileErrorLine)
+	// Write the line
+	out.WriteString(lines[lineNo])
+	// Then a newline (so we can play a ^ on the following line)
+	firstStr := out.String()
+	out = bytes.Buffer{}
+	// Write Spaces to pad the following line
+	for range fileErrorLine {
+		out.WriteByte(' ')
+	}
+	for i := range lines[lineNo] {
+		if i == posInLine {
+			out.WriteByte('^')
+		} else {
+			out.WriteByte(' ')
+		}
+	}
+	return firstStr, out.String()
+}
+
+// TODO: Cache the split lines per fpath
 func GetErrorLineMessage(tok token.Token) string {
 	lineNo := tok.LineNumber
 	posInLine := tok.PositionInLine

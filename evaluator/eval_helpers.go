@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -531,6 +532,23 @@ func blueObjectToGoObject(blueObject object.Object) interface{} {
 
 // For Builtins
 
+func getErrorTokenTraceAsJson(e *Evaluator) interface{} {
+	var disableHttpServerDebug bool
+	disableHttpServerDebugStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
+	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
+	if err != nil {
+		disableHttpServerDebug = false
+	}
+	errors := []string{}
+	if !disableHttpServerDebug {
+		for e.ErrorTokens.Len() > 0 {
+			firstPart, carat := lexer.GetErrorLineMessageForJson(e.ErrorTokens.PopBack())
+			errors = append(errors, firstPart, carat)
+		}
+	}
+	return errors
+}
+
 func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
@@ -564,12 +582,16 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 						if v != nil && fn.Parameters[i].Value == "query_params" {
 							// Handle query_params
 							if v.Type() != object.LIST_OBJ {
-								return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("query_params must be LIST. got=%s", v.Type()))
+								errors := getErrorTokenTraceAsJson(e).([]string)
+								errors = append(errors, fmt.Sprintf("query_params must be LIST. got=%s", v.Type()))
+								return c.Status(fiber.StatusInternalServerError).JSON(errors)
 							}
 							l := v.(*object.List).Elements
 							for _, elem := range l {
 								if elem.Type() != object.STRING_OBJ {
-									return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("query_params must be LIST of STRINGs. found=%s", elem.Type()))
+									errors := getErrorTokenTraceAsJson(e).([]string)
+									errors = append(errors, fmt.Sprintf("query_params must be LIST of STRINGs. found=%s", elem.Type()))
+									return c.Status(fiber.StatusInternalServerError).JSON(errors)
 								}
 								// Now we know its a list of strings so we can set the variables accordingly for the fn
 								s := elem.(*object.Stringo).Value
@@ -594,7 +616,9 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 					}
 					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object))
 					if respObj.Type() != object.STRING_OBJ {
-						return c.Status(fiber.StatusInternalServerError).SendString("STRING NOT RETURNED FROM FUNCTION")
+						errors := getErrorTokenTraceAsJson(e).([]string)
+						errors = append(errors, "STRING NOT RETURNED FROM FUNCTION")
+						return c.Status(fiber.StatusInternalServerError).JSON(errors)
 					}
 					respStr := respObj.(*object.Stringo).Value
 					if json.Valid([]byte(respStr)) {
@@ -621,7 +645,9 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 						if v != nil && fn.Parameters[k].Value == "post_values" {
 							// Handle post_values
 							if v.Type() != object.LIST_OBJ {
-								return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("post_values must be LIST. got=%s", v.Type()))
+								errors := getErrorTokenTraceAsJson(e).([]string)
+								errors = append(errors, fmt.Sprintf("post_values must be LIST. got=%s", v.Type()))
+								return c.Status(fiber.StatusInternalServerError).JSON(errors)
 							}
 							l := v.(*object.List).Elements
 
@@ -630,11 +656,15 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 
 							returnMap, err := decodeBodyToMap(contentType, body)
 							if err != nil {
-								return c.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
+								errors := getErrorTokenTraceAsJson(e).([]string)
+								errors = append(errors, fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
+								return c.Status(fiber.StatusBadRequest).JSON(errors)
 							}
 							for _, elem := range l {
 								if elem.Type() != object.STRING_OBJ {
-									return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("post_values must be LIST of STRINGs. found=%s", elem.Type()))
+									errors := getErrorTokenTraceAsJson(e).([]string)
+									errors = append(errors, fmt.Sprintf("post_values must be LIST of STRINGs. found=%s", elem.Type()))
+									return c.Status(fiber.StatusInternalServerError).JSON(errors)
 								}
 								s := elem.(*object.Stringo).Value
 								if v, ok := returnMap[s]; ok {
@@ -660,7 +690,9 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 					if respObj.Type() == object.NULL_OBJ {
 						return c.SendStatus(fiber.StatusOK)
 					} else {
-						return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("POST Response Type is not NULL or STRING. got=%s", respObj.Type()))
+						errors := getErrorTokenTraceAsJson(e).([]string)
+						errors = append(errors, fmt.Sprintf("POST Response Type is not NULL or STRING. got=%s", respObj.Type()))
+						return c.Status(fiber.StatusInternalServerError).JSON(errors)
 					}
 				})
 				// case "PATCH":
