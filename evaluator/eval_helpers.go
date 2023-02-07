@@ -63,6 +63,17 @@ func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
+func newPositionalTypeError(funName string, pos int, expectedType string, currentType object.Type) *object.Error {
+	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%s", funName, pos, expectedType, currentType)
+}
+
+func newInvalidArgCountError(funName string, got, want int, otherCount string) *object.Error {
+	if otherCount == "" {
+		return newError("InvalidArgCountError: `%s` wrong number of args. got=%d, want=%d", funName, got, want)
+	}
+	return newError("InvalidArgCountError: `%s` wrong number of args. got=%d, want=%d %s", funName, got, want, otherCount)
+}
+
 // isError is the helper function to determine if an object is an error
 func isError(obj object.Object) bool {
 	if obj != nil {

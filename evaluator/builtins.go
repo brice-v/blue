@@ -15,30 +15,61 @@ import (
 	clone "github.com/huandu/go-clone"
 )
 
+type helpStrArgs struct {
+	explanation string
+	signature   string
+	errors      string
+	example     string
+}
+
+func (hsa helpStrArgs) String() string {
+	return fmt.Sprintf("%s\n    Signature:  %s\n    Error(s):   %s\n    Example(s): %s\n", hsa.explanation, hsa.signature, hsa.errors, hsa.example)
+}
+
 type BuiltinMapTypeInternal map[string]*object.Builtin
 
 var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"help": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("help", len(args), 1, "")
+			}
+			return &object.Stringo{Value: args[0].Help()}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`help` returns the help STRING for a given OBJECT",
+			signature:   "help(arg: any) -> str",
+			errors:      "None",
+			example:     "help(print) => `prints help string for print builtin function`",
+		}.String(),
+	},
 	"new": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`new` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("new", len(args), 1, "")
 			}
 			if args[0].Type() != object.MAP_OBJ {
-				return newError("argument 1 to `new` should be MAP. got=%s", args[0].Type())
+				return newPositionalTypeError("new", 1, object.MAP_OBJ, args[0].Type())
 			}
 			m := args[0].(*object.Map)
 			newMap := clone.Clone(m).(*object.Map)
 
 			return newMap
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`new` returns a cloned MAP object from the given arg",
+			signature:   "new(arg: map) -> map",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "new({'x': 1}) => {'x': 1}",
+		}.String(),
 	},
 	"keys": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`keys` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("keys", len(args), 1, "")
 			}
 			if args[0].Type() != object.MAP_OBJ {
-				return newError("argument 1 to `keys` should be MAP. got=%s", args[0].Type())
+				return newPositionalTypeError("keys", 1, object.MAP_OBJ, args[0].Type())
 			}
 			returnList := &object.List{
 				Elements: []object.Object{},
@@ -50,14 +81,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return returnList
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`keys` returns a LIST of key objects from given arg",
+			signature:   "keys(arg: map) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "keys({'a': 1, 'B': 2}) => ['a', 'B']",
+		}.String(),
 	},
 	"values": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`values` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("values", len(args), 1, "")
 			}
 			if args[0].Type() != object.MAP_OBJ {
-				return newError("argument 1 to `values` should be MAP. got=%s", args[0].Type())
+				return newPositionalTypeError("values", 1, object.MAP_OBJ, args[0].Type())
 			}
 			returnList := &object.List{
 				Elements: []object.Object{},
@@ -69,11 +106,17 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return returnList
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`values` returns a LIST of value OBJECTs from given arg",
+			signature:   "value(arg: map) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "keys({'a': 1, 'B': 2}) => [1, 2]",
+		}.String(),
 	},
 	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("wrong number of arguments to `len`. got=%d, want=1", len(args))
+				return newInvalidArgCountError("len", len(args), 1, "")
 			}
 
 			switch arg := args[0].(type) {
@@ -86,67 +129,23 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case *object.Set:
 				return &object.Integer{Value: int64(arg.Elements.Len())}
 			default:
-				return newError("argument to `len` not supported, got %s", args[0].Type())
+				return newPositionalTypeError("len", 1, "STRING, LIST, MAP, or SET", args[0].Type())
 			}
 		},
-	},
-	"first": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments to `first`. got=%d, want=1", len(args))
-			}
-			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument to `first` must be LIST, got %s", args[0].Type())
-			}
-			l := args[0].(*object.List)
-			if len(l.Elements) > 0 {
-				return l.Elements[0]
-			}
-			return NULL
-		},
-	},
-	"last": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments to `last`. got=%d, want=1", len(args))
-			}
-			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument to `last` must be LIST, got %s", args[0].Type())
-			}
-			l := args[0].(*object.List)
-			last := len(l.Elements)
-			if last != 0 {
-				return l.Elements[last-1]
-			}
-			return NULL
-		},
-	},
-	"rest": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments to `rest`. got=%d, want=1", len(args))
-			}
-			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument to `rest` must be LIST, got %s", args[0].Type())
-			}
-			l := args[0].(*object.List)
-			length := len(l.Elements)
-			if length > 0 {
-				// NOTE: This is an efficient way of copying slices/lists so use elsewhere
-				newElements := make([]object.Object, length-1)
-				copy(newElements, l.Elements[1:length])
-				return &object.List{Elements: newElements}
-			}
-			return NULL
-		},
+		HelpStr: helpStrArgs{
+			explanation: "`len` returns the INTEGER length of the given STRING, LIST, MAP, or SET",
+			signature:   "len(arg: str|list|map|set) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "len([1,2,3]) => 3",
+		}.String(),
 	},
 	"append": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("wrong number of arguments to `append`. got=%d, want=2", len(args))
+				return newInvalidArgCountError("append", len(args), 2, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument to `append` must be LIST, got %s", args[0].Type())
+				return newPositionalTypeError("append", 1, object.LIST_OBJ, args[0].Type())
 			}
 			l := args[0].(*object.List)
 			length := len(l.Elements)
@@ -156,19 +155,31 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			newElements[length] = args[1]
 			return &object.List{Elements: newElements}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`append` returns the LIST of elements with given arg OBJECT at the end",
+			signature:   "append(arg0: list, arg1: any) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "append([1,2,3], 1) => [1,2,3,4]",
+		}.String(),
 	},
 	"push": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("wrong number of arguments to `push`. got=%d, want=2", len(args))
+				return newInvalidArgCountError("push", len(args), 2, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument to `push` must be LIST, got %s", args[0].Type())
+				return newPositionalTypeError("push", 1, object.LIST_OBJ, args[0].Type())
 			}
 			l := args[0].(*object.List).Elements
 			l = append([]object.Object{args[1]}, l...)
 			return &object.List{Elements: l}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`push` returns the LIST of elements with given arg OBJECT at the front",
+			signature:   "push(arg0: list[any], arg1: any) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "push([1,2,3], 1) => [1,1,2,3]",
+		}.String(),
 	},
 	"println": {
 		Fun: func(args ...object.Object) object.Object {
@@ -177,6 +188,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`println` returns NULL and prints each of args on a new line",
+			signature:   "println(args... : any...) -> null",
+			errors:      "None",
+			example:     "println(1,2,3) => null\n    STDOUT: 1\\n2\\n3\\n",
+		}.String(),
 	},
 	"print": {
 		Fun: func(args ...object.Object) object.Object {
@@ -185,6 +202,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`print` returns NULL and prints each of args",
+			signature:   "print(args... : any...) -> null",
+			errors:      "None",
+			example:     "print(1,2,3) => null\n    STDOUT: 123",
+		}.String(),
 	},
 	"input": {
 		Fun: func(args ...object.Object) object.Object {
@@ -201,7 +224,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			} else if argLen == 1 {
 				// read input with prompt
 				if args[0].Type() != object.STRING_OBJ {
-					return newError("argument to `input` must be STRING, got %s", args[0].Type())
+					return newPositionalTypeError("input", 1, object.STRING_OBJ, args[0].Type())
 				}
 				scanner := bufio.NewScanner(os.Stdin)
 				fmt.Print(args[0].(*object.Stringo).Value)
@@ -212,24 +235,27 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					return newError("`input` error reading stdin: %s", err.Error())
 				}
 			}
-			return newError("wrong number of arguments to `input`. got=%d, want=1 (or none)", len(args))
+			return newInvalidArgCountError("input", len(args), 0, "or 1")
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`input` returns STRING input from STDIN and takes an optional prompt",
+			signature:   "input(prompt='') -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "input('enter a value') => STDOUT: enter a value STDIN: 1 => 1",
+		}.String(),
 	},
 	"_read": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`read` expected 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("read", len(args), 2, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument to `read` must be STRING, got %s", args[0].Type())
+				return newPositionalTypeError("read", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 2 to `read` must be BOOLEAN, got %s", args[0].Type())
+				return newPositionalTypeError("read", 2, object.BOOLEAN_OBJ, args[1].Type())
 			}
-			fnameo, ok := args[0].(*object.Stringo)
-			if !ok {
-				return newError("filename string object did not match expected object in `read`. got=%T", args[0])
-			}
+			fnameo := args[0].(*object.Stringo)
 			bs, err := os.ReadFile(fnameo.Value)
 			if err != nil {
 				return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
@@ -239,18 +265,24 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: string(bs)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`_read` returns a STRING if given a FILE and false, or BYTES if given a file and true",
+			signature:   "_read(arg: str, to_bytes=false) -> (to_bytes) ? bytes : str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "_read('/test.txt') => example file data",
+		}.String(),
 	},
 	"_write": {
 		Fun: func(args ...object.Object) object.Object {
 			argLen := len(args)
 			if argLen != 2 {
-				return newError("wrong number of arguments to `write`. got=%d, want=2", argLen)
+				return newInvalidArgCountError("write", len(args), 2, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `write` must be STRING, got %s", args[0].Type())
+				return newPositionalTypeError("write", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
-				return newError("argument 2 to `write` must be STRING or BYTES, got %s", args[1].Type())
+				return newPositionalTypeError("write", 2, "STRING or BYTES", args[1].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
 			var contents []byte
@@ -265,15 +297,21 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`_write` writes a STRING or BYTES to a given FILE",
+			signature:   "_write(filename: str, contents: str|bytes) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "_write('/test.txt', 'example file data') => null",
+		}.String(),
 	},
 	"set": {
 		// This is needed so we can return a set from a list of objects
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("wrong number of arguments to `set`. got=%d, want=1", len(args))
+				return newInvalidArgCountError("set", len(args), 1, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("arguments to `set` must be LIST, got %s", args[0].Type())
+				return newPositionalTypeError("set", 1, object.LIST_OBJ, args[0].Type())
 			}
 			elements := args[0].(*object.List).Elements
 			setMap := object.NewSetElements()
@@ -283,17 +321,23 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Set{Elements: setMap}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set` returns the SET version of a LIST",
+			signature:   "set(arg: list[any]) -> set[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set([1,2,2,3]) => {1,2,3}",
+		}.String(),
 	},
 	"eval_template": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`eval_template` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("eval_template", len(args), 2, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `eval_template` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("eval_template", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.MAP_OBJ {
-				return newError("argument 2 to `eval_template` should be MAP. got=%s", args[1].Type())
+				return newPositionalTypeError("eval_template", 2, object.MAP_OBJ, args[1].Type())
 			}
 			m := args[1].(*object.Map)
 			ctx := plush.NewContext()
@@ -311,14 +355,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: s}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`eval_template` returns the STRING version of a template parsed with plush (https://github.com/gobuffalo/plush)",
+			signature:   "eval_template(tmplStr: str, tmplMap: map) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "eval_template('<%= arg %>', {'arg': 123}) => '123'",
+		}.String(),
 	},
 	"error": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`error` expects 1 argument")
+				return newInvalidArgCountError("error", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("`error` argument 1 was not STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("error", 1, object.STRING_OBJ, args[0].Type())
 			}
 			msg, ok := args[0].(*object.Stringo)
 			if !ok {
@@ -326,18 +376,24 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Error{Message: msg.Value}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`error` returns an EvaluatorError for the given STRING",
+			signature:   "error(arg: str) -> EvaluatorError: #{arg}",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "error('fail') => ERROR| EvaluatorError: fail",
+		}.String(),
 	},
 	"assert": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 && len(args) != 2 {
-				return newError("`assert` expects 1 or 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("assert", len(args), 1, "or 2")
 			}
 			if args[0].Type() != object.BOOLEAN_OBJ {
-				return newError("`assert` expects first argument to be BOOLEAN. got=%s", args[0].Type())
+				return newPositionalTypeError("assert", 1, object.BOOLEAN_OBJ, args[0].Type())
 			}
 			b, ok := args[0].(*object.Boolean)
 			if !ok {
-				return newError("`assert` first argument was not BOOLEAN. got=%T", args[0])
+				return newError("`assert` argument 1 was not BOOLEAN. got=%T", args[0])
 			}
 			if len(args) == 1 {
 				if b.Value {
@@ -347,7 +403,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("`assert` expects second argument to be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("assert", 2, object.STRING_OBJ, args[1].Type())
 			}
 			msg, ok := args[1].(*object.Stringo)
 			if !ok {
@@ -358,33 +414,51 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return newError("`assert` failed: %s", msg.Value)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`assert` returns an EvaluatorError if the given Condition is false, and it will print the optional STRING provided as an error message",
+			signature:   "assert(cond: bool, message='') -> true|EvaluatorError",
+			errors:      "InvalidArgCount,PositionalType,AssertError,CustomAssertError",
+			example:     "assert(true) => true\nassert(false, 'Message') => ERROR| EvaluatorError: `asser` failed: Message",
+		}.String(),
 	},
 	"type": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`type` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("type", len(args), 1, "")
 			}
 			return &object.Stringo{Value: string(args[0].Type())}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`type` returns the STRING type representation of the given arg",
+			signature:   "type(arg: any) -> str",
+			errors:      "InvalidArgCount",
+			example:     "type('Hello') => 'STRING'",
+		}.String(),
 	},
 	"exec": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`exec` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("exec", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("`exec` expects first argument to be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("exec", 1, object.STRING_OBJ, args[0].Type())
 			}
 			return ExecStringCommand(args[0].(*object.Stringo).Value)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`exec` returns a STRING from the executed command",
+			signature:   "exec(command: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "exec('echo hello') => hello\\n",
+		}.String(),
 	},
 	"is_alive": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`is_alive` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("is_alive", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("`is_alive` expects argument to be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("is_alive", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			_, isAlive := ProcessMap.Get(args[0].(*object.UInteger).Value)
 			if isAlive {
@@ -392,6 +466,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return FALSE
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_alive` returns a BOOLEAN if the given UINTEGER pid is alive",
+			signature:   "is_alive(pid: uint) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_alive(0x0) => true",
+		}.String(),
 	},
 	"exit": {
 		Fun: func(args ...object.Object) object.Object {
@@ -407,14 +487,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				// Unreachable
 				return NULL
 			} else {
-				return newError("`exit` expects 1 or no arguments. got=%d", len(args))
+				return newInvalidArgCountError("exit", len(args), 0, "or 1")
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`exit` returns nothing as it will exit the program's execution",
+			signature:   "exit(exit_code: int) -> None",
+			errors:      "InvalidArgCount",
+			example:     "exit(0) => PROGRAM EXECUTION HALTS",
+		}.String(),
 	},
 	"cwd": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) > 0 {
-				return newError("`cwd` expects no arguments. got=%d", len(args))
+				return newInvalidArgCountError("cwd", len(args), 0, "")
 			}
 			dir, err := os.Getwd()
 			if err != nil {
@@ -422,14 +508,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: dir}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`cwd` returns the STRING path of the current working directory",
+			signature:   "cwd() -> str",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "cwd() => '/home/user/...'",
+		}.String(),
 	},
 	"cd": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`cd` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("cd", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("`cd` argument must be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("cd", 1, object.STRING_OBJ, args[0].Type())
 			}
 			path := args[0].(*object.Stringo).Value
 			if strings.HasPrefix(path, "~") {
@@ -449,14 +541,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`cd` returns NULL and changes the current working directory to the given path",
+			signature:   "cd(path: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "cd('/home/user') => null",
+		}.String(),
 	},
 	"_recv": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`recv` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("recv", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `recv` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("recv", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			pid := args[0].(*object.UInteger).Value
 			process, ok := ProcessMap.Get(pid)
@@ -467,14 +565,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 
 			return val
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`_recv` waits for a value on the given UINTEGER (process) and returns it",
+			signature:   "_recv(pid: uint) -> any",
+			errors:      "InvalidArgCount,PositionalType,PidNotFound",
+			example:     "_recv(0x0) => 'something'",
+		}.String(),
 	},
 	"_send": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`send` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("send", len(args), 2, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("first argument to `send` must be UINTEGER got %s", args[0].Type())
+				return newPositionalTypeError("send", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			pid := args[0].(*object.UInteger).Value
 			process, ok := ProcessMap.Get(pid)
@@ -484,11 +588,17 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			process.Ch <- args[1]
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`_send` will take the given value and send it to the UINTEGER (process)",
+			signature:   "_send(pid: uint, val: any) -> null",
+			errors:      "InvalidArgCount,PositionalType,PidNotFound",
+			example:     "_send(0x0, 'hello') => null",
+		}.String(),
 	},
 	"to_bytes": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`to_bytes` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("to_bytes", len(args), 1, "")
 			}
 			switch x := args[0].(type) {
 			case *object.Stringo:
@@ -502,14 +612,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("type '%s' not supported for `to_bytes`", args[0].Type())
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_bytes` returns the BYTE representation of the given STRING",
+			signature:   "to_bytes(arg: str) -> bytes",
+			errors:      "InvalidArgCount,TypeNotSupported",
+			example:     "to_bytes('hello') => []byte{0x68, 0x65, 0x6c, 0x6c, 0x6f}",
+		}.String(),
 	},
 	"is_file": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`is_file` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("is_file", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `is_file` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("is_file", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fpath := args[0].(*object.Stringo).Value
 			info, err := os.Stat(fpath)
@@ -521,14 +637,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return TRUE
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_file` returns TRUE if the given STRING path is a file",
+			signature:   "is_file(path: str) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_file('/test') => false",
+		}.String(),
 	},
 	"is_dir": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`is_dir` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("is_dir", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `is_dir` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("is_dir", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fpath := args[0].(*object.Stringo).Value
 			info, err := os.Stat(fpath)
@@ -540,14 +662,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return FALSE
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_dir` returns TRUE if the given STRING path is a directory",
+			signature:   "is_dir(path: str) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_dir('/test') => false",
+		}.String(),
 	},
 	"find_exe": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`find_exe` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("find_exe", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `find_exe` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("find_exe", 1, object.STRING_OBJ, args[0].Type())
 			}
 			exePath := args[0].(*object.Stringo).Value
 			fname, err := exec.LookPath(exePath)
@@ -559,15 +687,21 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: fname}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`find_exe` returns the STRING path of the given STRING executable name",
+			signature:   "find_exe(exe_name: str) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "find_exe('blue') => /home/user/.blue/bin/blue",
+		}.String(),
 	},
 	// TODO: Support uint, and big int?
 	"to_num": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`to_num` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("to_num", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `to_num` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
 			}
 			s := args[0].(*object.Stringo).Value
 			// This is an overkill way of making sure the string is cleaned for parsing
@@ -580,15 +714,21 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: i}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_num` returns the INTEGER value of the given STRING",
+			signature:   "to_num(arg: str) -> int",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "to_num('1') => 1",
+		}.String(),
 	},
 	// TODO: Do we want to do that thing where we shell expand home dir? or other things like that?
 	"rm": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`rm` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("rm", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `rm` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("rm", 1, object.STRING_OBJ, args[0].Type())
 			}
 			s := args[0].(*object.Stringo).Value
 			finfo, err := os.Stat(s)
@@ -608,12 +748,18 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`rm` removes the given STRING file or directory path",
+			signature:   "rm(path: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "rm('/test') => null",
+		}.String(),
 	},
 	// TODO: Do we want to do that thing where we shell expand home dir? or other things like that?
 	"ls": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) > 1 {
-				return newError("`ls` expects 1 or 0 arguments. got=%d", len(args))
+				return newInvalidArgCountError("ls", len(args), 0, "or 1")
 			}
 			var cwd string
 			if len(args) == 0 {
@@ -626,7 +772,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			} else {
 				// use argument passed in
 				if args[0].Type() != object.STRING_OBJ {
-					return newError("argument 1 to `ls` should be STRING. got=%s", args[0].Type())
+					return newPositionalTypeError("ls", 1, object.STRING_OBJ, args[0].Type())
 				}
 				cwd = args[0].(*object.Stringo).Value
 			}
@@ -640,6 +786,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return result
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`ls` returns a LIST of STRINGs of all the files and directories in the given path",
+			signature:   "ls(path: str) -> list[str]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "ls('/test') => []",
+		}.String(),
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
 })

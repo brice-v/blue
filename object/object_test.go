@@ -1,6 +1,10 @@
 package object
 
-import "testing"
+import (
+	"blue/ast"
+	"blue/token"
+	"testing"
+)
 
 func TestStringHashKey(t *testing.T) {
 	hello1 := &Stringo{Value: "Hello World"}
@@ -15,5 +19,25 @@ func TestStringHashKey(t *testing.T) {
 	}
 	if hello1.HashKey() == diff1.HashKey() {
 		t.Errorf("strings with different content have same hash keys")
+	}
+}
+
+func TestFunctionString(t *testing.T) {
+	a := &ast.Identifier{
+		Token: token.Token{},
+		Value: "a",
+	}
+	b := &ast.Identifier{
+		Token: token.Token{},
+		Value: "b",
+	}
+	f := &Function{
+		Parameters:        []*ast.Identifier{a, b},
+		DefaultParameters: []Object{nil, &Null{}},
+		Body:              &ast.BlockStatement{},
+	}
+	expectedInspect := "fun(a, b=null) {\n\n}"
+	if f.Inspect() != expectedInspect {
+		t.Fatalf("function with default parameters inspect did not match expected. got=%q, want=%q", f.Inspect(), expectedInspect)
 	}
 }

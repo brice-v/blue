@@ -1,5 +1,7 @@
 package object
 
+import "fmt"
+
 // CreateBasicMapObject creates an object that looks like {'t': objType, 'v': objValue}
 // This is currently being used for `spawn` and `db.open()` so that a unique return value
 // is created (and it allows the functions defined for them to work)
@@ -65,4 +67,8 @@ func CreateObjectFromDbInterface(input interface{}) Object {
 	default:
 		return nil
 	}
+}
+
+func createHelpStringForObject(name, desc string, obj Object) string {
+	return fmt.Sprintf("Help   : `%s` %s\nType   : '%s'\nInspect: %s", name, desc, obj.Type(), obj.Inspect())
 }

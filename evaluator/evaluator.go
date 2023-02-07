@@ -573,14 +573,14 @@ func (e *Evaluator) evalEvalExpression(node *ast.EvalExpression) object.Object {
 func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object {
 	argLen := len(node.Arguments)
 	if argLen > 2 || argLen == 0 {
-		return newError("`spawn` expects 2 or 1 arguments. got=%d", argLen)
+		return newInvalidArgCountError("spawn", argLen, 1, "or 2")
 	}
 	arg0 := e.Eval(node.Arguments[0])
 	if isError(arg0) {
 		return arg0
 	}
 	if arg0.Type() != object.FUNCTION_OBJ {
-		return newError("`spawn` expects first argument to be FUNCTION got %s", arg0.Type())
+		return newPositionalTypeError("spawn", 1, object.FUNCTION_OBJ, arg0.Type())
 	}
 	arg1 := MakeEmptyList()
 	if argLen == 2 {
@@ -589,7 +589,7 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 			return arg1
 		}
 		if arg1.Type() != object.LIST_OBJ {
-			return newError("`spawn` expects second argument to be LIST got %s", arg1.Type())
+			return newPositionalTypeError("spawn", 2, object.LIST_OBJ, arg1.Type())
 		}
 	}
 	fun, _ := arg0.(*object.Function)
