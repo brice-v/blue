@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"math/big"
 	"strings"
 
@@ -71,6 +72,7 @@ type Type string
 type Object interface {
 	Type() Type      // Type is a function that returns the objects type
 	Inspect() string // Inspect is used for debugging an object
+	Help() string
 }
 
 // Integer is the integer object type
@@ -84,6 +86,11 @@ func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
 // Type returns the object type of integer
 func (i *Integer) Type() Type { return INTEGER_OBJ }
 
+func (i *Integer) Help() string {
+	desc := fmt.Sprintf("is the object that represents numerical values %d to %d", math.MinInt64, math.MaxInt64)
+	return createHelpStringForObject("Integer", desc, i)
+}
+
 // BigInteger is the big integer type
 type BigInteger struct {
 	Value *big.Int
@@ -94,6 +101,10 @@ func (bi *BigInteger) Inspect() string { return bi.Value.String() }
 
 // Type returns the object type of big integer
 func (bi *BigInteger) Type() Type { return BIG_INTEGER_OBJ }
+
+func (bi *BigInteger) Help() string {
+	return createHelpStringForObject("BigInteger", "is the object that represents numerical values outside of the Integer range", bi)
+}
 
 // Boolean is the boolean object type
 type Boolean struct {
@@ -106,6 +117,10 @@ func (b *Boolean) Inspect() string { return fmt.Sprintf("%t", b.Value) }
 // Type returns the object type of boolean
 func (b *Boolean) Type() Type { return BOOLEAN_OBJ }
 
+func (b *Boolean) Help() string {
+	return createHelpStringForObject("Boolean", "is the object that represents true or false", b)
+}
+
 // Null is the null object struct
 type Null struct{}
 
@@ -114,6 +129,10 @@ func (n *Null) Type() Type { return NULL_OBJ }
 
 // Inspect returns the string value of null
 func (n *Null) Inspect() string { return "null" }
+
+func (n *Null) Help() string {
+	return createHelpStringForObject("Null", "is the null object", n)
+}
 
 // UInteger is the hex, octal, bin object struct
 type UInteger struct {
@@ -126,6 +145,11 @@ func (ui *UInteger) Type() Type { return UINTEGER_OBJ }
 // Inspect returns the string value of the uint
 func (ui *UInteger) Inspect() string { return fmt.Sprintf("%d", ui.Value) }
 
+func (ui *UInteger) Help() string {
+	desc := "is the object that represents numerical values 0 to 18446744073709551615"
+	return createHelpStringForObject("UInteger", desc, ui)
+}
+
 // Float is the float object struct
 type Float struct {
 	Value float64
@@ -136,6 +160,11 @@ func (f *Float) Type() Type { return FLOAT_OBJ }
 
 // Inspect returns the string value of the float
 func (f *Float) Inspect() string { return fmt.Sprintf("%f", f.Value) }
+
+func (f *Float) Help() string {
+	desc := fmt.Sprintf("is the object that represents numerical values %f to %f", math.SmallestNonzeroFloat64, math.MaxFloat64)
+	return createHelpStringForObject("Float", desc, f)
+}
 
 // BigFloat is the big float object struct
 type BigFloat struct {
@@ -148,6 +177,10 @@ func (bf BigFloat) Inspect() string { return bf.Value.String() }
 // Type returns the big float object type
 func (bf BigFloat) Type() Type { return BIG_FLOAT_OBJ }
 
+func (bf BigFloat) Help() string {
+	return createHelpStringForObject("BigFloat", "is the object that represents numerical values outside of the Float range", bf)
+}
+
 // ReturnValue is the struct type for the return value object
 type ReturnValue struct {
 	Value Object
@@ -158,6 +191,10 @@ func (rv *ReturnValue) Type() Type { return RETURN_VALUE_OBJ }
 
 // Inspect returns the string version of the object to return
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
+
+func (rv *ReturnValue) Help() string {
+	return createHelpStringForObject("ReturnValue", "is the object that represents a return value from a function or block", rv)
+}
 
 // Error is the error object struct.  It conatins a message as a string
 type Error struct {
@@ -170,6 +207,10 @@ func (e *Error) Type() Type { return ERROR_OBJ }
 // Inspect returns a string representation of the error
 func (e *Error) Inspect() string { return consts.EVAL_ERROR_PREFIX + e.Message }
 
+func (e *Error) Help() string {
+	return createHelpStringForObject("Error", "is the object that represents an error raised during runtime execution", e)
+}
+
 // Function is the function object struct
 type Function struct {
 	Parameters []*ast.Identifier   // Parameters is a slice of identifiers
@@ -177,6 +218,8 @@ type Function struct {
 	Env        *Environment        // Env stores the function's environment
 
 	DefaultParameters []Object // DefaultParameters holds the expression of the default parameter, if it exists otherwise nil
+
+	HelpStr string
 }
 
 // Type returns the function objects type
@@ -187,8 +230,13 @@ func (f *Function) Inspect() string {
 	var out bytes.Buffer
 
 	params := []string{}
-	for _, p := range f.Parameters {
-		params = append(params, p.String())
+	for i, p := range f.Parameters {
+		dp := f.DefaultParameters[i]
+		if dp != nil {
+			params = append(params, fmt.Sprintf("%s=%s", p.String(), dp.Inspect()))
+		} else {
+			params = append(params, p.String())
+		}
 	}
 
 	out.WriteString("fun(")
@@ -198,6 +246,12 @@ func (f *Function) Inspect() string {
 	out.WriteString("\n}")
 
 	return out.String()
+}
+
+func (f *Function) Help() string {
+	// createHelpStringForObject("")
+	// TODO: HelpString should come from the parsed function (underneath or above it - in comments)
+	return f.HelpStr
 }
 
 type Process struct {
@@ -213,6 +267,10 @@ func (p *Process) Type() Type {
 	return PROCESS_OBJ
 }
 
+func (p *Process) Help() string {
+	return createHelpStringForObject("Process", "is the object that represents a goroutine process with an associated channel", p)
+}
+
 // Stringo is the string oject struct which contains a string value
 // it is named stringo to avoid name clashes
 type Stringo struct {
@@ -225,6 +283,10 @@ func (s *Stringo) Type() Type { return STRING_OBJ }
 // Inspect returns the string value
 func (s *Stringo) Inspect() string { return s.Value }
 
+func (s *Stringo) Help() string {
+	return createHelpStringForObject("String", "is the utf-8 bytes representation of a string object", s)
+}
+
 // Bytes is the bytes oject struct which contains a []byte value
 type Bytes struct {
 	Value []byte
@@ -236,13 +298,18 @@ func (b *Bytes) Type() Type { return BYTES_OBJ }
 // Inspect returns the string value
 func (b *Bytes) Inspect() string { return fmt.Sprintf("%#v", b.Value) }
 
+func (b *Bytes) Help() string {
+	return createHelpStringForObject("Bytes", "is the object that represents a slice of arbitrary bytes", b)
+}
+
 // BuiltinFunction is the type that will allow us to support
 // adding functions from the host language (ie. go)
 type BuiltinFunction func(args ...Object) Object
 
 // Builtin is the Builtin function object struct
 type Builtin struct {
-	Fun BuiltinFunction
+	Fun     BuiltinFunction
+	HelpStr string
 }
 
 // Type returns the BUILTIN_OBJ type string
@@ -251,15 +318,25 @@ func (b *Builtin) Type() Type { return BUILTIN_OBJ }
 // Inspect returns "builtin function"
 func (b *Builtin) Inspect() string { return "builtin function" }
 
+func (b *Builtin) Help() string {
+	// TODO: Do we use createHelpStringForObject()?
+	return fmt.Sprintf("%s\n    type = '%s'\n    inspect = '%s'", b.HelpStr, b.Type(), b.Inspect())
+}
+
 // BuiltinObj allows us to define a map object to be used for any builtins
 // that work better as a sort of module
 type BuiltinObj struct {
-	Obj Object
+	Obj     Object
+	HelpStr string
 }
 
 func (bo *BuiltinObj) Type() Type { return BUILTIN_OBJ }
 
 func (bo *BuiltinObj) Inspect() string { return "builtin object" }
+
+func (bo *BuiltinObj) Help() string {
+	return fmt.Sprintf("%s\n    type = '%s'\n    inspect = '%s'", bo.HelpStr, bo.Type(), bo.Inspect())
+}
 
 // List is the list object type struct
 type List struct {
@@ -285,6 +362,10 @@ func (l *List) Inspect() string {
 	return out.String()
 }
 
+func (l *List) Help() string {
+	return createHelpStringForObject("List", "is the object that represents an arbitrary list of objects", l)
+}
+
 // ListCompLiteral is the list comprehension object struct
 type ListCompLiteral struct {
 	Elements []Object
@@ -306,6 +387,10 @@ func (lcl *ListCompLiteral) Inspect() string {
 	out.WriteString("]")
 
 	return out.String()
+}
+
+func (lcl *ListCompLiteral) Help() string {
+	return createHelpStringForObject("ListCompLiteral", "is the object that represents a List Comprehension", lcl)
 }
 
 // MapPair is a pair of key objects to value objects
@@ -337,6 +422,10 @@ func (m *Map) Inspect() string {
 	out.WriteString("}")
 
 	return out.String()
+}
+
+func (m *Map) Help() string {
+	return createHelpStringForObject("Map", "is the object that represents a key value pair where keys and values are arbitrary objects", m)
 }
 
 // hashMap hashes the entire map to be used for checking equality
@@ -378,6 +467,10 @@ func (mcl *MapCompLiteral) Inspect() string {
 	return out.String()
 }
 
+func (mcl *MapCompLiteral) Help() string {
+	return createHelpStringForObject("MapCompLiteral", "is the object that represents a Map Comprehension", mcl)
+}
+
 // SetPair is the set object and bool to represent its precense in the set
 type SetPair struct {
 	Value   Object
@@ -417,6 +510,10 @@ func (s *Set) Inspect() string {
 	return out.String()
 }
 
+func (s *Set) Help() string {
+	return createHelpStringForObject("Set", "is the object that represents a set of arbitrary objects", s)
+}
+
 // SetCompLiteral is the set comprehension object struct
 type SetCompLiteral struct {
 	Elements map[uint64]SetPair
@@ -440,10 +537,16 @@ func (scl *SetCompLiteral) Inspect() string {
 	return out.String()
 }
 
+func (scl *SetCompLiteral) Help() string {
+	return createHelpStringForObject("SetCompLiteral", "is the object that represents a Set Comprehension", scl)
+}
+
 // Module is the type that represents imported values
 type Module struct {
 	Name string
 	Env  *Environment
+
+	HelpStr string
 }
 
 // Type returns the module object type
@@ -452,6 +555,11 @@ func (m *Module) Type() Type { return MODULE_OBJ }
 // Inspect only returns the modules name for now
 func (m *Module) Inspect() string {
 	return fmt.Sprintf("Module '%s'", m.Name)
+}
+
+func (m *Module) Help() string {
+	// TODO: Return the help from the comment/string at the top of a module/file
+	return m.HelpStr
 }
 
 // For loop stuff
@@ -465,6 +573,10 @@ func (bks *BreakStatement) Inspect() string {
 	return "break;"
 }
 
+func (bks *BreakStatement) Help() string {
+	return createHelpStringForObject("Break", "is the object that stops the execution of a loop right where it is and breaks out of the enclosing scope", bks)
+}
+
 type ContinueStatement struct{}
 
 func (cs *ContinueStatement) Type() Type {
@@ -473,6 +585,10 @@ func (cs *ContinueStatement) Type() Type {
 
 func (cs *ContinueStatement) Inspect() string {
 	return "continue;"
+}
+
+func (cs *ContinueStatement) Help() string {
+	return createHelpStringForObject("Continue", "is the object that stops the current execution and moves to the next iteration in the loop's scope", cs)
 }
 
 // ------------------------------- HashKey Stuff --------------------------------
