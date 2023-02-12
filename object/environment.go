@@ -1,5 +1,11 @@
 package object
 
+import (
+	"bytes"
+	"fmt"
+	"strings"
+)
+
 // NewEnclosedEnvironment supports adding an environment to an exisiting
 // environment.  This allows closures and proper binding within functions
 func NewEnclosedEnvironment(outer *Environment) *Environment {
@@ -16,15 +22,20 @@ func NewEnvironment() *Environment {
 	is := &ConcurrentMap[string, struct{}]{
 		kv: make(map[string]struct{}),
 	}
-	return &Environment{store: s, immutableStore: is}
+	pfhs := &OrderedMap2[string, string]{
+		store: make(map[string]string),
+		Keys:  []string{},
+	}
+	return &Environment{store: s, immutableStore: is, publicFunctionHelpStore: pfhs}
 }
 
 // Environment is a map of strings to `Object`s
 type Environment struct {
 	store *ConcurrentMap[string, Object]
-	// store          map[string]Object
+
 	immutableStore *ConcurrentMap[string, struct{}]
-	// immutableStore map[string]struct{}
+
+	publicFunctionHelpStore *OrderedMap2[string, string]
 
 	outer *Environment
 }
@@ -55,6 +66,9 @@ func (e *Environment) Get(name string) (Object, bool) {
 // Set puts a new object into the environment
 func (e *Environment) Set(name string, val Object) Object {
 	e.store.Put(name, val)
+	if val.Type() == "FUNCTION" && !strings.HasPrefix(name, "_") && !strings.HasPrefix(val.Help(), "core:ignore") {
+		e.publicFunctionHelpStore.Set(name, val.Help())
+	}
 	return val
 }
 
@@ -78,4 +92,18 @@ func (e *Environment) IsImmutable(name string) bool {
 func (e *Environment) RemoveIdentifier(name string) {
 	e.store.Remove(name)
 	e.immutableStore.Remove(name)
+	e.publicFunctionHelpStore.Delete(name)
+}
+
+func (e *Environment) GetPublicFunctionHelpString() string {
+	var out bytes.Buffer
+	for _, k := range e.publicFunctionHelpStore.Keys {
+		if v, ok := e.publicFunctionHelpStore.Get(k); ok {
+			vSplit := strings.Split(v, "\ntype(")[0]
+			// remove the trailing \n
+			vSplit = vSplit[:len(vSplit)-1]
+			out.WriteString(fmt.Sprintf("\n%s | %s", k, vSplit))
+		}
+	}
+	return out.String()
 }

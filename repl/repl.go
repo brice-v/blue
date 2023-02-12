@@ -66,7 +66,7 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 		log.Fatalf("Failed to instantiate readline| Error: %s", err)
 	}
 	fmt.Println(header)
-	fmt.Println("type .help for more information")
+	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
 	for {
 		line, err := rl.Readline()

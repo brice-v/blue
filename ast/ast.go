@@ -28,7 +28,8 @@ type Expression interface {
 // Program defines a struct that contains a slice of statement nodes
 // any valid program is a slice of statements
 type Program struct {
-	Statements []Statement
+	Statements    []Statement
+	HelpStrTokens []string
 }
 
 // TokenLiteral makes the Program struct a Node and becomes

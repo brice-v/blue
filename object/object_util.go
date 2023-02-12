@@ -70,5 +70,5 @@ func CreateObjectFromDbInterface(input interface{}) Object {
 }
 
 func createHelpStringForObject(name, desc string, obj Object) string {
-	return fmt.Sprintf("Help   : `%s` %s\nType   : '%s'\nInspect: %s", name, desc, obj.Type(), obj.Inspect())
+	return fmt.Sprintf("Help:    `%s` %s\nType:    '%s'\nInspect: %s", name, desc, obj.Type(), obj.Inspect())
 }

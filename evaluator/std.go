@@ -102,7 +102,8 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 		fmt.Printf("EvaluatorError in `%s` module: %s", name, buf.String())
 		os.Exit(1)
 	}
-	mod := &object.Module{Name: name, Env: newE.env}
+	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
+	mod := &object.Module{Name: name, Env: newE.env, HelpStr: createHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)}
 	e.env.Set(name, mod)
 }
 

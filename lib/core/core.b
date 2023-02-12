@@ -1,6 +1,7 @@
 # TODO/Note: When we match, we HAVE to return otherwise a method will get overridden
 
 fun send(obj, value) {
+    ##core:ignore
     return match obj {
         {t: "pid", v: _} => {
             _send(obj.v, value)
@@ -20,6 +21,7 @@ fun send(obj, value) {
 }
 
 fun recv(obj) {
+    ##core:ignore
     return match obj {
         {t: "pid", v: _} => {
             _recv(obj.v)
@@ -39,6 +41,7 @@ fun recv(obj) {
 }
 
 fun read(obj, as_bytes=false) {
+    ##core:ignore
     return match obj {
         {t: _, v: _} => {
             if ("net" in obj.t) {
@@ -53,6 +56,7 @@ fun read(obj, as_bytes=false) {
 }
 
 fun write(obj, value) {
+    ##core:ignore
     return match obj {
         {t: _, v: _} => {
             if ("net" in obj.t) {
@@ -67,6 +71,7 @@ fun write(obj, value) {
 }
 
 fun map(list, f) {
+    ##core:ignore
     var __internal__ = [];
     for (e in list) {
         __internal__ = __internal__.append(f(e));
@@ -75,6 +80,7 @@ fun map(list, f) {
 }
 
 fun filter(list, f) {
+    ##core:ignore
     var __internal__ = [];
     for (e in list) {
         if (f(e)) {
@@ -85,6 +91,7 @@ fun filter(list, f) {
 }
 
 fun reduce(list, f, acc=null) {
+    ##core:ignore
     ###
     if (acc == null) {
         if (list.len() == 0) {
@@ -102,6 +109,7 @@ fun reduce(list, f, acc=null) {
 }
 
 fun find_all(str_to_search, query, method="regex") {
+    ##core:ignore
     import search
     return match method {
         "regex" => {
@@ -117,6 +125,7 @@ fun find_all(str_to_search, query, method="regex") {
 }
 
 fun find_one(str_to_search, query, method="regex") {
+    ##core:ignore
     import search
     return match method {
         "regex" => {
@@ -132,6 +141,7 @@ fun find_one(str_to_search, query, method="regex") {
 }
 
 fun json_to_map(json_str) {
+    ##core:ignore
     try {
         return eval(json_str);
     } catch (e) {
@@ -140,6 +150,7 @@ fun json_to_map(json_str) {
 }
 
 fun ping(obj) {
+    ##core:ignore
     return match obj {
         {t: "db", v: _} => {
             import db
@@ -152,6 +163,7 @@ fun ping(obj) {
 }
 
 fun close(obj) {
+    ##core:ignore
     return match obj {
         {t: "db", v: _} => {
             import db
@@ -170,6 +182,7 @@ fun close(obj) {
 }
 
 fun execute(db_obj, exec_query, exec_args=[]) {
+    ##core:ignore
     return match db_obj {
         {t: "db", v: _} => {
             import db
@@ -182,6 +195,7 @@ fun execute(db_obj, exec_query, exec_args=[]) {
 }
 
 fun query(db_obj, query_s, query_args=[], named_cols=false) {
+    ##core:ignore
     return match db_obj {
         {t: "db", v: _} => {
             import db
@@ -194,6 +208,7 @@ fun query(db_obj, query_s, query_args=[], named_cols=false) {
 }
 
 fun accept(obj) {
+    ##core:ignore
     return match obj {
         {t: "net/tcp", v: _} => {
             import net
@@ -206,6 +221,7 @@ fun accept(obj) {
 }
 
 fun get_text(obj) {
+    ##core:ignore
     return match obj {
         {t: "ui/entry", v: _} => {
             import ui
@@ -218,5 +234,6 @@ fun get_text(obj) {
 }
 
 fun substr(s, start=0, end=-1) {
+    ##core:ignore
     _substr(s, start, end)
 }

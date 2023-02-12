@@ -249,8 +249,6 @@ func (f *Function) Inspect() string {
 }
 
 func (f *Function) Help() string {
-	// createHelpStringForObject("")
-	// TODO: HelpString should come from the parsed function (underneath or above it - in comments)
 	return f.HelpStr
 }
 
@@ -558,7 +556,6 @@ func (m *Module) Inspect() string {
 }
 
 func (m *Module) Help() string {
-	// TODO: Return the help from the comment/string at the top of a module/file
 	return m.HelpStr
 }
 

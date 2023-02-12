@@ -116,6 +116,9 @@ func New() *Evaluator {
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
 	e.Builtins.PushBack(builtinobjs)
+	builtinobjs["__FILE__"] = &object.BuiltinObj{
+		Obj: &object.Stringo{Value: e.CurrentFile},
+	}
 	e.AddCoreLibToEnv()
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
@@ -300,7 +303,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			}
 			defaultParams = append(defaultParams, obj)
 		}
-		funObj := &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env}
+		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env}
+		funObj.HelpStr = createHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
 		e.env.Set(node.Name.Value, funObj)
 	case *ast.CallExpression:
 		e.UFCSArg.Push(nil)
@@ -510,7 +514,9 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	if isError(val) {
 		return val
 	}
-	mod := &object.Module{Name: modName, Env: newE.env}
+	// Set HelpStr from program HelpStrToks
+	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
+	mod := &object.Module{Name: modName, Env: newE.env, HelpStr: createHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr)}
 	e.env.Set(modName, mod)
 	return NULL
 }

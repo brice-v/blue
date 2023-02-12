@@ -189,8 +189,9 @@ func (es *ExpressionStatement) String() string {
 
 // BlockStatement is the ast node for block statements
 type BlockStatement struct {
-	Token      token.Token // Token == {
-	Statements []Statement // Statements is the list of statements in the block
+	Token         token.Token // Token == {
+	Statements    []Statement // Statements is the list of statements in the block
+	HelpStrTokens []string
 }
 
 // statementNode satisifes the statement interface

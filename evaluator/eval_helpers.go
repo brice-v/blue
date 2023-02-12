@@ -244,6 +244,30 @@ func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, en
 	}
 }
 
+func createHelpStringFromBodyTokens(functionName string, funObj *object.Function, helpStrTokens []string) string {
+	explanation := ""
+	if len(helpStrTokens) == 1 {
+		explanation = helpStrTokens[0]
+	} else if len(helpStrTokens) == 0 {
+		explanation = ""
+	} else {
+		explanation = strings.Join(helpStrTokens, "\n")
+	}
+	return fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, funObj.Type(), functionName, funObj.Inspect())
+}
+
+func createHelpStringFromProgramTokens(modName string, helpStrTokens []string, pubFunHelpStr string) string {
+	explanation := ""
+	if len(helpStrTokens) == 1 {
+		explanation = helpStrTokens[0]
+	} else if len(helpStrTokens) == 0 {
+		explanation = ""
+	} else {
+		explanation = strings.Join(helpStrTokens, "\n")
+	}
+	return fmt.Sprintf("MODULE `%s`: %s\n\ntype(%s) = '%s'\n\nPUBLIC FUNCTIONS:%s", modName, explanation, modName, object.MODULE_OBJ, pubFunHelpStr)
+}
+
 func (e *Evaluator) createFilePathFromImportPath(importPath string) string {
 	var fpath bytes.Buffer
 	if e.EvalBasePath != "." {

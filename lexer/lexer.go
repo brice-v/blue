@@ -284,6 +284,19 @@ func (l *Lexer) readSingleLineComment() {
 	}
 }
 
+// readDocStringComment will read the comment string until a newline
+func (l *Lexer) readDocStringComment() string {
+	b := strings.Builder{}
+	for {
+		l.readChar()
+		if l.ch == 0 || l.ch == '\n' || l.ch == '\r' {
+			break
+		}
+		b.WriteRune(l.ch)
+	}
+	return b.String()
+}
+
 func (l *Lexer) readExecString() string {
 	b := strings.Builder{}
 	for {
@@ -495,6 +508,9 @@ func (l *Lexer) NextToken() token.Token {
 		} else if l.peekChar() == '#' && l.peekSecondChar() == '#' {
 			tok = l.makeThreeCharToken(token.MULTLINE_COMMENT)
 			l.readMultiLineComment()
+		} else if l.peekChar() == '#' {
+			tok = l.makeTwoCharToken(token.DOCSTRING_COMMENT)
+			tok.Literal = l.readDocStringComment()
 		} else {
 			tok = l.newToken(token.HASH, l.ch)
 			l.readSingleLineComment()

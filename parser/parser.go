@@ -242,6 +242,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	// aka constructing the root node
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
+	program.HelpStrTokens = []string{}
 
 	// First validate that there are no illegal tokens
 	// We make a copy as to not disrupt the state
@@ -266,6 +267,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 			if p.curTokenIs(token.EOF) {
 				break
 			}
+		} else if p.curTokenIs(token.DOCSTRING_COMMENT) {
+			program.HelpStrTokens = append(program.HelpStrTokens, strings.TrimLeft(p.curToken.Literal, " \t"))
+			p.nextToken()
 		} else {
 			stmt := p.parseStatement()
 			if stmt != nil {
@@ -725,9 +729,15 @@ func (p *Parser) parseIfExpression() ast.Expression {
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.curToken}
 	block.Statements = []ast.Statement{}
+	block.HelpStrTokens = []string{}
 
-	// skip over the RPAREN?
+	// skip over the LBRACE
 	p.nextToken()
+
+	for p.curTokenIs(token.DOCSTRING_COMMENT) {
+		block.HelpStrTokens = append(block.HelpStrTokens, strings.TrimLeft(p.curToken.Literal, " \t"))
+		p.nextToken()
+	}
 
 	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
 		stmt := p.parseStatement()

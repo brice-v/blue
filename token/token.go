@@ -30,6 +30,8 @@ const (
 
 	// MULTLINE_COMMENT is the string rep. of a multiline comment token
 	MULTLINE_COMMENT = "###"
+	// DOCSTRING_COMMENT is the string rep. of a doc comment token
+	DOCSTRING_COMMENT = "##"
 
 	// Identifiers and literals
 
