@@ -116,9 +116,9 @@ func New() *Evaluator {
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
 	e.Builtins.PushBack(builtinobjs)
-	builtinobjs["__FILE__"] = &object.BuiltinObj{
-		Obj: &object.Stringo{Value: e.CurrentFile},
-	}
+	// builtinobjs["__FILE__"] = &object.BuiltinObj{
+	// 	Obj: &object.Stringo{Value: e.CurrentFile},
+	// }
 	e.AddCoreLibToEnv()
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
