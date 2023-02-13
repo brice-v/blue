@@ -43,5 +43,5 @@ type(config) = 'MODULE_OBJ'
 PUBLIC FUNCTIONS:
 load_file | `load_file` takes a filepath and returns a MAP of the configuration
 with some extra text
-dump_config | `dump_config` takes a MAP config and writes it to the given filepath in the set format""";
+dump_config | `dump_config` takes a MAP config and writes it to the given filepath in the set format""".replace("\r", "");
 assert(config_help == expected_config_help)
