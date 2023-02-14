@@ -20,6 +20,12 @@ func (cm *ConcurrentMap[K, V]) Get(k K) (V, bool) {
 	return value, ok
 }
 
+func (cm *ConcurrentMap[K, V]) GetAll() map[K]V {
+	cm.lock.Lock()
+	defer cm.lock.Unlock()
+	return cm.kv
+}
+
 func (cm *ConcurrentMap[K, V]) Remove(k K) {
 	cm.lock.Lock()
 	defer cm.lock.Unlock()

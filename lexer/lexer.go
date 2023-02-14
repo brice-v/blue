@@ -586,8 +586,12 @@ func (l *Lexer) NextToken() token.Token {
 			tok.PositionInLine = l.posInLine
 		}
 	default:
-		if l.prevTokType == token.IMPORT {
-			l.prevTokType = token.ILLEGAL
+		if l.prevTokType == token.IMPORT || l.prevTokType == token.FROM {
+			if l.prevTokType == token.FROM {
+				l.prevTokType = token.IMPORT_PATH
+			} else {
+				l.prevTokType = token.ILLEGAL
+			}
 			tok.Filepath = l.fname
 			tok.LineNumber = l.lineNo
 			tok.PositionInLine = l.posInLine
@@ -601,8 +605,12 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			// This is only used to determine that we need to read an import path
-			if tok.Type == token.IMPORT {
+			if tok.Type == token.IMPORT && l.prevTokType != token.IMPORT_PATH {
 				l.prevTokType = token.IMPORT
+			} else if tok.Type == token.FROM {
+				l.prevTokType = token.FROM
+			} else {
+				l.prevTokType = token.ILLEGAL
 			}
 			return tok
 		} else if isDigit(l.ch) {

@@ -219,6 +219,10 @@ const (
 	IMPORT = "IMPORT"
 	// IMPORT_PATH is the string rep. of the import path tok
 	IMPORT_PATH = "IMPORT_PATH"
+	// FROM is the string rep. of the from import tok
+	FROM = "FROM"
+	// AS is the string rep. of the as tok
+	AS = "AS"
 
 	// TRY is the string rep. of the 'try' keyword token
 	TRY = "TRY"
@@ -259,6 +263,8 @@ var keywords = map[string]Type{
 	"match":    MATCH,
 	"null":     NULL_KW,
 	"import":   IMPORT,
+	"from":     FROM,
+	"as":       AS,
 	"try":      TRY,
 	"catch":    CATCH,
 	"finally":  FINALLY,

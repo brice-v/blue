@@ -228,8 +228,11 @@ func (bs *BlockStatement) ExpressionString() string {
 
 // ImportStatement is the representation of the map literal ast node
 type ImportStatement struct {
-	Token token.Token // Token == import
-	Path  *Identifier // Path is the import's path which refers to a file
+	Token          token.Token   // Token == import
+	Path           *Identifier   // Path is the import's path which refers to a file
+	IdentsToImport []*Identifier // IdentsToImport refers to all the idents that should be imported to the current module
+	Alias          *Identifier   // Alias is what an import statement should be aliased to in the current module
+	ImportAll      bool          // ImportAll is a boolean to determine if a * was used in a from import statement
 }
 
 // statementNode satisfies the statement interface
@@ -240,7 +243,21 @@ func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
 
 // String returns the string representation of the map literal ast node
 func (is *ImportStatement) String() string {
-	return fmt.Sprintf("%s %s", is.Token.Literal, is.Path)
+	if len(is.IdentsToImport) == 0 {
+		if is.ImportAll {
+			return fmt.Sprintf("from %s import *", is.Path)
+		}
+		if is.Alias == nil {
+			return fmt.Sprintf("%s %s", is.Token.Literal, is.Path)
+		}
+		return fmt.Sprintf("%s %s as %s", is.Token.Literal, is.Path, is.Alias.Value)
+	} else {
+		toStrs := []string{}
+		for _, e := range is.IdentsToImport {
+			toStrs = append(toStrs, e.Value)
+		}
+		return fmt.Sprintf("from %s import [%s]", is.Path, strings.Join(toStrs, ", "))
+	}
 }
 
 type BreakStatement struct {

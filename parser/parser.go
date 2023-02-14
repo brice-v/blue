@@ -292,6 +292,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseValStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.FROM:
+		return p.parseFromStatement()
 	case token.IMPORT:
 		return p.parseImportStatement()
 	case token.TRY:
@@ -640,9 +642,13 @@ func (p *Parser) parseSelfExpression() ast.Expression {
 	return se
 }
 
-func (p *Parser) parseImportStatement() ast.Statement {
+func (p *Parser) parseFromStatement() ast.Statement {
 	stmt := &ast.ImportStatement{
 		Token: p.curToken,
+		Alias: nil,
+
+		IdentsToImport: []*ast.Identifier{},
+		ImportAll:      false,
 	}
 
 	// return nil if the next token is not an import token
@@ -653,6 +659,59 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	// set the statement name to the identifier with the current token being
 	// token.IDENT and the value being the actual string of the identifier
 	stmt.Path = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	if !p.expectPeekIs(token.IMPORT) {
+		return nil
+	}
+	// skip over import
+	p.nextToken()
+
+	if p.curTokenIs(token.STAR) {
+		// p.nextToken()
+		// For some reason we dont need to call next token here?
+		stmt.ImportAll = true
+		return stmt
+	}
+	savedPoint := p.peekToken
+	list := p.parseListLiteral()
+	for _, e := range list.(*ast.ListLiteral).Elements {
+		v, ok := e.(*ast.Identifier)
+		if !ok {
+			errorLine := lexer.GetErrorLineMessage(savedPoint)
+			msg := fmt.Sprintf("expected all import elements to be *ast.Identifer, found %s\n%s", v, errorLine)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+		stmt.IdentsToImport = append(stmt.IdentsToImport, v)
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseImportStatement() ast.Statement {
+	stmt := &ast.ImportStatement{
+		Token: p.curToken,
+		Alias: nil,
+
+		IdentsToImport: []*ast.Identifier{},
+		ImportAll:      false,
+	}
+
+	// return nil if the next token is not an import token
+	if !p.expectPeekIs(token.IMPORT_PATH) {
+		return nil
+	}
+
+	// set the statement name to the identifier with the current token being
+	// token.IDENT and the value being the actual string of the identifier
+	stmt.Path = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	if p.peekTokenIs(token.AS) {
+		p.nextToken()
+		if !p.expectPeekIs(token.IDENT) {
+			return nil
+		}
+		stmt.Alias = &ast.Identifier{Value: p.curToken.Literal}
+		// TODO: p.nextToken()?
+	}
 	// p.nextToken()
 	return stmt
 }

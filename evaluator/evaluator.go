@@ -514,10 +514,41 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	if isError(val) {
 		return val
 	}
+
+	if len(node.IdentsToImport) >= 1 {
+		for _, ident := range node.IdentsToImport {
+			if strings.HasPrefix(ident.Value, "_") {
+				return newError("ImportError: imports must be public to import them. failed to import %s from %s", ident.Value, modName)
+			}
+			o, ok := newE.env.Get(ident.Value)
+			if !ok {
+				return newError("ImportError: failed to import %s from %s", ident.Value, modName)
+			}
+			e.env.Set(ident.Value, o)
+		}
+		// return early if we specifically import some objects
+		return NULL
+	} else if node.ImportAll {
+		// Here we want to import everything from the module
+		for k, v := range newE.env.GetAll() {
+			if !strings.HasPrefix(k, "_") {
+				e.env.Set(k, v)
+			}
+		}
+		return NULL
+	}
 	// Set HelpStr from program HelpStrToks
 	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
-	mod := &object.Module{Name: modName, Env: newE.env, HelpStr: createHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr)}
-	e.env.Set(modName, mod)
+	mod := &object.Module{
+		Name:    modName,
+		Env:     newE.env,
+		HelpStr: createHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr),
+	}
+	if node.Alias != nil {
+		e.env.Set(node.Alias.Value, mod)
+	} else {
+		e.env.Set(modName, mod)
+	}
 	return NULL
 }
 
