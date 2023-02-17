@@ -2163,6 +2163,65 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 				return FALSE
 			}
 			return TRUE
+		case "..":
+			if runeLen(leftStr) != 1 {
+				return newError("operator .. expects left string to be 1 rune")
+			}
+			if runeLen(rightStr) != 1 {
+				return newError("operator .. expects right string to be 1 rune")
+			}
+			lr := []rune(leftStr)[0]
+			rr := []rune(rightStr)[0]
+			if lr == rr {
+				// If they are the same just return a list with the single element
+				// because this is the inclusive operator
+				return &object.List{Elements: []object.Object{left}}
+			}
+			elements := []object.Object{}
+			if lr > rr {
+				// Left rune is > so we are descending
+				for i := lr; i >= rr; i-- {
+					s := string(i)
+					elements = append(elements, &object.Stringo{Value: s})
+				}
+				return &object.List{Elements: elements}
+			} else {
+				// Right rune is > so we are ascending
+				for i := lr; i <= rr; i++ {
+					s := string(i)
+					elements = append(elements, &object.Stringo{Value: s})
+				}
+				return &object.List{Elements: elements}
+			}
+		case "..<":
+			if runeLen(leftStr) != 1 {
+				return newError("operator ..< expects left string to be 1 rune")
+			}
+			if runeLen(rightStr) != 1 {
+				return newError("operator ..< expects right string to be 1 rune")
+			}
+			lr := []rune(leftStr)[0]
+			rr := []rune(rightStr)[0]
+			if lr == rr {
+				// If they are the same just return an empty list because this is non-inclusive
+				return &object.List{Elements: []object.Object{}}
+			}
+			elements := []object.Object{}
+			if lr > rr {
+				// Left rune is > so we are descending
+				for i := lr; i > rr; i-- {
+					s := string(i)
+					elements = append(elements, &object.Stringo{Value: s})
+				}
+				return &object.List{Elements: elements}
+			} else {
+				// Right rune is > so we are ascending
+				for i := lr; i < rr; i++ {
+					s := string(i)
+					elements = append(elements, &object.Stringo{Value: s})
+				}
+				return &object.List{Elements: elements}
+			}
 		default:
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
