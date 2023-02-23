@@ -26,4 +26,6 @@ var ui_content = ui.col([
     ui.row([ui.checkbox("Optional", checkbox_handler), ui.radio_group(["1", "2"], radio_handler), ui.option_select(["a", "b"], option_handler)])
 ]);
 
+println("ui_content = #{ui_content}");
+
 ui.window(width=1000, height=800, title="blue ui demo", content=ui_content);

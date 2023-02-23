@@ -839,13 +839,13 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`button` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("button", len(args), 2, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `button` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("button", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.FUNCTION_OBJ {
-				return newError("argument 2 to `button` should be FUNCTION. got=%s", args[1].Type())
+				return newPositionalTypeError("button", 2, object.FUNCTION_OBJ, args[1].Type())
 			}
 			s := args[0].(*object.Stringo).Value
 			fn := args[1].(*object.Function)
@@ -874,18 +874,18 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`check_box` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("checkbox", len(args), 2, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `check_box` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("checkbox", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.FUNCTION_OBJ {
-				return newError("argument 2 to `check_box` should be FUNCTION. got=%s", args[1].Type())
+				return newPositionalTypeError("checkbox", 2, object.FUNCTION_OBJ, args[1].Type())
 			}
 			lbl := args[0].(*object.Stringo).Value
 			fn := args[1].(*object.Function)
 			if len(fn.Parameters) != 1 {
-				return newError("`check_box` error: handler needs 1 argument. got=%d", len(fn.Parameters))
+				return newError("`checkbox` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 			}
 			checkBox := widget.NewCheck(lbl, func(value bool) {
 				obj := e.applyFunction(fn, []object.Object{&object.Boolean{Value: value}}, make(map[string]object.Object))
@@ -912,13 +912,13 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`radio_group` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("radio_group", len(args), 2, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument 1 to `radio_group` should be LIST. got=%s", args[0].Type())
+				return newPositionalTypeError("radio_group", 1, object.LIST_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.FUNCTION_OBJ {
-				return newError("argument 2 to `radio_group` should be FUNCTION. got=%s", args[1].Type())
+				return newPositionalTypeError("radio_group", 2, object.FUNCTION_OBJ, args[1].Type())
 			}
 			elems := args[0].(*object.List).Elements
 			fn := args[1].(*object.Function)
@@ -957,13 +957,13 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`option_select` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("option_select", len(args), 2, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument 1 to `option_select` should be LIST. got=%s", args[0].Type())
+				return newPositionalTypeError("option_select", 1, object.LIST_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.FUNCTION_OBJ {
-				return newError("argument 2 to `option_select` should be FUNCTION. got=%s", args[1].Type())
+				return newPositionalTypeError("option_select", 2, object.FUNCTION_OBJ, args[1].Type())
 			}
 			elems := args[0].(*object.List).Elements
 			fn := args[1].(*object.Function)
@@ -1002,16 +1002,16 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`form` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("form", len(args), 3, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument 1 to `form` should be LIST. got=%s", args[0].Type())
+				return newPositionalTypeError("form", 1, object.LIST_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.LIST_OBJ {
-				return newError("argument 2 to `form` should be LIST. got=%s", args[1].Type())
+				return newPositionalTypeError("form", 2, object.LIST_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.FUNCTION_OBJ {
-				return newError("argument 3 to `form` should be FUNCTION. got=%s", args[2].Type())
+				return newPositionalTypeError("form", 3, object.FUNCTION_OBJ, args[2].Type())
 			}
 			var formItems []*widget.FormItem
 			labels := args[0].(*object.List).Elements

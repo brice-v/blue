@@ -71,7 +71,8 @@ func (e *Environment) GetAll() map[string]Object {
 // Set puts a new object into the environment
 func (e *Environment) Set(name string, val Object) Object {
 	e.store.Put(name, val)
-	if val.Type() == "FUNCTION" && !strings.HasPrefix(name, "_") && !strings.HasPrefix(val.Help(), "core:ignore") {
+	// We do store nil values so those can be skipped entirely for pfhs
+	if val != nil && (val.Type() == "FUNCTION" && !strings.HasPrefix(name, "_") && !strings.HasPrefix(val.Help(), "core:ignore")) {
 		e.publicFunctionHelpStore.Set(name, val.Help())
 	}
 	return val
@@ -107,7 +108,19 @@ func (e *Environment) GetPublicFunctionHelpString() string {
 			vSplit := strings.Split(v, "\ntype(")[0]
 			// remove the trailing \n
 			vSplit = vSplit[:len(vSplit)-1]
-			out.WriteString(fmt.Sprintf("\n%s | %s", k, vSplit))
+			vSplitFurther := strings.Split(vSplit, "\n")
+			for i, partStr := range vSplitFurther {
+				if i == 0 {
+					out.WriteString(fmt.Sprintf("\n%s | %s", k, partStr))
+				} else {
+					pad := strings.Repeat(" ", len(k)+2)
+					nl := "\n"
+					if i == len(vSplitFurther)-1 {
+						nl = ""
+					}
+					out.WriteString(fmt.Sprintf("%s %s%s", pad, partStr, nl))
+				}
+			}
 		}
 	}
 	return out.String()

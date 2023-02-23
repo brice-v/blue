@@ -42,7 +42,6 @@ TODO:
     - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
         - This is sort of related
-- [ ] Implement `import *` from file so we dont need to use package name
 - [ ] `this` keyword for map object?
 - [ ] Need way to call go code directly while running (use a go interpreter? or compile on the fly?)
 
@@ -74,6 +73,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Implement `import *` from file so we dont need to use package name
 - [x] Make it so that help() will return custom value for custom functions (via comments)
     - return static strings for HelpStr's that dont change and store it in another file like object.STRING_OBJ is setup
 - [x] For errors in handler functions in http - allow the stacktrace/error to be printed in the c.Status... stuff if there is an env variable set
