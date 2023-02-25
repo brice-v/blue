@@ -588,19 +588,19 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
-				return newError("`handle` expects 4 aguments. got=%d", len(args))
+				return newInvalidArgCountError("handle", len(args), 4, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `handle` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("handle", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `handle` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("handle", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.FUNCTION_OBJ {
-				return newError("argument 3 to `handle` should be FUNCTION. got=%s", args[2].Type())
+				return newPositionalTypeError("handle", 3, object.FUNCTION_OBJ, args[2].Type())
 			}
 			if args[3].Type() != object.STRING_OBJ {
-				return newError("argument 4 to `handle` should be STRING. got=%s", args[3].Type())
+				return newPositionalTypeError("handle", 4, object.STRING_OBJ, args[3].Type())
 			}
 			serverId := args[0].(*object.UInteger).Value
 			app, ok := ServerMap.Get(serverId)
@@ -743,16 +743,16 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`handle_ws` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("handle_ws", len(args), 3, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `handle_ws` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("handle_ws", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `handle_ws` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("handle_ws", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.FUNCTION_OBJ {
-				return newError("argument 3 to `handle_ws` should be FUNCTION. got=%s", args[2].Type())
+				return newPositionalTypeError("handle_ws", 3, object.FUNCTION_OBJ, args[2].Type())
 			}
 			pattern := args[1].(*object.Stringo).Value
 			fn := args[2].(*object.Function)
