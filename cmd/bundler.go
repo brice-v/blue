@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -34,12 +35,12 @@ import (
 
 var out = os.Stderr
 
-//go:embed **/*.b *.b
+//go:embed embed_files
 var files embed.FS
 `
 
 const mainFunc = `func main() {
-	entryPoint, err := files.ReadFile(entryPointPath)
+	entryPoint, err := files.ReadFile("embed_files/" + entryPointPath)
 	if err != nil {
 		out.WriteString("Failed to read EntryPoint File '" + entryPointPath + "'\n")
 		os.Exit(1)
@@ -103,10 +104,17 @@ func bundleFile(fpath string) error {
 	if err != nil {
 		return fmt.Errorf("`copyFilesFromBlueSourceToTmpDir` error: %s", err.Error())
 	}
-	// Copy currentSavedDir files into . as well, (we are in the tmpWorkspace)
-	err = copyFilesFromDirToTmpDir(savedCurrentDir)
+
+	// make the directory for embedding the files
+	err = makeEmbedFilesDir()
 	if err != nil {
-		return fmt.Errorf("`copyFilesFromDirToTmpDir` error: %s", err.Error())
+		return fmt.Errorf("`makeEmbedFilesDir` error: %s", err.Error())
+	}
+
+	// Copy currentSavedDir files into embed_files dir, (we are in the tmpWorkspace (so /tmp/blue-build-xxx/embed_files))
+	err = copyFilesFromDirToTmpDirEmbedFiles(savedCurrentDir, tmpDir)
+	if err != nil {
+		return fmt.Errorf("`copyFilesFromDirToTmpDirEmbedFiles` error: %s", err.Error())
 	}
 	err = renameOriginalMainGoFile()
 	if err != nil {
@@ -151,8 +159,9 @@ func checkAndGetBlueSouce() error {
 	if !isDir(dirPath) {
 		return errors.New("`BLUE_INSTALL_PATH` not set")
 	}
-	mainFpath := dirPath + "main.go"
+	mainFpath := path.Clean(dirPath + string(filepath.Separator) + "main.go")
 	if !isFile(mainFpath) {
+		fmt.Printf("bundler::checkAndGetBlueSouce: filepath does not exist at path (%s), trying to clone from github...", mainFpath)
 		return gitCloneFilesToBlueInstallPath(dirPath)
 	}
 	return nil
@@ -182,6 +191,10 @@ func gitCloneFilesToBlueInstallPath(dirPath string) error {
 	return nil
 }
 
+func makeEmbedFilesDir() error {
+	return os.Mkdir("embed_files", 0755)
+}
+
 func copyFilesFromBlueSourceToTmpDir() error {
 	dirPath := os.Getenv(consts.BLUE_INSTALL_PATH)
 	// copy these files into .
@@ -190,6 +203,12 @@ func copyFilesFromBlueSourceToTmpDir() error {
 
 func copyFilesFromDirToTmpDir(dirPath string) error {
 	return cp.Copy(dirPath, ".")
+}
+
+func copyFilesFromDirToTmpDirEmbedFiles(dirPath, tmpDir string) error {
+	// Note: this should only be called from tmp workspace so the dir should already be created
+	dstPath := path.Join(tmpDir, "embed_files")
+	return cp.Copy(dirPath, dstPath)
 }
 
 func renameOriginalMainGoFile() error {
