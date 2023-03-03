@@ -123,7 +123,7 @@ func New() *Evaluator {
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
 		Fun: nil,
-		Ch:  make(chan object.Object),
+		Ch:  make(chan object.Object, 1),
 	}
 	ProcessMap.Put(e.PID, process)
 
@@ -632,7 +632,7 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 	fun, _ := arg0.(*object.Function)
 	process := &object.Process{
 		Fun: fun,
-		Ch:  make(chan object.Object),
+		Ch:  make(chan object.Object, 1),
 	}
 	pid := pidCount.Add(1)
 	ProcessMap.Put(pid, process)

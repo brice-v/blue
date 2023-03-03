@@ -194,6 +194,10 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 	switch function := fun.(type) {
 	case *object.Function:
 		newE := New()
+		// Always use our current evaluator PID for the function
+		// this allows the self() function to return properly inside evaluated
+		// functions because spawnExpression will set the PID initially
+		newE.PID = e.PID
 		newE.env = extendFunctionEnv(function, args, defaultArgs)
 		evaluated := newE.Eval(function.Body)
 		for newE.ErrorTokens.Len() != 0 {
