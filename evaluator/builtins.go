@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/gobuffalo/plush"
@@ -692,33 +690,6 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			signature:   "find_exe(exe_name: str) -> str",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "find_exe('blue') => /home/user/.blue/bin/blue",
-		}.String(),
-	},
-	// TODO: Support uint, and big int?
-	"to_num": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("to_num", len(args), 1, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
-			}
-			s := args[0].(*object.Stringo).Value
-			// This is an overkill way of making sure the string is cleaned for parsing
-			// - at least with regards to whitespace
-			re := regexp.MustCompile("[\r\n\t ]")
-			cleanS := string(re.ReplaceAll([]byte(s), []byte("")))
-			i, err := strconv.ParseInt(cleanS, 10, 64)
-			if err != nil {
-				return newError("`to_num` error: %s", err.Error())
-			}
-			return &object.Integer{Value: i}
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`to_num` returns the INTEGER value of the given STRING",
-			signature:   "to_num(arg: str) -> int",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "to_num('1') => 1",
 		}.String(),
 	},
 	// TODO: Do we want to do that thing where we shell expand home dir? or other things like that?

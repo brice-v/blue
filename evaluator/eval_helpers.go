@@ -588,6 +588,40 @@ func getErrorTokenTraceAsJson(e *Evaluator) interface{} {
 	return errors
 }
 
+func createToNumBuiltin(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_num", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			ll := lexer.New(s, "")
+			pp := parser.New(ll)
+			prog := pp.ParseProgram()
+			if len(pp.Errors()) != 0 {
+				return newError("`to_num` error: failed to parse number from string '%s'", s)
+			}
+			obj := e.Eval(prog)
+			if isError(obj) {
+				return obj
+			}
+			if obj.Type() != object.INTEGER_OBJ && obj.Type() != object.UINTEGER_OBJ && obj.Type() != object.FLOAT_OBJ && obj.Type() != object.BIG_FLOAT_OBJ && obj.Type() != object.BIG_INTEGER_OBJ {
+				return newError("`to_num` error: failed to get number type from string '%s'. got=%s", s, obj.Type())
+			}
+			return obj
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_num` returns the NUM value of the given STRING (int, uint, float, bigint, bigfloat)",
+			signature:   "to_num(arg: str) -> num",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "to_num('1') => 1",
+		}.String(),
+	}
+}
+
 func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
