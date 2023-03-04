@@ -2303,7 +2303,7 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 			}
 			return TRUE
 		}
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return e.evalDefaultInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.LIST_OBJ:
 		leftVal := left.(*object.Float)
 		righListElems := right.(*object.List).Elements
@@ -2341,7 +2341,7 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 			}
 			return TRUE
 		}
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return e.evalDefaultInfixExpression(operator, left, right)
 	case left.Type() == object.MAP_OBJ && right.Type() == object.LIST_OBJ:
 		leftVal := left.(*object.Map)
 		righListElems := right.(*object.List).Elements
@@ -2379,12 +2379,51 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 			}
 			return TRUE
 		}
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return e.evalDefaultInfixExpression(operator, left, right)
 	case left.Type() == object.LIST_OBJ && !isBooleanOperator(operator):
 		return e.evalListInfixExpression(operator, left, right)
 	case right.Type() == object.SET_OBJ && !isBooleanOperator(operator):
 		return e.evalRightSideSetInfixExpression(operator, left, right)
 	// NOTE: THESE OPERATORS MUST STAY BELOW THE TYPE CHECKING OTHERWISE IT COULD BREAK THINGS!!
+	case operator == "==":
+		return nativeToBooleanObject(object.HashObject(left) == object.HashObject(right))
+	case operator == "!=":
+		return nativeToBooleanObject(object.HashObject(left) != object.HashObject(right))
+	case operator == "and":
+		leftBool, ok := left.(*object.Boolean)
+		if !ok {
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		}
+		rightBool, ok := right.(*object.Boolean)
+		if !ok {
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		}
+		if leftBool.Value && rightBool.Value {
+			return TRUE
+		}
+		return FALSE
+	case operator == "or":
+		leftBool, ok := left.(*object.Boolean)
+		if !ok {
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		}
+		rightBool, ok := right.(*object.Boolean)
+		if !ok {
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		}
+		if leftBool.Value || rightBool.Value {
+			return TRUE
+		}
+		return FALSE
+	case left.Type() != right.Type():
+		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right object.Object) object.Object {
+	switch {
 	case operator == "==":
 		return nativeToBooleanObject(object.HashObject(left) == object.HashObject(right))
 	case operator == "!=":
@@ -2439,7 +2478,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			}
 			return TRUE
 		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+			return e.evalDefaultInfixExpression(operator, left, right)
 		}
 	case object.UINTEGER_OBJ:
 		uintVal := left.(*object.UInteger).HashKey().Value
@@ -2471,7 +2510,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			}
 			return TRUE
 		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+			return e.evalDefaultInfixExpression(operator, left, right)
 		}
 	case object.MAP_OBJ:
 		mapHash := object.HashObject(left.(*object.Map))
@@ -2503,7 +2542,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			}
 			return TRUE
 		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+			return e.evalDefaultInfixExpression(operator, left, right)
 		}
 	case object.STRING_OBJ:
 		strHash := left.(*object.Stringo).HashKey().Value
@@ -2535,7 +2574,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			}
 			return TRUE
 		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+			return e.evalDefaultInfixExpression(operator, left, right)
 		}
 	case object.LIST_OBJ:
 		listHash := object.HashObject(left.(*object.List))
@@ -2567,7 +2606,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			}
 			return TRUE
 		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+			return e.evalDefaultInfixExpression(operator, left, right)
 		}
 	case object.BIG_INTEGER_OBJ:
 		bigInt := object.HashObject(left.(*object.BigInteger))
@@ -2586,7 +2625,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return e.evalDefaultInfixExpression(operator, left, right)
 	}
 }
 
@@ -2911,7 +2950,7 @@ func (e *Evaluator) evalStringIntegerInfixExpression(operator string, left, righ
 		}
 		return &object.Stringo{Value: out.String()}
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return e.evalDefaultInfixExpression(operator, left, right)
 	}
 }
 
@@ -3058,7 +3097,7 @@ func (e *Evaluator) evalListIntegerInfixExpression(operator string, left, right 
 		}
 		return &object.List{Elements: newList}
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return e.evalDefaultInfixExpression(operator, left, right)
 	}
 }
 
