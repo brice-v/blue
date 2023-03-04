@@ -237,3 +237,57 @@ fun substr(s, start=0, end=-1) {
     ##core:ignore
     _substr(s, start, end)
 }
+
+fun go_metrics(flat=false) {
+    ##core:ignore
+    # flat implies that we just want each metric path as its own key
+    var __metrics = _go_metrics();
+    var __metrics_split_nl = __metrics.split("\n");
+    __metrics_split_nl = [x for (x in __metrics_split_nl) if (x != '')];
+
+    var __total_metrics = {};
+    if (flat) {
+        for (metric in __metrics_split_nl) {
+            val metric_path_and_value = metric.split(": ");
+            val path = metric_path_and_value[0];
+            val metric_value = to_num(metric_path_and_value[1]);
+            __total_metrics[path] = metric_value;
+        }
+        return __total_metrics;
+    }
+
+    val __set_value_from_list_of_keys_in_map = fun(m, l, value) {
+        # m is our map
+        # l is our list of string keys (the last key there is a key to a value)
+        # value is what were trying to set
+        
+        # this is our starting point
+        var current_map = m;
+        var i = 0;
+        for (true) {
+            var starting_key = l[i];
+            if (starting_key in current_map) {
+                current_map = current_map[starting_key];
+            } else {
+                if (i == len(l) - 1) {
+                    current_map[starting_key] = value;
+                    break;
+                }
+                current_map[starting_key] = {};
+                current_map = current_map[starting_key];
+            }
+            i += 1;
+        }
+    }
+
+    for (metric in __metrics_split_nl) {
+        val metric_path_and_value = metric.split(": ");
+        val path = metric_path_and_value[0];
+        val metric_value = to_num(metric_path_and_value[1]);
+        var metric_path_list = path.split("/");
+        metric_path_list = [x for (x in metric_path_list) if (x != '')];
+        __set_value_from_list_of_keys_in_map(__total_metrics, metric_path_list, metric_value);
+    }
+
+    return __total_metrics;
+}
