@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"github.com/gookit/color"
 	ws "github.com/gorilla/websocket"
 )
 
@@ -64,4 +65,12 @@ var UIAppMap = &ConcurrentMap[uint64, fyne.App]{
 var uiCanvasObjectCount = atomic.Uint64{}
 var UICanvasObjectMap = &ConcurrentMap[uint64, fyne.CanvasObject]{
 	kv: make(map[uint64]fyne.CanvasObject),
+}
+
+var colorStyleCount = atomic.Uint64{}
+var ColorStyleMap = &ConcurrentMap[uint64, color.Style]{
+	kv: make(map[uint64]color.Style),
+}
+var ColorStyleCountMap = &ConcurrentMap[string, uint64]{
+	kv: make(map[string]uint64),
 }

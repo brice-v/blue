@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/plush"
+	"github.com/gookit/color"
 	clone "github.com/huandu/go-clone"
 )
 
@@ -183,8 +184,27 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"println": {
 		Fun: func(args ...object.Object) object.Object {
-			for _, arg := range args {
-				fmt.Println(arg.Inspect())
+			useColorPrinter := false
+			var style color.Style
+			for i, arg := range args {
+				if i == 0 {
+					t, v, ok := getBasicObject(arg)
+					if ok && t == "color" {
+						// Use color printer
+						useColorPrinter = true
+						s, ok := ColorStyleMap.Get(v)
+						if !ok {
+							useColorPrinter = false
+						}
+						style = s
+						continue
+					}
+				}
+				if useColorPrinter {
+					style.Println(arg.Inspect())
+				} else {
+					fmt.Println(arg.Inspect())
+				}
 			}
 			return NULL
 		},
@@ -197,8 +217,27 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"print": {
 		Fun: func(args ...object.Object) object.Object {
-			for _, arg := range args {
-				fmt.Print(arg.Inspect())
+			useColorPrinter := false
+			var style color.Style
+			for i, arg := range args {
+				if i == 0 {
+					t, v, ok := getBasicObject(arg)
+					if ok && t == "color" {
+						// Use color printer
+						useColorPrinter = true
+						s, ok := ColorStyleMap.Get(v)
+						if !ok {
+							useColorPrinter = false
+						}
+						style = s
+						continue
+					}
+				}
+				if useColorPrinter {
+					style.Print(arg.Inspect())
+				} else {
+					fmt.Print(arg.Inspect())
+				}
 			}
 			return NULL
 		},
@@ -834,4 +873,47 @@ func medianBucket(h *metrics.Float64Histogram) float64 {
 		}
 	}
 	panic("medianBucket: should not happen")
+}
+
+func getBasicObject(arg object.Object) (string, uint64, bool) {
+	if arg.Type() != object.MAP_OBJ {
+		return "", 0, false
+	}
+	objPairs := arg.(*object.Map).Pairs
+	if objPairs.Len() != 2 {
+		return "", 0, false
+	}
+	// Get the 't' value
+	hk1 := objPairs.Keys[0]
+	mp1, ok := objPairs.Get(hk1)
+	if !ok {
+		return "", 0, false
+	}
+	if mp1.Key.Type() != object.STRING_OBJ {
+		return "", 0, false
+	}
+	if mp1.Value.Type() != object.STRING_OBJ {
+		return "", 0, false
+	}
+	if mp1.Key.(*object.Stringo).Value != "t" {
+		return "", 0, false
+	}
+	t := mp1.Value.(*object.Stringo).Value
+	// Get the 'v' value
+	hk2 := objPairs.Keys[1]
+	mp2, ok := objPairs.Get(hk2)
+	if !ok {
+		return "", 0, false
+	}
+	if mp2.Key.Type() != object.STRING_OBJ {
+		return "", 0, false
+	}
+	if mp2.Value.Type() != object.UINTEGER_OBJ {
+		return "", 0, false
+	}
+	if mp2.Key.(*object.Stringo).Value != "v" {
+		return "", 0, false
+	}
+	v := mp2.Value.(*object.UInteger).Value
+	return t, v, true
 }

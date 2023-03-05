@@ -34,6 +34,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/websocket/v2"
+	"github.com/gookit/color"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/ini"
 	"github.com/gookit/config/v2/properties"
@@ -65,6 +66,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"crypto": {File: lib.ReadStdFileToString("crypto.b"), Builtins: _crypto_builtin_map},
 	"net":    {File: lib.ReadStdFileToString("net.b"), Builtins: _net_builtin_map},
 	"ui":     {File: lib.ReadStdFileToString("ui.b"), Builtins: _ui_builtin_map},
+	"color":  {File: lib.ReadStdFileToString("color.b"), Builtins: _color_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -1583,6 +1585,162 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			form.Append(args[1].(*object.Stringo).Value, w)
 			return NULL
+		},
+	},
+})
+
+var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_style": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("style", len(args), 3, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("style", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("style", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("style", 3, object.INTEGER_OBJ, args[2].Type())
+			}
+			arg1, arg2, arg3 := args[0].(*object.Integer).Value, args[1].(*object.Integer).Value, args[2].(*object.Integer).Value
+			// Use another map to get the count if this combination is already created
+			key := fmt.Sprintf("%d;%d;%d", arg1, arg2, arg3)
+			if v, ok := ColorStyleCountMap.Get(key); ok {
+				return object.CreateBasicMapObject("color", v)
+			}
+			// log.Printf("arg1 = %d, arg2 = %d, arg3 = %d", arg1, arg2, arg3)
+			textStyle := color.Color(arg1)
+			fgActualColor := color.Color(arg2)
+			fgColor := fgActualColor.ToFg()
+			bgActualColor := color.Color(arg3)
+			bgColor := bgActualColor.ToBg()
+			textStyleName := textStyle.Name()
+			fgColorName := fgColor.Name()
+			bgColorName := bgColor.Name()
+			fgActualColorName := fgActualColor.Name()
+			bgActualColorName := bgActualColor.Name()
+			// log.Printf("textStyle = %s, fgColor = %s (%s), bgColor = %s (%s)", textStyleName, fgColorName, fgActualColorName, bgColorName, bgActualColorName)
+			s := color.New()
+			unknown := "unknown"
+			if textStyleName != unknown {
+				s.Add(textStyle)
+			}
+			if fgColorName != unknown || fgActualColorName != unknown {
+				s.Add(fgColor)
+			}
+			if bgColorName != unknown || bgActualColorName != unknown {
+				s.Add(bgColor)
+			}
+			styleId := colorStyleCount.Add(1)
+			ColorStyleCountMap.Put(key, styleId)
+			ColorStyleMap.Put(styleId, s)
+			return object.CreateBasicMapObject("color", styleId)
+		},
+	},
+	"_normal": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("normal", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Normal)}
+		},
+	},
+	"_red": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("red", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Red)}
+		},
+	},
+	"_cyan": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("cyan", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Cyan)}
+		},
+	},
+	"_gray": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("gray", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Gray)}
+		},
+	},
+	"_blue": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("blue", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Blue)}
+		},
+	},
+	"_black": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("black", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Black)}
+		},
+	},
+	"_green": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("green", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Green)}
+		},
+	},
+	"_white": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("white", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.White)}
+		},
+	},
+	"_yellow": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("yellow", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Yellow)}
+		},
+	},
+	"_magenta": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("magenta", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Magenta)}
+		},
+	},
+	"_bold": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("bold", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.Bold)}
+		},
+	},
+	"_italic": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("italic", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.OpItalic)}
+		},
+	},
+	"_underlined": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("underlined", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(color.OpUnderscore)}
 		},
 	},
 })
