@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] FIX: Make sure that default args are being called correctly with some partial args given
+    - look at color.style function and the way it could be called for different scenarios
 - add way to convert numbers to different formats (possibly for printing?)
 - debugger statement that pops user into repl with access to variables (then just need a way to exit repl and continue execution)
 - still want to have way of starting a blue process like Erlang/Elixr with ways to connect and send over the network, etc.
@@ -73,6 +75,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] BUG: continue at the end of for loop caused that to return in function? - instead of explicit return
 - [x] Implement `import *` from file so we dont need to use package name
 - [x] Make it so that help() will return custom value for custom functions (via comments)
     - return static strings for HelpStr's that dont change and store it in another file like object.STRING_OBJ is setup
