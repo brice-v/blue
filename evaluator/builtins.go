@@ -4,6 +4,7 @@ import (
 	"blue/object"
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -855,6 +856,18 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 			}
 			return &object.Stringo{Value: out.String()}
+		},
+	},
+	"is_valid_json": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("is_valid_json", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("is_valid_json", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Boolean{Value: json.Valid([]byte(s))}
 		},
 	},
 })

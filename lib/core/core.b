@@ -140,12 +140,15 @@ fun find_one(str_to_search, query, method="regex") {
     };
 }
 
-fun json_to_map(json_str) {
+fun from_json(json_str) {
     ##core:ignore
+    if (not is_valid_json(json_str)) {
+        return error("from_json error: invalid json_str #{json_str}, e=#{e}");
+    }
     try {
         return eval(json_str);
     } catch (e) {
-        return error("json_to_map error: invalid json_str #{json_str}, e=#{e}");
+        return error("from_json error: invalid json_str #{json_str}, e=#{e}");
     }
 }
 

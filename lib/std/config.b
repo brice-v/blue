@@ -11,7 +11,7 @@ fun load_file(filepath) {
     ## `load_file` takes a filepath and returns a MAP of the configuration
     ##
     ## load_file(filepath: str) -> map[str:str]
-    __load_file(filepath).json_to_map()
+    __load_file(filepath).from_json()
 }
 
 val __dump_config = _dump_config;
