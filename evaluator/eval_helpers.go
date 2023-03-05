@@ -347,7 +347,7 @@ func MakeEmptyList() object.Object {
 }
 
 func isValidJsonValueType(t object.Type) bool {
-	return t == object.STRING_OBJ || t == object.INTEGER_OBJ || t == object.FLOAT_OBJ || t == object.NULL_OBJ || t == object.BOOLEAN_OBJ || t == object.MAP_OBJ || t == object.LIST_OBJ
+	return t == object.STRING_OBJ || t == object.INTEGER_OBJ || t == object.UINTEGER_OBJ || t == object.FLOAT_OBJ || t == object.NULL_OBJ || t == object.BOOLEAN_OBJ || t == object.MAP_OBJ || t == object.LIST_OBJ
 }
 
 func checkListElementsForValidJsonValues(elements []object.Object) (bool, error) {
@@ -396,6 +396,8 @@ func checkMapObjPairsForValidJsonKeysAndValues(pairs object.OrderedMap2[object.H
 func generateJsonStringFromOtherValidTypes(buf bytes.Buffer, element object.Object) bytes.Buffer {
 	switch t := element.(type) {
 	case *object.Integer:
+		buf.WriteString(fmt.Sprintf("%d", t.Value))
+	case *object.UInteger:
 		buf.WriteString(fmt.Sprintf("%d", t.Value))
 	case *object.Stringo:
 		buf.WriteString(fmt.Sprintf("%q", t.Value))
