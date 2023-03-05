@@ -8,7 +8,10 @@ import (
 	"blue/parser"
 	"bufio"
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -47,6 +50,7 @@ import (
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/scrypt"
 	_ "modernc.org/sqlite"
 )
 
@@ -1114,6 +1118,109 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("bcrypt error: %s", err.Error())
 			}
 			return TRUE
+		},
+	},
+	"_encrypt": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("encrypt", len(args), 2, "")
+			}
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("encrypt", 1, "STRING or BYTES", args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("encrypt", 2, "STRING or BYTES", args[1].Type())
+			}
+			var pw []byte
+			if args[0].Type() == object.STRING_OBJ {
+				pw = []byte(args[0].(*object.Stringo).Value)
+			} else {
+				pw = args[0].(*object.Bytes).Value
+			}
+			var data []byte
+			if args[1].Type() == object.STRING_OBJ {
+				data = []byte(args[1].(*object.Stringo).Value)
+			} else {
+				data = args[1].(*object.Bytes).Value
+			}
+
+			// Deriving key from pw as it needs to be 32 bytes
+			salt := make([]byte, 32)
+			if _, err := rand.Read(salt); err != nil {
+				return newError("encrypt error: %s", err.Error())
+			}
+			key, err := scrypt.Key(pw, salt, 1048576, 8, 1, 32)
+			if err != nil {
+				return newError("encrypt error: %s", err.Error())
+			}
+			// Done Deriving key
+
+			blockCipher, err := aes.NewCipher(key)
+			if err != nil {
+				return newError("encrypt error: %s", err.Error())
+			}
+			gcm, err := cipher.NewGCM(blockCipher)
+			if err != nil {
+				return newError("encrypt error: %s", err.Error())
+			}
+			nonce := make([]byte, gcm.NonceSize())
+			if _, err = rand.Read(nonce); err != nil {
+				return newError("encrypt error: %s", err.Error())
+			}
+			ciphertext := gcm.Seal(nonce, nonce, data, nil)
+			ciphertext = append(ciphertext, salt...)
+			return &object.Bytes{Value: ciphertext}
+		},
+	},
+	"_decrypt": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("decrypt", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("decrypt", 1, "STRING or BYTES", args[0].Type())
+			}
+			if args[1].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("decrypt", 2, object.BYTES_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("decrypt", 3, object.BOOLEAN_OBJ, args[2].Type())
+			}
+			var pw []byte
+			if args[0].Type() == object.STRING_OBJ {
+				pw = []byte(args[0].(*object.Stringo).Value)
+			} else {
+				pw = args[0].(*object.Bytes).Value
+			}
+			data := args[1].(*object.Bytes).Value
+			getDataAsBytes := args[2].(*object.Boolean).Value
+
+			// Deriving key from pw as it needs to be 32 bytes
+			salt, data := data[len(data)-32:], data[:len(data)-32]
+			key, err := scrypt.Key(pw, salt, 1048576, 8, 1, 32)
+			if err != nil {
+				return newError("decrypt error: %s", err.Error())
+			}
+			// Done Deriving key
+
+			blockCipher, err := aes.NewCipher(key)
+			if err != nil {
+				return newError("decrypt error: %s", err.Error())
+			}
+			gcm, err := cipher.NewGCM(blockCipher)
+			if err != nil {
+				return newError("decrypt error: %s", err.Error())
+			}
+			nonce, ciphertext := data[:gcm.NonceSize()], data[gcm.NonceSize():]
+			plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+			if err != nil {
+				return newError("decrypt error: %s", err.Error())
+			}
+			if getDataAsBytes {
+				return &object.Bytes{Value: plaintext}
+			} else {
+				return &object.Stringo{Value: string(plaintext)}
+			}
 		},
 	},
 })

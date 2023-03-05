@@ -5,6 +5,8 @@ val __sha = _sha;
 val __md5 = _md5;
 val __generate_from_password = _generate_from_password;
 val __compare_hash_and_password = _compare_hash_and_password;
+val __encrypt = _encrypt;
+val __decrypt = _decrypt;
 
 fun md5(content) {
     ## `md5` is the stringified version of the md5 sum for the string content passed in
@@ -32,4 +34,27 @@ fun sha(str_to_hash, algo=256) {
     ##
     ## sha(str_to_hash: str, algo: 1|256|512=256) -> str
     __sha(str_to_hash, algo)
+}
+
+fun encrypt(pw, data) {
+    ## `encrypt` wil take a pw and the data to encrypt and encrypt it
+    ## with a key made from the pw
+    ##
+    ## it will always return bytes as theres no guarantees its a valid
+    ## string after being encrypted.
+    ##
+    ## encrypt(pw: str|bytes, data: str|bytes) -> bytes
+    __encrypt(pw, data)
+}
+
+fun decrypt(pw, data, as_bytes=false) {
+    ## `decrypt` wil take a pw and the data to decrypt and decrypt it
+    ## with a key derived from the pw
+    ##
+    ## if the data was initially a string then it will return the string
+    ## otherwise, as_bytes should be set to true to return it as bytes
+    ## instead
+    ##
+    ## decrypt(pw: str|bytes, data: bytes, as_bytes: bool=false) -> str|bytes
+    __decrypt(pw, data, as_bytes)
 }

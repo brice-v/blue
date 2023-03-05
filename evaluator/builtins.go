@@ -130,8 +130,10 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.Integer{Value: int64(arg.Pairs.Len())}
 			case *object.Set:
 				return &object.Integer{Value: int64(arg.Elements.Len())}
+			case *object.Bytes:
+				return &object.Integer{Value: int64(len(arg.Value))}
 			default:
-				return newPositionalTypeError("len", 1, "STRING, LIST, MAP, or SET", args[0].Type())
+				return newPositionalTypeError("len", 1, "STRING, LIST, MAP, SET, or BYTES", args[0].Type())
 			}
 		},
 		HelpStr: helpStrArgs{

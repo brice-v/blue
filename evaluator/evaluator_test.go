@@ -425,7 +425,7 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len("")`, 0},
 		{`len("four")`, 4},
 		{`len("hello world")`, 11},
-		{`len(1)`, "PositionalTypeError: `len` expects argument 1 to be STRING, LIST, MAP, or SET. got=INTEGER"},
+		{`len(1)`, "PositionalTypeError: `len` expects argument 1 to be STRING, LIST, MAP, SET, or BYTES. got=INTEGER"},
 		{`len("one", "two")`, "InvalidArgCountError: `len` wrong number of args. got=2, want=1"},
 		{`len([1,2,3,4,5])`, 5},
 	}
