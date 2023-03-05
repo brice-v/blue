@@ -175,7 +175,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			// boolean
 			// null
 			if !isValidJsonValueType(rootNodeType) {
-				return newPositionalTypeError("to_json", 1, "MAP, LIST, NUM (int, uint, float), NULL, BOOLEAN", rootNodeType)
+				return newPositionalTypeError("to_json", 1, "MAP, LIST, NUM, NULL, BOOLEAN", rootNodeType)
 			}
 			switch rootNodeType {
 			case object.MAP_OBJ:
@@ -196,12 +196,11 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				var buf bytes.Buffer
 				jsonString := generateJsonStringFromValidListElements(buf, lObj.Elements)
 				return &object.Stringo{Value: jsonString.String()}
-			case object.STRING_OBJ, object.INTEGER_OBJ, object.UINTEGER_OBJ, object.FLOAT_OBJ, object.NULL_OBJ, object.BOOLEAN_OBJ:
+			default:
+				// We can do this as the default because the arg is verified up above
 				var buf bytes.Buffer
 				jsonString := generateJsonStringFromOtherValidTypes(buf, args[0])
 				return &object.Stringo{Value: jsonString.String()}
-			default:
-				return newPositionalTypeError("to_json", 1, "MAP, LIST, NUM (int, uint, float), NULL, BOOLEAN", rootNodeType)
 			}
 		},
 		HelpStr: helpStrArgs{
