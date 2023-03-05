@@ -2796,8 +2796,8 @@ func (e *Evaluator) evalBigIntegerIntegerInfixExpression(operator string, left, 
 }
 
 func (e *Evaluator) evalBigIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := right.(*object.BigInteger).Value
-	rightVal := left.(*object.Float).Value
+	leftVal := left.(*object.BigInteger).Value
+	rightVal := right.(*object.Float).Value
 	leftBigFloat := decimal.NewFromBigInt(leftVal, 1)
 	rightBigFloat := decimal.NewFromFloat(rightVal)
 	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
