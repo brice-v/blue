@@ -224,12 +224,33 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 	} else if len(args) < len(fun.Parameters) {
 		// loop and while less than the total parameters set environment variables accordingly
 		argsIndx := 0
+		countDefaultParams := 0
+		for _, param := range fun.DefaultParameters {
+			if param != nil {
+				countDefaultParams++
+			}
+		}
 		for paramIndx, param := range fun.Parameters {
 			if fun.DefaultParameters[paramIndx] == nil {
 				if argsIndx < len(args) {
 					env.Set(param.Value, args[argsIndx])
 					argsIndx++
 					continue
+				}
+			} else {
+				// If there is a default param for every arg then we add in
+				// regular args as they are given
+				// defaultArgs also needs to be non-empty and the number of default params
+				// should be greater than the number of args passed in (if we are going
+				// to populate it)
+				if _, ok := defaultArgs[param.Value]; !ok && countDefaultParams > len(args) {
+					// It needs to be not present as a default arg - otherwise
+					// that value will be used
+					if argsIndx < len(args) {
+						env.Set(param.Value, args[argsIndx])
+						argsIndx++
+						continue
+					}
 				}
 			}
 			env.Set(param.Value, fun.DefaultParameters[paramIndx])

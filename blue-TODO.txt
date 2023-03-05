@@ -1,7 +1,5 @@
 TODO:
 
-- [ ] FIX: Make sure that default args are being called correctly with some partial args given
-    - look at color.style function and the way it could be called for different scenarios
 - add way to convert numbers to different formats (possibly for printing?)
 - debugger statement that pops user into repl with access to variables (then just need a way to exit repl and continue execution)
 - still want to have way of starting a blue process like Erlang/Elixr with ways to connect and send over the network, etc.
@@ -49,7 +47,6 @@ TODO:
 
 LATER ON:
 
-- [ ] Support TUI and colors for printing in terminal (and any other special things)
 - [ ] Add code for CLI arg parser
 - [ ] Support unicode throughout
 - [ ] TESTS! Lots of them covering a variety of scenarios
@@ -75,6 +72,10 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Support TUI and colors for printing in terminal (and any other special things)
+    - we got colors but nothing else at the moment
+- [x] FIX: Make sure that default args are being called correctly with some partial args given
+    - look at color.style function and the way it could be called for different scenarios
 - [x] BUG: continue at the end of for loop caused that to return in function? - instead of explicit return
 - [x] Implement `import *` from file so we dont need to use package name
 - [x] Make it so that help() will return custom value for custom functions (via comments)

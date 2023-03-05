@@ -12,7 +12,13 @@ println(s, "With default styling")
 
 
 s = color.style(color.italic, color.magenta, color.green)
-println(s, "With weird styling")
+println(s, "italic, magenta - green bg")
+
+s = color.style(color.italic, color.red)
+println(s, "italic red")
+
+s = color.style(color.bold, color.blue, bg_color=color.white)
+println(s, "bold, blue - bg white")
 
 println("No Styling")
 
