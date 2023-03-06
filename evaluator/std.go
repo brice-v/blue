@@ -16,6 +16,7 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	"hash"
 	"io"
@@ -71,6 +72,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"net":    {File: lib.ReadStdFileToString("net.b"), Builtins: _net_builtin_map},
 	"ui":     {File: lib.ReadStdFileToString("ui.b"), Builtins: _ui_builtin_map},
 	"color":  {File: lib.ReadStdFileToString("color.b"), Builtins: _color_builtin_map},
+	"csv":    {File: lib.ReadStdFileToString("csv.b"), Builtins: _csv_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -1848,6 +1850,193 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("underlined", len(args), 0, "")
 			}
 			return &object.Integer{Value: int64(color.OpUnderscore)}
+		},
+	},
+})
+
+var _csv_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_parse": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 6 {
+				return newInvalidArgCountError("parse", len(args), 6, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("parse", 1, object.STRING_OBJ, args[0].Type())
+			}
+			// parse(data, delimeter=',', named_fields=false, comment=null, lazy_quotes=false, trim_leading_space=false) {
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("parse", 2, object.STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("parse", 3, object.BOOLEAN_OBJ, args[2].Type())
+			}
+			if args[3].Type() != object.NULL_OBJ && args[3].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("parse", 4, "NULL or STRING", args[3].Type())
+			}
+			if args[4].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("parse", 5, object.BOOLEAN_OBJ, args[4].Type())
+			}
+			if args[5].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("parse", 6, object.BOOLEAN_OBJ, args[5].Type())
+			}
+			data := args[0].(*object.Stringo).Value
+			delimeter := args[1].(*object.Stringo).Value
+			namedFields := args[2].(*object.Boolean).Value
+			useComment := false
+			var comment rune
+			if args[3].Type() == object.NULL_OBJ {
+				useComment = true
+			} else {
+				c := args[3].(*object.Stringo).Value
+				if runeLen(c) > 1 {
+					return newError("parse error: comment length is > 1. got=%d '%s'", runeLen(c), c)
+				}
+				comment = []rune(c)[0]
+			}
+			lazyQuotes := args[4].(*object.Boolean).Value
+			trimLeadingSpace := args[5].(*object.Boolean).Value
+			if runeLen(delimeter) > 1 {
+				return newError("parse error: delimeter length is > 1. got=%d '%s'", runeLen(delimeter), delimeter)
+			}
+			dRune := []rune(delimeter)[0]
+
+			reader := csv.NewReader(strings.NewReader(data))
+			reader.Comma = dRune
+			if useComment {
+				reader.Comment = comment
+			}
+			reader.LazyQuotes = lazyQuotes
+			reader.TrimLeadingSpace = trimLeadingSpace
+
+			rows, err := reader.ReadAll()
+			if err != nil {
+				return newError("parse error: %s", err.Error())
+			}
+			if !namedFields {
+				// Here we are just returning a list of lists
+				allRows := &object.List{
+					Elements: make([]object.Object, len(rows)),
+				}
+				for i, row := range rows {
+					rowList := &object.List{
+						Elements: make([]object.Object, len(row)),
+					}
+					for j, e := range row {
+						rowList.Elements[j] = &object.Stringo{Value: e}
+					}
+					allRows.Elements[i] = rowList
+				}
+				return allRows
+			}
+
+			if len(rows) < 1 {
+				return newError("parse error: named fields requires at least 1 row in the csv to act as the header")
+			}
+			headerRow := rows[0]
+			rows = rows[1:]
+			allRows := &object.List{
+				Elements: make([]object.Object, len(rows)),
+			}
+			for i, row := range rows {
+				if len(row) != len(headerRow) {
+					return newError("parse error: row length did not match header row length. got=%d, want=%d", len(row), len(headerRow))
+				}
+				m := object.NewOrderedMap[string, object.Object]()
+				for i, v := range row {
+					m.Set(headerRow[i], &object.Stringo{Value: v})
+				}
+				allRows.Elements[i] = object.CreateMapObjectForGoMap(*m)
+			}
+			return allRows
+		},
+	},
+	"_dump": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("dump", len(args), 3, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("dump", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("dump", 2, object.STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("dump", 3, object.BOOLEAN_OBJ, args[2].Type())
+			}
+			l := args[0].(*object.List).Elements
+			comma := args[1].(*object.Stringo).Value
+			if runeLen(comma) > 1 {
+				return newError("dump error: comma needs to be 1 character long. got=%d", runeLen(comma))
+			}
+			c := []rune(comma)[0]
+			useCrlf := args[2].(*object.Boolean).Value
+			if len(l) < 1 {
+				return newError("dump error: list was empty. got=%d", len(l))
+			}
+			if l[0].Type() != object.MAP_OBJ && l[0].Type() != object.LIST_OBJ {
+				return newError("dump error: list should be a list of maps, or list of lists. got=%s", l[0].Type())
+			}
+			offset := 0
+			if l[0].Type() == object.MAP_OBJ {
+				// Account for headers
+				offset = 1
+			}
+			allRows := make([][]string, len(l)+offset)
+
+			// checking types and info
+			if l[0].Type() == object.MAP_OBJ {
+				var keys []object.HashKey
+				for i, e := range l {
+					if e.Type() != object.MAP_OBJ {
+						return newError("dump error: invalid data. for rows that should be MAPs, found %s", e.Type())
+					}
+					// Validate that all the keys are at least the same - then we can use inspect
+					// to get the actual keys and also use inspect for all the values
+					// May just want to use a separate loops
+					mps := e.(*object.Map).Pairs
+					if keys == nil && i == 0 {
+						keys = append(keys, mps.Keys...)
+						for _, k := range mps.Keys {
+							mp, _ := mps.Get(k)
+							// This is for the headers
+							allRows[i] = append(allRows[i], mp.Key.Inspect())
+							allRows[i+offset] = append(allRows[i+offset], mp.Value.Inspect())
+						}
+					} else {
+						if len(keys) != len(mps.Keys) {
+							return newError("dump error: invalid data. found a row where number of keys did not match")
+						}
+						for j, k := range mps.Keys {
+							if keys[j] != k {
+								return newError("dump error: invalid data. found a row where the key at a certain position did not match the expected")
+							}
+							mp, _ := mps.Get(k)
+							allRows[i+offset] = append(allRows[i+offset], mp.Value.Inspect())
+						}
+					}
+				}
+			} else {
+				for i, e := range l {
+					if e.Type() != object.LIST_OBJ {
+						return newError("dump error: invalid data. for rows that should be LISTs, found %s", e.Type())
+					}
+					rowL := e.(*object.List).Elements
+					for _, elem := range rowL {
+						// No offset should be needed here (but if we added it, it would just be 0)
+						allRows[i] = append(allRows[i], elem.Inspect())
+					}
+				}
+			}
+			sb := &strings.Builder{}
+			w := csv.NewWriter(sb)
+			w.Comma = c
+			w.UseCRLF = useCrlf
+			err := w.WriteAll(allRows)
+			if err != nil {
+				return newError("dump error: csv writer error: %s", err.Error())
+			}
+			return &object.Stringo{Value: sb.String()}
 		},
 	},
 })
