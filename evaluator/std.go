@@ -1897,15 +1897,15 @@ var _csv_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				useComment = true
 			} else {
 				c := args[3].(*object.Stringo).Value
-				if runeLen(c) > 1 {
-					return newError("parse error: comment length is > 1. got=%d '%s'", runeLen(c), c)
+				if runeLen(c) != 1 {
+					return newError("parse error: comment length is not 1. got=%d '%s'", runeLen(c), c)
 				}
 				comment = []rune(c)[0]
 			}
 			lazyQuotes := args[4].(*object.Boolean).Value
 			trimLeadingSpace := args[5].(*object.Boolean).Value
-			if runeLen(delimeter) > 1 {
-				return newError("parse error: delimeter length is > 1. got=%d '%s'", runeLen(delimeter), delimeter)
+			if runeLen(delimeter) != 1 {
+				return newError("parse error: delimeter length is not 1. got=%d '%s'", runeLen(delimeter), delimeter)
 			}
 			dRune := []rune(delimeter)[0]
 
@@ -1975,7 +1975,7 @@ var _csv_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			l := args[0].(*object.List).Elements
 			comma := args[1].(*object.Stringo).Value
-			if runeLen(comma) > 1 {
+			if runeLen(comma) != 1 {
 				return newError("dump error: comma needs to be 1 character long. got=%d", runeLen(comma))
 			}
 			c := []rune(comma)[0]
