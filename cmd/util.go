@@ -149,5 +149,23 @@ func getDocStringFor(name string) string {
 		// Get module's public function help string
 		return e.GetStdModPublicFunctionHelpString(name)
 	}
+	if isFile(name) {
+		fdata, err := os.ReadFile(name)
+		if err != nil {
+			log.Fatalf("`doc` error trying to read file `%s`. error: %s", name, err.Error())
+		}
+		l := lexer.New(string(fdata), name)
+		p := parser.New(l)
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			for _, msg := range p.Errors() {
+				fmt.Printf("ParserError in `%s` module: %s\n", name, msg)
+			}
+			os.Exit(1)
+		}
+		e.Eval(program)
+		pubFunHelpStr := e.GetPublicFunctionHelpString()
+		return evaluator.CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr) + "\n"
+	}
 	return ""
 }

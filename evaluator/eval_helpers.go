@@ -282,7 +282,7 @@ func createHelpStringFromBodyTokens(functionName string, funObj *object.Function
 	return fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, funObj.Type(), functionName, funObj.Inspect())
 }
 
-func createHelpStringFromProgramTokens(modName string, helpStrTokens []string, pubFunHelpStr string) string {
+func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, pubFunHelpStr string) string {
 	explanation := ""
 	if len(helpStrTokens) == 1 {
 		explanation = helpStrTokens[0]
@@ -1164,4 +1164,9 @@ func (e *Evaluator) GetStdModPublicFunctionHelpString(modName string) string {
 		panic("should not fail - mod '" + modName + "' should already be added to env")
 	}
 	return modObj.Help() + "\n"
+}
+
+func (e *Evaluator) GetPublicFunctionHelpString() string {
+	// passthrough for use by `doc` command
+	return e.env.GetPublicFunctionHelpString()
 }

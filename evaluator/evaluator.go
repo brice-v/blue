@@ -543,7 +543,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	mod := &object.Module{
 		Name:    modName,
 		Env:     newE.env,
-		HelpStr: createHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr),
+		HelpStr: CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr),
 	}
 	if node.Alias != nil {
 		e.env.Set(node.Alias.Value, mod)

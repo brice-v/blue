@@ -111,7 +111,7 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 		os.Exit(1)
 	}
 	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
-	mod := &object.Module{Name: name, Env: newE.env, HelpStr: createHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)}
+	mod := &object.Module{Name: name, Env: newE.env, HelpStr: CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)}
 	e.env.Set(name, mod)
 }
 
