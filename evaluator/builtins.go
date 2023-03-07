@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime/metrics"
 	"strings"
+	"time"
 
 	"github.com/gobuffalo/plush"
 	"github.com/gookit/color"
@@ -369,6 +370,17 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "set([1,2,2,3]) => {1,2,3}",
 		}.String(),
+	},
+	"int": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("int", len(args), 1, "")
+			}
+			if args[0].Type() == object.FLOAT_OBJ {
+				return &object.Integer{Value: int64(args[0].(*object.Float).Value)}
+			}
+			panic("TODO: int not handled for type " + args[0].Type())
+		},
 	},
 	"eval_template": {
 		Fun: func(args ...object.Object) object.Object {
@@ -872,6 +884,39 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Boolean{Value: json.Valid([]byte(s))}
 		},
 	},
+	"wait": {
+		Fun: func(args ...object.Object) object.Object {
+			// This function will avoid returning errors
+			// but that means random inputs will technically be allowed
+			pidsToWaitFor := []uint64{}
+			for _, arg := range args {
+				if pids, ok := getListOfPids(arg); ok {
+					pidsToWaitFor = append(pidsToWaitFor, pids...)
+					continue
+				}
+				if arg.Type() == object.MAP_OBJ {
+					t, v, ok := getBasicObject(arg)
+					if !ok || t != "pid" {
+						continue
+					}
+					pidsToWaitFor = append(pidsToWaitFor, v)
+				}
+			}
+			for {
+				allDone := false
+				for _, pid := range pidsToWaitFor {
+					_, ok := ProcessMap.Get(pid)
+					allDone = allDone || ok
+				}
+				// They should all be false for us to exit
+				if !allDone {
+					return NULL
+				}
+				// 10us sleep between round of checks?
+				time.Sleep(10 * time.Microsecond)
+			}
+		},
+	},
 })
 
 func medianBucket(h *metrics.Float64Histogram) float64 {
@@ -931,4 +976,22 @@ func getBasicObject(arg object.Object) (string, uint64, bool) {
 	}
 	v := mp2.Value.(*object.UInteger).Value
 	return t, v, true
+}
+
+func getListOfPids(arg object.Object) ([]uint64, bool) {
+	if arg.Type() != object.LIST_OBJ {
+		return nil, false
+	}
+	pids := []uint64{}
+	for _, e := range arg.(*object.List).Elements {
+		if e.Type() != object.MAP_OBJ {
+			return nil, false
+		}
+		t, v, ok := getBasicObject(e)
+		if !ok || t != "pid" {
+			return nil, false
+		}
+		pids = append(pids, v)
+	}
+	return pids, true
 }

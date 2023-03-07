@@ -19,6 +19,8 @@ val log2e = 1 / ln2;
 val ln10 = 2.30258509299404568401799145468436420760110148862877297603332790; # https://oeis.org/A002392
 val log10e = 1 / ln10;
 
+val __rand = _rand;
+
 fun max(x, y) {
     ## `max` will return the max of the 2 numbers passed in
     ##
@@ -68,4 +70,11 @@ fun sum(x) {
         _sum += i;
     }
     return _sum;
+}
+
+fun rand() {
+    ## `rand` returns a random float between 0 and 1
+    ##
+    ## rand() -> float
+    __rand()
 }

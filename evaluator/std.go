@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	mr "math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -898,6 +899,14 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 })
 
 var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_rand": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("rand", len(args), 0, "")
+			}
+			return &object.Float{Value: mr.Float64()}
+		},
+	},
 	// "_abs": {},
 	// TODO: Do we need to / want to support BigFloat/BigDecimal as well? with whatever is there
 	// func Abs(x float64) float64

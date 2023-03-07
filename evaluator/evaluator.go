@@ -656,7 +656,10 @@ func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
 		}
 		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, buf.String())
 	}
-	// Delete from concurrent map and decrement pidCount
+	// Delete from concurrent map and close channel (not 100% sure its necessary)
+	if process, ok := ProcessMap.Get(pid); ok {
+		close(process.Ch)
+	}
 	ProcessMap.Remove(pid)
 }
 
