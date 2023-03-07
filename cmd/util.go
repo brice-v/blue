@@ -138,3 +138,16 @@ func evalString(strToEval string) {
 	// 	os.Stdout.WriteString(evaluated.Inspect() + "\n")
 	// }
 }
+
+func getDocStringFor(name string) string {
+	e := evaluator.New()
+	if name == "std" {
+		// Get all std modules public function help strings
+		return e.GetAllStdPublicFunctionHelpStrings()
+	}
+	if e.IsStd(name) {
+		// Get module's public function help string
+		return e.GetStdModPublicFunctionHelpString(name)
+	}
+	return ""
+}

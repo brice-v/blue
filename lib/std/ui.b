@@ -125,7 +125,7 @@ fun entry(is_multiline=false) {
 }
 
 fun entry_get_text(entry_id) {
-    ## `entry_get_text`
+    ## `entry_get_text` gets the text from an entry widget
     ## note: this function should mostly be called with the core function 'get_text'
     ##
     ## NOTE: this can only be called on an entry_id belonging to an entry object

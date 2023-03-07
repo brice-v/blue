@@ -118,7 +118,13 @@ func (e *Environment) GetPublicFunctionHelpString() string {
 					if i == len(vSplitFurther)-1 {
 						nl = ""
 					}
-					out.WriteString(fmt.Sprintf("%s %s%s", pad, partStr, nl))
+					prefixNl := ""
+					if i == 1 {
+						prefixNl = "\n"
+					} else {
+						prefixNl = ""
+					}
+					out.WriteString(fmt.Sprintf("%s%s %s%s", prefixNl, pad, partStr, nl))
 				}
 			}
 		}

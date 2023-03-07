@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -1125,4 +1126,42 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 			return object.CreateBasicMapObject("ui", formId)
 		},
 	}
+}
+
+// Helper for `doc` command
+func (e *Evaluator) GetAllStdPublicFunctionHelpStrings() string {
+	mods := make([]string, len(_std_mods))
+	i := 0
+	for mod := range _std_mods {
+		mods[i] = mod
+		i++
+	}
+	// Sort by key to always have the docs in order
+	sort.Strings(mods)
+	var out bytes.Buffer
+	for i, mod := range mods {
+		e.AddStdLibToEnv(mod)
+		modObj, ok := e.env.Get(mod)
+		if !ok {
+			panic("should not fail - mod '" + mod + "' should already be added to env")
+		}
+		out.WriteString(modObj.Help())
+		out.WriteByte('\n')
+		if i != len(mods) {
+			out.WriteByte('\n')
+		}
+	}
+	return out.String()
+}
+
+func (e *Evaluator) GetStdModPublicFunctionHelpString(modName string) string {
+	if !e.IsStd(modName) {
+		panic("should not fail - mod '" + modName + "' should already be verified by caller")
+	}
+	e.AddStdLibToEnv(modName)
+	modObj, ok := e.env.Get(modName)
+	if !ok {
+		panic("should not fail - mod '" + modName + "' should already be added to env")
+	}
+	return modObj.Help() + "\n"
 }
