@@ -122,6 +122,10 @@ The commands are:
             with the runtime included
             (bundle accepts a '-d' flag for debugging)
     eval    eval the given string
+	doc     print the help strings of all publicly accesible
+	        functions in the given filepath or module
+			note: the file/module will be evaluated to gather
+			all functions - so any side effects may take place
     help    prints this help message
     version prints the current version
 
