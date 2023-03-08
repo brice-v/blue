@@ -366,6 +366,18 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 			return indx
 		}
+		if left.Type() == object.MAP_OBJ {
+			// If its a map we want to check if it actually returns NULL with the key
+			obj, ok := e.evalMapIndexExpression(left.(*object.Map), indx)
+			// ok means we returned NULL
+			// IF we set a variable this way (as in x.println = 'something')
+			// we cant call like so 'x.println()'
+			if !ok {
+				// If it didnt return null - we are probably using a builtin function
+				// name as a key
+				return obj
+			}
+		}
 		val := e.tryCreateValidBuiltinForDotCall(left, indx, node.Left)
 		if val != nil {
 			return val
@@ -1810,6 +1822,8 @@ func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
 			key = &object.Stringo{Value: ident.String()}
 		} else if isError(key) {
 			return key
+		} else if key.Type() == object.BUILTIN_OBJ {
+			key = &object.Stringo{Value: keyNode.String()}
 		}
 
 		mapKey, ok := key.(object.Hashable)
@@ -1836,7 +1850,8 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 	case left.Type() == object.SET_OBJ:
 		return e.evalSetIndexExpression(left, indx)
 	case left.Type() == object.MAP_OBJ:
-		return e.evalMapIndexExpression(left, indx)
+		obj, _ := e.evalMapIndexExpression(left, indx)
+		return obj
 	case left.Type() == object.MODULE_OBJ:
 		return e.evalModuleIndexExpression(left, indx)
 	case left.Type() == object.STRING_OBJ:
@@ -1859,20 +1874,21 @@ func (e *Evaluator) evalModuleIndexExpression(module, indx object.Object) object
 	return val
 }
 
-func (e *Evaluator) evalMapIndexExpression(mapObject, indx object.Object) object.Object {
+// If this returns bool as true it means the index key was not found in the map
+func (e *Evaluator) evalMapIndexExpression(mapObject, indx object.Object) (object.Object, bool) {
 	mapObj := mapObject.(*object.Map)
 
 	key, ok := indx.(object.Hashable)
 	if !ok {
-		return newError("unusable as map key: %s", indx.Type())
+		return newError("unusable as a map key: %s", indx.Type()), false
 	}
 
 	pair, ok := mapObj.Pairs.Get(key.HashKey())
 	if !ok {
-		return NULL
+		return NULL, true
 	}
 
-	return pair.Value
+	return pair.Value, false
 }
 
 func (e *Evaluator) evalSetIndexExpression(set, indx object.Object) object.Object {

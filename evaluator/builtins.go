@@ -884,7 +884,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Boolean{Value: json.Valid([]byte(s))}
 		},
 	},
-	"wait_for": {
+	"wait": {
 		Fun: func(args ...object.Object) object.Object {
 			// This function will avoid returning errors
 			// but that means random inputs will technically be allowed

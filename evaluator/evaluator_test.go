@@ -309,7 +309,7 @@ func TestErrorHandling(t *testing.T) {
 		},
 		{
 			`{"name": "Monkey"}[fun(x) { x }];`,
-			"unusable as map key: FUNCTION",
+			"unusable as a map key: FUNCTION",
 		},
 	}
 	for _, tt := range tests {
