@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/gobuffalo/plush"
 	"github.com/gookit/color"
 	clone "github.com/huandu/go-clone"
+	"github.com/shopspring/decimal"
 )
 
 type helpStrArgs struct {
@@ -371,15 +373,114 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "set([1,2,2,3]) => {1,2,3}",
 		}.String(),
 	},
+	// This function is lossy
 	"int": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("int", len(args), 1, "")
 			}
-			if args[0].Type() == object.FLOAT_OBJ {
+			switch args[0].Type() {
+			case object.FLOAT_OBJ:
 				return &object.Integer{Value: int64(args[0].(*object.Float).Value)}
+			case object.UINTEGER_OBJ:
+				return &object.Integer{Value: int64(args[0].(*object.UInteger).Value)}
+			case object.BIG_INTEGER_OBJ:
+				return &object.Integer{Value: args[0].(*object.BigInteger).Value.Int64()}
+			case object.BIG_FLOAT_OBJ:
+				return &object.Integer{Value: args[0].(*object.BigFloat).Value.IntPart()}
+			case object.INTEGER_OBJ:
+				return args[0]
+			default:
+				return newError("`int` error: unsupported type '%s'", args[0].Type())
 			}
-			panic("TODO: int not handled for type " + args[0].Type())
+		},
+	},
+	// This function is lossy
+	"float": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("float", len(args), 1, "")
+			}
+			switch args[0].Type() {
+			case object.INTEGER_OBJ:
+				return &object.Float{Value: float64(args[0].(*object.Integer).Value)}
+			case object.UINTEGER_OBJ:
+				return &object.Float{Value: float64(args[0].(*object.UInteger).Value)}
+			case object.BIG_INTEGER_OBJ:
+				return &object.Float{Value: float64(args[0].(*object.BigInteger).Value.Int64())}
+			case object.BIG_FLOAT_OBJ:
+				return &object.Float{Value: args[0].(*object.BigFloat).Value.InexactFloat64()}
+			case object.FLOAT_OBJ:
+				return args[0]
+			default:
+				return newError("`float` error: unsupported type '%s'", args[0].Type())
+			}
+		},
+	},
+	// This function is lossy
+	"bigint": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("bigint", len(args), 1, "")
+			}
+			switch args[0].Type() {
+			case object.INTEGER_OBJ:
+				return &object.BigInteger{Value: new(big.Int).SetInt64(args[0].(*object.Integer).Value)}
+			case object.FLOAT_OBJ:
+				return &object.BigInteger{Value: new(big.Int).SetInt64(int64(args[0].(*object.Float).Value))}
+			case object.UINTEGER_OBJ:
+				return &object.BigInteger{Value: new(big.Int).SetUint64(args[0].(*object.UInteger).Value)}
+			case object.BIG_FLOAT_OBJ:
+				return &object.BigInteger{Value: args[0].(*object.BigFloat).Value.BigInt()}
+			case object.BIG_INTEGER_OBJ:
+				return args[0]
+			default:
+				return newError("`bigint` error: unsupported type '%s'", args[0].Type())
+			}
+		},
+	},
+	// This function is lossy
+	"bigfloat": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("bigfloat", len(args), 1, "")
+			}
+			switch args[0].Type() {
+			case object.INTEGER_OBJ:
+				return &object.BigFloat{Value: decimal.NewFromInt(args[0].(*object.Integer).Value)}
+			case object.FLOAT_OBJ:
+				return &object.BigFloat{Value: decimal.NewFromFloat(args[0].(*object.Float).Value)}
+			case object.UINTEGER_OBJ:
+				return &object.BigFloat{Value: decimal.NewFromBigInt(new(big.Int).SetUint64(args[0].(*object.UInteger).Value), 1)}
+			case object.BIG_INTEGER_OBJ:
+				return &object.BigFloat{Value: decimal.NewFromBigInt(args[0].(*object.BigInteger).Value, 1)}
+			case object.BIG_FLOAT_OBJ:
+				return args[0]
+			default:
+				return newError("`bigfloat` error: unsupported type '%s'", args[0].Type())
+			}
+		},
+	},
+	// This function is lossy
+	"uint": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("uint", len(args), 1, "")
+			}
+			switch args[0].Type() {
+			case object.INTEGER_OBJ:
+				return &object.UInteger{Value: uint64(args[0].(*object.Integer).Value)}
+			case object.FLOAT_OBJ:
+				return &object.UInteger{Value: uint64(args[0].(*object.Float).Value)}
+			case object.BIG_INTEGER_OBJ:
+				return &object.UInteger{Value: args[0].(*object.BigInteger).Value.Uint64()}
+			case object.BIG_FLOAT_OBJ:
+				return &object.UInteger{Value: args[0].(*object.BigFloat).Value.BigInt().Uint64()}
+			case object.UINTEGER_OBJ:
+				return args[0]
+			default:
+				return newError("`uint` error: unsupported type '%s'", args[0].Type())
+			}
 		},
 	},
 	"eval_template": {
