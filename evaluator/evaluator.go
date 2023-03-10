@@ -1277,7 +1277,12 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		// Check the left most item in the index expression to see if it contains
 		// an identifier that is immutable
 		removeLeftParens := strings.ReplaceAll(node.Left.String(), "(", "")
-		rootObjIdent := strings.Split(removeLeftParens, "[")[0]
+		var rootObjIdent string
+		if strings.Contains("[", removeLeftParens) {
+			rootObjIdent = strings.Split(removeLeftParens, "[")[0]
+		} else {
+			rootObjIdent = strings.Split(removeLeftParens, ".")[0]
+		}
 		if ok := e.env.IsImmutable(rootObjIdent); ok {
 			return newError("'" + rootObjIdent + "' is immutable")
 		}
