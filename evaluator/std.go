@@ -49,6 +49,7 @@ import (
 	ws "github.com/gorilla/websocket"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
+	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
 	"golang.org/x/crypto/bcrypt"
@@ -74,6 +75,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"ui":     {File: lib.ReadStdFileToString("ui.b"), Builtins: _ui_builtin_map},
 	"color":  {File: lib.ReadStdFileToString("color.b"), Builtins: _color_builtin_map},
 	"csv":    {File: lib.ReadStdFileToString("csv.b"), Builtins: _csv_builtin_map},
+	"psutil": {File: lib.ReadStdFileToString("psutil.b"), Builtins: _psutil_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -116,7 +118,19 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 			buf.WriteString(lexer.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
-		fmt.Printf("EvaluatorError in `%s` module: %s", name, buf.String())
+		msg := fmt.Sprintf("%smodule `%s`: %s", consts.EVAL_ERROR_PREFIX, name, buf.String())
+		splitMsg := strings.Split(msg, "\n")
+		for i, s := range splitMsg {
+			if i == 0 {
+				consts.ErrorPrinter(s + "\n")
+				continue
+			}
+			delimeter := ""
+			if i != len(splitMsg)-1 {
+				delimeter = "\n"
+			}
+			fmt.Printf("%s%s", s, delimeter)
+		}
 		os.Exit(1)
 	}
 	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
@@ -2054,6 +2068,69 @@ var _csv_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("dump error: csv writer error: %s", err.Error())
 			}
 			return &object.Stringo{Value: sb.String()}
+		},
+	},
+})
+
+var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_cpu_usage_percent": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("cpu_usage_percent", len(args), 0, "")
+			}
+			usages, err := cpu.Percent(0, true)
+			if err != nil {
+				return newError("`cpu_usage_percent` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(usages))}
+			for i, v := range usages {
+				l.Elements[i] = &object.Float{Value: v}
+			}
+			return l
+		},
+	},
+	"_cpu_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("cpu_info", len(args), 0, "")
+			}
+			infos, err := cpu.Info()
+			if err != nil {
+				return newError("`cpu_info` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(infos))}
+			for i, v := range infos {
+				l.Elements[i] = &object.Stringo{Value: v.String()}
+			}
+			return l
+		},
+	},
+	"_cpu_time_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("cpu_time_info", len(args), 0, "")
+			}
+			infos, err := cpu.Times(true)
+			if err != nil {
+				return newError("`cpu_time_info` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(infos))}
+			for i, v := range infos {
+				l.Elements[i] = &object.Stringo{Value: v.String()}
+			}
+			return l
+		},
+	},
+	"_cpu_count": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("cpu_count", len(args), 0, "")
+			}
+			count, err := cpu.Counts(true)
+			if err != nil {
+				return newError("`cpu_count` error: %s", err.Error())
+			}
+			return &object.Integer{Value: int64(count)}
 		},
 	},
 })
