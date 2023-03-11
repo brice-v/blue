@@ -92,7 +92,15 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		for _, msg := range p.Errors() {
-			fmt.Printf("ParserError in `%s` module: %s\n", name, msg)
+			splitMsg := strings.Split(msg, "\n")
+			firstPart := fmt.Sprintf("%smodule `%s`: %s\n", consts.PARSER_ERROR_PREFIX, name, splitMsg[0])
+			consts.ErrorPrinter(firstPart)
+			for i, s := range splitMsg {
+				if i == 0 {
+					continue
+				}
+				fmt.Println(s)
+			}
 		}
 		os.Exit(1)
 	}

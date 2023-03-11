@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -141,7 +140,8 @@ func bundleFile(fpath string) error {
 
 func changeBackToSavedDir(savedCurrentDir string) {
 	if err := os.Chdir(savedCurrentDir); err != nil {
-		log.Fatalf("`changeBackToSavedDir` error: %s\n", err.Error())
+		consts.ErrorPrinter("`changeBackToSavedDir` error: %s\n", err.Error())
+		os.Exit(1)
 	}
 }
 

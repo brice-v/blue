@@ -354,7 +354,7 @@ func (e *Evaluator) EvalString(s string) (object.Object, error) {
 	pErrors := p.Errors()
 	if len(pErrors) != 0 {
 		for _, err := range pErrors {
-			fmt.Printf("ParserError in `eval`: %s\n", err)
+			consts.ErrorPrinter("ParserError in `eval`: %s\n", err)
 		}
 		return nil, fmt.Errorf("failed to `eval` string, found '%d' parser errors", len(pErrors))
 	}
@@ -511,7 +511,8 @@ func decodeInterfaceToObject(value interface{}) object.Object {
 		}
 		return object.CreateMapObjectForGoMap(*mapObj)
 	default:
-		log.Fatalf("HANDLE TYPE = %T", x)
+		consts.ErrorPrinter("decodeInterfaceToObject: HANDLE TYPE = %T\n", x)
+		os.Exit(1)
 	}
 	return NULL
 }
@@ -573,10 +574,12 @@ func blueObjectToGoObject(blueObject object.Object) interface{} {
 		for _, k := range m.Pairs.Keys {
 			mp, _ := m.Pairs.Get(k)
 			if mp.Key.Type() != object.STRING_OBJ {
-				log.Fatalf("blueObjectToGoObject: Map must only have string keys. got=%s", mp.Key.Type())
+				consts.ErrorPrinter("blueObjectToGoObject: Map must only have string keys. got=%s\n", mp.Key.Type())
+				os.Exit(1)
 			}
 			if mp.Value.Type() == object.MAP_OBJ {
-				log.Fatalf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
+				consts.ErrorPrinter("blueObjectToGoObject: Map must not have map values. got=%s\n", mp.Value.Type())
+				os.Exit(1)
 			}
 			pairs[mp.Key.(*object.Stringo).Value] = blueObjectToGoObject(mp.Value)
 		}
@@ -586,13 +589,15 @@ func blueObjectToGoObject(blueObject object.Object) interface{} {
 		elements := make([]interface{}, len(l))
 		for i, e := range l {
 			if e.Type() == object.LIST_OBJ {
-				log.Fatalf("blueObjectToGoObject: List of lists unsupported")
+				consts.ErrorPrinter("blueObjectToGoObject: List of lists unsupported\n")
+				os.Exit(1)
 			}
 			elements[i] = blueObjectToGoObject(e)
 		}
 		return elements
 	default:
-		log.Fatalf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
+		consts.ErrorPrinter("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)\n", blueObject.Type(), blueObject)
+		os.Exit(1)
 	}
 	return nil
 }

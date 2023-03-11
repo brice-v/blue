@@ -9,12 +9,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/user"
 	"strings"
 
 	"github.com/chzyer/readline"
+	"github.com/gookit/color"
 )
 
 // PROMPT is printed to the screen every time the user can type
@@ -63,9 +63,10 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", consts.VERSION, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {
-		log.Fatalf("Failed to instantiate readline| Error: %s", err)
+		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
+		os.Exit(1)
 	}
-	fmt.Println(header)
+	color.New(color.FgBlue, color.Bold).Println(header)
 	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
 	for {
@@ -75,7 +76,8 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 				println(err.Error())
 				os.Exit(0)
 			}
-			log.Fatalf("Failed to read line: Unexpected Error: %s", err.Error())
+			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s", err.Error())
+			os.Exit(1)
 			break
 		}
 
@@ -118,7 +120,8 @@ func startLexerRepl(in io.Reader, out io.Writer, username string) {
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: LEXER | User: %s", consts.VERSION, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {
-		log.Fatalf("Failed to instantiate readline| Error: %s", err)
+		consts.ErrorPrinter("Failed to instantiate readline| Error: %s\n", err)
+		os.Exit(1)
 	}
 	fmt.Println(header)
 	for {
@@ -128,7 +131,8 @@ func startLexerRepl(in io.Reader, out io.Writer, username string) {
 				println(err.Error())
 				os.Exit(0)
 			}
-			log.Fatalf("Failed to read line: Unexpected Error: %s", err.Error())
+			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
+			os.Exit(1)
 			break
 		}
 
@@ -143,7 +147,15 @@ func startLexerRepl(in io.Reader, out io.Writer, username string) {
 // PrintParserErrors prints the parser errors to the output
 func PrintParserErrors(out io.Writer, errors []string) {
 	for _, msg := range errors {
-		io.WriteString(out, consts.PARSER_ERROR_PREFIX+msg+"\n")
+		splitMsg := strings.Split(msg, "\n")
+		firstPart := consts.PARSER_ERROR_PREFIX + splitMsg[0] + "\n"
+		consts.ErrorPrinter(firstPart)
+		for i, s := range splitMsg {
+			if i == 0 {
+				continue
+			}
+			fmt.Fprintf(out, "%s\n", s)
+		}
 	}
 }
 
@@ -153,7 +165,8 @@ func startParserRepl(in io.Reader, out io.Writer, username string) {
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: PARSER | User: %s", consts.VERSION, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {
-		log.Fatalf("Failed to instantiate readline| Error: %s", err)
+		consts.ErrorPrinter("Failed to instantiate readline| Error: %s\n", err)
+		os.Exit(1)
 	}
 	fmt.Println(header)
 	for {
@@ -163,7 +176,8 @@ func startParserRepl(in io.Reader, out io.Writer, username string) {
 				println(err.Error())
 				os.Exit(0)
 			}
-			log.Fatalf("Failed to read line: Unexpected Error: %s", err.Error())
+			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
+			os.Exit(1)
 			break
 		}
 

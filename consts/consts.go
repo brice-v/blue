@@ -1,5 +1,7 @@
 package consts
 
+import "github.com/gookit/color"
+
 // VERSION is the version number of the blang repl and language
 // it will be incremented as seen fit
 const VERSION = "0.1.7"
@@ -11,3 +13,6 @@ const EVAL_ERROR_PREFIX = "EvaluatorError: "
 const CORE_FILE_PATH = "<embed: core/core.b>"
 
 const BLUE_INSTALL_PATH = "BLUE_INSTALL_PATH"
+const BLUE_NO_COLOR = "BLUE_NO_COLOR"
+
+var ErrorPrinter = color.New(color.FgRed, color.Bold).Printf

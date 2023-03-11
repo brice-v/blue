@@ -518,7 +518,15 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		for _, msg := range p.Errors() {
-			io.WriteString(os.Stdout, consts.PARSER_ERROR_PREFIX+msg+"\n")
+			splitMsg := strings.Split(msg, "\n")
+			firstPart := fmt.Sprintf("%s%s\n", consts.PARSER_ERROR_PREFIX, splitMsg[0])
+			consts.ErrorPrinter(firstPart)
+			for i, s := range splitMsg {
+				if i == 0 {
+					continue
+				}
+				fmt.Println(s)
+			}
 		}
 		return newError("%sFile '%s' contains Parser Errors.", consts.PARSER_ERROR_PREFIX, name)
 	}

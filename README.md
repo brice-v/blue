@@ -141,5 +141,6 @@ evaluated)
 * set `BLUE_INSTALL_PATH` to the directory where `blue` is installed to
     * this is used for the bundler currently
     * if there are no files at the given path `git` will be used to clone the repo there once to cache it
+* set `NO_COLOR` or `BLUE_NO_COLOR` to `true` to disable color printing in the terminal
 * my `BLUE_INSTALL_PATH` is set as `export BLUE_INSTALL_PATH=~/.blue/src`
 * my `blue` exe is located at `~/.blue/bin` with PATH set to `export PATH=$PATH:~/.blue/bin`

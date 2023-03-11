@@ -18,7 +18,7 @@ func (e *Evaluator) AddCoreLibToEnv() {
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		for _, msg := range p.Errors() {
-			fmt.Printf("ParserError in core.b: %s\n", msg)
+			consts.ErrorPrinter("ParserError in core.b: %s\n", msg)
 		}
 		os.Exit(1)
 	}

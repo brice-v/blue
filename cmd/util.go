@@ -11,9 +11,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var out = os.Stdout
@@ -42,7 +42,8 @@ func isDir(dirPath string) bool {
 func lexFile(fpath string) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		log.Fatalf("`lexFile` error trying to read file `%s`. error: %s", fpath, err.Error())
+		consts.ErrorPrinter("`lexFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
+		os.Exit(1)
 	}
 
 	l := lexer.New(string(data), fpath)
@@ -56,7 +57,8 @@ func lexFile(fpath string) {
 func parseFile(fpath string) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		log.Fatalf("`parseFile` error trying to read file `%s`. error: %s", fpath, err.Error())
+		consts.ErrorPrinter("`parseFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
+		os.Exit(1)
 	}
 
 	l := lexer.New(string(data), fpath)
@@ -76,7 +78,8 @@ func parseFile(fpath string) {
 func evalFile(fpath string) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		log.Fatalf("`evalFile` error trying to read file `%s`. error: %s", fpath, err.Error())
+		consts.ErrorPrinter("`evalFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
+		os.Exit(1)
 	}
 
 	l := lexer.New(string(data), fpath)
@@ -100,7 +103,19 @@ func evalFile(fpath string) {
 			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
-		out.WriteString(fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String()))
+		msg := fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String())
+		splitMsg := strings.Split(msg, "\n")
+		for i, s := range splitMsg {
+			if i == 0 {
+				consts.ErrorPrinter(s + "\n")
+				continue
+			}
+			delimeter := ""
+			if i != len(splitMsg)-1 {
+				delimeter = "\n"
+			}
+			fmt.Fprintf(out, "%s%s", s, delimeter)
+		}
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values
@@ -130,7 +145,19 @@ func evalString(strToEval string) {
 			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
-		out.WriteString(fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String()))
+		msg := fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String())
+		splitMsg := strings.Split(msg, "\n")
+		for i, s := range splitMsg {
+			if i == 0 {
+				consts.ErrorPrinter(s + "\n")
+				continue
+			}
+			delimeter := ""
+			if i != len(splitMsg)-1 {
+				delimeter = "\n"
+			}
+			fmt.Fprintf(out, "%s%s", s, delimeter)
+		}
 		os.Exit(1)
 	}
 	// NOTE: This could be used for debugging programs return values
@@ -152,14 +179,23 @@ func getDocStringFor(name string) string {
 	if isFile(name) {
 		fdata, err := os.ReadFile(name)
 		if err != nil {
-			log.Fatalf("`doc` error trying to read file `%s`. error: %s", name, err.Error())
+			consts.ErrorPrinter("`doc` error trying to read file `%s`. error: %s\n", name, err.Error())
+			os.Exit(1)
 		}
 		l := lexer.New(string(fdata), name)
 		p := parser.New(l)
 		program := p.ParseProgram()
 		if len(p.Errors()) != 0 {
 			for _, msg := range p.Errors() {
-				fmt.Printf("ParserError in `%s` module: %s\n", name, msg)
+				splitMsg := strings.Split(msg, "\n")
+				firstPart := fmt.Sprintf("%smodule `%s`: %s\n", consts.PARSER_ERROR_PREFIX, name, splitMsg[0])
+				consts.ErrorPrinter(firstPart)
+				for i, s := range splitMsg {
+					if i == 0 {
+						continue
+					}
+					fmt.Println(s)
+				}
 			}
 			os.Exit(1)
 		}

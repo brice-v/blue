@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/gookit/color"
 )
 
-// TODO: Include `doc` once its figured out
 const USAGE = `blue is a tool for running blue source code
 
 Usage:
@@ -39,6 +40,9 @@ evaluated)
 
 // Run runs the cmd line parsing of arguments and kicks off blue
 func Run(args ...string) {
+	if os.Getenv(consts.BLUE_NO_COLOR) != "" {
+		color.Disable()
+	}
 	arguments := args[1:]
 	argc := len(arguments)
 	if argc == 0 {
