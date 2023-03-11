@@ -14,6 +14,11 @@ func HasChild(v reflect.Value) bool {
 	return false
 }
 
+// IsArrayOrSlice check. eg: array, slice
+func IsArrayOrSlice(k reflect.Kind) bool {
+	return k == reflect.Slice || k == reflect.Array
+}
+
 // IsNil reflect value
 func IsNil(v reflect.Value) bool {
 	switch v.Kind() {
@@ -25,7 +30,7 @@ func IsNil(v reflect.Value) bool {
 }
 
 // IsFunc value
-func IsFunc(val interface{}) bool {
+func IsFunc(val any) bool {
 	if val == nil {
 		return false
 	}
@@ -35,7 +40,7 @@ func IsFunc(val interface{}) bool {
 // IsEqual determines if two objects are considered equal.
 //
 // TIP: cannot compare function type
-func IsEqual(src, dst interface{}) bool {
+func IsEqual(src, dst any) bool {
 	if src == nil || dst == nil {
 		return src == dst
 	}

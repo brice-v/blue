@@ -8,7 +8,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/config)](https://goreportcard.com/report/github.com/gookit/config)
 [![Go Reference](https://pkg.go.dev/badge/github.com/gookit/config/v2.svg)](https://pkg.go.dev/github.com/gookit/config/v2)
 
-Golang's application config manage tool library. 
+`config` - Simple, full-featured Go application configuration management tool library.
 
 > **[中文说明](README.zh-CN.md)**
 
@@ -19,25 +19,31 @@ Golang's application config manage tool library.
   - Other drivers are used on demand, not used will not be loaded into the application.
     - Possibility to add custom driver for your specific format
 - Support multi-file and multi-data loading
-- Support loading configuration from os ENV
+- Support for loading configuration from system ENV
 - Support for loading configuration data from remote URLs
-- Support for setting configuration data from command line arguments(`flags`)
+- Support for setting configuration data from command line(`flags`)
 - Support listen and fire events on config data changed. 
-  - allow events: `set.value`, `set.data`, `load.data`, `clean.data`
+  - allow events: `set.value`, `set.data`, `load.data`, `clean.data`, `reload.data`
 - Support data overlay and merge, automatically load by key when loading multiple copies of data
 - Support for binding all or part of the configuration data to the structure
   - Support init default value by struct tag `default:"def_value"`
   - Support init default value from ENV `default:"${APP_ENV | dev}"`
-- Support get sub value by path, like `map.key` `arr.2`
+- Support get sub value by key-path, like `map.key` `arr.2`
 - Support parse ENV name and allow with default value. like `envKey: ${SHELL|/bin/bash}` -> `envKey: /bin/zsh`
-- Generic api `Get` `Int` `Uint` `Int64` `Float` `String` `Bool` `Ints` `IntMap` `Strings` `StringMap` ...
+- Generic API: `Get` `Int` `Uint` `Int64` `Float` `String` `Bool` `Ints` `IntMap` `Strings` `StringMap` ...
 - Complete unit test(code coverage > 95%)
 
 ## Only use INI
 
 If you just want to use INI for simple config management, recommended use [gookit/ini](https://github.com/gookit/ini)
 
-> gookit/ini: Provide a sub-package `dotenv` that supports importing data from files (eg `.env`) to ENV
+### Load dotenv file
+
+On `gookit/ini`:  Provide a sub-package `dotenv` that supports importing data from files (eg `.env`) to ENV
+
+```shell
+go get github.com/gookit/ini/v2/dotenv
+```
 
 ## GoDoc
 
@@ -78,7 +84,7 @@ package main
 
 import (
     "github.com/gookit/config/v2"
-    "github.com/gookit/config/v2/yamlv3"
+    "github.com/gookit/config/v2/yaml"
 )
 
 // go run ./examples/yaml.go
@@ -86,7 +92,7 @@ func main() {
 	config.WithOptions(config.ParseEnv)
 
 	// add driver for support yaml content
-	config.AddDriver(yamlv3.Driver)
+	config.AddDriver(yaml.Driver)
 
 	err := config.LoadFiles("testdata/yml_base.yml")
 	if err != nil {
@@ -104,19 +110,27 @@ func main() {
 	// fmt.Printf("config data: \n %#v\n", config.Data())
 }
 ```
+**Usage tips**:
+
+- More extra options can be added using `WithOptions()`. For example: `ParseEnv`, `ParseDefault`
+- You can use `AddDriver()` to add the required format driver (`json` is loaded by default, no need to add)
+- The configuration data can then be loaded using `LoadFiles()` `LoadStrings()` etc.
+  - You can pass in multiple files or call multiple times
+  - Data loaded multiple times will be automatically merged by key
 
 ## Bind Structure
 
 > Note: The default binding mapping tag of a structure is `mapstructure`, which can be changed by setting the decoder's option `options.DecoderConfig.TagName`
 
 ```go
-user := struct {
+type User struct {
     Age  int  `mapstructure:"age"`
     Key  string `mapstructure:"key"`
     UserName  string `mapstructure:"user_name"`
     Tags []int  `mapstructure:"tags"`
-}{}
+}
 
+user := User{}
 err = config.BindStruct("user", &user)
 
 fmt.Println(user.UserName) // inhere
@@ -128,6 +142,17 @@ fmt.Println(user.UserName) // inhere
 config.WithOptions(func(opt *Options) {
     options.DecoderConfig.TagName = "config"
 })
+
+// use custom tag name.
+type User struct {
+  Age  int  `config:"age"`
+  Key  string `config:"key"`
+  UserName  string `config:"user_name"`
+  Tags []int  `config:"tags"`
+}
+
+user := User{}
+err = config.Decode(&user)
 ```
 
 **Can bind all config data to a struct**:
@@ -228,7 +253,7 @@ config.Bool("debug") // true
 ```go
 // os env: APP_NAME=config APP_DEBUG=true
 // load ENV info
-config.LoadOSEnv([]string{"APP_NAME", "APP_DEBUG"}, true)
+config.LoadOSEnvs(map[string]string{"APP_NAME": "app_name", "APP_DEBUG": "app_debug"})
 
 // read
 config.Bool("app_debug") // true
@@ -254,19 +279,19 @@ myConf := config.NewWithOptions("my-conf", config.ParseEnv, config.ReadOnly)
 
 Now, you can add a hook func for listen config data change. then, you can do something like: write data to file
 
-Add hook func on create config:
+**Add hook func on create config**:
 
 ```go
-	hookFn := func(event string, c *Config) {
-		fmt.Println("fire the:", event)
-	}
+hookFn := func(event string, c *Config) {
+    fmt.Println("fire the:", event)
+}
 
-	c := NewWithOptions("test", WithHookFunc(hookFn))
-	// for global config
-	config.WithOptions(WithHookFunc(hookFn))
+c := NewWithOptions("test", config.WithHookFunc(hookFn))
+// for global config
+config.WithOptions(config.WithHookFunc(hookFn))
 ```
 
-After that, when calling `LoadXXX, Set, SetData, ClearData` etc methods, it will output:
+After that, when calling `LoadXXX, Set, SetData, ClearData` methods, it will output:
 
 ```text
 fire the: load.data
@@ -274,6 +299,23 @@ fire the: set.value
 fire the: set.data
 fire the: clean.data
 ```
+
+### Watch loaded config files
+
+To listen for changes to loaded config files, and reload the config when it changes, you need to use the https://github.com/fsnotify/fsnotify library. 
+For usage, please refer to the example [./_example/watch_file.go](_examples/watch_file.go)
+
+Also, you need to listen to the `reload.data` event:
+
+```go
+config.WithOptions(config.WithHookFunc(func(event string, c *config.Config) {
+    if event == config.OnReloadData {
+        fmt.Println("config reloaded, you can do something ....")
+    }
+}))
+```
+
+When the configuration changes, you can do related things, for example: rebind the configuration to your struct.
 
 ## Dump config data
 
@@ -343,24 +385,24 @@ type Options struct {
 Support parse default value by struct tag `default`
 
 ```go
-	// add option: config.ParseDefault
-	c := config.New("test").WithOptions(config.ParseDefault)
+// add option: config.ParseDefault
+c := config.New("test").WithOptions(config.ParseDefault)
 
-	// only set name
-	c.SetData(map[string]interface{}{
-		"name": "inhere",
-	})
+// only set name
+c.SetData(map[string]any{
+    "name": "inhere",
+})
 
-	// age load from default tag
-	type User struct {
-		Age  int `default:"30"`
-		Name string
-		Tags []int
-	}
+// age load from default tag
+type User struct {
+    Age  int `default:"30"`
+    Name string
+    Tags []int
+}
 
-	user := &User{}
-	goutil.MustOk(c.Decode(user))
-	dump.Println(user)
+user := &User{}
+goutil.MustOk(c.Decode(user))
+dump.Println(user)
 ```
 
 **Output**:
@@ -378,11 +420,12 @@ Support parse default value by struct tag `default`
 
 ### Load Config
 
-- `LoadOSEnv(keys []string)` Load from os ENV
-- `LoadData(dataSource ...interface{}) (err error)` Load from struts or maps
+- `LoadOSEnvs(nameToKeyMap map[string]string)` Load data from os ENV
+- `LoadData(dataSource ...any) (err error)` Load from struts or maps
 - `LoadFlags(keys []string) (err error)` Load from CLI flags
 - `LoadExists(sourceFiles ...string) (err error)` 
 - `LoadFiles(sourceFiles ...string) (err error)`
+- `LoadFromDir(dirPath, format string) (err error)` Load custom format files from the given directory, the file name will be used as the key
 - `LoadRemote(format, url string) (err error)`
 - `LoadSources(format string, src []byte, more ...[]byte) (err error)`
 - `LoadStrings(format string, str string, more ...string) (err error)`
@@ -400,24 +443,26 @@ Support parse default value by struct tag `default`
 - `Float(key string, defVal ...float64) float64`
 - `String(key string, defVal ...string) string`
 - `Strings(key string) (arr []string)`
+- `SubDataMap(key string) maputi.Data`
 - `StringMap(key string) (mp map[string]string)`
-- `Get(key string, findByPath ...bool) (value interface{})`
+- `Get(key string, findByPath ...bool) (value any)`
 
 **Mapping data to struct:**
 
-- `BindStruct(key string, dst interface{}) error`
-- `MapOnExists(key string, dst interface{}) error`
+- `Decode(dst any) error`
+- `BindStruct(key string, dst any) error`
+- `MapOnExists(key string, dst any) error`
 
 ### Setting Values
 
-- `Set(key string, val interface{}, setByPath ...bool) (err error)`
+- `Set(key string, val any, setByPath ...bool) (err error)`
 
 ### Useful Methods
 
 - `Getenv(name string, defVal ...string) (val string)`
 - `AddDriver(driver Driver)`
-- `Data() map[string]interface{}`
-- `SetData(data map[string]interface{})` set data to override the Config.Data
+- `Data() map[string]any`
+- `SetData(data map[string]any)` set data to override the Config.Data
 - `Exists(key string, findByPath ...bool) bool`
 - `DumpTo(out io.Writer, format string) (n int64, err error)`
 
@@ -452,11 +497,16 @@ Check out these projects, which use https://github.com/gookit/config :
 
 ## See also
 
-- Ini parse [gookit/ini/parser](https://github.com/gookit/ini/tree/master/parser)
-- Properties parse [gookit/properties](https://github.com/gookit/properties)
-- Json5 parse [json5](https://github.com/yosuke-furukawa/json5)
-- Yaml parse [go-yaml](https://github.com/go-yaml/yaml)
-- Toml parse [go toml](https://github.com/BurntSushi/toml)
+- Ini parser [gookit/ini/parser](https://github.com/gookit/ini/tree/master/parser)
+- Properties parser [gookit/properties](https://github.com/gookit/properties)
+- Json5 parser [json5](https://github.com/yosuke-furukawa/json5)
+- Json parser
+  - [goccy/go-json](https://github.com/goccy/go-json)
+  - [json-iterator/go](https://github.com/json-iterator/go)
+- Yaml parser
+  - [goccy/go-yaml](https://github.com/goccy/go-yaml)
+  - [go-yaml/yaml](https://github.com/go-yaml/yaml)
+- Toml parser [go toml](https://github.com/BurntSushi/toml)
 - Data merge [mergo](https://github.com/imdario/mergo)
 - Map structure [mapstructure](https://github.com/mitchellh/mapstructure)
 

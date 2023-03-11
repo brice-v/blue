@@ -8,7 +8,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/config)](https://goreportcard.com/report/github.com/gookit/config)
 [![Go Reference](https://pkg.go.dev/badge/github.com/gookit/config/v2.svg)](https://pkg.go.dev/github.com/gookit/config/v2)
 
-简洁、功能完善的Golang应用程序配置管理工具库
+`config` - 简洁、功能完善的 Go 应用程序配置管理工具库
 
 > **[EN README](README.md)**
 
@@ -22,7 +22,7 @@
 - 支持从远程 URL 加载配置数据
 - 支持从命令行参数(`flags`)设置配置数据
 - 支持在配置数据更改时触发事件
-  - 可用事件: `set.value`, `set.data`, `load.data`, `clean.data`
+  - 可用事件: `set.value`, `set.data`, `load.data`, `clean.data`, `reload.data`
 - 支持数据覆盖合并，加载多份数据时将按key自动合并
 - 支持将全部或部分配置数据绑定到结构体 `config.BindStruct("key", &s)`
   - 支持通过结构体标签 `default` 解析并设置默认值. eg: `default:"def_value"`
@@ -36,7 +36,13 @@
 
 如果你仅仅想用INI来做简单配置管理，推荐使用 [gookit/ini](https://github.com/gookit/ini)
 
-> gookit/ini: 提供一个子包 `dotenv`，支持从文件（eg `.env`）中导入数据到ENV
+### 加载 .env 文件
+
+`gookit/ini`: 提供一个子包 `dotenv`，支持从文件（eg `.env`）中导入数据到ENV
+
+```shell
+go get github.com/gookit/ini/v2/dotenv
+```
 
 ## GoDoc
 
@@ -77,7 +83,7 @@ package main
 
 import (
     "github.com/gookit/config/v2"
-    "github.com/gookit/config/v2/yamlv3"
+    "github.com/gookit/config/v2/yaml"
 )
 
 // go run ./examples/yaml.go
@@ -86,7 +92,7 @@ func main() {
 	config.WithOptions(config.ParseEnv)
 
 	// 添加驱动程序以支持yaml内容解析（除了JSON是默认支持，其他的则是按需使用）
-	config.AddDriver(yamlv3.Driver)
+	config.AddDriver(yaml.Driver)
 
 	// 加载配置，可以同时传入多个文件
 	err := config.LoadFiles("testdata/yml_base.yml")
@@ -106,17 +112,27 @@ func main() {
 }
 ```
 
+**使用提示**:
+
+- 可以使用 `WithOptions()` 添加更多额外选项功能. 例如: `ParseEnv`, `ParseDefault`
+- 可以使用 `AddDriver()` 添加需要使用的格式驱动器(`json` 是默认加载的的,无需添加)
+- 然后就可以使用 `LoadFiles()` `LoadStrings()` 等方法加载配置数据
+  - 可以传入多个文件,也可以调用多次
+  - 多次加载的数据会自动按key进行合并处理
+
 ### 绑定数据到结构体
 
 > 注意：结构体默认的绑定映射tag是 `mapstructure`，可以通过设置 `Options.TagName` 来更改它
 
 ```go
-user := struct {
-    Age  int
-    Kye  string
-    UserName string `mapstructure:"user_name"`
-    Tags []int
-}{}
+type User struct {
+  Age  int  `mapstructure:"age"`
+  Key  string `mapstructure:"key"`
+  UserName  string `mapstructure:"user_name"`
+  Tags []int  `mapstructure:"tags"`
+}
+
+user := User{}
 err = config.BindStruct("user", &user)
 
 fmt.Println(user.UserName) // inhere
@@ -126,8 +142,19 @@ fmt.Println(user.UserName) // inhere
 
 ```go
 config.WithOptions(func(opt *Options) {
-    opt.TagName = "config"
+    options.DecoderConfig.TagName = "config"
 })
+
+// use custom tag name.
+type User struct {
+  Age  int  `config:"age"`
+  Key  string `config:"key"`
+  UserName  string `config:"user_name"`
+  Tags []int  `config:"tags"`
+}
+
+user := User{}
+err = config.Decode(&user)
 ```
 
 将所有配置数据绑定到结构:
@@ -192,7 +219,7 @@ fmt.Print(name) // new name
 ```go
 // os env: APP_NAME=config APP_DEBUG=true
 // load ENV info
-config.LoadOSEnv([]string{"APP_NAME", "APP_NAME"}, true)
+config.LoadOSEnvs(map[string]string{"APP_NAME": "app_name", "APP_DEBUG": "app_debug"})
 
 // read
 config.Bool("app_debug") // true
@@ -201,7 +228,7 @@ config.String("app_name") // "config"
 
 ## 从命令行参数载入数据
 
-> 支持简单的命令行 `flag` 参数解析，加载数据
+支持简单的从命令行 `flag` 参数解析，加载数据
 
 ```go
 // flags like: --name inhere --env dev --age 99 --debug
@@ -234,21 +261,21 @@ myConf := config.NewWithOptions("my-conf", config.ParseEnv, config.ReadOnly)
 
 ## 监听配置更改
 
-现在，您可以添加一个挂钩函数来监听配置数据更改。然后，您可以执行一些自定义操作, 例如：将数据写入文件
+现在，您可以添加一个钩子函数来监听配置数据更改。然后，您可以执行一些自定义操作, 例如：将数据写入文件
 
-在创建配置时添加钩子函数:
+**在创建配置时添加钩子函数**:
 
 ```go
-	hookFn := func(event string, c *Config) {
-		fmt.Println("fire the:", event)
-	}
+hookFn := func(event string, c *Config) {
+    fmt.Println("fire the:", event)
+}
 
-	c := NewWithOptions("test", WithHookFunc(hookFn))
-	// for global config
-	config.WithOptions(WithHookFunc(hookFn))
+c := NewWithOptions("test", WithHookFunc(hookFn))
+// for global config
+config.WithOptions(WithHookFunc(hookFn))
 ```
 
-之后, 当调用 `LoadXXX, Set, SetData, ClearData` 等方法时, 就会输出:
+**之后**, 当调用 `LoadXXX, Set, SetData, ClearData` 等方法时, 就会输出:
 
 ```text
 fire the: load.data
@@ -256,6 +283,23 @@ fire the: set.value
 fire the: set.data
 fire the: clean.data
 ```
+
+### 监听载入的配置文件变动
+
+想要监听载入的配置文件变动，并在变动时重新加载配置，你需要使用 https://github.com/fsnotify/fsnotify 库。
+使用方法可以参考示例 [./_example/watch_file.go](_examples/watch_file.go)
+
+同时，你需要监听 `reload.data` 事件:
+
+```go
+config.WithOptions(config.WithHookFunc(func(event string, c *config.Config) {
+    if event == config.OnReloadData {
+        fmt.Println("config reloaded, you can do something ....")
+    }
+}))
+```
+
+当配置发生变化并重新加载后，你可以做相关的事情，例如：重新绑定配置到你的结构体。
 
 ## 导出配置到文件
 
@@ -327,7 +371,7 @@ NEW: 支持通过结构标签 `default` 解析并设置默认值
 	c := config.New("test").WithOptions(config.ParseDefault)
 
 	// only set name
-	c.SetData(map[string]interface{}{
+	c.SetData(map[string]any{
 		"name": "inhere",
 	})
 
@@ -358,11 +402,12 @@ NEW: 支持通过结构标签 `default` 解析并设置默认值
 
 ### 载入配置
 
-- `LoadOSEnv(keys []string)` 从ENV载入数据
-- `LoadData(dataSource ...interface{}) (err error)` 从struct或map加载数据
+- `LoadData(dataSource ...any) (err error)` 从struct或map加载数据
 - `LoadFlags(keys []string) (err error)` 从命令行参数载入数据
+- `LoadOSEnvs(nameToKeyMap map[string]string)` 从ENV载入数据
 - `LoadExists(sourceFiles ...string) (err error)` 从存在的配置文件里加载数据，会忽略不存在的文件
 - `LoadFiles(sourceFiles ...string) (err error)` 从给定的配置文件里加载数据，有文件不存在则会panic
+- `LoadFromDir(dirPath, format string) (err error)` 从给定目录里加载自定格式的文件,文件名会作为 key
 - `LoadRemote(format, url string) (err error)` 从远程 URL 加载配置数据
 - `LoadSources(format string, src []byte, more ...[]byte) (err error)` 从给定格式的字节数据加载配置
 - `LoadStrings(format string, str string, more ...string) (err error)` 从给定格式的字符串配置里加载配置数据
@@ -381,25 +426,26 @@ NEW: 支持通过结构标签 `default` 解析并设置默认值
 - `String(key string, defVal ...string) string`
 - `Strings(key string) (arr []string)`
 - `StringMap(key string) (mp map[string]string)`
-- `Get(key string, findByPath ...bool) (value interface{})`
+- `SubDataMap(key string) maputi.Data`
+- `Get(key string, findByPath ...bool) (value any)`
 
 **将数据映射到结构体:**
 
-- `BindStruct(key string, dst interface{}) error`
-- `MapOnExists(key string, dst interface{}) error`
+- `BindStruct(key string, dst any) error`
+- `MapOnExists(key string, dst any) error`
 
 ### 设置值
 
-- `Set(key string, val interface{}, setByPath ...bool) (err error)`
+- `Set(key string, val any, setByPath ...bool) (err error)`
 
 ### 有用的方法
 
 - `Getenv(name string, defVal ...string) (val string)`
 - `AddDriver(driver Driver)`
-- `Data() map[string]interface{}`
+- `Data() map[string]any`
 - `Exists(key string, findByPath ...bool) bool`
 - `DumpTo(out io.Writer, format string) (n int64, err error)`
-- `SetData(data map[string]interface{})` 设置数据以覆盖 `Config.Data`
+- `SetData(data map[string]any)` 设置数据以覆盖 `Config.Data`
 
 ## 单元测试
 

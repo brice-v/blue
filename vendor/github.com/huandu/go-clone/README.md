@@ -7,7 +7,7 @@
 
 Package `clone` provides functions to deep clone any Go data. It also provides a wrapper to protect a pointer from any unexpected mutation.
 
-For users who use Go 1.18+, it's recommended to import `github.com/huandu/go-clone/generic` for generic APIs.
+For users who use Go 1.18+, it's recommended to import `github.com/huandu/go-clone/generic` for generic APIs and arena support.
 
 `Clone`/`Slowly` can clone unexported fields and "no-copy" structs as well. Use this feature wisely.
 
@@ -85,6 +85,31 @@ It's required to update minimal Go version to 1.18 to opt-in generic syntax. It 
 
 For new users who use Go 1.18+, the generic package is preferred and recommended.
 
+### Arena support
+
+Starting from Go1.20, arena is introduced as a new way to allocate memory. It's quite useful to improve overall performance in special scenarios.
+In order to clone a value with memory allocated from an arena, there are new methods `ArenaClone` and `ArenaCloneSlowly` available in `github.com/huandu/go-clone/generic`.
+
+```go
+// ArenaClone recursively deep clones v to a new value in arena a.
+// It works in the same way as Clone, except it allocates all memory from arena.
+func ArenaClone[T any](a *arena.Arena, v T) (nv T) 
+
+// ArenaCloneSlowly recursively deep clones v to a new value in arena a.
+// It works in the same way as Slowly, except it allocates all memory from arena.
+func ArenaCloneSlowly[T any](a *arena.Arena, v T) (nv T)
+```
+
+Due to limitations in arena API, memory of the internal data structure of `map` and `chan` is always allocated in heap by Go runtime ([see this issue](https://github.com/golang/go/issues/56230)).
+
+**Warning**: Per [discussion in the arena proposal](https://github.com/golang/go/issues/51317), the arena package may be changed incompatibly or removed in future. All arena related APIs in this package will be changed accordingly.
+
+### Customized allocator
+
+We can control how to allocate memory by creating an `Allocator`. It enables us to take full control over memory allocation when cloning. See [Allocator sample code](https://pkg.go.dev/github.com/huandu/go-clone#example-Allocator) to understand how to use `sync.Pool` in allocator.
+
+For convenience, we can create dedicated allocators for heap or arena by calling `FromHeap()` or `FromArena(a arena.Arena)`.
+
 ### Mark struct type as scalar
 
 Some struct types can be considered as scalar.
@@ -141,7 +166,17 @@ I will update the default.
 ### Set custom clone functions
 
 If default clone strategy doesn't work for a struct type, we can call `SetCustomFunc` to register a custom clone function.
-`Clone` and `Slowly` can be used in custom clone functions.
+
+```go
+SetCustomFunc(reflect.TypeOf(MyType{}), func(allocator *Allocator, old, new reflect.Value) {
+    // Customized logic to copy the old to the new.
+    // The old's type is MyType.
+    // The new is a zero value of MyType and new.CanAddr() always returns true.
+})
+```
+
+We can use `allocator` to clone any value or allocate new memory.
+It's allowed to call `allocator.Clone` or `allocator.CloneSlowly` on `old` to clone its struct fields in depth without worrying about dead loop.
 
 See [SetCustomFunc sample code](https://pkg.go.dev/github.com/huandu/go-clone#example-SetCustomFunc) for more details.
 
@@ -198,22 +233,18 @@ fmt.Println(w.Foo) // 123
 
 ## Performance
 
-Here is the performance data running on my MacBook Pro.
+Here is the performance data running on my dev machine.
 
 ```text
-MacBook Pro (15-inch, 2019)
-Processor: 2.6 GHz Intel Core i7
-
-go 1.19
+go 1.20.1
 goos: darwin
 goarch: amd64
-pkg: github.com/huandu/go-clone
 cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
-BenchmarkSimpleClone-12          7903873               142.9 ns/op            24 B/op          1 allocs/op
-BenchmarkComplexClone-12          590836                1755 ns/op          1488 B/op         21 allocs/op
-BenchmarkUnwrap-12              14988664               71.46 ns/op             0 B/op          0 allocs/op
-BenchmarkSimpleWrap-12           3823450               304.4 ns/op            72 B/op          2 allocs/op
-BenchmarkComplexWrap-12           867642                1197 ns/op           736 B/op         15 allocs/op
+BenchmarkSimpleClone-12       7164530        156.7 ns/op       24 B/op        1 allocs/op
+BenchmarkComplexClone-12       628056         1871 ns/op     1488 B/op       21 allocs/op
+BenchmarkUnwrap-12           15498139        78.02 ns/op        0 B/op        0 allocs/op
+BenchmarkSimpleWrap-12        3882360        309.7 ns/op       72 B/op        2 allocs/op
+BenchmarkComplexWrap-12        949654         1245 ns/op      736 B/op       15 allocs/op
 ```
 
 ## License

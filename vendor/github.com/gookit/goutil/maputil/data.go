@@ -3,12 +3,15 @@ package maputil
 import (
 	"strings"
 
+	"github.com/gookit/goutil/arrutil"
 	"github.com/gookit/goutil/mathutil"
 	"github.com/gookit/goutil/strutil"
 )
 
 // Data an map data type
 type Data map[string]any
+
+// Map alias of Data
 type Map = Data
 
 // Has value on the data map
@@ -23,14 +26,14 @@ func (d Data) IsEmtpy() bool {
 }
 
 // Value get from the data map
-func (d Data) Value(key string) (interface{}, bool) {
+func (d Data) Value(key string) (any, bool) {
 	val, ok := d.GetByPath(key)
 	return val, ok
 }
 
 // Get value from the data map.
 // Supports dot syntax to get deep values. eg: top.sub
-func (d Data) Get(key string) interface{} {
+func (d Data) Get(key string) any {
 	if val, ok := d.GetByPath(key); ok {
 		return val
 	}
@@ -39,7 +42,7 @@ func (d Data) Get(key string) interface{} {
 
 // GetByPath get value from the data map by path. eg: top.sub
 // Supports dot syntax to get deep values.
-func (d Data) GetByPath(path string) (interface{}, bool) {
+func (d Data) GetByPath(path string) (any, bool) {
 	if val, ok := d[path]; ok {
 		return val, true
 	}
@@ -100,7 +103,7 @@ func (d Data) SetByKeys(keys []string, value any) error {
 }
 
 // Default get value from the data map with default value
-func (d Data) Default(key string, def any) interface{} {
+func (d Data) Default(key string, def any) any {
 	if val, ok := d.GetByPath(key); ok {
 		return val
 	}
@@ -119,6 +122,14 @@ func (d Data) Int(key string) int {
 func (d Data) Int64(key string) int64 {
 	if val, ok := d.GetByPath(key); ok {
 		return mathutil.QuietInt64(val)
+	}
+	return 0
+}
+
+// Uint value get
+func (d Data) Uint(key string) uint64 {
+	if val, ok := d.GetByPath(key); ok {
+		return mathutil.QuietUint(val)
 	}
 	return 0
 }
@@ -154,10 +165,16 @@ func (d Data) Strings(key string) []string {
 		return nil
 	}
 
-	if ss, ok := val.([]string); ok {
-		return ss
+	switch typVal := val.(type) {
+	case string:
+		return []string{typVal}
+	case []string:
+		return typVal
+	case []any:
+		return arrutil.SliceToStrings(typVal)
+	default:
+		return nil
 	}
-	return nil
 }
 
 // StrSplit get strings by split key value
@@ -216,4 +233,11 @@ func (d Data) ToStringMap() map[string]string {
 // String data to string
 func (d Data) String() string {
 	return ToString(d)
+}
+
+// Load data to current data map
+func (d Data) Load(sub map[string]any) {
+	for name, val := range sub {
+		d[name] = val
+	}
 }

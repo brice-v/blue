@@ -2,9 +2,9 @@
 package arrutil
 
 import (
-	"reflect"
 	"strings"
 
+	"github.com/gookit/goutil/comdef"
 	"github.com/gookit/goutil/mathutil"
 )
 
@@ -68,7 +68,7 @@ func StringsMap(ss []string, mapFn func(s string) string) []string {
 //
 //	// output: [a, b, c]
 //	ss := arrutil.TrimStrings([]string{",a", "b.", ",.c,"}, ",.")
-func TrimStrings(ss []string, cutSet ...string) (ns []string) {
+func TrimStrings(ss []string, cutSet ...string) []string {
 	cutSetLn := len(cutSet)
 	hasCutSet := cutSetLn > 0 && cutSet[0] != ""
 
@@ -80,6 +80,7 @@ func TrimStrings(ss []string, cutSet ...string) (ns []string) {
 		trimSet = strings.Join(cutSet, "")
 	}
 
+	ns := make([]string, 0, len(ss))
 	for _, str := range ss {
 		if hasCutSet {
 			ns = append(ns, strings.Trim(str, trimSet))
@@ -87,20 +88,41 @@ func TrimStrings(ss []string, cutSet ...string) (ns []string) {
 			ns = append(ns, strings.TrimSpace(str))
 		}
 	}
-	return
+	return ns
 }
 
 // GetRandomOne get random element from an array/slice
-func GetRandomOne(arr interface{}) interface{} { return RandomOne(arr) }
+func GetRandomOne[T any](arr []T) T { return RandomOne(arr) }
 
 // RandomOne get random element from an array/slice
-func RandomOne(arr interface{}) interface{} {
-	rv := reflect.ValueOf(arr)
-	if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
-		return arr
+func RandomOne[T any](arr []T) T {
+	if ln := len(arr); ln > 0 {
+		i := mathutil.RandomInt(0, len(arr))
+		return arr[i]
 	}
+	panic("cannot get value from nil or empty slice")
+}
 
-	i := mathutil.RandomInt(0, rv.Len())
-	r := rv.Index(i).Interface()
-	return r
+// Unique value in the given slice data.
+func Unique[T ~string | comdef.XintOrFloat](list []T) []T {
+	valMap := make(map[T]struct{}, len(list))
+	uniArr := make([]T, 0, len(list))
+
+	for _, t := range list {
+		if _, ok := valMap[t]; !ok {
+			valMap[t] = struct{}{}
+			uniArr = append(uniArr, t)
+		}
+	}
+	return uniArr
+}
+
+// IndexOf value in given slice.
+func IndexOf[T ~string | comdef.XintOrFloat](val T, list []T) int {
+	for i, v := range list {
+		if v == val {
+			return i
+		}
+	}
+	return -1
 }

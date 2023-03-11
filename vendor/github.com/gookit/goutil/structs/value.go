@@ -10,18 +10,18 @@ import (
 // Value data store
 type Value struct {
 	// V value
-	V interface{}
+	V any
 }
 
 // NewValue instance.
-func NewValue(val interface{}) *Value {
+func NewValue(val any) *Value {
 	return &Value{
 		V: val,
 	}
 }
 
 // Set value
-func (v *Value) Set(val interface{}) {
+func (v *Value) Set(val any) {
 	v.V = val
 }
 
@@ -31,9 +31,14 @@ func (v *Value) Reset() {
 }
 
 // Val get
-func (v *Value) Val() interface{} {
+func (v *Value) Val() any {
 	return v.V
 }
+
+// Val get
+// func (v *Value) ValOr[T any](defVal T) T {
+// 	return v.V
+// }
 
 // Int value get
 func (v *Value) Int() int {

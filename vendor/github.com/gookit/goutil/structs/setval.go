@@ -7,6 +7,7 @@ import (
 
 	"github.com/gookit/goutil/internal/comfunc"
 	"github.com/gookit/goutil/reflects"
+	"github.com/gookit/goutil/strutil"
 )
 
 const defaultInitTag = "default"
@@ -23,14 +24,14 @@ type InitOptions struct {
 	// default: false
 	ParseEnv bool
 	// ValueHook before set value hook TODO
-	ValueHook func(val string) interface{}
+	ValueHook func(val string) any
 }
 
 // InitDefaults init struct default value by field "default" tag.
 //
 // TIPS:
 //
-//	Only support init set: string, bool, intX, uintX, floatX
+//	Support init field types: string, bool, intX, uintX, floatX, array, slice
 //
 // Example:
 //
@@ -41,9 +42,8 @@ type InitOptions struct {
 //
 //	u1 := &User1{}
 //	err = structs.InitDefaults(u1)
-//	fmt.Printf("%+v\n", u1)
-//	// Output: {Name:inhere Age:30}
-func InitDefaults(ptr interface{}, optFns ...InitOptFunc) error {
+//	fmt.Printf("%+v\n", u1) // Output: {Name:inhere Age:30}
+func InitDefaults(ptr any, optFns ...InitOptFunc) error {
 	rv := reflect.ValueOf(ptr)
 	if rv.Kind() != reflect.Ptr {
 		return errors.New("must be provider an pointer value")
@@ -85,8 +85,8 @@ func initDefaults(rv reflect.Value, opt *InitOptions) error {
 			continue
 		}
 
-		tagVal := ft.Tag.Get(opt.TagName)
-		if err := initDefaultValue(fv, tagVal, opt.ParseEnv); err != nil {
+		val := ft.Tag.Get(opt.TagName)
+		if err := initDefaultValue(fv, val, opt.ParseEnv); err != nil {
 			return err
 		}
 	}
@@ -104,8 +104,20 @@ func initDefaultValue(fv reflect.Value, val string, parseEnv bool) error {
 		val = comfunc.ParseEnvVar(val, nil)
 	}
 
+	var anyVal any = val
+
+	// convert string to slice
+	if reflects.IsArrayOrSlice(fv.Kind()) {
+		ss := strutil.SplitTrimmed(val, ",")
+		valRv, err := reflects.ConvSlice(reflect.ValueOf(ss), fv.Type().Elem())
+		if err != nil {
+			return err
+		}
+		anyVal = valRv.Interface()
+	}
+
 	// set value
-	return reflects.SetValue(fv, val)
+	return reflects.SetValue(fv, anyVal)
 }
 
 /*************************************************************
@@ -120,7 +132,7 @@ type SetOptions struct {
 	// FieldTagName get field name for read value. default tag: json
 	FieldTagName string
 	// ValueHook before set value hook TODO
-	ValueHook func(val interface{}) interface{}
+	ValueHook func(val any) any
 
 	// ParseDefault init default value by DefaultValTag tag value.
 	// default: false
@@ -140,7 +152,7 @@ type SetOptions struct {
 // TIPS:
 //
 //	Only support set: string, bool, intX, uintX, floatX
-func SetValues(ptr interface{}, data map[string]interface{}, optFns ...SetOptFunc) error {
+func SetValues(ptr any, data map[string]any, optFns ...SetOptFunc) error {
 	rv := reflect.ValueOf(ptr)
 	if rv.Kind() != reflect.Ptr {
 		return errors.New("must be provider an pointer value")
@@ -162,8 +174,8 @@ func SetValues(ptr interface{}, data map[string]interface{}, optFns ...SetOptFun
 	return setValues(rv, data, opt)
 }
 
-func setValues(rv reflect.Value, data map[string]interface{}, opt *SetOptions) error {
-	if data == nil || len(data) == 0 {
+func setValues(rv reflect.Value, data map[string]any, opt *SetOptions) error {
+	if len(data) == 0 {
 		return nil
 	}
 
@@ -203,7 +215,7 @@ func setValues(rv reflect.Value, data map[string]interface{}, opt *SetOptions) e
 
 		// field is struct
 		if fv.Kind() == reflect.Struct {
-			asMp, ok := val.(map[string]interface{})
+			asMp, ok := val.(map[string]any)
 			if !ok {
 				return fmt.Errorf("field is struct, must provide map data value")
 			}

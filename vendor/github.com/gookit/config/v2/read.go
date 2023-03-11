@@ -3,8 +3,10 @@ package config
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gookit/goutil/envutil"
+	"github.com/gookit/goutil/maputil"
 	"github.com/gookit/goutil/mathutil"
 	"github.com/gookit/goutil/strutil"
 )
@@ -37,7 +39,7 @@ func (c *Config) Exists(key string, findByPath ...bool) (ok bool) {
 	topK := keys[0]
 
 	// find top item data based on top key
-	var item interface{}
+	var item any
 	if item, ok = c.data[topK]; !ok {
 		return
 	}
@@ -51,11 +53,11 @@ func (c *Config) Exists(key string, findByPath ...bool) (ok bool) {
 			if item, ok = typeData[k]; !ok {
 				return
 			}
-		case map[string]interface{}: // is map(decode from toml/json/yaml.v3)
+		case map[string]any: // is map(decode from toml/json/yaml.v3)
 			if item, ok = typeData[k]; !ok {
 				return
 			}
-		case map[interface{}]interface{}: // is map(decode from yaml.v2)
+		case map[any]any: // is map(decode from yaml.v2)
 			if item, ok = typeData[k]; !ok {
 				return
 			}
@@ -71,7 +73,7 @@ func (c *Config) Exists(key string, findByPath ...bool) (ok bool) {
 			if err != nil || len(typeData) < i {
 				return false
 			}
-		case []interface{}: // is array(load from file)
+		case []any: // is array(load from file)
 			i, err := strconv.Atoi(k)
 			if err != nil || len(typeData) < i {
 				return false
@@ -88,32 +90,44 @@ func (c *Config) Exists(key string, findByPath ...bool) (ok bool) {
  *************************************************************/
 
 // Data return all config data
-func Data() map[string]interface{} { return dc.Data() }
+func Data() map[string]any { return dc.Data() }
 
 // Data get all config data
-func (c *Config) Data() map[string]interface{} {
+func (c *Config) Data() map[string]any {
 	return c.data
+}
+
+// Keys return all config data
+func Keys() []string { return dc.Keys() }
+
+// Keys get all config data
+func (c *Config) Keys() []string {
+	keys := make([]string, 0, len(c.data))
+	for key := range c.data {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 // Get config value by key string, support get sub-value by key path(eg. 'map.key'),
 //
 //   - ok is true, find value from config
 //   - ok is false, not found or error
-func Get(key string, findByPath ...bool) interface{} { return dc.Get(key, findByPath...) }
+func Get(key string, findByPath ...bool) any { return dc.Get(key, findByPath...) }
 
 // Get config value by key
-func (c *Config) Get(key string, findByPath ...bool) interface{} {
+func (c *Config) Get(key string, findByPath ...bool) any {
 	val, _ := c.GetValue(key, findByPath...)
 	return val
 }
 
 // GetValue get value by given key string.
-func GetValue(key string, findByPath ...bool) (interface{}, bool) {
+func GetValue(key string, findByPath ...bool) (any, bool) {
 	return dc.GetValue(key, findByPath...)
 }
 
 // GetValue get value by given key string.
-func (c *Config) GetValue(key string, findByPath ...bool) (value interface{}, ok bool) {
+func (c *Config) GetValue(key string, findByPath ...bool) (value any, ok bool) {
 	sep := c.opts.Delimiter
 	if key = formatKey(key, string(sep)); key == "" {
 		c.addError(ErrKeyIsEmpty)
@@ -147,7 +161,7 @@ func (c *Config) GetValue(key string, findByPath ...bool) (value interface{}, ok
 	topK := keys[0]
 
 	// find top item data based on top key
-	var item interface{}
+	var item any
 	if item, ok = c.data[topK]; !ok {
 		// c.addError(ErrNotFound)
 		return
@@ -169,11 +183,11 @@ func (c *Config) GetValue(key string, findByPath ...bool) (value interface{}, ok
 			if item, ok = typeData[k]; !ok {
 				return
 			}
-		case map[string]interface{}: // is map(decode from toml/json)
+		case map[string]any: // is map(decode from toml/json)
 			if item, ok = typeData[k]; !ok {
 				return
 			}
-		case map[interface{}]interface{}: // is map(decode from yaml)
+		case map[any]any: // is map(decode from yaml)
 			if item, ok = typeData[k]; !ok {
 				return
 			}
@@ -197,7 +211,7 @@ func (c *Config) GetValue(key string, findByPath ...bool) (value interface{}, ok
 			}
 
 			item = typeData[i]
-		case []interface{}: // is array(load from file)
+		case []any: // is array(load from file)
 			i, err := strconv.Atoi(k)
 			if err != nil || len(typeData) < i {
 				ok = false
@@ -233,6 +247,18 @@ func (c *Config) String(key string, defVal ...string) string {
 	return value
 }
 
+// MustString get a string by key, will panic on empty or not exists
+func MustString(key string) string { return dc.MustString(key) }
+
+// MustString get a string by key, will panic on empty or not exists
+func (c *Config) MustString(key string) string {
+	value, ok := c.getString(key)
+	if !ok {
+		panic("config: string value not found, key: " + key)
+	}
+	return value
+}
+
 func (c *Config) getString(key string) (value string, ok bool) {
 	// find from cache
 	if c.opts.EnableCache && len(c.strCache) > 0 {
@@ -255,8 +281,11 @@ func (c *Config) getString(key string) (value string, ok bool) {
 			value = envutil.ParseEnvValue(value)
 		}
 	default:
-		// value = fmt.Sprintf("%v", val)
-		value, _ = strutil.AnyToString(val, false)
+		var err error
+		value, err = strutil.AnyToString(val, false)
+		if err != nil {
+			return "", false
+		}
 	}
 
 	// add cache
@@ -269,7 +298,7 @@ func (c *Config) getString(key string) (value string, ok bool) {
 	return
 }
 
-// Int get a int by key
+// Int get an int by key
 func Int(key string, defVal ...int) int { return dc.Int(key, defVal...) }
 
 // Int get a int value, if not found return default value
@@ -324,6 +353,19 @@ func (c *Config) tryInt64(key string) (value int64, ok bool) {
 		c.addError(err)
 	}
 	return
+}
+
+// Duration get a time.Duration type value. if not found return default value
+func Duration(key string, defVal ...time.Duration) time.Duration { return dc.Duration(key, defVal...) }
+
+// Duration get a time.Duration type value. if not found return default value
+func (c *Config) Duration(key string, defVal ...time.Duration) time.Duration {
+	value, exist := c.tryInt64(key)
+
+	if !exist && len(defVal) > 0 {
+		return defVal[0]
+	}
+	return time.Duration(value)
 }
 
 // Float get a float64 value, if not found return default value
@@ -386,10 +428,10 @@ func (c *Config) Bool(key string, defVal ...bool) (value bool) {
  * read config (complex data type)
  *************************************************************/
 
-// Ints get config data as a int slice/array
+// Ints get config data as an int slice/array
 func Ints(key string) []int { return dc.Ints(key) }
 
-// Ints get config data as a int slice/array
+// Ints get config data as an int slice/array
 func (c *Config) Ints(key string) (arr []int) {
 	rawVal, ok := c.GetValue(key)
 	if !ok {
@@ -399,7 +441,7 @@ func (c *Config) Ints(key string) (arr []int) {
 	switch typeData := rawVal.(type) {
 	case []int:
 		arr = typeData
-	case []interface{}:
+	case []any:
 		for _, v := range typeData {
 			iv, err := mathutil.ToInt(v)
 			// iv, err := strconv.Atoi(fmt.Sprintf("%v", v))
@@ -430,7 +472,7 @@ func (c *Config) IntMap(key string) (mp map[string]int) {
 	switch typeData := rawVal.(type) {
 	case map[string]int: // from Set
 		mp = typeData
-	case map[string]interface{}: // decode from json,toml
+	case map[string]any: // decode from json,toml
 		mp = make(map[string]int)
 		for k, v := range typeData {
 			// iv, err := strconv.Atoi(fmt.Sprintf("%v", v))
@@ -442,7 +484,7 @@ func (c *Config) IntMap(key string) (mp map[string]int) {
 			}
 			mp[k] = iv
 		}
-	case map[interface{}]interface{}: // if decode from yaml
+	case map[any]any: // if decode from yaml
 		mp = make(map[string]int)
 		for k, v := range typeData {
 			// iv, err := strconv.Atoi(fmt.Sprintf( "%v", v))
@@ -485,7 +527,7 @@ func (c *Config) Strings(key string) (arr []string) {
 	switch typeData := rawVal.(type) {
 	case []string:
 		arr = typeData
-	case []interface{}:
+	case []any:
 		for _, v := range typeData {
 			// arr = append(arr, fmt.Sprintf("%v", v))
 			arr = append(arr, strutil.MustString(v))
@@ -501,6 +543,17 @@ func (c *Config) Strings(key string) (arr []string) {
 			c.sArrCache = make(map[string]strArr)
 		}
 		c.sArrCache[key] = arr
+	}
+	return
+}
+
+// StringsBySplit get []string by split a string value.
+func StringsBySplit(key, sep string) []string { return dc.StringsBySplit(key, sep) }
+
+// StringsBySplit get []string by split a string value.
+func (c *Config) StringsBySplit(key, sep string) (ss []string) {
+	if str, ok := c.getString(key); ok {
+		ss = strutil.Split(str, sep)
 	}
 	return
 }
@@ -528,8 +581,8 @@ func (c *Config) StringMap(key string) (mp map[string]string) {
 	switch typeData := rawVal.(type) {
 	case map[string]string: // from Set
 		mp = typeData
-	case map[string]interface{}: // decode from json,toml
-		mp = make(map[string]string)
+	case map[string]any: // decode from json,toml,yaml.v3
+		mp = make(map[string]string, len(typeData))
 
 		for k, v := range typeData {
 			switch tv := v.(type) {
@@ -540,14 +593,14 @@ func (c *Config) StringMap(key string) (mp map[string]string) {
 					mp[k] = tv
 				}
 			default:
-				mp[k], _ = strutil.AnyToString(v, false)
+				mp[k] = strutil.QuietString(v)
 			}
 		}
-	case map[interface{}]interface{}: // decode from yaml
-		mp = make(map[string]string)
+	case map[any]any: // decode from yaml v2
+		mp = make(map[string]string, len(typeData))
 
 		for k, v := range typeData {
-			sk, _ := strutil.AnyToString(k, false)
+			sk := strutil.QuietString(k)
 
 			switch typVal := v.(type) {
 			case string:
@@ -557,12 +610,11 @@ func (c *Config) StringMap(key string) (mp map[string]string) {
 					mp[sk] = typVal
 				}
 			default:
-				// mp[sk] = fmt.Sprintf("%v", v)
-				mp[sk], _ = strutil.AnyToString(v, false)
+				mp[sk] = strutil.QuietString(v)
 			}
 		}
 	default:
-		c.addErrorf("value cannot be convert to map[string]string, key is '%s'", key)
+		c.addErrorf("value cannot be convert to map[string]string, key is %q", key)
 		return
 	}
 
@@ -574,4 +626,21 @@ func (c *Config) StringMap(key string) (mp map[string]string) {
 		c.sMapCache[key] = mp
 	}
 	return
+}
+
+// SubDataMap get sub config data as maputil.Map
+func SubDataMap(key string) maputil.Map { return dc.SubDataMap(key) }
+
+// SubDataMap get sub config data as maputil.Map
+//
+// TIP: will not enable parse Env and more
+func (c *Config) SubDataMap(key string) maputil.Map {
+	if mp, ok := c.GetValue(key); ok {
+		if mmp, ok := mp.(map[string]any); ok {
+			return mmp
+		}
+	}
+
+	// keep is not nil
+	return maputil.Map{}
 }

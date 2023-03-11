@@ -2,17 +2,20 @@ package structs
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
+
+	"github.com/gookit/goutil/maputil"
 )
 
 // ToMap quickly convert structs to map by reflect
-func ToMap(st interface{}, optFns ...MapOptFunc) map[string]interface{} {
+func ToMap(st any, optFns ...MapOptFunc) map[string]any {
 	mp, _ := StructToMap(st, optFns...)
 	return mp
 }
 
 // MustToMap alis of TryToMap, but will panic on error
-func MustToMap(st interface{}, optFns ...MapOptFunc) map[string]interface{} {
+func MustToMap(st any, optFns ...MapOptFunc) map[string]any {
 	mp, err := StructToMap(st, optFns...)
 	if err != nil {
 		panic(err)
@@ -21,8 +24,17 @@ func MustToMap(st interface{}, optFns ...MapOptFunc) map[string]interface{} {
 }
 
 // TryToMap simple convert structs to map by reflect
-func TryToMap(st interface{}, optFns ...MapOptFunc) (map[string]interface{}, error) {
+func TryToMap(st any, optFns ...MapOptFunc) (map[string]any, error) {
 	return StructToMap(st, optFns...)
+}
+
+// ToString format
+func ToString(st any, optFns ...MapOptFunc) string {
+	mp, err := StructToMap(st, optFns...)
+	if err == nil {
+		return maputil.ToString(mp)
+	}
+	return fmt.Sprint(st)
 }
 
 const defaultFieldTag = "json"
@@ -35,10 +47,10 @@ type MapOptions struct {
 // MapOptFunc define
 type MapOptFunc func(opt *MapOptions)
 
-// StructToMap quickly convert structs to map[string]interface{} by reflect.
+// StructToMap quickly convert structs to map[string]any by reflect.
 // Can custom export field name by tag `json` or custom tag
-func StructToMap(st interface{}, optFns ...MapOptFunc) (map[string]interface{}, error) {
-	mp := make(map[string]interface{})
+func StructToMap(st any, optFns ...MapOptFunc) (map[string]any, error) {
+	mp := make(map[string]any)
 	if st == nil {
 		return mp, nil
 	}
@@ -61,9 +73,9 @@ func StructToMap(st interface{}, optFns ...MapOptFunc) (map[string]interface{}, 
 	return mp, err
 }
 
-func structToMap(obj reflect.Value, tagName string) (map[string]interface{}, error) {
+func structToMap(obj reflect.Value, tagName string) (map[string]any, error) {
 	refType := obj.Type()
-	mp := make(map[string]interface{})
+	mp := make(map[string]any)
 
 	for i := 0; i < obj.NumField(); i++ {
 		ft := refType.Field(i)

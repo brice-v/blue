@@ -4,91 +4,44 @@ package strutil
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"text/template"
 )
 
-// Position for padding string
-const (
-	PosLeft uint8 = iota
-	PosRight
-)
+// OrCond return s1 on cond is True, OR return s2.
+func OrCond(cond bool, s1, s2 string) string {
+	if cond {
+		return s1
+	}
+	return s2
+}
 
-/*************************************************************
- * String padding operation
- *************************************************************/
-
-// Padding a string.
-func Padding(s, pad string, length int, pos uint8) string {
-	diff := len(s) - length
-	if diff >= 0 { // do not need padding.
+// OrElse return s OR nv(new-value) on s is empty
+func OrElse(s, newVal string) string {
+	if s != "" {
 		return s
 	}
+	return newVal
+}
 
-	if pad == "" || pad == " " {
-		mark := ""
-		if pos == PosRight { // to right
-			mark = "-"
+// OrHandle return fn(s) on s is not empty.
+func OrHandle(s string, fn func(s string) string) string {
+	if s != "" {
+		return fn(s)
+	}
+	return s
+}
+
+// Valid return first not empty element.
+func Valid(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
 		}
-
-		// padding left: "%7s", padding right: "%-7s"
-		tpl := fmt.Sprintf("%s%d", mark, length)
-		return fmt.Sprintf(`%`+tpl+`s`, s)
 	}
-
-	if pos == PosRight { // to right
-		return s + Repeat(pad, -diff)
-	}
-
-	return Repeat(pad, -diff) + s
-}
-
-// PadLeft a string.
-func PadLeft(s, pad string, length int) string {
-	return Padding(s, pad, length, PosLeft)
-}
-
-// PadRight a string.
-func PadRight(s, pad string, length int) string {
-	return Padding(s, pad, length, PosRight)
-}
-
-/*************************************************************
- * String repeat operation
- *************************************************************/
-
-// Repeat a string
-func Repeat(s string, times int) string {
-	if times <= 0 {
-		return ""
-	}
-	if times == 1 {
-		return s
-	}
-
-	ss := make([]string, 0, times)
-	for i := 0; i < times; i++ {
-		ss = append(ss, s)
-	}
-
-	return strings.Join(ss, "")
-}
-
-// RepeatRune repeat a rune char.
-func RepeatRune(char rune, times int) (chars []rune) {
-	for i := 0; i < times; i++ {
-		chars = append(chars, char)
-	}
-	return
-}
-
-// RepeatBytes repeat a byte char.
-func RepeatBytes(char byte, times int) (chars []byte) {
-	for i := 0; i < times; i++ {
-		chars = append(chars, char)
-	}
-	return
+	return ""
 }
 
 // Replaces replace multi strings
@@ -109,18 +62,18 @@ func Replaces(str string, pairs map[string]string) string {
 
 // PrettyJSON get pretty Json string
 // Deprecated: please use fmtutil.PrettyJSON() or jsonutil.Pretty() instead it
-func PrettyJSON(v interface{}) (string, error) {
+func PrettyJSON(v any) (string, error) {
 	out, err := json.MarshalIndent(v, "", "    ")
 	return string(out), err
 }
 
 // RenderTemplate render text template
-func RenderTemplate(input string, data interface{}, fns template.FuncMap, isFile ...bool) string {
+func RenderTemplate(input string, data any, fns template.FuncMap, isFile ...bool) string {
 	return RenderText(input, data, fns, isFile...)
 }
 
 // RenderText render text template
-func RenderText(input string, data interface{}, fns template.FuncMap, isFile ...bool) string {
+func RenderText(input string, data any, fns template.FuncMap, isFile ...bool) string {
 	t := template.New("simple-text")
 	t.Funcs(template.FuncMap{
 		// don't escape content
@@ -169,4 +122,36 @@ func WrapTag(s, tag string) string {
 		return s
 	}
 	return fmt.Sprintf("<%s>%s</%s>", tag, s, tag)
+}
+
+// SubstrCount returns the number of times the substr substring occurs in the s string.
+// Actually, it comes from strings.Count().
+// s The string to search in
+// substr The substring to search for
+// params[0] The offset where to start counting.
+// params[1] The maximum length after the specified offset to search for the substring.
+func SubstrCount(s string, substr string, params ...uint64) (int, error) {
+	larg := len(params)
+	hasArgs := larg != 0
+	if hasArgs && larg > 2 {
+		return 0, errors.New("too many parameters")
+	}
+	if !hasArgs {
+		return strings.Count(s, substr), nil
+	}
+	strlen := len(s)
+	offset := 0
+	end := strlen
+	if hasArgs {
+		offset = int(params[0])
+		if larg == 2 {
+			length := int(params[1])
+			end = offset + length
+		}
+		if end > strlen {
+			end = strlen
+		}
+	}
+	s = string([]rune(s)[offset:end])
+	return strings.Count(s, substr), nil
 }

@@ -16,10 +16,10 @@ type Driver interface {
 }
 
 // Decoder for decode yml,json,toml format content
-type Decoder func(blob []byte, v interface{}) (err error)
+type Decoder func(blob []byte, v any) (err error)
 
 // Encoder for decode yml,json,toml format content
-type Encoder func(v interface{}) (out []byte, err error)
+type Encoder func(v any) (out []byte, err error)
 
 // StdDriver struct
 type StdDriver struct {
@@ -34,17 +34,15 @@ func NewDriver(name string, dec Decoder, enc Encoder) *StdDriver {
 }
 
 // Name of driver
-func (d *StdDriver) Name() string {
-	return d.name
-}
+func (d *StdDriver) Name() string { return d.name }
 
 // Decode of driver
-func (d *StdDriver) Decode(blob []byte, v interface{}) (err error) {
+func (d *StdDriver) Decode(blob []byte, v any) (err error) {
 	return d.decoder(blob, v)
 }
 
 // Encode of driver
-func (d *StdDriver) Encode(v interface{}) ([]byte, error) {
+func (d *StdDriver) Encode(v any) ([]byte, error) {
 	return d.encoder(v)
 }
 
@@ -59,13 +57,11 @@ func (d *StdDriver) GetEncoder() Encoder {
 }
 
 /*************************************************************
- * json driver
+ * JSON driver
  *************************************************************/
 
 var (
 	// JSONAllowComments support write comments on json file.
-	//
-	// Deprecated: please use JSONDriver.ClearComments = true
 	JSONAllowComments = true
 
 	// JSONMarshalIndent if not empty, will use json.MarshalIndent for encode data.
@@ -75,13 +71,13 @@ var (
 )
 
 // JSONDecoder for json decode
-var JSONDecoder Decoder = func(data []byte, v interface{}) (err error) {
+var JSONDecoder Decoder = func(data []byte, v any) (err error) {
 	JSONDriver.ClearComments = JSONAllowComments
 	return JSONDriver.Decode(data, v)
 }
 
 // JSONEncoder for json encode
-var JSONEncoder Encoder = func(v interface{}) (out []byte, err error) {
+var JSONEncoder Encoder = func(v any) (out []byte, err error) {
 	JSONDriver.MarshalIndent = JSONMarshalIndent
 	return JSONDriver.Encode(v)
 }
@@ -108,7 +104,7 @@ func (d *jsonDriver) Name() string {
 }
 
 // Decode for the driver
-func (d *jsonDriver) Decode(data []byte, v interface{}) error {
+func (d *jsonDriver) Decode(data []byte, v any) error {
 	if d.ClearComments {
 		str := jsonutil.StripComments(string(data))
 		return json.Unmarshal([]byte(str), v)
@@ -122,7 +118,7 @@ func (d *jsonDriver) GetDecoder() Decoder {
 }
 
 // Encode for the driver
-func (d *jsonDriver) Encode(v interface{}) (out []byte, err error) {
+func (d *jsonDriver) Encode(v any) (out []byte, err error) {
 	if len(d.MarshalIndent) > 0 {
 		return json.MarshalIndent(v, "", d.MarshalIndent)
 	}

@@ -1,5 +1,7 @@
 # Map Utils
 
+`maputil` provide map data util functions. eg: convert, sub-value get, simple merge
+
 - use `map[string]any` as Data
 - deep get value by key path
 - deep set value by key path
@@ -50,14 +52,20 @@ err := maputil.SetByPath(&mp, "map1.newKey", "VAL3")
 fmt.Println(maputil.DeepGet(mp, "map1.newKey")) // Output: VAL3
 ```
 
+## Code Check & Testing
 
-## Testings
+```bash
+gofmt -w -l ./
+golint ./...
+```
+
+**Testing**:
 
 ```shell
 go test -v ./maputil/...
 ```
 
-Test limit by regexp:
+**Test limit by regexp**:
 
 ```shell
 go test -v -run ^TestSetByKeys ./maputil/...

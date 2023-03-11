@@ -1014,7 +1014,7 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			fpath := args[0].(*object.Stringo).Value
 			err := c.LoadFiles(fpath)
 			if err != nil {
-				if err.Error() == "not exists or not register decoder for the format: env" {
+				if err.Error() == "not register decoder for the format: env" {
 					err = dotenv.LoadFiles(fpath)
 					builtinobjs["ENV"] = &object.BuiltinObj{
 						Obj: populateENVObj(),

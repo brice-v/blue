@@ -10,6 +10,15 @@ import (
  * change string case
  *************************************************************/
 
+// methods aliases
+var (
+	UpWords = UpperWord
+	LoFirst = LowerFirst
+	UpFirst = UpperFirst
+
+	Snake = SnakeCase
+)
+
 // Title alias of the strings.ToTitle()
 func Title(s string) string { return strings.ToTitle(s) }
 
@@ -98,11 +107,6 @@ func UpperFirst(s string) string {
 	return s
 }
 
-// Snake alias of the SnakeCase
-func Snake(s string, sep ...string) string {
-	return SnakeCase(s, sep...)
-}
-
 // SnakeCase convert. eg "RangePrice" -> "range_price"
 func SnakeCase(s string, sep ...string) string {
 	sepChar := "_"
@@ -118,9 +122,7 @@ func SnakeCase(s string, sep ...string) string {
 }
 
 // Camel alias of the CamelCase
-func Camel(s string, sep ...string) string {
-	return CamelCase(s, sep...)
-}
+func Camel(s string, sep ...string) string { return CamelCase(s, sep...) }
 
 // CamelCase convert string to camel case.
 //
@@ -153,7 +155,8 @@ func CamelCase(s string, sep ...string) string {
 }
 
 //
-// Indent format, from package: github.com/kr/text
+// Indent format multi line text
+// from package: github.com/kr/text
 //
 
 // Indent inserts prefix at the beginning of each non-empty line of s. The

@@ -12,7 +12,7 @@ import (
 
 // ValDecodeHookFunc returns a mapstructure.DecodeHookFunc that parse time string
 func ValDecodeHookFunc() mapstructure.DecodeHookFunc {
-	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+	return func(f reflect.Type, t reflect.Type, data any) (any, error) {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
@@ -58,15 +58,4 @@ func parseInlineSlice(s string, ln int) (ss []string, ok bool) {
 		return strutil.Split(s[1:ln-1], ","), true
 	}
 	return
-}
-
-func splitInlineComment(val string) (string, string) {
-	if pos := strings.IndexRune(val, '#'); pos > -1 {
-		return strings.TrimRight(val[0:pos], " "), val[pos:]
-	}
-
-	if pos := strings.Index(val, "//"); pos > -1 {
-		return strings.TrimRight(val[0:pos], " "), val[pos:]
-	}
-	return val, ""
 }

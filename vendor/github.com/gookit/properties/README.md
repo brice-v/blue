@@ -5,6 +5,7 @@
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/gookit/properties)](https://github.com/gookit/properties)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/properties)](https://goreportcard.com/report/github.com/gookit/properties)
 [![Go Reference](https://pkg.go.dev/badge/github.com/gookit/properties.svg)](https://pkg.go.dev/github.com/gookit/properties)
+[![Coverage Status](https://coveralls.io/repos/github/gookit/properties/badge.svg?branch=master)](https://coveralls.io/github/gookit/properties?branch=master)
 
 `properties` - Java Properties format contents parse, marshal and unmarshal library.
 
@@ -183,8 +184,8 @@ age = 200
 
 ## Marshal/Unmarshal
 
-- `Marshal(v interface{}) ([]byte, error)`
-- `Unmarshal(v []byte, ptr interface{}) error`
+- `Marshal(v any) ([]byte, error)`
+- `Unmarshal(v []byte, ptr any) error`
 
 **Example: Unmarshal**:
 

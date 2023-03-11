@@ -1,3 +1,4 @@
+// Package maputil provide map data util functions. eg: convert, sub-value get, simple merge
 package maputil
 
 import (
@@ -14,6 +15,26 @@ const (
 	KeySepStr  = "."
 	KeySepChar = '.'
 )
+
+// SimpleMerge simple merge two data map by string key.
+// will merge the src to dst map
+func SimpleMerge(src, dst map[string]any) map[string]any {
+	if len(src) == 0 {
+		return dst
+	}
+
+	if dst == nil {
+		return src
+	}
+
+	for key, val := range src {
+		dst[key] = val
+	}
+	return dst
+}
+
+// func DeepMerge(src, dst map[string]any, deep int) map[string]any {
+// }
 
 // MergeSMap simple merge two string map. merge src to dst map
 func MergeSMap(src, dst map[string]string, ignoreCase bool) map[string]string {
@@ -38,17 +59,17 @@ func MergeStringMap(src, dst map[string]string, ignoreCase bool) map[string]stri
 //
 //	"site.info"
 //	->
-//	map[string]interface{} {
+//	map[string]any {
 //		site: {info: val}
 //	}
 //
 //	// case 2, last key is slice:
 //	"site.tags[1]"
 //	->
-//	map[string]interface{} {
+//	map[string]any {
 //		site: {tags: [val]}
 //	}
-func MakeByPath(path string, val interface{}) (mp map[string]interface{}) {
+func MakeByPath(path string, val any) (mp map[string]any) {
 	return MakeByKeys(strings.Split(path, KeySepStr), val)
 }
 
@@ -59,17 +80,17 @@ func MakeByPath(path string, val interface{}) (mp map[string]interface{}) {
 //	// case 1:
 //	[]string{"site", "info"}
 //	->
-//	map[string]interface{} {
+//	map[string]any {
 //		site: {info: val}
 //	}
 //
 //	// case 2, last key is slice:
 //	[]string{"site", "tags[1]"}
 //	->
-//	map[string]interface{} {
+//	map[string]any {
 //		site: {tags: [val]}
 //	}
-func MakeByKeys(keys []string, val any) (mp map[string]interface{}) {
+func MakeByKeys(keys []string, val any) (mp map[string]any) {
 	size := len(keys)
 
 	// if last key contains slice index, make slice wrap the val

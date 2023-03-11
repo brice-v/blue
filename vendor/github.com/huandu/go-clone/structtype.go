@@ -13,10 +13,23 @@ import (
 	"unsafe"
 )
 
+type structType struct {
+	PointerFields []structFieldType
+	fn            Func
+}
+
+type structFieldType struct {
+	Offset uintptr // The offset from the beginning of the struct.
+	Index  int     // The index of the field.
+}
+
 var (
-	cachedStructTypes  sync.Map
-	cachedPointerTypes sync.Map
+	cachedStructTypes     sync.Map
+	cachedPointerTypes    sync.Map
+	cachedCustomFuncTypes sync.Map
 )
+
+var zeroStructType = structType{}
 
 func init() {
 	// Some well-known scalar-like structs.
@@ -53,19 +66,19 @@ func init() {
 	SetCustomFunc(reflect.TypeOf(sync.Mutex{}), emptyCloneFunc)
 	SetCustomFunc(reflect.TypeOf(sync.RWMutex{}), emptyCloneFunc)
 	SetCustomFunc(reflect.TypeOf(sync.WaitGroup{}), emptyCloneFunc)
-	SetCustomFunc(reflect.TypeOf(sync.Cond{}), func(old, new reflect.Value) {
+	SetCustomFunc(reflect.TypeOf(sync.Cond{}), func(allocator *Allocator, old, new reflect.Value) {
 		// Copy the New func from old value.
 		oldL := old.FieldByName("L")
-		newL := noState.clone(oldL)
+		newL := allocator.Clone(oldL)
 		new.FieldByName("L").Set(newL)
 	})
-	SetCustomFunc(reflect.TypeOf(sync.Pool{}), func(old, new reflect.Value) {
+	SetCustomFunc(reflect.TypeOf(sync.Pool{}), func(allocator *Allocator, old, new reflect.Value) {
 		// Copy the New func from old value.
 		oldFn := old.FieldByName("New")
-		newFn := noState.clone(oldFn)
+		newFn := allocator.Clone(oldFn)
 		new.FieldByName("New").Set(newFn)
 	})
-	SetCustomFunc(reflect.TypeOf(sync.Map{}), func(old, new reflect.Value) {
+	SetCustomFunc(reflect.TypeOf(sync.Map{}), func(allocator *Allocator, old, new reflect.Value) {
 		if !old.CanAddr() {
 			return
 		}
@@ -74,13 +87,13 @@ func init() {
 		oldMap := old.Addr().Interface().(*sync.Map)
 		newMap := new.Addr().Interface().(*sync.Map)
 		oldMap.Range(func(key, value interface{}) bool {
-			k := Clone(key)
-			v := Clone(value)
+			k := clone(allocator, key)
+			v := clone(allocator, value)
 			newMap.Store(k, v)
 			return true
 		})
 	})
-	SetCustomFunc(reflect.TypeOf(atomic.Value{}), func(old, new reflect.Value) {
+	SetCustomFunc(reflect.TypeOf(atomic.Value{}), func(allocator *Allocator, old, new reflect.Value) {
 		if !old.CanAddr() {
 			return
 		}
@@ -88,8 +101,9 @@ func init() {
 		// Clone value inside atomic.Value.
 		oldValue := old.Addr().Interface().(*atomic.Value)
 		newValue := new.Addr().Interface().(*atomic.Value)
-		v := Clone(oldValue.Load())
-		newValue.Store(v)
+		v := oldValue.Load()
+		cloned := clone(allocator, v)
+		newValue.Store(cloned)
 	})
 }
 
@@ -100,8 +114,8 @@ func init() {
 // If a struct type contains scalar type fields only, the struct will be marked as scalar automatically.
 //
 // Here is a list of types marked as scalar by default:
-//     * time.Time
-//     * reflect.Value
+//   - time.Time
+//   - reflect.Value
 func MarkAsScalar(t reflect.Type) {
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -111,15 +125,15 @@ func MarkAsScalar(t reflect.Type) {
 		return
 	}
 
-	cachedStructTypes.Store(t, structType{})
+	cachedStructTypes.Store(t, zeroStructType)
 }
 
 // MarkAsOpaquePointer marks t as an opaque pointer so that all clone methods will copy t by value.
 // If t is not a pointer, MarkAsOpaquePointer ignores t.
 //
 // Here is a list of types marked as opaque pointers by default:
-//     * `elliptic.Curve`, which is `*elliptic.CurveParam` or `elliptic.p256Curve`;
-//     * `reflect.Type`, which is `*reflect.rtype` defined in `runtime`.
+//   - `elliptic.Curve`, which is `*elliptic.CurveParam` or `elliptic.p256Curve`;
+//   - `reflect.Type`, which is `*reflect.rtype` defined in `runtime`.
 func MarkAsOpaquePointer(t reflect.Type) {
 	if t.Kind() != reflect.Ptr {
 		return
@@ -133,15 +147,22 @@ func MarkAsOpaquePointer(t reflect.Type) {
 // which `new.CanSet()` and `new.CanAddr()` is guaranteed to be true.
 //
 // Func must update the new to return result.
-type Func func(old, new reflect.Value)
+type Func func(allocator *Allocator, old, new reflect.Value)
 
 // emptyCloneFunc is used to disable shadow copy.
 // It's useful when cloning sync.Mutex as cloned value must be a zero value.
-func emptyCloneFunc(old, new reflect.Value) {}
+func emptyCloneFunc(allocator *Allocator, old, new reflect.Value) {}
 
 // SetCustomFunc sets a custom clone function for type t.
 // If t is not struct or pointer to struct, SetCustomFunc ignores t.
+//
+// If fn is nil, remove the custom clone function for type t.
 func SetCustomFunc(t reflect.Type, fn Func) {
+	if fn == nil {
+		cachedCustomFuncTypes.Delete(t)
+		return
+	}
+
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
@@ -150,36 +171,31 @@ func SetCustomFunc(t reflect.Type, fn Func) {
 		return
 	}
 
-	cachedStructTypes.Store(t, structType{
-		fn: fn,
-	})
+	cachedCustomFuncTypes.Store(t, fn)
 }
 
-type structType struct {
-	PointerFields []structFieldType
-	fn            Func
-}
-
-type structFieldType struct {
-	Offset uintptr // The offset from the beginning of the struct.
-	Index  int     // The index of the field.
-}
-
-// NewFrom creates a new value of src.Type() and shadow copies all content from src.
-func (st *structType) Copy(src, nv reflect.Value) {
+// Init creates a new value of src.Type() and shadow copies all content from src.
+// If noCustomFunc is set to true, custom clone function will be ignored.
+//
+// Init returns true if the value is cloned by a custom func.
+// Caller should skip cloning struct fields in depth.
+func (st *structType) Init(allocator *Allocator, src, nv reflect.Value, noCustomFunc bool) (done bool) {
 	dst := nv.Elem()
 
-	if st.fn != nil {
+	if !noCustomFunc && st.fn != nil {
 		if !src.CanInterface() {
 			src = forceClearROFlag(src)
 		}
 
-		st.fn(src, dst)
+		st.fn(allocator, src, dst)
+		done = true
 		return
 	}
 
 	ptr := unsafe.Pointer(nv.Pointer())
 	shadowCopy(src, ptr)
+	done = len(st.PointerFields) == 0
+	return
 }
 
 func (st *structType) CanShadowCopy() bool {
@@ -240,6 +256,11 @@ func loadStructType(t reflect.Type) (st structType) {
 	st = structType{
 		PointerFields: pointerFields,
 	}
+
+	if fn, ok := cachedCustomFuncTypes.Load(t); ok {
+		st.fn = fn.(Func)
+	}
+
 	cachedStructTypes.LoadOrStore(t, st)
 	return
 }
@@ -251,10 +272,15 @@ func isScalar(k reflect.Kind) bool {
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
 		reflect.Float32, reflect.Float64,
 		reflect.Complex64, reflect.Complex128,
-		reflect.String, reflect.Func,
+		reflect.Func,
 		reflect.UnsafePointer,
 		reflect.Invalid:
 		return true
+
+	case reflect.String:
+		// If arena is not enabled, string can be copied as scalar safely
+		// as it's immutable by design.
+		return !arenaIsEnabled
 	}
 
 	return false

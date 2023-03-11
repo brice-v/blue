@@ -4,20 +4,26 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/gookit/goutil/fsutil"
 	"github.com/imdario/mergo"
 )
 
-// LoadFiles load one or multi files
+// LoadFiles load one or multi files, will fire OnLoadData event
+//
+// Usage:
+//
+//	config.LoadFiles(file1, file2, ...)
 func LoadFiles(sourceFiles ...string) error { return dc.LoadFiles(sourceFiles...) }
 
-// LoadFiles load and parse config files
+// LoadFiles load and parse config files, will fire OnLoadData event
 func (c *Config) LoadFiles(sourceFiles ...string) (err error) {
 	for _, file := range sourceFiles {
 		if err = c.loadFile(file, false, ""); err != nil {
@@ -28,11 +34,19 @@ func (c *Config) LoadFiles(sourceFiles ...string) (err error) {
 }
 
 // LoadExists load one or multi files, will ignore not exist
+//
+// Usage:
+//
+//	config.LoadExists(file1, file2, ...)
 func LoadExists(sourceFiles ...string) error { return dc.LoadExists(sourceFiles...) }
 
 // LoadExists load and parse config files, but will ignore not exists file.
 func (c *Config) LoadExists(sourceFiles ...string) (err error) {
 	for _, file := range sourceFiles {
+		if file == "" {
+			continue
+		}
+
 		if err = c.loadFile(file, true, ""); err != nil {
 			return
 		}
@@ -58,36 +72,56 @@ func (c *Config) LoadRemote(format, url string) (err error) {
 
 	//noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()
-
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("fetch remote config error, reply status code is %d", resp.StatusCode)
 	}
 
 	// read response content
-	bts, err := ioutil.ReadAll(resp.Body)
+	bts, err := io.ReadAll(resp.Body)
 	if err == nil {
 		if err = c.parseSourceCode(format, bts); err != nil {
 			return
 		}
-		c.loadedFiles = append(c.loadedFiles, url)
+		c.loadedUrls = append(c.loadedUrls, url)
 	}
 	return
 }
 
 // LoadOSEnv load data from OS ENV
+//
+// Deprecated: please use LoadOSEnvs()
 func LoadOSEnv(keys []string, keyToLower bool) { dc.LoadOSEnv(keys, keyToLower) }
 
 // LoadOSEnv load data from os ENV
+//
+// Deprecated: please use Config.LoadOSEnvs()
 func (c *Config) LoadOSEnv(keys []string, keyToLower bool) {
 	for _, key := range keys {
-		// NOTICE:
-		// if is windows os, os.Getenv() Key is not case-sensitive
+		// NOTICE: if is Windows os, os.Getenv() Key is not case-sensitive
 		val := os.Getenv(key)
 		if keyToLower {
 			key = strings.ToLower(key)
 		}
 
 		_ = c.Set(key, val)
+	}
+
+	c.fireHook(OnLoadData)
+}
+
+// LoadOSEnvs load data from OS ENVs. format: {ENV_NAME: config_key}
+func LoadOSEnvs(nameToKeyMap map[string]string) { dc.LoadOSEnvs(nameToKeyMap) }
+
+// LoadOSEnvs load data from os ENVs. format: {ENV_NAME: config_key}
+func (c *Config) LoadOSEnvs(nameToKeyMap map[string]string) {
+	for name, key := range nameToKeyMap {
+		if val := os.Getenv(name); val != "" {
+			if key == "" {
+				key = strings.ToLower(name)
+			}
+
+			_ = c.Set(key, val)
+		}
 	}
 
 	c.fireHook(OnLoadData)
@@ -109,32 +143,33 @@ func LoadFlags(keys []string) error { return dc.LoadFlags(keys) }
 //
 // Usage:
 //
-//	// debug flag is bool type
+//	// 'debug' flag is bool type
 //	c.LoadFlags([]string{"env", "debug:bool"})
 func (c *Config) LoadFlags(keys []string) (err error) {
-	hash := map[string]interface{}{}
+	hash := map[string]int8{}
 
 	// bind vars
 	for _, key := range keys {
 		key, typ := parseVarNameAndType(key)
+		desc := "config flag " + key
 
 		switch typ {
 		case "int":
 			ptr := new(int)
-			flag.IntVar(ptr, key, c.Int(key), "")
-			hash[key] = ptr
+			flag.IntVar(ptr, key, c.Int(key), desc)
+			hash[key] = 0
 		case "uint":
 			ptr := new(uint)
-			flag.UintVar(ptr, key, c.Uint(key), "")
-			hash[key] = ptr
+			flag.UintVar(ptr, key, c.Uint(key), desc)
+			hash[key] = 0
 		case "bool":
 			ptr := new(bool)
-			flag.BoolVar(ptr, key, c.Bool(key), "")
-			hash[key] = ptr
+			flag.BoolVar(ptr, key, c.Bool(key), desc)
+			hash[key] = 0
 		default: // as string
 			ptr := new(string)
-			flag.StringVar(ptr, key, c.String(key), "")
-			hash[key] = ptr
+			flag.StringVar(ptr, key, c.String(key), desc)
+			hash[key] = 0
 		}
 	}
 
@@ -142,14 +177,12 @@ func (c *Config) LoadFlags(keys []string) (err error) {
 	flag.Parse()
 	flag.Visit(func(f *flag.Flag) {
 		name := f.Name
-		// name := strings.Replace(f.Name, "-", ".", -1)
 		// only get name in the keys.
 		if _, ok := hash[name]; !ok {
 			return
 		}
 
-		// ignore error
-		_ = c.Set(name, f.Value.String())
+		_ = c.Set(name, f.Value.String()) // ignore error
 	})
 
 	c.fireHook(OnLoadData)
@@ -157,13 +190,13 @@ func (c *Config) LoadFlags(keys []string) (err error) {
 }
 
 // LoadData load one or multi data
-func LoadData(dataSource ...interface{}) error { return dc.LoadData(dataSource...) }
+func LoadData(dataSource ...any) error { return dc.LoadData(dataSource...) }
 
 // LoadData load data from map OR struct
 //
 // The dataSources can be:
-//   - map[string]interface{}
-func (c *Config) LoadData(dataSources ...interface{}) (err error) {
+//   - map[string]any
+func (c *Config) LoadData(dataSources ...any) (err error) {
 	if c.opts.Delimiter == 0 {
 		c.opts.Delimiter = defaultDelimiter
 	}
@@ -188,7 +221,7 @@ func LoadSources(format string, src []byte, more ...[]byte) error {
 //
 // Usage:
 //
-//	config.LoadSources(config.Yml, []byte(`
+//	config.LoadSources(config.Yaml, []byte(`
 //	name: blog
 //	arr:
 //		key: val
@@ -230,14 +263,14 @@ func (c *Config) LoadStrings(format string, str string, more ...string) (err err
 	return
 }
 
-// LoadFilesByFormat load one or multi files by give format
-func LoadFilesByFormat(format string, sourceFiles ...string) error {
-	return dc.LoadFilesByFormat(format, sourceFiles...)
+// LoadFilesByFormat load one or multi config files by give format, will fire OnLoadData event
+func LoadFilesByFormat(format string, configFiles ...string) error {
+	return dc.LoadFilesByFormat(format, configFiles...)
 }
 
-// LoadFilesByFormat load one or multi files by give format
-func (c *Config) LoadFilesByFormat(format string, sourceFiles ...string) (err error) {
-	for _, file := range sourceFiles {
+// LoadFilesByFormat load one or multi files by give format, will fire OnLoadData event
+func (c *Config) LoadFilesByFormat(format string, configFiles ...string) (err error) {
+	for _, file := range configFiles {
 		if err = c.loadFile(file, false, format); err != nil {
 			return
 		}
@@ -245,14 +278,14 @@ func (c *Config) LoadFilesByFormat(format string, sourceFiles ...string) (err er
 	return
 }
 
-// LoadExistsByFormat load one or multi files by give format
-func LoadExistsByFormat(format string, sourceFiles ...string) error {
-	return dc.LoadExistsByFormat(format, sourceFiles...)
+// LoadExistsByFormat load one or multi files by give format, will fire OnLoadData event
+func LoadExistsByFormat(format string, configFiles ...string) error {
+	return dc.LoadExistsByFormat(format, configFiles...)
 }
 
-// LoadExistsByFormat load one or multi files by give format
-func (c *Config) LoadExistsByFormat(format string, sourceFiles ...string) (err error) {
-	for _, file := range sourceFiles {
+// LoadExistsByFormat load one or multi files by give format, will fire OnLoadData event
+func (c *Config) LoadExistsByFormat(format string, configFiles ...string) (err error) {
+	for _, file := range configFiles {
 		if err = c.loadFile(file, true, format); err != nil {
 			return
 		}
@@ -260,7 +293,90 @@ func (c *Config) LoadExistsByFormat(format string, sourceFiles ...string) (err e
 	return
 }
 
-// load config file
+// LoadFromDir Load custom format files from the given directory, the file name will be used as the key.
+//
+// Example:
+//
+//	// file: /somedir/task.json
+//	LoadFromDir("/somedir", "json")
+//
+//	// after load
+//	Config.data = map[string]any{"task": file data}
+func LoadFromDir(dirPath, format string) error {
+	return dc.LoadFromDir(dirPath, format)
+}
+
+// LoadFromDir Load custom format files from the given directory, the file name will be used as the key.
+//
+// Example:
+//
+//	// file: /somedir/task.json
+//	Config.LoadFromDir("/somedir", "json")
+//
+//	// after load
+//	Config.data = map[string]any{"task": file data}
+func (c *Config) LoadFromDir(dirPath, format string) (err error) {
+	extName := "." + format
+	extLen := len(extName)
+
+	return fsutil.FindInDir(dirPath, func(fPath string, ent fs.DirEntry) error {
+		baseName := ent.Name()
+		if strings.HasSuffix(baseName, extName) {
+			data, err := c.parseSourceToMap(format, fsutil.MustReadFile(fPath))
+			if err != nil {
+				return err
+			}
+
+			onlyName := baseName[:len(baseName)-extLen]
+			err = c.loadDataMap(map[string]any{onlyName: data})
+
+			// use file name as key, it cannot be reloaded. SO, cannot append to loadedFiles
+			// if err == nil {
+			// 	c.loadedFiles = append(c.loadedFiles, fPath)
+			// }
+
+			return err
+		}
+		return nil
+	})
+}
+
+// ReloadFiles reload config data use loaded files
+func ReloadFiles() error { return dc.ReloadFiles() }
+
+// ReloadFiles reload config data use loaded files. use on watching loaded files change
+func (c *Config) ReloadFiles() (err error) {
+	files := c.loadedFiles
+	if len(files) == 0 {
+		return
+	}
+
+	data := c.Data()
+	c.reloading = true
+	c.ClearCaches()
+
+	defer func() {
+		// revert to back up data on error
+		if err != nil {
+			c.data = data
+		}
+
+		c.lock.Unlock()
+		c.reloading = false
+
+		if err == nil {
+			c.fireHook(OnReloadData)
+		}
+	}()
+
+	// with lock
+	c.lock.Lock()
+
+	// reload config files
+	return c.LoadFiles(files...)
+}
+
+// load config file, will fire OnLoadData event
 func (c *Config) loadFile(file string, loadExist bool, format string) (err error) {
 	fd, err := os.Open(file)
 	if err != nil {
@@ -274,7 +390,7 @@ func (c *Config) loadFile(file string, loadExist bool, format string) (err error
 	defer fd.Close()
 
 	// read file content
-	bts, err := ioutil.ReadAll(fd)
+	bts, err := io.ReadAll(fd)
 	if err == nil {
 		// get format for file ext
 		if format == "" {
@@ -286,42 +402,55 @@ func (c *Config) loadFile(file string, loadExist bool, format string) (err error
 			return
 		}
 
-		c.loadedFiles = append(c.loadedFiles, file)
+		if !c.reloading {
+			c.loadedFiles = append(c.loadedFiles, file)
+		}
 	}
 	return
 }
 
 // parse config source code to Config.
 func (c *Config) parseSourceCode(format string, blob []byte) (err error) {
+	data, err := c.parseSourceToMap(format, blob)
+	if err != nil {
+		return err
+	}
+
+	return c.loadDataMap(data)
+}
+
+func (c *Config) loadDataMap(data map[string]any) (err error) {
+	// first: init config data
+	if len(c.data) == 0 {
+		c.data = data
+	} else {
+		// again ... will merge data
+		err = mergo.Merge(&c.data, data, mergo.WithOverride, mergo.WithTypeCheck)
+	}
+
+	if !c.reloading && err == nil {
+		c.fireHook(OnLoadData)
+	}
+	return err
+}
+
+// parse config source code to Config.
+func (c *Config) parseSourceToMap(format string, blob []byte) (map[string]any, error) {
 	format = fixFormat(format)
 	decode := c.decoders[format]
 	if decode == nil {
-		return errors.New("not exists or not register decoder for the format: " + format)
+		return nil, errors.New("not register decoder for the format: " + format)
 	}
 
 	if c.opts.Delimiter == 0 {
 		c.opts.Delimiter = defaultDelimiter
 	}
 
-	data := make(map[string]interface{})
-
 	// decode content to data
-	if err = decode(blob, &data); err != nil {
-		return
-	}
+	data := make(map[string]any)
 
-	// init config data
-	if len(c.data) == 0 {
-		c.data = data
-	} else {
-		// again ... will merge data
-		// err = mergo.Map(&c.data, data, mergo.WithOverride)
-		err = mergo.Merge(&c.data, data, mergo.WithOverride, mergo.WithTypeCheck)
+	if err := decode(blob, &data); err != nil {
+		return nil, err
 	}
-
-	if err == nil {
-		c.fireHook(OnLoadData)
-	}
-	data = nil
-	return
+	return data, nil
 }
