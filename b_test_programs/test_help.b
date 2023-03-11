@@ -18,7 +18,6 @@ more here
 type(main) = 'FUNCTION'
 inspect(main) = 'fun() {
 ""
-
 }'""".replace("\r", "");
 assert(help(main) == expected_help);
 

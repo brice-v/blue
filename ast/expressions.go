@@ -154,7 +154,7 @@ func (ie *IfExpression) String() string {
 			out.WriteString("else if (")
 		}
 		out.WriteString(ie.Conditions[i].String())
-		out.WriteString(") {")
+		out.WriteString(") { ")
 		out.WriteString(ie.Consequences[i].ExpressionString())
 		out.WriteString(" } ")
 	}

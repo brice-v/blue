@@ -45,9 +45,11 @@ func (p *Program) TokenLiteral() string {
 func (p *Program) String() string {
 	var out bytes.Buffer
 
-	for _, s := range p.Statements {
+	for i, s := range p.Statements {
 		out.WriteString(s.String())
-		out.WriteByte('\n')
+		if i != len(p.Statements)-1 {
+			out.WriteByte('\n')
+		}
 	}
 
 	return out.String()
