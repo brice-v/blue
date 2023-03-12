@@ -36,6 +36,18 @@ The commands are:
 The default behavior for no command/arguments will start
 an evaluator repl. (If given a file, the file will be 
 evaluated)
+
+Environment Variables:
+DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
+                            http route path printing and message
+BLUE_INSTALL_PATH           set to the path where the blue src is
+                            installed. ie. ~/.blue/src
+NO_COLOR or BLUE_NO_COLOR   set to true (or any non empty string)
+                            to disable colored printing
+PATH                        add blue to the path variable to access
+                            it anywhere. ie. ~/.blue/bin
+                            could be added to path with the blue exe
+                            inside of it
 `
 
 // Run runs the cmd line parsing of arguments and kicks off blue
