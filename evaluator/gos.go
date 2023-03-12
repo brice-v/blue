@@ -3,6 +3,7 @@
 package evaluator
 
 import (
+	"blue/evaluator/pubsub"
 	"blue/object"
 	"database/sql"
 	"net"
@@ -74,3 +75,8 @@ var ColorStyleMap = &ConcurrentMap[uint64, color.Style]{
 var ColorStyleCountMap = &ConcurrentMap[string, uint64]{
 	kv: make(map[string]uint64),
 }
+
+var SubscriberMap = &ConcurrentMap[uint64, *pubsub.Subscriber]{
+	kv: make(map[uint64]*pubsub.Subscriber),
+}
+var PubSubBroker = pubsub.NewBroker()

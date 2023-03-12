@@ -15,7 +15,7 @@ fun send(obj, value) {
             http.ws_client_send(obj.v, value)
         },
         _ => {
-            error("obj `#{obj}` is invalid type")
+            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
     };
 }
@@ -34,8 +34,11 @@ fun recv(obj) {
             import http
             http.ws_client_recv(obj.v)
         },
+        {t: "sub", v: _} => {
+            _pubsub_sub_listen(obj.v)
+        },
         _ => {
-            error("obj `#{obj}` is invalid type")
+            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
     };
 }
@@ -160,7 +163,7 @@ fun ping(obj) {
             db.db_ping(obj.v)
         },
         _ => {
-            error("obj `#{obj}` is invalid type")
+            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
     };
 }
@@ -179,7 +182,7 @@ fun close(obj) {
             }
         },
         _ => {
-            error("obj `#{obj}` is invalid type")
+            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
     };
 }
@@ -218,7 +221,7 @@ fun accept(obj) {
             net.net_accept(obj.v)
         },
         _ => {
-            error("obj `#{obj}` is invalid type")
+            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
     };
 }
@@ -231,7 +234,7 @@ fun get_text(obj) {
             ui.entry_get_text(obj.v)
         },
         _ => {
-            error("obj `#{obj}` is invalid type")
+            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
     };
 }
@@ -294,3 +297,9 @@ fun go_metrics(flat=false) {
 
     return __total_metrics;
 }
+
+val pubsub = {
+    subscribe: _subscribe,
+    publish: _publish,
+    broadcast: _broadcast,
+};

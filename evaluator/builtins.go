@@ -1018,6 +1018,143 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 		},
 	},
+	"_publish": {
+		Fun: func(args ...object.Object) object.Object {
+			// pubsub.publish('TOPIC', MSG) -> non-blocking send
+			if len(args) != 2 {
+				return newInvalidArgCountError("publish", len(args), 2, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("publish", 1, object.STRING_OBJ, args[0].Type())
+			}
+			topic := args[0].(*object.Stringo).Value
+			PubSubBroker.Publish(topic, args[1])
+			return NULL
+		},
+	},
+	"_broadcast": {
+		Fun: func(args ...object.Object) object.Object {
+			// pubsub.broadcast(MSG) -> non-blocking send
+			// pubsub.broadcast(MSG, ['some', 'specifc', 'channels']) -> non-blocking send
+			if len(args) != 1 && len(args) != 2 {
+				return newInvalidArgCountError("broadcast", len(args), 1, "or 2")
+			}
+			if len(args) == 2 && args[1].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("broadcast", 2, object.LIST_OBJ, args[1].Type())
+			}
+			if len(args) == 1 {
+				PubSubBroker.BroadcastToAllTopics(args[0])
+				return NULL
+			}
+			l := args[1].(*object.List).Elements
+			topics := make([]string, len(l))
+			for i, e := range l {
+				if e.Type() != object.STRING_OBJ {
+					return newError("`broadcast` error: all elements in list should be STRING. found=%s", e.Type())
+				}
+				topics[i] = e.(*object.Stringo).Value
+			}
+			PubSubBroker.Broadcast(args[0], topics)
+			return NULL
+		},
+	},
+	// Functions for subscribers in pubsub
+	"add_topic": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("add_topic", len(args), 2, "")
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newPositionalTypeError("add_topic", 1, object.MAP_OBJ, args[0].Type())
+			}
+			t, v, ok := getBasicObject(args[0])
+			if !ok {
+				return newError("`add_topic` error: argument 1 should be in the format {t: 'sub', v: uint}. got=%s", args[0].Inspect())
+			}
+			if t != "sub" {
+				return newError("`add_topic` error: argument 1 should be in the format {t: 'sub', v: uint}")
+			}
+			sub, ok := SubscriberMap.Get(v)
+			if !ok {
+				return newError("`add_topic` error: subscriber with id %d, did not exist", v)
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("add_topic", 2, object.STRING_OBJ, args[1].Type())
+			}
+			topic := args[1].(*object.Stringo).Value
+			sub.AddTopic(topic)
+			return NULL
+		},
+	},
+	// TODO: add_topics, remove_topics?
+	"remove_topic": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("remove_topic", len(args), 2, "")
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newPositionalTypeError("remove_topic", 1, object.MAP_OBJ, args[0].Type())
+			}
+			t, v, ok := getBasicObject(args[0])
+			if !ok {
+				return newError("`remove_topic` error: argument 1 should be in the format {t: 'sub', v: uint}. got=%s", args[0].Inspect())
+			}
+			if t != "sub" {
+				return newError("`remove_topic` error: argument 1 should be in the format {t: 'sub', v: uint}")
+			}
+			sub, ok := SubscriberMap.Get(v)
+			if !ok {
+				return newError("`remove_topic` error: subscriber with id %d, did not exist", v)
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("remove_topic", 2, object.STRING_OBJ, args[1].Type())
+			}
+			topic := args[1].(*object.Stringo).Value
+			sub.RemoveTopic(topic)
+			return NULL
+		},
+	},
+	"unsubscribe": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("unsubscribe", len(args), 2, "")
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newPositionalTypeError("unsubscribe", 1, object.MAP_OBJ, args[0].Type())
+			}
+			t, v, ok := getBasicObject(args[0])
+			if !ok {
+				return newError("`unsubscribe` error: argument 1 should be in the format {t: 'sub', v: uint}. got=%s", args[0].Inspect())
+			}
+			if t != "sub" {
+				return newError("`unsubscribe` error: argument 1 should be in the format {t: 'sub', v: uint}")
+			}
+			sub, ok := SubscriberMap.Get(v)
+			if !ok {
+				return newError("`unsubscribe` error: subscriber with id %d, did not exist", v)
+			}
+			// Remove should also destruct the subscriber
+			PubSubBroker.RemoveSubscriber(sub)
+			SubscriberMap.Remove(v)
+			return NULL
+		},
+	},
+	"_pubsub_sub_listen": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("pubsub_sub_listen", len(args), 1, "")
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newPositionalTypeError("pubsub_sub_listen", 1, object.UINTEGER_OBJ, args[0].Type())
+			}
+			v := args[0].(*object.UInteger).Value
+			sub, ok := SubscriberMap.Get(v)
+			if !ok {
+				return newError("`pubsub_sub_listen` error: subscriber with id %d, did not exist", v)
+			}
+			return sub.PollMessage()
+		},
+	},
 })
 
 func medianBucket(h *metrics.Float64Histogram) float64 {

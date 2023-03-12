@@ -1121,6 +1121,25 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 	}
 }
 
+func createSubscriberBuiltin(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			// pubsub.subscribe('TOPIC', fun) -> {t: 'sub', v: _} -> _.recv()
+			if len(args) != 1 {
+				return newInvalidArgCountError("subscribe", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("subscribe", 1, object.STRING_OBJ, args[0].Type())
+			}
+			topic := args[0].(*object.Stringo).Value
+			sub := PubSubBroker.AddSubscriber(e.PID)
+			SubscriberMap.Put(e.PID, sub)
+			PubSubBroker.Subscribe(sub, topic)
+			return object.CreateBasicMapObject("sub", e.PID)
+		},
+	}
+}
+
 // Helper for `doc` command
 func (e *Evaluator) GetAllStdPublicFunctionHelpStrings() string {
 	mods := make([]string, len(_std_mods))
