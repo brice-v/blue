@@ -1,23 +1,38 @@
 TODO:
 
-- add way to convert numbers to different formats (possibly for printing?)
-- debugger statement that pops user into repl with access to variables (then just need a way to exit repl and continue execution)
+- [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
+    - Also add `blue test` command to specify file or maybe just run everything
+- [ ] Add some sort of package management with a file like blue.json (or blue.toml)
+    - This will allow us to also add a script runner
+    - And by this time we can add a `blue init` command to generate the initial scaffolding
+        - maybe allow it to accept some sort of template (or have options for type of project)
+- [ ] Add abs_path function for a file that exists? otherwise throw error
+- [ ] Store doc comments above var/val statements?
+- [ ] add to_fixed() similar to js
+- [ ] Add formatting options for string interpolation?
+- [ ] read/write for byte buffer? (allow writing bytes - need easy syntax there)
+- [ ] reduce contention in gos.go
+- [ ] open syscall?
+- [ ] go struct to blue map helper function?
+- [ ] make `wait` allow you to return values to process calling `wait`
+- [ ] add helper to quit/exit pid?
+- [ ] make process errors bubble up if they are waited on?
+- [ ] add supervisor builtin which can restart a pid if it errors out (this can all be done in go)
+- [ ] allow docs to be served/transformed to md or html
+- [ ] debugger that breaks out into repl
+    - debugger statement that pops user into repl with access to variables (then just need a way to exit repl and continue execution)
+- [ ] colorize terminal outputs for errors and other things like that
+- [ ] Allow bundler to specify files/directory and allow them to be opened when called in the embedded context
+    - this will also help with things like http.static() - and serving files from embedded dir
 - still want to have way of starting a blue process like Erlang/Elixr with ways to connect and send over the network, etc.
 - in children, see if we can bind and convert strings to label with binding?
 - [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
 - [-] Make sure continue works with for (x in y) where y is set/list/map
     - Seems to work fine
-- Make templating system actually work well, or have some builtin to automatically return an elem but continue execution?
-- NOTE: `send()` will block if nothing is recveiving on it (maybe this is okay?)
-    - We could maybe optimize this with a buffered channel
 - [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
 - `go tool pprof -http localhost:9999 cpu.prof` (or mem.prof)
-- [ ] We then probably need some wait groups and other concurrent features to make everything nicer
-    - also we need to consider when processes are loaded on other computer hosts
-- [ ] Remove createProcess function if it ends up being simple (like it is currently)
-- [ ] Should we pass in current env when spawning? It would allow globals declared before hand to be copied but not updated
 - [ ] Add test cases to cover all the basic functions
 - [ ] sort builtin
     - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
@@ -25,15 +40,12 @@ TODO:
 - [ ] remove lambda or make it easier to use
 - [ ] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
 - [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
-- [ ] Add docstrings
-    - [ ] Add help() function to get the doc string for any public object in the Environment
 - [ ] Fix STDIN write and reading
     - [ ] Make sure STDOUT and STDERR are working as expected
-- [ ] Add parser errors anywhere we are returning nil
-    - [x] Eventually this should be able to point to the location via the token's location
 - [ ] Add variadic arguments (...)
 - [ ] Use struct{} for set implmentation
 - [ ] Remove uints from working with big floats and ints
+    - What does this mean? 
 - [ ] Include shift operators and assignment expressions to other types
 - [ ] Support regex literal in parser and evaluator
     - Might just use a syntax such as `re"[0-9]+"`
@@ -47,6 +59,10 @@ TODO:
 
 LATER ON:
 
+- [ ] See if we can add go -coverage for tests (including the b_test_programs dir)
+    - Try to get coverage as high as we can
+- [ ] Performance testing and high level optimizations first
+    - Then try to optimize further (we can still obviously use a VM if we wanted to)
 - [ ] Add code for CLI arg parser
 - [ ] Support unicode throughout
 - [ ] TESTS! Lots of them covering a variety of scenarios
@@ -59,19 +75,38 @@ LATER ON:
 - [ ] Add way to print out ast by node name rather than strings
 - [ ] Look into the performance benefits of different hashing algorthims
 - [ ] Look into the performance benefits of enum of types rather than strings
-- [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
-- [-] Fix all Math functions that are currently lossy due to conversion
-    - In progress...
-- [ ] Think about adding types
+- [ ] Fix all Math functions that are currently lossy due to conversion
+    - Just fix them in general (make it strongly typed so the user has to force lossiness if thats desired)
 - [ ] Think about compiling to go
-- [x] Think about adding channels, receivers, using the golang scheduler
-    - [ ] Use Context package with parallel code, should help close out channels
+    - Still could try this out - but definitely a future thing
 - [ ] Tagged Unions/ enums working properly with match
 - [x] Using `` to call cmd on computer - returning the output of that command
     - [ ] Add support for piped output
 
 COMPLETED TASKS:
 
+- [x] Make assignment not work with maps that are initially declared as 'val'
+    - This was a bug - now fixed
+- [-] Should we pass in current env when spawning? It would allow globals declared before hand to be copied but not updated
+    - We currently extend the current env wherever the function is spawned
+- [x] Remove createProcess function if it ends up being simple (like it is currently)
+- [-] Think about adding types
+    - At this stage, probably not
+- [x] Think about adding channels, receivers, using the golang scheduler
+    - [x] Use Context package with parallel code, should help close out channels
+        - channels now closed when the process closes (we need to keep it open in case a message is sent to a pid)
+- [x] Add parser errors anywhere we are returning nil
+    - [x] Eventually this should be able to point to the location via the token's location
+- [x] Add docstrings
+    - [x] Add help() function to get the doc string for any public object in the Environment
+- [-] We then probably need some wait groups and other concurrent features to make everything nicer
+    - also we need to consider when processes are loaded on other computer hosts
+    - implemented `wait`
+- add way to convert numbers to different formats (possibly for printing?)
+    - [x] sort of done now that we can convert between all numeric types
+- Make templating system actually work well, or have some builtin to automatically return an elem but continue execution?
+- NOTE: `send()` will block if nothing is recveiving on it (maybe this is okay?)
+    - We could maybe optimize this with a buffered channel
 - [x] Support TUI and colors for printing in terminal (and any other special things)
     - we got colors but nothing else at the moment
 - [x] FIX: Make sure that default args are being called correctly with some partial args given
