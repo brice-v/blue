@@ -835,19 +835,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 			if !ok {
 				return newError("`handle_ws` could not find Server Object")
 			}
-			getRootPath := func(s string) string {
-				x := strings.SplitAfterN(s, "/", 2)[1]
-				x1 := strings.SplitAfterN(x, "/", 2)[0]
-				var x2 string
-				if strings.HasSuffix(x1, "/") {
-					x2 = x1[:len(x1)-1]
-				} else {
-					x2 = x1
-				}
-				return "/" + x2
-			}
-			rootPath := getRootPath(pattern)
-			app.Use(rootPath, func(c *fiber.Ctx) error {
+			app.Use(pattern, func(c *fiber.Ctx) error {
 				if websocket.IsWebSocketUpgrade(c) {
 					return c.Next()
 				}
