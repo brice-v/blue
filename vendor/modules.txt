@@ -355,6 +355,7 @@ github.com/sergi/go-diff/diffmatchpatch
 ## explicit; go 1.15
 github.com/shirou/gopsutil/v3/cpu
 github.com/shirou/gopsutil/v3/internal/common
+github.com/shirou/gopsutil/v3/mem
 # github.com/shopspring/decimal v1.3.1
 ## explicit; go 1.13
 github.com/shopspring/decimal
