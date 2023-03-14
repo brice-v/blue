@@ -50,6 +50,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
 	"golang.org/x/crypto/bcrypt"
@@ -2140,6 +2141,46 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`cpu_count` error: %s", err.Error())
 			}
 			return &object.Integer{Value: int64(count)}
+		},
+	},
+	"_mem_virt_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("mem_virt_info", len(args), 0, "")
+			}
+			v, err := mem.VirtualMemory()
+			if err != nil {
+				return newError("`mem_virt_info` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: v.String()}
+		},
+	},
+	"_mem_swap_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("mem_swap_info", len(args), 0, "")
+			}
+			v, err := mem.SwapMemory()
+			if err != nil {
+				return newError("`mem_swap_info` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: v.String()}
+		},
+	},
+	"_mem_swap_devices": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("mem_swap_devices", len(args), 0, "")
+			}
+			v, err := mem.SwapDevices()
+			if err != nil {
+				return newError("`mem_swap_devices` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(v))}
+			for i, e := range v {
+				l.Elements[i] = &object.Stringo{Value: e.String()}
+			}
+			return l
 		},
 	},
 })
