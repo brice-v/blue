@@ -50,7 +50,10 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
+	psutilnet "github.com/shirou/gopsutil/v3/net"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
 	"golang.org/x/crypto/bcrypt"
@@ -2181,6 +2184,118 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				l.Elements[i] = &object.Stringo{Value: e.String()}
 			}
 			return l
+		},
+	},
+	"_host_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("host_info", len(args), 0, "")
+			}
+			i, err := host.Info()
+			if err != nil {
+				return newError("`host_info` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: i.String()}
+		},
+	},
+	"_host_users_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("host_users_info", len(args), 0, "")
+			}
+			users, err := host.Users()
+			if err != nil {
+				return newError("`host_users_info` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(users))}
+			for i, u := range users {
+				l.Elements[i] = &object.Stringo{Value: u.String()}
+			}
+			return l
+		},
+	},
+	"_host_temps_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("host_temps_info", len(args), 0, "")
+			}
+			temps, err := host.SensorsTemperatures()
+			if err != nil {
+				return newError("`host_temps_info` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(temps))}
+			for i, t := range temps {
+				l.Elements[i] = &object.Stringo{Value: t.String()}
+			}
+			return l
+		},
+	},
+	"_net_connections": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("net_connections", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("net_connections", 1, object.STRING_OBJ, args[0].Type())
+			}
+			option := args[0].(*object.Stringo).Value
+			conns, err := psutilnet.Connections(option)
+			if err != nil {
+				return newError("`net_connections` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(conns))}
+			for i, c := range conns {
+				l.Elements[i] = &object.Stringo{Value: c.String()}
+			}
+			return l
+		},
+	},
+	"_net_io_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("net_io_info", len(args), 0, "")
+			}
+			ioc, err := psutilnet.IOCounters(true)
+			if err != nil {
+				return newError("`net_io_info` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(ioc))}
+			for i, oc := range ioc {
+				l.Elements[i] = &object.Stringo{Value: oc.String()}
+			}
+			return l
+		},
+	},
+	"_disk_partitions": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("disk_partitions", len(args), 0, "")
+			}
+			parts, err := disk.Partitions(true)
+			if err != nil {
+				return newError("`disk_partitions` error: %s", err.Error())
+			}
+			l := &object.List{Elements: make([]object.Object, len(parts))}
+			for i, p := range parts {
+				l.Elements[i] = &object.Stringo{Value: p.String()}
+			}
+			return l
+		},
+	},
+	"_disk_io_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("disk_io_info", len(args), 0, "")
+			}
+			ioc, err := disk.IOCounters()
+			if err != nil {
+				return newError("`disk_io_info` error: %s", err.Error())
+			}
+			m := object.NewOrderedMap[string, object.Object]()
+			for k, v := range ioc {
+				m.Set(k, &object.Stringo{Value: v.String()})
+			}
+			return object.CreateMapObjectForGoMap(*m)
 		},
 	},
 })

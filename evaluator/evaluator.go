@@ -2414,6 +2414,25 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 			return TRUE
 		}
 		return e.evalDefaultInfixExpression(operator, left, right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.LIST_OBJ:
+		leftStr := left.(*object.Stringo)
+		rightList := right.(*object.List).Elements
+		if operator == "in" {
+			for _, e := range rightList {
+				if object.HashObject(e) == leftStr.HashKey().Value {
+					return TRUE
+				}
+			}
+			return FALSE
+		} else if operator == "notin" {
+			for _, e := range rightList {
+				if object.HashObject(e) == leftStr.HashKey().Value {
+					return FALSE
+				}
+			}
+			return TRUE
+		}
+		return e.evalDefaultInfixExpression(operator, left, right)
 	case left.Type() == object.LIST_OBJ && !isBooleanOperator(operator):
 		return e.evalListInfixExpression(operator, left, right)
 	case right.Type() == object.SET_OBJ && !isBooleanOperator(operator):
