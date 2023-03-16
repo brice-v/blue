@@ -981,6 +981,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: runtime.GOOS}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_os` returns the STRING GOOS of the runtime",
+			signature:   "get_os() -> str",
+			errors:      "InvalidArgCount",
+			example:     "get_os() => windows",
+		}.String(),
 	},
 	"get_arch": {
 		Fun: func(args ...object.Object) object.Object {
@@ -989,6 +995,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: runtime.GOARCH}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_arch` returns the STRING GOARCH of the runtime",
+			signature:   "get_arch() -> str",
+			errors:      "InvalidArgCount",
+			example:     "get_arch() => amd64",
+		}.String(),
 	},
 	"is_valid_json": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1001,6 +1013,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			s := args[0].(*object.Stringo).Value
 			return &object.Boolean{Value: json.Valid([]byte(s))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_valid_json` returns a BOOLEAN if the given STRING is valid json",
+			signature:   "is_valid_json(json: str) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_valid_json('{}') => true",
+		}.String(),
 	},
 	"wait": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1034,6 +1052,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				time.Sleep(10 * time.Microsecond)
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`wait` will wait for the given PIDs to finish execution",
+			signature:   "wait(pids: list[{t: 'pid', v: _}]|uint...) -> null",
+			errors:      "None",
+			example:     "wait({t: 'pid', v: 1}) => null",
+		}.String(),
 	},
 	"_publish": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1048,6 +1072,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			PubSubBroker.Publish(topic, args[1])
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`publish` will publish an OBJECT on a topic STRING to all subscribers of the topic",
+			signature:   "publish(topic: str, value: any) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "publish('blue', 123) => null",
+		}.String(),
 	},
 	"_broadcast": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1074,6 +1104,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			PubSubBroker.Broadcast(args[0], topics)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`broadcast` will broadcast an OBJECT to all subscribers of the pubsub broker",
+			signature:   "broadcast(value: any) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "broadcast(123) => null",
+		}.String(),
 	},
 	// Functions for subscribers in pubsub
 	"add_topic": {
@@ -1102,6 +1138,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			sub.AddTopic(topic)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`add_topic` will add a topic STRING to a subscriber object",
+			signature:   "add_topic(sub: {t: 'sub', v: _}, topic: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "add_topic({t: 'sub', v: 1}, 'blue') => null",
+		}.String(),
 	},
 	// TODO: add_topics, remove_topics?
 	"remove_topic": {
@@ -1130,6 +1172,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			sub.RemoveTopic(topic)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`remove_topic` will remove a topic STRING from a subscriber object",
+			signature:   "remove_topic(sub: {t: 'sub', v: _}, topic: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "remove_topic({t: 'sub', v: 1}, 'blue') => null",
+		}.String(),
 	},
 	"unsubscribe": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1155,6 +1203,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			SubscriberMap.Remove(v)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`unsubscribe` will remove a subscriber object from the pubsub broker",
+			signature:   "unsubscribe(sub: {t: 'sub', v: _}) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "unsubscribe({t: 'sub', v: 1}) => null",
+		}.String(),
 	},
 	"_pubsub_sub_listen": {
 		Fun: func(args ...object.Object) object.Object {
