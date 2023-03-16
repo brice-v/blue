@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"runtime/metrics"
 	"strings"
 	"time"
@@ -971,6 +972,22 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 			}
 			return &object.Stringo{Value: out.String()}
+		},
+	},
+	"get_os": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_os", len(args), 0, "")
+			}
+			return &object.Stringo{Value: runtime.GOOS}
+		},
+	},
+	"get_arch": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_arch", len(args), 0, "")
+			}
+			return &object.Stringo{Value: runtime.GOARCH}
 		},
 	},
 	"is_valid_json": {
