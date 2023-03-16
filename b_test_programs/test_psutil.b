@@ -30,7 +30,7 @@ if (get_os() != 'windows') {
     println('psutil.host.temps() = #{psutil.host.temps()}');
     assert(type(psutil.host.temps()) == Type.LIST);
     # This also returns nothing when running on gh for linux
-    if get_os() != 'linux' {
+    if (get_os() != 'linux') {
         assert(len(psutil.host.temps()) != 0);
     }
 }
