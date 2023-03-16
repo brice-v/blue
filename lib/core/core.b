@@ -1,5 +1,20 @@
 # TODO/Note: When we match, we HAVE to return otherwise a method will get overridden
 
+val Type = {
+    BOOL: 'BOOLEAN',
+    INT: 'INTEGER',
+    UINT: 'UINTEGER',
+    FLOAT: 'FLOAT',
+    BIGINT: 'BIG_INTEGER',
+    BIGFLOAT: 'BIG_FLOAT',
+    STRING: 'STRING',
+    SET: 'SET',
+    MAP: 'MAP',
+    LIST: 'LIST',
+    FUN: 'FUNCTION',
+    BUILTIN: 'BUILTIN',
+};
+
 fun send(obj, value) {
     ##core:ignore
     return match obj {

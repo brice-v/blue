@@ -2319,120 +2319,6 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		return e.evalStringUintegerInfixExpression(operator, left, right)
 	case right.Type() == object.STRING_OBJ && left.Type() == object.UINTEGER_OBJ:
 		return e.evalStringUintegerInfixExpression(operator, right, left)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.LIST_OBJ:
-		leftVal := left.(*object.Integer)
-		righListElems := right.(*object.List).Elements
-		if operator == "in" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return TRUE
-				}
-			}
-			return FALSE
-		} else if operator == "notin" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return FALSE
-				}
-			}
-			return TRUE
-		}
-		return e.evalDefaultInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.LIST_OBJ:
-		leftVal := left.(*object.Float)
-		righListElems := right.(*object.List).Elements
-		if operator == "in" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return TRUE
-				}
-			}
-			return FALSE
-		} else if operator == "notin" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return FALSE
-				}
-			}
-			return TRUE
-		}
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	case left.Type() == object.UINTEGER_OBJ && right.Type() == object.LIST_OBJ:
-		leftVal := left.(*object.UInteger)
-		righListElems := right.(*object.List).Elements
-		if operator == "in" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return TRUE
-				}
-			}
-			return FALSE
-		} else if operator == "notin" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return FALSE
-				}
-			}
-			return TRUE
-		}
-		return e.evalDefaultInfixExpression(operator, left, right)
-	case left.Type() == object.MAP_OBJ && right.Type() == object.LIST_OBJ:
-		leftVal := left.(*object.Map)
-		righListElems := right.(*object.List).Elements
-		if operator == "in" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return TRUE
-				}
-			}
-			return FALSE
-		} else if operator == "notin" {
-			for _, e := range righListElems {
-				if object.HashObject(leftVal) == object.HashObject(e) {
-					return FALSE
-				}
-			}
-			return TRUE
-		}
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	case left.Type() == object.STRING_OBJ && right.Type() == object.MAP_OBJ:
-		leftStr := left.(*object.Stringo)
-		rightMap := right.(*object.Map).Pairs
-		if operator == "in" {
-			for _, k := range rightMap.Keys {
-				if k.Value == leftStr.HashKey().Value {
-					return TRUE
-				}
-			}
-			return FALSE
-		} else if operator == "notin" {
-			for _, k := range rightMap.Keys {
-				if k.Value == leftStr.HashKey().Value {
-					return FALSE
-				}
-			}
-			return TRUE
-		}
-		return e.evalDefaultInfixExpression(operator, left, right)
-	case left.Type() == object.STRING_OBJ && right.Type() == object.LIST_OBJ:
-		leftStr := left.(*object.Stringo)
-		rightList := right.(*object.List).Elements
-		if operator == "in" {
-			for _, e := range rightList {
-				if object.HashObject(e) == leftStr.HashKey().Value {
-					return TRUE
-				}
-			}
-			return FALSE
-		} else if operator == "notin" {
-			for _, e := range rightList {
-				if object.HashObject(e) == leftStr.HashKey().Value {
-					return FALSE
-				}
-			}
-			return TRUE
-		}
-		return e.evalDefaultInfixExpression(operator, left, right)
 	case left.Type() == object.LIST_OBJ && !isBooleanOperator(operator):
 		return e.evalListInfixExpression(operator, left, right)
 	case right.Type() == object.SET_OBJ && !isBooleanOperator(operator):
@@ -2468,6 +2354,8 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 			return TRUE
 		}
 		return FALSE
+	case (operator == "in" || operator == "notin") && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ):
+		return e.evalInOrNotinInfixExpression(operator, left, right)
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	default:
@@ -2507,11 +2395,68 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 			return TRUE
 		}
 		return FALSE
+	case (operator == "in" || operator == "notin") && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ):
+		return e.evalInOrNotinInfixExpression(operator, left, right)
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func (e *Evaluator) evalInOrNotinInfixExpression(operator string, left, right object.Object) object.Object {
+	leftHash := object.HashObject(left)
+	switch rt := right.(type) {
+	case *object.List:
+		if operator == "in" {
+			for _, e := range rt.Elements {
+				if leftHash == object.HashObject(e) {
+					return TRUE
+				}
+			}
+			return FALSE
+		} else if operator == "notin" {
+			for _, e := range rt.Elements {
+				if leftHash == object.HashObject(e) {
+					return FALSE
+				}
+			}
+			return TRUE
+		}
+	case *object.Set:
+		if operator == "in" {
+			for _, k := range rt.Elements.Keys {
+				if leftHash == k {
+					return TRUE
+				}
+			}
+			return FALSE
+		} else if operator == "notin" {
+			for _, k := range rt.Elements.Keys {
+				if leftHash == k {
+					return FALSE
+				}
+			}
+			return TRUE
+		}
+	case *object.Map:
+		if operator == "in" {
+			for _, k := range rt.Pairs.Keys {
+				if leftHash == k.Value {
+					return TRUE
+				}
+			}
+			return FALSE
+		} else if operator == "notin" {
+			for _, k := range rt.Pairs.Keys {
+				if leftHash == k.Value {
+					return FALSE
+				}
+			}
+			return TRUE
+		}
+	}
+	return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 }
 
 func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right object.Object) object.Object {
