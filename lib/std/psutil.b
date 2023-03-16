@@ -1,4 +1,34 @@
 ## `psutil` contains process and system utilities
+##
+## The following constants are defined with
+## relative functions for it
+## If the data is defined as a map it is likely to
+## be static - but this could change
+##
+## cpu  | percent, info, time_info, count
+##      | cpu.percent() -> list[float]
+##      | cpu.info -> list[map[str:any]]
+##      | cpu.time_info -> list[map[str:any]]
+##      | cpu.count() -> int
+## ----------------------------------------------
+## mem  | virtual, swap, swap_devices
+##      | mem.virtual() -> map[str:int]
+##      | mem.swap() -> map[str:int|float]
+##      | mem.swap_devices() -> map[str:any]
+## ----------------------------------------------
+## host | info, users, temps
+##      | host.info -> map[str:any]
+##      | host.users() -> list[map[str:any]]
+##      | host.temps() -> list[map[str:any]]
+## ----------------------------------------------
+## net  | connections, io_info
+##      | net.connections(option: str='all') ->
+##      | list[map[str:any]]
+##      | net.io_info() -> list[map[str:any]]
+## ----------------------------------------------
+## disk | partitions, io_info
+##      | disk.partitions -> list[map[str:any]]
+##      | disk.io_info() -> map[str:any]
 
 val __cpu_info = _cpu_info;
 val __cpu_time_info = _cpu_time_info;
@@ -109,6 +139,8 @@ fun _disk_io_info_to_map() {
     }
     return __result;
 }
+
+# TODO: Add docs for these at the top of the module
 
 val cpu = {
     percent: _cpu_usage_percent,
