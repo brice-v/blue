@@ -20,17 +20,11 @@ assert(len(psutil.mem.virtual()) != 0);
 println('psutil.mem.swap() = #{psutil.mem.swap()}');
 assert(type(psutil.mem.swap()) == Type.MAP);
 assert(len(psutil.mem.swap()) != 0);
-println('psutil.mem.swap_devices() = #{psutil.mem.swap_devices()}');
-assert(type(psutil.mem.swap_devices()) == Type.LIST);
-assert(len(psutil.mem.swap_devices()) != 0);
 
 # host assertions
 println('psutil.host.info = #{psutil.host.info}');
 assert(type(psutil.host.info) == Type.MAP);
 assert(len(psutil.host.info) != 0);
-println('psutil.host.users() = #{psutil.host.users()}');
-assert(type(psutil.host.users()) == Type.LIST);
-#assert(len(psutil.host.users()) != 0)
 println('psutil.host.temps() = #{psutil.host.temps()}');
 assert(type(psutil.host.temps()) == Type.LIST);
 #assert(len(psutil.host.temps()) != 0);
@@ -50,3 +44,6 @@ assert(len(psutil.disk.partitions) != 0);
 println('psutil.disk.io_info() = #{psutil.disk.io_info()}')
 assert(type(psutil.disk.io_info()) == Type.MAP);
 assert(len(psutil.disk.io_info()) != 0);
+println('psutil.disk.usage(".") = #{psutil.disk.usage(".")}');
+assert(type(psutil.disk.usage(".")) == Type.MAP);
+assert(len(psutil.disk.usage(".")) != 0);

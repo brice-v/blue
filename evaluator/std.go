@@ -2170,22 +2170,6 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: v.String()}
 		},
 	},
-	"_mem_swap_devices": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newInvalidArgCountError("mem_swap_devices", len(args), 0, "")
-			}
-			v, err := mem.SwapDevices()
-			if err != nil {
-				return newError("`mem_swap_devices` error: %s", err.Error())
-			}
-			l := &object.List{Elements: make([]object.Object, len(v))}
-			for i, e := range v {
-				l.Elements[i] = &object.Stringo{Value: e.String()}
-			}
-			return l
-		},
-	},
 	"_host_info": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
@@ -2196,22 +2180,6 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`host_info` error: %s", err.Error())
 			}
 			return &object.Stringo{Value: i.String()}
-		},
-	},
-	"_host_users_info": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newInvalidArgCountError("host_users_info", len(args), 0, "")
-			}
-			users, err := host.Users()
-			if err != nil {
-				return newError("`host_users_info` error: %s", err.Error())
-			}
-			l := &object.List{Elements: make([]object.Object, len(users))}
-			for i, u := range users {
-				l.Elements[i] = &object.Stringo{Value: u.String()}
-			}
-			return l
 		},
 	},
 	"_host_temps_info": {
@@ -2296,6 +2264,22 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				m.Set(k, &object.Stringo{Value: v.String()})
 			}
 			return object.CreateMapObjectForGoMap(*m)
+		},
+	},
+	"_disk_usage": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("disk_usage", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("disk_usage", 1, object.STRING_OBJ, args[0].Type())
+			}
+			path := args[0].(*object.Stringo).Value
+			usage, err := disk.Usage(path)
+			if err != nil {
+				return newError("`disk_usage` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: usage.String()}
 		},
 	},
 })

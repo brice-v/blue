@@ -14,11 +14,9 @@
 ## mem  | virtual, swap, swap_devices
 ##      | mem.virtual() -> map[str:int]
 ##      | mem.swap() -> map[str:int|float]
-##      | mem.swap_devices() -> map[str:any]
 ## ----------------------------------------------
 ## host | info, users, temps
 ##      | host.info -> map[str:any]
-##      | host.users() -> list[map[str:any]]
 ##      | host.temps() -> list[map[str:any]]
 ## ----------------------------------------------
 ## net  | connections, io_info
@@ -29,19 +27,19 @@
 ## disk | partitions, io_info
 ##      | disk.partitions -> list[map[str:any]]
 ##      | disk.io_info() -> map[str:any]
+##      | disk.usage(path: str) -> map[str:any]
 
 val __cpu_info = _cpu_info;
 val __cpu_time_info = _cpu_time_info;
 val __mem_virt_info = _mem_virt_info;
 val __mem_swap_info = _mem_swap_info;
-val __mem_swap_devices = _mem_swap_devices;
 val __host_info = _host_info;
-val __host_users_info = _host_users_info;
 val __host_temps_info = _host_temps_info;
 val __net_connections = _net_connections;
 val __net_io_info = _net_io_info;
 val __disk_partitions = _disk_partitions;
 val __disk_io_info = _disk_io_info;
+val __disk_usage = _disk_usage;
 
 fun _cpu_info_json_to_map() {
     var __result = [];
@@ -69,26 +67,8 @@ fun _mem_swap_to_map() {
     __mem_swap_info().from_json()
 }
 
-fun _mem_swap_devices_to_list_of_maps() {
-    var __result = [];
-    val ___data = __mem_swap_devices();
-    for (__e in ___data) {
-        __result << __e.from_json();
-    }
-    return __result;
-}
-
 fun _host_info_to_map() {
     __host_info().from_json()
-}
-
-fun _host_users_info_to_map() {
-    var __result = [];
-    val ___data = __host_users_info();
-    for (__e in ___data) {
-        __result << __e.from_json();
-    }
-    return __result;
 }
 
 fun _host_temps_info_to_map() {
@@ -140,6 +120,10 @@ fun _disk_io_info_to_map() {
     return __result;
 }
 
+fun _disk_usage_to_map(path) {
+    __disk_usage(path).from_json()
+}
+
 # TODO: Add docs for these at the top of the module
 
 val cpu = {
@@ -152,12 +136,10 @@ val cpu = {
 val mem = {
     virtual: _mem_info_to_map,
     swap: _mem_swap_to_map,
-    swap_devices: _mem_swap_devices_to_list_of_maps,
 };
 
 val host = {
     info: _host_info_to_map(),
-    users: _host_users_info_to_map,
     temps: _host_temps_info_to_map,
 };
 
@@ -169,4 +151,5 @@ val net = {
 val disk = {
     partitions: _disk_partions_to_map(),
     io_info: _disk_io_info_to_map,
+    usage: _disk_usage_to_map,
 };
