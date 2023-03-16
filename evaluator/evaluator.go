@@ -2323,43 +2323,8 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		return e.evalListInfixExpression(operator, left, right)
 	case right.Type() == object.SET_OBJ && !isBooleanOperator(operator):
 		return e.evalRightSideSetInfixExpression(operator, left, right)
-	// NOTE: THESE OPERATORS MUST STAY BELOW THE TYPE CHECKING OTHERWISE IT COULD BREAK THINGS!!
-	case operator == "==":
-		return nativeToBooleanObject(object.HashObject(left) == object.HashObject(right))
-	case operator == "!=":
-		return nativeToBooleanObject(object.HashObject(left) != object.HashObject(right))
-	case operator == "and":
-		leftBool, ok := left.(*object.Boolean)
-		if !ok {
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-		rightBool, ok := right.(*object.Boolean)
-		if !ok {
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-		if leftBool.Value && rightBool.Value {
-			return TRUE
-		}
-		return FALSE
-	case operator == "or":
-		leftBool, ok := left.(*object.Boolean)
-		if !ok {
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-		rightBool, ok := right.(*object.Boolean)
-		if !ok {
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-		if leftBool.Value || rightBool.Value {
-			return TRUE
-		}
-		return FALSE
-	case (operator == "in" || operator == "notin") && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ):
-		return e.evalInOrNotinInfixExpression(operator, left, right)
-	case left.Type() != right.Type():
-		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return e.evalDefaultInfixExpression(operator, left, right)
 	}
 }
 
