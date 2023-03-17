@@ -313,6 +313,12 @@ fun go_metrics(flat=false) {
     return __total_metrics;
 }
 
+val KV = {
+    put: _kv_put,
+    get: _kv_get,
+    delete: _kv_delete,
+}
+
 val pubsub = {
     subscribe: _subscribe,
     publish: _publish,

@@ -80,3 +80,7 @@ var SubscriberMap = &ConcurrentMap[uint64, *pubsub.Subscriber]{
 	kv: make(map[uint64]*pubsub.Subscriber),
 }
 var PubSubBroker = pubsub.NewBroker()
+
+var KVMap = &ConcurrentMap[string, *object.Map]{
+	kv: make(map[string]*object.Map),
+}

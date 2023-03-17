@@ -1226,6 +1226,87 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return sub.PollMessage()
 		},
 	},
+	"_kv_put": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("kv_put", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("kv_put", 1, object.STRING_OBJ, args[0].Type())
+			}
+			topic := args[0].(*object.Stringo).Value
+			var m *object.Map
+			m, ok := KVMap.Get(topic)
+			if !ok {
+				m = &object.Map{
+					Pairs: object.NewPairsMap(),
+				}
+			}
+			hashedKey := object.HashObject(args[1])
+			hk := object.HashKey{Type: args[1].Type(), Value: hashedKey}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   args[1],
+				Value: args[2],
+			})
+			KVMap.Put(topic, m)
+			return NULL
+		},
+	},
+	"_kv_get": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("kv_get", len(args), 2, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("kv_get", 1, object.STRING_OBJ, args[0].Type())
+			}
+			topic := args[0].(*object.Stringo).Value
+			var m *object.Map
+			m, ok := KVMap.Get(topic)
+			if !ok {
+				// Return NULL if the topic doesn't have a map that exists
+				return NULL
+			}
+			hashedKey := object.HashObject(args[1])
+			hk := object.HashKey{Type: args[1].Type(), Value: hashedKey}
+			val, ok := m.Pairs.Get(hk)
+			if !ok {
+				// Return NULL if the key doesnt exist on the map at the topic
+				return NULL
+			}
+			return val.Value
+		},
+	},
+	"_kv_delete": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 && len(args) != 2 {
+				return newInvalidArgCountError("kv_delete", len(args), 1, "or 2")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("kv_delete", 1, object.STRING_OBJ, args[0].Type())
+			}
+			topic := args[0].(*object.Stringo).Value
+			if len(args) == 1 {
+				// If its 1 we want to delete a topic, and the associated map
+				KVMap.Remove(topic)
+				return NULL
+			} else {
+				// If its 2 we want to delete a key from a map on a topic
+				var m *object.Map
+				m, ok := KVMap.Get(topic)
+				if !ok {
+					// Return NULL if the topic doesn't have a map that exists
+					// theres nothing to delete in this case
+					return NULL
+				}
+				hashedKey := object.HashObject(args[1])
+				hk := object.HashKey{Type: args[1].Type(), Value: hashedKey}
+				m.Pairs.Delete(hk)
+				KVMap.Put(topic, m)
+				return NULL
+			}
+		},
+	},
 })
 
 func medianBucket(h *metrics.Float64Histogram) float64 {
