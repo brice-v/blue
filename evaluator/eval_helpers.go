@@ -843,7 +843,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 			})
 
 			var returnObj object.Object = NULL
-			app.Get(pattern, websocket.New(func(c *websocket.Conn) {
+			wsHandler := websocket.New(func(c *websocket.Conn) {
 				connCount := wsConnCount.Add(1)
 				WSConnMap.Put(connCount, c)
 				for k, v := range fn.DefaultParameters {
@@ -885,9 +885,15 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 					}
 					fmt.Printf("%s`handle_ws` return error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 				} else {
+					if returnObj == NULL {
+						// Dont need to log if its null - probably no error then
+						return
+					}
 					log.Printf("`handle_ws` returned with %#v", returnObj)
 				}
-			}))
+			})
+			app.Get(pattern, wsHandler)
+
 			// Always returns NULL here
 			return returnObj
 		},
@@ -1117,25 +1123,6 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 			formId := uiCanvasObjectCount.Add(1)
 			UICanvasObjectMap.Put(formId, form)
 			return object.CreateBasicMapObject("ui", formId)
-		},
-	}
-}
-
-func createSubscriberBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			// pubsub.subscribe('TOPIC', fun) -> {t: 'sub', v: _} -> _.recv()
-			if len(args) != 1 {
-				return newInvalidArgCountError("subscribe", len(args), 1, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("subscribe", 1, object.STRING_OBJ, args[0].Type())
-			}
-			topic := args[0].(*object.Stringo).Value
-			sub := PubSubBroker.AddSubscriber(e.PID)
-			SubscriberMap.Put(e.PID, sub)
-			PubSubBroker.Subscribe(sub, topic)
-			return object.CreateBasicMapObject("sub", e.PID)
 		},
 	}
 }

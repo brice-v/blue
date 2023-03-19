@@ -1179,6 +1179,23 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "remove_topic({t: 'sub', v: 1}, 'blue') => null",
 		}.String(),
 	},
+	"_subscribe": {
+		Fun: func(args ...object.Object) object.Object {
+			// pubsub.subscribe('TOPIC', fun) -> {t: 'sub', v: _} -> _.recv()
+			if len(args) != 1 {
+				return newInvalidArgCountError("subscribe", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("subscribe", 1, object.STRING_OBJ, args[0].Type())
+			}
+			topic := args[0].(*object.Stringo).Value
+			subId := subscriberCount.Add(1)
+			sub := PubSubBroker.AddSubscriber(subId)
+			SubscriberMap.Put(subId, sub)
+			PubSubBroker.Subscribe(sub, topic)
+			return object.CreateBasicMapObject("sub", subId)
+		},
+	},
 	"unsubscribe": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {

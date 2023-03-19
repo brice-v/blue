@@ -113,7 +113,6 @@ func New() *Evaluator {
 		cleanupScopeVar: make(map[string]bool),
 	}
 
-	builtins.Put("_subscribe", createSubscriberBuiltin(e))
 	builtins.Put("to_num", createToNumBuiltin(e))
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)

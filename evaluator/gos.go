@@ -76,6 +76,7 @@ var ColorStyleCountMap = &ConcurrentMap[string, uint64]{
 	kv: make(map[string]uint64),
 }
 
+var subscriberCount = atomic.Uint64{}
 var SubscriberMap = &ConcurrentMap[uint64, *pubsub.Subscriber]{
 	kv: make(map[uint64]*pubsub.Subscriber),
 }
