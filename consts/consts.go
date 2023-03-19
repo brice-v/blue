@@ -15,4 +15,7 @@ const CORE_FILE_PATH = "<embed: core/core.b>"
 const BLUE_INSTALL_PATH = "BLUE_INSTALL_PATH"
 const BLUE_NO_COLOR = "BLUE_NO_COLOR"
 
+const EMBED_FILES_PREFIX = "embed_files/"
+
 var ErrorPrinter = color.New(color.FgRed, color.Bold).Printf
+var InfoPrinter = color.New(color.FgBlue, color.Bold).Printf

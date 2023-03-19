@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"github.com/gookit/color"
 )
 
 // PROMPT is printed to the screen every time the user can type
@@ -66,7 +65,7 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
 		os.Exit(1)
 	}
-	color.New(color.FgBlue, color.Bold).Println(header)
+	consts.InfoPrinter(header + "\n")
 	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
 	for {

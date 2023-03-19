@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/gookit/color"
 
 	cp "github.com/otiai10/copy"
 )
@@ -78,12 +79,14 @@ const mainFunc = `func main() {
 func bundleFile(fpath string) error {
 	entryPointPath := fmt.Sprintf("const entryPointPath = `%s`\n", fpath)
 	gomain := fmt.Sprintf("%s\n%s\n%s", header, entryPointPath, mainFunc)
+	defer color.Reset()
 
 	// save current directory
 	savedCurrentDir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("`savedCurrentDir` error: %s", err.Error())
 	}
+	consts.InfoPrinter("Saved Current Directory is `%s`\n", savedCurrentDir)
 
 	// These steps need to executed in this order
 
@@ -93,6 +96,7 @@ func bundleFile(fpath string) error {
 	if err != nil {
 		return fmt.Errorf("`createTmpWorkspace` error: %s", err.Error())
 	}
+	consts.InfoPrinter("Temporary Directory for Building Created at `%s`\n", tmpDir)
 	// check BLUE_INSTALL_PATH is set with files, if not git clone them else error out
 	err = checkAndGetBlueSouce()
 	if err != nil {
@@ -103,18 +107,21 @@ func bundleFile(fpath string) error {
 	if err != nil {
 		return fmt.Errorf("`copyFilesFromBlueSourceToTmpDir` error: %s", err.Error())
 	}
+	consts.InfoPrinter("Copied Files from BLUE_INSTALL_PATH `%s` to Temporary Directory\n", os.Getenv(consts.BLUE_INSTALL_PATH))
 
 	// make the directory for embedding the files
 	err = makeEmbedFilesDir()
 	if err != nil {
 		return fmt.Errorf("`makeEmbedFilesDir` error: %s", err.Error())
 	}
+	consts.InfoPrinter("Made Embedded Files Directory with prefix `%s`\n", consts.EMBED_FILES_PREFIX)
 
 	// Copy currentSavedDir files into embed_files dir, (we are in the tmpWorkspace (so /tmp/blue-build-xxx/embed_files))
 	err = copyFilesFromDirToTmpDirEmbedFiles(savedCurrentDir, tmpDir)
 	if err != nil {
 		return fmt.Errorf("`copyFilesFromDirToTmpDirEmbedFiles` error: %s", err.Error())
 	}
+	consts.InfoPrinter("Copied Files from Directory `%s` to `%s`\n", savedCurrentDir, tmpDir)
 	err = renameOriginalMainGoFile()
 	if err != nil {
 		return fmt.Errorf("`renameOriginalMainGoFile` error: %s", err.Error())
@@ -123,6 +130,8 @@ func bundleFile(fpath string) error {
 	if err != nil {
 		return fmt.Errorf("`writeMainGoFile` error: %s", err.Error())
 	}
+	consts.InfoPrinter("Renamed Original Main Go File to bundler Main\n")
+	consts.InfoPrinter("Building Exe with go toolchain...\n")
 	err = buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir)
 	if err != nil {
 		return fmt.Errorf("`buildExeAndWriteToSavedDir` error: %s", err.Error())
@@ -192,7 +201,8 @@ func gitCloneFilesToBlueInstallPath(dirPath string) error {
 }
 
 func makeEmbedFilesDir() error {
-	return os.Mkdir("embed_files", 0755)
+	dirName := strings.TrimRight(consts.EMBED_FILES_PREFIX, "/")
+	return os.Mkdir(dirName, 0755)
 }
 
 func copyFilesFromBlueSourceToTmpDir() error {
@@ -252,8 +262,8 @@ func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) error {
 			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(winArgs, " "), err.Error())
 		}
 		if len(output) == 0 {
-			fmt.Printf("Successfully built `%s` as Executable!\n", cmd[len(cmd)-1])
-			return copyFileToSavedDir(exeName+extension, savedCurrentDir)
+			color.New(color.FgGreen, color.Bold).Printf("Successfully built `%s` as Executable!\n", cmd[len(cmd)-1])
+			return copyFileToSavedDirAndPackIfPossible(exeName+extension, savedCurrentDir)
 		}
 	} else {
 		command := exec.Command(cmd[0], cmd[1:]...)
@@ -263,14 +273,14 @@ func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) error {
 			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(cmd, " "), err.Error())
 		}
 		if len(output) == 0 {
-			fmt.Printf("Successfully built `%s` as Executable!\n", cmd[len(cmd)-1])
-			return copyFileToSavedDir(exeName+extension, savedCurrentDir)
+			color.New(color.FgGreen, color.Bold).Printf("Successfully built `%s` as Executable!\n", cmd[len(cmd)-1])
+			return copyFileToSavedDirAndPackIfPossible(exeName+extension, savedCurrentDir)
 		}
 	}
 	panic("should not reach this line")
 }
 
-func copyFileToSavedDir(exeName, savedCurrentDir string) error {
+func copyFileToSavedDirAndPackIfPossible(exeName, savedCurrentDir string) error {
 	src, err := os.Open(exeName)
 	if err != nil {
 		return err
@@ -304,7 +314,23 @@ func copyFileToSavedDir(exeName, savedCurrentDir string) error {
 		return err
 	}
 
+	tryToPack(dstFile)
+
 	return nil
+}
+
+func tryToPack(exeName string) {
+	cmd := []string{"upx", exeName}
+	var command *exec.Cmd
+	if runtime.GOOS == "windows" {
+		winArgs := []string{"/c"}
+		winArgs = append(winArgs, cmd...)
+		command = exec.Command("cmd", winArgs...)
+	} else {
+		command = exec.Command(cmd[0], cmd[1:]...)
+	}
+	consts.InfoPrinter("Trying to pack exe '%s' with UPX\n", exeName)
+	command.CombinedOutput()
 }
 
 func removeMainGoFile() error {

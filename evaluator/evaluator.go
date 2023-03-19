@@ -550,7 +550,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		}
 		inputStr = string(fileData)
 	} else {
-		fileData, err := Files.ReadFile("embed_files/" + fpath)
+		fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + fpath)
 		if err != nil {
 			return newError("Failed to import '%s'. Could not read the file at path '%s'.", name, fpath)
 		}

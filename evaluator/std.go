@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"io/fs"
 	mr "math/rand"
 	"net"
 	"net/http"
@@ -37,6 +38,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/antchfx/htmlquery"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/websocket/v2"
 	"github.com/gookit/color"
@@ -353,9 +355,23 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			prefix := args[1].(*object.Stringo).Value
 			fpath := args[2].(*object.Stringo).Value
 			shouldBrowse := args[3].(*object.Boolean).Value
-			app.Static(prefix, fpath, fiber.Static{
-				Browse: shouldBrowse,
-			})
+			if IsEmbed {
+				if strings.HasPrefix(fpath, "./") {
+					fpath = strings.TrimLeft(fpath, "./")
+				}
+				sub, err := fs.Sub(Files, consts.EMBED_FILES_PREFIX+fpath)
+				if err != nil {
+					return newError("`static` error: %s", err.Error())
+				}
+				app.Use(prefix, filesystem.New(filesystem.Config{
+					Root:   http.FS(sub),
+					Browse: shouldBrowse,
+				}))
+			} else {
+				app.Static(prefix, fpath, fiber.Static{
+					Browse: shouldBrowse,
+				})
+			}
 			return NULL
 		},
 	},

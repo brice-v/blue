@@ -153,6 +153,7 @@ var mimeExtensions = map[string]string{
 	"jpeg":    "image/jpeg",
 	"jpg":     "image/jpeg",
 	"js":      "text/javascript",
+	"mjs":     "text/javascript",
 	"atom":    "application/atom+xml",
 	"rss":     "application/rss+xml",
 	"mml":     "text/mathml",

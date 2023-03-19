@@ -108,7 +108,7 @@ func handleLexCommand(argc int, arguments []string) {
 		if isFile(fpath) {
 			lexFile(fpath)
 		} else {
-			fmt.Printf("`lex` command expects valid file as argument. got=%s\n", fpath)
+			consts.ErrorPrinter("`lex` command expects valid file as argument. got=%s\n", fpath)
 			os.Exit(1)
 		}
 	}
@@ -123,7 +123,7 @@ func handleParseCommand(argc int, arguments []string) {
 		if isFile(fpath) {
 			parseFile(fpath)
 		} else {
-			fmt.Printf("`parse` command expects valid file as argument. got=%s\n", fpath)
+			consts.ErrorPrinter("`parse` command expects valid file as argument. got=%s\n", fpath)
 			os.Exit(1)
 		}
 	}
@@ -135,15 +135,15 @@ func handleBundleCommand(argc int, arguments []string) {
 		if isFile(fpath) {
 			err := bundleFile(fpath)
 			if err != nil {
-				fmt.Printf("`bundle` error: %s\n", err.Error())
+				consts.ErrorPrinter("`bundle` error: %s\n", err.Error())
 				os.Exit(1)
 			}
 		} else {
-			fmt.Printf("`bundle` command expects valid file as argument. got=%s\n", fpath)
+			consts.ErrorPrinter("`bundle` command expects valid file as argument. got=%s\n", fpath)
 			os.Exit(1)
 		}
 	} else {
-		fmt.Printf("unexpected `bundle` arguments. got=%+v\n", arguments)
+		consts.ErrorPrinter("unexpected `bundle` arguments. got=%+v\n", arguments)
 		os.Exit(1)
 	}
 }
@@ -153,14 +153,15 @@ func handleEvalCommand(argc int, arguments []string) {
 		strToEval := arguments[1]
 		evalString(strToEval)
 	} else {
-		fmt.Printf("unexpected `eval` arguments. got=%+v\n", arguments)
+		consts.ErrorPrinter("unexpected `eval` arguments. got=%+v\n", arguments)
 		os.Exit(1)
 	}
 }
 
 func handleDocCommand(argc int, arguments []string) {
 	if argc != 2 {
-		fmt.Printf("unexpected `doc` arguments. got=%+v\n", arguments)
+		consts.ErrorPrinter("unexpected `doc` arguments. got=%+v\n", arguments)
+		os.Exit(1)
 	}
 	name := arguments[1]
 	fmt.Print(getDocStringFor(name))

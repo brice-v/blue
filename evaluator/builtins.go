@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"blue/consts"
 	"blue/object"
 	"bufio"
 	"bytes"
@@ -302,9 +303,19 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("read", 2, object.BOOLEAN_OBJ, args[1].Type())
 			}
 			fnameo := args[0].(*object.Stringo)
-			bs, err := os.ReadFile(fnameo.Value)
-			if err != nil {
-				return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
+			var bs []byte
+			if IsEmbed {
+				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + fnameo.Value)
+				if err != nil {
+					return newError("`read` error reading embedded file `%s`: %s", fnameo.Value, err.Error())
+				}
+				bs = fileData
+			} else {
+				fileData, err := os.ReadFile(fnameo.Value)
+				if err != nil {
+					return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
+				}
+				bs = fileData
 			}
 			if args[1].(*object.Boolean).Value {
 				return &object.Bytes{Value: bs}

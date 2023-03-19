@@ -213,6 +213,7 @@ github.com/gofiber/fiber/v2/internal/gopsutil/net
 github.com/gofiber/fiber/v2/internal/gopsutil/process
 github.com/gofiber/fiber/v2/internal/schema
 github.com/gofiber/fiber/v2/internal/wmi
+github.com/gofiber/fiber/v2/middleware/filesystem
 github.com/gofiber/fiber/v2/middleware/monitor
 github.com/gofiber/fiber/v2/utils
 # github.com/gofiber/websocket/v2 v2.1.4
