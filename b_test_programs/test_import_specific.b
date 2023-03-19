@@ -1,4 +1,4 @@
-from abc import [hello, doSomething, add, returnTrue, useInternalFun]
+from abc import {hello, doSomething, add, returnTrue, useInternalFun}
 
 
 hello("Heres a name?")

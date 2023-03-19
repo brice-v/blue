@@ -6,6 +6,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"blue/token"
 	"bytes"
 	"container/list"
 	"embed"
@@ -248,29 +249,14 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 			return val
 		}
-		if _, ok := e.env.Get(node.Name.Value); ok {
-			e.ErrorTokens.Push(node.Token)
-			return newError("'" + node.Name.Value + "' is already defined")
-		}
-		if e.isInScopeBlock {
-			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], node.Name.Value)
-		}
-		e.env.ImmutableSet(node.Name.Value)
-		e.env.Set(node.Name.Value, val)
+		return e.evalVariableStatement(true, node.IsMapDestructor, node.IsListDestructor, val, node.Names, node.Token)
 	case *ast.VarStatement:
 		val := e.Eval(node.Value)
 		if isError(val) {
 			e.ErrorTokens.Push(node.Token)
 			return val
 		}
-		if ok := e.env.IsImmutable(node.Name.Value); ok {
-			e.ErrorTokens.Push(node.Token)
-			return newError("'" + node.Name.Value + "' is already defined as immutable, cannot reassign")
-		}
-		if e.isInScopeBlock {
-			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], node.Name.Value)
-		}
-		e.env.Set(node.Name.Value, val)
+		return e.evalVariableStatement(false, node.IsMapDestructor, node.IsListDestructor, val, node.Names, node.Token)
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
@@ -478,6 +464,64 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	e.ErrorTokens.RemoveAllEntries()
 	// In the event that there are only statements, I think this is where we end up
 	// so we return NULL because there is nothing to return otherwise
+	return NULL
+}
+
+func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestructor bool,
+	val object.Object, names []*ast.Identifier, tok token.Token) object.Object {
+	if isListDestructor {
+		if val.Type() != object.LIST_OBJ {
+			return newError("List Destructor must be used with list value. got=%s", val.Type())
+		}
+	} else if isMapDestructor {
+		if val.Type() != object.MAP_OBJ {
+			return newError("Map Destructor must be used with map value. got=%s", val.Type())
+		}
+	}
+	isNameInMap := func(m object.OrderedMap2[object.HashKey, object.MapPair], name string) bool {
+		for _, k := range m.Keys {
+			mp, _ := m.Get(k)
+			if mp.Key.Type() == object.STRING_OBJ {
+				s := mp.Key.(*object.Stringo).Value
+				if name == s {
+					e.env.Set(name, mp.Value)
+					return true
+				}
+			}
+		}
+		return false
+	}
+	for i, name := range names {
+		if ok := e.env.IsImmutable(name.Value); ok {
+			e.ErrorTokens.Push(tok)
+			return newError("'" + name.Value + "' is already defined as immutable, cannot reassign")
+		}
+		if _, ok := e.env.Get(name.Value); ok {
+			e.ErrorTokens.Push(tok)
+			return newError("'" + name.Value + "' is already defined")
+		}
+		if e.isInScopeBlock {
+			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
+		}
+		if isVal {
+			e.env.ImmutableSet(name.Value)
+		}
+		if isListDestructor {
+			l := val.(*object.List).Elements
+			if i > len(l) {
+				return newError("List destructor has too many identifiers for list. len=%d", len(l))
+			}
+			e.env.Set(name.Value, l[i])
+		} else if isMapDestructor {
+			m := val.(*object.Map).Pairs
+			if !isNameInMap(m, name.Value) {
+				return newError("Map destructor key name '%s' was not found in map", name.Value)
+			}
+		} else {
+			e.env.Set(name.Value, val)
+		}
+	}
+	e.ErrorTokens.RemoveAllEntries()
 	return NULL
 }
 

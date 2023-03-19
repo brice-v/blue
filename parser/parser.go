@@ -318,23 +318,48 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 	// initialize the var statement with the current var token
 	stmt := &ast.VarStatement{Token: p.curToken}
 
-	// return nil if the next token is not an identifier token
-	if !p.expectPeekIs(token.IDENT) {
-		return nil
-	}
-
-	// set the statement name to the identifier with the current token being
-	// token.IDENT and the value being the actual string of the identifier
-	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-
-	if !p.peekTokenIsAssignmentToken() {
-		p.peekError(token.ASSIGN)
-		return nil
-	}
-	if p.peekTokenIsAssignmentToken() {
-		// nextToken used to be in the peekTokenIsAssignmentToken method which meant it would assign this to nothing
+	if p.peekTokenIs(token.LBRACE) || p.peekTokenIs(token.LBRACKET) {
+		// This will be supported for parsing destructuring
 		p.nextToken()
-		stmt.AssignmentToken = p.curToken
+		stmt.IsListDestructor = p.curTokenIs(token.LBRACKET)
+		stmt.IsMapDestructor = p.curTokenIs(token.LBRACE)
+		var endToken token.Type
+		if stmt.IsListDestructor {
+			endToken = token.RBRACKET
+		} else if stmt.IsMapDestructor {
+			endToken = token.RBRACE
+		}
+		p.nextToken()
+		for !p.curTokenIs(endToken) {
+			stmt.Names = append(stmt.Names, p.parseIdentifier().(*ast.Identifier))
+			if p.peekTokenIs(endToken) {
+				p.nextToken()
+				continue
+			}
+			if !p.expectPeekIs(token.COMMA) {
+				return nil
+			}
+			p.nextToken()
+		}
+	} else if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		stmt.Names = []*ast.Identifier{{Token: p.curToken, Value: p.curToken.Literal}}
+	}
+
+	if stmt.IsListDestructor || stmt.IsMapDestructor {
+		if !p.expectPeekIs(token.ASSIGN) {
+			return nil
+		}
+	} else {
+		if !p.peekTokenIsAssignmentToken() {
+			p.peekError(token.ASSIGN)
+			return nil
+		}
+		if p.peekTokenIsAssignmentToken() {
+			// nextToken used to be in the peekTokenIsAssignmentToken method which meant it would assign this to nothing
+			p.nextToken()
+			stmt.AssignmentToken = p.curToken
+		}
 	}
 
 	p.nextToken()
@@ -354,14 +379,33 @@ func (p *Parser) parseValStatement() *ast.ValStatement {
 	// initialize the val statement with the current val token
 	stmt := &ast.ValStatement{Token: p.curToken}
 
-	// return nil if the next token is not an identifier token
-	if !p.expectPeekIs(token.IDENT) {
-		return nil
+	if p.peekTokenIs(token.LBRACE) || p.peekTokenIs(token.LBRACKET) {
+		// This will be supported for parsing destructuring
+		p.nextToken()
+		stmt.IsListDestructor = p.curTokenIs(token.LBRACKET)
+		stmt.IsMapDestructor = p.curTokenIs(token.LBRACE)
+		var endToken token.Type
+		if stmt.IsListDestructor {
+			endToken = token.RBRACKET
+		} else if stmt.IsMapDestructor {
+			endToken = token.RBRACE
+		}
+		p.nextToken()
+		for !p.curTokenIs(endToken) {
+			stmt.Names = append(stmt.Names, p.parseIdentifier().(*ast.Identifier))
+			if p.peekTokenIs(endToken) {
+				p.nextToken()
+				continue
+			}
+			if !p.expectPeekIs(token.COMMA) {
+				return nil
+			}
+			p.nextToken()
+		}
+	} else if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		stmt.Names = []*ast.Identifier{{Token: p.curToken, Value: p.curToken.Literal}}
 	}
-
-	// set the statement name to the identifier with the current token being
-	// token.IDENT and the value being the actual string of the identifier
-	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
 	if !p.expectPeekIs(token.ASSIGN) {
 		return nil
@@ -672,8 +716,15 @@ func (p *Parser) parseFromStatement() ast.Statement {
 		return stmt
 	}
 	savedPoint := p.peekToken
-	list := p.parseListLiteral()
-	for _, e := range list.(*ast.ListLiteral).Elements {
+	// Because we want to use {} we now do this via parseMapOrSet and hope its a set of idents
+	list := p.parseMapOrSetLiteral()
+	if _, ok := list.(*ast.SetLiteral); !ok {
+		errorLine := lexer.GetErrorLineMessage(savedPoint)
+		msg := fmt.Sprintf("brackets should be used to import multiple identifiers, found type %T\n%s", list, errorLine)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	for _, e := range list.(*ast.SetLiteral).Elements {
 		v, ok := e.(*ast.Identifier)
 		if !ok {
 			errorLine := lexer.GetErrorLineMessage(savedPoint)
@@ -979,11 +1030,19 @@ func (p *Parser) parseListLiteral() ast.Expression {
 func (p *Parser) parseSetLiteral(firstTok token.Token, firstExp ast.Expression) ast.Expression {
 	exp := &ast.SetLiteral{Token: firstTok}
 	exp.Elements = []ast.Expression{firstExp}
-	if !p.expectPeekIs(token.COMMA) {
+	if !p.peekTokenIs(token.COMMA) && !p.peekTokenIs(token.RBRACE) {
+		errorLine := lexer.GetErrorLineMessage(p.peekToken)
+		msg := fmt.Sprintf("expected next token to be %s or %s, got %s instead\n%s", token.COMMA, token.RBRACE, p.peekToken.Type, errorLine)
+		p.errors = append(p.errors, msg)
 		return nil
 	}
-	// Skip the comma
-	p.nextToken()
+	if p.peekTokenIs(token.COMMA) {
+		// Skip curToken and comma token to get to expression to evaluate
+		// If its an RBRACE we want to evaluate the single element here so no
+		// need to skip ahead
+		p.nextToken()
+		p.nextToken()
+	}
 
 	for {
 		// get into the next exp
@@ -1019,7 +1078,7 @@ func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 		p.nextToken()
 		key := p.parseExpression(LOWEST)
 
-		if p.peekTokenIs(token.COMMA) {
+		if p.peekTokenIs(token.COMMA) || p.peekTokenIs(token.RBRACE) {
 			return p.parseSetLiteral(firstTok, key)
 		}
 		if p.peekTokenIs(token.FOR) {

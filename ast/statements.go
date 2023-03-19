@@ -9,10 +9,13 @@ import (
 
 // VarStatement is the node for var statements
 type VarStatement struct {
-	Token           token.Token // Token == token.VAR
-	Name            *Identifier // Name is the identifier that Value is being binded to
-	Value           Expression  // Value is the expression node that is being assinged to
-	AssignmentToken token.Token // AssignmentToken is the token used for assignment
+	Token            token.Token   // Token == token.VAR
+	Names            []*Identifier // Names are the identifiers that Value is being binded to (or that we are desctructuring)
+	Value            Expression    // Value is the expression node that is being assinged to
+	IsMapDestructor  bool
+	IsListDestructor bool
+
+	AssignmentToken token.Token // AssignmentToken is the token used for assignment (destructuring only supports =)
 }
 
 // statementNode makes var a statement
@@ -27,7 +30,22 @@ func (vars *VarStatement) String() string {
 
 	out.WriteString(vars.TokenLiteral())
 	out.WriteByte(' ')
-	out.WriteString(vars.Name.String())
+	if vars.IsListDestructor {
+		out.WriteByte('[')
+	} else if vars.IsMapDestructor {
+		out.WriteByte('{')
+	}
+	for i, name := range vars.Names {
+		out.WriteString(name.String())
+		if i != len(vars.Names)-1 {
+			out.WriteString(", ")
+		}
+	}
+	if vars.IsListDestructor {
+		out.WriteByte(']')
+	} else if vars.IsMapDestructor {
+		out.WriteByte('}')
+	}
 	out.WriteByte(' ')
 	out.WriteString(vars.AssignmentToken.Literal)
 	out.WriteByte(' ')
@@ -41,9 +59,12 @@ func (vars *VarStatement) String() string {
 
 // ValStatement is the node for val statements
 type ValStatement struct {
-	Token token.Token // Token == token.VAL
-	Name  *Identifier // Name is the identifier that Value is being binded to
-	Value Expression  // Value is the expression node that is being assinged to
+	Token token.Token   // Token == token.VAL
+	Names []*Identifier // Names are the identifiers that Value is being binded to (or that we are desctructuring)
+	Value Expression    // Value is the expression node that is being assinged to
+
+	IsMapDestructor  bool
+	IsListDestructor bool
 }
 
 // statementNode makes val a statement
@@ -58,7 +79,22 @@ func (vals *ValStatement) String() string {
 
 	out.WriteString(vals.TokenLiteral())
 	out.WriteByte(' ')
-	out.WriteString(vals.Name.String())
+	if vals.IsListDestructor {
+		out.WriteByte('[')
+	} else if vals.IsMapDestructor {
+		out.WriteByte('{')
+	}
+	for i, name := range vals.Names {
+		out.WriteString(name.String())
+		if i != len(vals.Names)-1 {
+			out.WriteString(", ")
+		}
+	}
+	if vals.IsListDestructor {
+		out.WriteByte(']')
+	} else if vals.IsMapDestructor {
+		out.WriteByte('}')
+	}
 	out.WriteString(" = ")
 
 	if vals.Value != nil {

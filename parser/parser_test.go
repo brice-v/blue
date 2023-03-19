@@ -70,13 +70,13 @@ func testVarStatement(t *testing.T, s ast.Statement, name string) bool {
 		return false
 	}
 
-	if varStmt.Name.Value != name {
-		t.Errorf("varStmt.Name.Value not `%s`. got=%s", name, varStmt.Name.Value)
+	if varStmt.Names[0].Value != name {
+		t.Errorf("varStmt.Names[0].Value not `%s`. got=%s", name, varStmt.Names[0].Value)
 		return false
 	}
 
-	if varStmt.Name.TokenLiteral() != name {
-		t.Errorf("s.Name not `%s`. got=%s", name, varStmt.Name)
+	if varStmt.Names[0].TokenLiteral() != name {
+		t.Errorf("s.Name not `%s`. got=%s", name, varStmt.Names[0])
 		return false
 	}
 
@@ -129,13 +129,13 @@ func testValStatement(t *testing.T, s ast.Statement, name string) bool {
 		return false
 	}
 
-	if valStmt.Name.Value != name {
-		t.Errorf("valStmt.Name.Value not `%s`. got=%s", name, valStmt.Name.Value)
+	if valStmt.Names[0].Value != name {
+		t.Errorf("valStmt.Names[0].Value not `%s`. got=%s", name, valStmt.Names[0].Value)
 		return false
 	}
 
-	if valStmt.Name.TokenLiteral() != name {
-		t.Errorf("s.Name not `%s`. got=%s", name, valStmt.Name)
+	if valStmt.Names[0].TokenLiteral() != name {
+		t.Errorf("s.Name not `%s`. got=%s", name, valStmt.Names[0])
 		return false
 	}
 

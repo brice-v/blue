@@ -10,10 +10,10 @@ func TestString(t *testing.T) {
 		Statements: []Statement{
 			&VarStatement{
 				Token: token.Token{Type: token.VAR, Literal: "var"},
-				Name: &Identifier{
+				Names: []*Identifier{{
 					Token: token.Token{Type: token.IDENT, Literal: "myVar"},
 					Value: "myVar",
-				},
+				}},
 				Value: &Identifier{
 					Token: token.Token{Type: token.IDENT, Literal: "anotherVar"},
 					Value: "anotherVar",
@@ -33,10 +33,10 @@ func TestString2(t *testing.T) {
 		Statements: []Statement{
 			&VarStatement{
 				Token: token.Token{Type: token.VAR, Literal: "var"},
-				Name: &Identifier{
+				Names: []*Identifier{{
 					Token: token.Token{Type: token.IDENT, Literal: "myVar"},
 					Value: "myVar",
-				},
+				}},
 				Value: &Identifier{
 					Token: token.Token{Type: token.IDENT, Literal: "anotherVar"},
 					Value: "anotherVar",
