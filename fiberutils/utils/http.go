@@ -24,9 +24,9 @@ func GetMIME(extension string) string {
 	}
 	if len(currentMime) == 0 {
 		if extension[0] == '.' {
-			currentMime = mime.TypeByExtension(extension[1:])
-		} else {
 			currentMime = mime.TypeByExtension(extension)
+		} else {
+			currentMime = mime.TypeByExtension("." + extension)
 		}
 		if len(currentMime) == 0 {
 			return MIMEOctetStream
