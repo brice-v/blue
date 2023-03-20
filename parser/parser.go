@@ -312,6 +312,73 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
+func (p *Parser) parseDestructorIdents(isMapDestructor, isListDestructor bool) ([]*ast.Identifier, map[ast.Expression]*ast.Identifier, bool) {
+	names := []*ast.Identifier{}
+	kvNames := make(map[ast.Expression]*ast.Identifier)
+	if isMapDestructor {
+		for !p.curTokenIs(token.RBRACE) {
+			p.nextToken()
+			exp := p.parseExpression(LOWEST)
+			ident, isExpIdent := exp.(*ast.Identifier)
+			if !p.peekTokenIs(token.COLON) && isExpIdent {
+				p.nextToken()
+				names = append(names, ident)
+			} else if p.peekTokenIs(token.COMMA) {
+				continue
+			} else if p.peekTokenIs(token.COLON) {
+				keyExp := p.parseExpression(LOWEST)
+				// Check KeyExp is string or ident
+				_, ok1 := keyExp.(*ast.Identifier)
+				_, ok2 := keyExp.(*ast.StringLiteral)
+				if !ok1 && !ok2 {
+					errorLine := lexer.GetErrorLineMessage(p.peekToken)
+					msg := fmt.Sprintf("invalid type for destructuring found=%T\n%s", keyExp, errorLine)
+					p.errors = append(p.errors, msg)
+					return nil, nil, true
+				}
+				// Skip key exp
+				p.nextToken()
+				// skip colon
+				p.nextToken()
+				valueExp := p.parseExpression(LOWEST)
+				// skip valueExp
+				p.nextToken()
+				ident, isIdent := valueExp.(*ast.Identifier)
+				if isIdent {
+					kvNames[keyExp] = ident
+				} else {
+					errorLine := lexer.GetErrorLineMessage(p.peekToken)
+					msg := fmt.Sprintf("invalid type for destructuring found=%T\n%s", keyExp, errorLine)
+					p.errors = append(p.errors, msg)
+					return nil, nil, true
+				}
+			}
+			if p.peekTokenIs(token.RBRACE) {
+				break
+			}
+		}
+	} else if isListDestructor {
+		p.nextToken()
+		for !p.curTokenIs(token.RBRACKET) {
+			names = append(names, p.parseIdentifier().(*ast.Identifier))
+			if p.peekTokenIs(token.RBRACKET) {
+				p.nextToken()
+				continue
+			}
+			if !p.expectPeekIs(token.COMMA) {
+				return nil, nil, true
+			}
+			p.nextToken()
+		}
+	} else {
+		errorLine := lexer.GetErrorLineMessage(p.peekToken)
+		msg := fmt.Sprintf("destructing needs to be used with [ or { as first token\n%s", errorLine)
+		p.errors = append(p.errors, msg)
+		return nil, nil, true
+	}
+	return names, kvNames, false
+}
+
 // parseVarStatement will try to parse a var statement and if
 // successful will return the constructed ast node otherwise nil
 func (p *Parser) parseVarStatement() *ast.VarStatement {
@@ -323,24 +390,12 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 		p.nextToken()
 		stmt.IsListDestructor = p.curTokenIs(token.LBRACKET)
 		stmt.IsMapDestructor = p.curTokenIs(token.LBRACE)
-		var endToken token.Type
-		if stmt.IsListDestructor {
-			endToken = token.RBRACKET
-		} else if stmt.IsMapDestructor {
-			endToken = token.RBRACE
+		stmtIdents, stmtKVIdents, isErr := p.parseDestructorIdents(stmt.IsMapDestructor, stmt.IsListDestructor)
+		if isErr {
+			return nil
 		}
-		p.nextToken()
-		for !p.curTokenIs(endToken) {
-			stmt.Names = append(stmt.Names, p.parseIdentifier().(*ast.Identifier))
-			if p.peekTokenIs(endToken) {
-				p.nextToken()
-				continue
-			}
-			if !p.expectPeekIs(token.COMMA) {
-				return nil
-			}
-			p.nextToken()
-		}
+		stmt.Names = stmtIdents
+		stmt.KeyValueNames = stmtKVIdents
 	} else if p.peekTokenIs(token.IDENT) {
 		p.nextToken()
 		stmt.Names = []*ast.Identifier{{Token: p.curToken, Value: p.curToken.Literal}}
@@ -384,24 +439,12 @@ func (p *Parser) parseValStatement() *ast.ValStatement {
 		p.nextToken()
 		stmt.IsListDestructor = p.curTokenIs(token.LBRACKET)
 		stmt.IsMapDestructor = p.curTokenIs(token.LBRACE)
-		var endToken token.Type
-		if stmt.IsListDestructor {
-			endToken = token.RBRACKET
-		} else if stmt.IsMapDestructor {
-			endToken = token.RBRACE
+		stmtIdents, stmtKVIdents, isErr := p.parseDestructorIdents(stmt.IsMapDestructor, stmt.IsListDestructor)
+		if isErr {
+			return nil
 		}
-		p.nextToken()
-		for !p.curTokenIs(endToken) {
-			stmt.Names = append(stmt.Names, p.parseIdentifier().(*ast.Identifier))
-			if p.peekTokenIs(endToken) {
-				p.nextToken()
-				continue
-			}
-			if !p.expectPeekIs(token.COMMA) {
-				return nil
-			}
-			p.nextToken()
-		}
+		stmt.Names = stmtIdents
+		stmt.KeyValueNames = stmtKVIdents
 	} else if p.peekTokenIs(token.IDENT) {
 		p.nextToken()
 		stmt.Names = []*ast.Identifier{{Token: p.curToken, Value: p.curToken.Literal}}
@@ -1042,6 +1085,11 @@ func (p *Parser) parseSetLiteral(firstTok token.Token, firstExp ast.Expression) 
 		// need to skip ahead
 		p.nextToken()
 		p.nextToken()
+	} else if p.peekTokenIs(token.RBRACE) {
+		// This is the case where first expression is valid and next element is not there
+		// so 1 element sets
+		p.nextToken()
+		return exp
 	}
 
 	for {

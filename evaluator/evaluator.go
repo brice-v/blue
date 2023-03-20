@@ -249,14 +249,14 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 			return val
 		}
-		return e.evalVariableStatement(true, node.IsMapDestructor, node.IsListDestructor, val, node.Names, node.Token)
+		return e.evalVariableStatement(true, node.IsMapDestructor, node.IsListDestructor, val, node.Names, node.KeyValueNames, node.Token)
 	case *ast.VarStatement:
 		val := e.Eval(node.Value)
 		if isError(val) {
 			e.ErrorTokens.Push(node.Token)
 			return val
 		}
-		return e.evalVariableStatement(false, node.IsMapDestructor, node.IsListDestructor, val, node.Names, node.Token)
+		return e.evalVariableStatement(false, node.IsMapDestructor, node.IsListDestructor, val, node.Names, node.KeyValueNames, node.Token)
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
@@ -468,7 +468,10 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 }
 
 func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestructor bool,
-	val object.Object, names []*ast.Identifier, tok token.Token) object.Object {
+	val object.Object,
+	names []*ast.Identifier,
+	keyValueNames map[ast.Expression]*ast.Identifier,
+	tok token.Token) object.Object {
 	if isListDestructor {
 		if val.Type() != object.LIST_OBJ {
 			return newError("List Destructor must be used with list value. got=%s", val.Type())
@@ -478,7 +481,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			return newError("Map Destructor must be used with map value. got=%s", val.Type())
 		}
 	}
-	isNameInMap := func(m object.OrderedMap2[object.HashKey, object.MapPair], name string) bool {
+	ifNameInMapSetEnv := func(m object.OrderedMap2[object.HashKey, object.MapPair], name string) bool {
 		for _, k := range m.Keys {
 			mp, _ := m.Get(k)
 			if mp.Key.Type() == object.STRING_OBJ {
@@ -513,14 +516,60 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			}
 			e.env.Set(name.Value, l[i])
 		} else if isMapDestructor {
-			m := val.(*object.Map).Pairs
-			if !isNameInMap(m, name.Value) {
+			m := val.(*object.Map)
+			if !ifNameInMapSetEnv(m.Pairs, name.Value) {
 				return newError("Map destructor key name '%s' was not found in map", name.Value)
 			}
 		} else {
 			e.env.Set(name.Value, val)
 		}
 	}
+
+	for keyExp, name := range keyValueNames {
+		ident, isIdent := keyExp.(*ast.Identifier)
+		str, isStr := keyExp.(*ast.StringLiteral)
+		if !isIdent && !isStr {
+			return newError("Key Expression in Destructor must be STRING or IDENTIFIER. found=%T", keyExp)
+		}
+		var kVal object.Object
+		if isIdent {
+			kVal = &object.Stringo{Value: ident.Value}
+		} else {
+			kVal = &object.Stringo{Value: str.Value}
+		}
+
+		hk := object.HashKey{
+			Type:  kVal.Type(),
+			Value: object.HashObject(kVal),
+		}
+		if ok := e.env.IsImmutable(name.Value); ok {
+			e.ErrorTokens.Push(tok)
+			return newError("'" + name.Value + "' is already defined as immutable, cannot reassign")
+		}
+		if _, ok := e.env.Get(name.Value); ok {
+			e.ErrorTokens.Push(tok)
+			return newError("'" + name.Value + "' is already defined")
+		}
+		if e.isInScopeBlock {
+			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
+		}
+		if isVal {
+			e.env.ImmutableSet(name.Value)
+		}
+		if isListDestructor {
+			return newError("List Destructor should not be reached when in the Map Destructor KeyValueNames")
+		} else if isMapDestructor {
+			m := val.(*object.Map)
+			mp, ok := m.Pairs.Get(hk)
+			if !ok {
+				return newError("Key Expression `%s` Not Found in Map", kVal.Inspect())
+			}
+			e.env.Set(name.Value, mp.Value)
+		} else {
+			e.env.Set(name.Value, val)
+		}
+	}
+
 	e.ErrorTokens.RemoveAllEntries()
 	return NULL
 }

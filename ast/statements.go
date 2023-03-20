@@ -9,7 +9,8 @@ import (
 
 // VarStatement is the node for var statements
 type VarStatement struct {
-	Token            token.Token   // Token == token.VAR
+	Token            token.Token // Token == token.VAR
+	KeyValueNames    map[Expression]*Identifier
 	Names            []*Identifier // Names are the identifiers that Value is being binded to (or that we are desctructuring)
 	Value            Expression    // Value is the expression node that is being assinged to
 	IsMapDestructor  bool
@@ -41,6 +42,21 @@ func (vars *VarStatement) String() string {
 			out.WriteString(", ")
 		}
 	}
+	if vars.IsMapDestructor {
+		if len(vars.KeyValueNames) > 0 {
+			out.WriteString(", ")
+		}
+		i := 0
+		for k, v := range vars.KeyValueNames {
+			out.WriteString(k.String())
+			out.WriteString(": ")
+			out.WriteString(v.String())
+			if i != len(vars.KeyValueNames)-1 {
+				out.WriteString(", ")
+			}
+			i++
+		}
+	}
 	if vars.IsListDestructor {
 		out.WriteByte(']')
 	} else if vars.IsMapDestructor {
@@ -59,9 +75,10 @@ func (vars *VarStatement) String() string {
 
 // ValStatement is the node for val statements
 type ValStatement struct {
-	Token token.Token   // Token == token.VAL
-	Names []*Identifier // Names are the identifiers that Value is being binded to (or that we are desctructuring)
-	Value Expression    // Value is the expression node that is being assinged to
+	Token         token.Token // Token == token.VAL
+	KeyValueNames map[Expression]*Identifier
+	Names         []*Identifier // Names are the identifiers that Value is being binded to (or that we are desctructuring)
+	Value         Expression    // Value is the expression node that is being assinged to
 
 	IsMapDestructor  bool
 	IsListDestructor bool
@@ -88,6 +105,21 @@ func (vals *ValStatement) String() string {
 		out.WriteString(name.String())
 		if i != len(vals.Names)-1 {
 			out.WriteString(", ")
+		}
+	}
+	if vals.IsMapDestructor {
+		if len(vals.KeyValueNames) > 0 {
+			out.WriteString(", ")
+		}
+		i := 0
+		for k, v := range vals.KeyValueNames {
+			out.WriteString(k.String())
+			out.WriteString(": ")
+			out.WriteString(v.String())
+			if i != len(vals.KeyValueNames)-1 {
+				out.WriteString(", ")
+			}
+			i++
 		}
 	}
 	if vals.IsListDestructor {
