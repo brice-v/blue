@@ -4,7 +4,7 @@ import "github.com/gookit/color"
 
 // VERSION is the version number of the blang repl and language
 // it will be incremented as seen fit
-const VERSION = "0.1.8"
+const VERSION = "0.1.9"
 
 const PARSER_ERROR_PREFIX = "ParserError: "
 const PROCESS_ERROR_PREFIX = "ProcessError: "
