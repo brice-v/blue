@@ -5,6 +5,7 @@
 package utils
 
 import (
+	"mime"
 	"strings"
 )
 
@@ -15,16 +16,24 @@ func GetMIME(extension string) string {
 	if len(extension) == 0 {
 		return ""
 	}
-	var mime string
+	var foundMime string
 	if extension[0] == '.' {
-		mime = mimeExtensions[extension[1:]]
+		foundMime = mimeExtensions[extension[1:]]
 	} else {
-		mime = mimeExtensions[extension]
+		foundMime = mimeExtensions[extension]
 	}
-	if len(mime) == 0 {
-		return MIMEOctetStream
+	if len(foundMime) == 0 {
+		if extension[0] != '.' {
+			foundMime = mime.TypeByExtension("." + extension)
+		} else {
+			foundMime = mime.TypeByExtension(extension)
+		}
+
+		if foundMime == "" {
+			return MIMEOctetStream
+		}
 	}
-	return mime
+	return foundMime
 }
 
 // ParseVendorSpecificContentType check if content type is vendor specific and
@@ -153,7 +162,6 @@ var mimeExtensions = map[string]string{
 	"jpeg":    "image/jpeg",
 	"jpg":     "image/jpeg",
 	"js":      "text/javascript",
-	"mjs":     "text/javascript",
 	"atom":    "application/atom+xml",
 	"rss":     "application/rss+xml",
 	"mml":     "text/mathml",

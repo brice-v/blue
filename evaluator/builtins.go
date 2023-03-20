@@ -305,9 +305,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			fnameo := args[0].(*object.Stringo)
 			var bs []byte
 			if IsEmbed {
-				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + fnameo.Value)
+				s := fnameo.Value
+				if strings.HasPrefix(s, "./") {
+					s = strings.TrimLeft(s, "./")
+				}
+				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
-					return newError("`read` error reading embedded file `%s`: %s", fnameo.Value, err.Error())
+					return newError("`read` error reading embedded file `%s`: %s", s, err.Error())
 				}
 				bs = fileData
 			} else {
