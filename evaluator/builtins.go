@@ -311,9 +311,15 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
-					return newError("`read` error reading embedded file `%s`: %s", s, err.Error())
+					// Fallback option for reading when in embedded context
+					fileData, err := os.ReadFile(fnameo.Value)
+					if err != nil {
+						return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
+					}
+					bs = fileData
+				} else {
+					bs = fileData
 				}
-				bs = fileData
 			} else {
 				fileData, err := os.ReadFile(fnameo.Value)
 				if err != nil {
