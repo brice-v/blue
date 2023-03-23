@@ -1480,14 +1480,15 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 // stringLexer is used to parse string interpolation values
 type stringLexer struct {
 	input        string
+	runeInput    []rune
 	position     int  // current pos. in input (points to current char)
 	readPosition int  // current reading pos. in input (after current char)
-	ch           byte // current char under examination
+	ch           rune // current char under examination
 }
 
 // newStringLexer takes an input and returns a *stringLexer
 func newStringLexer(input string) *stringLexer {
-	sl := &stringLexer{input: input}
+	sl := &stringLexer{input: input, runeInput: []rune(input)}
 	sl.readStringChar()
 	return sl
 }
@@ -1495,10 +1496,10 @@ func newStringLexer(input string) *stringLexer {
 // readStringChar reads the next char in the input and advances
 // the read position
 func (sl *stringLexer) readStringChar() {
-	if sl.readPosition >= len(sl.input) {
+	if sl.readPosition >= len(sl.runeInput) {
 		sl.ch = 0
 	} else {
-		sl.ch = sl.input[sl.readPosition]
+		sl.ch = sl.runeInput[sl.readPosition]
 	}
 	sl.position = sl.readPosition
 	sl.readPosition++
@@ -1506,11 +1507,11 @@ func (sl *stringLexer) readStringChar() {
 
 // peekChar checks the next readPosition char and returns the byte
 // without advancing the position
-func (sl *stringLexer) peekChar() byte {
-	if sl.readPosition >= len(sl.input) {
+func (sl *stringLexer) peekChar() rune {
+	if sl.readPosition >= len(sl.runeInput) {
 		return 0
 	}
-	return sl.input[sl.readPosition]
+	return sl.runeInput[sl.readPosition]
 }
 
 // parseStringInterpolationValues helps with parsing string interpolation values
@@ -1530,7 +1531,7 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 				if sl.ch == '}' {
 					break
 				}
-				toLex.WriteByte(sl.ch)
+				toLex.WriteRune(sl.ch)
 				sl.readStringChar()
 			}
 		}

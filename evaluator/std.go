@@ -16,7 +16,10 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"database/sql"
+	"encoding/base32"
+	"encoding/base64"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"hash"
 	"io"
@@ -1283,6 +1286,146 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			} else {
 				return &object.Stringo{Value: string(plaintext)}
 			}
+		},
+	},
+	"_encode_base_64_32": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("encode_base_64_32", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("encode_base_64_32", 1, "STRING or BYTES", args[0].Type())
+			}
+			if args[1].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("encode_base_64_32", 2, object.BOOLEAN_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("encode_base_64_32", 3, object.BOOLEAN_OBJ, args[2].Type())
+			}
+			useBase64 := args[2].(*object.Boolean).Value
+			var bs []byte
+			if args[0].Type() == object.STRING_OBJ {
+				bs = []byte(args[0].(*object.Stringo).Value)
+			} else {
+				bs = args[0].(*object.Bytes).Value
+			}
+			asBytes := args[1].(*object.Boolean).Value
+			var encoded string
+			if useBase64 {
+				encoded = base64.StdEncoding.EncodeToString(bs)
+			} else {
+				encoded = base32.StdEncoding.EncodeToString(bs)
+			}
+			if asBytes {
+				return &object.Bytes{Value: []byte(encoded)}
+			}
+			return &object.Stringo{Value: encoded}
+		},
+	},
+	"_decode_base_64_32": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("decode_base_64_32", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("decode_base_64_32", 1, "STRING or BYTES", args[0].Type())
+			}
+			if args[1].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("decode_base_64_32", 2, object.BOOLEAN_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("decode_base_64_32", 3, object.BOOLEAN_OBJ, args[2].Type())
+			}
+			useBase64 := args[2].(*object.Boolean).Value
+			var s string
+			if args[0].Type() == object.STRING_OBJ {
+				s = args[0].(*object.Stringo).Value
+			} else {
+				s = string(args[0].(*object.Bytes).Value)
+			}
+			asBytes := args[1].(*object.Boolean).Value
+			var decoded []byte
+			var err error
+			if useBase64 {
+				decoded, err = base64.StdEncoding.DecodeString(s)
+			} else {
+				decoded, err = base32.StdEncoding.DecodeString(s)
+			}
+			if err != nil {
+				return newError("`decode_base_64_32` error: %s", err.Error())
+			}
+			if !asBytes {
+				return &object.Stringo{Value: string(decoded)}
+			}
+			return &object.Bytes{Value: decoded}
+		},
+	},
+	"_decode_hex": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("decode_hex", len(args), 2, "")
+			}
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("decode_hex", 1, "STRING or BYTES", args[0].Type())
+			}
+			if args[1].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("encode_hex", 2, object.BOOLEAN_OBJ, args[1].Type())
+			}
+			asBytes := args[1].(*object.Boolean).Value
+			var bs []byte
+			if args[0].Type() == object.STRING_OBJ {
+				s := args[0].(*object.Stringo).Value
+				data, err := hex.DecodeString(s)
+				if err != nil {
+					return newError("`decode_hex` error: %s", err.Error())
+				}
+				bs = data
+			} else if args[0].Type() == object.BYTES_OBJ {
+				b := args[0].(*object.Bytes).Value
+				bs = make([]byte, hex.DecodedLen(len(b)))
+				l, err := hex.Decode(bs, b)
+				if err != nil {
+					return newError("`decode_hex` error: %s", err.Error())
+				}
+				if l != len(b) {
+					return newError("`decode_hex` error: length of bytes does not match bytes written. got=%d, want=%d", l, len(b))
+				}
+			}
+			if !asBytes {
+				return &object.Stringo{Value: string(bs)}
+			}
+			return &object.Bytes{Value: bs}
+		},
+	},
+	"_encode_hex": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("encode_hex", len(args), 2, "")
+			}
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("encode_hex", 1, "STRING or BYTES", args[0].Type())
+			}
+			if args[1].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("encode_hex", 2, object.BOOLEAN_OBJ, args[1].Type())
+			}
+			asBytes := args[1].(*object.Boolean).Value
+			var s string
+			if args[0].Type() == object.BYTES_OBJ {
+				b := args[0].(*object.Bytes).Value
+				s = hex.EncodeToString(b)
+			} else if args[0].Type() == object.STRING_OBJ {
+				b := args[0].(*object.Stringo).Value
+				bs := make([]byte, hex.EncodedLen(len(b)))
+				hex.Encode(bs, []byte(b))
+				// if l != len(b) {
+				// 	return newError("`encode_hex` error: length of bytes does not match bytes written. got=%d, want=%d", l, len(b))
+				// }
+				s = string(bs)
+			}
+			if asBytes {
+				return &object.Bytes{Value: []byte(s)}
+			}
+			return &object.Stringo{Value: s}
 		},
 	},
 })

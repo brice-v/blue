@@ -796,6 +796,23 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "to_bytes('hello') => []byte{0x68, 0x65, 0x6c, 0x6c, 0x6f}",
 		}.String(),
 	},
+	"str": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("str", len(args), 1, "")
+			}
+			if args[0].Type() == object.BYTES_OBJ {
+				return &object.Stringo{Value: string(args[0].(*object.Bytes).Value)}
+			}
+			return &object.Stringo{Value: args[0].Inspect()}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`str` returns the STRING representation of the given BYTES or the inspected object",
+			signature:   "str(arg: any) -> str",
+			errors:      "InvalidArgCount",
+			example:     "str([]byte{0x68, 0x65, 0x6c, 0x6c, 0x6f}) => 'hello'",
+		}.String(),
+	},
 	"is_file": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {

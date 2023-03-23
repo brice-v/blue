@@ -2380,6 +2380,8 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		}
 	case left.Type() == object.SET_OBJ && right.Type() == object.SET_OBJ:
 		return e.evalSetInfixExpression(operator, left, right)
+	case left.Type() == object.BYTES_OBJ && right.Type() == object.BYTES_OBJ:
+		return e.evalBytesInfixExpression(operator, left, right)
 	// These are the cases where they differ
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.BIG_INTEGER_OBJ:
 		return e.evalFloatBigIntegerInfixExpression(operator, left, right)
@@ -2679,6 +2681,42 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 		default:
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
+	default:
+		return e.evalDefaultInfixExpression(operator, left, right)
+	}
+}
+
+func (e *Evaluator) evalBytesInfixExpression(operator string, left, right object.Object) object.Object {
+	leftBs := left.(*object.Bytes).Value
+	rightBs := right.(*object.Bytes).Value
+	switch operator {
+	case "&":
+		if len(leftBs) != len(rightBs) {
+			return newError("length of left and right bytes must match to perform bitwise AND operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs))
+		}
+		buf := make([]byte, len(leftBs))
+		for i := 0; i < len(leftBs); i++ {
+			buf[i] = leftBs[i] & rightBs[i]
+		}
+		return &object.Bytes{Value: buf}
+	case "|":
+		if len(leftBs) != len(rightBs) {
+			return newError("length of left and right bytes must match to perform bitwise OR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs))
+		}
+		buf := make([]byte, len(leftBs))
+		for i := 0; i < len(leftBs); i++ {
+			buf[i] = leftBs[i] | rightBs[i]
+		}
+		return &object.Bytes{Value: buf}
+	case "^":
+		if len(leftBs) != len(rightBs) {
+			return newError("length of left and right bytes must match to perform bitwise XOR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs))
+		}
+		buf := make([]byte, len(leftBs))
+		for i := 0; i < len(leftBs); i++ {
+			buf[i] = leftBs[i] ^ rightBs[i]
+		}
+		return &object.Bytes{Value: buf}
 	default:
 		return e.evalDefaultInfixExpression(operator, left, right)
 	}
@@ -3461,12 +3499,27 @@ func (e *Evaluator) evalMinusPrefixOperatorExpression(right object.Object) objec
 	if right.Type() != object.FLOAT_OBJ || right.Type() != object.INTEGER_OBJ {
 		return newError("unknown operator: -%s", right.Type())
 	}
-	return NULL
+	return newError("unknown operator: -%s", right.Type())
 }
 
 func (e *Evaluator) evalBitwiseNotOperatorExpression(right object.Object) object.Object {
-	value := right.(*object.UInteger).Value
-	return &object.UInteger{Value: 0xFFFFFFFFFFFFFFFF ^ value}
+	switch right.Type() {
+	case object.INTEGER_OBJ:
+		value := right.(*object.Integer).Value
+		return &object.Integer{Value: ^value}
+	case object.UINTEGER_OBJ:
+		value := right.(*object.UInteger).Value
+		return &object.UInteger{Value: ^value}
+	case object.BYTES_OBJ:
+		value := right.(*object.Bytes).Value
+		buf := make([]byte, len(value))
+		for i, b := range value {
+			buf[i] = ^b
+		}
+		return &object.Bytes{Value: buf}
+	default:
+		return newError("unknown operator: ~%s", right.Type())
+	}
 }
 
 func (e *Evaluator) evalNotOperatorExpression(right object.Object) object.Object {

@@ -7,6 +7,10 @@ val __generate_from_password = _generate_from_password;
 val __compare_hash_and_password = _compare_hash_and_password;
 val __encrypt = _encrypt;
 val __decrypt = _decrypt;
+val __encode_base_64_32 = _encode_base_64_32;
+val __decode_base_64_32 = _decode_base_64_32;
+val __encode_hex = _encode_hex;
+val __decode_hex = _decode_hex;
 
 fun md5(content) {
     ## `md5` is the stringified version of the md5 sum for the string content passed in
@@ -48,7 +52,7 @@ fun encrypt(pw, data) {
 }
 
 fun decrypt(pw, data, as_bytes=false) {
-    ## `decrypt` wil take a pw and the data to decrypt and decrypt it
+    ## `decrypt` will take a pw and the data to decrypt and decrypt it
     ## with a key derived from the pw
     ##
     ## if the data was initially a string then it will return the string
@@ -57,4 +61,50 @@ fun decrypt(pw, data, as_bytes=false) {
     ##
     ## decrypt(pw: str|bytes, data: bytes, as_bytes: bool=false) -> str|bytes
     __decrypt(pw, data, as_bytes)
+}
+
+fun encode(data, as_bytes=false, method='hex') {
+    ## `encode` will take data as STRING or BYTES and encode it with the specified method
+    ## supported methods are 'hex', 'base32', or 'base64'
+    ##
+    ## as_bytes determines if the value returned should be BYTES or STRING
+    ##
+    ## encode(data: str|bytes, as_bytes: bool=false, method: str='hex') -> str|bytes
+    return match method {
+        'hex' => {
+            __encode_hex(data, as_bytes)
+        },
+        'base64' => {
+            __encode_base_64_32(data, as_bytes, true)
+        },
+        'base32' => {
+            __encode_base_64_32(data, as_bytes, false)
+        },
+        _ => {
+            error("method #{method} not supported for encoding. expected hex, base64, or base32")
+        },
+    };
+}
+
+fun decode(data, as_bytes=false, method='hex') {
+    ## `decode` will take data as STRING or BYTES and decode it with the specified method
+    ## supported methods are 'hex', 'base32', or 'base64'
+    ##
+    ## as_bytes determines if the value returned should be BYTES or STRING
+    ##
+    ## decode(data: str|bytes, as_bytes: bool=false, method: str='hex') -> str|bytes
+    return match method {
+        'hex' => {
+            __decode_hex(data, as_bytes)
+        },
+        'base64' => {
+            __decode_base_64_32(data, as_bytes, true)
+        },
+        'base32' => {
+            __decode_base_64_32(data, as_bytes, false)
+        },
+        _ => {
+            error("method #{method} not supported for decoding. expected hex, base64, or base32")
+        },
+    };
 }
