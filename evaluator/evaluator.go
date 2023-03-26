@@ -681,6 +681,10 @@ func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Ob
 			}
 		}
 		e.ErrorTokens.RemoveAllEntries()
+		if evaldCatch == nil {
+			// Set to Null so we continue in for loop if its empty
+			evaldCatch = NULL
+		}
 		return evaldCatch
 	}
 	if node.FinallyBlock != nil {
