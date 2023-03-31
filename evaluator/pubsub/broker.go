@@ -25,7 +25,7 @@ func (b *Broker) AddSubscriber(pid uint64) *Subscriber {
 	// Add subscriber to the broker.
 	b.mut.Lock()
 	defer b.mut.Unlock()
-	id, s := CreateNewSubscriber(pid)
+	id, s := createNewSubscriber(pid)
 	b.subscribers[id] = s
 	return s
 }
@@ -40,7 +40,7 @@ func (b *Broker) RemoveSubscriber(s *Subscriber) {
 	// remove subscriber from list of subscribers.
 	delete(b.subscribers, s.id)
 	b.mut.Unlock()
-	s.Destruct()
+	s.destruct()
 }
 
 func (b *Broker) Broadcast(msg object.Object, topics []string) {
@@ -65,13 +65,6 @@ func (b *Broker) BroadcastToAllTopics(msg object.Object) {
 			})(s)
 		}
 	}
-}
-
-func (b *Broker) GetSubscribers(topic string) int {
-	// get total subscribers subscribed to given topic.
-	b.mut.RLock()
-	defer b.mut.RUnlock()
-	return len(b.topics[topic])
 }
 
 func (b *Broker) Subscribe(s *Subscriber, topic string) {

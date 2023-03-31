@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"blue/object"
-	"sort"
 	"sync"
 )
 
@@ -14,7 +13,7 @@ type Subscriber struct {
 	mutex    sync.RWMutex        // lock
 }
 
-func CreateNewSubscriber(pid uint64) (uint64, *Subscriber) {
+func createNewSubscriber(pid uint64) (uint64, *Subscriber) {
 	return pid, &Subscriber{
 		id:       pid,
 		messages: make(chan *Message),
@@ -37,23 +36,7 @@ func (s *Subscriber) RemoveTopic(topic string) {
 	delete(s.topics, topic)
 }
 
-// These are all things
-
-func (s *Subscriber) GetTopics() []string {
-	// Get all topic of the subscriber
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	topics := make([]string, len(s.topics))
-	i := 0
-	for topic := range s.topics {
-		topics[i] = topic
-		i++
-	}
-	sort.Strings(topics)
-	return topics
-}
-
-func (s *Subscriber) Destruct() {
+func (s *Subscriber) destruct() {
 	// destructor for subscriber.
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -75,8 +58,8 @@ func (s *Subscriber) PollMessage() object.Object {
 	for {
 		if msg, ok := <-s.messages; ok {
 			mapObj := object.NewOrderedMap[string, object.Object]()
-			mapObj.Set("topic", &object.Stringo{Value: msg.GetTopic()})
-			mapObj.Set("msg", msg.GetMessage())
+			mapObj.Set("topic", &object.Stringo{Value: msg.getTopic()})
+			mapObj.Set("msg", msg.getMessage())
 			return object.CreateMapObjectForGoMap(*mapObj)
 		}
 	}

@@ -15,12 +15,12 @@ func NewMessage(topic string, msg object.Object) *Message {
 	}
 }
 
-func (m *Message) GetTopic() string {
+func (m *Message) getTopic() string {
 	// returns the topic of the message
 	return m.topic
 }
 
-func (m *Message) GetMessage() object.Object {
+func (m *Message) getMessage() object.Object {
 	// returns the message body.
 	return m.body
 }
