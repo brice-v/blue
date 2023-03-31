@@ -21,6 +21,18 @@ func NewBroker() *Broker {
 	}
 }
 
+func (b *Broker) GetTotalSubscribers() int {
+	b.mut.RLock()
+	defer b.mut.RUnlock()
+	return len(b.subscribers)
+}
+
+func (b *Broker) GetNumSubscribersForTopic(topic string) int {
+	b.mut.RLock()
+	defer b.mut.RUnlock()
+	return len(b.topics[topic])
+}
+
 func (b *Broker) AddSubscriber(pid uint64) *Subscriber {
 	// Add subscriber to the broker.
 	b.mut.Lock()

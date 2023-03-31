@@ -118,14 +118,10 @@ func New() *Evaluator {
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
 	e.Builtins.PushBack(builtinobjs)
-	// builtinobjs["__FILE__"] = &object.BuiltinObj{
-	// 	Obj: &object.Stringo{Value: e.CurrentFile},
-	// }
 	e.AddCoreLibToEnv()
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
-		Fun: nil,
-		Ch:  make(chan object.Object, 1),
+		Ch: make(chan object.Object, 1),
 	}
 	ProcessMap.Put(e.PID, process)
 
@@ -747,10 +743,9 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 			return newPositionalTypeError("spawn", 2, object.LIST_OBJ, arg1.Type())
 		}
 	}
-	fun, _ := arg0.(*object.Function)
+	fun := arg0.(*object.Function)
 	process := &object.Process{
-		Fun: fun,
-		Ch:  make(chan object.Object, 1),
+		Ch: make(chan object.Object, 1),
 	}
 	pid := pidCount.Add(1)
 	ProcessMap.Put(pid, process)

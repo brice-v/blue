@@ -323,4 +323,6 @@ val pubsub = {
     subscribe: _subscribe,
     publish: _publish,
     broadcast: _broadcast,
+    get_subscriber_count: _get_subscriber_count,
 };
+

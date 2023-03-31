@@ -739,7 +739,6 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`recv` failed, pid=%d not found", pid)
 			}
 			val := <-process.Ch
-
 			return val
 		},
 		HelpStr: helpStrArgs{
@@ -1219,7 +1218,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"_subscribe": {
 		Fun: func(args ...object.Object) object.Object {
-			// pubsub.subscribe('TOPIC', fun) -> {t: 'sub', v: _} -> _.recv()
+			// pubsub.subscribe('TOPIC') -> {t: 'sub', v: _} -> _.recv()
 			if len(args) != 1 {
 				return newInvalidArgCountError("subscribe", len(args), 1, "")
 			}
@@ -1279,6 +1278,22 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`pubsub_sub_listen` error: subscriber with id %d, did not exist", v)
 			}
 			return sub.PollMessage()
+		},
+	},
+	"_get_subscriber_count": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 && len(args) != 0 {
+				return newInvalidArgCountError("get_subscriber_count", len(args), 0, "or 1")
+			}
+			if len(args) == 0 {
+				// Get total count of subscribers
+				return &object.Integer{Value: int64(PubSubBroker.GetTotalSubscribers())}
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("get_subscriber_count", 1, object.STRING_OBJ, args[0].Type())
+			}
+			topic := args[0].(*object.Stringo).Value
+			return &object.Integer{Value: int64(PubSubBroker.GetNumSubscribersForTopic(topic))}
 		},
 	},
 	"_kv_put": {

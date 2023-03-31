@@ -253,8 +253,7 @@ func (f *Function) Help() string {
 }
 
 type Process struct {
-	Fun *Function
-	Ch  chan Object
+	Ch chan Object
 }
 
 func (p *Process) Inspect() string {
