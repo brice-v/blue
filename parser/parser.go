@@ -985,12 +985,23 @@ func (p *Parser) parseLambdaLiteral() ast.Expression {
 
 	lit.Parameters = p.parseLambdaParameters()
 
-	if !p.expectPeekIs(token.LBRACE) {
+	// If the next token is lbrace, parse the block statement as a body and return
+	if p.peekTokenIs(token.LBRACE) {
+		p.nextToken()
+		lit.Body = p.parseBlockStatement()
+		return lit
+	}
+	if !p.curTokenIs(token.RARROW) {
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
+		msg := fmt.Sprintf("expected current token to be %s, got %s instead\n%s", token.RARROW, p.curToken.Type, errorLine)
+		p.errors = append(p.errors, msg)
 		return nil
 	}
-
-	lit.Body = p.parseBlockStatement()
-
+	p.nextToken()
+	// Otherwise only parse the next statement
+	lit.Body = &ast.BlockStatement{Statements: []ast.Statement{}}
+	stmt := p.parseStatement()
+	lit.Body.Statements = append(lit.Body.Statements, stmt)
 	return lit
 }
 
