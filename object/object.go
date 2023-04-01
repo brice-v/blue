@@ -6,13 +6,32 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"hash/fnv"
 	"math"
 	"math/big"
 	"strings"
 
+	"github.com/aead/siphash"
 	"github.com/shopspring/decimal"
 )
+
+var _siphash_key = [16]byte{
+	0x10,
+	0x20,
+	0x30,
+	0x40,
+	0x50,
+	0x60,
+	0x70,
+	0x80,
+	0x10,
+	0x20,
+	0x30,
+	0x40,
+	0x50,
+	0x60,
+	0x70,
+	0x80,
+}
 
 const (
 	// INTEGER_OBJ is the integer object type string
@@ -427,7 +446,10 @@ func (m *Map) Help() string {
 
 // hashMap hashes the entire map to be used for checking equality
 func (m *Map) hashMap() uint64 {
-	h := fnv.New64a()
+	h, err := siphash.New64(_siphash_key[:])
+	if err != nil {
+		panic("siphash init error " + err.Error())
+	}
 	for _, k := range m.Pairs.Keys {
 		v, _ := m.Pairs.Get(k)
 		// Just using xor as a way to get a unique uint64 with the value hash
@@ -625,7 +647,10 @@ func (ui *UInteger) HashKey() HashKey {
 // HashKey implements hashing for string values it uses a
 // hash method builtin from golang
 func (s *Stringo) HashKey() HashKey {
-	h := fnv.New64a()
+	h, err := siphash.New64(_siphash_key[:])
+	if err != nil {
+		panic("siphash init error " + err.Error())
+	}
 	h.Write([]byte(s.Value))
 
 	return HashKey{Type: s.Type(), Value: h.Sum64()}
@@ -637,7 +662,10 @@ func new8ByteBuf() []byte {
 
 // hashList implements hashing for list objects
 func (l *List) hashList() uint64 {
-	h := fnv.New64a()
+	h, err := siphash.New64(_siphash_key[:])
+	if err != nil {
+		panic("siphash init error " + err.Error())
+	}
 	for _, obj := range l.Elements {
 		hashedObj := HashObject(obj)
 		b := new8ByteBuf()
@@ -651,7 +679,10 @@ func (l *List) hashList() uint64 {
 // It is very likely I wont keep it like this because it will probably break things
 // but for now this naive implementation should do
 func HashObject(obj Object) uint64 {
-	h := fnv.New64a()
+	h, err := siphash.New64(_siphash_key[:])
+	if err != nil {
+		panic("siphash init error " + err.Error())
+	}
 	switch obj.Type() {
 	case INTEGER_OBJ:
 		b := new8ByteBuf()

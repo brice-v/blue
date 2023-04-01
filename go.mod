@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	fyne.io/fyne/v2 v2.3.1
+	github.com/aead/siphash v1.0.1
 	github.com/antchfx/htmlquery v1.3.0
 	github.com/chzyer/readline v1.5.1
 	github.com/clbanning/mxj/v2 v2.5.7
