@@ -269,7 +269,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			}
 			defaultParams = append(defaultParams, obj)
 		}
-		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env}
+		// Note: Clone is really slow
+		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env.Clone()}
 	case *ast.FunctionStatement:
 		params := node.Parameters
 		body := node.Body
@@ -360,7 +361,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				return obj
 			}
 		}
-		val := e.tryCreateValidBuiltinForDotCall(left, indx, node.Left)
+		val := e.tryCreateValidDotCall(left, indx, node.Left)
 		if val != nil {
 			return val
 		}

@@ -40,14 +40,39 @@ type Environment struct {
 	outer *Environment
 }
 
+// Clone will do a deep copy of the environment object and return a new environment
+// it will not write to the outer env, but it will read from it
+func (e *Environment) Clone() *Environment {
+	newEnv := NewEnvironment()
+	for k, v := range e.store.kv {
+		newEnv.store.Put(k, v)
+	}
+	for k, v := range e.immutableStore.kv {
+		newEnv.immutableStore.Put(k, v)
+	}
+	if e.outer != nil {
+		for k, v := range e.outer.store.kv {
+			newEnv.store.Put(k, v)
+		}
+		for k, v := range e.outer.immutableStore.kv {
+			newEnv.immutableStore.Put(k, v)
+		}
+	}
+	for _, k := range e.publicFunctionHelpStore.Keys {
+		v, _ := e.publicFunctionHelpStore.Get(k)
+		newEnv.publicFunctionHelpStore.Set(k, v)
+	}
+	return newEnv
+}
+
 // func (e *Environment) String() string {
 // 	var out bytes.Buffer
 // 	out.WriteString("Environment{\n\tstore:\n")
-// 	for s, elem := range e.store {
+// 	for s, elem := range e.store.kv {
 // 		out.WriteString(fmt.Sprintf("\t\t%q -> %s\n", s, elem.Type()))
 // 	}
 // 	out.WriteString("\n\timmuatebleStore:\n")
-// 	for s := range e.immutableStore {
+// 	for s := range e.immutableStore.kv {
 // 		out.WriteString(fmt.Sprintf("\t\t%qs\n", s))
 // 	}
 // 	out.WriteString("}")

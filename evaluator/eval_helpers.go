@@ -157,7 +157,7 @@ func (e *Evaluator) getBuiltinForDotCall(key string) (*object.Builtin, bool) {
 	return nil, false
 }
 
-func (e *Evaluator) tryCreateValidBuiltinForDotCall(left, indx object.Object, leftNode ast.Expression) object.Object {
+func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast.Expression) object.Object {
 	// Try to see if the index being used is a builtin function
 	if indx.Type() != object.STRING_OBJ {
 		return nil

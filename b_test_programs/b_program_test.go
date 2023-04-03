@@ -8,6 +8,7 @@ import (
 	"blue/repl"
 	"bytes"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,57 +22,69 @@ func TestAllProgramsInDirectory(t *testing.T) {
 	}
 
 	for _, f := range files {
-		if !strings.HasSuffix(f.Name(), ".b") {
-			continue
-		}
-		// Note: Comment out this defered func to see what the panic trace is
-		defer func() {
-			// recover from panic if one occured. Set err to nil otherwise.
-			err := recover()
-			if err != nil {
-				t.Fatalf("PANIC in FILE `%s`: Error: %+v", f.Name(), err)
-			}
-		}()
-		fpath, err := filepath.Abs(f.Name())
-		if err != nil {
-			t.Fatal(err)
-		}
-		openFile, err := os.Open(fpath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer openFile.Close()
+		executeBlueTestFile(f, t)
+		// TODO: See if we can make our own execution environment for blue
+		// that way the gos (global object store) can just be instantiated
+		// for new test runs (in parallel)
+		// ff := f
+		// t.Run(ff.Name(), func(t *testing.T) {
+		// 	t.Parallel()
+		// 	executeBlueTestFile(ff, t)
+		// })
+	}
+}
 
-		data, err := io.ReadAll(openFile)
+func executeBlueTestFile(f fs.DirEntry, t *testing.T) {
+	if !strings.HasSuffix(f.Name(), ".b") {
+		return
+	}
+	// Note: Comment out this defered func to see what the panic trace is
+	defer func() {
+		// recover from panic if one occured. Set err to nil otherwise.
+		err := recover()
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("PANIC in FILE `%s`: Error: %+v", f.Name(), err)
 		}
-		l := lexer.New(string(data), fpath)
+	}()
+	fpath, err := filepath.Abs(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	openFile, err := os.Open(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer openFile.Close()
 
-		p := parser.New(l)
-		program := p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			repl.PrintParserErrors(os.Stderr, p.Errors())
-			t.Fatalf("File `%s`: failed to parse", f.Name())
-		}
-		e := evaluator.New()
-		obj := e.Eval(program)
-		if obj == nil {
-			t.Fatalf("File `%s`: evaluator returned nil", f.Name())
-		}
-		if obj.Type() == object.ERROR_OBJ {
-			errorObj := obj.(*object.Error)
-			var buf bytes.Buffer
-			buf.WriteString(errorObj.Message)
+	data, err := io.ReadAll(openFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := lexer.New(string(data), fpath)
+
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		repl.PrintParserErrors(os.Stderr, p.Errors())
+		t.Fatalf("File `%s`: failed to parse", f.Name())
+	}
+	e := evaluator.New()
+	obj := e.Eval(program)
+	if obj == nil {
+		t.Fatalf("File `%s`: evaluator returned nil", f.Name())
+	}
+	if obj.Type() == object.ERROR_OBJ {
+		errorObj := obj.(*object.Error)
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		for e.ErrorTokens.Len() > 0 {
+			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
-			for e.ErrorTokens.Len() > 0 {
-				buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
-				buf.WriteByte('\n')
-			}
-			t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), buf.String())
 		}
-		if obj.Inspect() != "true" {
-			t.Fatalf("File `%s`: Did not return true as last statement. Failed", f.Name())
-		}
+		t.Fatalf("File `%s`: evaluator returned error: %s", f.Name(), buf.String())
+	}
+	if obj.Inspect() != "true" {
+		t.Fatalf("File `%s`: Did not return true as last statement. Failed", f.Name())
 	}
 }
