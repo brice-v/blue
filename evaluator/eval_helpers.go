@@ -192,8 +192,30 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		// prepend the argument to pass in to the front
 		args = append([]object.Object{*argElem}, args...)
 	}
+	checkFunctionArgsAreValid := func(fun *object.Function) object.Object {
+		defaultParamCount := 0
+		for _, v := range fun.DefaultParameters {
+			if v != nil {
+				defaultParamCount++
+			}
+		}
+		defaultArgCount := 0
+		for _, v := range defaultArgs {
+			if v != nil {
+				defaultArgCount++
+			}
+		}
+		if len(args)+defaultParamCount+defaultArgCount < len(fun.Parameters) {
+			return newError("function called without enough arguments")
+		}
+		return nil
+	}
 	switch function := fun.(type) {
 	case *object.Function:
+		err := checkFunctionArgsAreValid(function)
+		if err != nil {
+			return err
+		}
 		newE := New()
 		// Always use our current evaluator PID for the function
 		// this allows the self() function to return properly inside evaluated
