@@ -1,10 +1,29 @@
 package consts
 
-import "github.com/gookit/color"
+import (
+	"runtime/debug"
+
+	"github.com/gookit/color"
+)
 
 // VERSION is the version number of the blang repl and language
 // it will be incremented as seen fit
-const VERSION = "0.1.9"
+var VERSION = func() string {
+	version := "0.1.9"
+	hash := ""
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				// This is the short hash
+				hash = setting.Value[:7]
+			}
+		}
+	}
+	if hash == "" {
+		return version
+	}
+	return version + "-" + hash
+}()
 
 const PARSER_ERROR_PREFIX = "ParserError: "
 const PROCESS_ERROR_PREFIX = "ProcessError: "
