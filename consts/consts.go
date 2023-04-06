@@ -11,18 +11,26 @@ import (
 var VERSION = func() string {
 	version := "0.1.9"
 	hash := ""
+	os := ""
+	arch := ""
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
 			if setting.Key == "vcs.revision" {
 				// This is the short hash
 				hash = setting.Value[:7]
 			}
+			if setting.Key == "GOOS" {
+				os = setting.Value
+			}
+			if setting.Key == "GOARCH" {
+				arch = setting.Value
+			}
 		}
 	}
 	if hash == "" {
 		return version
 	}
-	return version + "-" + hash
+	return version + "-" + hash + "-" + os + "/" + arch
 }()
 
 const PARSER_ERROR_PREFIX = "ParserError: "
