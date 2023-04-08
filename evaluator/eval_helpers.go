@@ -172,9 +172,13 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	}
 	// Allow either a string object or identifier to be passed to the builtin
 	_, ok1 := left.(*object.Stringo)
-	_, ok2 := leftNode.(*ast.Identifier)
+	ident, ok2 := leftNode.(*ast.Identifier)
 	if !ok1 && !ok2 {
 		return nil
+	}
+	// If its immutable and the indx.Inspect() endswith ! (meaning it would mutate) then we will return an error
+	if ok2 && e.env.IsImmutable(ident.Value) && strings.HasSuffix(indx.Inspect(), "!") {
+		return newError("'%s' is immutable", ident.Value)
 	}
 	e.UFCSArg.Push(&left)
 	// Return the builtin function object so that it can be used in the call

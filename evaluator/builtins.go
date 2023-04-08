@@ -196,7 +196,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "prepend([1,2,3], 4) => [4,1,2,3]",
 		}.String(),
 	},
-	"push": {
+	"push!": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) < 2 {
 				return newInvalidArgCountError("push", len(args), 2, " or more")
@@ -210,13 +210,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Integer{Value: int64(len(l.Elements))}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`push` puts the given args at the end of the LIST and mutates it. The value returned is the length after pushing",
-			signature:   "push(arg0: list[any], args...: any) -> int",
+			explanation: "`push!` puts the given args at the end of the LIST and mutates it. The value returned is the length after pushing",
+			signature:   "push!(arg0: list[any], args...: any) -> int",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "push([1,2,3], 1) => 4",
+			example:     "push!([1,2,3], 1) => 4",
 		}.String(),
 	},
-	"pop": {
+	"pop!": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("pop", len(args), 1, "")
@@ -233,13 +233,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return elem
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`pop` returns the last element of the LIST and mutates it",
-			signature:   "pop(arg0: list[any]) -> any",
+			explanation: "`pop!` returns the last element of the LIST and mutates it",
+			signature:   "pop!(arg0: list[any]) -> any",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "pop([1,2,3]) => 3",
+			example:     "pop!([1,2,3]) => 3",
 		}.String(),
 	},
-	"unshift": {
+	"unshift!": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) < 2 {
 				return newInvalidArgCountError("unshift", len(args), 2, " or more")
@@ -258,13 +258,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Integer{Value: int64(len(l.Elements))}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`unshift` prepends the LIST with the given arguments and mutates it. The new length is returned",
-			signature:   "unshift(arg0: list[any], args...: any) -> int",
+			explanation: "`unshift!` prepends the LIST with the given arguments and mutates it. The new length is returned",
+			signature:   "unshift!(arg0: list[any], args...: any) -> int",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "unshift([1,2,3], 1) => 4",
+			example:     "unshift!([1,2,3], 1) => 4",
 		}.String(),
 	},
-	"shift": {
+	"shift!": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("shift", len(args), 1, "")
@@ -285,10 +285,10 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return elem
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`shift` returns the first element of the LIST and mutates it",
-			signature:   "shift(arg0: list[any]) -> any",
+			explanation: "`shift!` returns the first element of the LIST and mutates it",
+			signature:   "shift!(arg0: list[any]) -> any",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "shift([1,2,3]) => 1",
+			example:     "shift!([1,2,3]) => 1",
 		}.String(),
 	},
 	"concat": {

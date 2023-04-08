@@ -180,7 +180,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 			return right
 		}
-		obj := e.evalPrefixExpression(node.Operator, right)
+		obj := e.evalPrefixExpression(node.Operator, right, node.Right)
 		if isError(obj) {
 			e.ErrorTokens.Push(node.Token)
 		}
@@ -203,6 +203,30 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		if isError(right) {
 			e.ErrorTokens.Push(node.Token)
 			return right
+		}
+		if node.Operator == ">>" || node.Operator == "<<" {
+			operator := node.Operator
+			switch {
+			// Special cases for shift operators
+			case left.Type() == object.LIST_OBJ && operator == "<<":
+				if ident, ok := node.Left.(*ast.Identifier); ok {
+					if e.env.IsImmutable(ident.Value) {
+						return newError("'%s' is immutable", ident.Value)
+					}
+				}
+				l := left.(*object.List)
+				l.Elements = append(l.Elements, right)
+				return NULL
+			case right.Type() == object.LIST_OBJ && operator == ">>":
+				if ident, ok := node.Right.(*ast.Identifier); ok {
+					if e.env.IsImmutable(ident.Value) {
+						return newError("'%s' is immutable", ident.Value)
+					}
+				}
+				l := right.(*object.List)
+				l.Elements = append([]object.Object{left}, l.Elements...)
+				return NULL
+			}
 		}
 		obj := e.evalInfixExpression(node.Operator, left, right)
 		if isError(obj) {
@@ -1373,11 +1397,10 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 
 	// If the left side contains an index expression where the identifier is immutable
 	// then return an error saying so
-	_, ok := node.Left.(*ast.IndexExpression)
-	if ok {
+	if ie, ok := node.Left.(*ast.IndexExpression); ok {
 		// Check the left most item in the index expression to see if it contains
 		// an identifier that is immutable
-		removeLeftParens := strings.ReplaceAll(node.Left.String(), "(", "")
+		removeLeftParens := strings.ReplaceAll(ie.Left.String(), "(", "")
 		var rootObjIdent string
 		if strings.Contains("[", removeLeftParens) {
 			rootObjIdent = strings.Split(removeLeftParens, "[")[0]
@@ -1385,7 +1408,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			rootObjIdent = strings.Split(removeLeftParens, ".")[0]
 		}
 		if ok := e.env.IsImmutable(rootObjIdent); ok {
-			return newError("'" + rootObjIdent + "' is immutable")
+			return newError("'%s' is immutable", rootObjIdent)
 		}
 	}
 
@@ -1397,7 +1420,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 	// If its a simple identifier allow reassigning like so
 	if ident, ok := node.Left.(*ast.Identifier); ok {
 		if e.env.IsImmutable(ident.Value) {
-			return newError("'" + ident.Value + "' is immutable")
+			return newError("'%s' is immutable", ident.Value)
 		}
 		switch node.Token.Literal {
 		case "=":
@@ -1839,6 +1862,34 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			} else {
 				return newError("cannot index map with %T", key)
 			}
+		} else if str, ok := leftObj.(*object.Stringo); ok && value.Type() == object.STRING_OBJ {
+			index := e.Eval(ie.Index)
+			if isError(index) {
+				return index
+			}
+			s := str.Value
+			c := value.(*object.Stringo).Value
+			if runeLen(c) != 1 {
+				return newError("string index assignment value must be 1 character long. got=%d", runeLen(c))
+			}
+			if idx, ok := index.(*object.Integer); ok {
+				switch node.Token.Literal {
+				case "=":
+					sb := strings.Builder{}
+					for i, ch := range s {
+						if i == int(idx.Value) {
+							sb.WriteString(c)
+						} else {
+							sb.WriteRune(ch)
+						}
+					}
+					str.Value = sb.String()
+				default:
+					return newError("unknown assignment operator: STRING INDEX %s", node.Token.Literal)
+				}
+			} else {
+				return newError("cannot index string with %#v", index)
+			}
 		} else {
 			return newError("object type %T does not support item assignment", leftObj)
 		}
@@ -2248,15 +2299,6 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 
 func (e *Evaluator) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	switch {
-	// Special cases for shift operators
-	case left.Type() == object.LIST_OBJ && operator == "<<":
-		l := left.(*object.List)
-		l.Elements = append(l.Elements, right)
-		return NULL
-	case right.Type() == object.LIST_OBJ && operator == ">>":
-		l := right.(*object.List)
-		l.Elements = append([]object.Object{left}, l.Elements...)
-		return NULL
 	// These are the cases where they are the same type
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalIntegerInfixExpression(operator, left, right)
@@ -3198,7 +3240,7 @@ func (e *Evaluator) evalListIntegerInfixExpression(operator string, left, right 
 	}
 }
 
-func (e *Evaluator) evalPrefixExpression(operator string, right object.Object) object.Object {
+func (e *Evaluator) evalPrefixExpression(operator string, right object.Object, rightNode ast.Expression) object.Object {
 	switch operator {
 	case "not":
 		return e.evalNotOperatorExpression(right)
@@ -3207,6 +3249,12 @@ func (e *Evaluator) evalPrefixExpression(operator string, right object.Object) o
 	case "~":
 		return e.evalBitwiseNotOperatorExpression(right)
 	case "<<":
+		// Because this mutates the list we will check here for immutability
+		if ident, ok := rightNode.(*ast.Identifier); ok {
+			if e.env.IsImmutable(ident.Value) {
+				return newError("'%s' is immutable", ident.Value)
+			}
+		}
 		return e.evalLshiftPrefixOperatorExpression(right)
 	default:
 		return newError("unknown operator: %s%s", operator, right.Type())

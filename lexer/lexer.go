@@ -232,7 +232,7 @@ func (l *Lexer) readIdentifier() string {
 	position := l.position
 	// Note: We can only do this because we check if the first char is a 'letter'
 	// That includes underscores which is why 1 of the lexer tests changes to accomodate that
-	for isLetter(l.ch) || unicode.IsNumber(l.ch) {
+	for isLetter(l.ch) || unicode.IsNumber(l.ch) || l.ch == '?' || l.ch == '!' {
 		l.readChar()
 	}
 	return string(l.inputAsRunes[position:l.position])

@@ -34,10 +34,8 @@ func (l *Lexer) makeThreeCharToken(typ token.Type) token.Token {
 
 // isLetter will return true if the rune given matches the pattern below
 // 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
-// TOOD: Update isLetter to include more valid identifier chars such as ! and numbers
 func isLetter(ch rune) bool {
-	return unicode.IsLetter(rune(ch)) || ch == '_' || ch == '?'
-	// return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch == '?'
+	return unicode.IsLetter(rune(ch)) || ch == '_'
 }
 
 // isImportChar will return true if the rune given is allowed as part of an import path

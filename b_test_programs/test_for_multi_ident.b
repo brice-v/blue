@@ -33,7 +33,7 @@ for ([a, b] in xxx) {
 }
 
 println("Here!");
-println("xyz = #{xyz}, zzz = #{zzz}, (xyz!=zzz)=#{xyz!=zzz}");
+println("xyz = #{xyz}, zzz = #{zzz}, (xyz != zzz)=#{xyz != zzz}");
 if (xyz != zzz) {
     return false;
 }
