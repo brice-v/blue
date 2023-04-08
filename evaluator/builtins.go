@@ -148,6 +148,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "len([1,2,3]) => 3",
 		}.String(),
 	},
+	// TODO: Support more than 1 arg
 	"append": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
@@ -171,23 +172,142 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "append([1,2,3], 1) => [1,2,3,4]",
 		}.String(),
 	},
-	"push": {
+	// TODO: Support more than 1 arg
+	"prepend": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newInvalidArgCountError("push", len(args), 2, "")
+				return newInvalidArgCountError("prepend", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("prepend", 1, object.LIST_OBJ, args[0].Type())
+			}
+			l := args[0].(*object.List)
+			newElements := append([]object.Object{args[1]}, l.Elements...)
+			return &object.List{Elements: newElements}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`prepend` returns the LIST of elements with given arg OBJECT at the front",
+			signature:   "prepend(arg0: list, arg1: any) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "prepend([1,2,3], 4) => [4,1,2,3]",
+		}.String(),
+	},
+	"push": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) < 2 {
+				return newInvalidArgCountError("push", len(args), 2, " or more")
 			}
 			if args[0].Type() != object.LIST_OBJ {
 				return newPositionalTypeError("push", 1, object.LIST_OBJ, args[0].Type())
 			}
-			l := args[0].(*object.List).Elements
-			l = append([]object.Object{args[1]}, l...)
-			return &object.List{Elements: l}
+			l := args[0].(*object.List)
+			args = args[1:]
+			l.Elements = append(l.Elements, args...)
+			return &object.Integer{Value: int64(len(l.Elements))}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`push` returns the LIST of elements with given arg OBJECT at the front",
-			signature:   "push(arg0: list[any], arg1: any) -> list[any]",
+			explanation: "`push` puts the given args at the end of the LIST and mutates it. The value returned is the length after pushing",
+			signature:   "push(arg0: list[any], args...: any) -> int",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "push([1,2,3], 1) => [1,1,2,3]",
+			example:     "push([1,2,3], 1) => 4",
+		}.String(),
+	},
+	"pop": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("pop", len(args), 1, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("pop", 1, object.LIST_OBJ, args[0].Type())
+			}
+			l := args[0].(*object.List)
+			if len(l.Elements) == 0 {
+				return NULL
+			}
+			elem := l.Elements[len(l.Elements)-1]
+			l.Elements = l.Elements[:len(l.Elements)-1]
+			return elem
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`pop` returns the last element of the LIST and mutates it",
+			signature:   "pop(arg0: list[any]) -> any",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "pop([1,2,3]) => 3",
+		}.String(),
+	},
+	"unshift": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) < 2 {
+				return newInvalidArgCountError("unshift", len(args), 2, " or more")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("unshift", 1, object.LIST_OBJ, args[0].Type())
+			}
+			l := args[0].(*object.List)
+			args = args[1:]
+			length := len(args)
+			elems := make([]object.Object, length+len(l.Elements))
+			copy(elems, args)
+			for i, e := range l.Elements {
+				elems[length+i] = e
+			}
+			l.Elements = elems
+			return &object.Integer{Value: int64(len(l.Elements))}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`unshift` prepends the LIST with the given arguments and mutates it. The new length is returned",
+			signature:   "unshift(arg0: list[any], args...: any) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "unshift([1,2,3], 1) => 4",
+		}.String(),
+	},
+	"shift": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("shift", len(args), 1, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("shift", 1, object.LIST_OBJ, args[0].Type())
+			}
+			l := args[0].(*object.List)
+			if len(l.Elements) == 0 {
+				return NULL
+			}
+			elem := l.Elements[0]
+			if len(l.Elements) == 1 {
+				l.Elements = []object.Object{}
+			} else {
+				l.Elements = l.Elements[1:]
+			}
+			return elem
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`shift` returns the first element of the LIST and mutates it",
+			signature:   "shift(arg0: list[any]) -> any",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "shift([1,2,3]) => 1",
+		}.String(),
+	},
+	"concat": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) < 2 {
+				return newInvalidArgCountError("concat", len(args), 2, " or more")
+			}
+			allElems := []object.Object{}
+			for i, e := range args {
+				if e.Type() != object.LIST_OBJ {
+					return newPositionalTypeError("concat", i+1, object.LIST_OBJ, e.Type())
+				}
+				l := e.(*object.List)
+				allElems = append(allElems, l.Elements...)
+			}
+			return &object.List{Elements: allElems}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`concat` merges 2 or more LISTs together and returns the result",
+			signature:   "concat(arg0: list[any], args...: list[any]) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "concat([1,2,3], [1]) => [1,2,3,1]",
 		}.String(),
 	},
 	"println": {
@@ -1396,6 +1516,9 @@ func medianBucket(h *metrics.Float64Histogram) float64 {
 }
 
 func getBasicObject(arg object.Object) (string, uint64, bool) {
+	if arg == nil {
+		return "", 0, false
+	}
 	if arg.Type() != object.MAP_OBJ {
 		return "", 0, false
 	}

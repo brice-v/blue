@@ -1404,9 +1404,9 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 
 	var program string
 	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { var __result__ = %s; __internal__ = append(__internal__, __result__); } };", expCond, ifCond, valueToBind.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { var __result__ = %s; __internal__ << __result__; } };", expCond, ifCond, valueToBind.String())
 	} else {
-		program = fmt.Sprintf("var __internal__ = []; for %s { var __result__ = %s; __internal__ = append(__internal__, __result__); };", expCond, valueToBind.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { var __result__ = %s; __internal__ << __result__; };", expCond, valueToBind.String())
 	}
 	if !p.expectPeekIs(token.RBRACKET) {
 		return nil
@@ -1477,9 +1477,9 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 
 	var program string
 	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { __internal__ = append(__internal__, %s) } }; __internal__ = set(__internal__);", expCond, ifCond, value.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { __internal__ << %s } }; __internal__ = set(__internal__);", expCond, ifCond, value.String())
 	} else {
-		program = fmt.Sprintf("var __internal__ = []; for %s { __internal__ = append(__internal__, %s) }; __internal__ = set(__internal__);", expCond, value.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { __internal__ << %s }; __internal__ = set(__internal__);", expCond, value.String())
 	}
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil
