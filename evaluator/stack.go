@@ -29,6 +29,15 @@ func (s *Stack[T]) Pop() T {
 	return e.Value.(T)
 }
 
+func (s *Stack[T]) Peek() T {
+	var result T
+	if s.s.Len() == 0 {
+		return result
+	}
+	e := s.s.Front()
+	return e.Value.(T)
+}
+
 func (s *Stack[T]) PopBack() T {
 	var result T
 	if s.s.Len() == 0 {

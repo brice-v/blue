@@ -56,8 +56,10 @@ type Evaluator struct {
 	// CurrentFile is the file being executed (or <stdin> if run from the REPL)
 	CurrentFile string
 
-	// UFCSArg is the argument to be given to the builtin function
+	// UFCSArg is the argument to be given to the function
 	UFCSArg *Stack[*object.Object]
+	// UFCSArgIsImmutable determines whether the arg passed in to function is immutable
+	UFCSArgIsImmutable *Stack[bool]
 
 	// Builtins is the list of builtin elements to look through based on the files imported
 	Builtins *list.List
@@ -95,7 +97,8 @@ func New() *Evaluator {
 		EvalBasePath: ".",
 		CurrentFile:  "<stdin>",
 
-		UFCSArg: NewStack[*object.Object](),
+		UFCSArg:            NewStack[*object.Object](),
+		UFCSArgIsImmutable: NewStack[bool](),
 
 		Builtins: list.New(),
 
@@ -311,17 +314,27 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			}
 			defaultParams = append(defaultParams, obj)
 		}
+		// TODO: Should Clone here too?
 		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env}
 		funObj.HelpStr = createHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
 		e.env.Set(node.Name.Value, funObj)
 	case *ast.CallExpression:
 		e.UFCSArg.Push(nil)
+		e.UFCSArgIsImmutable.Push(false)
 		function := e.Eval(node.Function)
 		if isError(function) {
 			e.ErrorTokens.Push(node.Token)
 			return function
 		}
 		args := e.evalExpressions(node.Arguments)
+		immutableArgs := make([]bool, len(node.Arguments))
+		for i, arg := range node.Arguments {
+			if ident, ok := arg.(*ast.Identifier); ok {
+				immutableArgs[i] = e.env.IsImmutable(ident.Value)
+			} else {
+				immutableArgs[i] = false
+			}
+		}
 		defaultArgs := make(map[string]object.Object)
 		for k, v := range node.DefaultArguments {
 			val := e.Eval(v)
@@ -335,7 +348,12 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 			return args[0]
 		}
-		val := e.applyFunction(function, args, defaultArgs)
+		argElem := e.UFCSArg.Peek()
+		if argElem != nil {
+			isImmutable := e.UFCSArgIsImmutable.Peek()
+			immutableArgs = append([]bool{isImmutable}, immutableArgs...)
+		}
+		val := e.applyFunction(function, args, defaultArgs, immutableArgs)
 		if isError(val) {
 			e.ErrorTokens.Push(node.Token)
 		}
@@ -781,7 +799,8 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
 	newE := New()
 	newE.PID = pid
-	newObj := newE.applyFunction(fun, arg1.(*object.List).Elements, make(map[string]object.Object))
+	elems := arg1.(*object.List).Elements
+	newObj := newE.applyFunction(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
 	if isError(newObj) {
 		err := newObj.(*object.Error)
 		var buf bytes.Buffer

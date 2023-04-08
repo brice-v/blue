@@ -326,6 +326,8 @@ type BuiltinFunction func(args ...Object) Object
 type Builtin struct {
 	Fun     BuiltinFunction
 	HelpStr string
+
+	Mutates bool // Mutates signifies whether this function can mutate its arguments
 }
 
 // Type returns the BUILTIN_OBJ type string

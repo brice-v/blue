@@ -176,9 +176,14 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	if !ok1 && !ok2 {
 		return nil
 	}
-	// If its immutable and the indx.Inspect() endswith ! (meaning it would mutate) then we will return an error
-	if ok2 && e.env.IsImmutable(ident.Value) && strings.HasSuffix(indx.Inspect(), "!") {
-		return newError("'%s' is immutable", ident.Value)
+	// If its immutable and the function can mutate than return an error
+	if ok2 && e.env.IsImmutable(ident.Value) {
+		if isBuiltin && builtin.Mutates {
+			return newError("'%s' is immutable", ident.Value)
+		}
+		e.UFCSArgIsImmutable.Push(true)
+	} else {
+		e.UFCSArgIsImmutable.Push(false)
 	}
 	e.UFCSArg.Push(&left)
 	// Return the builtin function object so that it can be used in the call
@@ -190,8 +195,10 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	}
 }
 
-func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defaultArgs map[string]object.Object) object.Object {
+func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) object.Object {
 	argElem := e.UFCSArg.Pop()
+	// Note: This is just to keep the UFCS stack size consistent for both
+	_ = e.UFCSArgIsImmutable.Pop()
 	if argElem != nil {
 		// prepend the argument to pass in to the front
 		args = append([]object.Object{*argElem}, args...)
@@ -225,7 +232,7 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		// this allows the self() function to return properly inside evaluated
 		// functions because spawnExpression will set the PID initially
 		newE.PID = e.PID
-		newE.env = extendFunctionEnv(function, args, defaultArgs)
+		newE.env = extendFunctionEnv(function, args, defaultArgs, immutableArgs)
 		evaluated := newE.Eval(function.Body)
 		for newE.ErrorTokens.Len() != 0 {
 			e.ErrorTokens.s.PushBack(newE.ErrorTokens.Pop())
@@ -238,7 +245,7 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 	}
 }
 
-func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object) *object.Environment {
+func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) *object.Environment {
 	env := object.NewEnclosedEnvironment(fun.Env)
 
 	// If the arguments slice is the same length as the parameter list, then we have them all
@@ -246,6 +253,9 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 	if len(args) == len(fun.Parameters) {
 		for paramIndx, param := range fun.Parameters {
 			env.Set(param.Value, args[paramIndx])
+			if immutableArgs[paramIndx] {
+				env.ImmutableSet(param.Value)
+			}
 		}
 		setDefaultCallExpressionParameters(defaultArgs, env)
 	} else if len(args) < len(fun.Parameters) {
@@ -261,6 +271,9 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			if fun.DefaultParameters[paramIndx] == nil {
 				if argsIndx < len(args) {
 					env.Set(param.Value, args[argsIndx])
+					if immutableArgs[argsIndx] {
+						env.ImmutableSet(param.Value)
+					}
 					argsIndx++
 					continue
 				}
@@ -275,6 +288,9 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					// that value will be used
 					if argsIndx < len(args) {
 						env.Set(param.Value, args[argsIndx])
+						if immutableArgs[argsIndx] {
+							env.ImmutableSet(param.Value)
+						}
 						argsIndx++
 						continue
 					}
@@ -733,6 +749,7 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 						// TODO: Otherwise check that it is null?
 					}
 					fnArgs := make([]object.Object, len(fn.Parameters))
+					immutableArgs := make([]bool, len(fnArgs))
 					for i, v := range fn.Parameters {
 						if v != nil && v.Value == "headers" {
 							// Handle headers
@@ -745,8 +762,9 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 						} else {
 							fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 						}
+						immutableArgs[i] = true
 					}
-					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object))
+					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs)
 					if respObj.Type() != object.STRING_OBJ {
 						errors := getErrorTokenTraceAsJson(e).([]string)
 						errors = append(errors, "STRING NOT RETURNED FROM FUNCTION")
@@ -810,12 +828,14 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 						// TODO: Otherwise check that it is null?
 					}
 					fnArgs := make([]object.Object, len(fn.Parameters))
+					immutableArgs := make([]bool, len(fnArgs))
 					for i, v := range fn.Parameters {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+						immutableArgs[i] = true
 					}
 					// TODO: Allow different things to be returned
 					// TODO: Need to figure this out, it should be allowed to return anything Im pretty sure
-					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object))
+					respObj := e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs)
 					if respObj.Type() == object.STRING_OBJ {
 						return c.SendString(respObj.(*object.Stringo).Value)
 					}
@@ -893,14 +913,16 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 					// TODO: Otherwise check that it is null?
 				}
 				fnArgs := make([]object.Object, len(fn.Parameters))
+				immutableArgs := make([]bool, len(fnArgs))
 				for i, v := range fn.Parameters {
 					if i == 0 {
 						fnArgs[i] = object.CreateBasicMapObject("ws", connCount)
 					} else {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 					}
+					immutableArgs[i] = true
 				}
-				returnObj = e.applyFunction(fn, fnArgs, make(map[string]object.Object))
+				returnObj = e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs)
 				if isError(returnObj) {
 					var buf bytes.Buffer
 					buf.WriteString(returnObj.(*object.Error).Message)
@@ -942,7 +964,7 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 			fn := args[1].(*object.Function)
 			buttonId := uiCanvasObjectCount.Add(1)
 			button := widget.NewButton(s, func() {
-				obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object))
+				obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
 				if isError(obj) {
 					err := obj.(*object.Error)
 					var buf bytes.Buffer
@@ -979,7 +1001,7 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 				return newError("`checkbox` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 			}
 			checkBox := widget.NewCheck(lbl, func(value bool) {
-				obj := e.applyFunction(fn, []object.Object{&object.Boolean{Value: value}}, make(map[string]object.Object))
+				obj := e.applyFunction(fn, []object.Object{&object.Boolean{Value: value}}, make(map[string]object.Object), []bool{true})
 				if isError(obj) {
 					err := obj.(*object.Error)
 					var buf bytes.Buffer
@@ -1024,7 +1046,7 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 				return newError("`radio_group` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 			}
 			radio := widget.NewRadioGroup(options, func(value string) {
-				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object))
+				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
 				if isError(obj) {
 					err := obj.(*object.Error)
 					var buf bytes.Buffer
@@ -1069,7 +1091,7 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 				return newError("`option_select` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 			}
 			option := widget.NewSelect(options, func(value string) {
-				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object))
+				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
 				if isError(obj) {
 					err := obj.(*object.Error)
 					var buf bytes.Buffer
@@ -1132,7 +1154,7 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 			form := &widget.Form{
 				Items: formItems,
 				OnSubmit: func() {
-					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object))
+					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
 					if isError(obj) {
 						err := obj.(*object.Error)
 						var buf bytes.Buffer

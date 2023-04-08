@@ -1,7 +1,7 @@
 val x = [1,2,3];
 
 try {
-    x.push!(4);
+    x.push(4);
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
@@ -10,7 +10,7 @@ try {
 }
 
 try {
-    x.pop!();
+    x.pop();
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
@@ -19,7 +19,7 @@ try {
 }
 
 try {
-    x.shift!();
+    x.shift();
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
@@ -28,7 +28,7 @@ try {
 }
 
 try {
-    x.unshift!(4);
+    x.unshift(4);
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
@@ -77,3 +77,35 @@ try {
     assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
     assert(e == "EvaluatorError: 'x' is immutable");
 }
+
+
+val abc = [1,2,3,4];
+fun thing(something) {
+    something.push("Hello World")
+}
+
+try {
+    abc.thing();
+    assert(false, "UNREACHABLE");
+} catch (e) {
+    println(e);
+    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
+    assert(e == "EvaluatorError: 'something' is immutable");
+}
+
+try {
+    thing(abc);
+    assert(false, "UNREACHABLE");
+} catch (e) {
+    println(e);
+    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
+    assert(e == "EvaluatorError: 'something' is immutable");
+}
+
+var xyz = [1,2,3,4];
+
+assert(xyz.thing() == 5);
+assert(xyz == [1,2,3,4,"Hello World"]);
+
+assert(thing(xyz) == 6);
+assert(xyz == [1,2,3,4,'Hello World', "Hello World"]);
