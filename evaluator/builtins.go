@@ -148,46 +148,50 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "len([1,2,3]) => 3",
 		}.String(),
 	},
-	// TODO: Support more than 1 arg
 	"append": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("append", len(args), 2, "")
+			if len(args) < 2 {
+				return newInvalidArgCountError("append", len(args), 2, " or more")
 			}
 			if args[0].Type() != object.LIST_OBJ {
 				return newPositionalTypeError("append", 1, object.LIST_OBJ, args[0].Type())
 			}
 			l := args[0].(*object.List)
 			length := len(l.Elements)
-			// NOTE: This is an efficient way of appending but probably could just append onto the list
-			newElements := make([]object.Object, length+1)
+			args = args[1:]
+			argsLength := len(args)
+			newElements := make([]object.Object, length+argsLength)
 			copy(newElements, l.Elements)
-			newElements[length] = args[1]
+			copy(newElements[length:length+argsLength], args)
 			return &object.List{Elements: newElements}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`append` returns the LIST of elements with given arg OBJECT at the end",
-			signature:   "append(arg0: list, arg1: any) -> list[any]",
+			signature:   "append(arg0: list, args...: any) -> list[any]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "append([1,2,3], 1) => [1,2,3,4]",
 		}.String(),
 	},
-	// TODO: Support more than 1 arg
 	"prepend": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
+			if len(args) < 2 {
 				return newInvalidArgCountError("prepend", len(args), 2, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
 				return newPositionalTypeError("prepend", 1, object.LIST_OBJ, args[0].Type())
 			}
 			l := args[0].(*object.List)
-			newElements := append([]object.Object{args[1]}, l.Elements...)
+			length := len(l.Elements)
+			args = args[1:]
+			argsLength := len(args)
+			newElements := make([]object.Object, length+argsLength)
+			copy(newElements, args)
+			copy(newElements[argsLength:argsLength+length], l.Elements)
 			return &object.List{Elements: newElements}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`prepend` returns the LIST of elements with given arg OBJECT at the front",
-			signature:   "prepend(arg0: list, arg1: any) -> list[any]",
+			signature:   "prepend(arg0: list, args...: any) -> list[any]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "prepend([1,2,3], 4) => [4,1,2,3]",
 		}.String(),
@@ -244,13 +248,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("unshift", 1, object.LIST_OBJ, args[0].Type())
 			}
 			l := args[0].(*object.List)
+			length := len(l.Elements)
 			args = args[1:]
-			length := len(args)
-			elems := make([]object.Object, length+len(l.Elements))
+			argsLength := len(args)
+			elems := make([]object.Object, argsLength+length)
 			copy(elems, args)
-			for i, e := range l.Elements {
-				elems[length+i] = e
-			}
+			copy(elems[argsLength:argsLength+length], l.Elements)
 			l.Elements = elems
 			return &object.Integer{Value: int64(len(l.Elements))}
 		},

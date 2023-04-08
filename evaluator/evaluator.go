@@ -2442,6 +2442,10 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 		}
 		return FALSE
 	case operator == "or":
+		if left == NULL {
+			// Null coalescing operator returns right side if left is null
+			return right
+		}
 		leftBool, ok := left.(*object.Boolean)
 		if !ok {
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
