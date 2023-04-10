@@ -1512,7 +1512,7 @@ func TestForExpression(t *testing.T) {
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("program.Statements does not contain %d statements. gpt=%d", 1, len(program.Statements))
+		t.Fatalf("program.Statements does not contain %d statements. got=%d", 1, len(program.Statements))
 	}
 
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
@@ -1542,4 +1542,48 @@ func TestForExpression(t *testing.T) {
 		return
 	}
 
+}
+
+func TestBrokenParsingOfFile(t *testing.T) {
+	input := `import time
+	import psutil
+	
+	fun handle_ws_realtime_cpus(ws) {
+		var sub = pubsub.subscribe('/realtime/cpus');
+		println("ws = #{ws}, sub = #{sub}")
+		for (true) {
+			val topic_msg = sub.recv();
+			match topic_msg {
+				{topic: '/realtime/cpus', msg: _} => {
+					ws.send(topic_msg.msg);
+				},
+				_ => {
+					println("exiting /realtime/cpus");
+					sub.unsubscribe();
+					return NULL;
+				},
+			}
+		}
+	}
+	
+	fun cpus() {
+		val usage = psutil.cpu.percent();
+		println("/cpus called: usage = #{usage}")
+		usage.to_json()
+	}
+	
+	fun realtime_cpus(ws) {
+		println("/realtime/cpus called: ws=#{ws}");
+		val y = spawn(handle_ws_realtime_cpus, [ws]);
+		println(y);
+	}`
+
+	l := lexer.New(input, "<internal: test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 5 {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d", 5, len(program.Statements))
+	}
 }

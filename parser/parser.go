@@ -1284,10 +1284,6 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 			break
 		}
 	}
-
-	// Skip over the } on the way out of parsing the
-	p.nextToken()
-
 	return me
 }
 

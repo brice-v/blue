@@ -1,5 +1,3 @@
-# TODO/Note: When we match, we HAVE to return otherwise a method will get overridden
-
 val Type = {
     BOOL: 'BOOLEAN',
     INT: 'INTEGER',
@@ -13,11 +11,12 @@ val Type = {
     LIST: 'LIST',
     FUN: 'FUNCTION',
     BUILTIN: 'BUILTIN',
+    MODULE: 'MODULE_OBJ',
 };
 
 fun send(obj, value) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: "pid", v: _} => {
             _send(obj.v, value)
         },
@@ -32,12 +31,12 @@ fun send(obj, value) {
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
-    };
+    }
 }
 
 fun recv(obj) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: "pid", v: _} => {
             _recv(obj.v)
         },
@@ -55,12 +54,12 @@ fun recv(obj) {
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
-    };
+    }
 }
 
 fun read(obj, as_bytes=false) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: _, v: _} => {
             if ("net" in obj.t) {
                 import net
@@ -70,12 +69,12 @@ fun read(obj, as_bytes=false) {
         _ => {
             _read(obj, as_bytes)
         },
-    };
+    }
 }
 
 fun write(obj, value) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: _, v: _} => {
             if ("net" in obj.t) {
                 import net
@@ -85,7 +84,7 @@ fun write(obj, value) {
         _ => {
             _write(obj, value)
         },
-    };
+    }
 }
 
 fun map(list, f) {
@@ -129,7 +128,7 @@ fun reduce(list, f, acc=null) {
 fun find_all(str_to_search, query, method="regex") {
     ##core:ignore
     import search
-    return match method {
+    match method {
         "regex" => {
             search.by_regex(str_to_search, query, false)
         },
@@ -139,13 +138,13 @@ fun find_all(str_to_search, query, method="regex") {
         _ => {
             error("`find_all` unsupported method '#{method}'")
         },
-    };
+    }
 }
 
 fun find_one(str_to_search, query, method="regex") {
     ##core:ignore
     import search
-    return match method {
+    match method {
         "regex" => {
             search.by_regex(str_to_search, query, true)
         },
@@ -155,7 +154,7 @@ fun find_one(str_to_search, query, method="regex") {
         _ => {
             error("`find_one` unsupported method '#{method}'")
         },
-    };
+    }
 }
 
 fun from_json(json_str) {
@@ -172,7 +171,7 @@ fun from_json(json_str) {
 
 fun ping(obj) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: "db", v: _} => {
             import db
             db.db_ping(obj.v)
@@ -180,12 +179,12 @@ fun ping(obj) {
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
-    };
+    }
 }
 
 fun close(obj) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: "db", v: _} => {
             import db
             db.db_close(obj.v)
@@ -199,12 +198,12 @@ fun close(obj) {
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
-    };
+    }
 }
 
 fun execute(db_obj, exec_query, exec_args=[]) {
     ##core:ignore
-    return match db_obj {
+    match db_obj {
         {t: "db", v: _} => {
             import db
             db.db_exec(db_obj.v, exec_query, exec_args)
@@ -212,12 +211,12 @@ fun execute(db_obj, exec_query, exec_args=[]) {
         _ => {
             error("db_obj `#{db_obj}` is invalid type")
         },
-    };
+    }
 }
 
 fun query(db_obj, query_s, query_args=[], named_cols=false) {
     ##core:ignore
-    return match db_obj {
+    match db_obj {
         {t: "db", v: _} => {
             import db
             db.db_query(db_obj.v, query_s, query_args, named_cols)
@@ -225,12 +224,12 @@ fun query(db_obj, query_s, query_args=[], named_cols=false) {
         _ => {
             error("db_obj `#{db_obj}` is invalid type")
         },
-    };
+    }
 }
 
 fun accept(obj) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: "net/tcp", v: _} => {
             import net
             net.net_accept(obj.v)
@@ -238,12 +237,12 @@ fun accept(obj) {
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
-    };
+    }
 }
 
 fun get_text(obj) {
     ##core:ignore
-    return match obj {
+    match obj {
         {t: "ui/entry", v: _} => {
             import ui
             ui.entry_get_text(obj.v)
@@ -251,7 +250,7 @@ fun get_text(obj) {
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
         },
-    };
+    }
 }
 
 fun substr(s, start=0, end=-1) {
