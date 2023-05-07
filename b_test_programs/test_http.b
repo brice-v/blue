@@ -26,4 +26,44 @@ if (get_resp != expected_post_data) {
     return false;
 }
 
+### Cant test with this URL (patch not supported)
+val expected_patch_data = '{"Hello":5555}';
+val patch_resp = http.patch(URL, expected_patch_data);
+println("patch_resp = #{patch_resp}");
+if (patch_resp != '{}') {
+    return false;
+}
+
+val get_resp1 = http.get(URL);
+println("get_resp1 = #{get_resp1}");
+if (get_resp1 != expected_patch_data) {
+    return false;
+}
+###
+
+val expected_put_data = '{"abc":123456}';
+val put_resp = http.put(URL, expected_put_data);
+println("put_resp = #{put_resp}");
+if (put_resp != '{}') {
+    return false;
+}
+
+val get_resp1 = http.get(URL);
+println("get_resp1 = #{get_resp1}");
+if (get_resp1 != expected_put_data) {
+    return false;
+}
+
+val delete_resp = http.delete(URL);
+println("delete_resp = #{delete_resp}");
+if (delete_resp != '{}') {
+    return false
+}
+
+val get_resp2 = http.get(URL);
+println("get_resp2 = #{get_resp2}");
+if (get_resp2 != '{"message":"Not Found"}') {
+    return false;
+}
+
 true;

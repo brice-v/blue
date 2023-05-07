@@ -108,6 +108,53 @@ fun post(url, post_body, mime_type="application/json") {
     fetch(url, options)
 }
 
+fun put(url, put_body, mime_type="application/json")  {
+    ## `put` will send a PUT request to the given url with the body as a string
+    ## put_body should be a string in the format of the mime_type.
+    ##
+    ## put(url: str, put_body: str, mime_type: str="application/json")
+    if (mime_type.to_lower().startswith('content-type')) {
+        return error("`put` error: mime_type should not start with 'content-type'");
+    }
+    val options = {
+        method: 'PUT',
+        body: put_body,
+        headers: {
+            'content-type': mime_type
+        }
+    };
+    fetch(url, options)
+}
+
+fun patch(url, patch_body, mime_type="application/json")  {
+    ## `patch` will send a PATCH request to the given url with the body as a string
+    ## patch_body should be a string in the format of the mime_type.
+    ##
+    ## patch(url: str, patch_body: str, mime_type: str="application/json")
+    if (mime_type.to_lower().startswith('content-type')) {
+        return error("`patch` error: mime_type should not start with 'content-type'");
+    }
+    val options = {
+        method: 'PATCH',
+        body: patch_body,
+        headers: {
+            'content-type': mime_type
+        }
+    };
+    fetch(url, options)
+}
+
+fun delete(url) {
+    ## `delete` will send a DELETE request to the given url
+    ##
+    ## delete(url: str)
+    val options = {
+        method: 'DELETE',
+        headers: {},
+    };
+    fetch(url, options)
+}
+
 fun serve(addr_port="localhost:3001") {
     ## `serve` will start up the _server in http on the given
     ## address and port.
