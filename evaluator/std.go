@@ -152,26 +152,32 @@ var c = make(chan os.Signal, 1)
 
 // Note: Look at how we import the get function in http.b
 var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	// Default headers seem to be host, user-agent, accept-encoding (not case sensitive for these check pictures)
+	// deno also used accept: */* (not sure what that is)
 	"_fetch": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 4 {
-				return newError("`fetch` expects 4 arguments. got=%d", len(args))
+			if len(args) != 5 {
+				return newInvalidArgCountError("fetch", len(args), 5, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `fetch` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("fetch", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `fetch` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("fetch", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.MAP_OBJ {
-				return newError("argument 3 to `fetch` should be MAP. got=%s", args[2].Type())
+				return newPositionalTypeError("fetch", 3, object.MAP_OBJ, args[2].Type())
 			}
 			if args[3].Type() != object.NULL_OBJ && args[3].Type() != object.STRING_OBJ {
-				return newError("argument 4 to `fetch` should be NULL or STRING. got=%s", args[3].Type())
+				return newPositionalTypeError("fetch", 4, "NULL or STRING", args[3].Type())
+			}
+			if args[4].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("fetch", 5, object.BOOLEAN_OBJ, args[4].Type())
 			}
 			resource := args[0].(*object.Stringo).Value
 			method := args[1].(*object.Stringo).Value
 			headersMap := args[2].(*object.Map).Pairs
+			isFullResp := args[4].(*object.Boolean).Value
 			var body io.Reader
 			if args[3].Type() == object.NULL_OBJ {
 				body = nil
@@ -195,6 +201,9 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			resp, err := http.DefaultClient.Do(request)
 			if err != nil {
 				return newError("`fetch` error: %s", err.Error())
+			}
+			if isFullResp {
+				return getBlueObjectFromResp(resp)
 			}
 			defer resp.Body.Close()
 			respBody, err := io.ReadAll(resp.Body)

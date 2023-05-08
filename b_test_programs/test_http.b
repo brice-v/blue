@@ -20,11 +20,23 @@ if (post_resp != '{}') {
     return false;
 }
 
+fun() {
+    var { status, body } = http.post(URL, expected_post_data, full_resp=true);
+    assert(status == 200);
+    assert(body == '{}');
+}()
+
 val get_resp = http.get(URL);
 println("get_resp = #{get_resp}");
 if (get_resp != expected_post_data) {
     return false;
 }
+
+fun() {
+    var { status, body } = http.get(URL, full_resp=true);
+    assert(status == 200);
+    assert(body == expected_post_data);
+}()
 
 ### Cant test with this URL (patch not supported)
 val expected_patch_data = '{"Hello":5555}';
@@ -48,15 +60,28 @@ if (put_resp != '{}') {
     return false;
 }
 
+fun() {
+    var { status, body } = http.put(URL, expected_put_data, full_resp=true);
+    assert(status == 200);
+    assert(body == '{}');
+}()
+
 val get_resp1 = http.get(URL);
 println("get_resp1 = #{get_resp1}");
 if (get_resp1 != expected_put_data) {
     return false;
 }
 
-val delete_resp = http.delete(URL);
-println("delete_resp = #{delete_resp}");
-if (delete_resp != '{}') {
+fun() {
+    var { status, body } = http.get(URL, full_resp=true);
+    assert(status == 200);
+    assert(body == expected_put_data);
+}()
+
+val delete_resp = http.delete(URL, full_resp=true);
+println("delete_resp = #{delete_resp.body}");
+assert(delete_resp.status == 200);
+if (delete_resp.body != '{}') {
     return false
 }
 

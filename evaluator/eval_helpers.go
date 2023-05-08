@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -268,6 +269,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			}
 		}
 		for paramIndx, param := range fun.Parameters {
+			_, defaultArgGiven := defaultArgs[param.Value]
 			if fun.DefaultParameters[paramIndx] == nil {
 				if argsIndx < len(args) {
 					env.Set(param.Value, args[argsIndx])
@@ -277,13 +279,18 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					argsIndx++
 					continue
 				}
+			} else if countDefaultParams+len(args) == len(fun.Parameters) && !defaultArgGiven {
+				// If the Count of the defaultParams+args given equals the length of the fun.Parameters
+				// then we want to pass in the arg where the fun.DefaultParameter is nil for that indx
+				env.Set(param.Value, fun.DefaultParameters[paramIndx])
+				continue
 			} else {
 				// If there is a default param for every arg then we add in
 				// regular args as they are given
 				// defaultArgs also needs to be non-empty and the number of default params
 				// should be greater than the number of args passed in (if we are going
 				// to populate it)
-				if _, ok := defaultArgs[param.Value]; !ok && countDefaultParams > len(args) {
+				if !defaultArgGiven && countDefaultParams >= len(args) {
 					// It needs to be not present as a default arg - otherwise
 					// that value will be used
 					if argsIndx < len(args) {
@@ -642,6 +649,79 @@ func blueObjectToGoObject(blueObject object.Object) interface{} {
 		os.Exit(1)
 	}
 	return nil
+}
+
+func getBlueObjectFromResp(resp *http.Response) object.Object {
+	_body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+	body := &object.Stringo{Value: string(_body)}
+	contentLength := &object.Integer{Value: resp.ContentLength}
+	headersToMapObj := func(header http.Header) object.Object {
+		mapObj := object.NewOrderedMap[string, object.Object]()
+		for k, v := range header {
+			list := &object.List{Elements: make([]object.Object, len(v))}
+			for i, e := range v {
+				list.Elements[i] = &object.Stringo{Value: e}
+			}
+			mapObj.Set(k, list)
+		}
+		return object.CreateMapObjectForGoMap(*mapObj)
+	}
+	headers := headersToMapObj(resp.Header)
+	proto := &object.Stringo{Value: resp.Proto}
+	requestToMapObj := func(req *http.Request) object.Object {
+		mapObj := object.NewOrderedMap[string, object.Object]()
+		mapObj.Set("method", &object.Stringo{Value: req.Method})
+		mapObj.Set("proto", &object.Stringo{Value: req.Proto})
+		mapObj.Set("url", &object.Stringo{Value: req.URL.String()})
+		return object.CreateMapObjectForGoMap(*mapObj)
+	}
+	request := requestToMapObj(resp.Request)
+	rawStatus := &object.Stringo{Value: resp.Status}
+	status := &object.Integer{Value: int64(resp.StatusCode)}
+
+	trailer := headersToMapObj(resp.Trailer)
+	transferEncoding := &object.List{Elements: make([]object.Object, len(resp.TransferEncoding))}
+	for i, v := range resp.TransferEncoding {
+		transferEncoding.Elements[i] = &object.Stringo{Value: v}
+	}
+	uncompressed := &object.Boolean{Value: resp.Uncompressed}
+	_cookies := resp.Cookies()
+	cookieToMapObj := func(c *http.Cookie) object.Object {
+		mapObj := object.NewOrderedMap[string, object.Object]()
+		mapObj.Set("name", &object.Stringo{Value: c.Name})
+		mapObj.Set("value", &object.Stringo{Value: c.Value})
+		mapObj.Set("path", &object.Stringo{Value: c.Path})
+		mapObj.Set("domain", &object.Stringo{Value: c.Domain})
+		mapObj.Set("expires", &object.Integer{Value: c.Expires.Unix()})
+		mapObj.Set("http_only", &object.Boolean{Value: c.HttpOnly})
+		mapObj.Set("secure", &object.Boolean{Value: c.Secure})
+		mapObj.Set("samesite", &object.Integer{Value: int64(c.SameSite)})
+		mapObj.Set("raw", &object.Stringo{Value: c.String()})
+		return object.CreateMapObjectForGoMap(*mapObj)
+	}
+	cookies := &object.List{Elements: make([]object.Object, len(_cookies))}
+	for i, c := range _cookies {
+		cookies.Elements[i] = cookieToMapObj(c)
+	}
+
+	returnMap := object.NewOrderedMap[string, object.Object]()
+	returnMap.Set("status", status)
+	returnMap.Set("body", body)
+	returnMap.Set("content_len", contentLength)
+	returnMap.Set("headers", headers)
+	returnMap.Set("proto", proto)
+	returnMap.Set("request", request)
+	returnMap.Set("raw_status", rawStatus)
+	returnMap.Set("trailer", trailer)
+	returnMap.Set("transfer_encoding", transferEncoding)
+	returnMap.Set("uncompressed", uncompressed)
+	returnMap.Set("cookies", cookies)
+
+	return object.CreateMapObjectForGoMap(*returnMap)
 }
 
 // For Builtins

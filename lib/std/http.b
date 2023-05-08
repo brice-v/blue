@@ -29,9 +29,7 @@ val __shutdown_server = _shutdown_server;
 val __md_to_html = _md_to_html;
 val __sanitize_and_minify = _sanitize_and_minify;
 
-# Default headers seem to be host, user-agent, accept-encoding (not case sensitive for these check pictures)
-# deno also used accept: */* (not sure what that is)
-fun fetch(resource, options=null) {
+fun fetch(resource, options=null, full_resp=false) {
     ## `fetch` allows the user to send GET, POST, PUT, DELETE
     ## http methods to a various resource
     ##
@@ -45,7 +43,7 @@ fun fetch(resource, options=null) {
     ## example option to send post request:
     ## {method: 'POST', body: str, headers: {'content-type': mime_type}}
     ##
-    ## fetch(resource: str, options: map[any:str]=null) -> any
+    ## fetch(resource: str, options: map[any:str]=null, full_resp: bool=false) -> any
     if (options == null) {
         options = {
             method: 'GET',
@@ -69,15 +67,15 @@ fun fetch(resource, options=null) {
             }
         }
     }
-    __fetch(resource, options.method, options.headers, options.body)
+    __fetch(resource, options.method, options.headers, options.body, full_resp)
 }
 
-fun get(url) {
+fun get(url, full_resp=false) {
     ## `get` is just a call to `fetch` with the given url
     ## it will return the body returned as a string, or null
     ##
-    ## get(url: str) -> string|null
-    fetch(url)
+    ## get(url: str, full_resp: bool=false) -> str|null
+    fetch(url, full_resp=full_resp)
 }
 
 fun download(url, filename="") {
@@ -90,11 +88,11 @@ fun download(url, filename="") {
     __download(url, filename)
 }
 
-fun post(url, post_body, mime_type="application/json") {
+fun post(url, post_body, mime_type="application/json", full_resp=false) {
     ## `post` will send a POST request to the given url with the body as a string
     ## post_body should be a string in the format of the mime_type.
     ##
-    ## post(url: str, post_body: str, mime_type: str="application/json")
+    ## post(url: str, post_body: str, mime_type: str="application/json", full_resp: bool=false)
     if (mime_type.to_lower().startswith('content-type')) {
         return error("`post` error: mime_type should not start with 'content-type'");
     }
@@ -105,14 +103,14 @@ fun post(url, post_body, mime_type="application/json") {
             'content-type': mime_type
         }
     };
-    fetch(url, options)
+    fetch(url, options, full_resp=full_resp)
 }
 
-fun put(url, put_body, mime_type="application/json")  {
+fun put(url, put_body, mime_type="application/json", full_resp=false)  {
     ## `put` will send a PUT request to the given url with the body as a string
     ## put_body should be a string in the format of the mime_type.
     ##
-    ## put(url: str, put_body: str, mime_type: str="application/json")
+    ## put(url: str, put_body: str, mime_type: str="application/json", full_resp: bool=false)
     if (mime_type.to_lower().startswith('content-type')) {
         return error("`put` error: mime_type should not start with 'content-type'");
     }
@@ -123,14 +121,14 @@ fun put(url, put_body, mime_type="application/json")  {
             'content-type': mime_type
         }
     };
-    fetch(url, options)
+    fetch(url, options, full_resp=full_resp)
 }
 
-fun patch(url, patch_body, mime_type="application/json")  {
+fun patch(url, patch_body, mime_type="application/json", full_resp=false)  {
     ## `patch` will send a PATCH request to the given url with the body as a string
     ## patch_body should be a string in the format of the mime_type.
     ##
-    ## patch(url: str, patch_body: str, mime_type: str="application/json")
+    ## patch(url: str, patch_body: str, mime_type: str="application/json", full_resp: bool=false)
     if (mime_type.to_lower().startswith('content-type')) {
         return error("`patch` error: mime_type should not start with 'content-type'");
     }
@@ -141,18 +139,18 @@ fun patch(url, patch_body, mime_type="application/json")  {
             'content-type': mime_type
         }
     };
-    fetch(url, options)
+    fetch(url, options, full_resp=full_resp)
 }
 
-fun delete(url) {
+fun delete(url, full_resp=false) {
     ## `delete` will send a DELETE request to the given url
     ##
-    ## delete(url: str)
+    ## delete(url: str, full_resp: bool=false)
     val options = {
         method: 'DELETE',
         headers: {},
     };
-    fetch(url, options)
+    fetch(url, options, full_resp=full_resp)
 }
 
 fun serve(addr_port="localhost:3001") {
