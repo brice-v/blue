@@ -1,7 +1,5 @@
-import http
-
 val URL = "https://www.google.com/";
-val resp = http.fetch(URL, full_resp=true)
+val resp = fetch(URL)
 for ([k, v] in resp) {
     if (k == 'body') {
         continue;

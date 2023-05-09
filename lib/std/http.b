@@ -2,8 +2,6 @@
 ## functions. When imported, it stores references to the
 ## http server when it is created
 
-
-val __fetch = _fetch;
 val __download = _download;
 val __serve = _serve;
 val __static = _static;
@@ -28,47 +26,6 @@ val _server = fun() {
 val __shutdown_server = _shutdown_server;
 val __md_to_html = _md_to_html;
 val __sanitize_and_minify = _sanitize_and_minify;
-
-fun fetch(resource, options=null, full_resp=false) {
-    ## `fetch` allows the user to send GET, POST, PUT, DELETE
-    ## http methods to a various resource
-    ##
-    ## there are other specific methods that populate these
-    ## options appropriately. user-agent in header is always
-    ## set to one specific to blue.
-    ##
-    ## example option to send get request:
-    ##                 {method: 'GET', headers: {}, body: null}
-    ##
-    ## example option to send post request:
-    ## {method: 'POST', body: str, headers: {'content-type': mime_type}}
-    ##
-    ## fetch(resource: str, options: map[any:str]=null, full_resp: bool=false) -> any
-    if (options == null) {
-        options = {
-            method: 'GET',
-            headers: {},
-            body: null,
-        };
-    } else {
-        val t = options.type();
-        if (t != 'MAP') {
-            return error("`fetch` error:  options must be MAP. got=#{t}");
-        }
-        if (options.method == null) {
-            options.method = 'GET';
-        }
-        if (options.headers == null) {
-            options.headers = {};
-        } else {
-            val ht = type(options.headers);
-            if (ht != 'MAP') {
-                return error("`fetch` error:  options.headers must be MAP. got=#{ht}");
-            }
-        }
-    }
-    __fetch(resource, options.method, options.headers, options.body, full_resp)
-}
 
 fun get(url, full_resp=false) {
     ## `get` is just a call to `fetch` with the given url
