@@ -7,7 +7,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/gookit/goutil/badge.svg?branch=master)](https://coveralls.io/github/gookit/goutil?branch=master)
 [![Go Reference](https://pkg.go.dev/badge/github.com/gookit/goutil.svg)](https://pkg.go.dev/github.com/gookit/goutil)
 
-`goutil` Go 常用功能的扩展工具库。包含：数字，byte, 字符串，slice/数组，Map，结构体，反射，文本，文件，错误，时间日期，测试，特殊处理，格式化，常用信息获取等等。
+`goutil` Go 常用功能的扩展工具库(**600+**)。包含：数字，byte, 字符串，slice/数组，Map，结构体，反射，文本，文件，错误，时间日期，测试，特殊处理，格式化，常用信息获取等等。
 
 > **[EN README](README.md)**
 
@@ -27,7 +27,6 @@
 - [`structs`](./structs) 为 struct 提供一些扩展 util 函数。 eg: tag parse, struct data
 - [`strutil`](./strutil) string 相关操作的函数工具包. eg: bytes, check, convert, encode, format and more
 - [`sysutil`](./sysutil) system 相关操作的函数工具包. eg: sysenv, exec, user, process
-  - [process](./sysutil/process) 提供一些进程操作相关的实用功能。
 
 **扩展工具包**
 
@@ -41,6 +40,7 @@
 - sysutil:
   - [clipboard](sysutil/clipboard) 提供简单的剪贴板读写操作工具库
   - [cmdr](sysutil/cmdr) 提供快速构建和运行一个cmd，批量运行多个cmd任务
+  - [process](./sysutil/process) 提供一些进程操作相关的实用功能。
 - [`testutil`](testutil) test help 相关操作的函数工具包. eg: http test, mock ENV value
   - [assert](testutil/assert) 用于帮助测试的断言函数工具包
 - [`timex`](timex) 提供增强的 time.Time 实现。添加更多常用的功能方法
@@ -94,7 +94,8 @@ func StringsMap(ss []string, mapFn func(s string) string) []string
 func TrimStrings(ss []string, cutSet ...string) []string 
 func GetRandomOne[T any](arr []T) T 
 func RandomOne[T any](arr []T) T 
-func Unique[T ~string | comdef.XintOrFloat](arr []T) []T 
+func Unique[T ~string | comdef.XintOrFloat](list []T) []T 
+func IndexOf[T ~string | comdef.XintOrFloat](val T, list []T) int 
 // source at arrutil/check.go
 func IntsHas(ints []int, val int) bool 
 func Int64sHas(ints []int64, val int64) bool 
@@ -170,6 +171,27 @@ ss, err := arrutil.ToStrings([]int{1, 2}) // ss: []string{"1", "2"}
 ```
 
 
+### Basefn
+
+> Package `github.com/gookit/goutil/basefn`
+
+```go
+// source at basefn/basefunc.go
+func Panicf(format string, v ...any) 
+func MustOK(err error) 
+func Must[T any](v T, err error) T 
+func ErrOnFail(cond bool, err error) error 
+func OrError(cond bool, err error) error 
+func FirstOr[T any](sl []T, elseVal T) T 
+func OrValue[T any](cond bool, okVal, elVal T) T 
+func OrReturn[T any](cond bool, okFn, elseFn func() T) T 
+func CallOn(cond bool, fn ErrFunc) error 
+func CallOrElse(cond bool, okFn, elseFn ErrFunc) error 
+// source at basefn/extfunc.go
+func DataSize(size uint64) string 
+func HowLongAgo(sec int64) string 
+```
+
 ### Bytes Utils
 
 > Package `github.com/gookit/goutil/byteutil`
@@ -181,6 +203,8 @@ func NewBuffer() *Buffer
 func FirstLine(bs []byte) []byte 
 func StrOrErr(bs []byte, err error) (string, error) 
 func SafeString(bs []byte, err error) string 
+func String(b []byte) string 
+func ToString(b []byte) string 
 // source at byteutil/bytex.go
 func Md5(src any) []byte 
 // source at byteutil/check.go
@@ -448,6 +472,7 @@ func GetInt(name string, def ...int) int
 func GetBool(name string, def ...bool) bool 
 func GetMulti(names ...string) map[string]string 
 func EnvPaths() []string 
+func EnvMap() map[string]string 
 func Environ() map[string]string 
 func SearchEnvKeys(keywords string) map[string]string 
 func SearchEnv(keywords string, matchValue bool) map[string]string 
@@ -620,6 +645,8 @@ runtime.goexit()
 > Package `github.com/gookit/goutil/fmtutil`
 
 ```go
+// source at fmtutil/fmtutil.go
+func StringOrJSON(v any) ([]byte, error) 
 // source at fmtutil/format.go
 func DataSize(size uint64) string 
 func SizeToString(size uint64) string 
@@ -645,6 +672,19 @@ func IsFile(path string) bool
 func IsAbsPath(aPath string) bool 
 func IsImageFile(path string) bool 
 func IsZipFile(filepath string) bool 
+func PathMatch(pattern, s string) bool 
+// source at fsutil/find.go
+func SearchNameUp(dirPath, name string) string 
+func SearchNameUpx(dirPath, name string) (string, bool) 
+func WalkDir(dir string, fn fs.WalkDirFunc) error 
+func GlobWithFunc(pattern string, fn func(filePath string) error) (err error) 
+func OnlyFindDir(_ string, ent fs.DirEntry) bool 
+func OnlyFindFile(_ string, ent fs.DirEntry) bool 
+func IncludeSuffix(ss ...string) FilterFunc 
+func ExcludeDotFile(_ string, ent fs.DirEntry) bool 
+func ExcludeSuffix(ss ...string) FilterFunc 
+func ApplyFilters(fPath string, ent fs.DirEntry, filters []FilterFunc) bool 
+func FindInDir(dir string, handleFn HandleFunc, filters ...FilterFunc) (e error) 
 // source at fsutil/fsutil.go
 func OSTempFile(pattern string) (*os.File, error) 
 func TempFile(dir, pattern string) (*os.File, error) 
@@ -653,6 +693,10 @@ func TempDir(dir, pattern string) (string, error)
 func MimeType(path string) (mime string) 
 func ReaderMimeType(r io.Reader) (mime string) 
 func JoinPaths(elem ...string) string 
+func JoinSubPaths(basePath string, elem ...string) string 
+func SlashPath(path string) string 
+func UnixPath(path string) string 
+func ToAbsPath(p string) string 
 // source at fsutil/info.go
 func Dir(fpath string) string 
 func PathName(fpath string) string 
@@ -662,9 +706,8 @@ func Extname(fpath string) string
 func Suffix(fpath string) string 
 func Expand(pathStr string) string 
 func ExpandPath(pathStr string) string 
+func ResolvePath(pathStr string) string 
 func SplitPath(pathStr string) (dir, name string) 
-func GlobWithFunc(pattern string, fn func(filePath string) error) (err error) 
-func FindInDir(dir string, handleFn HandleFunc, filters ...FilterFunc) (e error) 
 // source at fsutil/info_nonwin.go
 func Realpath(pathStr string) string 
 // source at fsutil/operate.go
@@ -674,6 +717,8 @@ func MkSubDirs(perm os.FileMode, parentDir string, subDirs ...string) error
 func MkParentDir(fpath string) error 
 func OpenFile(filepath string, flag int, perm os.FileMode) (*os.File, error) 
 func QuickOpenFile(filepath string, fileFlag ...int) (*os.File, error) 
+func OpenAppendFile(filepath string) (*os.File, error) 
+func OpenTruncFile(filepath string) (*os.File, error) 
 func OpenReadFile(filepath string) (*os.File, error) 
 func CreateFile(fpath string, filePerm, dirPerm os.FileMode, fileFlag ...int) (*os.File, error) 
 func MustCreateFile(filePath string, filePerm, dirPerm os.FileMode) *os.File 
@@ -750,6 +795,7 @@ func main() {
 ```go
 // source at jsonutil/jsonutil.go
 func WriteFile(filePath string, data any) error 
+func WritePretty(filePath string, data any) error 
 func ReadFile(filePath string, v any) error 
 func Pretty(v any) (string, error) 
 func Encode(v any) ([]byte, error) 
@@ -775,6 +821,7 @@ func HasAllKeys(mp any, keys ...any) (ok bool, noKey any)
 func KeyToLower(src map[string]string) map[string]string 
 func ToStringMap(src map[string]any) map[string]string 
 func CombineToSMap(keys, values []string) SMap 
+func ToAnyMap(mp any) map[string]any 
 func HTTPQueryString(data map[string]any) string 
 func ToString(mp map[string]any) string 
 func ToString2(mp any) string 
@@ -789,6 +836,7 @@ func QuietGet(mp map[string]any, path string) (val any)
 func GetByPath(path string, mp map[string]any) (val any, ok bool) 
 func Keys(mp any) (keys []string) 
 func Values(mp any) (values []any) 
+func EachAnyMap(mp any, fn func(key string, val any)) 
 // source at maputil/maputil.go
 func SimpleMerge(src, dst map[string]any) map[string]any 
 func DeepMerge(src, dst map[string]any, deep int) map[string]any 
@@ -824,6 +872,7 @@ func MustUint(in any) uint64
 func UintOrErr(in any) (uint64, error) 
 func ToUint(in any) (u64 uint64, err error) 
 func Int64(in any) (int64, error) 
+func SafeInt64(in any) int64 
 func QuietInt64(in any) int64 
 func MustInt64(in any) int64 
 func Int64OrErr(in any) (int64, error) 
@@ -842,7 +891,9 @@ func QuietString(val any) string
 func String(val any) string 
 func TryToString(val any, defaultAsErr bool) (str string, err error) 
 // source at mathutil/mathutil.go
+func Min[T comdef.XintOrFloat](x, y T) T 
 func Max[T comdef.XintOrFloat](x, y T) T 
+func SwapMin[T comdef.XintOrFloat](x, y T) (T, T) 
 func SwapMax[T comdef.XintOrFloat](x, y T) (T, T) 
 func MaxInt(x, y int) int 
 func SwapMaxInt(x, y int) (int, int) 
@@ -894,6 +945,8 @@ func Indirect(v reflect.Value) reflect.Value
 func Len(v reflect.Value) int 
 func SliceSubKind(typ reflect.Type) reflect.Kind 
 func SetValue(rv reflect.Value, val any) error 
+func EachMap(mp reflect.Value, fn func(key, val reflect.Value)) 
+func EachStrAnyMap(mp reflect.Value, fn func(key string, val any)) 
 func FlatMap(rv reflect.Value, fn FlatFunc) 
 // source at reflects/value.go
 func Wrap(rv reflect.Value) Value 
@@ -916,6 +969,11 @@ func ReadString(r io.Reader) string
 func MustReadReader(r io.Reader) []byte 
 func NewIOReader(in any) io.Reader 
 func NewScanner(in any) *bufio.Scanner 
+func WriteByte(b byte) 
+func WriteBytes(bs []byte) 
+func WritelnBytes(bs []byte) 
+func WriteString(s string) 
+func Writeln(s string) 
 // source at stdio/writer.go
 func NewWriteWrapper(w io.Writer) *WriteWrapper 
 ```
@@ -1026,6 +1084,7 @@ func HasPrefix(s string, prefix string) bool
 func IsStartOf(s, prefix string) bool 
 func HasSuffix(s string, suffix string) bool 
 func IsEndOf(s, suffix string) bool 
+func HasOneSuffix(s string, suffixes []string) bool 
 func IsValidUtf8(s string) bool 
 func IsSpace(c byte) bool 
 func IsEmpty(s string) bool 
@@ -1039,7 +1098,9 @@ func IsVersion(s string) bool
 func Compare(s1, s2, op string) bool 
 func VersionCompare(v1, v2, op string) bool 
 func QuickMatch(pattern, s string) bool 
+func PathMatch(pattern, s string) bool 
 func GlobMatch(pattern, s string) bool 
+func MatchNodePath(pattern, s string, sep string) bool 
 // source at strutil/convert.go
 func Quote(s string) string 
 func Unquote(s string) string 
@@ -1169,6 +1230,7 @@ func RuneWidth(r rune) int
 func TextWidth(s string) int 
 func Utf8Width(s string) int 
 func RunesWidth(rs []rune) (w int) 
+func Truncate(s string, w int, tail string) string 
 func TextTruncate(s string, w int, tail string) string 
 func Utf8Truncate(s string, w int, tail string) string 
 func TextSplit(s string, w int) []string 
@@ -1193,10 +1255,11 @@ func SplitInlineComment(val string, strict ...bool) (string, string)
 func FirstLine(output string) string 
 // source at strutil/strutil.go
 func OrCond(cond bool, s1, s2 string) string 
-func OrElse(s, newVal string) string 
+func OrElse(s, orVal string) string 
 func OrHandle(s string, fn func(s string) string) string 
 func Valid(ss ...string) string 
 func Replaces(str string, pairs map[string]string) string 
+func NewReplacer(pairs map[string]string) *strings.Replacer 
 func PrettyJSON(v any) (string, error) 
 func RenderTemplate(input string, data any, fns template.FuncMap, isFile ...bool) string 
 func RenderText(input string, data any, fns template.FuncMap, isFile ...bool) string 
@@ -1232,6 +1295,7 @@ func Executable(binName string) (string, error)
 func HasExecutable(binName string) bool 
 func Getenv(name string, def ...string) string 
 func Environ() map[string]string 
+func EnvMapWith(newEnv map[string]string) map[string]string 
 func EnvPaths() []string 
 func SearchPath(keywords string, limit int) []string 
 // source at sysutil/sysgo.go
@@ -1245,16 +1309,16 @@ func BinFile() string
 func Open(fileOrUrl string) error 
 func OpenBrowser(fileOrUrl string) error 
 func OpenFile(path string) error 
-// source at sysutil/sysutil_darwin.go
+// source at sysutil/sysutil_nonwin.go
+func Kill(pid int, signal syscall.Signal) error 
+func ProcessExists(pid int) bool 
+// source at sysutil/sysutil_unix.go
 func IsWin() bool 
 func IsWindows() bool 
 func IsMac() bool 
 func IsDarwin() bool 
 func IsLinux() bool 
 func OpenURL(URL string) error 
-// source at sysutil/sysutil_nonwin.go
-func Kill(pid int, signal syscall.Signal) error 
-func ProcessExists(pid int) bool 
 // source at sysutil/user.go
 func MustFindUser(uname string) *user.User 
 func LoginUser() *user.User 
@@ -1266,6 +1330,7 @@ func UserDir(subPath string) string
 func UserCacheDir(subPath string) string 
 func UserConfigDir(subPath string) string 
 func ExpandPath(path string) string 
+func ExpandHome(path string) string 
 // source at sysutil/user_nonwin.go
 func ChangeUserByName(newUname string) (err error) 
 func ChangeUserUidGid(newUid int, newGid int) (err error) 

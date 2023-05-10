@@ -315,7 +315,7 @@ fun go_metrics(flat=false) {
 val __fetch = _fetch;
 fun fetch(resource, options=null, full_resp=true) {
     ##core:ignore
-    ## `fetch` allows the user to send GET, POST, PUT, DELETE
+    ## `fetch` allows the user to send GET, POST, PUT, PATCH, and DELETE
     ## http methods to a various resource
     ##
     ## there are other specific methods that populate these
@@ -369,3 +369,8 @@ val pubsub = {
     get_subscriber_count: _get_subscriber_count,
 };
 
+###
+val wasm = {
+    init: _wasm_init,
+};
+###

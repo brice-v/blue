@@ -21,17 +21,30 @@ func KeyToLower(src map[string]string) map[string]string {
 
 // ToStringMap convert map[string]any to map[string]string
 func ToStringMap(src map[string]any) map[string]string {
-	newMp := make(map[string]string, len(src))
+	strMp := make(map[string]string, len(src))
 	for k, v := range src {
-		newMp[k] = strutil.MustString(v)
+		strMp[k] = strutil.SafeString(v)
 	}
-
-	return newMp
+	return strMp
 }
 
 // CombineToSMap combine two string-slice to SMap(map[string]string)
 func CombineToSMap(keys, values []string) SMap {
 	return arrutil.CombineToSMap(keys, values)
+}
+
+// ToAnyMap convert map[TYPE1]TYPE2 to map[string]any
+func ToAnyMap(mp any) map[string]any {
+	rv := reflect.Indirect(reflect.ValueOf(mp))
+	if rv.Kind() != reflect.Map {
+		panic("not a map value")
+	}
+
+	anyMp := make(map[string]any, rv.Len())
+	for _, key := range rv.MapKeys() {
+		anyMp[key.String()] = rv.MapIndex(key).Interface()
+	}
+	return anyMp
 }
 
 // HTTPQueryString convert map[string]any data to http query string.

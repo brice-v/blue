@@ -236,15 +236,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				fmt.Println("Interupt... Shutting down http server")
 				_ = app.Shutdown()
 			}()
-			go func() {
-				// This is a workaround to get the colors back to normal because
-				// gofiber does not call it after printing the debug routes
-				// Technically we can modify the vendored file but then go mod
-				// vendor/tidy will change it
-				time.Sleep(3 * time.Second)
-				r := fiber.DefaultColors
-				fmt.Fprintf(os.Stdout, "%s", r.Reset)
-			}()
 			// nil here means use the default server mux (ie. things that were http.HandleFunc's)
 			err := app.Listen(addrPort)
 			if err != nil {

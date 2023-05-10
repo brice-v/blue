@@ -170,8 +170,15 @@ NSMenuItem *find_menu_item(NSMenu *ourMenu, NSNumber *menuId) {
   return NULL;
 };
 
-- (void) add_separator:(NSNumber*) menuId
+- (void) add_separator:(NSNumber*) parentMenuId
 {
+  if (parentMenuId.integerValue != 0) {
+    NSMenuItem* menuItem = find_menu_item(menu, parentMenuId);
+    if (menuItem != NULL) {
+      [menuItem.submenu addItem: [NSMenuItem separatorItem]];
+      return;
+    }
+  }
   [menu addItem: [NSMenuItem separatorItem]];
 }
 
@@ -314,9 +321,9 @@ void add_or_update_menu_item(int menuId, int parentMenuId, char* title, char* to
   runInMainThread(@selector(add_or_update_menu_item:), (id)item);
 }
 
-void add_separator(int menuId) {
-  NSNumber *mId = [NSNumber numberWithInt:menuId];
-  runInMainThread(@selector(add_separator:), (id)mId);
+void add_separator(int menuId, int parentId) {
+  NSNumber *pId = [NSNumber numberWithInt:parentId];
+  runInMainThread(@selector(add_separator:), (id)pId);
 }
 
 void hide_menu_item(int menuId) {
