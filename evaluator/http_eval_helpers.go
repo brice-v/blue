@@ -1,0 +1,328 @@
+package evaluator
+
+import (
+	"blue/consts"
+	"blue/lexer"
+	"blue/object"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"log"
+	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
+	"golang.org/x/net/html"
+)
+
+func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("handle", len(args), 4, "")
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newPositionalTypeError("handle", 1, object.UINTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("handle", 2, object.STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.FUNCTION_OBJ {
+				return newPositionalTypeError("handle", 3, object.FUNCTION_OBJ, args[2].Type())
+			}
+			if args[3].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("handle", 4, object.STRING_OBJ, args[3].Type())
+			}
+			serverId := args[0].(*object.UInteger).Value
+			app, ok := ServerMap.Get(serverId)
+			if !ok {
+				return newError("`handle` could not find Server Object")
+			}
+			method := strings.ToUpper(args[3].(*object.Stringo).Value)
+			pattern := args[1].(*object.Stringo).Value
+			fn := args[2].(*object.Function)
+			switch method {
+			case "GET":
+				app.Get(pattern, func(c *fiber.Ctx) error {
+					return processHandlerFn(e, fn, c, method)
+				})
+			case "POST":
+				app.Post(pattern, func(c *fiber.Ctx) error {
+					return processHandlerFn(e, fn, c, method)
+				})
+			case "PATCH":
+				app.Patch(pattern, func(c *fiber.Ctx) error {
+					return processHandlerFn(e, fn, c, method)
+				})
+			case "PUT":
+				app.Put(pattern, func(c *fiber.Ctx) error {
+					return processHandlerFn(e, fn, c, method)
+				})
+			case "DELETE":
+				app.Delete(pattern, func(c *fiber.Ctx) error {
+					return processHandlerFn(e, fn, c, method)
+				})
+			}
+			return NULL
+		},
+	}
+}
+
+func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method string) error {
+	ok, respObj, errors := prepareAndApplyHttpHandleFn(e, fn, c, method)
+	if !ok {
+		return c.Status(fiber.StatusInternalServerError).JSON(errors)
+	}
+	// TODO: First check if the respObj is a MAP and if its a valid http handler response action
+	if method != "GET" {
+		if respObj.Type() == object.STRING_OBJ {
+			return c.SendString(respObj.(*object.Stringo).Value)
+		}
+		if respObj.Type() == object.NULL_OBJ {
+			return c.SendStatus(fiber.StatusOK)
+		} else {
+			errors := getErrorTokenTraceAsJson(e).([]string)
+			errors = append(errors, fmt.Sprintf("%s Response Type is not NULL or STRING. got=%s", method, respObj.Type()))
+			return c.Status(fiber.StatusInternalServerError).JSON(errors)
+		}
+	} else {
+		if respObj.Type() != object.STRING_OBJ {
+			errors := getErrorTokenTraceAsJson(e).([]string)
+			errors = append(errors, "STRING NOT RETURNED FROM FUNCTION")
+			return c.Status(fiber.StatusInternalServerError).JSON(errors)
+		}
+		respStr := respObj.(*object.Stringo).Value
+		if json.Valid([]byte(respStr)) {
+			c.Set("Content-Type", "application/json")
+			return c.Send([]byte(respStr))
+		}
+		// If this is a <html></html> snippet being returned then we will manually set
+		// the content type so that other things could be included in the <head>
+		if strings.HasPrefix(strings.TrimLeft(respStr, "\n\r \t"), "<html") {
+			if strings.HasSuffix(strings.TrimRight(respStr, "\n\r \t"), "</html>") {
+				_, err := html.Parse(strings.NewReader(respStr))
+				if err == nil {
+					// This will allow things like <head> to be properly populated
+					c.Set("Content-Type", "text/html")
+					return c.Send([]byte(respStr))
+				}
+			}
+		}
+		return c.Format(respStr)
+	}
+}
+
+func prepareAndApplyHttpHandleFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method string) (bool, object.Object, []string) {
+	isGet := method == "GET"
+	methodLower := strings.ToLower(method)
+	if !isGet {
+		ok, errors := getAndSetDefaultHttpParams(e, methodLower+"_values", fn, c)
+		if !ok {
+			return false, nil, errors
+		}
+	}
+	ok, errors := getAndSetDefaultHttpParams(e, "query_params", fn, c)
+	if !ok {
+		return false, nil, errors
+	}
+	fnArgs, immutableArgs := getAndSetHttpParams(e, fn, c)
+	// TODO: Allow different things to be returned
+	// TODO: Need to figure this out, it should be allowed to return anything Im pretty sure
+	return true, e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs), []string{}
+}
+
+func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Function, c *fiber.Ctx) (bool, []string) {
+	for k, v := range fn.DefaultParameters {
+		isQueryParams := v != nil && fn.Parameters[k].Value == "query_params"
+		isCookies := v != nil && fn.Parameters[k].Value == "cookies"
+		if v != nil {
+			if fn.Parameters[k].Value == varName && !isQueryParams && !isCookies {
+				// Handle post_values
+				if v.Type() != object.LIST_OBJ {
+					errors := getErrorTokenTraceAsJson(e).([]string)
+					errors = append(errors, fmt.Sprintf("%s must be LIST. got=%s", varName, v.Type()))
+					return false, errors
+				}
+				l := v.(*object.List).Elements
+
+				contentType := c.Get("Content-Type")
+				body := strings.NewReader(string(c.Body()))
+
+				returnMap, err := decodeBodyToMap(contentType, body)
+				if err != nil {
+					errors := getErrorTokenTraceAsJson(e).([]string)
+					errors = append(errors, fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
+					return false, errors
+				}
+				for _, elem := range l {
+					if elem.Type() != object.STRING_OBJ {
+						errors := getErrorTokenTraceAsJson(e).([]string)
+						errors = append(errors, fmt.Sprintf("%s must be LIST of STRINGs. found=%s", varName, elem.Type()))
+						return false, errors
+					}
+					s := elem.(*object.Stringo).Value
+					if v, ok := returnMap[s]; ok {
+						fn.Env.Set(s, v)
+					} else {
+						fn.Env.Set(s, &object.Stringo{Value: c.FormValue(s)})
+					}
+					// Now we know its a list of strings so we can set the variables accordingly for the fn
+				}
+			} else if isQueryParams {
+				// Handle query_params
+				if v.Type() != object.LIST_OBJ {
+					errors := getErrorTokenTraceAsJson(e).([]string)
+					errors = append(errors, fmt.Sprintf("query_params must be LIST. got=%s", v.Type()))
+					return false, errors
+				}
+				l := v.(*object.List).Elements
+				for _, elem := range l {
+					if elem.Type() != object.STRING_OBJ {
+						errors := getErrorTokenTraceAsJson(e).([]string)
+						errors = append(errors, fmt.Sprintf("query_params must be LIST of STRINGs. found=%s", elem.Type()))
+						return false, errors
+					}
+					// Now we know its a list of strings so we can set the variables accordingly for the fn
+					s := elem.(*object.Stringo).Value
+					fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+				}
+			} else if isCookies {
+				// Handle cookies
+				if v.Type() != object.LIST_OBJ {
+					errors := getErrorTokenTraceAsJson(e).([]string)
+					errors = append(errors, fmt.Sprintf("cookies must be LIST. got=%s", v.Type()))
+					return false, errors
+				}
+				l := v.(*object.List).Elements
+				for _, elem := range l {
+					if elem.Type() != object.STRING_OBJ {
+						errors := getErrorTokenTraceAsJson(e).([]string)
+						errors = append(errors, fmt.Sprintf("cookies must be LIST of STRINGs. found=%s", elem.Type()))
+						return false, errors
+					}
+					// Now we know its a list of strings so we can set the variables accordingly for the fn
+					s := elem.(*object.Stringo).Value
+					fn.Env.Set(s, &object.Stringo{Value: c.Cookies(s)})
+				}
+			}
+		}
+		// TODO: Otherwise check that it is null?
+	}
+	return true, []string{}
+}
+
+func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]object.Object, []bool) {
+	fnArgs := make([]object.Object, len(fn.Parameters))
+	immutableArgs := make([]bool, len(fnArgs))
+	for i, v := range fn.Parameters {
+		if v != nil {
+			if v.Value == "headers" {
+				// Handle headers
+				headers := c.GetReqHeaders()
+				mapObj := object.NewOrderedMap[string, object.Object]()
+				for k1, v1 := range headers {
+					mapObj.Set(k1, &object.Stringo{Value: v1})
+				}
+				fnArgs[i] = object.CreateMapObjectForGoMap(*mapObj)
+			} else {
+				fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+			}
+			immutableArgs[i] = true
+		}
+		// TODO: Add more builtin options here like request, URL, IP, etc.?
+	}
+	return fnArgs, immutableArgs
+}
+
+// TODO: This can be updated in a similar way to how we handled http
+func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("handle_ws", len(args), 3, "")
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newPositionalTypeError("handle_ws", 1, object.UINTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("handle_ws", 2, object.STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.FUNCTION_OBJ {
+				return newPositionalTypeError("handle_ws", 3, object.FUNCTION_OBJ, args[2].Type())
+			}
+			pattern := args[1].(*object.Stringo).Value
+			fn := args[2].(*object.Function)
+			if len(fn.Parameters) == 0 {
+				return newError("function arguments should be at least 1 to store the websocket connection")
+			}
+			serverId := args[0].(*object.UInteger).Value
+			app, ok := ServerMap.Get(serverId)
+			if !ok {
+				return newError("`handle_ws` could not find Server Object")
+			}
+			app.Use(pattern, func(c *fiber.Ctx) error {
+				if websocket.IsWebSocketUpgrade(c) {
+					return c.Next()
+				}
+				return fiber.ErrUpgradeRequired
+			})
+
+			var returnObj object.Object = NULL
+			wsHandler := websocket.New(func(c *websocket.Conn) {
+				connCount := wsConnCount.Add(1)
+				WSConnMap.Put(connCount, c)
+				for k, v := range fn.DefaultParameters {
+					if v != nil && fn.Parameters[k].Value == "query_params" {
+						// Handle query_params
+						if v.Type() != object.LIST_OBJ {
+							log.Printf("query_params must be LIST. got=%s", v.Type())
+							return
+						}
+						l := v.(*object.List).Elements
+						for _, elem := range l {
+							if elem.Type() != object.STRING_OBJ {
+								log.Printf("query_params must be LIST of STRINGs. found=%s", elem.Type())
+								return
+							}
+							// Now we know its a list of strings so we can set the variables accordingly for the fn
+							s := elem.(*object.Stringo).Value
+							fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+						}
+					}
+					// TODO: Otherwise check that it is null?
+				}
+				fnArgs := make([]object.Object, len(fn.Parameters))
+				immutableArgs := make([]bool, len(fnArgs))
+				for i, v := range fn.Parameters {
+					if i == 0 {
+						fnArgs[i] = object.CreateBasicMapObject("ws", connCount)
+					} else {
+						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
+					}
+					immutableArgs[i] = true
+				}
+				returnObj = e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs)
+				if isError(returnObj) {
+					var buf bytes.Buffer
+					buf.WriteString(returnObj.(*object.Error).Message)
+					buf.WriteByte('\n')
+					for e.ErrorTokens.Len() > 0 {
+						tok := e.ErrorTokens.PopBack()
+						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+					}
+					fmt.Printf("%s`handle_ws` return error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+				} else {
+					if returnObj == NULL {
+						// Dont need to log if its null - probably no error then
+						return
+					}
+					log.Printf("`handle_ws` returned with %#v", returnObj)
+				}
+			})
+			app.Get(pattern, wsHandler)
+
+			// Always returns NULL here
+			return returnObj
+		},
+	}
+}
