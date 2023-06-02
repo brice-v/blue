@@ -713,7 +713,11 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if mp.Key.Type() != object.STRING_OBJ {
 					return newError("`eval_template` error: found key in MAP that was not STRING. got=%s", mp.Key.Type())
 				}
-				ctx.Set(mp.Key.(*object.Stringo).Value, blueObjectToGoObject(mp.Value))
+				val, err := blueObjectToGoObject(mp.Value)
+				if err != nil {
+					return newError("`eval_template` error: %s", err.Error())
+				}
+				ctx.Set(mp.Key.(*object.Stringo).Value, val)
 			}
 			inputStr := args[0].(*object.Stringo).Value
 			s, err := plush.Render(inputStr, ctx)

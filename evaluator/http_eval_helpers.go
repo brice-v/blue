@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -68,12 +69,61 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 	}
 }
 
+func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m map[string]interface{}) {
+	isAction, action, m = false, "", nil
+	mObj, err := blueObjectToGoObject(respObj)
+	if err != nil {
+		if mm, ok := mObj.(map[string]interface{}); ok {
+			if kt, ok := mm["t"]; ok {
+				if kts, ok := kt.(string); ok {
+					if strings.Contains(kts, "http/") {
+						// Now we know this is good to use
+						isAction = true
+						action = strings.Split("/", kts)[1]
+						m = mm
+						return
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
 func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method string) error {
 	ok, respObj, errors := prepareAndApplyHttpHandleFn(e, fn, c, method)
 	if !ok {
 		return c.Status(fiber.StatusInternalServerError).JSON(errors)
 	}
-	// TODO: First check if the respObj is a MAP and if its a valid http handler response action
+	// First check if the respObj is a MAP and if its a valid http handler response action
+	if respObj.Type() == object.MAP_OBJ {
+		isAction, action, m := tryGetHttpActionAndMap(respObj)
+		if isAction {
+			switch action {
+			case "status":
+				code, ok := m["code"].(int64)
+				if !ok {
+					err := fmt.Sprintf("http/status 'code' must be INTEGER. got=%T", code)
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				return c.SendStatus(int(code))
+			case "redirect":
+				location, ok := m["location"].(string)
+				if !ok {
+					err := fmt.Sprintf("http/redirect 'location' must be STRING. got=%T", location)
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				code, ok := m["code"].(int64)
+				if !ok {
+					err := fmt.Sprintf("http/redirect code 'must' be INTEGER. got=%T", code)
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				return c.Redirect(location, int(code))
+			case "next":
+				return c.Next()
+			}
+		}
+	}
 	if method != "GET" {
 		if respObj.Type() == object.STRING_OBJ {
 			return c.SendString(respObj.(*object.Stringo).Value)
@@ -114,8 +164,9 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 
 func prepareAndApplyHttpHandleFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method string) (bool, object.Object, []string) {
 	isGet := method == "GET"
+	isDelete := method == "DELETE"
 	methodLower := strings.ToLower(method)
-	if !isGet {
+	if !isGet && !isDelete {
 		ok, errors := getAndSetDefaultHttpParams(e, methodLower+"_values", fn, c)
 		if !ok {
 			return false, nil, errors
@@ -136,39 +187,7 @@ func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Functio
 		isQueryParams := v != nil && fn.Parameters[k].Value == "query_params"
 		isCookies := v != nil && fn.Parameters[k].Value == "cookies"
 		if v != nil {
-			if fn.Parameters[k].Value == varName && !isQueryParams && !isCookies {
-				// Handle post_values
-				if v.Type() != object.LIST_OBJ {
-					errors := getErrorTokenTraceAsJson(e).([]string)
-					errors = append(errors, fmt.Sprintf("%s must be LIST. got=%s", varName, v.Type()))
-					return false, errors
-				}
-				l := v.(*object.List).Elements
-
-				contentType := c.Get("Content-Type")
-				body := strings.NewReader(string(c.Body()))
-
-				returnMap, err := decodeBodyToMap(contentType, body)
-				if err != nil {
-					errors := getErrorTokenTraceAsJson(e).([]string)
-					errors = append(errors, fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
-					return false, errors
-				}
-				for _, elem := range l {
-					if elem.Type() != object.STRING_OBJ {
-						errors := getErrorTokenTraceAsJson(e).([]string)
-						errors = append(errors, fmt.Sprintf("%s must be LIST of STRINGs. found=%s", varName, elem.Type()))
-						return false, errors
-					}
-					s := elem.(*object.Stringo).Value
-					if v, ok := returnMap[s]; ok {
-						fn.Env.Set(s, v)
-					} else {
-						fn.Env.Set(s, &object.Stringo{Value: c.FormValue(s)})
-					}
-					// Now we know its a list of strings so we can set the variables accordingly for the fn
-				}
-			} else if isQueryParams {
+			if isQueryParams {
 				// Handle query_params
 				if v.Type() != object.LIST_OBJ {
 					errors := getErrorTokenTraceAsJson(e).([]string)
@@ -204,11 +223,60 @@ func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Functio
 					s := elem.(*object.Stringo).Value
 					fn.Env.Set(s, &object.Stringo{Value: c.Cookies(s)})
 				}
+			} else if fn.Parameters[k].Value == varName {
+				// Handle post_values, put_values, patch_values (in body)
+				if v.Type() != object.LIST_OBJ {
+					errors := getErrorTokenTraceAsJson(e).([]string)
+					errors = append(errors, fmt.Sprintf("%s must be LIST. got=%s", varName, v.Type()))
+					return false, errors
+				}
+				l := v.(*object.List).Elements
+
+				contentType := c.Get("Content-Type")
+				body := strings.NewReader(string(c.Body()))
+
+				returnMap, err := decodeBodyToMap(contentType, body)
+				if err != nil {
+					errors := getErrorTokenTraceAsJson(e).([]string)
+					errors = append(errors, fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
+					return false, errors
+				}
+				for _, elem := range l {
+					if elem.Type() != object.STRING_OBJ {
+						errors := getErrorTokenTraceAsJson(e).([]string)
+						errors = append(errors, fmt.Sprintf("%s must be LIST of STRINGs. found=%s", varName, elem.Type()))
+						return false, errors
+					}
+					s := elem.(*object.Stringo).Value
+					if v, ok := returnMap[s]; ok {
+						fn.Env.Set(s, v)
+					} else {
+						fn.Env.Set(s, &object.Stringo{Value: c.FormValue(s)})
+					}
+					// Now we know its a list of strings so we can set the variables accordingly for the fn
+				}
 			}
 		}
 		// TODO: Otherwise check that it is null?
 	}
 	return true, []string{}
+}
+
+func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
+	headers := c.GetReqHeaders()
+	mapObj := object.NewOrderedMap[string, object.Object]()
+	headerKeys := make([]string, len(headers))
+	i := 0
+	for k := range headers {
+		headerKeys[i] = k
+		i++
+	}
+	// Sort by key to always have the headers in order
+	sort.Strings(headerKeys)
+	for i := 0; i < len(headers); i++ {
+		mapObj.Set(headerKeys[i], &object.Stringo{Value: headers[headerKeys[i]]})
+	}
+	return object.CreateMapObjectForGoMap(*mapObj)
 }
 
 func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]object.Object, []bool) {
@@ -218,18 +286,28 @@ func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]obj
 		if v != nil {
 			if v.Value == "headers" {
 				// Handle headers
-				headers := c.GetReqHeaders()
+				fnArgs[i] = getReqHeaderMapObj(c)
+			} else if v.Value == "request" {
+				req := c.Request()
 				mapObj := object.NewOrderedMap[string, object.Object]()
-				for k1, v1 := range headers {
-					mapObj.Set(k1, &object.Stringo{Value: v1})
-				}
+				mapObj.Set("method", &object.Stringo{Value: c.Method()})
+				mapObj.Set("proto", &object.Stringo{Value: c.Protocol()})
+				mapObj.Set("uri", &object.Stringo{Value: string(req.URI().FullURI())})
+				mapObj.Set("scheme", &object.Stringo{Value: string(req.URI().Scheme())})
+				mapObj.Set("host", &object.Stringo{Value: string(req.URI().Host())})
+				mapObj.Set("request_uri", &object.Stringo{Value: string(req.URI().RequestURI())})
+				mapObj.Set("hash", &object.Stringo{Value: string(req.URI().Hash())})
+				headersMapObj := getReqHeaderMapObj(c)
+				mapObj.Set("headers", headersMapObj)
+				mapObj.Set("ip", &object.Stringo{Value: c.IP()})
+				mapObj.Set("is_from_local", &object.Boolean{Value: c.IsFromLocal()})
+				mapObj.Set("is_secure", &object.Boolean{Value: c.Secure()})
 				fnArgs[i] = object.CreateMapObjectForGoMap(*mapObj)
 			} else {
 				fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 			}
 			immutableArgs[i] = true
 		}
-		// TODO: Add more builtin options here like request, URL, IP, etc.?
 	}
 	return fnArgs, immutableArgs
 }

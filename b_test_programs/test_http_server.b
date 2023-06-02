@@ -46,6 +46,21 @@ fun post_handler(a, b, post_values=["name", "pass"]) {
 }
 
 
+fun all_handler(a, b, post_values=['name', 'pass'], put_values=['name', 'pass'], patch_values=['name', 'pass'], request, cookies) {
+    #println("all_handler request = #{request}");
+    val thing = {
+        'name': name,
+        'pass': pass,
+        'a': a,
+        'b': b,
+        'request': request,
+        'cookies': cookies,
+    };
+    #println("all_handler a = #{a}, b = #{b}");
+    #println("all_handler thing = #{thing}");
+    thing.to_json()
+}
+
 # THIS IS WORKING! WOO
 fun ws_handler(ws) {
     for (true) {
@@ -62,6 +77,13 @@ http.handle("/abc/:a/:b", get_handler_for_multiple_things, method="GET");
 http.handle("/hello/:name", hello_handler, method="GET");
 http.handle("/json", json_handler, method="GET");
 http.handle("/post/:a/:b", post_handler, method="POST");
+
+http.handle("/all/:a/:b", all_handler);
+http.handle("/all/:a/:b", all_handler, method="POST");
+http.handle("/all/:a/:b", all_handler, method="PUT");
+http.handle("/all/:a/:b", all_handler, method="PATCH");
+http.handle("/all/:a/:b", all_handler, method="DELETE");
+
 http.handle_monitor("/monitor");
 
 

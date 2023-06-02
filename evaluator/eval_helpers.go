@@ -602,50 +602,56 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 	return returnMap, nil
 }
 
-func blueObjectToGoObject(blueObject object.Object) interface{} {
+func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
+	if blueObject == nil {
+		return nil, fmt.Errorf("blueObjectToGoObject: blueObject must not be nil")
+	}
 	switch blueObject.Type() {
 	case object.STRING_OBJ:
-		return blueObject.(*object.Stringo).Value
+		return blueObject.(*object.Stringo).Value, nil
 	case object.INTEGER_OBJ:
-		return blueObject.(*object.Integer).Value
+		return blueObject.(*object.Integer).Value, nil
 	case object.FLOAT_OBJ:
-		return blueObject.(*object.Float).Value
+		return blueObject.(*object.Float).Value, nil
 	case object.NULL_OBJ:
-		return nil
+		return nil, nil
 	case object.BOOLEAN_OBJ:
-		return blueObject.(*object.Boolean).Value
+		return blueObject.(*object.Boolean).Value, nil
 	case object.MAP_OBJ:
 		m := blueObject.(*object.Map)
 		pairs := make(map[string]interface{})
 		for _, k := range m.Pairs.Keys {
 			mp, _ := m.Pairs.Get(k)
 			if mp.Key.Type() != object.STRING_OBJ {
-				consts.ErrorPrinter("blueObjectToGoObject: Map must only have string keys. got=%s\n", mp.Key.Type())
-				os.Exit(1)
+				return nil, fmt.Errorf("blueObjectToGoObject: Map must only have string keys. got=%s", mp.Key.Type())
 			}
 			if mp.Value.Type() == object.MAP_OBJ {
-				consts.ErrorPrinter("blueObjectToGoObject: Map must not have map values. got=%s\n", mp.Value.Type())
-				os.Exit(1)
+				return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
 			}
-			pairs[mp.Key.(*object.Stringo).Value] = blueObjectToGoObject(mp.Value)
+			val, err := blueObjectToGoObject(mp.Value)
+			if err != nil {
+				return nil, err
+			}
+			pairs[mp.Key.(*object.Stringo).Value] = val
 		}
-		return pairs
+		return pairs, nil
 	case object.LIST_OBJ:
 		l := blueObject.(*object.List).Elements
 		elements := make([]interface{}, len(l))
 		for i, e := range l {
 			if e.Type() == object.LIST_OBJ {
-				consts.ErrorPrinter("blueObjectToGoObject: List of lists unsupported\n")
-				os.Exit(1)
+				return nil, fmt.Errorf("blueObjectToGoObject: List of lists unsupported")
 			}
-			elements[i] = blueObjectToGoObject(e)
+			val, err := blueObjectToGoObject(e)
+			if err != nil {
+				return nil, err
+			}
+			elements[i] = val
 		}
-		return elements
+		return elements, nil
 	default:
-		consts.ErrorPrinter("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)\n", blueObject.Type(), blueObject)
-		os.Exit(1)
+		return nil, fmt.Errorf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
 	}
-	return nil
 }
 
 func getBlueObjectFromResp(resp *http.Response) object.Object {

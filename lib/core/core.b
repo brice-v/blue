@@ -351,6 +351,11 @@ fun fetch(resource, options=null, full_resp=true) {
                 return error("`fetch` error:  options.headers must be MAP. got=#{ht}");
             }
         }
+        if (options.method == 'GET' or options.method == 'DELETE') {
+            if (options.body != null) {
+                return error("`fetch` error: options.body must be NULL for 'GET' or 'DELETE' methods");
+            }
+        }
     }
     __fetch(resource, options.method, options.headers, options.body, full_resp)
 }
@@ -368,9 +373,3 @@ val pubsub = {
     broadcast: _broadcast,
     get_subscriber_count: _get_subscriber_count,
 };
-
-###
-val wasm = {
-    init: _wasm_init,
-};
-###

@@ -99,6 +99,7 @@ fun patch(url, patch_body, mime_type="application/json", full_resp=false)  {
     fetch(url, options, full_resp=full_resp)
 }
 
+# TODO: Should delete accept body?
 fun delete(url, full_resp=false) {
     ## `delete` will send a DELETE request to the given url
     ##
@@ -106,6 +107,7 @@ fun delete(url, full_resp=false) {
     val options = {
         method: 'DELETE',
         headers: {},
+        body: null,
     };
     fetch(url, options, full_resp=full_resp)
 }
@@ -265,3 +267,33 @@ fun md_to_html(content) {
     ## md_to_html(content: str) -> str
     __md_to_html(content)
 }
+
+#// TODO: Add other options that need to be handled for http server
+
+#// TODO: Could put this into a object called 'handler' so when you call it, it would be http.handler.fun... which is maybe more clear?
+
+fun status(code) {
+    ## TODO: Docs
+    if (type(code) != Type.INT) {
+        return error("http status code must be #{Type.INT}, got=#{type(code)}");
+    }
+    {'t':'http/status', 'v':code}
+}
+
+fun redirect(location, code=302) {
+    ## TODO: Docs
+    if (type(code) != Type.INT) {
+        return error("http status code must be #{Type.INT}, got=#{type(code)}");
+    }
+    if (type(location) != Type.STRING) {
+        return error("http redirect location must be #{Type.STRING}, got=#{type(location)}");
+    }
+    {'t':'http/redirect', 'location':location, 'code':code}
+}
+
+fun next() {
+    ## TODO: Docs
+    {'t': 'http/next'}
+}
+
+# TODO: Clear cookie?
