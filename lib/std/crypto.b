@@ -13,9 +13,9 @@ val __encode_hex = _encode_hex;
 val __decode_hex = _decode_hex;
 
 fun md5(content) {
-    ## `md5` is the stringified version of the md5 sum for the string content passed in
+    ## `md5` is the stringified version of the md5 sum for the string or bytes content passed in
     ##
-    ## md5(content: str) -> str
+    ## md5(content: str|bytes) -> str
     __md5(content)
 }
 
@@ -33,11 +33,11 @@ fun compare_hash_and_password(password, hashed_pw) {
     __compare_hash_and_password(password, hashed_pw)
 }
 
-fun sha(str_to_hash, algo=256) {
-    ## `sha` wil take a string and compute the sha1/256/512 value and return a string
+fun sha(content, algo=256) {
+    ## `sha` will take a string or bytes and compute the sha1/256/512 value and return a string
     ##
-    ## sha(str_to_hash: str, algo: 1|256|512=256) -> str
-    __sha(str_to_hash, algo)
+    ## sha(content: str|bytes, algo: 1|256|512=256) -> str
+    __sha(content, algo)
 }
 
 fun encrypt(pw, data) {

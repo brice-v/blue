@@ -1027,16 +1027,20 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_sha": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`sha` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("sha", len(args), 2, "")
 			}
-			// TODO: Support Bytes object?
-			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `sha` should be STRING. got=%s", args[0].Type())
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("sha", 1, "STRING or BYTES", args[0].Type())
 			}
 			if args[1].Type() != object.INTEGER_OBJ {
-				return newError("argument 2 to `sha` should be INTEGER. got=%s", args[1].Type())
+				return newPositionalTypeError("sha", 2, object.INTEGER_OBJ, args[1].Type())
 			}
-			s := args[0].(*object.Stringo).Value
+			var bs []byte
+			if args[0].Type() == object.STRING_OBJ {
+				bs = []byte(args[0].(*object.Stringo).Value)
+			} else {
+				bs = args[0].(*object.Bytes).Value
+			}
 			i := args[1].(*object.Integer).Value
 			var hasher hash.Hash
 			switch i {
@@ -1049,22 +1053,26 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			default:
 				return newError("argument 2 to `sha` should be 1, 256, or 512. got=%d", i)
 			}
-			hasher.Write([]byte(s))
+			hasher.Write(bs)
 			return &object.Stringo{Value: fmt.Sprintf("%x", hasher.Sum(nil))}
 		},
 	},
 	"_md5": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`md5` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("md5", len(args), 1, "")
 			}
-			// TODO: Support Bytes object?
-			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `sha` should be STRING. got=%s", args[0].Type())
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("md5", 1, "STRING or BYTES", args[0].Type())
 			}
-			s := args[0].(*object.Stringo).Value
+			var bs []byte
+			if args[0].Type() == object.STRING_OBJ {
+				bs = []byte(args[0].(*object.Stringo).Value)
+			} else {
+				bs = args[0].(*object.Bytes).Value
+			}
 			hasher := md5.New()
-			hasher.Write([]byte(s))
+			hasher.Write(bs)
 			return &object.Stringo{Value: fmt.Sprintf("%x", hasher.Sum(nil))}
 		},
 	},
