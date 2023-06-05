@@ -1019,7 +1019,8 @@ func (e *Evaluator) GetAllStdPublicFunctionHelpStrings() string {
 	sort.Strings(mods)
 	var out bytes.Buffer
 	for i, mod := range mods {
-		e.AddStdLibToEnv(mod)
+		// Calling the function like this prevents importing specific pub vars from the module
+		_ = e.AddStdLibToEnv(mod, nil, false)
 		modObj, ok := e.env.Get(mod)
 		if !ok {
 			panic("should not fail - mod '" + mod + "' should already be added to env")
@@ -1037,7 +1038,8 @@ func (e *Evaluator) GetStdModPublicFunctionHelpString(modName string) string {
 	if !e.IsStd(modName) {
 		panic("should not fail - mod '" + modName + "' should already be verified by caller")
 	}
-	e.AddStdLibToEnv(modName)
+	// Calling the function like this prevents importing specific pub vars from the module
+	_ = e.AddStdLibToEnv(modName, nil, false)
 	modObj, ok := e.env.Get(modName)
 	if !ok {
 		panic("should not fail - mod '" + modName + "' should already be added to env")

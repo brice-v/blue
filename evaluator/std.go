@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"blue/ast"
 	"blue/consts"
 	"blue/lexer"
 	"blue/lib"
@@ -92,7 +93,7 @@ func (e *Evaluator) IsStd(name string) bool {
 	return ok
 }
 
-func (e *Evaluator) AddStdLibToEnv(name string) {
+func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identifier, shouldImportAll bool) object.Object {
 	if !e.IsStd(name) {
 		fmt.Printf("AddStdLibToEnv: '%s' is not in std lib map\n", name)
 		os.Exit(1)
@@ -142,9 +143,34 @@ func (e *Evaluator) AddStdLibToEnv(name string) {
 		}
 		os.Exit(1)
 	}
+
+	if len(nodeIdentsToImport) >= 1 {
+		for _, ident := range nodeIdentsToImport {
+			if strings.HasPrefix(ident.Value, "_") {
+				return newError("ImportError: imports must be public to import them. failed to import %s from %s", ident.Value, name)
+			}
+			o, ok := newE.env.Get(ident.Value)
+			if !ok {
+				return newError("ImportError: failed to import %s from %s", ident.Value, name)
+			}
+			e.env.Set(ident.Value, o)
+		}
+		// return early if we specifically import some objects
+		return NULL
+	} else if shouldImportAll {
+		// Here we want to import everything from the module
+		for k, v := range newE.env.GetAll() {
+			if !strings.HasPrefix(k, "_") {
+				e.env.Set(k, v)
+			}
+		}
+		return NULL
+	}
+
 	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
 	mod := &object.Module{Name: name, Env: newE.env, HelpStr: CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)}
 	e.env.Set(name, mod)
+	return nil
 }
 
 // Used to catch Interupt to shutdown server

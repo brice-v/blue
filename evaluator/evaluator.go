@@ -616,8 +616,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object {
 	name := node.Path.Value
 	if e.IsStd(name) {
-		e.AddStdLibToEnv(name)
-		return NULL
+		return e.AddStdLibToEnv(name, node.IdentsToImport, node.ImportAll)
 	}
 	fpath := e.createFilePathFromImportPath(name)
 	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")

@@ -2,6 +2,10 @@ import crypto
 
 val to_encode = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
 val hex_to_encode = crypto.decode(to_encode, as_bytes=true);
+assert(hex_to_encode.type() == Type.BYTES);
+val other_thing_to_test = to_encode.to_bytes(is_hex=true);
+assert(other_thing_to_test.type() == Type.BYTES);
+assert(other_thing_to_test == hex_to_encode)
 val encoded = crypto.encode(hex_to_encode, method='base64');
 println("encoded = #{encoded}");
 var expected = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t";

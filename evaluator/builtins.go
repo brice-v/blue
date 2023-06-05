@@ -965,21 +965,16 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "_send(0x0, 'hello') => null",
 		}.String(),
 	},
-	"to_bytes": {
+	"_to_bytes": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newInvalidArgCountError("to_bytes", len(args), 1, "")
+				return newInvalidArgCountError("to_bytes", len(args), 3, "")
 			}
-			switch x := args[0].(type) {
-			case *object.Stringo:
-				// TODO: Support hexadecimal string? like what is currently returned in crypto
-				return &object.Bytes{Value: []byte(x.Value)}
-			// case *object.List:
-			// Confirm all elements are ints and then convert?
-			// All the ints also have to be less than 255
-			default:
-				// TODO: Could we maybe take the string representation and convert it to bytes?
-				return newError("type '%s' not supported for `to_bytes`", args[0].Type())
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_bytes", 1, object.STRING_OBJ, args[0].Type())
+			}
+			return &object.Bytes{
+				Value: []byte(args[0].(*object.Stringo).Value),
 			}
 		},
 		HelpStr: helpStrArgs{

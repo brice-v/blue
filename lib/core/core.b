@@ -5,6 +5,7 @@ val Type = {
     FLOAT: 'FLOAT',
     BIGINT: 'BIG_INTEGER',
     BIGFLOAT: 'BIG_FLOAT',
+    BYTES: 'BYTES',
     STRING: 'STRING',
     SET: 'SET',
     MAP: 'MAP',
@@ -358,6 +359,26 @@ fun fetch(resource, options=null, full_resp=true) {
         }
     }
     __fetch(resource, options.method, options.headers, options.body, full_resp)
+}
+
+val __to_bytes = _to_bytes;
+fun to_bytes(str_to_convert, is_hex=false) {
+    ##core:ignore
+    ## `to_bytes` will convert the given string to the bytes representation
+    ## this is useful to get the binary version of the string to use in various
+    ## functions
+    ##
+    ## is_hex is set to false by default assuming the string is not already in bytes format
+    ## if the str_to_convert is in hexadecimal crypto.decode is imported and used
+    ##
+    ## to_bytes(str_to_convert: str, is_hex: bool=false) -> bytes
+    if (is_hex) {
+        # TODO: Make this work first, then make it more like js (or more like python)
+        from crypto import {decode}
+        return decode(str_to_convert, as_bytes=true);
+    } else {
+        return __to_bytes(str_to_convert);
+    }
 }
 
 
