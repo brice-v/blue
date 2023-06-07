@@ -85,6 +85,15 @@ fun main() {
     println("GET expected_resp__4 = #{expected_resp__4}");
     assert(__resp4 == expected_resp__4);
 
+    val redirect_handler_resp = http.get("http://localhost:3001/redirect");
+    println("redirect_handler_resp (#{type(redirect_handler_resp)}) = #{redirect_handler_resp}");
+    assert(redirect_handler_resp == "I'm a teapot");
+    val status_handler_resp = http.get("http://localhost:3001/healthcheck");
+    println("status_handler_resp (#{type(status_handler_resp)}) = #{status_handler_resp}");
+    assert(status_handler_resp == "I'm a teapot");
+    val status_handler2_resp = fetch("http://localhost:3001/status2");
+    println("status_handler2_resp (#{type(status_handler2_resp)}) = #{status_handler2_resp}");
+    assert(status_handler2_resp.status == 999);
 
     val resp6 = http.get("http://localhost:3001/json");
     println("resp6 = `#{resp6}`");

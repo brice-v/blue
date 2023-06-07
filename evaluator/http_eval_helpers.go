@@ -72,14 +72,14 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m map[string]interface{}) {
 	isAction, action, m = false, "", nil
 	mObj, err := blueObjectToGoObject(respObj)
-	if err != nil {
+	if err == nil {
 		if mm, ok := mObj.(map[string]interface{}); ok {
 			if kt, ok := mm["t"]; ok {
 				if kts, ok := kt.(string); ok {
 					if strings.Contains(kts, "http/") {
 						// Now we know this is good to use
 						isAction = true
-						action = strings.Split("/", kts)[1]
+						action = strings.Split(kts, "/")[1]
 						m = mm
 						return
 					}
@@ -103,19 +103,19 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 			case "status":
 				code, ok := m["code"].(int64)
 				if !ok {
-					err := fmt.Sprintf("http/status 'code' must be INTEGER. got=%T", code)
+					err := fmt.Sprintf("http/status 'code' must be INTEGER. got=%T", m["code"])
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
 				return c.SendStatus(int(code))
 			case "redirect":
 				location, ok := m["location"].(string)
 				if !ok {
-					err := fmt.Sprintf("http/redirect 'location' must be STRING. got=%T", location)
+					err := fmt.Sprintf("http/redirect 'location' must be STRING. got=%T", m["location"])
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
 				code, ok := m["code"].(int64)
 				if !ok {
-					err := fmt.Sprintf("http/redirect code 'must' be INTEGER. got=%T", code)
+					err := fmt.Sprintf("http/redirect code 'must' be INTEGER. got=%T", m["code"])
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
 				return c.Redirect(location, int(code))

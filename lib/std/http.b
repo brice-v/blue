@@ -99,7 +99,6 @@ fun patch(url, patch_body, mime_type="application/json", full_resp=false)  {
     fetch(url, options, full_resp=full_resp)
 }
 
-# TODO: Should delete accept body?
 fun delete(url, full_resp=false) {
     ## `delete` will send a DELETE request to the given url
     ##
@@ -273,15 +272,19 @@ fun md_to_html(content) {
 #// TODO: Could put this into a object called 'handler' so when you call it, it would be http.handler.fun... which is maybe more clear?
 
 fun status(code) {
-    ## TODO: Docs
+    ## `status` will return a status code for any http request if returned in an http handler
+    ##
+    ## status(code: int) -> {'t':'http/status','code':int}
     if (type(code) != Type.INT) {
         return error("http status code must be #{Type.INT}, got=#{type(code)}");
     }
-    {'t':'http/status', 'v':code}
+    {'t':'http/status', 'code':code}
 }
 
 fun redirect(location, code=302) {
-    ## TODO: Docs
+    ## `redirect` will redirect the http handler to a new location the code defaults to 302
+    ##
+    ## redirect(location: str, code: int) -> {'t':'http/redirect','location':str,'code':int}
     if (type(code) != Type.INT) {
         return error("http status code must be #{Type.INT}, got=#{type(code)}");
     }
@@ -292,7 +295,9 @@ fun redirect(location, code=302) {
 }
 
 fun next() {
-    ## TODO: Docs
+    ## `next` will send the http handler to the next handler available
+    ##
+    ## next() -> {'t':'http/next'}
     {'t': 'http/next'}
 }
 

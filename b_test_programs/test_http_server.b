@@ -61,6 +61,21 @@ fun all_handler(a, b, post_values=['name', 'pass'], put_values=['name', 'pass'],
     thing.to_json()
 }
 
+
+fun redirect_handler() {
+    return http.redirect('/healthcheck')
+}
+
+fun status_handler() {
+    # teapot code
+    return http.status(418);
+}
+
+fun status_handler2() {
+    return http.status(999);
+}
+
+
 # THIS IS WORKING! WOO
 fun ws_handler(ws) {
     for (true) {
@@ -83,6 +98,10 @@ http.handle("/all/:a/:b", all_handler, method="POST");
 http.handle("/all/:a/:b", all_handler, method="PUT");
 http.handle("/all/:a/:b", all_handler, method="PATCH");
 http.handle("/all/:a/:b", all_handler, method="DELETE");
+
+http.handle('/redirect', redirect_handler);
+http.handle('/healthcheck', status_handler);
+http.handle('/status2', status_handler2);
 
 http.handle_monitor("/monitor");
 
