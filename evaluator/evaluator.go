@@ -3049,8 +3049,8 @@ func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right o
 		return &object.BigInteger{Value: result.Exp(leftVal, rightVal, nil)}
 	case "//":
 		maybeWanted := new(big.Int)
-		floored, modulus := result.DivMod(leftVal, rightVal, maybeWanted)
-		fmt.Printf("TODO: FIGURE OUT WHAT WE WANT TO DO WITH THIS %v", modulus)
+		floored, _ := result.DivMod(leftVal, rightVal, maybeWanted)
+		// Note: Ignoring the modulus here
 		return &object.BigInteger{Value: floored}
 	case "%":
 		return &object.BigInteger{Value: result.Mod(leftVal, rightVal)}

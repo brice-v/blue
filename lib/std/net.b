@@ -64,23 +64,33 @@ fun net_close(net_id, net_str) {
     __net_close(net_id, net_str)
 }
 
-fun net_read(net_id, net_str) {
+fun net_read(net_id, net_str, end_byte_or_len=null, as_bytes=false) {
     ## `net_read` will read on the connection based on the net_str passed in
     ## note: this function should mostly be called with the core 'read' function
     ##
-    ## NOTE: this will always read to '\n' in the connection so if that is not
-    ## in the connection buffer - it will block
+    ## If end_byte_or_len is null, it will read to '\n'
+    ## If end_byte_or_len is a single char string, that byte will be used
+    ##    NOTE: In this case it should not be inside the given string
+    ## NOTE: In both of these cases a string will be returned
+    ## If end_byte_or_len is an int, it will read that # of bytes
+    ##    NOTE: as_bytes will return bytes directly if true, otherwise it will be a string
     ##
-    ## net_read(net_id: uint, net_str: 'net/tcp'|'net/udp'|'net') -> str
-    __net_read(net_id, net_str)
+    ## When reading, if a len is given the entire buffer is returned, otherwise if a 
+    ## end byte is given, it will be removed from the output
+    ##
+    ## net_read(net_id: uint, net_str: 'net/tcp'|'net/udp'|'net', end_byte_or_len: str|int|null=null, as_bytes: bool=false) -> str|bytes
+    __net_read(net_id, net_str, end_byte_or_len, as_bytes)
 }
 
-fun net_write(net_id, net_str, value) {
+fun net_write(net_id, net_str, value, end_byte='\n') {
     ## `net_write` will write the value to the connection based on the net_str passed in
     ## note: this function should mostly be called with the 'write' function
     ##
-    ## NOTE: this will return an error if '\n' is not the last byte in the string
+    ## If end_byte is null, nothing will be appended
+    ## If end_byte is a single char string, that byte will be used
+    ##    NOTE: In this case it should not be inisde or appended to the end of value as that
+    ##          will be done automatically
     ##
-    ## net_write(net_id: uint, net_str: 'net/tcp'|'net/udp'|'net', value: str) -> null
-    __net_write(net_id, net_str, value)
+    ## net_write(net_id: uint, net_str: 'net/tcp'|'net/udp'|'net', value: str|bytes, end_byte: str|null=null) -> null
+    __net_write(net_id, net_str, value, end_byte)
 }

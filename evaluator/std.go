@@ -1517,14 +1517,20 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"_net_read": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("`net_read` expects 2 arguments. got=%d", len(args))
+			if len(args) != 3 {
+				return newInvalidArgCountError("net_read", len(args), 3, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `net_read` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("net_read", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `net_read` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("net_read", 2, object.STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.NULL_OBJ && args[2].Type() != object.STRING_OBJ && args[2].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("net_read", 3, "NULL or STRING or INTEGER", args[2].Type())
+			}
+			if args[3].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("net_read", 4, object.BOOLEAN_OBJ, args[3].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
@@ -1542,7 +1548,37 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				conn = c
 			}
-			s, err := bufio.NewReader(conn).ReadString('\n')
+			if args[2].Type() == object.INTEGER_OBJ {
+				asBytes := args[3].(*object.Boolean).Value
+				bufLen := args[2].(*object.Integer).Value
+				if bufLen == 0 {
+					return newError("`net_read` error: len must not be 0")
+				}
+				buf := make([]byte, bufLen)
+				readLen, err := bufio.NewReader(conn).Read(buf)
+				if err != nil {
+					return newError("`net_read` error: %s", err.Error())
+				}
+				if readLen != int(bufLen) {
+					return newError("`net_read` error: read length (%d) does not match buffer length (%d)", readLen, bufLen)
+				}
+				if asBytes {
+					return &object.Bytes{Value: buf}
+				} else {
+					return &object.Stringo{Value: string(buf)}
+				}
+			}
+			var endByte byte
+			if args[2].Type() == object.NULL_OBJ {
+				endByte = '\n'
+			} else {
+				endByteString := args[2].(*object.Stringo).Value
+				if len(endByteString) != 1 {
+					return newError("`net_read` error: end byte given was not length 1, got=%d", len(endByteString))
+				}
+				endByte = []byte(endByteString)[0]
+			}
+			s, err := bufio.NewReader(conn).ReadString(endByte)
 			if err != nil {
 				return newError("`net_read` error: %s", err.Error())
 			}
@@ -1552,17 +1588,19 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_net_write": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`net_write` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("net_write", len(args), 3, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `net_write` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("net_write", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `net_write` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("net_write", 2, object.STRING_OBJ, args[1].Type())
 			}
-			// TODO: Support bytes object (but then we cant always use '\n' by default)
-			if args[2].Type() != object.STRING_OBJ {
-				return newError("argument 3 to `net_write` should be STRING. got=%s", args[2].Type())
+			if args[2].Type() != object.STRING_OBJ && args[2].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("net_write", 3, "STRING or BYTES", args[2].Type())
+			}
+			if args[3].Type() != object.NULL_OBJ && args[3].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("net_write", 4, "NULL or STRING", args[3].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
@@ -1580,25 +1618,47 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				conn = c
 			}
-			s := args[2].(*object.Stringo).Value
-			bs := []byte(s)
-			n, err := conn.Write(bs)
-			if n != len(bs) {
-				return newError("`net_write` error: did not write the entire string")
+			var appendByte *byte = nil
+			if args[3].Type() == object.STRING_OBJ {
+				endByteString := args[3].(*object.Stringo).Value
+				if len(endByteString) != 1 {
+					return newError("`net_read` error: end byte given was not length 1, got=%d", len(endByteString))
+				}
+				appendByte = &[]byte(endByteString)[0]
 			}
+			buf := bytes.Buffer{}
+			if args[2].Type() == object.STRING_OBJ {
+				s := args[2].(*object.Stringo).Value
+				n, err := buf.WriteString(s)
+				if err != nil {
+					return newError("`net_write` error: failed writing to internal buffer. %s", err.Error())
+				}
+				if n != len(s) {
+					return newError("`net_write` error: failed writing string of len %d to internal buffer, wrote=%d", len(s), n)
+				}
+			} else {
+				bs := args[2].(*object.Bytes).Value
+				n, err := buf.Write(bs)
+				if err != nil {
+					return newError("`net_write` error: failed writing to internal buffer. %s", err.Error())
+				}
+				if n != len(bs) {
+					return newError("`net_write` error: failed writing bytes of len %d to internal buffer, wrote=%d", len(bs), n)
+				}
+			}
+			if appendByte != nil {
+				err := buf.WriteByte(*appendByte)
+				if err != nil {
+					return newError("`net_write` error: failed writing end byte %#+v to internal buffer. %s", *appendByte, err.Error())
+				}
+			}
+			bs := buf.Bytes()
+			n, err := conn.Write(bs)
 			if err != nil {
 				return newError("`net_write` error: %s", err.Error())
 			}
-			// If the string contains a \n its going to break off anyways
-			// TODO: FIXME - allow user to decide there cutoff byte? or
-			if !strings.Contains(s, "\n") {
-				n, err = conn.Write([]byte{'\n'})
-				if n != 1 {
-					return newError("`net_write` error: did not write the last byte")
-				}
-				if err != nil {
-					return newError("`net_write` error: %s", err.Error())
-				}
+			if n != len(bs) {
+				return newError("`net_write` error: did not write the entire length got=%d, want=%d", n, len(bs))
 			}
 			return NULL
 		},

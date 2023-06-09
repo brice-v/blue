@@ -320,7 +320,7 @@ func copyFileToSavedDirAndPackIfPossible(exeName, savedCurrentDir string) error 
 }
 
 func tryToPack(exeName string) {
-	cmd := []string{"upx", exeName}
+	cmd := []string{"upx", "--best", exeName}
 	var command *exec.Cmd
 	if runtime.GOOS == "windows" {
 		winArgs := []string{"/c"}
