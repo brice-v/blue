@@ -181,13 +181,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_download": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`download` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("download", len(args), 2, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `download` must be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("download", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `download` must be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("download", 2, object.STRING_OBJ, args[1].Type())
 			}
 			urlS := args[0].(*object.Stringo).Value
 			fname := args[1].(*object.Stringo).Value
@@ -222,7 +222,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_new_server": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
-				return newError("`new_server` expects 0 args. got=%d", len(args))
+				return newInvalidArgCountError("new_server", len(args), 0, "")
 			}
 			var disableStartupDebug bool
 			disableStartupMessageStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
@@ -243,13 +243,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_serve": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`serve` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("serve", len(args), 2, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `serve` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("serve", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `serve` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("serve", 2, object.STRING_OBJ, args[1].Type())
 			}
 			app, ok := ServerMap.Get(args[0].(*object.UInteger).Value)
 			if !ok {
@@ -273,7 +273,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_shutdown_server": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
-				return newError("`shutdown_server` expects 0 arguments. got=%d", len(args))
+				return newInvalidArgCountError("shutdown_server", len(args), 0, "")
 			}
 			c <- os.Interrupt
 			return NULL
@@ -282,19 +282,19 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_static": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
-				return newError("`static` expects 4 arguments. got=%d", len(args))
+				return newInvalidArgCountError("static", len(args), 4, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `static` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("static", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `static` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("static", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.STRING_OBJ {
-				return newError("argument 3 to `static` should be STRING. got=%s", args[2].Type())
+				return newPositionalTypeError("static", 3, object.STRING_OBJ, args[2].Type())
 			}
 			if args[3].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 4 to `static` should be BOOLEAN. got=%s", args[3].Type())
+				return newPositionalTypeError("static", 4, object.BOOLEAN_OBJ, args[3].Type())
 			}
 			app, ok := ServerMap.Get(args[0].(*object.UInteger).Value)
 			if !ok {
@@ -326,13 +326,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_ws_send": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`ws_send` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("ws_send", len(args), 2, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `ws_send` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("ws_send", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
-				return newError("argument 2 to `ws_send` should be STRING or BYTES. got=%s", args[1].Type())
+				return newPositionalTypeError("ws_send", 2, "STRING or BYTES", args[1].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
 			c, ok := WSConnMap.Get(connId)
@@ -354,10 +354,10 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_ws_recv": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`ws_recv` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("ws_recv", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `ws_recv` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("ws_recv", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
 			c, ok := WSConnMap.Get(connId)
@@ -391,13 +391,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_new_ws": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`new_ws` expects 1 arguments. got=%d", len(args))
+				return newInvalidArgCountError("new_ws", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `new_ws` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("new_ws", 1, object.STRING_OBJ, args[0].Type())
 			}
 			url := args[0].(*object.Stringo).Value
-
 			conn, _, err := ws.DefaultDialer.Dial(url, nil)
 			if err != nil {
 				return newError("`new_ws` error: %s", err.Error())
@@ -411,13 +410,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_ws_client_send": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`ws_send` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("ws_client_send", len(args), 2, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `ws_send` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("ws_client_send", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
-				return newError("argument 2 to `ws_send` should be STRING or BYTES. got=%s", args[1].Type())
+				return newPositionalTypeError("ws_client_send", 2, "STRING or BYTES", args[1].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
 			c, ok := WSClientConnMap.Get(connId)
@@ -439,10 +438,10 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_ws_client_recv": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`ws_recv` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("ws_client_recv", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `ws_recv` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("ws_client_recv", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			connId := args[0].(*object.UInteger).Value
 			c, ok := WSClientConnMap.Get(connId)
@@ -476,16 +475,16 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_handle_monitor": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`handle_monitor` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("handle_monitor", len(args), 3, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `handle_monitor` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("handle_monitor", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `handle_monitor` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("handle_monitor", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 3 to `handle_monitor` should be BOOLEAN got=%s", args[2].Type())
+				return newPositionalTypeError("handle_monitor", 3, object.BOOLEAN_OBJ, args[2].Type())
 			}
 			serverId := args[0].(*object.UInteger).Value
 			path := args[1].(*object.Stringo).Value
@@ -505,10 +504,10 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_md_to_html": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`md_to_html` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("md_to_html", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `md_to_html` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("md_to_html", 1, object.STRING_OBJ, args[0].Type())
 			}
 			bs := []byte(args[0].(*object.Stringo).Value)
 			output := blackfriday.Run(bs)
@@ -518,16 +517,16 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_sanitize_and_minify": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`sanitize_and_minify` expects 1 arguments. got=%d", len(args))
+				return newInvalidArgCountError("sanitize_and_minify", len(args), 3, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `sanitize_and_minify` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("sanitize_and_minify", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 2 to `sanitize_and_minify` should be BOOLEAN. got=%s", args[1].Type())
+				return newPositionalTypeError("sanitize_and_minify", 2, object.BOOLEAN_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 3 to `sanitize_and_minify` should be BOOLEAN. got=%s", args[2].Type())
+				return newPositionalTypeError("sanitize_and_minify", 3, object.BOOLEAN_OBJ, args[2].Type())
 			}
 			bs := []byte(args[0].(*object.Stringo).Value)
 			shouldSanitize := args[1].(*object.Boolean).Value
@@ -560,10 +559,10 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_sleep": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`sleep` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("sleep", len(args), 1, "")
 			}
 			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument to `sleep` must be INTEGER, got=%s", args[0].Type())
+				return newPositionalTypeError("sleep", 1, object.INTEGER_OBJ, args[0].Type())
 			}
 			i := args[0].(*object.Integer).Value
 			if i < 0 {
@@ -576,7 +575,7 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_now": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
-				return newError("`now` expects 0 arguments. got=%d", len(args))
+				return newInvalidArgCountError("now", len(args), 0, "")
 			}
 			return &object.Integer{Value: time.Now().UnixNano()}
 		},
@@ -587,16 +586,16 @@ var _search_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_by_xpath": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`by_xpath` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("by_xpath", len(args), 3, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `by_xpath` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("by_xpath", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `by_xpath` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("by_xpath", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 3 to `by_xpath` should be BOOLEAN. got=%s", args[2].Type())
+				return newPositionalTypeError("by_xpath", 3, object.BOOLEAN_OBJ, args[2].Type())
 			}
 			strToSearch := args[0].(*object.Stringo).Value
 			if strToSearch == "" {
@@ -671,18 +670,18 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_db_open": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`open` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("db_open", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `open` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("db_open", 1, object.STRING_OBJ, args[0].Type())
 			}
 			dbName := args[0].(*object.Stringo).Value
 			if dbName == "" {
-				return newError("`open` error: db_name argument is empty")
+				return newError("`db_open` error: db_name argument is empty")
 			}
 			db, err := sql.Open("sqlite", dbName)
 			if err != nil {
-				return newError("`open` error: %s", err.Error())
+				return newError("`db_open` error: %s", err.Error())
 			}
 			curDB := dbCount.Add(1)
 			DBMap.Put(curDB, db)
@@ -692,10 +691,10 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_db_ping": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`ping` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("db_ping", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `ping` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("db_ping", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			i := args[0].(*object.UInteger).Value
 			if db, ok := DBMap.Get(i); ok {
@@ -705,42 +704,42 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				return NULL
 			}
-			return newError("`ping` error: DB not found")
+			return newError("`db_ping` error: DB not found")
 		},
 	},
 	"_db_close": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`close` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("db_close", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `close` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("db_close", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			i := args[0].(*object.UInteger).Value
 			if db, ok := DBMap.Get(i); ok {
 				err := db.Close()
 				if err != nil {
-					return newError("`close` error: %s", err.Error())
+					return newError("`db_close` error: %s", err.Error())
 				}
 				DBMap.Remove(i)
 				return NULL
 			}
-			return newError("`close` error: DB not found")
+			return newError("`db_close` error: DB not found")
 		},
 	},
 	"_db_exec": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`exec` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("db_exec", len(args), 3, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `exec` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("db_exec", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `exec` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("db_exec", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.LIST_OBJ {
-				return newError("argument 3 to `exec` should be LIST. got=%s", args[2].Type())
+				return newPositionalTypeError("db_exec", 3, object.LIST_OBJ, args[2].Type())
 			}
 			i := args[0].(*object.UInteger).Value
 			s := args[1].(*object.Stringo).Value
@@ -765,7 +764,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 						case object.BYTES_OBJ:
 							execArgs[idx] = e.(*object.Bytes).Value
 						default:
-							return newError("argument list to `exec` included invalid type. got=%s", e.Type())
+							return newError("argument list to `db_exec` included invalid type. got=%s", e.Type())
 						}
 					}
 					result, err = db.Exec(s, execArgs...)
@@ -773,40 +772,40 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					result, err = db.Exec(s)
 				}
 				if err != nil {
-					return newError("`exec` error: %s", err.Error())
+					return newError("`db_exec` error: %s", err.Error())
 				}
 				lastInsertId, err := result.LastInsertId()
 				if err != nil {
-					return newError("`exec` error: %s", err.Error())
+					return newError("`db_exec` error: %s", err.Error())
 				}
 				rowsAffected, err := result.RowsAffected()
 				if err != nil {
-					return newError("`exec` error: %s", err.Error())
+					return newError("`db_exec` error: %s", err.Error())
 				}
 				mapToConvert := object.NewOrderedMap[string, object.Object]()
 				mapToConvert.Set("last_insert_id", &object.Integer{Value: lastInsertId})
 				mapToConvert.Set("rows_affected", &object.Integer{Value: rowsAffected})
 				return object.CreateMapObjectForGoMap(*mapToConvert)
 			}
-			return newError("`exec` error: DB not found")
+			return newError("`db_exec` error: DB not found")
 		},
 	},
 	"_db_query": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
-				return newError("`query` expects 4 arguments. got=%d", len(args))
+				return newInvalidArgCountError("db_query", len(args), 4, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `query` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("db_query", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `query` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("db_query", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.LIST_OBJ {
-				return newError("argument 3 to `query` should be LIST. got=%s", args[2].Type())
+				return newPositionalTypeError("db_query", 3, object.LIST_OBJ, args[2].Type())
 			}
 			if args[3].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 4 to `query` should be BOOLEAN. got=%s", args[3].Type())
+				return newPositionalTypeError("db_query", 4, object.BOOLEAN_OBJ, args[3].Type())
 			}
 			i := args[0].(*object.UInteger).Value
 			s := args[1].(*object.Stringo).Value
@@ -832,7 +831,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 						case object.BYTES_OBJ:
 							execArgs[idx] = e.(*object.Bytes).Value
 						default:
-							return newError("argument list to `query` included invalid type. got=%s", e.Type())
+							return newError("argument list to `db_query` included invalid type. got=%s", e.Type())
 						}
 					}
 					rows, err = db.Query(s, execArgs...)
@@ -843,11 +842,11 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					defer rows.Close()
 				}
 				if err != nil {
-					return newError("`query` error: %s", err.Error())
+					return newError("`db_query` error: %s", err.Error())
 				}
 				colNames, err := rows.Columns()
 				if err != nil {
-					return newError("`query` error: %s", err.Error())
+					return newError("`db_query` error: %s", err.Error())
 				}
 				// Get Types to properly scan
 				// https://www.sqlite.org/datatype3.html
@@ -867,7 +866,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				for rows.Next() {
 					err = rows.Scan(colPtrs...)
 					if err != nil {
-						return newError("`query` error: %s", err.Error())
+						return newError("`db_query` error: %s", err.Error())
 					}
 					rowList := &object.List{
 						Elements: make([]object.Object, len(cols)),
@@ -892,7 +891,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				return returnList
 			}
-			return newError("`exec` error: DB not found")
+			return newError("`db_query` error: DB not found")
 		},
 	},
 })
@@ -981,10 +980,10 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_load_file": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`load_file` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("load_file", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `load_file` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("load_file", 1, object.STRING_OBJ, args[0].Type())
 			}
 			c := config.NewWithOptions("config", config.ParseEnv, config.Readonly)
 			c.WithDriver(yamlv3.Driver, ini.Driver, toml.Driver, properties.Driver)
@@ -1011,16 +1010,16 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_dump_config": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`dump_config` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("dump_config", len(args), 3, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `dump_config` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("dump_config", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `dump_config` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("dump_config", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.STRING_OBJ {
-				return newError("argument 3 to `dump_config` should be STRING. got=%s", args[2].Type())
+				return newPositionalTypeError("dump_config", 3, object.STRING_OBJ, args[2].Type())
 			}
 			c := config.New("config")
 			configAsJson := args[0].(*object.Stringo).Value
@@ -1105,10 +1104,10 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_generate_from_password": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`generate_from_password` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("generate_from_password", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `generate_from_password` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("generate_from_password", 1, object.STRING_OBJ, args[0].Type())
 			}
 			pw := []byte(args[0].(*object.Stringo).Value)
 			hashedPw, err := bcrypt.GenerateFromPassword(pw, bcrypt.DefaultCost)
@@ -1121,13 +1120,13 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_compare_hash_and_password": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`compare_hash_and_password` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("compare_hash_and_password", len(args), 2, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `compare_hash_and_password` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("compare_hash_and_password", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `compare_hash_and_password` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("compare_hash_and_password", 2, object.STRING_OBJ, args[1].Type())
 			}
 			hashedPw := []byte(args[0].(*object.Stringo).Value)
 			pw := []byte(args[1].(*object.Stringo).Value)
@@ -1387,16 +1386,16 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_connect": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`connect` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("connect", len(args), 3, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `connect` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("connect", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `connect` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("connect", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.STRING_OBJ {
-				return newError("argument 3 to `connect` should be STRING. got=%s", args[2].Type())
+				return newPositionalTypeError("connect", 3, object.STRING_OBJ, args[2].Type())
 			}
 			transport := strings.ToLower(args[0].(*object.Stringo).Value)
 			addr := args[1].(*object.Stringo).Value
@@ -1414,16 +1413,16 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_listen": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`listen` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("listen", len(args), 3, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `listen` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("listen", 1, object.STRING_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `listen` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("listen", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.STRING_OBJ {
-				return newError("argument 3 to `listen` should be STRING. got=%s", args[2].Type())
+				return newPositionalTypeError("listen", 3, object.STRING_OBJ, args[2].Type())
 			}
 			transport := strings.ToLower(args[0].(*object.Stringo).Value)
 			addr := args[1].(*object.Stringo).Value
@@ -1454,10 +1453,10 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_accept": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`accept` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("accept", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `accept` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("accept", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			l, ok := NetTCPServerMap.Get(args[0].(*object.UInteger).Value)
 			if !ok {
@@ -1475,13 +1474,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_net_close": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`net_close` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("net_close", len(args), 2, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `net_close` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("net_close", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `net_close` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("net_close", 2, object.STRING_OBJ, args[1].Type())
 			}
 			id := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
@@ -1666,13 +1665,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_inspect": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newError("`inspect` expects 2 arguments. got=%d", len(args))
+				return newInvalidArgCountError("inspect", len(args), 2, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `inspect` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("inspect", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `inspect` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("inspect", 2, object.STRING_OBJ, args[1].Type())
 			}
 			id := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
@@ -1719,7 +1718,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_new_app": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
-				return newError("`new_app` expects 0 arguments. got=%d", len(args))
+				return newInvalidArgCountError("new_app", len(args), 0, "")
 			}
 			app := app.New()
 			appId := uiAppCount.Add(1)
@@ -1730,22 +1729,22 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_window": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 5 {
-				return newError("`window` expects 5 arguments. got=%d", len(args))
+				return newInvalidArgCountError("window", len(args), 5, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `window` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("window", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.INTEGER_OBJ {
-				return newError("argument 2 to `window` should be INTEGER. got=%s", args[1].Type())
+				return newPositionalTypeError("window", 2, object.INTEGER_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.INTEGER_OBJ {
-				return newError("argument 3 to `window` should be INTEGER. got=%s", args[2].Type())
+				return newPositionalTypeError("window", 3, object.INTEGER_OBJ, args[2].Type())
 			}
 			if args[3].Type() != object.STRING_OBJ {
-				return newError("argument 4 to `window` should be STRING. got=%s", args[3].Type())
+				return newPositionalTypeError("window", 4, object.STRING_OBJ, args[3].Type())
 			}
 			if args[4].Type() != object.UINTEGER_OBJ {
-				return newError("argument 5 to `window` should be UINTEGER. got=%s", args[4].Type())
+				return newPositionalTypeError("window", 5, object.UINTEGER_OBJ, args[4].Type())
 			}
 			appId := args[0].(*object.UInteger).Value
 			width := args[1].(*object.Integer).Value
@@ -1770,10 +1769,10 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_label": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`label` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("label", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return newError("argument 1 to `label` should be STRING. got=%s", args[0].Type())
+				return newPositionalTypeError("label", 1, object.STRING_OBJ, args[0].Type())
 			}
 			label := args[0].(*object.Stringo).Value
 			labelId := uiCanvasObjectCount.Add(1)
@@ -1785,10 +1784,10 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_row": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`row` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("row", len(args), 1, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument 1 to `row` should be LIST. got=%s", args[0].Type())
+				return newPositionalTypeError("row", 1, object.LIST_OBJ, args[0].Type())
 			}
 			elements := args[0].(*object.List).Elements
 			canvasObjects := make([]fyne.CanvasObject, len(elements))
@@ -1812,10 +1811,10 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_col": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`col` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("col", len(args), 1, "")
 			}
 			if args[0].Type() != object.LIST_OBJ {
-				return newError("argument 1 to `col` should be LIST. got=%s", args[0].Type())
+				return newPositionalTypeError("col", 1, object.LIST_OBJ, args[0].Type())
 			}
 			elements := args[0].(*object.List).Elements
 			canvasObjects := make([]fyne.CanvasObject, len(elements))
@@ -1839,10 +1838,10 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_entry": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`entry` expects 1 arguments. got=%d", len(args))
+				return newInvalidArgCountError("entry", len(args), 1, "")
 			}
 			if args[0].Type() != object.BOOLEAN_OBJ {
-				return newError("argument 1 to `entry` should be BOOLEAN. got=%s", args[0].Type())
+				return newPositionalTypeError("entry", 1, object.BOOLEAN_OBJ, args[0].Type())
 			}
 			isMultiline := args[0].(*object.Boolean).Value
 			var entry *widget.Entry
@@ -1859,10 +1858,10 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_entry_get_text": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return newError("`entry_get_text` expects 1 argument. got=%d", len(args))
+				return newInvalidArgCountError("entry_get_text", len(args), 1, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `entry_get_text` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("entry_get_text", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			entryId := args[0].(*object.UInteger).Value
 			entry, ok := UICanvasObjectMap.Get(entryId)
@@ -1880,16 +1879,16 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_append_form": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
-				return newError("`append_form` expects 3 arguments. got=%d", len(args))
+				return newInvalidArgCountError("append_form", len(args), 3, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
-				return newError("argument 1 to `append_form` should be UINTEGER. got=%s", args[0].Type())
+				return newPositionalTypeError("append_form", 1, object.UINTEGER_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
-				return newError("argument 2 to `append_form` should be STRING. got=%s", args[1].Type())
+				return newPositionalTypeError("append_form", 2, object.STRING_OBJ, args[1].Type())
 			}
 			if args[2].Type() != object.UINTEGER_OBJ {
-				return newError("argument 3 to `append_form` should be UINTEGER. got=%s", args[2].Type())
+				return newPositionalTypeError("append_form", 3, object.UINTEGER_OBJ, args[2].Type())
 			}
 			formId := args[0].(*object.UInteger).Value
 			maybeForm, ok := UICanvasObjectMap.Get(formId)
