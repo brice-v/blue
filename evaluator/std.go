@@ -1516,8 +1516,8 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"_net_read": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 3 {
-				return newInvalidArgCountError("net_read", len(args), 3, "")
+			if len(args) != 4 {
+				return newInvalidArgCountError("net_read", len(args), 4, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
 				return newPositionalTypeError("net_read", 1, object.UINTEGER_OBJ, args[0].Type())
