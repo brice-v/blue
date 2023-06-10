@@ -10,6 +10,9 @@ var CoreFile string
 //go:embed std/*
 var stdFs embed.FS
 
+//go:embed web/*
+var WebEmbedFiles embed.FS
+
 func ReadStdFileToString(fname string) string {
 	bs, err := stdFs.ReadFile("std/" + fname)
 	if err != nil {

@@ -242,8 +242,8 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"_serve": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("serve", len(args), 2, "")
+			if len(args) != 3 {
+				return newInvalidArgCountError("serve", len(args), 3, "")
 			}
 			if args[0].Type() != object.UINTEGER_OBJ {
 				return newPositionalTypeError("serve", 1, object.UINTEGER_OBJ, args[0].Type())
@@ -251,10 +251,14 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("serve", 2, object.STRING_OBJ, args[1].Type())
 			}
+			if args[2].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("seve", 3, object.BOOLEAN_OBJ, args[2].Type())
+			}
 			app, ok := ServerMap.Get(args[0].(*object.UInteger).Value)
 			if !ok {
 				return newError("`serve` could not find Server Object")
 			}
+			useEmbeddedTwindAndPreact := args[2].(*object.Boolean).Value
 			addrPort := args[1].(*object.Stringo).Value
 			signal.Notify(c, os.Interrupt)
 			go func() {
@@ -262,6 +266,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				fmt.Println("Interupt... Shutting down http server")
 				_ = app.Shutdown()
 			}()
+			if useEmbeddedTwindAndPreact {
+				sub, err := fs.Sub(lib.WebEmbedFiles, "web")
+				if err != nil {
+					return newError("`serve` error: %s", err.Error())
+				}
+				app.Use("/", filesystem.New(filesystem.Config{Root: http.FS(sub)}))
+			}
 			// nil here means use the default server mux (ie. things that were http.HandleFunc's)
 			err := app.Listen(addrPort)
 			if err != nil {

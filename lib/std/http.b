@@ -111,7 +111,7 @@ fun delete(url, full_resp=false) {
     fetch(url, options, full_resp=full_resp)
 }
 
-fun serve(addr_port="localhost:3001") {
+fun serve(addr_port="localhost:3001", use_embedded_twind_and_preact=true) {
     ## `serve` will start up the _server in http on the given
     ## address and port.
     ##
@@ -121,8 +121,8 @@ fun serve(addr_port="localhost:3001") {
     ## other http module functions will operate on this
     ## open server object.
     ##
-    ## serve(addr_port: str='localhost:3001') -> null
-    __serve(_server, addr_port)
+    ## serve(addr_port: str='localhost:3001', use_embedded_twind_and_preact: bool=true) -> null
+    __serve(_server, addr_port, use_embedded_twind_and_preact)
 }
 
 fun handle(pattern, fn, method="GET") {
