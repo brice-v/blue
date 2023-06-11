@@ -24,6 +24,8 @@ to eventually compile the language to `go` which could improve its speed?!
 
 - go1.19 required
   - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
+- C Compiler
+  - `brew install gcc` or `scoop install gcc`
 - Install deps for [fyne](https://fyne.io)
 - make sure no errors with `go build`
   - [had this error on mint](https://stackoverflow.com/questions/65387167/glfw-pkg-config-error-when-building-a-fyne-app)
