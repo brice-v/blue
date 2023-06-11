@@ -271,7 +271,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err != nil {
 					return newError("`serve` error: %s", err.Error())
 				}
-				app.Use("/", filesystem.New(filesystem.Config{Root: http.FS(sub)}))
+				app.Use(filesystem.New(filesystem.Config{Root: http.FS(sub)}))
 			}
 			// nil here means use the default server mux (ie. things that were http.HandleFunc's)
 			err := app.Listen(addrPort)

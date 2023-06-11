@@ -29,8 +29,6 @@ assert(true);
 #println(help(on_this));
 
 
-# TODO: So what we MAYBE could do is 'quote' it like we do for spawn?
-# - maybe the default for help() could be returing the module's help?
 import config
 val config_help = help(config);
 println(config_help);

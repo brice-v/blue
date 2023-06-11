@@ -148,7 +148,9 @@ func New(config ...Config) fiber.Handler {
 		}
 		if err != nil {
 			if os.IsNotExist(err) {
-				return c.Status(fiber.StatusNotFound).Next()
+				// TODO: When set to fiber.StatusNotFound this would always fail even when the content was found
+				// TODO: Figure out exactly what causes this (maybe the fact that we have 2 filesystem components (for app.Use))
+				return c.Next()
 			}
 			return fmt.Errorf("failed to open: %w", err)
 		}

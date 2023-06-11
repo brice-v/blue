@@ -121,6 +121,11 @@ fun serve(addr_port="localhost:3001", use_embedded_twind_and_preact=true) {
     ## other http module functions will operate on this
     ## open server object.
     ##
+    ## use_embedded_twind_and_preact is set to true by default and allows the use
+    ## of an embedded copy of both files
+    ##    Example for twind: <script src="twind.js"></script> in <head> tag
+    ##    Example for preact: import { html, render } from './preact.js' (in mjs files/modules)
+    ##
     ## serve(addr_port: str='localhost:3001', use_embedded_twind_and_preact: bool=true) -> null
     __serve(_server, addr_port, use_embedded_twind_and_preact)
 }
