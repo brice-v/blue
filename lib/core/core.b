@@ -386,7 +386,6 @@ fun to_bytes(str_to_convert, is_hex=false) {
     ##
     ## to_bytes(str_to_convert: str, is_hex: bool=false) -> bytes
     if (is_hex) {
-        # TODO: Make this work first, then make it more like js (or more like python)
         from crypto import {decode}
         return decode(str_to_convert, as_bytes=true);
     } else {

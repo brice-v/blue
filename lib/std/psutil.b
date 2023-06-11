@@ -124,8 +124,6 @@ fun _disk_usage_to_map(path) {
     __disk_usage(path).from_json()
 }
 
-# TODO: Add docs for these at the top of the module
-
 val cpu = {
     percent: _cpu_usage_percent,
     info: _cpu_info_json_to_map(),

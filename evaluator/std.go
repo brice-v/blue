@@ -25,6 +25,7 @@ import (
 	"hash"
 	"io"
 	"io/fs"
+	"math"
 	mr "math/rand"
 	"net"
 	"net/http"
@@ -916,75 +917,736 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: mr.Float64()}
 		},
 	},
-	// "_abs": {},
-	// TODO: Do we need to / want to support BigFloat/BigDecimal as well? with whatever is there
-	// func Abs(x float64) float64
-	// func Acos(x float64) float64
-	// func Acosh(x float64) float64
-	// func Asin(x float64) float64
-	// func Asinh(x float64) float64
-	// func Atan(x float64) float64
-	// func Atan2(y, x float64) float64
-	// func Atanh(x float64) float64
-	// func Cbrt(x float64) float64
-	// func Ceil(x float64) float64
-	// func Copysign(f, sign float64) float64
-	// func Cos(x float64) float64
-	// func Cosh(x float64) float64
-	// func Dim(x, y float64) float64
-	// func Erf(x float64) float64
-	// func Erfc(x float64) float64
-	// func Erfcinv(x float64) float64
-	// func Erfinv(x float64) float64
-	// func Exp(x float64) float64
-	// func Exp2(x float64) float64
-	// func Expm1(x float64) float64
-	// func FMA(x, y, z float64) float64
-	// func Float32bits(f float32) uint32
-	// func Float32frombits(b uint32) float32
-	// func Float64bits(f float64) uint64
-	// func Float64frombits(b uint64) float64
-	// func Floor(x float64) float64
-	// func Frexp(f float64) (frac float64, exp int)
-	// func Gamma(x float64) float64
-	// func Hypot(p, q float64) float64
-	// func Ilogb(x float64) int
-	// func Inf(sign int) float64
-	// func IsInf(f float64, sign int) bool
-	// func IsNaN(f float64) (is bool)
-	// func J0(x float64) float64
-	// func J1(x float64) float64
-	// func Jn(n int, x float64) float64
-	// func Ldexp(frac float64, exp int) float64
-	// func Lgamma(x float64) (lgamma float64, sign int)
-	// func Log(x float64) float64
-	// func Log10(x float64) float64
-	// func Log1p(x float64) float64
-	// func Log2(x float64) float64
-	// func Logb(x float64) float64
-	// func Max(x, y float64) float64
-	// func Min(x, y float64) float64
-	// func Mod(x, y float64) float64
-	// func Modf(f float64) (int float64, frac float64)
-	// func NaN() float64
-	// func Nextafter(x, y float64) (r float64)
-	// func Nextafter32(x, y float32) (r float32)
-	// func Pow(x, y float64) float64
-	// func Pow10(n int) float64
-	// func Remainder(x, y float64) float64
-	// func Round(x float64) float64
-	// func RoundToEven(x float64) float64
-	// func Signbit(x float64) bool
-	// func Sin(x float64) float64
-	// func Sincos(x float64) (sin, cos float64)
-	// func Sinh(x float64) float64
-	// func Sqrt(x float64) float64
-	// func Tan(x float64) float64
-	// func Tanh(x float64) float64
-	// func Trunc(x float64) float64
-	// func Y0(x float64) float64
-	// func Y1(x float64) float64
-	// func Yn(n int, x float64) float64
+	"_NaN": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("NaN", len(args), 0, "")
+			}
+			return &object.Float{Value: math.NaN()}
+		},
+	},
+	"acos": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("acos", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("acos", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Acos(x)}
+		},
+	},
+	"acosh": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("acosh", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("acosh", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Acosh(x)}
+		},
+	},
+	"asin": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("asin", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("asin", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Asin(x)}
+		},
+	},
+	"asinh": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("asinh", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("asinh", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Asinh(x)}
+		},
+	},
+	"atan": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("atan", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("atan", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Atan(x)}
+		},
+	},
+	"atan2": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("atan2", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("atan2", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("atan2", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			x := args[0].(*object.Float).Value
+			y := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Atan2(x, y)}
+		},
+	},
+	"atanh": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("atanh", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("atanh", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Atanh(x)}
+		},
+	},
+	"cbrt": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("cbrt", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("cbrt", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Cbrt(x)}
+		},
+	},
+	"ceil": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("ceil", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("ceil", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Ceil(x)}
+		},
+	},
+	"copysign": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("copysign", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("copysign", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("copysign", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			f := args[0].(*object.Float).Value
+			sign := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Copysign(f, sign)}
+		},
+	},
+	"cos": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("cos", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("cos", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Cos(x)}
+		},
+	},
+	"cosh": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("cosh", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("cosh", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Cosh(x)}
+		},
+	},
+	"dim": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("dim", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("dim", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("dim", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			x := args[0].(*object.Float).Value
+			y := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Dim(x, y)}
+		},
+	},
+	"erf": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("erf", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("erf", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Erf(x)}
+		},
+	},
+	"erfc": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("erfc", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("erfc", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Erfc(x)}
+		},
+	},
+	"erfcinv": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("erfcinv", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("erfcinv", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Erfcinv(x)}
+		},
+	},
+	"erfinv": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("erfinv", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("erfinv", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Erfinv(x)}
+		},
+	},
+	"exp": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("exp", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("exp", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Exp(x)}
+		},
+	},
+	"exp2": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("exp2", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("exp2", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Exp2(x)}
+		},
+	},
+	"expm1": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("expm1", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("expm1", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Expm1(x)}
+		},
+	},
+	"fma": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("fma", len(args), 3, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("fma", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("fma", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("fma", 3, object.FLOAT_OBJ, args[2].Type())
+			}
+			x := args[0].(*object.Float).Value
+			y := args[1].(*object.Float).Value
+			z := args[2].(*object.Float).Value
+			return &object.Float{Value: math.FMA(x, y, z)}
+		},
+	},
+	"floor": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("floor", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("floor", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Floor(x)}
+		},
+	},
+	"frexp": {Fun: func(args ...object.Object) object.Object {
+		if len(args) != 1 {
+			return newInvalidArgCountError("frexp", len(args), 1, "")
+		}
+		if args[0].Type() != object.FLOAT_OBJ {
+			return newPositionalTypeError("frexp", 1, object.FLOAT_OBJ, args[0].Type())
+		}
+		frac, exp := math.Frexp(args[0].(*object.Float).Value)
+		mapObj := object.NewOrderedMap[string, object.Object]()
+		mapObj.Set("frac", &object.Float{Value: frac})
+		mapObj.Set("exp", &object.Integer{Value: int64(exp)})
+		return object.CreateMapObjectForGoMap(*mapObj)
+	}},
+	"gamma": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("gamma", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("gamma", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Gamma(x)}
+		},
+	},
+	"hypot": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("hypot", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("hypot", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("hypot", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			p := args[0].(*object.Float).Value
+			q := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Hypot(p, q)}
+		},
+	},
+	"ilogb": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("ilogb", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("ilogb", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Integer{Value: int64(math.Ilogb(x))}
+		},
+	},
+	"inf": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("inf", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("inf", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			sign := args[0].(*object.Integer).Value
+			return &object.Float{Value: math.Inf(int(sign))}
+		},
+	},
+	"is_inf": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("is_inf", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("is_inf", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("is_inf", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			f := args[0].(*object.Float).Value
+			sign := int(args[1].(*object.Integer).Value)
+			return &object.Boolean{Value: math.IsInf(f, sign)}
+		},
+	},
+	"is_NaN": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("is_NaN", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("is_NaN", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			f := args[0].(*object.Float).Value
+			return &object.Boolean{Value: math.IsNaN(f)}
+		},
+	},
+	"j0": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("j0", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("j0", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.J0(x)}
+		},
+	},
+	"j1": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("j1", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("j1", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.J1(x)}
+		},
+	},
+	"jn": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("jn", len(args), 2, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("jn", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("jn", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			n := int(args[0].(*object.Integer).Value)
+			x := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Jn(n, x)}
+		},
+	},
+	"ldexp": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("ldexp", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("ldexp", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("ldexp", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			frac := args[0].(*object.Float).Value
+			exp := int(args[1].(*object.Integer).Value)
+			return &object.Float{Value: math.Ldexp(frac, exp)}
+		},
+	},
+	"lgamma": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("lgamma", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("lgamma", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			lgamma, sign := math.Lgamma(args[0].(*object.Float).Value)
+			mapObj := object.NewOrderedMap[string, object.Object]()
+			mapObj.Set("lgamma", &object.Float{Value: lgamma})
+			mapObj.Set("sign", &object.Integer{Value: int64(sign)})
+			return object.CreateMapObjectForGoMap(*mapObj)
+		},
+	},
+	"log": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("log", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("log", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Log(x)}
+		},
+	},
+	"log10": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("log10", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("log10", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Log10(x)}
+		},
+	},
+	"log1p": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("log1p", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("log1p", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Log1p(x)}
+		},
+	},
+	"log2": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("log2", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("log2", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Log2(x)}
+		},
+	},
+	"logb": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("logb", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("logb", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Logb(x)}
+		},
+	},
+	"mod": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("mod", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("mod", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("mod", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			x := args[0].(*object.Float).Value
+			y := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Mod(x, y)}
+		},
+	},
+	"modf": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("modf", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("modf", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			i, frac := math.Modf(args[0].(*object.Float).Value)
+			mapObj := object.NewOrderedMap[string, object.Object]()
+			mapObj.Set("i", &object.Integer{Value: int64(i)})
+			mapObj.Set("frac", &object.Float{Value: frac})
+			return object.CreateMapObjectForGoMap(*mapObj)
+		},
+	},
+	"next_after": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("next_after", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("next_after", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("next_after", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			x := args[0].(*object.Float).Value
+			y := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Nextafter(x, y)}
+		},
+	},
+	"remainder": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("remainder", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("remainder", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("remainder", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			x := args[0].(*object.Float).Value
+			y := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Remainder(x, y)}
+		},
+	},
+	"round": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("round", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("round", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Round(x)}
+		},
+	},
+	"round_to_even": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("round_to_even", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("round_to_even", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.RoundToEven(x)}
+		},
+	},
+	"signbit": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("signbit", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("signbit", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Boolean{Value: math.Signbit(x)}
+		},
+	},
+	"sin": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("sin", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("sin", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Sin(x)}
+		},
+	},
+	"sincos": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("sincos", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("sincos", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			sin, cos := math.Sincos(args[0].(*object.Float).Value)
+			mapObj := object.NewOrderedMap[string, object.Object]()
+			mapObj.Set("sin", &object.Float{Value: sin})
+			mapObj.Set("cos", &object.Float{Value: cos})
+			return object.CreateMapObjectForGoMap(*mapObj)
+		},
+	},
+	"sinh": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("sinh", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("sinh", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Sinh(x)}
+		},
+	},
+	"tan": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("tan", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("tan", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Tan(x)}
+		},
+	},
+	"tanh": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("tanh", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("tanh", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Tanh(x)}
+		},
+	},
+	"trunc": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("trunc", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("trunc", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Trunc(x)}
+		},
+	},
+	"y0": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("y0", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("y0", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Y0(x)}
+		},
+	},
+	"y1": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("y1", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("y1", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*object.Float).Value
+			return &object.Float{Value: math.Y1(x)}
+		},
+	},
+	"yn": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("yn", len(args), 2, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("yn", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("yn", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			n := int(args[0].(*object.Integer).Value)
+			x := args[1].(*object.Float).Value
+			return &object.Float{Value: math.Yn(n, x)}
+		},
+	},
 })
 
 var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{

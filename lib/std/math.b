@@ -3,6 +3,8 @@
 ##
 ## e, pi, phi, sqrt2, sqrt_e, sqrt_pi, sqrt_phi, ln2, log2e,
 ## ln10, log10e are all stored as constants currently
+##
+## Note: all math functions implemented in go only really use floats
 
 
 val e = 2.71828182845904523536028747135266249775724709369995957496696763; # https://oeis.org/A001113
@@ -20,6 +22,8 @@ val ln10 = 2.30258509299404568401799145468436420760110148862877297603332790; # h
 val log10e = 1 / ln10;
 
 val __rand = _rand;
+
+val NaN = _NaN();
 
 fun max(x, y) {
     ## `max` will return the max of the 2 numbers passed in

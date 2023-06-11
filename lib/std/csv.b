@@ -1,7 +1,5 @@
 ## csv will allow the user to parse a csv from a string and also write rows
 ## to a string
-##
-## todo: add method to import directly to db (and return db object)
 
 val __parse = _parse;
 val __dump = _dump;
