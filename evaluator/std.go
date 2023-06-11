@@ -1848,19 +1848,24 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"_entry": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
+			if len(args) != 2 {
 				return newInvalidArgCountError("entry", len(args), 1, "")
 			}
 			if args[0].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("entry", 1, object.BOOLEAN_OBJ, args[0].Type())
 			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("entry", 2, object.STRING_OBJ, args[1].Type())
+			}
 			isMultiline := args[0].(*object.Boolean).Value
+			placeholderText := args[1].(*object.Stringo).Value
 			var entry *widget.Entry
 			if isMultiline {
 				entry = widget.NewMultiLineEntry()
 			} else {
 				entry = widget.NewEntry()
 			}
+			entry.SetPlaceHolder(placeholderText)
 			entryId := uiCanvasObjectCount.Add(1)
 			UICanvasObjectMap.Put(entryId, entry)
 			return object.CreateBasicMapObject("ui/entry", entryId)
@@ -1884,6 +1889,32 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.Stringo{Value: x.Text}
 			default:
 				return newError("`entry_get_text` error: entry id did not match entry")
+			}
+		},
+	},
+	"_entry_set_text": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("entry_set_text", len(args), 2, "")
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newPositionalTypeError("entry_set_text", 1, object.UINTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("entry_set_text", 2, object.STRING_OBJ, args[1].Type())
+			}
+			entryId := args[0].(*object.UInteger).Value
+			entry, ok := UICanvasObjectMap.Get(entryId)
+			if !ok {
+				return newError("`entry_set_text` error: could not find ui element")
+			}
+			value := args[1].(*object.Stringo).Value
+			switch x := entry.(type) {
+			case *widget.Entry:
+				x.SetText(value)
+				return NULL
+			default:
+				return newError("`entry_set_text` error: entry id did not match entry")
 			}
 		},
 	},

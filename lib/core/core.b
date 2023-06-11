@@ -254,6 +254,19 @@ fun get_text(obj) {
     }
 }
 
+fun set_text(obj, value) {
+    ##core:ignore
+    match obj {
+        {t: "ui/entry", v: _} => {
+            import ui
+            ui.entry_set_text(obj.v, value)
+        },
+        _ => {
+            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
+        },
+    }
+}
+
 fun substr(s, start=0, end=-1) {
     ##core:ignore
     _substr(s, start, end)

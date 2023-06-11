@@ -26,6 +26,7 @@ val label = _label;
 val __button = _button;
 val __entry = _entry;
 val __entry_get_text = _entry_get_text;
+val __entry_set_text = _entry_set_text;
 val __checkbox = _check_box;
 val __radio_group = _radio_group;
 val __option_select = _option_select;
@@ -112,7 +113,7 @@ fun button(button_label_str, on_click_fun) {
     __button(button_label_str, on_click_fun)
 }
 
-fun entry(is_multiline=false) {
+fun entry(is_multiline=false, placeholder="") {
     ## `entry` is a ui widget that returns an input
     ##
     ## this input can be used with the core method get_text to retrieve the string
@@ -121,7 +122,7 @@ fun entry(is_multiline=false) {
     ## is_multiline is a boolean to determine if the entry should support multiline
     ##
     ## entry(is_multiline: bool=false) -> {t: "ui/entry", v: uint}
-    __entry(is_multiline)
+    __entry(is_multiline, placeholder)
 }
 
 fun entry_get_text(entry_id) {
@@ -133,6 +134,17 @@ fun entry_get_text(entry_id) {
     ##
     ## entry_get_text(entry_id: uint) -> str
     __entry_get_text(entry_id)
+}
+
+fun entry_set_text(entry_id, value) {
+    ## `entry_set_text` set the text for an entry widget
+    ## note: this function should mostly be called with the core function 'set_text'
+    ##
+    ## NOTE: this can only be called on an entry_id belonging to an entry object
+    ## ie. {t: 'ui/entry', v: _}
+    ##
+    ## entry_set_text(entry_id: uint, value: str) -> null
+    __entry_set_text(entry_id, value)
 }
 
 fun checkbox(checkbox_label, on_change_fun) {
