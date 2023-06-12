@@ -1,5 +1,29 @@
 TODO:
 
+- [ ] Spread operator from JS
+- [ ] Ensure destructuring works in more places (possibly update imports to work like they do in JS)
+    - [ ] Aliasing for destructuring
+- [ ] Replace println with just print and pass endln char to builtin (simplifies things a bit)
+- STD Updates:
+    - [ ] Add WebView
+    - [ ] Add plotting library
+    - [ ] Add ML Libs?
+    - [ ] Server Side Events?
+    - [ ] ECSDA support/ pub/priv keys? for crypto
+    - [ ] Date parsing code (this is one of the key missing areas at the moment as mentioned elsewhere in TODO)
+    - [ ] 2d game library
+    - [ ] 3d game library
+    - [ ] UUID somewhere
+    - [ ] TUI (charm.sh?) - maybe even tui game lib?
+    - [ ] Selenium/Playright integration?
+    - [ ] Video/Audio library
+- [ ] DNS resolver function? like the dig cmd
+- [ ] Streams datatype?
+- [ ] Fix up bundler so that if it has the source, it git pulls first
+- [ ] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
+    - [ ] Accept subcmd for gui/browser that specifies what you want to do
+- [ ] Move std lib maps into their own files - just to organize things
+- [ ] Make WS Conn work on net connection?
 - [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
     - Also add `blue test` command to specify file or maybe just run everything
 - [ ] Add some sort of package management with a file like blue.json (or blue.toml)
@@ -10,7 +34,6 @@ TODO:
 - [ ] Store doc comments above var/val statements?
 - [ ] add to_fixed() similar to js
 - [ ] Add formatting options for string interpolation?
-- [ ] read/write for byte buffer? (allow writing bytes - need easy syntax there)
 - [ ] reduce contention in gos.go
 - [ ] open syscall?
 - [ ] go struct to blue map helper function?
@@ -21,14 +44,9 @@ TODO:
 - [ ] allow docs to be served/transformed to md or html
 - [ ] debugger that breaks out into repl
     - debugger statement that pops user into repl with access to variables (then just need a way to exit repl and continue execution)
-- [ ] colorize terminal outputs for errors and other things like that
-- [ ] Allow bundler to specify files/directory and allow them to be opened when called in the embedded context
-    - this will also help with things like http.static() - and serving files from embedded dir
 - still want to have way of starting a blue process like Erlang/Elixr with ways to connect and send over the network, etc.
 - in children, see if we can bind and convert strings to label with binding?
 - [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
-- [-] Make sure continue works with for (x in y) where y is set/list/map
-    - Seems to work fine
 - [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
@@ -37,24 +55,20 @@ TODO:
 - [ ] sort builtin
     - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
 - [ ] Add time related functions (and expand stdlb)
-- [ ] remove lambda or make it easier to use
 - [ ] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
 - [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
 - [ ] Fix STDIN write and reading
     - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add variadic arguments (...)
-- [ ] Use struct{} for set implmentation
 - [ ] Remove uints from working with big floats and ints
     - What does this mean? 
 - [ ] Include shift operators and assignment expressions to other types
 - [ ] Support regex literal in parser and evaluator
     - Might just use a syntax such as `re"[0-9]+"`
-- [ ] Add macro system from monkey
 - [ ] Support string interpolation helper to print out objects
     - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
         - This is sort of related
-- [ ] `this` keyword for map object?
 - [ ] Need way to call go code directly while running (use a go interpreter? or compile on the fly?)
 
 LATER ON:
@@ -85,6 +99,23 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] read/write for byte buffer? (allow writing bytes - need easy syntax there)
+    - This is done, as_bytes=true to read to bytes, or write with bytes
+- [x] Allow bundler to specify files/directory and allow them to be opened when called in the embedded context
+    - this will also help with things like http.static() - and serving files from embedded dir
+    - DONE: We copy all files from the current dir to an embedded dir which makes them accessible to open, read, etc.
+- [x] colorize terminal outputs for errors and other things like that
+    - Should mostly be done
+- [-] remove lambda or make it easier to use
+    - They were made slightly easier to use by no longer requiring curly braces on single line
+- [-] Make sure continue works with for (x in y) where y is set/list/map
+    - Seems to work fine
+- [-] Use struct{} for set implmentation
+    - Not going to do for now
+- [-] Add macro system from monkey
+    - Not going to do this for now
+- [x] `this` keyword for map object?
+    - Not needed because func can use this map inside it
 - [x] Make assignment not work with maps that are initially declared as 'val'
     - This was a bug - now fixed
 - [-] Should we pass in current env when spawning? It would allow globals declared before hand to be copied but not updated
