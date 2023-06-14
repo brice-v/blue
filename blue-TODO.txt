@@ -9,8 +9,6 @@ TODO:
 - [ ] See if we can add streams properly as its own object type?
 - [ ] Add plotting lib like matplot lib?
 - [ ] Make `from` look more like js rather than python
-- [ ] Finish up wasm implementation once wazero is 1.0
-    - [ ] Need to be able to call easily (like its from js)
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Add help strings for all builtins that start with underscore
 - [ ] Decorators?
@@ -22,8 +20,8 @@ TODO:
     - https://github.com/gobwas/ws (for use in net/tcp ws lib)
     - https://github.com/hajimehoshi/ebiten
     - https://github.com/playwright-community/playwright-go
-    - https://github.com/huandu/xstrings
-    - https://github.com/golang-module/carbon
+    [-] https://github.com/huandu/xstrings
+    [-] https://github.com/golang-module/carbon (partially added)
     - https://github.com/iancmcc/bingo
     - https://github.com/theckman/yacspin
     - https://github.com/cheynewallace/tabby
@@ -134,6 +132,9 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [-] Finish up wasm implementation once wazero is 1.0
+    - [-] Need to be able to call easily (like its from js)
+    - Not going to do this for now
 - [x] read/write for byte buffer? (allow writing bytes - need easy syntax there)
     - This is done, as_bytes=true to read to bytes, or write with bytes
 - [x] Allow bundler to specify files/directory and allow them to be opened when called in the embedded context

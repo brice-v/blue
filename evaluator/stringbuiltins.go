@@ -4,6 +4,8 @@ import (
 	"blue/object"
 	"bytes"
 	"strings"
+
+	"github.com/huandu/xstrings"
 )
 
 func createStringList(input []string) []object.Object {
@@ -325,6 +327,26 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "index_of('Hello', 'ell') => 1",
 		}.String(),
+	},
+	"_center": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("center", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("center", 1, object.STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("center", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("center", 3, object.STRING_OBJ, args[2].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			length := int(args[1].(*object.Integer).Value)
+			pad := args[2].(*object.Stringo).Value
+			return &object.Stringo{Value: xstrings.Center(s, length, pad)}
+		},
 	},
 	// TODO: We can probably create a solid regex object to use in the string methods
 	// "test": {

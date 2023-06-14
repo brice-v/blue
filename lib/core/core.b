@@ -272,6 +272,11 @@ fun substr(s, start=0, end=-1) {
     _substr(s, start, end)
 }
 
+fun center(s, length, pad=" ") {
+    ##core:ignore
+    _center(s, length, pad)
+}
+
 fun go_metrics(flat=false) {
     ##core:ignore
     # flat implies that we just want each metric path as its own key
