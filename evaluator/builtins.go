@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gobuffalo/plush"
+	"github.com/google/uuid"
 	"github.com/gookit/color"
 	clone "github.com/huandu/go-clone"
 	"github.com/shopspring/decimal"
@@ -1564,6 +1565,14 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				KVMap.Put(topic, m)
 				return NULL
 			}
+		},
+	},
+	"_new_uuid": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("new_uuid", len(args), 0, "")
+			}
+			return &object.Stringo{Value: uuid.NewString()}
 		},
 	},
 })

@@ -393,7 +393,6 @@ fun to_bytes(str_to_convert, is_hex=false) {
     }
 }
 
-
 val KV = {
     put: _kv_put,
     get: _kv_get,
@@ -406,3 +405,7 @@ val pubsub = {
     broadcast: _broadcast,
     get_subscriber_count: _get_subscriber_count,
 };
+
+val uuid = {
+    new: _new_uuid,
+}
