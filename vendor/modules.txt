@@ -225,6 +225,9 @@ github.com/gofrs/uuid
 github.com/goki/freetype
 github.com/goki/freetype/raster
 github.com/goki/freetype/truetype
+# github.com/golang-module/carbon/v2 v2.2.3
+## explicit; go 1.16
+github.com/golang-module/carbon/v2
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru

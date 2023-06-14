@@ -11,6 +11,7 @@ require (
 	github.com/gobuffalo/plush v3.8.3+incompatible
 	github.com/gofiber/fiber/v2 v2.45.0
 	github.com/gofiber/websocket/v2 v2.1.6
+	github.com/golang-module/carbon/v2 v2.2.3
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.5.3
 	github.com/gookit/config/v2 v2.2.1

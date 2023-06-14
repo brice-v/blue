@@ -46,6 +46,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/websocket/v2"
+	"github.com/golang-module/carbon/v2"
 	"github.com/gookit/color"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/ini"
@@ -589,7 +590,40 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("now", len(args), 0, "")
 			}
-			return &object.Integer{Value: time.Now().UnixNano()}
+			return &object.Integer{Value: time.Now().UnixMilli()}
+		},
+	},
+	"_parse": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("parse", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("parse", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Integer{Value: carbon.Parse(s).ToStdTime().UnixMilli()}
+		},
+	},
+	"_to_str": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("to_str", len(args), 2, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("to_str", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("to_str", 2, "STRING or NULL", args[1].Type())
+			}
+			i := args[0].(*object.Integer).Value
+			tm := time.UnixMilli(i)
+			if args[1].Type() == object.STRING_OBJ {
+				tz := args[1].(*object.Stringo).Value
+				return &object.Stringo{Value: carbon.FromStdTime(tm).ToDateTimeMilliString(tz)}
+			} else {
+				return &object.Stringo{Value: carbon.FromStdTime(tm).ToDateTimeMilliString()}
+			}
 		},
 	},
 })
