@@ -277,6 +277,16 @@ fun center(s, length, pad=" ") {
     _center(s, length, pad)
 }
 
+fun ljust(s, length, pad=" ") {
+    ##core:ignore
+    _ljust(s, length, pad)
+}
+
+fun rjust(s, length, pad=" ") {
+    ##core:ignore
+    _rjust(s, length, pad)
+}
+
 fun go_metrics(flat=false) {
     ##core:ignore
     # flat implies that we just want each metric path as its own key

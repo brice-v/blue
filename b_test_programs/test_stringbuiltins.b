@@ -17,3 +17,23 @@ val z = "12312#{hello}12312";
 val centered_with_123_hello = hello.center(15, "123");
 assert(len(z) == len(centered_with_123_hello));
 assert(z == centered_with_123_hello);
+
+val right_justified = "     HELLO";
+assert(hello.rjust(10) == right_justified);
+val left_justified = "HELLO     ";
+assert(hello.ljust(10) == left_justified);
+
+val right_justified1 = "12312HELLO";
+assert(hello.rjust(10, pad="123") == right_justified1);
+val left_justified1 = "HELLO12312";
+assert(hello.ljust(10, "123") == left_justified1);
+
+val padded_lr_hello = " #{hello} ";
+assert(padded_lr_hello.rstrip() == " #{hello}");
+assert(padded_lr_hello.lstrip() == "#{hello} ");
+
+assert(hello.reverse() == "OLLEH");
+assert(hello.to_title() == "Hello");
+assert("hello-world".to_camel() == "HelloWorld");
+assert("Hello-World".to_snake() == "hello_world");
+assert("Hello World".to_kebab() == "hello-world");

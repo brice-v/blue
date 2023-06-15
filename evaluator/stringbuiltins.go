@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/huandu/xstrings"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func createStringList(input []string) []object.Object {
@@ -161,6 +163,62 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "strip(' Hello ') => 'Hello'",
 		}.String(),
+	},
+	"lstrip": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 && len(args) != 2 {
+				return newInvalidArgCountError("lstrip", len(args), 1, "or 2")
+			}
+			if len(args) == 1 {
+				arg0, ok := args[0].(*object.Stringo)
+				if !ok {
+					return newPositionalTypeError("lstrip", 1, object.STRING_OBJ, args[0].Type())
+				}
+				str := strings.TrimLeft(arg0.Value, " ")
+				return &object.Stringo{Value: str}
+			}
+			if len(args) == 2 {
+				arg0, ok := args[0].(*object.Stringo)
+				if !ok {
+					return newPositionalTypeError("lstrip", 1, object.STRING_OBJ, args[0].Type())
+				}
+				arg1, ok := args[1].(*object.Stringo)
+				if !ok {
+					return newPositionalTypeError("lstrip", 2, object.STRING_OBJ, args[1].Type())
+				}
+				str := strings.TrimLeft(arg0.Value, arg1.Value)
+				return &object.Stringo{Value: str}
+			}
+			return NULL
+		},
+	},
+	"rstrip": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 && len(args) != 2 {
+				return newInvalidArgCountError("rstrip", len(args), 1, "or 2")
+			}
+			if len(args) == 1 {
+				arg0, ok := args[0].(*object.Stringo)
+				if !ok {
+					return newPositionalTypeError("rstrip", 1, object.STRING_OBJ, args[0].Type())
+				}
+				str := strings.TrimRight(arg0.Value, " ")
+				return &object.Stringo{Value: str}
+			}
+			if len(args) == 2 {
+				arg0, ok := args[0].(*object.Stringo)
+				if !ok {
+					return newPositionalTypeError("rstrip", 1, object.STRING_OBJ, args[0].Type())
+				}
+				arg1, ok := args[1].(*object.Stringo)
+				if !ok {
+					return newPositionalTypeError("rstrip", 2, object.STRING_OBJ, args[1].Type())
+				}
+				str := strings.TrimRight(arg0.Value, arg1.Value)
+				return &object.Stringo{Value: str}
+			}
+			return NULL
+		},
 	},
 	"to_json": {
 		Fun: func(args ...object.Object) object.Object {
@@ -346,6 +404,107 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			length := int(args[1].(*object.Integer).Value)
 			pad := args[2].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.Center(s, length, pad)}
+		},
+	},
+	"_ljust": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("ljust", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("ljust", 1, object.STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("ljust", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("ljust", 3, object.STRING_OBJ, args[2].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			length := int(args[1].(*object.Integer).Value)
+			pad := args[2].(*object.Stringo).Value
+			return &object.Stringo{Value: xstrings.LeftJustify(s, length, pad)}
+		},
+	},
+	"_rjust": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("rjust", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("rjust", 1, object.STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("rjust", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("rjust", 3, object.STRING_OBJ, args[2].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			length := int(args[1].(*object.Integer).Value)
+			pad := args[2].(*object.Stringo).Value
+			return &object.Stringo{Value: xstrings.RightJustify(s, length, pad)}
+		},
+	},
+	"to_title": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_title", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_title", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			caser := cases.Title(language.Und)
+			return &object.Stringo{Value: caser.String(s)}
+		},
+	},
+	"to_kebab": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_kebab", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_kebab", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: xstrings.ToKebabCase(s)}
+		},
+	},
+	"to_camel": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_camel", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_camel", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: xstrings.ToCamelCase(s)}
+		},
+	},
+	"to_snake": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_snake", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_snake", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: xstrings.ToSnakeCase(s)}
+		},
+	},
+	"reverse": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("reverse", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("reverse", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: xstrings.Reverse(s)}
 		},
 	},
 	// TODO: We can probably create a solid regex object to use in the string methods
