@@ -2542,6 +2542,49 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return object.CreateBasicMapObject("ui", vboxId)
 		},
 	},
+	"_grid": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("grid", len(args), 2, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("grid", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("grid", 2, object.STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("grid", 3, object.LIST_OBJ, args[2].Type())
+			}
+			rowsOrCols := int(args[0].(*object.Integer).Value)
+			gridType := args[1].(*object.Stringo).Value
+			if gridType != "COLS" && gridType != "ROWS" {
+				return newError("`grid` error: type must be COLS or ROWS. got=%s", gridType)
+			}
+			elements := args[2].(*object.List).Elements
+			canvasObjects := make([]fyne.CanvasObject, len(elements))
+			for i, e := range elements {
+				if e.Type() != object.UINTEGER_OBJ {
+					return newError("`grid` error: all children should be UINTEGER. found=%s", e.Type())
+				}
+				elemId := e.(*object.UInteger).Value
+				o, ok := UICanvasObjectMap.Get(elemId)
+				if !ok {
+					return newError("`grid` error: could not find ui element")
+				}
+				canvasObjects[i] = o
+			}
+			gridId := uiCanvasObjectCount.Add(1)
+			var grid *fyne.Container
+			if gridType == "ROWS" {
+				grid = container.NewGridWithRows(rowsOrCols, canvasObjects...)
+			} else {
+				grid = container.NewGridWithColumns(rowsOrCols, canvasObjects...)
+			}
+			UICanvasObjectMap.Put(gridId, grid)
+			return object.CreateBasicMapObject("ui", gridId)
+		},
+	},
 	"_entry": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {

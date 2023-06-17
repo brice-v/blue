@@ -21,6 +21,7 @@ val __window = _window;
 # Layout
 val __row = _row;
 val __col = _col;
+val __grid = _grid;
 # Widgets
 val label = _label;
 val __button = _button;
@@ -95,6 +96,32 @@ fun col(children=[]) {
     var ids = [child.v for (child in children)];
     # get the ids of all the child 'canvas object elements' to put into the col
     __col(ids)
+}
+
+val GridType = {
+    COLS: 'COLS',
+    ROWS: 'ROWS'
+};
+fun grid(rowcols, type=GridType.COLS, children=[]) {
+    ## `grid` is a layout function for the ui that accepts a list of layouts/widgets/forms
+    ##
+    ## the layout for children is dependent on the grid type (either GridType.COLS or GridType.ROWS)
+    ## as well as the rowcols value which determins the # of rows, or cols
+    ##
+    ## grid(rowcols: int, type: 'ROWS'|'COLS', children: list[{t: "ui*", v: uint}]=[]) -> {t: "ui", v: uint}
+    if (children.len() == 0) {
+        return error("ui grid: children length should be greater than 0")
+    }
+
+    for (child in children) {
+        if ("ui" notin child.t) {
+            return error("ui grid: found child without 'ui' type, got=#{child}");
+        }
+    }
+
+    var ids = [child.v for (child in children)];
+    # get the ids of all the child 'canvas object elements' to put into the col
+    __grid(rowcols, type, ids)
 }
 
 # Note: Cant use this function as the it will be called first when we do child.label
