@@ -25,7 +25,7 @@ fun hello2(arg1, arg2="aa", arg3, arg4) {
 }
 
 try {
-    hello2("Hello", arg3="SOME", arg4="ANOTHER");
+    hello2("Hello", "SOME", "ANOTHER");
 } catch (e) {
     assert(false, "UNREACHABLE");
 }

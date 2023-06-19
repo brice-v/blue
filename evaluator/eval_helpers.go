@@ -217,6 +217,21 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		if len(args)+defaultParamCount+defaultArgCount < len(fun.Parameters) {
 			return newError("function called without enough arguments")
 		}
+		defaultArgToDefaultParamMap := make(map[string]struct{})
+		for i, k := range fun.Parameters {
+			if len(fun.DefaultParameters) == len(fun.Parameters) {
+				value := fun.DefaultParameters[i]
+				if value != nil {
+					defaultArgToDefaultParamMap[k.Value] = struct{}{}
+				}
+			}
+		}
+		for k := range defaultArgs {
+			if _, ok := defaultArgToDefaultParamMap[k]; !ok {
+				return newError("function called with default argument that is not in default function parameters")
+			}
+		}
+
 		return nil
 	}
 	switch function := fun.(type) {
