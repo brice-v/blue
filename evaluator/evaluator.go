@@ -2488,7 +2488,7 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 		return nativeToBooleanObject(object.HashObject(left) == object.HashObject(right))
 	case operator == "!=":
 		return nativeToBooleanObject(object.HashObject(left) != object.HashObject(right))
-	case operator == "and":
+	case operator == "and" || operator == "&&":
 		leftBool, ok := left.(*object.Boolean)
 		if !ok {
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
@@ -2501,7 +2501,7 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 			return TRUE
 		}
 		return FALSE
-	case operator == "or":
+	case operator == "or" || operator == "||":
 		if left == NULL {
 			// Null coalescing operator returns right side if left is null
 			return right
@@ -3260,7 +3260,7 @@ func (e *Evaluator) evalListIntegerInfixExpression(operator string, left, right 
 
 func (e *Evaluator) evalPrefixExpression(operator string, right object.Object, rightNode ast.Expression) object.Object {
 	switch operator {
-	case "not":
+	case "not", "!":
 		return e.evalNotOperatorExpression(right)
 	case "-":
 		return e.evalMinusPrefixOperatorExpression(right)

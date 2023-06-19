@@ -566,6 +566,47 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: string(htmlContent)}
 		},
 	},
+	"_inspect": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("inspect", len(args), 2, "")
+			}
+			if args[0].Type() != object.UINTEGER_OBJ {
+				return newPositionalTypeError("inspect", 1, object.UINTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("inspect", 2, object.STRING_OBJ, args[1].Type())
+			}
+			id := args[0].(*object.UInteger).Value
+			t := args[1].(*object.Stringo).Value
+			switch t {
+			case "ws":
+				c, ok := WSConnMap.Get(id)
+				if !ok {
+					return newError("`inspect` ws connection not found")
+				}
+				mapObj := object.NewOrderedMap[string, object.Object]()
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				return object.CreateMapObjectForGoMap(*mapObj)
+			case "ws/client":
+				c, ok := WSClientConnMap.Get(id)
+				if !ok {
+					return newError("`inspect` ws/client connection not found")
+				}
+				mapObj := object.NewOrderedMap[string, object.Object]()
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				return object.CreateMapObjectForGoMap(*mapObj)
+			default:
+				return newError("`inspect` expects type of 'ws'")
+			}
+		},
+	},
 })
 
 var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{

@@ -123,7 +123,7 @@ func TestNextToken2(t *testing.T) {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{token.BANG, "!"},
+		{token.NOT, "!"},
 		{token.MINUS, "-"},
 		{token.FSLASH, "/"},
 		{token.STAR, "*"},

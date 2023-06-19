@@ -432,7 +432,7 @@ func (l *Lexer) NextToken() token.Token {
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.NEQ)
 		} else {
-			tok = l.newToken(token.BANG, l.ch)
+			tok = l.newToken(token.NOT, l.ch)
 		}
 	case '-':
 		if l.peekChar() == '=' {
@@ -487,12 +487,16 @@ func (l *Lexer) NextToken() token.Token {
 	case '|':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.OREQ)
+		} else if l.peekChar() == '|' {
+			tok = l.makeTwoCharToken(token.OR)
 		} else {
 			tok = l.newToken(token.PIPE, l.ch)
 		}
 	case '&':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.ANDEQ)
+		} else if l.peekChar() == '&' {
+			tok = l.makeTwoCharToken(token.AND)
 		} else {
 			tok = l.newToken(token.AMPERSAND, l.ch)
 		}

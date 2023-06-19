@@ -27,6 +27,8 @@ val __shutdown_server = _shutdown_server;
 val __md_to_html = _md_to_html;
 val __sanitize_and_minify = _sanitize_and_minify;
 
+val __inspect = _inspect;
+
 fun get(url, full_resp=false) {
     ## `get` is just a call to `fetch` with the given url
     ## it will return the body returned as a string, or null
@@ -270,6 +272,20 @@ fun md_to_html(content) {
     ##
     ## md_to_html(content: str) -> str
     __md_to_html(content)
+}
+
+fun inspect(obj) {
+    ## `inspect` prints out the details of the http object
+    ##
+    ## inspect(obj: {t: 'ws': v: uint}) -> str
+    return match obj {
+        {t: _, v: _} => {
+            __inspect(obj.v, obj.t)
+        },
+        _ => {
+            error("`inspect` expects object")
+        },
+    };
 }
 
 #// TODO: Add other options that need to be handled for http server
