@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"blue/object"
-	"bytes"
 	"strings"
 
 	"github.com/huandu/xstrings"
@@ -225,43 +224,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("to_json", len(args), 1, "")
 			}
-			rootNodeType := args[0].Type()
-			// https://www.w3schools.com/Js/js_json_objects.asp
-			// Keys must be strings, and values must be a valid JSON data type:
-			// string
-			// number
-			// object
-			// array
-			// boolean
-			// null
-			if !isValidJsonValueType(rootNodeType) {
-				return newPositionalTypeError("to_json", 1, "MAP, LIST, NUM, NULL, BOOLEAN", rootNodeType)
-			}
-			switch rootNodeType {
-			case object.MAP_OBJ:
-				mObj := args[0].(*object.Map)
-				ok, err := checkMapObjPairsForValidJsonKeysAndValues(mObj.Pairs)
-				if !ok {
-					return newError("`to_json` error validating MAP object. %s", err.Error())
-				}
-				var buf bytes.Buffer
-				jsonString := generateJsonStringFromValidMapObjPairs(buf, mObj.Pairs)
-				return &object.Stringo{Value: jsonString.String()}
-			case object.LIST_OBJ:
-				lObj := args[0].(*object.List)
-				ok, err := checkListElementsForValidJsonValues(lObj.Elements)
-				if !ok {
-					return newError("`to_json` error validating LIST object. %s", err.Error())
-				}
-				var buf bytes.Buffer
-				jsonString := generateJsonStringFromValidListElements(buf, lObj.Elements)
-				return &object.Stringo{Value: jsonString.String()}
-			default:
-				// We can do this as the default because the arg is verified up above
-				var buf bytes.Buffer
-				jsonString := generateJsonStringFromOtherValidTypes(buf, args[0])
-				return &object.Stringo{Value: jsonString.String()}
-			}
+			return blueObjToJsonObject(args[0])
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`to_json` will return the JSON STRING of the given MAP",

@@ -85,6 +85,30 @@ fun ws_handler(ws) {
     }
 }
 
+fun return_special_json_handler(t) {
+    # t is the type of thing we want to test out
+    match t {
+        "int" => {
+            return 123;
+        },
+        "float" => {
+            return 1.234;
+        },
+        "map" => {
+            return {'hello':123};
+        },
+        "list" => {
+            return [1,2,3];
+        },
+        "null" => {
+            return null;
+        },
+        "bool" => {
+            return true;
+        },
+    };
+}
+
 
 http.handle("/", get_handler, method="GET");
 http.handle_ws("/ws", ws_handler);
@@ -98,6 +122,8 @@ http.handle("/all/:a/:b", all_handler, method="POST");
 http.handle("/all/:a/:b", all_handler, method="PUT");
 http.handle("/all/:a/:b", all_handler, method="PATCH");
 http.handle("/all/:a/:b", all_handler, method="DELETE");
+
+http.handle("/return-json/:t", return_special_json_handler)
 
 http.handle('/redirect', redirect_handler);
 http.handle('/healthcheck', status_handler);

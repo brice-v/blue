@@ -105,6 +105,27 @@ fun main() {
     val expected_resp7 = '<p><b>Hello Someone!</b></p>';
     assert(resp7 == expected_resp7, "Response for get handler with param did not return expected");
 
+
+
+    val test_special_json_case_int = from_json(http.get("http://localhost:3001/return-json/int"));
+    println("test_special_json_case_int = #{test_special_json_case_int}, type(test_special_json_case_int) = #{type(test_special_json_case_int)}")
+    assert(test_special_json_case_int == 123)
+    val test_special_json_case_float = from_json(http.get("http://localhost:3001/return-json/float"));
+    println("test_special_json_case_float = #{test_special_json_case_float}, type(test_special_json_case_float) = #{type(test_special_json_case_float)}")
+    assert(test_special_json_case_float == 1.234)
+    val test_special_json_case_list = from_json(http.get("http://localhost:3001/return-json/list"));
+    println("test_special_json_case_list = #{test_special_json_case_list}, type(test_special_json_case_list) = #{type(test_special_json_case_list)}")
+    assert(test_special_json_case_list == [1,2,3])
+    val test_special_json_case_map = from_json(http.get("http://localhost:3001/return-json/map"));
+    println("test_special_json_case_map = #{test_special_json_case_map}, type(test_special_json_case_map) = #{type(test_special_json_case_map)}")
+    assert(test_special_json_case_map == {'hello':123})
+    val test_special_json_case_null = from_json(http.get("http://localhost:3001/return-json/null"));
+    println("test_special_json_case_null = #{test_special_json_case_null}, type(test_special_json_case_null) = #{type(test_special_json_case_null)}")
+    assert(test_special_json_case_null == null)
+    val test_special_json_case_bool = from_json(http.get("http://localhost:3001/return-json/bool"));
+    println("test_special_json_case_bool = #{test_special_json_case_bool}, type(test_special_json_case_bool) = #{type(test_special_json_case_bool)}")
+    assert(test_special_json_case_bool == true)
+
     val ws = http.new_ws("ws://localhost:3001/ws");
     #for (true) {
         var x = "Sending from Client!";

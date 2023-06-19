@@ -429,6 +429,46 @@ func MakeEmptyList() object.Object {
 	}
 }
 
+func blueObjToJsonObject(obj object.Object) object.Object {
+	rootNodeType := obj.Type()
+	// https://www.w3schools.com/Js/js_json_objects.asp
+	// Keys must be strings, and values must be a valid JSON data type:
+	// string
+	// number
+	// object
+	// array
+	// boolean
+	// null
+	if !isValidJsonValueType(rootNodeType) {
+		return newPositionalTypeError("to_json", 1, "MAP, LIST, NUM, NULL, BOOLEAN", rootNodeType)
+	}
+	switch rootNodeType {
+	case object.MAP_OBJ:
+		mObj := obj.(*object.Map)
+		ok, err := checkMapObjPairsForValidJsonKeysAndValues(mObj.Pairs)
+		if !ok {
+			return newError("`to_json` error validating MAP object. %s", err.Error())
+		}
+		var buf bytes.Buffer
+		jsonString := generateJsonStringFromValidMapObjPairs(buf, mObj.Pairs)
+		return &object.Stringo{Value: jsonString.String()}
+	case object.LIST_OBJ:
+		lObj := obj.(*object.List)
+		ok, err := checkListElementsForValidJsonValues(lObj.Elements)
+		if !ok {
+			return newError("`to_json` error validating LIST object. %s", err.Error())
+		}
+		var buf bytes.Buffer
+		jsonString := generateJsonStringFromValidListElements(buf, lObj.Elements)
+		return &object.Stringo{Value: jsonString.String()}
+	default:
+		// We can do this as the default because the arg is verified up above
+		var buf bytes.Buffer
+		jsonString := generateJsonStringFromOtherValidTypes(buf, obj)
+		return &object.Stringo{Value: jsonString.String()}
+	}
+}
+
 func isValidJsonValueType(t object.Type) bool {
 	return t == object.STRING_OBJ || t == object.INTEGER_OBJ || t == object.UINTEGER_OBJ || t == object.BIG_FLOAT_OBJ || t == object.BIG_INTEGER_OBJ || t == object.FLOAT_OBJ || t == object.NULL_OBJ || t == object.BOOLEAN_OBJ || t == object.MAP_OBJ || t == object.LIST_OBJ
 }

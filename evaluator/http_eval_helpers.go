@@ -136,29 +136,48 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 			return c.Status(fiber.StatusInternalServerError).JSON(errors)
 		}
 	} else {
-		if respObj.Type() != object.STRING_OBJ {
-			errors := getErrorTokenTraceAsJson(e).([]string)
-			errors = append(errors, "STRING NOT RETURNED FROM FUNCTION")
-			return c.Status(fiber.StatusInternalServerError).JSON(errors)
-		}
-		respStr := respObj.(*object.Stringo).Value
-		if json.Valid([]byte(respStr)) {
-			c.Set("Content-Type", "application/json")
-			return c.Send([]byte(respStr))
-		}
-		// If this is a <html></html> snippet being returned then we will manually set
-		// the content type so that other things could be included in the <head>
-		if strings.HasPrefix(strings.TrimLeft(respStr, "\n\r \t"), "<html") {
-			if strings.HasSuffix(strings.TrimRight(respStr, "\n\r \t"), "</html>") {
-				_, err := html.Parse(strings.NewReader(respStr))
-				if err == nil {
-					// This will allow things like <head> to be properly populated
-					c.Set("Content-Type", "text/html")
-					return c.Send([]byte(respStr))
+		if respObj.Type() == object.STRING_OBJ {
+			respStr := respObj.(*object.Stringo).Value
+			log.Printf("respStr = %s", respStr)
+			respStrBs := []byte(respStr)
+			if json.Valid(respStrBs) {
+				c.Set("Content-Type", "application/json")
+				log.Printf("sending as json?")
+				return c.Send(respStrBs)
+			}
+			// If this is a <html></html> snippet being returned then we will manually set
+			// the content type so that other things could be included in the <head>
+			if strings.HasPrefix(strings.TrimLeft(respStr, "\n\r \t"), "<html") {
+				if strings.HasSuffix(strings.TrimRight(respStr, "\n\r \t"), "</html>") {
+					_, err := html.Parse(strings.NewReader(respStr))
+					if err == nil {
+						// This will allow things like <head> to be properly populated
+						c.Set("Content-Type", "text/html")
+						return c.Send(respStrBs)
+					}
 				}
 			}
+			return c.Format(respStr)
+		} else {
+			// If the value returned here would be a valid JSON root node then we will return it
+			// assuming it all works (ie. if a list - all the values are valid JSON)
+			obj := blueObjToJsonObject(respObj)
+			if obj.Type() == object.ERROR_OBJ {
+				errors := getErrorTokenTraceAsJson(e).([]string)
+				errors = append(errors, "error converting object to JSON")
+				return c.Status(fiber.StatusInternalServerError).JSON(errors)
+			}
+			if respStr, ok := obj.(*object.Stringo); ok {
+				respStrBs := []byte(respStr.Value)
+				if json.Valid(respStrBs) {
+					c.Set("Content-Type", "application/json")
+					return c.Send(respStrBs)
+				}
+			}
+			errors := getErrorTokenTraceAsJson(e).([]string)
+			errors = append(errors, "STRING NOT RETURNED FROM JSON CONVERSION")
+			return c.Status(fiber.StatusInternalServerError).JSON(errors)
 		}
-		return c.Format(respStr)
 	}
 }
 
@@ -257,7 +276,6 @@ func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Functio
 				}
 			}
 		}
-		// TODO: Otherwise check that it is null?
 	}
 	return true, []string{}
 }
@@ -312,7 +330,6 @@ func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]obj
 	return fnArgs, immutableArgs
 }
 
-// TODO: This can be updated in a similar way to how we handled http
 func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
@@ -350,24 +367,47 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 				connCount := wsConnCount.Add(1)
 				WSConnMap.Put(connCount, c)
 				for k, v := range fn.DefaultParameters {
-					if v != nil && fn.Parameters[k].Value == "query_params" {
-						// Handle query_params
-						if v.Type() != object.LIST_OBJ {
-							log.Printf("query_params must be LIST. got=%s", v.Type())
-							return
-						}
-						l := v.(*object.List).Elements
-						for _, elem := range l {
-							if elem.Type() != object.STRING_OBJ {
-								log.Printf("query_params must be LIST of STRINGs. found=%s", elem.Type())
+					isQueryParams := v != nil && fn.Parameters[k].Value == "query_params"
+					isCookies := v != nil && fn.Parameters[k].Value == "cookies"
+					if v != nil {
+						if isQueryParams {
+							// Handle query_params
+							if v.Type() != object.LIST_OBJ {
+								errors := getErrorTokenTraceAsJson(e).([]string)
+								log.Printf("%s\nquery_params must be LIST. got=%s", strings.Join(errors, "\n"), v.Type())
 								return
 							}
-							// Now we know its a list of strings so we can set the variables accordingly for the fn
-							s := elem.(*object.Stringo).Value
-							fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+							l := v.(*object.List).Elements
+							for _, elem := range l {
+								if elem.Type() != object.STRING_OBJ {
+									errors := getErrorTokenTraceAsJson(e).([]string)
+									log.Printf("%s\nquery_params must be LIST of STRINGs. found=%s", strings.Join(errors, "\n"), elem.Type())
+									return
+								}
+								// Now we know its a list of strings so we can set the variables accordingly for the fn
+								s := elem.(*object.Stringo).Value
+								fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+							}
+						} else if isCookies {
+							// Handle cookies
+							if v.Type() != object.LIST_OBJ {
+								errors := getErrorTokenTraceAsJson(e).([]string)
+								log.Printf("%s\ncookies must be LIST. got=%s", strings.Join(errors, "\n"), v.Type())
+								return
+							}
+							l := v.(*object.List).Elements
+							for _, elem := range l {
+								if elem.Type() != object.STRING_OBJ {
+									errors := getErrorTokenTraceAsJson(e).([]string)
+									log.Printf("%s\ncookies must be LIST of STRINGs. found=%s", strings.Join(errors, "\n"), elem.Type())
+									return
+								}
+								// Now we know its a list of strings so we can set the variables accordingly for the fn
+								s := elem.(*object.Stringo).Value
+								fn.Env.Set(s, &object.Stringo{Value: c.Cookies(s)})
+							}
 						}
 					}
-					// TODO: Otherwise check that it is null?
 				}
 				fnArgs := make([]object.Object, len(fn.Parameters))
 				immutableArgs := make([]bool, len(fnArgs))
