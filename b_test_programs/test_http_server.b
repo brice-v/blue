@@ -85,7 +85,7 @@ fun ws_handler(ws) {
     }
 }
 
-fun return_special_json_handler(t) {
+fun return_special_json_handler(t, request) {
     # t is the type of thing we want to test out
     match t {
         "int" => {
@@ -101,7 +101,12 @@ fun return_special_json_handler(t) {
             return [1,2,3];
         },
         "null" => {
-            return null;
+            if (request.method == 'GET') {
+                return null;
+            } else {
+                # null is a special case for all non-GET requests where it just returns statusOk (200)
+                return to_json(null);
+            }
         },
         "bool" => {
             return true;
@@ -124,6 +129,7 @@ http.handle("/all/:a/:b", all_handler, method="PATCH");
 http.handle("/all/:a/:b", all_handler, method="DELETE");
 
 http.handle("/return-json/:t", return_special_json_handler)
+http.handle("/return-json/:t", return_special_json_handler, method="POST")
 
 http.handle('/redirect', redirect_handler);
 http.handle('/healthcheck', status_handler);

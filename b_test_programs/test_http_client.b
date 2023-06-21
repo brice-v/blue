@@ -107,24 +107,43 @@ fun main() {
 
 
 
-    val test_special_json_case_int = from_json(http.get("http://localhost:3001/return-json/int"));
-    println("test_special_json_case_int = #{test_special_json_case_int}, type(test_special_json_case_int) = #{type(test_special_json_case_int)}")
-    assert(test_special_json_case_int == 123)
-    val test_special_json_case_float = from_json(http.get("http://localhost:3001/return-json/float"));
-    println("test_special_json_case_float = #{test_special_json_case_float}, type(test_special_json_case_float) = #{type(test_special_json_case_float)}")
-    assert(test_special_json_case_float == 1.234)
-    val test_special_json_case_list = from_json(http.get("http://localhost:3001/return-json/list"));
-    println("test_special_json_case_list = #{test_special_json_case_list}, type(test_special_json_case_list) = #{type(test_special_json_case_list)}")
-    assert(test_special_json_case_list == [1,2,3])
-    val test_special_json_case_map = from_json(http.get("http://localhost:3001/return-json/map"));
-    println("test_special_json_case_map = #{test_special_json_case_map}, type(test_special_json_case_map) = #{type(test_special_json_case_map)}")
-    assert(test_special_json_case_map == {'hello':123})
-    val test_special_json_case_null = from_json(http.get("http://localhost:3001/return-json/null"));
-    println("test_special_json_case_null = #{test_special_json_case_null}, type(test_special_json_case_null) = #{type(test_special_json_case_null)}")
-    assert(test_special_json_case_null == null)
-    val test_special_json_case_bool = from_json(http.get("http://localhost:3001/return-json/bool"));
-    println("test_special_json_case_bool = #{test_special_json_case_bool}, type(test_special_json_case_bool) = #{type(test_special_json_case_bool)}")
-    assert(test_special_json_case_bool == true)
+    val get_test_special_json_case_int = from_json(http.get("http://localhost:3001/return-json/int"));
+    println("get_test_special_json_case_int = #{get_test_special_json_case_int}, type(get_test_special_json_case_int) = #{type(get_test_special_json_case_int)}")
+    assert(get_test_special_json_case_int == 123)
+    val get_test_special_json_case_float = from_json(http.get("http://localhost:3001/return-json/float"));
+    println("get_test_special_json_case_float = #{get_test_special_json_case_float}, type(get_test_special_json_case_float) = #{type(get_test_special_json_case_float)}")
+    assert(get_test_special_json_case_float == 1.234)
+    val get_test_special_json_case_list = from_json(http.get("http://localhost:3001/return-json/list"));
+    println("get_test_special_json_case_list = #{get_test_special_json_case_list}, type(get_test_special_json_case_list) = #{type(get_test_special_json_case_list)}")
+    assert(get_test_special_json_case_list == [1,2,3])
+    val get_test_special_json_case_map = from_json(http.get("http://localhost:3001/return-json/map"));
+    println("get_test_special_json_case_map = #{get_test_special_json_case_map}, type(get_test_special_json_case_map) = #{type(get_test_special_json_case_map)}")
+    assert(get_test_special_json_case_map == {'hello':123})
+    val get_test_special_json_case_null = from_json(http.get("http://localhost:3001/return-json/null"));
+    println("get_test_special_json_case_null = #{get_test_special_json_case_null}, type(get_test_special_json_case_null) = #{type(get_test_special_json_case_null)}")
+    assert(get_test_special_json_case_null == null)
+    val get_test_special_json_case_bool = from_json(http.get("http://localhost:3001/return-json/bool"));
+    println("get_test_special_json_case_bool = #{get_test_special_json_case_bool}, type(get_test_special_json_case_bool) = #{type(get_test_special_json_case_bool)}")
+    assert(get_test_special_json_case_bool == true)
+
+    val post_test_special_json_case_int = from_json(http.post("http://localhost:3001/return-json/int", ""));
+    println("post_test_special_json_case_int = #{post_test_special_json_case_int}, type(post_test_special_json_case_int) = #{type(post_test_special_json_case_int)}")
+    assert(post_test_special_json_case_int == 123)
+    val post_test_special_json_case_float = from_json(http.post("http://localhost:3001/return-json/float", ""));
+    println("post_test_special_json_case_float = #{post_test_special_json_case_float}, type(post_test_special_json_case_float) = #{type(post_test_special_json_case_float)}")
+    assert(post_test_special_json_case_float == 1.234)
+    val post_test_special_json_case_list = from_json(http.post("http://localhost:3001/return-json/list", ""));
+    println("post_test_special_json_case_list = #{post_test_special_json_case_list}, type(post_test_special_json_case_list) = #{type(post_test_special_json_case_list)}")
+    assert(post_test_special_json_case_list == [1,2,3])
+    val post_test_special_json_case_map = from_json(http.post("http://localhost:3001/return-json/map", ""));
+    println("post_test_special_json_case_map = #{post_test_special_json_case_map}, type(post_test_special_json_case_map) = #{type(post_test_special_json_case_map)}")
+    assert(post_test_special_json_case_map == {'hello':123})
+    val post_test_special_json_case_null = from_json(http.post("http://localhost:3001/return-json/null", ""));
+    println("post_test_special_json_case_null = #{post_test_special_json_case_null}, type(post_test_special_json_case_null) = #{type(post_test_special_json_case_null)}")
+    assert(post_test_special_json_case_null == null)
+    val post_test_special_json_case_bool = from_json(http.post("http://localhost:3001/return-json/bool", ""));
+    println("post_test_special_json_case_bool = #{post_test_special_json_case_bool}, type(post_test_special_json_case_bool) = #{type(post_test_special_json_case_bool)}")
+    assert(post_test_special_json_case_bool == true)
 
     val ws = http.new_ws("ws://localhost:3001/ws");
     #for (true) {

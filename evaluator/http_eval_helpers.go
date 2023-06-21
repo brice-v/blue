@@ -131,6 +131,20 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 		if respObj.Type() == object.NULL_OBJ {
 			return c.SendStatus(fiber.StatusOK)
 		} else {
+			obj := blueObjToJsonObject(respObj)
+			if obj.Type() == object.ERROR_OBJ {
+				errors := getErrorTokenTraceAsJson(e).([]string)
+				errors = append(errors, fmt.Sprintf("%s Response Type is not STRING, valid JSON, or NULL. got=%s", method, obj.Type()))
+				return c.Status(fiber.StatusInternalServerError).JSON(errors)
+			} else {
+				if respStr, ok := obj.(*object.Stringo); ok {
+					respStrBs := []byte(respStr.Value)
+					if json.Valid(respStrBs) {
+						c.Set("Content-Type", "application/json")
+						return c.Send(respStrBs)
+					}
+				}
+			}
 			errors := getErrorTokenTraceAsJson(e).([]string)
 			errors = append(errors, fmt.Sprintf("%s Response Type is not NULL or STRING. got=%s", method, respObj.Type()))
 			return c.Status(fiber.StatusInternalServerError).JSON(errors)

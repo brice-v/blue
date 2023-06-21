@@ -1,8 +1,5 @@
 TODO:
 
-- [x] Feature: If user returns a map in http handler call, try to convert to json by default? (look at processHandlerFn)
-    - If the value cant be converted then return the normal error for expected STRING or NULL (or JSON MAP)
-    - [ ] Specifically only implemented for GET call but maybe we want it for POST/PUT/PATCH/DELETE calls as well?
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
 - [ ] Use swiss map if its better? https://github.com/dolthub/swiss
 - [ ] Add select statement?
@@ -135,6 +132,9 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Feature: If user returns a map in http handler call, try to convert to json by default? (look at processHandlerFn)
+    - If the value cant be converted then return the normal error for expected STRING or NULL (or JSON MAP)
+    - [x] Specifically only implemented for GET call but maybe we want it for POST/PUT/PATCH/DELETE calls as well?
 - [x] BUG: If user submits a default value in call expression that we dont expect, dont panic, instead return error
 - [-] Feature: Add inspect method to check ws conn details (what about other http stuff?)
     - Just added the basic things that net uses as well
