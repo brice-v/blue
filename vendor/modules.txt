@@ -73,6 +73,9 @@ github.com/clbanning/mxj/v2
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/dslipak/pdf v0.0.1
+## explicit
+github.com/dslipak/pdf
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize

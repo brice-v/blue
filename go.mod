@@ -8,6 +8,7 @@ require (
 	github.com/antchfx/htmlquery v1.3.0
 	github.com/chzyer/readline v1.5.1
 	github.com/clbanning/mxj/v2 v2.5.7
+	github.com/dslipak/pdf v0.0.1
 	github.com/gobuffalo/plush v3.8.3+incompatible
 	github.com/gofiber/fiber/v2 v2.45.0
 	github.com/gofiber/websocket/v2 v2.1.6

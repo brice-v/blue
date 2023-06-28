@@ -2,8 +2,10 @@ package evaluator
 
 import (
 	"blue/object"
+	"bytes"
 	"strings"
 
+	"github.com/dslipak/pdf"
 	"github.com/huandu/xstrings"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -468,6 +470,42 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			s := args[0].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.Reverse(s)}
+		},
+	},
+	"pdf_to_text": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("pdf_to_text", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("pdf_to_text", 1, object.STRING_OBJ, args[0].Type())
+			}
+			path := args[0].(*object.Stringo).Value
+			r, err := pdf.Open(path)
+			if err != nil {
+				return newError("`pdf_to_text` error: %s", err.Error())
+			}
+			totalPage := r.NumPage()
+
+			var buf bytes.Buffer
+
+			for pageIndex := 1; pageIndex <= totalPage; pageIndex++ {
+				p := r.Page(pageIndex)
+				if p.V.IsNull() {
+					continue
+				}
+				str, err := p.GetPlainText(nil)
+				if err != nil {
+					continue
+				}
+				buf.WriteString(str)
+				buf.WriteString("\n\n")
+			}
+			s := buf.String()
+			if s == "" {
+				return newError("`pdf_to_text` error: failed to read text from pdf '%s'", path)
+			}
+			return &object.Stringo{Value: buf.String()}
 		},
 	},
 	// TODO: We can probably create a solid regex object to use in the string methods
