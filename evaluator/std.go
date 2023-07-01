@@ -180,6 +180,22 @@ var c = make(chan os.Signal, 1)
 
 // Note: Look at how we import the get function in http.b
 var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_url_encode": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("url_encode", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("url_encode", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			u, err := url.Parse(s)
+			if err != nil {
+				return newError("`url_encode` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: u.String()}
+		},
+	},
 	"_download": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {

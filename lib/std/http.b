@@ -29,6 +29,8 @@ val __sanitize_and_minify = _sanitize_and_minify;
 
 val __inspect = _inspect;
 
+val url_encode = _url_encode;
+
 fun get(url, full_resp=false) {
     ## `get` is just a call to `fetch` with the given url
     ## it will return the body returned as a string, or null
