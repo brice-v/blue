@@ -75,7 +75,7 @@ type Evaluator struct {
 	oneElementForIn   bool
 	doneWithFor       bool
 
-	isInScopeBlock bool
+	isInScopeBlock map[int]bool
 	scopeNestLevel int
 	// scopeVars is the map of scopeNestLevel to the variables that need to be removed
 	scopeVars       map[int][]string
@@ -111,7 +111,7 @@ func New() *Evaluator {
 		oneElementForIn:   false,
 		doneWithFor:       false,
 
-		isInScopeBlock:  false,
+		isInScopeBlock:  make(map[int]bool),
 		scopeNestLevel:  0,
 		scopeVars:       make(map[int][]string),
 		cleanupScopeVar: make(map[string]bool),
@@ -542,7 +542,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			e.ErrorTokens.Push(tok)
 			return newError("'" + name.Value + "' is already defined")
 		}
-		if e.isInScopeBlock {
+		if e.isInScopeBlock[e.scopeNestLevel] {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
 		}
 		if isVal {
@@ -589,7 +589,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			e.ErrorTokens.Push(tok)
 			return newError("'" + name.Value + "' is already defined")
 		}
-		if e.isInScopeBlock {
+		if e.isInScopeBlock[e.scopeNestLevel] {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
 		}
 		if isVal {
@@ -3645,11 +3645,11 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object {
 	var result object.Object
 
-	e.isInScopeBlock = true
 	e.scopeNestLevel++
+	e.isInScopeBlock[e.scopeNestLevel] = true
 
 	defer func() {
-		e.isInScopeBlock = false
+		e.isInScopeBlock[e.scopeNestLevel] = false
 		if vars, ok := e.scopeVars[e.scopeNestLevel]; ok {
 			// Cleanup any temporary for variables
 			for _, v := range vars {
@@ -3662,6 +3662,7 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 				}
 			}
 			delete(e.scopeVars, e.scopeNestLevel)
+			delete(e.isInScopeBlock, e.scopeNestLevel)
 		}
 		e.scopeNestLevel--
 	}()
