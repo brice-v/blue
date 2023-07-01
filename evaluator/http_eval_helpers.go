@@ -121,6 +121,13 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 				return c.Redirect(location, int(code))
 			case "next":
 				return c.Next()
+			case "send_file":
+				path, ok := m["path"].(string)
+				if !ok {
+					err := fmt.Sprintf("http/send_file 'path' must be STRING. got=%T", m["path"])
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				return c.SendFile(path, false)
 			}
 		}
 	}

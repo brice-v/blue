@@ -196,6 +196,34 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: u.String()}
 		},
 	},
+	"_url_escape": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("url_escape", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("url_escape", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			return &object.Stringo{Value: url.QueryEscape(s)}
+		},
+	},
+	"_url_unescape": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("url_unescape", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("url_unescape", 1, object.STRING_OBJ, args[1].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			urlUnescaped, err := url.QueryUnescape(s)
+			if err != nil {
+				return newError("`url_unescape` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: urlUnescaped}
+		},
+	},
 	"_download": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {

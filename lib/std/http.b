@@ -30,6 +30,8 @@ val __sanitize_and_minify = _sanitize_and_minify;
 val __inspect = _inspect;
 
 val url_encode = _url_encode;
+val url_escape = _url_escape;
+val url_unescape = _url_unescape;
 
 fun get(url, full_resp=false) {
     ## `get` is just a call to `fetch` with the given url
@@ -322,6 +324,15 @@ fun next() {
     ##
     ## next() -> {'t':'http/next'}
     {'t': 'http/next'}
+}
+
+fun send_file(path) {
+    ## `send_file` will send the file on the http handler with the proper content-type
+    ## set based on file extension
+    ##
+    ## send_file(path: str) -> {'t':'http/send_file','path': str}
+    assert(type(path) == Type.STRING);
+    {'t': 'http/send_file','path':path}
 }
 
 # TODO: Clear cookie?
