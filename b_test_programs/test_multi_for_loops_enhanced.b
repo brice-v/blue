@@ -16,9 +16,9 @@ for (true) {
 println("after break, i=#{i} (should be 10)");
 
 if (i != 10) {
-    false
+    assert(false);
 } else {
-    true
+    assert(true);
 }
 
 # Testing continue
@@ -38,9 +38,9 @@ for (true) {
 println("after break, i=#{i} (should be 2)");
 
 if (i != 2) {
-    false
+    assert(false);
 } else {
-    true
+    assert(true);
 }
 
 # The above all works so thats good
@@ -75,9 +75,9 @@ for (true) {
 println("LAST LINE HERE #{i}");
 
 if (i != 131) {
-    false
+    assert(false);
 } else {
-    true
+    assert(true);
 }
 
-#true;
+assert(true);

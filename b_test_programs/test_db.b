@@ -13,21 +13,36 @@ val result = x.execute(
     """, [bytes_example, bytes_example]);
 println("execute result = #{result}");
 if (result != {last_insert_id: 2, rows_affected: 2}) {
-    false
+    assert(false)
 }
 
 val result_query_no_named_cols = x.query("select * from t;");
 println("result_query_no_named_cols = #{result_query_no_named_cols}");
-val expected_result_query_no_named_cols = [[42, "Hello", 3.141590, null], [314, "World!", 0.099912, "asf"]];
+val expected_result_query_no_named_cols = [[42, "Hello", 3.141590, null, bytes_example], [314, "World!", 0.099912, "asf", bytes_example]];
 if (result_query_no_named_cols != expected_result_query_no_named_cols) {
-    false
+    assert(false)
 }
+
+val result_query_with_query_params = x.query("select * from t where i = ?;", [42]);
+println("result_query_with_query_params = #{result_query_with_query_params}");
+val expected_result_query_with_query_params = [[42, "Hello", 3.141590, null, bytes_example]];
+assert(result_query_with_query_params == expected_result_query_with_query_params)
+
+val result_query_with_query_params_named_cols = x.query("select * from t where i = ?;", [42], named_cols=true);
+println("result_query_with_query_params = #{result_query_with_query_params}");
+val expected_result_query_with_query_params_named_cols = [{i: 42, a: "Hello", b: 3.141590, c: null, d: bytes_example}];
+assert(result_query_with_query_params_named_cols == expected_result_query_with_query_params_named_cols)
+
+val result_query_with_query_params_default_param = x.query("select * from t where i = ?;", query_args=[42]);
+println("result_query_with_query_params = #{result_query_with_query_params}");
+val expected_result_query_with_query_params_default_param = [[42, "Hello", 3.141590, null, bytes_example]];
+assert(result_query_with_query_params_default_param == expected_result_query_with_query_params_default_param)
 
 val result_query_named_cols = x.query("select * from t;", named_cols=true);
 println("result_query_named_cols = #{result_query_named_cols}");
-val expected_result_query_named_cols = [{i: 42, a: "Hello", b: 3.141590, c: null}, {i: 314, a: "World!", b: 0.099912, c: "asf"}];
+val expected_result_query_named_cols = [{i: 42, a: "Hello", b: 3.141590, c: null, d: bytes_example}, {i: 314, a: "World!", b: 0.099912, c: "asf", d: bytes_example}];
 if (result_query_named_cols != expected_result_query_named_cols) {
-    false
+    assert(false)
 }
 
 println("AFTER QUERY");

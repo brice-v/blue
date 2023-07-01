@@ -13,7 +13,6 @@ TODO:
 - [ ] Add help strings for all builtins that start with underscore
 - [ ] Decorators?
 - [ ] Add middleware for http framework
-- [ ] Add ability to interact with req/ctx from http req - add get res.code for status codes too if possible
 - [ ] Hook in esbuild to do transpiling?
 - [ ] Make a filepath based router?
 - [ ] Look to add the following libraries
@@ -43,10 +42,10 @@ TODO:
     - [ ] Add ML Libs?
     - [ ] Server Side Events?
     - [ ] ECSDA support/ pub/priv keys? for crypto
-    - [ ] Date parsing code (this is one of the key missing areas at the moment as mentioned elsewhere in TODO)
+    - [x] Date parsing code (this is one of the key missing areas at the moment as mentioned elsewhere in TODO)
     - [ ] 2d game library
     - [ ] 3d game library
-    - [ ] UUID somewhere
+    - [x] UUID somewhere
     - [ ] TUI (charm.sh?) - maybe even tui game lib?
     - [ ] Selenium/Playright integration?
     - [ ] Video/Audio library
@@ -132,6 +131,15 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] DONE: Issue was with how we handle default args/params/ and args
+    val query_to_execute = "select * from pdf_index_fts where pdf_index_fts match ? order by rank limit 10;";
+    # TODO: Fix issue where if I didnt type 'query_args=', this would not work
+    val result = db_conn.query(query_to_execute, query_args=[q])
+- [x] Make sure equality will check bytes slices as well because test_db.b is passing even tho blob isnt being checked
+    - DONE: this was working but rather a bug with the testing process (false in an if statement needs to returned)
+- [x] Fix PDF to text to not panic as much, have to pull it into local modules
+    - This doesnt work so I've removed it
+- [x] Add ability to interact with req/ctx from http req - add get res.code for status codes too if possible
 - [x] Feature: If user returns a map in http handler call, try to convert to json by default? (look at processHandlerFn)
     - If the value cant be converted then return the normal error for expected STRING or NULL (or JSON MAP)
     - [x] Specifically only implemented for GET call but maybe we want it for POST/PUT/PATCH/DELETE calls as well?

@@ -1,17 +1,17 @@
 var x = [1,2,3,4,5];
 if (3 notin x) {
-    false
+    assert(false)
 }
 var z = [1.0,2.0,3.0];
 if (3.0 notin z) {
-    false
+    assert(false)
 }
 var y = "Some String"
 if ("Some" notin y) {
-    false
+    assert(false)
 }
 if ("some" in y) {
-    false
+    assert(false)
 }
 
 var abc = {name: "brice", key: "another"}

@@ -313,9 +313,21 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 						argsIndx++
 						continue
 					}
+				} else if !defaultArgGiven && countDefaultParams < len(args) {
+					if argsIndx < len(args) {
+						// This is so if we have an extra arg to set we set it over the default param which happens right below
+						env.Set(param.Value, args[argsIndx])
+						if immutableArgs[argsIndx] {
+							env.ImmutableSet(param.Value)
+						}
+						argsIndx++
+						continue
+					}
 				}
 			}
-			env.Set(param.Value, fun.DefaultParameters[paramIndx])
+			// Saw that this set [] as the ident to a value but I think it was using an incorrect arg - regardless this should work
+			identStr := param.String()
+			env.Set(identStr, fun.DefaultParameters[paramIndx])
 		}
 		setDefaultCallExpressionParameters(defaultArgs, env)
 	}

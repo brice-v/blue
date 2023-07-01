@@ -901,7 +901,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if db, ok := DBMap.Get(i); ok {
 				var rows *sql.Rows
 				var err error
-				if len(l) > 1 {
+				if len(l) >= 1 {
 					execArgs := make([]any, len(l))
 					for idx, e := range l {
 						switch e.Type() {
