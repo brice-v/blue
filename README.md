@@ -43,6 +43,18 @@ to eventually compile the language to `go` which could improve its speed?!
 
 - bundler will only work with ui deps installed (on linux/mac)
   - does not work cross-platform yet for building (gh actions handles it)
+- set `DISABLE_HTTP_SERVER_DEBUG` to `true` to disable http server route/welcome
+  message printing
+  - it will also prevent the stack trace from returning in http request failures
+- set `BLUE_INSTALL_PATH` to the directory where `blue` is installed to
+  - this is used for the bundler currently
+  - if there are no files at the given path `git` will be used to clone the repo
+    there once to cache it
+- set `NO_COLOR` or `BLUE_NO_COLOR` to `true` to disable color printing in the
+  terminal
+- my `BLUE_INSTALL_PATH` is set as `export BLUE_INSTALL_PATH=~/.blue/src`
+- my `blue` exe is located at `~/.blue/bin` with PATH set to
+  `export PATH=$PATH:~/.blue/bin`
 
 ### Features
 
@@ -117,7 +129,7 @@ fun send(obj, value) {
   - `blue bundle my_prog.b` - files should all be in the same directory with 1
     file at the root level
 
-```
+```sh
 blue is a tool for running blue source code
 
 Usage:
@@ -157,18 +169,3 @@ PATH                        add blue to the path variable to access
                             could be added to path with the blue exe
                             inside of it
 ```
-
-#### Notes
-
-- set `DISABLE_HTTP_SERVER_DEBUG` to `true` to disable http server route/welcome
-  message printing
-  - it will also prevent the stack trace from returning in http request failures
-- set `BLUE_INSTALL_PATH` to the directory where `blue` is installed to
-  - this is used for the bundler currently
-  - if there are no files at the given path `git` will be used to clone the repo
-    there once to cache it
-- set `NO_COLOR` or `BLUE_NO_COLOR` to `true` to disable color printing in the
-  terminal
-- my `BLUE_INSTALL_PATH` is set as `export BLUE_INSTALL_PATH=~/.blue/src`
-- my `blue` exe is located at `~/.blue/bin` with PATH set to
-  `export PATH=$PATH:~/.blue/bin`
