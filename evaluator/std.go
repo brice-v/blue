@@ -458,7 +458,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`new_ws` error: %s", err.Error())
 			}
-			// log.Printf("resp = %#v", resp)
 			connId := wsClientConnCount.Add(1)
 			WSClientConnMap.Put(connId, conn)
 			return object.CreateBasicMapObject("ws/client", connId)
@@ -2800,7 +2799,6 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if v, ok := ColorStyleCountMap.Get(key); ok {
 				return object.CreateBasicMapObject("color", v)
 			}
-			// log.Printf("arg1 = %d, arg2 = %d, arg3 = %d", arg1, arg2, arg3)
 			textStyle := color.Color(arg1)
 			fgActualColor := color.Color(arg2)
 			fgColor := fgActualColor.ToFg()
@@ -2811,7 +2809,6 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			bgColorName := bgColor.Name()
 			fgActualColorName := fgActualColor.Name()
 			bgActualColorName := bgActualColor.Name()
-			// log.Printf("textStyle = %s, fgColor = %s (%s), bgColor = %s (%s)", textStyleName, fgColorName, fgActualColorName, bgColorName, bgActualColorName)
 			s := color.New()
 			unknown := "unknown"
 			if textStyleName != unknown {

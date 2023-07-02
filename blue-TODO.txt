@@ -131,6 +131,9 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] FEAT: If any errors happen in an http handler log to stdout? the same way we'd do a normal error (with return trace)
+    - Added this to getErrorTokenTraceAsJson which checks if DISABLE_HTTP_SERVER_DEBUG is disabled or not
+- [x] BUG: Cant reassign immutables when inside of try-catch in for loop
 - [x] DONE: Issue was with how we handle default args/params/ and args
     val query_to_execute = "select * from pdf_index_fts where pdf_index_fts match ? order by rank limit 10;";
     # TODO: Fix issue where if I didnt type 'query_args=', this would not work

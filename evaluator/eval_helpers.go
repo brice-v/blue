@@ -809,6 +809,10 @@ func getErrorTokenTraceAsJson(e *Evaluator) interface{} {
 			firstPart, carat := lexer.GetErrorLineMessageForJson(e.ErrorTokens.PopBack())
 			errors = append(errors, firstPart, carat)
 		}
+		fmt.Println("`http handler` error:")
+		for _, e := range errors {
+			fmt.Printf("%s\n", e)
+		}
 	}
 	return errors
 }

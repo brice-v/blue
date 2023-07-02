@@ -7,8 +7,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -159,11 +160,9 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 	} else {
 		if respObj.Type() == object.STRING_OBJ {
 			respStr := respObj.(*object.Stringo).Value
-			log.Printf("respStr = %s", respStr)
 			respStrBs := []byte(respStr)
 			if json.Valid(respStrBs) {
 				c.Set("Content-Type", "application/json")
-				log.Printf("sending as json?")
 				return c.Send(respStrBs)
 			}
 			// If this is a <html></html> snippet being returned then we will manually set
@@ -352,6 +351,12 @@ func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]obj
 }
 
 func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
+	var disableHttpServerDebug bool
+	disableHttpServerDebugStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
+	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
+	if err != nil {
+		disableHttpServerDebug = false
+	}
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
@@ -394,15 +399,19 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 						if isQueryParams {
 							// Handle query_params
 							if v.Type() != object.LIST_OBJ {
-								errors := getErrorTokenTraceAsJson(e).([]string)
-								log.Printf("%s\nquery_params must be LIST. got=%s", strings.Join(errors, "\n"), v.Type())
+								_ = getErrorTokenTraceAsJson(e)
+								if !disableHttpServerDebug {
+									fmt.Printf("%s`handle_ws` error: query_params must be LIST. got=%s\n", consts.EVAL_ERROR_PREFIX, v.Type())
+								}
 								return
 							}
 							l := v.(*object.List).Elements
 							for _, elem := range l {
 								if elem.Type() != object.STRING_OBJ {
-									errors := getErrorTokenTraceAsJson(e).([]string)
-									log.Printf("%s\nquery_params must be LIST of STRINGs. found=%s", strings.Join(errors, "\n"), elem.Type())
+									_ = getErrorTokenTraceAsJson(e)
+									if !disableHttpServerDebug {
+										fmt.Printf("%s`handle_ws` error: query_params must be LIST of STRINGs. found=%s\n", consts.EVAL_ERROR_PREFIX, elem.Type())
+									}
 									return
 								}
 								// Now we know its a list of strings so we can set the variables accordingly for the fn
@@ -412,15 +421,19 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 						} else if isCookies {
 							// Handle cookies
 							if v.Type() != object.LIST_OBJ {
-								errors := getErrorTokenTraceAsJson(e).([]string)
-								log.Printf("%s\ncookies must be LIST. got=%s", strings.Join(errors, "\n"), v.Type())
+								_ = getErrorTokenTraceAsJson(e)
+								if !disableHttpServerDebug {
+									fmt.Printf("%s`handle_ws` error: cookies must be LIST. got=%s\n", consts.EVAL_ERROR_PREFIX, v.Type())
+								}
 								return
 							}
 							l := v.(*object.List).Elements
 							for _, elem := range l {
 								if elem.Type() != object.STRING_OBJ {
-									errors := getErrorTokenTraceAsJson(e).([]string)
-									log.Printf("%s\ncookies must be LIST of STRINGs. found=%s", strings.Join(errors, "\n"), elem.Type())
+									_ = getErrorTokenTraceAsJson(e)
+									if !disableHttpServerDebug {
+										fmt.Printf("%s`handle_ws` error: cookies must be LIST of STRINGs. found=%s\n", consts.EVAL_ERROR_PREFIX, elem.Type())
+									}
 									return
 								}
 								// Now we know its a list of strings so we can set the variables accordingly for the fn
@@ -449,13 +462,17 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 						tok := e.ErrorTokens.PopBack()
 						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 					}
-					fmt.Printf("%s`handle_ws` return error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+					if !disableHttpServerDebug {
+						fmt.Printf("%s`handle_ws` error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+					}
 				} else {
 					if returnObj == NULL {
 						// Dont need to log if its null - probably no error then
 						return
 					}
-					log.Printf("`handle_ws` returned with %#v", returnObj)
+					if !disableHttpServerDebug {
+						fmt.Printf("%s`handle_ws` returned with %#+v\n", consts.EVAL_ERROR_PREFIX, returnObj)
+					}
 				}
 			})
 			app.Get(pattern, wsHandler)
