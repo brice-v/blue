@@ -68,6 +68,7 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 	consts.InfoPrinter(header + "\n")
 	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
+	replVarIndx := 1
 	for {
 		line, err := rl.Readline()
 		if err != nil {
@@ -104,7 +105,11 @@ func startEvalRepl(in io.Reader, out io.Writer, username string) {
 		evaluated := e.Eval(program)
 
 		if evaluated != nil {
-			io.WriteString(out, "=> ")
+			replVar := fmt.Sprintf("_%d", replVarIndx)
+			e.ReplEnvAdd(replVar, evaluated)
+			replVarIndx++
+			io.WriteString(out, replVar)
+			io.WriteString(out, " => ")
 			io.WriteString(out, evaluated.Inspect())
 			io.WriteString(out, "\n")
 		}

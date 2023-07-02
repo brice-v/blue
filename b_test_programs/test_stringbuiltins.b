@@ -37,3 +37,10 @@ assert(hello.to_title() == "Hello");
 assert("hello-world".to_camel() == "HelloWorld");
 assert("Hello-World".to_snake() == "hello_world");
 assert("Hello World".to_kebab() == "hello-world");
+
+
+val example_string_to_match = "Some odd string with another woRd";
+val regex_to_use = ".*\\swoRd$";
+assert(example_string_to_match.matches(regex_to_use));
+val example_string_to_not_match = "Some odd string with anotherwoRd";
+assert(!example_string_to_not_match.matches(regex_to_use));

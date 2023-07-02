@@ -216,8 +216,6 @@ func prepareAndApplyHttpHandleFn(e *Evaluator, fn *object.Function, c *fiber.Ctx
 		return false, nil, errors
 	}
 	fnArgs, immutableArgs := getAndSetHttpParams(e, fn, c)
-	// TODO: Allow different things to be returned
-	// TODO: Need to figure this out, it should be allowed to return anything Im pretty sure
 	return true, e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs), []string{}
 }
 

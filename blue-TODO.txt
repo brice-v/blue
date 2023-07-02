@@ -31,7 +31,6 @@ TODO:
     - https://github.com/go-echarts/go-echarts
     - https://github.com/gonum/plot
     - https://github.com/benhoyt/goawk
-- [ ] Add $id to repl like its done in jshell
 - [ ] Spread operator from JS
 - [ ] Ensure destructuring works in more places (possibly update imports to work like they do in JS)
     - [ ] Aliasing for destructuring
@@ -131,6 +130,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Add $id to repl like its done in jshell
 - [x] FEAT: If any errors happen in an http handler log to stdout? the same way we'd do a normal error (with return trace)
     - Added this to getErrorTokenTraceAsJson which checks if DISABLE_HTTP_SERVER_DEBUG is disabled or not
 - [x] BUG: Cant reassign immutables when inside of try-catch in for loop

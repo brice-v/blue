@@ -140,6 +140,11 @@ func New() *Evaluator {
 	return e
 }
 
+func (e *Evaluator) ReplEnvAdd(varName string, o object.Object) {
+	e.env.Set(varName, o)
+	e.env.ImmutableSet(varName)
+}
+
 // Eval takes an ast node and returns an object
 func (e *Evaluator) Eval(node ast.Node) object.Object {
 	switch node := node.(type) {

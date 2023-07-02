@@ -6,7 +6,7 @@ val __parse = _parse;
 val __to_str = _to_str;
 
 fun now() {
-    ## `now` returns the current unix timestamp as an int
+    ## `now` returns the current unix timestamp as an int in milliseconds
     ##
     ## now() -> int
     __now()
@@ -20,14 +20,14 @@ fun sleep(ms) {
 }
 
 fun parse(date_time_str) {
-    ## `parse` will parse the string as a date/time and return the unix timestamp as an int
+    ## `parse` will parse the string as a date/time and return the unix timestamp as an int in milliseconds
     ##
     ## parse(date_time_str: str) -> int
     __parse(date_time_str)
 }
 
 fun to_str(time_as_unix_timestamp, timezone=null) {
-    ## `to_str` will take the int unix timestamp and convert it to a human readable date/time string
+    ## `to_str` will take the int unix timestamp in milliseconds and convert it to a human readable date/time string
     ##
     ## to_str(time_as_unix_timestamp: int, timezone: null|str=null) -> str
     __to_str(time_as_unix_timestamp, timezone)
@@ -83,4 +83,13 @@ val timezone = {
     'Darwin': 'Australia/Darwin',
 }
 
-# TODO: Eventually include methods to do operations for things like + 1 day, - 1 month, etc.
+# TODO: Figure out months, weeks, years (maybe needs to be specific function)
+
+# These units are all in milliseconds so they can be added/subtracted to/from a timestamp and parsed appropriately
+val Unit = {
+    MILLISECOND: 1,
+    SECOND: 1 * 1000,
+    MINUTE: 1 * 1000 * 60,
+    HOUR: 1 * 1000 * 60 * 60,
+    DAY: 1 * 1000 * 60 * 60 * 24,
+};

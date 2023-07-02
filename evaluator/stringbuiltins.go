@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"blue/object"
+	"regexp"
 	"strings"
 
 	"github.com/huandu/xstrings"
@@ -470,28 +471,27 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: xstrings.Reverse(s)}
 		},
 	},
-	// TODO: We can probably create a solid regex object to use in the string methods
-	// "test": {
-	// 	Fun: func(args ...object.Object) object.Object {
-	// 		if len(args) != 2 {
-	// 			return newError("wrong number of arguments to `test`. got=%d want 2", len(args))
-	// 		}
-	// 		arg0, ok := args[0].(*object.Stringo)
-	// 		if !ok {
-	// 			return newError("first argument to `test` must be string. got=%T", args[0])
-	// 		}
-	// 		arg1, ok := args[1].(*object.Stringo)
-	// 		if !ok {
-	// 			return newError("second argument to `test` must be string. got=%T", args[1])
-	// 		}
-	// 		re, err := regexp.Compile(arg1.Value)
-	// 		if err != nil {
-	// 			return newError("second argument to `test` must be regex. got error: %s", err.Error())
-	// 		}
-	// 		if re.MatchString(arg0.Value) {
-	// 			return TRUE
-	// 		}
-	// 		return FALSE
-	// 	},
-	// },
+	"matches": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("matches", len(args), 2, "")
+			}
+			arg0, ok := args[0].(*object.Stringo)
+			if !ok {
+				return newPositionalTypeError("matches", 1, object.STRING_OBJ, args[0].Type())
+			}
+			arg1, ok := args[1].(*object.Stringo)
+			if !ok {
+				return newPositionalTypeError("matches", 2, object.STRING_OBJ, args[1].Type())
+			}
+			re, err := regexp.Compile(arg1.Value)
+			if err != nil {
+				return newError("`matches` error: %s", err.Error())
+			}
+			if re.MatchString(arg0.Value) {
+				return TRUE
+			}
+			return FALSE
+		},
+	},
 })

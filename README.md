@@ -7,7 +7,7 @@ and developing it since then. The language draws inspiration from many others
 but mostly I just wanted a scripting language that was fun to use and fun to
 develop.
 
-Note: Its not _blazingly fast_ but that was never the point. It may be practical
+Note: Its __not__ _blazingly fast_ but that was never the point. It may be practical
 to eventually compile the language to `go` which could improve its speed?!
 
 ## Details

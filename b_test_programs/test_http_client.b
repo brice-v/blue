@@ -53,7 +53,6 @@ fun main() {
     val expected_resp5 = '{"name":"john","pass":"doe","a":"FORM","b":"data"}';
     assert(resp5 == expected_resp5, "Response for post_handler, with form encoded as body url encoded, did not return expected");
 
-    # TODO: Still want to add different redirect and other actions inside handler to test out
     val post_put_patch_delete_url = "http://localhost:3001/all/aaa/bbb";
     val _post_data = '{"name":"HELLO","pass":"WORLD"}';
     val _put_data = '{"put new":"HELLO","keys":"WORLD"}';
