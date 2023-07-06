@@ -3223,7 +3223,9 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			temps, err := host.SensorsTemperatures()
 			if err != nil {
-				return newError("`host_temps_info` error: %s", err.Error())
+				if !strings.Contains(err.Error(), "warnings") {
+					return newError("`host_temps_info` error: %s", err.Error())
+				}
 			}
 			l := &object.List{Elements: make([]object.Object, len(temps))}
 			for i, t := range temps {
