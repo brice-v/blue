@@ -61,6 +61,18 @@ fun all_handler(a, b, post_values=['name', 'pass'], put_values=['name', 'pass'],
     thing.to_json()
 }
 
+fun ctx_handler(ctx) {
+    ctx.set_cookie({'name': 'SOME_NAME', 'value': 'SOME_VALUE'})
+    try {
+        val localThing = ctx.get_local('my-local');
+        println("localThing = #{localThing}");
+        return to_json(localThing);
+    } catch (e) {
+        println(e);
+    }
+    return null;
+}
+
 
 fun redirect_handler() {
     return http.redirect('/healthcheck')
@@ -115,6 +127,11 @@ fun return_special_json_handler(t, request) {
 }
 
 
+http.handle_use(fun(ctx) {
+    ctx.set_local("my-local", [1,2,3]);
+    return http.next()
+})
+
 http.handle("/", get_handler, method="GET");
 http.handle_ws("/ws", ws_handler);
 http.handle("/abc/:a/:b", get_handler_for_multiple_things, method="GET");
@@ -134,6 +151,8 @@ http.handle("/return-json/:t", return_special_json_handler, method="POST")
 http.handle('/redirect', redirect_handler);
 http.handle('/healthcheck', status_handler);
 http.handle('/status2', status_handler2);
+
+http.handle('/ctx-handler', ctx_handler);
 
 http.handle_monitor("/monitor");
 

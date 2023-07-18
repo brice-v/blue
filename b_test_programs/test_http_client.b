@@ -144,6 +144,18 @@ fun main() {
     println("post_test_special_json_case_bool = #{post_test_special_json_case_bool}, type(post_test_special_json_case_bool) = #{type(post_test_special_json_case_bool)}")
     assert(post_test_special_json_case_bool == true)
 
+    val ctx_handler_resp = http.get("http://localhost:3001/ctx-handler", full_resp=true);
+    println("ctx_handler_resp = #{ctx_handler_resp}")
+    assert(ctx_handler_resp.status == 200);
+    val ctx_handler_headers = ctx_handler_resp.headers;
+    assert(len(ctx_handler_headers) != 0);
+    assert('Set-Cookie' in ctx_handler_headers);
+    val some_cookie_resp = ctx_handler_headers['Set-Cookie'];
+    assert('SOME_NAME=SOME_VALUE' in some_cookie_resp[0]);
+    assert(ctx_handler_resp.cookies[0].name == 'SOME_NAME');
+    assert(ctx_handler_resp.cookies[0].value == 'SOME_VALUE');
+    assert(from_json(ctx_handler_resp.body) == [1,2,3]);
+
     val ws = http.new_ws("ws://localhost:3001/ws");
     #for (true) {
         var x = "Sending from Client!";

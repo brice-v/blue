@@ -6,6 +6,7 @@ val __download = _download;
 val __serve = _serve;
 val __static = _static;
 val __handle = _handle;
+val __handle_use = _handle_use;
 val __handle_ws = _handle_ws;
 val __handle_monitor = _handle_monitor;
 val __ws_send = _ws_send;
@@ -162,6 +163,30 @@ fun handle(pattern, fn, method="GET") {
     ##
     ## handle(pattern: str, fn: fun, method: str='GET') -> null
     __handle(_server, pattern, fn, method)
+}
+
+fun handle_use(pattern="", fn) {
+    ## `handle_use` takes an optional pattern, and a function, and method
+    ## and attaches itself to the _server http object
+    ##
+    ## example: with a pattern string of '/hello/:a/:b'
+    ## the handler function should have a signature such as
+    ## fun(a, b) {} which allows the params to be used
+    ##
+    ## example: with a 'POST' method the handler function
+    ## should have a signature such as fun(post_values=['a', 'b']) {}
+    ## where 'a' and 'b' are values received in the POST request
+    ##
+    ## query_params operates in a similar fashion to the post_values
+    ## accepting a list of strings for the query_params passed to the
+    ## request
+    ##
+    ## headers is also reserved in the function signature
+    ## to allow the user to retrieve the headers of the request
+    ## passed in
+    ##
+    ## handle(pattern: str, fn: fun, method: str='GET') -> null
+    __handle_use(_server, pattern, fn, "")
 }
 
 fun handle_ws(pattern, fn) {
@@ -334,5 +359,3 @@ fun send_file(path) {
     assert(type(path) == Type.STRING);
     {'t': 'http/send_file','path':path}
 }
-
-# TODO: Clear cookie?

@@ -443,6 +443,9 @@ func MakeEmptyList() object.Object {
 
 func blueObjToJsonObject(obj object.Object) object.Object {
 	rootNodeType := obj.Type()
+	if isError(obj) {
+		return obj
+	}
 	// https://www.w3schools.com/Js/js_json_objects.asp
 	// Keys must be strings, and values must be a valid JSON data type:
 	// string
@@ -721,6 +724,61 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 	}
 }
 
+// goObjectToBlueObject will only work for simple go types
+func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
+	switch obj := goObject.(type) {
+	case string:
+		return &object.Stringo{Value: obj}, nil
+	case int:
+		return &object.Integer{Value: int64(obj)}, nil
+	case int64:
+		return &object.Integer{Value: obj}, nil
+	case uint:
+		return &object.UInteger{Value: uint64(obj)}, nil
+	case uint64:
+		return &object.UInteger{Value: obj}, nil
+	case float32:
+		return &object.Float{Value: float64(obj)}, nil
+	case float64:
+		return &object.Float{Value: obj}, nil
+	case bool:
+		return &object.Boolean{Value: obj}, nil
+	case nil:
+		return NULL, nil
+	case []interface{}:
+		l := &object.List{Elements: make([]object.Object, len(obj))}
+		for i, e := range obj {
+			val, err := goObjectToBlueObject(e)
+			if err != nil {
+				return nil, err
+			}
+			l.Elements[i] = val
+		}
+		return l, nil
+	case map[string]interface{}:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for k, v := range obj {
+			key := &object.Stringo{Value: k}
+			hashKey := object.HashObject(key)
+			hk := object.HashKey{
+				Type:  object.STRING_OBJ,
+				Value: hashKey,
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	default:
+		return nil, fmt.Errorf("goObjectToBlueObject: TODO: Type currently unsupported: (%T)", obj)
+	}
+}
+
 func getBlueObjectFromResp(resp *http.Response) object.Object {
 	_body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -797,21 +855,30 @@ func getBlueObjectFromResp(resp *http.Response) object.Object {
 // For Builtins
 
 func getErrorTokenTraceAsJson(e *Evaluator) interface{} {
+	return getErrorTokenTraceAsJsonWithError(e, "")
+}
+
+func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) interface{} {
 	var disableHttpServerDebug bool
 	disableHttpServerDebugStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
 	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
 	if err != nil {
 		disableHttpServerDebug = false
 	}
-	errors := []string{}
+	var errors []string
+	if errorMsg == "" {
+		errors = []string{}
+	} else {
+		errors = []string{errorMsg}
+	}
 	if !disableHttpServerDebug {
 		for e.ErrorTokens.Len() > 0 {
 			firstPart, carat := lexer.GetErrorLineMessageForJson(e.ErrorTokens.PopBack())
 			errors = append(errors, firstPart, carat)
 		}
-		fmt.Println("`http handler` error:")
-		for _, e := range errors {
-			fmt.Printf("%s\n", e)
+		fmt.Println("`http handler` error: " + errorMsg)
+		for _, err := range errors {
+			fmt.Printf("%s\n", err)
 		}
 	}
 	return errors

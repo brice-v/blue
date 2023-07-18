@@ -793,3 +793,28 @@ func TestBangOperator(t *testing.T) {
 		testBooleanObject(t, evaluated, tt.expected)
 	}
 }
+
+func TestGoObjectToBlueObject(t *testing.T) {
+	tests := []struct {
+		input string
+	}{
+		{"true"},
+		{"[1,2,3]"},
+		{"{'1': 'hello'}"},
+		{"{'1': [1,2,{'a':'b'}]}"},
+	}
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		goObj, err := blueObjectToGoObject(evaluated)
+		if err != nil {
+			t.Fatalf("[%d] %s", i, err.Error())
+		}
+		blueObj, err := goObjectToBlueObject(goObj)
+		if err != nil {
+			t.Fatalf("[%d] %s", i, err.Error())
+		}
+		if object.HashObject(evaluated) != object.HashObject(blueObj) {
+			t.Fatalf("[%d] initial evaluated blue obj did not match goObj back to blueObj: %s", i, tt.input)
+		}
+	}
+}

@@ -23,7 +23,7 @@ func (e *Evaluator) AddCoreLibToEnv() {
 		os.Exit(1)
 	}
 	result := e.Eval(program)
-	if result.Type() == object.ERROR_OBJ {
+	if isError(result) {
 		errorObj := result.(*object.Error)
 		var buf bytes.Buffer
 		buf.WriteString(errorObj.Message)

@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
+func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
@@ -43,27 +43,31 @@ func createHttpHandleBuiltin(e *Evaluator) *object.Builtin {
 			method := strings.ToUpper(args[3].(*object.Stringo).Value)
 			pattern := args[1].(*object.Stringo).Value
 			fn := args[2].(*object.Function)
-			switch method {
-			case "GET":
-				app.Get(pattern, func(c *fiber.Ctx) error {
-					return processHandlerFn(e, fn, c, method)
-				})
-			case "POST":
-				app.Post(pattern, func(c *fiber.Ctx) error {
-					return processHandlerFn(e, fn, c, method)
-				})
-			case "PATCH":
-				app.Patch(pattern, func(c *fiber.Ctx) error {
-					return processHandlerFn(e, fn, c, method)
-				})
-			case "PUT":
-				app.Put(pattern, func(c *fiber.Ctx) error {
-					return processHandlerFn(e, fn, c, method)
-				})
-			case "DELETE":
-				app.Delete(pattern, func(c *fiber.Ctx) error {
-					return processHandlerFn(e, fn, c, method)
-				})
+			goFiberFunc := func(c *fiber.Ctx) error {
+				return processHandlerFn(e, fn, c, method)
+			}
+			if isUse {
+				if method != "" {
+					return newError("`handle_use` error: method should be '', got=%s", method)
+				}
+				if pattern == "" {
+					app.Use(goFiberFunc)
+				} else {
+					app.Use(pattern, goFiberFunc)
+				}
+			} else {
+				switch method {
+				case "GET":
+					app.Get(pattern, goFiberFunc)
+				case "POST":
+					app.Post(pattern, goFiberFunc)
+				case "PATCH":
+					app.Patch(pattern, goFiberFunc)
+				case "PUT":
+					app.Put(pattern, goFiberFunc)
+				case "DELETE":
+					app.Delete(pattern, goFiberFunc)
+				}
 			}
 			return NULL
 		},
@@ -140,8 +144,8 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 			return c.SendStatus(fiber.StatusOK)
 		} else {
 			obj := blueObjToJsonObject(respObj)
-			if obj.Type() == object.ERROR_OBJ {
-				errors := getErrorTokenTraceAsJson(e).([]string)
+			if isError(obj) {
+				errors := getErrorTokenTraceAsJsonWithError(e, obj.(*object.Error).Message).([]string)
 				errors = append(errors, fmt.Sprintf("%s Response Type is not STRING, valid JSON, or NULL. got=%s", method, obj.Type()))
 				return c.Status(fiber.StatusInternalServerError).JSON(errors)
 			} else {
@@ -182,8 +186,8 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 			// If the value returned here would be a valid JSON root node then we will return it
 			// assuming it all works (ie. if a list - all the values are valid JSON)
 			obj := blueObjToJsonObject(respObj)
-			if obj.Type() == object.ERROR_OBJ {
-				errors := getErrorTokenTraceAsJson(e).([]string)
+			if isError(obj) {
+				errors := getErrorTokenTraceAsJsonWithError(e, obj.(*object.Error).Message).([]string)
 				errors = append(errors, "error converting object to JSON")
 				return c.Status(fiber.StatusInternalServerError).JSON(errors)
 			}
@@ -274,7 +278,7 @@ func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Functio
 
 				returnMap, err := decodeBodyToMap(contentType, body)
 				if err != nil {
-					errors := getErrorTokenTraceAsJson(e).([]string)
+					errors := getErrorTokenTraceAsJsonWithError(e, err.Error()).([]string)
 					errors = append(errors, fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
 					return false, errors
 				}
@@ -315,6 +319,108 @@ func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
 	return object.CreateMapObjectForGoMap(*mapObj)
 }
 
+func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
+	mapObj := object.NewOrderedMap[string, object.Object]()
+	mapObj.Set("clear_cookie", &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			cookieArgs := []string{}
+			for i, arg := range args {
+				if args[i].Type() != object.STRING_OBJ {
+					return newPositionalTypeError("clear_cookie", i+1, object.STRING_OBJ, args[i].Type())
+				}
+				cookie := arg.(*object.Stringo).Value
+				cookieArgs = append(cookieArgs, cookie)
+			}
+			c.ClearCookie(cookieArgs...)
+			return NULL
+		},
+	})
+	mapObj.Set("set_cookie", &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			// Arg len should be 1
+			// Arg should be map
+			// Map requires name - all the rest could be empty
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_cookie", len(args), 1, "")
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newPositionalTypeError("set_cookie", 1, object.MAP_OBJ, args[0].Type())
+			}
+			jsonO := blueObjToJsonObject(args[0])
+			if isError(jsonO) {
+				return newError("`set_cookie` error: %s", jsonO.(*object.Error).Message)
+			}
+			if jj, ok := jsonO.(*object.Stringo); ok {
+				cookie := new(fiber.Cookie)
+				err := json.Unmarshal([]byte(jj.Value), cookie)
+				if err != nil {
+					return newError("`set_cookie` error: %s", err.Error())
+				}
+				if cookie.Domain == "" {
+					cookie.Domain = strings.Split(c.Hostname(), ":")[0]
+				}
+				c.Cookie(cookie)
+			}
+			return NULL
+		},
+	})
+	mapObj.Set("get_cookie", &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("get_cookie", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("get_cookie", 1, object.STRING_OBJ, args[0].Type())
+			}
+			return &object.Stringo{Value: c.Cookies(args[0].(*object.Stringo).Value)}
+		},
+	})
+	mapObj.Set("set_local", &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("set_local", len(args), 2, "")
+			}
+			if isError(args[0]) {
+				return args[0]
+			}
+			if isError(args[1]) {
+				return args[1]
+			}
+			a, err := blueObjectToGoObject(args[0])
+			if err != nil {
+				return newError("`set_local` error: %s", err.Error())
+			}
+			b, err := blueObjectToGoObject(args[1])
+			if err != nil {
+				return newError("`set_local` error: %s", err.Error())
+			}
+			c.Locals(a, b)
+			return NULL
+		},
+	})
+	mapObj.Set("get_local", &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("get_local", len(args), 1, "")
+			}
+			if isError(args[0]) {
+				return args[0]
+			}
+			a, err := blueObjectToGoObject(args[0])
+			if err != nil {
+				return newError("`get_local` error: %s", err.Error())
+			}
+			localObj := c.Locals(a)
+			obj, err := goObjectToBlueObject(localObj)
+			if err != nil {
+				return newError("`get_local` error: Locals variable was not an object. got=%s", err.Error())
+			}
+			return obj
+		},
+	})
+	return object.CreateMapObjectForGoMap(*mapObj)
+}
+
 func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]object.Object, []bool) {
 	fnArgs := make([]object.Object, len(fn.Parameters))
 	immutableArgs := make([]bool, len(fnArgs))
@@ -339,6 +445,8 @@ func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]obj
 				mapObj.Set("is_from_local", &object.Boolean{Value: c.IsFromLocal()})
 				mapObj.Set("is_secure", &object.Boolean{Value: c.Secure()})
 				fnArgs[i] = object.CreateMapObjectForGoMap(*mapObj)
+			} else if v.Value == "ctx" || v.Value == "context" {
+				fnArgs[i] = getCtxFunctionMapObj(c)
 			} else {
 				fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 			}

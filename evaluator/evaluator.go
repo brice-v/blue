@@ -128,7 +128,8 @@ func New() *Evaluator {
 	}
 	ProcessMap.Put(e.PID, process)
 
-	_http_builtin_map.Put("_handle", createHttpHandleBuiltin(e))
+	_http_builtin_map.Put("_handle", createHttpHandleBuiltin(e, false))
+	_http_builtin_map.Put("_handle_use", createHttpHandleBuiltin(e, true))
 	_http_builtin_map.Put("_handle_ws", createHttpHandleWSBuiltin(e))
 
 	_ui_builtin_map.Put("_button", createUIButtonBuiltin(e))

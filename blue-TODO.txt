@@ -1,5 +1,9 @@
 TODO:
 
+- [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
+    - Leave the default one still in place
+    - Make sure this works with ctrl+c for exiting it
+- [ ] Colorize Help output (if not NO_COLOR) and use tabular output to get padding correct
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
 - [ ] Use swiss map if its better? https://github.com/dolthub/swiss
 - [ ] Add select statement?
@@ -12,7 +16,6 @@ TODO:
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Add help strings for all builtins that start with underscore
 - [ ] Decorators?
-- [ ] Add middleware for http framework
 - [ ] Hook in esbuild to do transpiling?
 - [ ] Make a filepath based router?
 - [ ] Look to add the following libraries
@@ -130,6 +133,9 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Add middleware for http framework
+    - Still in progress
+- [x] Fix HTTP handler errors so that they include the error message in the JSON if an error occurs inside it
 - [x] Add $id to repl like its done in jshell
 - [x] FEAT: If any errors happen in an http handler log to stdout? the same way we'd do a normal error (with return trace)
     - Added this to getErrorTokenTraceAsJson which checks if DISABLE_HTTP_SERVER_DEBUG is disabled or not

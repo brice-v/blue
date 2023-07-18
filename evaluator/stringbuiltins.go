@@ -225,6 +225,9 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("to_json", len(args), 1, "")
 			}
+			if isError(args[0]) {
+				return args[0]
+			}
 			return blueObjToJsonObject(args[0])
 		},
 		HelpStr: helpStrArgs{
