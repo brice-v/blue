@@ -9,23 +9,21 @@ TODO:
     - This will allow us to also add a script runner
     - And by this time we can add a `blue init` command to generate the initial scaffolding
         - maybe allow it to accept some sort of template (or have options for type of project)
+- [ ] Add raylib bindings https://github.com/gen2brain/raylib-go
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
 - [ ] Use swiss map if its better? https://github.com/dolthub/swiss
 - [ ] Add select statement?
-- [ ] Add ebiten game engine
 - [ ] Add range from python for quick loops
     - Use empty struct slice? (or way to yield values)
 - [ ] See if we can add streams properly as its own object type?
+    - Use go generator pattern maybe?
 - [ ] Add plotting lib like matplot lib?
 - [ ] Make `from` look more like js rather than python
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Add help strings for all builtins that start with underscore
 - [ ] Decorators?
-- [ ] Hook in esbuild to do transpiling?
-- [ ] Make a filepath based router?
 - [ ] Look to add the following libraries
     - https://github.com/gobwas/ws (for use in net/tcp ws lib)
-    - https://github.com/hajimehoshi/ebiten
     - https://github.com/playwright-community/playwright-go
     [-] https://github.com/huandu/xstrings
     [-] https://github.com/golang-module/carbon (partially added)
@@ -57,7 +55,6 @@ TODO:
     - [ ] Selenium/Playright integration?
     - [ ] Video/Audio library
 - [ ] DNS resolver function? like the dig cmd
-- [ ] Streams datatype?
 - [ ] Fix up bundler so that if it has the source, it git pulls first
 - [ ] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
     - [ ] Accept subcmd for gui/browser that specifies what you want to do
@@ -134,6 +131,12 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [-] Add ebiten game engine
+    - Not going to do this, instead going to add raylib probably
+- [-] Hook in esbuild to do transpiling?
+    - Not going to do this for now
+- [-] Make a filepath based router?
+    - Not going to do this for now
 - [x] Colorize Help output (if not NO_COLOR) and use tabular output to get padding correct
 - [x] Add middleware for http framework
     - Still in progress

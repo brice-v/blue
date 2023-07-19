@@ -90,23 +90,21 @@ func (c *Config) Structure(key string, dst any) error {
 		}
 	}
 
-	// init default value by tag: default
-	if c.opts.ParseDefault {
-		err := structs.InitDefaults(dst, func(opt *structs.InitOptions) {
-			opt.ParseEnv = c.opts.ParseEnv
-		})
-		if err != nil {
-			return err
-		}
-	}
-
 	bindConf := c.opts.makeDecoderConfig()
 	// set result struct ptr
 	bindConf.Result = dst
 	decoder, err := mapstructure.NewDecoder(bindConf)
-
 	if err == nil {
-		err = decoder.Decode(data)
+		if err = decoder.Decode(data); err != nil {
+			return err
+		}
+	}
+
+	// init default value by tag: default
+	if c.opts.ParseDefault {
+		err = structs.InitDefaults(dst, func(opt *structs.InitOptions) {
+			opt.ParseEnv = c.opts.ParseEnv
+		})
 	}
 	return err
 }
@@ -139,7 +137,7 @@ func (c *Config) DumpTo(out io.Writer, format string) (n int64, err error) {
 	var ok bool
 	var encoder Encoder
 
-	format = fixFormat(format)
+	format = c.resolveFormat(format)
 	if encoder, ok = c.encoders[format]; !ok {
 		err = errors.New("not exists/register encoder for the format: " + format)
 		return

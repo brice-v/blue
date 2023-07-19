@@ -1,4 +1,4 @@
-// Package textutil provide some extra text handle util
+// Package textutil provide some extensions text handle util functions.
 package textutil
 
 import (
@@ -28,25 +28,7 @@ func RenderSMap(text string, vars map[string]string, format string) string {
 //
 // TIP: can use ^ for exclude match.
 func IsMatchAll(s string, keywords []string) bool {
-	for _, keyword := range keywords {
-		if keyword == "" {
-			continue
-		}
-
-		// exclude
-		if keyword[0] == '^' && len(keyword) > 1 {
-			if strings.Contains(s, keyword[1:]) {
-				return false
-			}
-			continue
-		}
-
-		// include
-		if !strings.Contains(s, keyword) {
-			return false
-		}
-	}
-	return true
+	return strutil.SimpleMatch(s, keywords)
 }
 
 // ParseInlineINI parse config string to string-map. it's like INI format contents.

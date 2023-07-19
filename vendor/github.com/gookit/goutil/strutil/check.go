@@ -202,6 +202,40 @@ func VersionCompare(v1, v2, op string) bool {
 	}
 }
 
+// SimpleMatch all sub-string in the give text string.
+//
+// Difference the ContainsAll:
+//
+//   - start with ^ for exclude contains check.
+//   - end with $ for check end with keyword.
+func SimpleMatch(s string, keywords []string) bool {
+	for _, keyword := range keywords {
+		kln := len(keyword)
+		if kln == 0 {
+			continue
+		}
+
+		// exclude
+		if kln > 1 && keyword[0] == '^' {
+			if strings.Contains(s, keyword[1:]) {
+				return false
+			}
+			continue
+		}
+
+		// end with
+		if kln > 1 && keyword[kln-1] == '$' {
+			return strings.HasSuffix(s, keyword[:kln-1])
+		}
+
+		// include
+		if !strings.Contains(s, keyword) {
+			return false
+		}
+	}
+	return true
+}
+
 // QuickMatch check for a string. pattern can be a sub string.
 func QuickMatch(pattern, s string) bool {
 	if strings.ContainsRune(pattern, '*') {
@@ -210,11 +244,10 @@ func QuickMatch(pattern, s string) bool {
 	return strings.Contains(s, pattern)
 }
 
-// PathMatch check for a string.
-func PathMatch(pattern, s string) bool { return GlobMatch(pattern, s) }
-
-// GlobMatch check for a string.
-func GlobMatch(pattern, s string) bool {
+// PathMatch check for a string match the pattern. alias of the path.Match()
+//
+// TIP: `*` can match any char, not contain `/`.
+func PathMatch(pattern, s string) bool {
 	ok, err := path.Match(pattern, s)
 	if err != nil {
 		ok = false
@@ -222,7 +255,45 @@ func GlobMatch(pattern, s string) bool {
 	return ok
 }
 
-// MatchNodePath check for a string.
+// GlobMatch check for a string match the pattern.
+//
+// Difference with PathMatch() is: `*` can match any char, contain `/`.
+func GlobMatch(pattern, s string) bool {
+	// replace `/` to `S` for path.Match
+	pattern = strings.Replace(pattern, "/", "S", -1)
+	s = strings.Replace(s, "/", "S", -1)
+
+	ok, err := path.Match(pattern, s)
+	if err != nil {
+		ok = false
+	}
+	return ok
+}
+
+// LikeMatch simple check for a string match the pattern. pattern like the SQL LIKE.
+func LikeMatch(pattern, s string) bool {
+	ln := len(pattern)
+	if ln < 2 {
+		return false
+	}
+
+	// eg `%abc` `%abc%`
+	if pattern[0] == '%' {
+		if ln > 2 && pattern[ln-1] == '%' {
+			return strings.Contains(s, pattern[1:ln-1])
+		} else {
+			return strings.HasSuffix(s, pattern[1:])
+		}
+	}
+
+	// eg `abc%`
+	if pattern[ln-1] == '%' {
+		return strings.HasPrefix(s, pattern[:ln-1])
+	}
+	return pattern == s
+}
+
+// MatchNodePath check for a string match the pattern.
 //
 // Use on pattern:
 //   - `*` match any to sep
@@ -248,6 +319,7 @@ func MatchNodePath(pattern, s string, sep string) bool {
 
 	pattern = strings.Replace(pattern, sep, "/", -1)
 	s = strings.Replace(s, sep, "/", -1)
+
 	ok, err := path.Match(pattern, s)
 	if err != nil {
 		ok = false

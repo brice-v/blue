@@ -1,4 +1,4 @@
-# fyne.io/fyne/v2 v2.3.4
+# fyne.io/fyne/v2 v2.3.5
 ## explicit; go 1.14
 fyne.io/fyne/v2
 fyne.io/fyne/v2/app
@@ -39,12 +39,12 @@ fyne.io/fyne/v2/storage/repository
 fyne.io/fyne/v2/test
 fyne.io/fyne/v2/theme
 fyne.io/fyne/v2/widget
-# fyne.io/systray v1.10.1-0.20230403195833-7dc3c09283d6
+# fyne.io/systray v1.10.1-0.20230602210930-b6a2d6ca2a7b
 ## explicit; go 1.13
 fyne.io/systray
 fyne.io/systray/internal/generated/menu
 fyne.io/systray/internal/generated/notifier
-# github.com/BurntSushi/toml v1.2.1
+# github.com/BurntSushi/toml v1.3.2
 ## explicit; go 1.16
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
@@ -198,7 +198,7 @@ github.com/goccy/go-yaml/token
 github.com/godbus/dbus/v5
 github.com/godbus/dbus/v5/introspect
 github.com/godbus/dbus/v5/prop
-# github.com/gofiber/fiber/v2 v2.45.0 => ./fiber
+# github.com/gofiber/fiber/v2 v2.46.0 => ./fiber
 ## explicit; go 1.20
 github.com/gofiber/fiber/v2
 github.com/gofiber/fiber/v2/internal/go-ole
@@ -214,7 +214,7 @@ github.com/gofiber/fiber/v2/internal/wmi
 github.com/gofiber/fiber/v2/middleware/filesystem
 github.com/gofiber/fiber/v2/middleware/monitor
 github.com/gofiber/fiber/v2/utils
-# github.com/gofiber/websocket/v2 v2.1.6
+# github.com/gofiber/websocket/v2 v2.2.1
 ## explicit; go 1.17
 github.com/gofiber/websocket/v2
 # github.com/gofrs/uuid v4.4.0+incompatible
@@ -237,14 +237,14 @@ github.com/google/uuid
 # github.com/gookit/color v1.5.3
 ## explicit; go 1.18
 github.com/gookit/color
-# github.com/gookit/config/v2 v2.2.1
+# github.com/gookit/config/v2 v2.2.3
 ## explicit; go 1.18
 github.com/gookit/config/v2
 github.com/gookit/config/v2/ini
 github.com/gookit/config/v2/properties
 github.com/gookit/config/v2/toml
 github.com/gookit/config/v2/yamlv3
-# github.com/gookit/goutil v0.6.8
+# github.com/gookit/goutil v0.6.10
 ## explicit; go 1.18
 github.com/gookit/goutil
 github.com/gookit/goutil/arrutil
@@ -254,7 +254,6 @@ github.com/gookit/goutil/cliutil/cmdline
 github.com/gookit/goutil/comdef
 github.com/gookit/goutil/envutil
 github.com/gookit/goutil/errorx
-github.com/gookit/goutil/fmtutil
 github.com/gookit/goutil/fsutil
 github.com/gookit/goutil/internal/comfunc
 github.com/gookit/goutil/jsonutil
@@ -318,14 +317,14 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.14
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
-# github.com/microcosm-cc/bluemonday v1.0.23
+# github.com/microcosm-cc/bluemonday v1.0.25
 ## explicit; go 1.19
 github.com/microcosm-cc/bluemonday
 github.com/microcosm-cc/bluemonday/css
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/otiai10/copy v1.11.0
+# github.com/otiai10/copy v1.12.0
 ## explicit; go 1.18
 github.com/otiai10/copy
 # github.com/philhofer/fwd v1.1.2
@@ -358,8 +357,9 @@ github.com/savsgio/gotils/strconv
 # github.com/sergi/go-diff v1.3.1
 ## explicit; go 1.12
 github.com/sergi/go-diff/diffmatchpatch
-# github.com/shirou/gopsutil/v3 v3.23.4
+# github.com/shirou/gopsutil/v3 v3.23.6
 ## explicit; go 1.15
+github.com/shirou/gopsutil/v3/common
 github.com/shirou/gopsutil/v3/cpu
 github.com/shirou/gopsutil/v3/disk
 github.com/shirou/gopsutil/v3/host
@@ -367,7 +367,7 @@ github.com/shirou/gopsutil/v3/internal/common
 github.com/shirou/gopsutil/v3/mem
 github.com/shirou/gopsutil/v3/net
 github.com/shirou/gopsutil/v3/process
-# github.com/shoenig/go-m1cpu v0.1.5
+# github.com/shoenig/go-m1cpu v0.1.6
 ## explicit; go 1.20
 github.com/shoenig/go-m1cpu
 # github.com/shopspring/decimal v1.3.1
@@ -385,15 +385,15 @@ github.com/srwiley/oksvg
 # github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
 ## explicit; go 1.17
 github.com/srwiley/rasterx
-# github.com/stretchr/testify v1.8.2
-## explicit; go 1.13
+# github.com/stretchr/testify v1.8.4
+## explicit; go 1.20
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/tdewolff/minify/v2 v2.12.5
+# github.com/tdewolff/minify/v2 v2.12.7
 ## explicit; go 1.13
 github.com/tdewolff/minify/v2
 github.com/tdewolff/minify/v2/html
-# github.com/tdewolff/parse/v2 v2.6.5
+# github.com/tdewolff/parse/v2 v2.6.6
 ## explicit; go 1.13
 github.com/tdewolff/parse/v2
 github.com/tdewolff/parse/v2/buffer
@@ -435,10 +435,10 @@ github.com/yuin/goldmark/renderer
 github.com/yuin/goldmark/renderer/html
 github.com/yuin/goldmark/text
 github.com/yuin/goldmark/util
-# github.com/yusufpapurcu/wmi v1.2.2
+# github.com/yusufpapurcu/wmi v1.2.3
 ## explicit; go 1.16
 github.com/yusufpapurcu/wmi
-# golang.org/x/crypto v0.9.0
+# golang.org/x/crypto v0.11.0
 ## explicit; go 1.17
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
@@ -461,15 +461,15 @@ golang.org/x/mobile/exp/f32
 # golang.org/x/mod v0.10.0
 ## explicit; go 1.17
 golang.org/x/mod/semver
-# golang.org/x/net v0.10.0
+# golang.org/x/net v0.12.0
 ## explicit; go 1.17
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sync v0.2.0
-## explicit
+# golang.org/x/sync v0.3.0
+## explicit; go 1.17
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.8.0
+# golang.org/x/sys v0.10.0
 ## explicit; go 1.17
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
@@ -477,10 +477,10 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.8.0
+# golang.org/x/term v0.10.0
 ## explicit; go 1.17
 golang.org/x/term
-# golang.org/x/text v0.9.0
+# golang.org/x/text v0.11.0
 ## explicit; go 1.17
 golang.org/x/text/cases
 golang.org/x/text/encoding
@@ -576,7 +576,7 @@ modernc.org/memory
 # modernc.org/opt v0.1.3
 ## explicit; go 1.13
 modernc.org/opt
-# modernc.org/sqlite v1.22.1
+# modernc.org/sqlite v1.24.0
 ## explicit; go 1.18
 modernc.org/sqlite
 modernc.org/sqlite/lib

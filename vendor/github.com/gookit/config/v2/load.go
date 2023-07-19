@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gookit/goutil/errorx"
 	"github.com/gookit/goutil/fsutil"
 	"github.com/imdario/mergo"
 )
@@ -196,20 +197,34 @@ func LoadData(dataSource ...any) error { return dc.LoadData(dataSource...) }
 //
 // The dataSources can be:
 //   - map[string]any
+//   - map[string]string
 func (c *Config) LoadData(dataSources ...any) (err error) {
 	if c.opts.Delimiter == 0 {
 		c.opts.Delimiter = defaultDelimiter
 	}
 
 	for _, ds := range dataSources {
+		if smp, ok := ds.(map[string]string); ok {
+			c.LoadSMap(smp)
+			continue
+		}
+
 		err = mergo.Merge(&c.data, ds, mergo.WithOverride)
 		if err != nil {
-			return
+			return errorx.WithStack(err)
 		}
 	}
 
 	c.fireHook(OnLoadData)
 	return
+}
+
+// LoadSMap to config
+func (c *Config) LoadSMap(smp map[string]string) {
+	for k, v := range smp {
+		c.data[k] = v
+	}
+	c.fireHook(OnLoadData)
 }
 
 // LoadSources load one or multi byte data
@@ -436,7 +451,7 @@ func (c *Config) loadDataMap(data map[string]any) (err error) {
 
 // parse config source code to Config.
 func (c *Config) parseSourceToMap(format string, blob []byte) (map[string]any, error) {
-	format = fixFormat(format)
+	format = c.resolveFormat(format)
 	decode := c.decoders[format]
 	if decode == nil {
 		return nil, errors.New("not register decoder for the format: " + format)
