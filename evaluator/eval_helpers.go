@@ -25,6 +25,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/clbanning/mxj/v2"
+	"github.com/gookit/color"
 )
 
 func unwrapReturnValue(obj object.Object) object.Object {
@@ -364,7 +365,12 @@ func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, p
 	} else {
 		explanation = strings.Join(helpStrTokens, "\n")
 	}
-	return fmt.Sprintf("MODULE `%s`: %s\n\ntype(%s) = '%s'\n\nPUBLIC FUNCTIONS:%s", modName, explanation, modName, object.MODULE_OBJ, pubFunHelpStr)
+	consts.DisableColorIfNoColorEnvVarSet()
+	green := color.FgGreen.Render
+	bold := color.Bold.Render
+	blue := color.FgCyan.Render
+	firstPart := fmt.Sprintf("%s`%s`: %s", blue(bold("MODULE ")), blue(bold(modName)), blue(bold(explanation)))
+	return fmt.Sprintf("%s\n\ntype(%s) = '%s'\n\n%s:%s", firstPart, modName, object.MODULE_OBJ, bold(green("PUBLIC FUNCTIONS")), pubFunHelpStr)
 }
 
 func (e *Evaluator) createFilePathFromImportPath(importPath string) string {

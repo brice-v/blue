@@ -1,9 +1,13 @@
 package object
 
 import (
+	"blue/consts"
 	"bytes"
 	"fmt"
 	"strings"
+	"unicode/utf8"
+
+	"github.com/gookit/color"
 )
 
 // NewEnclosedEnvironment supports adding an environment to an exisiting
@@ -128,6 +132,14 @@ func (e *Environment) RemoveIdentifier(name string) {
 
 func (e *Environment) GetPublicFunctionHelpString() string {
 	var out bytes.Buffer
+	lengthOfLargestString := 0
+	for _, k := range e.publicFunctionHelpStore.Keys {
+		l := utf8.RuneCountInString(k)
+		if l > lengthOfLargestString {
+			lengthOfLargestString = l
+		}
+	}
+	lengthOfLargestString++
 	for _, k := range e.publicFunctionHelpStore.Keys {
 		if v, ok := e.publicFunctionHelpStore.Get(k); ok {
 			vSplit := strings.Split(v, "\ntype(")[0]
@@ -136,9 +148,14 @@ func (e *Environment) GetPublicFunctionHelpString() string {
 			vSplitFurther := strings.Split(vSplit, "\n")
 			for i, partStr := range vSplitFurther {
 				if i == 0 {
-					out.WriteString(fmt.Sprintf("\n%s | %s", k, partStr))
+					initialPadLen := lengthOfLargestString - utf8.RuneCountInString(k)
+					initialPad := strings.Repeat(" ", initialPadLen)
+					consts.DisableColorIfNoColorEnvVarSet()
+					green := color.FgGreen.Render
+					bold := color.Bold.Render
+					out.WriteString(fmt.Sprintf("\n%s%s| %s", bold(green(k)), initialPad, partStr))
 				} else {
-					pad := strings.Repeat(" ", len(k)+2)
+					pad := strings.Repeat(" ", lengthOfLargestString+2)
 					nl := "\n"
 					if i == len(vSplitFurther)-1 {
 						nl = ""

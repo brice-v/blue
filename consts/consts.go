@@ -1,6 +1,7 @@
 package consts
 
 import (
+	"os"
 	"runtime/debug"
 
 	"github.com/gookit/color"
@@ -46,3 +47,9 @@ const EMBED_FILES_PREFIX = "embed_files/"
 
 var ErrorPrinter = color.New(color.FgRed, color.Bold).Printf
 var InfoPrinter = color.New(color.FgBlue, color.Bold).Printf
+
+func DisableColorIfNoColorEnvVarSet() {
+	if os.Getenv(BLUE_NO_COLOR) != "" || os.Getenv("NO_COLOR") != "" {
+		color.Disable()
+	}
+}

@@ -3,7 +3,12 @@ TODO:
 - [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
     - Leave the default one still in place
     - Make sure this works with ctrl+c for exiting it
-- [ ] Colorize Help output (if not NO_COLOR) and use tabular output to get padding correct
+- [ ] Make core docs visible
+    - [ ] Add docs for all remaining functions
+- [ ] Add some sort of package management with a file like blue.json (or blue.toml)
+    - This will allow us to also add a script runner
+    - And by this time we can add a `blue init` command to generate the initial scaffolding
+        - maybe allow it to accept some sort of template (or have options for type of project)
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
 - [ ] Use swiss map if its better? https://github.com/dolthub/swiss
 - [ ] Add select statement?
@@ -60,10 +65,6 @@ TODO:
 - [ ] Make WS Conn work on net connection?
 - [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
     - Also add `blue test` command to specify file or maybe just run everything
-- [ ] Add some sort of package management with a file like blue.json (or blue.toml)
-    - This will allow us to also add a script runner
-    - And by this time we can add a `blue init` command to generate the initial scaffolding
-        - maybe allow it to accept some sort of template (or have options for type of project)
 - [ ] Add abs_path function for a file that exists? otherwise throw error
 - [ ] Store doc comments above var/val statements?
 - [ ] add to_fixed() similar to js
@@ -133,6 +134,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Colorize Help output (if not NO_COLOR) and use tabular output to get padding correct
 - [x] Add middleware for http framework
     - Still in progress
 - [x] Fix HTTP handler errors so that they include the error message in the JSON if an error occurs inside it
