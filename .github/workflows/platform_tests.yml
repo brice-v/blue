@@ -25,4 +25,9 @@ jobs:
       if: ${{ runner.os == 'Linux' }}
 
     - name: Tests
-      run: CC=gcc CXX=g++ go test -race -ldflags="-extldflags '-Wl,--allow-multiple-definition'" ./...
+      run: CC=gcc CXX=g++ go test -race -ldflags "-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
+      if: ${{ runner.os != 'Windows'}}
+
+    - name: Tests
+      run: go test -race -ldflags "-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
+      if: ${{ runner.os == 'Windows'}}

@@ -26,19 +26,24 @@ jobs:
       if: ${{ runner.os == 'Linux' }}
 
     - name: Tests
-      run: CC=gcc CXX=g++ go test -ldflags="-extldflags '-Wl,--allow-multiple-definition'" ./...
+      run: CC=gcc CXX=g++ go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
+      if: ${{ runner.os != 'Windows' }}
+    
+    - name: Tests
+      run: go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
+      if: ${{ runner.os == 'Windows' }}
     
     - name: Build Windows
       if: matrix.os == 'windows-latest'
-      run: go build -ldflags='-s -w -extldflags="-static,-Wl,--allow-multiple-definition" -H=windowsgui' -o blue-win.exe .
+      run: go build -ldflags='-s -w -extld gcc -extldflags "-static,-Wl,--allow-multiple-definition" -H=windowsgui' -o blue-win.exe .
     
     - name: Build Linux
       if: matrix.os == 'ubuntu-latest'
-      run: go build -ldflags='-s -w -extldflags "-Wl,--allow-multiple-definition"' -o blue-linux .
+      run: go build -ldflags='-s -w -extld gcc -extldflags "-Wl,--allow-multiple-definition"' -o blue-linux .
 
     - name: Build Macos
       if: matrix.os == 'macos-latest'
-      run: CC=gcc CXX=g++ go build -ldflags='-s -w -extldflags "-Wl,--allow-multiple-definition"' -o blue-mac .
+      run: CC=gcc CXX=g++ go build -ldflags='-s -w -extld gcc -extldflags "-Wl,--allow-multiple-definition"' -o blue-mac .
       
     - name: Compress windows binaries
       if: matrix.os == 'windows-latest'
