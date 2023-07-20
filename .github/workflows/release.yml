@@ -22,23 +22,23 @@ jobs:
         go-version: ${{ matrix.go-version }}
 
     - name: Get dependencies
-      run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev
+      run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
       if: ${{ runner.os == 'Linux' }}
 
     - name: Tests
-      run: go test ./...
+      run: go test -ldflags="-extldflags '-Wl,--allow-multiple-definition'" ./...
     
     - name: Build Windows
       if: matrix.os == 'windows-latest'
-      run: go build -ldflags='-s -w -extldflags="-static" -H=windowsgui' -o blue-win.exe .
+      run: go build -ldflags='-s -w -extldflags="-static,-Wl,--allow-multiple-definition" -H=windowsgui' -o blue-win.exe .
     
     - name: Build Linux
       if: matrix.os == 'ubuntu-latest'
-      run: go build -ldflags='-s -w' -o blue-linux .
+      run: go build -ldflags='-s -w -extldflags "-Wl,--allow-multiple-definition"' -o blue-linux .
 
     - name: Build Macos
       if: matrix.os == 'macos-latest'
-      run: go build -ldflags='-s -w' -o blue-mac .
+      run: go build -ldflags='-s -w -extldflags "-Wl,--allow-multiple-definition"' -o blue-mac .
       
     - name: Compress windows binaries
       if: matrix.os == 'windows-latest'

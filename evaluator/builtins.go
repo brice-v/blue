@@ -1238,7 +1238,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("is_valid_json", 1, object.STRING_OBJ, args[0].Type())
 			}
 			s := args[0].(*object.Stringo).Value
-			return &object.Boolean{Value: json.Valid([]byte(s))}
+			return nativeToBooleanObject(json.Valid([]byte(s)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_valid_json` returns a BOOLEAN if the given STRING is valid json",

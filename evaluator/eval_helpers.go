@@ -67,6 +67,10 @@ func newPositionalTypeError(funName string, pos int, expectedType string, curren
 	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%s", funName, pos, expectedType, currentType)
 }
 
+func newPositionalTypeErrorForGoObj(funName string, pos int, expectedType string, currentObj any) *object.Error {
+	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%T", funName, pos, expectedType, currentObj)
+}
+
 func newInvalidArgCountError(funName string, got, want int, otherCount string) *object.Error {
 	if otherCount == "" {
 		return newError("InvalidArgCountError: `%s` wrong number of args. got=%d, want=%d", funName, got, want)
@@ -615,11 +619,7 @@ func decodeInterfaceToObject(value interface{}) object.Object {
 	case string:
 		return &object.Stringo{Value: x}
 	case bool:
-		if x {
-			return TRUE
-		} else {
-			return FALSE
-		}
+		return nativeToBooleanObject(x)
 	case []interface{}:
 		list := &object.List{Elements: make([]object.Object, len(x))}
 		for i, e := range x {
@@ -748,7 +748,8 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 	case float64:
 		return &object.Float{Value: obj}, nil
 	case bool:
-		return &object.Boolean{Value: obj}, nil
+		x := nativeToBooleanObject(obj)
+		return x, nil
 	case nil:
 		return NULL, nil
 	case []interface{}:
@@ -822,7 +823,7 @@ func getBlueObjectFromResp(resp *http.Response) object.Object {
 	for i, v := range resp.TransferEncoding {
 		transferEncoding.Elements[i] = &object.Stringo{Value: v}
 	}
-	uncompressed := &object.Boolean{Value: resp.Uncompressed}
+	uncompressed := nativeToBooleanObject(resp.Uncompressed)
 	_cookies := resp.Cookies()
 	cookieToMapObj := func(c *http.Cookie) object.Object {
 		mapObj := object.NewOrderedMap[string, object.Object]()
@@ -831,8 +832,8 @@ func getBlueObjectFromResp(resp *http.Response) object.Object {
 		mapObj.Set("path", &object.Stringo{Value: c.Path})
 		mapObj.Set("domain", &object.Stringo{Value: c.Domain})
 		mapObj.Set("expires", &object.Integer{Value: c.Expires.Unix()})
-		mapObj.Set("http_only", &object.Boolean{Value: c.HttpOnly})
-		mapObj.Set("secure", &object.Boolean{Value: c.Secure})
+		mapObj.Set("http_only", nativeToBooleanObject(c.HttpOnly))
+		mapObj.Set("secure", nativeToBooleanObject(c.Secure))
 		mapObj.Set("samesite", &object.Integer{Value: int64(c.SameSite)})
 		mapObj.Set("raw", &object.Stringo{Value: c.String()})
 		return object.CreateMapObjectForGoMap(*mapObj)
@@ -977,7 +978,7 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 				return newError("`checkbox` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 			}
 			checkBox := widget.NewCheck(lbl, func(value bool) {
-				obj := e.applyFunction(fn, []object.Object{&object.Boolean{Value: value}}, make(map[string]object.Object), []bool{true})
+				obj := e.applyFunction(fn, []object.Object{nativeToBooleanObject(value)}, make(map[string]object.Object), []bool{true})
 				if isError(obj) {
 					err := obj.(*object.Error)
 					var buf bytes.Buffer

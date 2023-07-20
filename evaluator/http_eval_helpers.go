@@ -442,8 +442,8 @@ func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]obj
 				headersMapObj := getReqHeaderMapObj(c)
 				mapObj.Set("headers", headersMapObj)
 				mapObj.Set("ip", &object.Stringo{Value: c.IP()})
-				mapObj.Set("is_from_local", &object.Boolean{Value: c.IsFromLocal()})
-				mapObj.Set("is_secure", &object.Boolean{Value: c.Secure()})
+				mapObj.Set("is_from_local", nativeToBooleanObject(c.IsFromLocal()))
+				mapObj.Set("is_secure", nativeToBooleanObject(c.Secure()))
 				fnArgs[i] = object.CreateMapObjectForGoMap(*mapObj)
 			} else if v.Value == "ctx" || v.Value == "context" {
 				fnArgs[i] = getCtxFunctionMapObj(c)

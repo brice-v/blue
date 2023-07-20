@@ -56,8 +56,10 @@ const (
 	FUNCTION_OBJ = "FUNCTION"
 	// STRING_OBJ is the string object type string
 	STRING_OBJ = "STRING"
-	// BYTES_OBJ is the string object type string
+	// BYTES_OBJ is the bytes object type string
 	BYTES_OBJ = "BYTES"
+	// GO_OBJ is the go object type string
+	GO_OBJ = "GO_OBJ"
 	// BUILTIN_OBJ is the builtin function object type string
 	BUILTIN_OBJ = "BUILTIN"
 	// LIST_OBJ is the list object type string
@@ -303,19 +305,38 @@ func (s *Stringo) Help() string {
 	return createHelpStringForObject("String", "is the utf-8 bytes representation of a string object", s)
 }
 
-// Bytes is the bytes oject struct which contains a []byte value
+// Bytes is the bytes object struct which contains a []byte value
 type Bytes struct {
 	Value []byte
 }
 
-// Type returns the string object type
+// Type returns the bytes object type string
 func (b *Bytes) Type() Type { return BYTES_OBJ }
 
-// Inspect returns the string value
+// Inspect returns the byte slice as it is (in format %#v)
 func (b *Bytes) Inspect() string { return fmt.Sprintf("%#v", b.Value) }
 
 func (b *Bytes) Help() string {
 	return createHelpStringForObject("Bytes", "is the object that represents a slice of arbitrary bytes", b)
+}
+
+// GoObj is the go object struct which contains a generic value
+type GoObj[T any] struct {
+	Value T
+}
+
+// Type return the go object type string
+func (g *GoObj[T]) Type() Type {
+	return GO_OBJ
+}
+
+// Inspect returns the string representation of the GoObj with
+func (g *GoObj[T]) Inspect() string {
+	return fmt.Sprintf("GoObj{Type: (%T), Value: %#+v}", g.Value, g.Value)
+}
+
+func (g *GoObj[T]) Help() string {
+	return createHelpStringForObject("GoObj", "is the object that represents an arbitrary go object", g)
 }
 
 // BuiltinFunction is the type that will allow us to support

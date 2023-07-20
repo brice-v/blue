@@ -42,6 +42,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/antchfx/htmlquery"
+	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
@@ -88,6 +89,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"color":  {File: lib.ReadStdFileToString("color.b"), Builtins: _color_builtin_map},
 	"csv":    {File: lib.ReadStdFileToString("csv.b"), Builtins: _csv_builtin_map},
 	"psutil": {File: lib.ReadStdFileToString("psutil.b"), Builtins: _psutil_builtin_map},
+	"gg":     {File: lib.ReadStdFileToString("gg.b"), Builtins: _gg_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -1405,7 +1407,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			f := args[0].(*object.Float).Value
 			sign := int(args[1].(*object.Integer).Value)
-			return &object.Boolean{Value: math.IsInf(f, sign)}
+			return nativeToBooleanObject(math.IsInf(f, sign))
 		},
 	},
 	"is_NaN": {
@@ -1417,7 +1419,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("is_NaN", 1, object.FLOAT_OBJ, args[0].Type())
 			}
 			f := args[0].(*object.Float).Value
-			return &object.Boolean{Value: math.IsNaN(f)}
+			return nativeToBooleanObject(math.IsNaN(f))
 		},
 	},
 	"j0": {
@@ -1647,7 +1649,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("signbit", 1, object.FLOAT_OBJ, args[0].Type())
 			}
 			x := args[0].(*object.Float).Value
-			return &object.Boolean{Value: math.Signbit(x)}
+			return nativeToBooleanObject(math.Signbit(x))
 		},
 	},
 	"sin": {
@@ -3316,6 +3318,187 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`disk_usage` error: %s", err.Error())
 			}
 			return &object.Stringo{Value: usage.String()}
+		},
+	},
+})
+
+var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_init_window": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("init_window", len(args), 3, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("init_window", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("init_window", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("init_window", 3, object.STRING_OBJ, args[2].Type())
+			}
+			width := int32(args[0].(*object.Integer).Value)
+			height := int32(args[1].(*object.Integer).Value)
+			title := args[2].(*object.Stringo).Value
+			rl.InitWindow(width, height, title)
+			return NULL
+		},
+	},
+	"_close_window": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("close_window", len(args), 0, "")
+			}
+			rl.CloseWindow()
+			return NULL
+		},
+	},
+	"_window_should_close": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("window_should_close", len(args), 0, "")
+			}
+			return nativeToBooleanObject(rl.WindowShouldClose())
+		},
+	},
+	"_begin_drawing": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("begin_drawing", len(args), 0, "")
+			}
+			rl.BeginDrawing()
+			return NULL
+		},
+	},
+	"_end_drawing": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("end_drawing", len(args), 0, "")
+			}
+			rl.EndDrawing()
+			return NULL
+		},
+	},
+	"_clear_background": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("clear_background", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("clear_background", 1, object.GO_OBJ, args[0].Type())
+			}
+			goObj, ok := args[0].(*object.GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("clear_background", 1, "rl.Color", args[0])
+			}
+			rl.ClearBackground(goObj.Value)
+			return NULL
+		},
+	},
+	"_color_map": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("color_map", len(args), 0, "")
+			}
+			mapObj := object.NewOrderedMap[string, object.Object]()
+			lightGray := &object.GoObj[rl.Color]{Value: rl.LightGray}
+			gray := &object.GoObj[rl.Color]{Value: rl.Gray}
+			darkGray := &object.GoObj[rl.Color]{Value: rl.DarkGray}
+			yellow := &object.GoObj[rl.Color]{Value: rl.Yellow}
+			gold := &object.GoObj[rl.Color]{Value: rl.Gold}
+			orange := &object.GoObj[rl.Color]{Value: rl.Orange}
+			pink := &object.GoObj[rl.Color]{Value: rl.Pink}
+			red := &object.GoObj[rl.Color]{Value: rl.Red}
+			maroon := &object.GoObj[rl.Color]{Value: rl.Maroon}
+			green := &object.GoObj[rl.Color]{Value: rl.Green}
+			lime := &object.GoObj[rl.Color]{Value: rl.Lime}
+			darkGreen := &object.GoObj[rl.Color]{Value: rl.DarkGreen}
+			skyBlue := &object.GoObj[rl.Color]{Value: rl.SkyBlue}
+			blue := &object.GoObj[rl.Color]{Value: rl.Blue}
+			darkBlue := &object.GoObj[rl.Color]{Value: rl.DarkBlue}
+			purple := &object.GoObj[rl.Color]{Value: rl.Purple}
+			violet := &object.GoObj[rl.Color]{Value: rl.Violet}
+			darkPurple := &object.GoObj[rl.Color]{Value: rl.DarkPurple}
+			beige := &object.GoObj[rl.Color]{Value: rl.Beige}
+			brown := &object.GoObj[rl.Color]{Value: rl.Brown}
+			darkBrown := &object.GoObj[rl.Color]{Value: rl.DarkBrown}
+			white := &object.GoObj[rl.Color]{Value: rl.White}
+			black := &object.GoObj[rl.Color]{Value: rl.Black}
+			blank := &object.GoObj[rl.Color]{Value: rl.Blank}
+			magenta := &object.GoObj[rl.Color]{Value: rl.Magenta}
+			rayWhite := &object.GoObj[rl.Color]{Value: rl.RayWhite}
+			mapObj.Set("light_gray", lightGray)
+			mapObj.Set("gray", gray)
+			mapObj.Set("dark_gray", darkGray)
+			mapObj.Set("yellow", yellow)
+			mapObj.Set("gold", gold)
+			mapObj.Set("orange", orange)
+			mapObj.Set("pink", pink)
+			mapObj.Set("red", red)
+			mapObj.Set("maroon", maroon)
+			mapObj.Set("green", green)
+			mapObj.Set("lime", lime)
+			mapObj.Set("dark_green", darkGreen)
+			mapObj.Set("sky_blue", skyBlue)
+			mapObj.Set("blue", blue)
+			mapObj.Set("dark_blue", darkBlue)
+			mapObj.Set("purple", purple)
+			mapObj.Set("violet", violet)
+			mapObj.Set("dark_purple", darkPurple)
+			mapObj.Set("beige", beige)
+			mapObj.Set("brown", brown)
+			mapObj.Set("dark_brown", darkBrown)
+			mapObj.Set("white", white)
+			mapObj.Set("black", black)
+			mapObj.Set("blank", blank)
+			mapObj.Set("magenta", magenta)
+			mapObj.Set("ray_white", rayWhite)
+			return object.CreateMapObjectForGoMap(*mapObj)
+		},
+	},
+	"_draw_text": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("draw_text", len(args), 5, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("draw_text", 1, object.STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_text", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_text", 3, object.INTEGER_OBJ, args[2].Type())
+			}
+			if args[3].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_text", 4, object.INTEGER_OBJ, args[3].Type())
+			}
+			if args[4].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_text", 5, object.GO_OBJ, args[4].Type())
+			}
+			goObj, ok := args[4].(*object.GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_text", 5, "rl.Color", args[4])
+			}
+			text := args[0].(*object.Stringo).Value
+			posX := int32(args[1].(*object.Integer).Value)
+			posY := int32(args[2].(*object.Integer).Value)
+			fontSize := int32(args[3].(*object.Integer).Value)
+			rl.DrawText(text, posX, posY, fontSize, goObj.Value)
+			return NULL
+		},
+	},
+	"_set_target_fps": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_target_fps", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("set_target_fps", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			fps := int32(args[0].(*object.Integer).Value)
+			rl.SetTargetFPS(fps)
+			return NULL
 		},
 	},
 })

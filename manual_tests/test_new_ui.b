@@ -45,7 +45,7 @@ println("col_ui_content = #{col_ui_content}");
 var should_use_cols = input("Should use cols? ");
 println("should_use_cols = #{should_use_cols}")
 if (should_use_cols == "") {
-    ui.window(width=1000, height=800, title="blue ui demo", content=col_ui_content);
+    ui.window(width=1000, height=800, title="blue ui demo", col_ui_content);
 } else {
-    ui.window(width=1000, height=800, title="blue ui demo", content=row_ui_content);
+    ui.window(width=1000, height=800, title="blue ui demo", row_ui_content);
 }
