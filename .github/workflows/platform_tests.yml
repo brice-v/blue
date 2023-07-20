@@ -29,5 +29,5 @@ jobs:
       if: ${{ runner.os == 'Linux' || runner.os == 'Windows' }}
     
     - name: Tests
-      run: go test -race -ldflags="-extldflags '-z,muldefs'" ./...
+      run: go test -race -ldflags="-extldflags '-z muldefs'" ./...
       if: ${{ runner.os != 'Linux' && runner.os != 'Windows' }}
