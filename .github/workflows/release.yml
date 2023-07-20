@@ -21,17 +21,23 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
 
-    - name: Get dependencies
+    - name: Get dependencies Linux
       run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
       if: ${{ runner.os == 'Linux' }}
 
-    - name: Tests
+    - name: Get dependencies MacOS
+      run: brew install gcc
+      if: ${{ runner.os == 'MacOS' }}
+
+    - name: Tests Windows+Linux
       run: go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
       if: ${{ runner.os != 'MacOS' }}
     
-    - name: Tests
+    - name: Tests MacOS
       run: |
-        go env -w CGO_LDFLAGS="-O2 -g '-z muldefs'"
+        go env -w CC=gcc
+        go env -w CXX=g++
+        gcc --version
         go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
       if: ${{ runner.os == 'MacOS' }}
     
@@ -46,8 +52,10 @@ jobs:
     - name: Build Macos
       if: matrix.os == 'macos-latest'
       run: |
-        go env -w CGO_LDFLAGS="-O2 -g '-z muldefs'"
-        go build -ldflags='-s -w -extld clang' -o blue-mac .
+        go env -w CC=gcc
+        go env -w CXX=g++
+        gcc --version
+        go build -ldflags='-s -w -extld gcc -extldflags "-Wl,--allow-multiple-definition"' -o blue-mac .
       
     - name: Compress windows binaries
       if: matrix.os == 'windows-latest'
