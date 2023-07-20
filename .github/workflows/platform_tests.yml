@@ -26,8 +26,8 @@ jobs:
 
     - name: Tests
       run: |
-        go env -w CGO_LDFLAGS="-O2 -g '-z muldefs'"
-        go test -x -race -ldflags "-v -extld clang" ./...
+        go env -w CGO_LDFLAGS="-O2 -g '-Wl,-z,muldefs'"
+        go test -race -ldflags "-v -extld clang" ./...
       if: ${{ runner.os == 'MacOS'}}
 
     - name: Tests
