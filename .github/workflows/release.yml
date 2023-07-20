@@ -26,12 +26,14 @@ jobs:
       if: ${{ runner.os == 'Linux' }}
 
     - name: Tests
-      run: CC=gcc CXX=g++ go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
-      if: ${{ runner.os != 'Windows' }}
+      run: go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
+      if: ${{ runner.os != 'MacOS' }}
     
     - name: Tests
-      run: go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
-      if: ${{ runner.os == 'Windows' }}
+      run: |
+        go env -w CGO_LDFLAGS="-O2 -g '-z muldefs'"
+        go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
+      if: ${{ runner.os == 'MacOS' }}
     
     - name: Build Windows
       if: matrix.os == 'windows-latest'
@@ -43,7 +45,9 @@ jobs:
 
     - name: Build Macos
       if: matrix.os == 'macos-latest'
-      run: CC=gcc CXX=g++ go build -ldflags='-s -w -extld gcc -extldflags "-Wl,--allow-multiple-definition"' -o blue-mac .
+      run: |
+        go env -w CGO_LDFLAGS="-O2 -g '-z muldefs'"
+        go build -ldflags='-s -w -extld clang' -o blue-mac .
       
     - name: Compress windows binaries
       if: matrix.os == 'windows-latest'
