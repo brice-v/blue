@@ -25,19 +25,15 @@ jobs:
       run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
       if: ${{ runner.os == 'Linux' }}
 
-    - name: Get dependencies MacOS
-      run: brew install gcc
-      if: ${{ runner.os == 'MacOS' }}
-
     - name: Tests Windows+Linux
       run: go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
       if: ${{ runner.os != 'MacOS' }}
     
     - name: Tests MacOS
       run: |
-        go env -w CC=gcc
-        go env -w CXX=g++
-        gcc --version
+        go env -w CC=gcc-12
+        go env -w CXX=g++-12
+        gcc-12 --version
         go test -ldflags="-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
       if: ${{ runner.os == 'MacOS' }}
     
@@ -52,9 +48,9 @@ jobs:
     - name: Build Macos
       if: matrix.os == 'macos-latest'
       run: |
-        go env -w CC=gcc
-        go env -w CXX=g++
-        gcc --version
+        go env -w CC=gcc-12
+        go env -w CXX=g++-12
+        gcc-12 --version
         go build -ldflags='-s -w -extld gcc -extldflags "-Wl,--allow-multiple-definition"' -o blue-mac .
       
     - name: Compress windows binaries

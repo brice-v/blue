@@ -24,15 +24,11 @@ jobs:
       run: sudo apt-get update && sudo apt-get install gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libwayland-dev libxkbcommon-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev bc
       if: ${{ runner.os == 'Linux' }}
 
-    - name: Get dependencies MacOS
-      run: brew install gcc
-      if: ${{ runner.os == 'MacOS' }}
-
     - name: Tests
       run: |
-        go env -w CC=gcc
-        go env -w CXX=g++
-        gcc --version
+        go env -w CC=gcc-12
+        go env -w CXX=g++-12
+        gcc-12 --version
         go test -race -ldflags "-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
       if: ${{ runner.os == 'MacOS'}}
 
