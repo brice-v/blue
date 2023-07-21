@@ -593,7 +593,7 @@ struct _GLFWmonitor
     int             widthMM, heightMM;
 
     // The window whose video mode is current on this monitor
-    _GLFWwindow*    window;
+    _GLFWwindow*    windowww;
 
     GLFWvidmode*    modes;
     int             modeCount;

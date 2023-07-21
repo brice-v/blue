@@ -178,7 +178,7 @@ extern "C" {
  *
  *  @ingroup native
  */
-GLFWAPI const char* glfwGetWin32Adapter(GLFWmonitor* monitor);
+GLFWAPI const char* _glfwGetWin32Adapter(GLFWmonitor* monitor);
 
 /*! @brief Returns the display device name of the specified monitor.
  *
@@ -195,7 +195,7 @@ GLFWAPI const char* glfwGetWin32Adapter(GLFWmonitor* monitor);
  *
  *  @ingroup native
  */
-GLFWAPI const char* glfwGetWin32Monitor(GLFWmonitor* monitor);
+GLFWAPI const char* _glfwGetWin32Monitor(GLFWmonitor* monitor);
 
 /*! @brief Returns the `HWND` of the specified window.
  *
@@ -208,7 +208,7 @@ GLFWAPI const char* glfwGetWin32Monitor(GLFWmonitor* monitor);
  *  [GetDC](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getdc)
  *  function.
  *  @code
- *  HDC dc = GetDC(glfwGetWin32Window(window));
+ *  HDC dc = GetDC(_glfwGetWin32Window(window));
  *  @endcode
  *  This DC is private and does not need to be released.
  *
@@ -219,7 +219,7 @@ GLFWAPI const char* glfwGetWin32Monitor(GLFWmonitor* monitor);
  *
  *  @ingroup native
  */
-GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
+GLFWAPI HWND _glfwGetWin32Window(GLFWwindow* window);
 #endif
 
 #if defined(GLFW_EXPOSE_NATIVE_WGL)
@@ -235,7 +235,7 @@ GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
  *  [GetDC](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getdc)
  *  function.
  *  @code
- *  HDC dc = GetDC(glfwGetWin32Window(window));
+ *  HDC dc = GetDC(_glfwGetWin32Window(window));
  *  @endcode
  *  This DC is private and does not need to be released.
  *
@@ -246,7 +246,7 @@ GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
  *
  *  @ingroup native
  */
-GLFWAPI HGLRC glfwGetWGLContext(GLFWwindow* window);
+GLFWAPI HGLRC _glfwGetWGLContext(GLFWwindow* window);
 #endif
 
 #if defined(GLFW_EXPOSE_NATIVE_COCOA)
