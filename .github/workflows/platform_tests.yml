@@ -25,13 +25,4 @@ jobs:
       if: ${{ runner.os == 'Linux' }}
 
     - name: Tests
-      run: |
-        go env -w CC=gcc-12
-        go env -w CXX=g++-12
-        gcc-12 --version
-        go test -race -ldflags "-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
-      if: ${{ runner.os == 'MacOS'}}
-
-    - name: Tests
-      run: go test -race -ldflags "-extld gcc -extldflags '-Wl,--allow-multiple-definition'" ./...
-      if: ${{ runner.os != 'MacOS'}}
+      run: go test -race  ./...
