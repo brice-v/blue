@@ -1096,7 +1096,7 @@ static void acquireMonitor(_GLFWwindow* window)
                         DefaultExposures);
     }
 
-    if (!window->monitor->window)
+    if (!window->monitor->windowww)
         __glfw.x11.saver.count++;
 
     ___glfwSetVideoModeX11(window->monitor, &window->videoMode);
@@ -1121,7 +1121,7 @@ static void acquireMonitor(_GLFWwindow* window)
 //
 static void releaseMonitor(_GLFWwindow* window)
 {
-    if (window->monitor->window != window)
+    if (window->monitor->windowww != window)
         return;
 
     ____glfwInputMonitorWindow(window->monitor, NULL);
@@ -2203,7 +2203,7 @@ void ___glfwSetWindowSizeX11(_GLFWwindow* window, int width, int height)
 {
     if (window->monitor)
     {
-        if (window->monitor->window == window)
+        if (window->monitor->windowww == window)
             acquireMonitor(window);
     }
     else
@@ -2474,7 +2474,7 @@ void ___glfwSetWindowMonitorX11(_GLFWwindow* window,
     {
         if (monitor)
         {
-            if (monitor->window == window)
+            if (monitor->windowww == window)
                 acquireMonitor(window);
         }
         else

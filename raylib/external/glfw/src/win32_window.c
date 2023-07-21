@@ -461,7 +461,7 @@ static void acquireMonitor(_GLFWwindow* window)
         SystemParametersInfoW(SPI_SETMOUSETRAILS, 0, 0, 0);
     }
 
-    if (!window->monitor->window)
+    if (!window->monitor->windowww)
         __glfw.win32.acquiredMonitorCount++;
 
     __glfwSetVideoModeWin32(window->monitor, &window->videoMode);
@@ -472,7 +472,7 @@ static void acquireMonitor(_GLFWwindow* window)
 //
 static void releaseMonitor(_GLFWwindow* window)
 {
-    if (window->monitor->window != window)
+    if (window->monitor->windowww != window)
         return;
 
     __glfw.win32.acquiredMonitorCount--;
@@ -1633,7 +1633,7 @@ void ___glfwSetWindowSizeWin32(_GLFWwindow* window, int width, int height)
 {
     if (window->monitor)
     {
-        if (window->monitor->window == window)
+        if (window->monitor->windowww == window)
         {
             acquireMonitor(window);
             fitToMonitor(window);
@@ -1789,7 +1789,7 @@ void ___glfwSetWindowMonitorWin32(_GLFWwindow* window,
     {
         if (monitor)
         {
-            if (monitor->window == window)
+            if (monitor->windowww == window)
             {
                 acquireMonitor(window);
                 fitToMonitor(window);

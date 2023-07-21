@@ -160,7 +160,7 @@ void ___glfwInputMonitor(_GLFWmonitor* monitor, int action, int placement)
 void ____glfwInputMonitorWindow(_GLFWmonitor* monitor, _GLFWwindow* window)
 {
     assert(monitor != NULL);
-    monitor->window = window;
+    monitor->windowww = window;
 }
 
 
