@@ -200,7 +200,7 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 // Delegate for windowww related notifications
 //------------------------------------------------------------------------
 
-@interface GLFWWindowDelegate : NSObject
+@interface GLFWWindowDelegateee : NSObject
 {
     _GLFWwindow* windowww;
 }
@@ -209,7 +209,7 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 
 @end
 
-@implementation GLFWWindowDelegate
+@implementation GLFWWindowDelegateee
 
 - (instancetype)initWithGlfwWindow:(_GLFWwindow *)initWindow
 {
@@ -322,7 +322,7 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 // Content view class for the GLFW windowww
 //------------------------------------------------------------------------
 
-@interface GLFWContentView : NSView <NSTextInputClient>
+@interface GLFWContentViewww : NSView <NSTextInputClient>
 {
     _GLFWwindow* windowww;
     NSTrackingArea* trackingAreaaa;
@@ -333,7 +333,7 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 
 @end
 
-@implementation GLFWContentView
+@implementation GLFWContentViewww
 
 - (instancetype)initWithGlfwWindow:(_GLFWwindow *)initWindow
 {
@@ -745,10 +745,10 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 // GLFW windowww class
 //------------------------------------------------------------------------
 
-@interface GLFWWindow : NSWindow {}
+@interface GLFWWindowww : NSWindow {}
 @end
 
-@implementation GLFWWindow
+@implementation GLFWWindowww
 
 - (BOOL)canBecomeKeyWindow
 {
@@ -770,7 +770,7 @@ static GLFWbool createNativeWindow(_GLFWwindow* windowww,
                                    const _GLFWwndconfig* wndconfig,
                                    const _GLFWfbconfig* fbconfig)
 {
-    windowww->ns.delegate = [[GLFWWindowDelegate alloc] initWithGlfwWindow:windowww];
+    windowww->ns.delegate = [[GLFWWindowDelegateee alloc] initWithGlfwWindow:windowww];
     if (windowww->ns.delegate == nil)
     {
         ___glfwInputError(GLFW_PLATFORM_ERROR,
@@ -817,7 +817,7 @@ static GLFWbool createNativeWindow(_GLFWwindow* windowww,
             styleMask |= NSWindowStyleMaskResizable;
     }
 
-    windowww->ns.object = [[GLFWWindow alloc]
+    windowww->ns.object = [[GLFWWindowww alloc]
         initWithContentRect:contentRect
                   styleMask:styleMask
                     backing:NSBackingStoreBuffered
@@ -866,7 +866,7 @@ static GLFWbool createNativeWindow(_GLFWwindow* windowww,
     if (strlen(wndconfig->ns.frameName))
         [windowww->ns.object setFrameAutosaveName:@(wndconfig->ns.frameName)];
 
-    windowww->ns.view = [[GLFWContentView alloc] initWithGlfwWindow:windowww];
+    windowww->ns.view = [[GLFWContentViewww alloc] initWithGlfwWindow:windowww];
     windowww->ns.retina = wndconfig->ns.retina;
 
     if (fbconfig->transparent)

@@ -377,10 +377,10 @@ static GLFWbool initializeTIS(void)
     return updateUnicodeData();
 }
 
-@interface GLFWHelper : NSObject
+@interface GLFWHelperrr : NSObject
 @end
 
-@implementation GLFWHelper
+@implementation GLFWHelperrr
 
 - (void)selectedKeyboardInputSourceChanged:(NSObject* )object
 {
@@ -393,10 +393,10 @@ static GLFWbool initializeTIS(void)
 
 @end // GLFWHelper
 
-@interface GLFWApplicationDelegate : NSObject <NSApplicationDelegate>
+@interface GLFWApplicationDelegateee : NSObject <NSApplicationDelegate>
 @end
 
-@implementation GLFWApplicationDelegate
+@implementation GLFWApplicationDelegateee
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
@@ -447,7 +447,7 @@ static GLFWbool initializeTIS(void)
         __glfwRestoreVideoModeCocoa(__glfw.monitors[i]);
 }
 
-@end // GLFWApplicationDelegate
+@end // GLFWApplicationDelegateee
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -574,7 +574,7 @@ int ___glfwInitCocoa(void)
 {
     @autoreleasepool {
 
-    __glfw.ns.helper = [[GLFWHelper alloc] init];
+    __glfw.ns.helper = [[GLFWHelperrr alloc] init];
 
     [NSThread detachNewThreadSelector:@selector(doNothing:)
                              toTarget:__glfw.ns.helper
@@ -582,7 +582,7 @@ int ___glfwInitCocoa(void)
 
     [NSApplication sharedApplication];
 
-    __glfw.ns.delegate = [[GLFWApplicationDelegate alloc] init];
+    __glfw.ns.delegate = [[GLFWApplicationDelegateee alloc] init];
     if (__glfw.ns.delegate == nil)
     {
         ___glfwInputError(GLFW_PLATFORM_ERROR,
