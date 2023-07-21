@@ -100,7 +100,7 @@ github.com/fyne-io/glfw-js
 # github.com/fyne-io/image v0.0.0-20221020213044-f609c6a24345
 ## explicit; go 1.14
 github.com/fyne-io/image/ico
-# github.com/gen2brain/raylib-go/raylib v0.0.0-20230719211022-1083eace2049
+# github.com/gen2brain/raylib-go/raylib v0.0.0-20230719211022-1083eace2049 => ./raylib
 ## explicit; go 1.19
 github.com/gen2brain/raylib-go/raylib
 # github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6
@@ -590,3 +590,4 @@ modernc.org/strutil
 ## explicit
 modernc.org/token
 # github.com/gofiber/fiber/v2 => ./fiber
+# github.com/gen2brain/raylib-go/raylib => ./raylib

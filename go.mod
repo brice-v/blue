@@ -124,3 +124,5 @@ require (
 )
 
 replace github.com/gofiber/fiber/v2 => ./fiber
+
+replace github.com/gen2brain/raylib-go/raylib => ./raylib
