@@ -353,7 +353,7 @@ GLFWbool __glfwCreateContextNSGL(_GLFWwindow* window,
 //////                        GLFW native API                       //////
 //////////////////////////////////////////////////////////////////////////
 
-GLFWAPI id glfwGetNSGLContext(GLFWwindow* handle)
+GLFWAPI id _glfwGetNSGLContext(GLFWwindow* handle)
 {
     _GLFWwindow* window = (_GLFWwindow*) handle;
     _GLFW_REQUIRE_INIT_OR_RETURN(nil);

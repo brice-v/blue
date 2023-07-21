@@ -2032,7 +2032,7 @@ VkResult ____glfwCreateWindowSurfaceCocoa(VkInstance instance,
 //////                        GLFW native API                       //////
 //////////////////////////////////////////////////////////////////////////
 
-GLFWAPI id glfwGetCocoaWindow(GLFWwindow* handle)
+GLFWAPI id _glfwGetCocoaWindow(GLFWwindow* handle)
 {
     _GLFWwindow* windowww = (_GLFWwindow*) handle;
     _GLFW_REQUIRE_INIT_OR_RETURN(nil);

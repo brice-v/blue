@@ -264,7 +264,7 @@ GLFWAPI HGLRC _glfwGetWGLContext(GLFWwindow* window);
  *
  *  @ingroup native
  */
-GLFWAPI CGDirectDisplayID glfwGetCocoaMonitor(GLFWmonitor* monitor);
+GLFWAPI CGDirectDisplayID _glfwGetCocoaMonitor(GLFWmonitor* monitor);
 
 /*! @brief Returns the `NSWindow` of the specified window.
  *
@@ -280,7 +280,7 @@ GLFWAPI CGDirectDisplayID glfwGetCocoaMonitor(GLFWmonitor* monitor);
  *
  *  @ingroup native
  */
-GLFWAPI id glfwGetCocoaWindow(GLFWwindow* window);
+GLFWAPI id _glfwGetCocoaWindow(GLFWwindow* window);
 #endif
 
 #if defined(GLFW_EXPOSE_NATIVE_NSGL)
@@ -299,7 +299,7 @@ GLFWAPI id glfwGetCocoaWindow(GLFWwindow* window);
  *
  *  @ingroup native
  */
-GLFWAPI id glfwGetNSGLContext(GLFWwindow* window);
+GLFWAPI id _glfwGetNSGLContext(GLFWwindow* window);
 #endif
 
 #if defined(GLFW_EXPOSE_NATIVE_X11)
