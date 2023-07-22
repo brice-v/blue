@@ -8,3 +8,4 @@ blue.exe
 *.arm
 release-build/*
 ignored/*
+*.png

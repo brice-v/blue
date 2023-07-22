@@ -340,7 +340,7 @@ func (ee *EvalExpression) String() string {
 	return out.String()
 }
 
-// SpawnExpression is the spaws ast node
+// SpawnExpression is the spawn ast node
 type SpawnExpression struct {
 	Token     token.Token  // token == spawn
 	Arguments []Expression // Arguments is the list of expression to be passed as arguments
@@ -368,7 +368,7 @@ func (se *SpawnExpression) String() string {
 }
 
 type SelfExpression struct {
-	Token token.Token // token == spawn
+	Token token.Token // token == self
 }
 
 // expressionNode satisfies the expression interface

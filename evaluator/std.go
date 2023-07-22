@@ -3427,6 +3427,32 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			blank := &object.GoObj[rl.Color]{Value: rl.Blank}
 			magenta := &object.GoObj[rl.Color]{Value: rl.Magenta}
 			rayWhite := &object.GoObj[rl.Color]{Value: rl.RayWhite}
+			newColor := &object.Builtin{
+				Fun: func(args ...object.Object) object.Object {
+					if len(args) != 4 {
+						return newInvalidArgCountError("new_color", len(args), 4, "")
+					}
+					if args[0].Type() != object.INTEGER_OBJ {
+						return newPositionalTypeError("new_color", 1, object.INTEGER_OBJ, args[0].Type())
+					}
+					if args[1].Type() != object.INTEGER_OBJ {
+						return newPositionalTypeError("new_color", 2, object.INTEGER_OBJ, args[1].Type())
+					}
+					if args[2].Type() != object.INTEGER_OBJ {
+						return newPositionalTypeError("new_color", 3, object.INTEGER_OBJ, args[2].Type())
+					}
+					if args[3].Type() != object.INTEGER_OBJ {
+						return newPositionalTypeError("new_color", 4, object.INTEGER_OBJ, args[3].Type())
+					}
+					return &object.GoObj[rl.Color]{
+						Value: rl.NewColor(
+							uint8(args[0].(*object.Integer).Value),
+							uint8(args[1].(*object.Integer).Value),
+							uint8(args[2].(*object.Integer).Value),
+							uint8(args[3].(*object.Integer).Value)),
+					}
+				},
+			}
 			mapObj.Set("light_gray", lightGray)
 			mapObj.Set("gray", gray)
 			mapObj.Set("dark_gray", darkGray)
@@ -3453,6 +3479,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			mapObj.Set("blank", blank)
 			mapObj.Set("magenta", magenta)
 			mapObj.Set("ray_white", rayWhite)
+			mapObj.Set("new", newColor)
 			return object.CreateMapObjectForGoMap(*mapObj)
 		},
 	},
@@ -3488,6 +3515,86 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return NULL
 		},
 	},
+	"_draw_texture": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("draw_texture", len(args), 4, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_texture", 1, object.GO_OBJ, args[0].Type())
+			}
+			tex, ok := args[0].(*object.GoObj[rl.Texture2D])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture", 1, "rl.Texture2D", tex)
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_texture", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_texture", 3, object.INTEGER_OBJ, args[2].Type())
+			}
+			if args[3].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_texture", 4, object.GO_OBJ, args[3].Type())
+			}
+			tint, ok := args[3].(*object.GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture", 4, "rl.Color", tint)
+			}
+			posX := int32(args[1].(*object.Integer).Value)
+			posY := int32(args[2].(*object.Integer).Value)
+			rl.DrawTexture(tex.Value, posX, posY, tint.Value)
+			return NULL
+		},
+	},
+	"_draw_texture_pro": {
+		Fun: func(args ...object.Object) object.Object {
+			// draw_texture_pro(texture: GO_OBJ[rl.Texture2D], source_rec: GO_OBJ[rl.Rectangle]=Rectangle(), dest_rec: GO_OBJ[rl.Rectangle]=Rectangle(), origin: GO_OBJ[rl.Vector2]=Vector2(), rotation: float=0.0, tint=color.white)
+			if len(args) != 6 {
+				return newInvalidArgCountError("draw_texture_pro", len(args), 4, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_texture_pro", 1, object.GO_OBJ, args[0].Type())
+			}
+			tex, ok := args[0].(*object.GoObj[rl.Texture2D])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 1, "rl.Texture2D", tex)
+			}
+			if args[1].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_texture_pro", 2, object.GO_OBJ, args[1].Type())
+			}
+			srcRect, ok := args[1].(*object.GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 2, "rl.Rectangle", srcRect)
+			}
+			if args[2].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_texture_pro", 3, object.GO_OBJ, args[2].Type())
+			}
+			dstRect, ok := args[2].(*object.GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 3, "rl.Rectangle", dstRect)
+			}
+			if args[3].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_texture_pro", 4, object.GO_OBJ, args[3].Type())
+			}
+			origin, ok := args[3].(*object.GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Rectangle", origin)
+			}
+			if args[4].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("draw_texture_pro", 5, object.FLOAT_OBJ, args[4].Type())
+			}
+			rotation := float32(args[4].(*object.Float).Value)
+			if args[5].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_texture_pro", 6, object.GO_OBJ, args[5].Type())
+			}
+			tint, ok := args[5].(*object.GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 6, "rl.Color", tint)
+			}
+			rl.DrawTexturePro(tex.Value, srcRect.Value, dstRect.Value, origin.Value, rotation, tint.Value)
+			return NULL
+		},
+	},
 	"_set_target_fps": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -3499,6 +3606,135 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			fps := int32(args[0].(*object.Integer).Value)
 			rl.SetTargetFPS(fps)
 			return NULL
+		},
+	},
+	"_set_exit_key": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_exit_key", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("set_exit_key", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			key := int32(args[0].(*object.Integer).Value)
+			rl.SetExitKey(key)
+			return NULL
+		},
+	},
+	"_is_key_up": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("is_key_up", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("is_key_up", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			key := int32(args[0].(*object.Integer).Value)
+			return nativeToBooleanObject(rl.IsKeyUp(key))
+		},
+	},
+	"_is_key_down": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("is_key_down", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("is_key_down", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			key := int32(args[0].(*object.Integer).Value)
+			return nativeToBooleanObject(rl.IsKeyDown(key))
+		},
+	},
+	"_is_key_pressed": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("is_key_pressed", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("is_key_pressed", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			key := int32(args[0].(*object.Integer).Value)
+			return nativeToBooleanObject(rl.IsKeyPressed(key))
+		},
+	},
+	"_is_key_released": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("is_key_released", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("is_key_released", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			key := int32(args[0].(*object.Integer).Value)
+			return nativeToBooleanObject(rl.IsKeyReleased(key))
+		},
+	},
+	"_load_texture": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("load_texture", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("load_texture", 1, object.STRING_OBJ, args[0].Type())
+			}
+			fname := args[0].(*object.Stringo).Value
+			return &object.GoObj[rl.Texture2D]{Value: rl.LoadTexture(fname)}
+		},
+	},
+	"_unload_texture": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("unload_texture", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("unload_texture", 1, object.GO_OBJ, args[0].Type())
+			}
+			tex, ok := args[0].(*object.GoObj[rl.Texture2D])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("unload_texture", 1, "rl.Texture2D", tex)
+			}
+			rl.UnloadTexture(tex.Value)
+			return NULL
+		},
+	},
+	"_rectangle": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("Rectangle", len(args), 4, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Rectangle", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Rectangle", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Rectangle", 3, object.FLOAT_OBJ, args[2].Type())
+			}
+			if args[3].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Rectangle", 4, object.FLOAT_OBJ, args[3].Type())
+			}
+			x := float32(args[0].(*object.Float).Value)
+			y := float32(args[1].(*object.Float).Value)
+			width := float32(args[2].(*object.Float).Value)
+			height := float32(args[3].(*object.Float).Value)
+			return &object.GoObj[rl.Rectangle]{Value: rl.NewRectangle(x, y, width, height)}
+		},
+	},
+	"_vector2": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("Vector2", len(args), 2, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector2", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector2", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			x := float32(args[0].(*object.Float).Value)
+			y := float32(args[1].(*object.Float).Value)
+			return &object.GoObj[rl.Vector2]{Value: rl.NewVector2(x, y)}
 		},
 	},
 })

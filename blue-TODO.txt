@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Add defer expression that works kind of like spawn
+    - However, it should work at the end of a scope block
 - [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
     - Leave the default one still in place
     - Make sure this works with ctrl+c for exiting it
