@@ -21,3 +21,5 @@ assert(me.to_s() == "Person{name='Person1', age=20}");
 me.inc_age()
 println(me.to_s());
 assert(me.to_s() == "Person{name='Person1', age=21}");
+
+assert(Person("Hello", 21).to_s() == "Person{name='Hello', age=21}");

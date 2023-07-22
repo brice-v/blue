@@ -248,18 +248,37 @@ val Gamepad = {
 
 fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
     ## `Rectangle` is an object constructor that represents the GO_OBJ for rectangles
-    ## currently there is no way to edit it so any rectangles will just need to be recreated
     ##
-    ## Rectangle(x: float=0.0, y: float=0.0, width: float=0.0, height: float=0.0) -> GO_OBJ[rl.Rectangle]
-    __rectangle(float(x), float(y), float(width), float(height))
+    ## the object can be modified using the x,y,width,height variables and the GO_OBJ
+    ## can be retrieved with this.obj()
+    ##
+    ## Rectangle(x: float=0.0, y: float=0.0, width: float=0.0, height: float=0.0) ->
+    ## {'x':float,'y':float,'width':float,'height':float,'obj':|this|=>GO_OBJ[rl.Rectangle]}
+    var this = {
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+    };
+    this.obj = fun() {
+        return __rectangle(float(this['x']), float(this['y']), float(this['width']), float(this['height']));
+    }
+    return this;
 }
 
 fun Vector2(x=0.0, y=0.0) {
     ## `Vector2` is an object constructor that represents the GO_OBJ for 2 Point Vectors
     ## currently there is no way to edit it so any vec2 will just need to be recreated
     ##
-    ## Vector2(x: float=0.0, y: float=0.0) -> GO_OBJ[rl.Vector2]
-    __vector2(float(x), float(y))
+    ## Vector2(x: float=0.0, y: float=0.0) -> {'x':float,'y':float,'obj':|this|=>GO_OBJ[rl.Vector2]}
+    var this = {
+        'x': x,
+        'y': y,
+    };
+    this.obj = fun() {
+        return __vector2(float(this['x']), float(this['y']))
+    }
+    return this;
 }
 
 # Specialized Public Functions
@@ -302,7 +321,7 @@ fun draw_texture(texture, pos_x=0, pos_y=0, tint=color.white) {
     __draw_texture(texture, pos_x, pos_y, tint)
 }
 
-fun draw_texture_pro(texture, source_rec=Rectangle(), dest_rec=Rectangle(), origin=Vector2(), rotation=0.0, tint=color.white) {
+fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle().obj(), origin=Vector2().obj(), rotation=0.0, tint=color.white) {
     ## `draw_texture_pro` will draw the given 2D texture to the raylib window with the given parameters defined
     ## by a rectangle with 'pro' parameters
     ##
@@ -313,6 +332,10 @@ fun draw_texture_pro(texture, source_rec=Rectangle(), dest_rec=Rectangle(), orig
     ## rotation is the amount the texture should be rotated by
     ## tint is the color shading to give to the texture (color.white should leave it as default)
     ##
-    ## draw_texture_pro(texture: GO_OBJ[rl.Texture2D], source_rec: GO_OBJ[rl.Rectangle]=Rectangle(), dest_rec: GO_OBJ[rl.Rectangle]=Rectangle(), origin: GO_OBJ[rl.Vector2]=Vector2(), rotation: float=0.0, tint=color.white)
+    ## draw_texture_pro(texture: GO_OBJ[rl.Texture2D],
+    ##                  source_rec: GO_OBJ[rl.Rectangle]=Rectangle().obj(),
+    ##                  dest_rec: GO_OBJ[rl.Rectangle]=Rectangle().obj(),
+    ##                  origin: GO_OBJ[rl.Vector2]=Vector2().obj(),
+    ##                  rotation: float=0.0, tint=color.white)
     __draw_texture_pro(texture, source_rec, dest_rec, origin, float(rotation), tint)
 }
