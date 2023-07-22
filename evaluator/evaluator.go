@@ -80,6 +80,14 @@ type Evaluator struct {
 	// scopeVars is the map of scopeNestLevel to the variables that need to be removed
 	scopeVars       map[int][]string
 	cleanupScopeVar map[string]bool
+
+	// deferFuns is the map of scopeNestLevel function to execute at scope block cleanup
+	deferFuns map[int]*Stack[*FunAndArgs]
+}
+
+type FunAndArgs struct {
+	Fun  *object.Function
+	Args []object.Object
 }
 
 // Note: When creating multiple new evaluators with `spawn` there were race conditions
@@ -115,6 +123,8 @@ func New() *Evaluator {
 		scopeNestLevel:  0,
 		scopeVars:       make(map[int][]string),
 		cleanupScopeVar: make(map[string]bool),
+
+		deferFuns: make(map[int]*Stack[*FunAndArgs]),
 	}
 
 	builtins.Put("to_num", createToNumBuiltin(e))
@@ -492,6 +502,12 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 		}
 		return obj
+	case *ast.DeferExpression:
+		obj := e.evalDeferExpression(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.SelfExpression:
 		obj := e.evalSelfExpression(node)
 		if isError(obj) {
@@ -822,6 +838,37 @@ func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
 		close(process.Ch)
 	}
 	ProcessMap.Remove(pid)
+}
+
+func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object {
+	argLen := len(node.Arguments)
+	if argLen > 2 || argLen == 0 {
+		return newInvalidArgCountError("defer", argLen, 1, "or 2")
+	}
+	arg0 := e.Eval(node.Arguments[0])
+	if isError(arg0) {
+		return arg0
+	}
+	if arg0.Type() != object.FUNCTION_OBJ {
+		return newPositionalTypeError("defer", 1, object.FUNCTION_OBJ, arg0.Type())
+	}
+	arg1 := MakeEmptyList()
+	if argLen == 2 {
+		arg1 = e.Eval(node.Arguments[1])
+		if isError(arg1) {
+			return arg1
+		}
+		if arg1.Type() != object.LIST_OBJ {
+			return newPositionalTypeError("defer", 2, object.LIST_OBJ, arg1.Type())
+		}
+	}
+	fun := arg0.(*object.Function)
+	if _, ok := e.deferFuns[e.scopeNestLevel]; !ok {
+		// Initialize map if its not there yet
+		e.deferFuns[e.scopeNestLevel] = NewStack[*FunAndArgs]()
+	}
+	e.deferFuns[e.scopeNestLevel].Push(&FunAndArgs{Fun: fun, Args: arg1.(*object.List).Elements})
+	return NULL
 }
 
 func (e *Evaluator) evalSelfExpression(node *ast.SelfExpression) object.Object {
@@ -3636,6 +3683,17 @@ func (e *Evaluator) evalLshiftPrefixOperatorExpression(right object.Object) obje
 func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 	var result object.Object
 
+	defer func() {
+		if funAndArgs, ok := e.deferFuns[e.scopeNestLevel]; ok {
+			for funAndArgs.Len() > 0 {
+				funAndArg := funAndArgs.Pop()
+				// Note: Return values are ignored for defer functions
+				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+			}
+			delete(e.deferFuns, e.scopeNestLevel)
+		}
+	}()
+
 	for _, stmt := range program.Statements {
 		result = e.Eval(stmt)
 		switch result := result.(type) {
@@ -3669,6 +3727,14 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 			}
 			delete(e.scopeVars, e.scopeNestLevel)
 			delete(e.isInScopeBlock, e.scopeNestLevel)
+		}
+		if funAndArgs, ok := e.deferFuns[e.scopeNestLevel]; ok {
+			for funAndArgs.Len() > 0 {
+				funAndArg := funAndArgs.Pop()
+				// Note: Return values are ignored for defer functions
+				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+			}
+			delete(e.deferFuns, e.scopeNestLevel)
 		}
 		e.scopeNestLevel--
 	}()

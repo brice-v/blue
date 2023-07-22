@@ -367,6 +367,33 @@ func (se *SpawnExpression) String() string {
 	return out.String()
 }
 
+// DeferExpression is the spawn ast node
+type DeferExpression struct {
+	Token     token.Token  // token == defer
+	Arguments []Expression // Arguments is the list of expression to be passed as arguments
+}
+
+// expressionNode satisfies the expression interface
+func (de *DeferExpression) expressionNode() {}
+
+// TokenLiteral returns the for token
+func (de *DeferExpression) TokenLiteral() string { return de.Token.Literal }
+
+// String returns the string representation of the for expression ast node
+func (de *DeferExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("defer(")
+	for i, a := range de.Arguments {
+		out.WriteString(a.String())
+		if i < len(de.Arguments)-1 {
+			out.WriteString(", ")
+		}
+	}
+	out.WriteByte(')')
+	return out.String()
+}
+
 type SelfExpression struct {
 	Token token.Token // token == self
 }

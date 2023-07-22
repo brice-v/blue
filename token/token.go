@@ -235,6 +235,8 @@ const (
 	EVAL = "EVAL"
 	// SPAWN is the string rep. of the 'spawn' keyword token
 	SPAWN = "SPAWN"
+	// DEFER is the string rep. of the 'defer' keyword token
+	DEFER = "DEFER"
 	// SELF is the string rep. of the 'self' keyword token
 	SELF = "SELF"
 
@@ -270,6 +272,7 @@ var keywords = map[string]Type{
 	"finally":  FINALLY,
 	"eval":     EVAL,
 	"spawn":    SPAWN,
+	"defer":    DEFER,
 	"self":     SELF,
 	"break":    BREAK,
 	"continue": CONTINUE,
