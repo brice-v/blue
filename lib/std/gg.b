@@ -337,5 +337,8 @@ fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle()
     ##                  dest_rec: GO_OBJ[rl.Rectangle]=Rectangle().obj(),
     ##                  origin: GO_OBJ[rl.Vector2]=Vector2().obj(),
     ##                  rotation: float=0.0, tint=color.white)
-    __draw_texture_pro(texture, source_rec, dest_rec, origin, float(rotation), tint)
+    var src_rec = if (type(source_rec) == Type.MAP && source_rec['obj'] != null) { source_rec.obj() } else { source_rec };
+    var dst_rec = if (type(dest_rec) == Type.MAP && dest_rec['obj'] != null) { dest_rec.obj() } else { dest_rec };
+    var org_vec2 = if (type(origin) == Type.MAP && origin['obj'] != null) { origin.obj() } else { origin };
+    __draw_texture_pro(texture, src_rec, dst_rec, org_vec2, float(rotation), tint)
 }
