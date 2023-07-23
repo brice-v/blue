@@ -3737,4 +3737,48 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.GoObj[rl.Vector2]{Value: rl.NewVector2(x, y)}
 		},
 	},
+	"_vector3": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("Vector3", len(args), 3, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector3", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector3", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector3", 3, object.FLOAT_OBJ, args[2].Type())
+			}
+			x := float32(args[0].(*object.Float).Value)
+			y := float32(args[1].(*object.Float).Value)
+			z := float32(args[2].(*object.Float).Value)
+			return &object.GoObj[rl.Vector3]{Value: rl.NewVector3(x, y, z)}
+		},
+	},
+	"_vector4": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("Vector4", len(args), 4, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector4", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector4", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector4", 3, object.FLOAT_OBJ, args[2].Type())
+			}
+			if args[3].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Vector4", 4, object.FLOAT_OBJ, args[3].Type())
+			}
+			x := float32(args[0].(*object.Float).Value)
+			y := float32(args[1].(*object.Float).Value)
+			z := float32(args[2].(*object.Float).Value)
+			w := float32(args[3].(*object.Float).Value)
+			return &object.GoObj[rl.Vector4]{Value: rl.NewVector4(x, y, z, w)}
+		},
+	},
 })

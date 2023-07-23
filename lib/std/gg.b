@@ -23,6 +23,8 @@ val is_key_released = _is_key_released;
 
 val __rectangle = _rectangle;
 val __vector2 = _vector2;
+val __vector3 = _vector3;
+val __vector4 = _vector4;
 
 
 # Input Constants
@@ -266,17 +268,39 @@ fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
     return this;
 }
 
-fun Vector2(x=0.0, y=0.0) {
-    ## `Vector2` is an object constructor that represents the GO_OBJ for 2 Point Vectors
-    ## currently there is no way to edit it so any vec2 will just need to be recreated
+fun Vector(x=0.0, y=0.0, z=null, w=null) {
+    ## `Vector` is an object constructor that represents the GO_OBJ for a 2, 3, or 4 Point Vector
+    ## currently there is no way to edit it so any vec will just need to be recreated with .obj()
     ##
-    ## Vector2(x: float=0.0, y: float=0.0) -> {'x':float,'y':float,'obj':|this|=>GO_OBJ[rl.Vector2]}
+    ## Vector() -> will return a 2 point vector
+    ## Vector(z=0.0) -> will return a 3 point vector
+    ## Vector(w=0.0) -> returns an error (invalid args [needs a z as well])
+    ##
+    ## Vector(x: float=0.0, y: float=0.0, z: float=null, w: float=null)
+    ##     -> {'x':float,'y':float,'obj':|this|=>GO_OBJ[rl.Vector2]}
+    ##      | {'x':float,'y':float,'z':float,'obj':|this|=>GO_OBJ[rl.Vector3]}
+    ##      | {'x':float,'y':float,'z':float,'w':float,'obj':|this|=>GO_OBJ[rl.Vector4]}
     var this = {
-        'x': x,
-        'y': y,
+        'x': float(x),
+        'y': float(y),
     };
-    this.obj = fun() {
-        return __vector2(float(this['x']), float(this['y']))
+    if (z == null && w == null) {
+        this.obj = fun() {
+            return __vector2(float(this['x']), float(this['y']))
+        };
+    } else if (z != null && w == null) {
+        this['z'] = float(z);
+        this.obj = fun() {
+            return __vector3(float(this['x']), float(this['y']), float(this['z']))
+        };
+    } else if (z != null && w != null) {
+        this['z'] = float(z);
+        this['w'] = float(w);
+        this.obj = fun() {
+            return __vector4(float(this['x']), float(this['y']), float(this['z']), float(this['w']))
+        };
+    } else {
+        return error("gg.Vector has invalid arguments");
     }
     return this;
 }
@@ -321,7 +345,7 @@ fun draw_texture(texture, pos_x=0, pos_y=0, tint=color.white) {
     __draw_texture(texture, pos_x, pos_y, tint)
 }
 
-fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle().obj(), origin=Vector2().obj(), rotation=0.0, tint=color.white) {
+fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle().obj(), origin=Vector().obj(), rotation=0.0, tint=color.white) {
     ## `draw_texture_pro` will draw the given 2D texture to the raylib window with the given parameters defined
     ## by a rectangle with 'pro' parameters
     ##
@@ -335,7 +359,7 @@ fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle()
     ## draw_texture_pro(texture: GO_OBJ[rl.Texture2D],
     ##                  source_rec: GO_OBJ[rl.Rectangle]=Rectangle().obj(),
     ##                  dest_rec: GO_OBJ[rl.Rectangle]=Rectangle().obj(),
-    ##                  origin: GO_OBJ[rl.Vector2]=Vector2().obj(),
+    ##                  origin: GO_OBJ[rl.Vector2]=Vector().obj(),
     ##                  rotation: float=0.0, tint=color.white)
     var src_rec = if (type(source_rec) == Type.MAP && source_rec['obj'] != null) { source_rec.obj() } else { source_rec };
     var dst_rec = if (type(dest_rec) == Type.MAP && dest_rec['obj'] != null) { dest_rec.obj() } else { dest_rec };

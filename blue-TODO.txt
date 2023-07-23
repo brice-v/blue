@@ -1,7 +1,5 @@
 TODO:
 
-- [ ] Add defer expression that works kind of like spawn
-    - However, it should work at the end of a scope block
 - [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
     - Leave the default one still in place
     - Make sure this works with ctrl+c for exiting it
@@ -133,6 +131,8 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Add defer expression that works kind of like spawn
+    - However, it should work at the end of a scope block
 - [-] Add ebiten game engine
     - Not going to do this, instead going to add raylib probably
 - [-] Hook in esbuild to do transpiling?
