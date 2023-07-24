@@ -3781,4 +3781,130 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.GoObj[rl.Vector4]{Value: rl.NewVector4(x, y, z, w)}
 		},
 	},
+	"_init_audio_device": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("init_audio_device", len(args), 0, "")
+			}
+			rl.InitAudioDevice()
+			return NULL
+		},
+	},
+	"_close_audio_device": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("close_audio_device", len(args), 0, "")
+			}
+			rl.CloseAudioDevice()
+			return NULL
+		},
+	},
+	"_load_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("load_music", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("load_music", 1, object.STRING_OBJ, args[0].Type())
+			}
+			fname := args[0].(*object.Stringo).Value
+			return &object.GoObj[rl.Music]{Value: rl.LoadMusicStream(fname)}
+		},
+	},
+	"_unload_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("unload_music", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("unload_music", 1, object.GO_OBJ, args[0].Type())
+			}
+			music, ok := args[0].(*object.GoObj[rl.Music])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("unload_music", 1, "rl.Music", music)
+			}
+			rl.UnloadMusicStream(music.Value)
+			return NULL
+		},
+	},
+	"_update_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("update_music", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("update_music", 1, object.GO_OBJ, args[0].Type())
+			}
+			music, ok := args[0].(*object.GoObj[rl.Music])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("update_music", 1, "rl.Music", music)
+			}
+			rl.UpdateMusicStream(music.Value)
+			return NULL
+		},
+	},
+	"_play_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("play_music", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("play_music", 1, object.GO_OBJ, args[0].Type())
+			}
+			music, ok := args[0].(*object.GoObj[rl.Music])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("play_music", 1, "rl.Music", music)
+			}
+			rl.PlayMusicStream(music.Value)
+			return NULL
+		},
+	},
+	"_stop_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("stop_music", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("stop_music", 1, object.GO_OBJ, args[0].Type())
+			}
+			music, ok := args[0].(*object.GoObj[rl.Music])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("stop_music", 1, "rl.Music", music)
+			}
+			rl.StopMusicStream(music.Value)
+			return NULL
+		},
+	},
+	"_resume_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("resume_music", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("resume_music", 1, object.GO_OBJ, args[0].Type())
+			}
+			music, ok := args[0].(*object.GoObj[rl.Music])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("resume_music", 1, "rl.Music", music)
+			}
+			rl.ResumeMusicStream(music.Value)
+			return NULL
+		},
+	},
+	"_pause_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("pause_music", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("pause_music", 1, object.GO_OBJ, args[0].Type())
+			}
+			music, ok := args[0].(*object.GoObj[rl.Music])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("pause_music", 1, "rl.Music", music)
+			}
+			rl.PauseMusicStream(music.Value)
+			return NULL
+		},
+	},
 })

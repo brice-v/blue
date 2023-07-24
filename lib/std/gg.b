@@ -15,6 +15,16 @@ val __draw_texture = _draw_texture;
 val __draw_texture_pro = _draw_texture_pro;
 val load_texture = _load_texture;
 val unload_texture = _unload_texture;
+val init_audio_device = _init_audio_device;
+val close_audio_device = _close_audio_device;
+val load_music = _load_music;
+val unload_music = _unload_music;
+val update_music = _update_music;
+val play_music = _play_music;
+val stop_music = _stop_music;
+val pause_music = _pause_music;
+val resume_music = _resume_music;
+
 val set_exit_key = _set_exit_key;
 val is_key_up = _is_key_up;
 val is_key_down = _is_key_down;
