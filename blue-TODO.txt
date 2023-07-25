@@ -1,5 +1,6 @@
 TODO:
 
+- [ ] Support X - (Y/2) thing correctly, this was actually doing something weird where it multiplied by -1 essentially?
 - [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
     - Leave the default one still in place
     - Make sure this works with ctrl+c for exiting it
