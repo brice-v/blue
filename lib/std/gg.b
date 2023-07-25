@@ -15,6 +15,8 @@ val __draw_texture = _draw_texture;
 val __draw_texture_pro = _draw_texture_pro;
 val load_texture = _load_texture;
 val unload_texture = _unload_texture;
+
+# Audio/Music/Sound
 val init_audio_device = _init_audio_device;
 val close_audio_device = _close_audio_device;
 val load_music = _load_music;
@@ -24,6 +26,12 @@ val play_music = _play_music;
 val stop_music = _stop_music;
 val pause_music = _pause_music;
 val resume_music = _resume_music;
+val load_sound = _load_sound;
+val unload_sound = _unload_sound;
+val play_sound = _play_sound;
+val stop_sound = _stop_sound;
+val resume_sound = _resume_sound;
+val pause_sound = _pause_sound;
 
 val set_exit_key = _set_exit_key;
 val is_key_up = _is_key_up;
@@ -35,7 +43,13 @@ val __rectangle = _rectangle;
 val __vector2 = _vector2;
 val __vector3 = _vector3;
 val __vector4 = _vector4;
+val __camera2d = _camera2d;
+val __camera3d = _camera3d;
 
+val __begin_mode2d = _begin_mode2d;
+val end_mode2d = _end_mode2d;
+val __begin_mode3d = _begin_mode3d;
+val end_mode3d = _end_mode3d;
 
 # Input Constants
 
@@ -315,6 +329,77 @@ fun Vector(x=0.0, y=0.0, z=null, w=null) {
     return this;
 }
 
+fun Camera2D(offset=Vector(), target=Vector(), rotation=0.0, zoom=1.0) {
+    ## `Camera2D` is an object constructor that represents the GO_OBJ for 2D Cameras
+    ##
+    ## offset (displacement from target)
+	## target (rotation and zoom origin)
+	## rotation in degrees
+	## zoom (scaling), should be 1.0f by default
+    ##
+    ## Camera2D(offset: Vector2, target: Vector2, rotation: float, zoom: float) 
+    ##  -> {'offset':Vector(x,y)=Vector(),'target':Vector(x,y)=Vector(),'rotation':float=0.0,'zoom':float=1.0,'obj':|this|=>GO_OBJ[rl.Camera2D]}
+    if ('obj' notin offset) {
+        return error("offset must have obj() function on its map");
+    }
+    if ('obj' notin target) {
+        return error("target must have obj() function on its map");
+    }
+    var this = {
+        'offset': offset,
+        'target': target,
+        'rotation': float(rotation),
+        'zoom': float(zoom),
+    };
+    this.obj = fun() {
+        return __camera2d(this['offset']['obj'](), this['target']['obj'](), float(this['rotation']), float(this['zoom']));
+    }
+    return this;
+}
+
+val CameraProjection = {
+    'Perspective': 0,
+    'Orthographic': 1,
+};
+
+fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fovy=0.0, projection=CameraProjection.Perspective) {
+    ## `Camera3D` is an object constructor that represents the GO_OBJ for 2D Cameras
+    ##
+    ## position - camera's position
+	## target - where it looks-at
+	## up vector (rotation over its axis)
+	## fovy - field-of-view apperture in Y (degrees) in perspective, used as near plane width in orthographic
+    ## projection - Camera type, controlling projection type, either CameraProjection.Perspective or CameraProjection.Orthographic
+    ##
+    ## Camera3D(position: Vector3, target: Vector3, up: Vector3, fovy: float, projection: int[CameraProjection.Perspective|Orthographic]) 
+    ##  -> {'position':Vector(x,y,z)=Vector(z=0.0),
+    ##      'target':Vector(x,y,z)=Vector(z=0.0),
+    ##      'up':Vector(x,y,z)=Vector(z=0.0),
+    ##      'fovy':float=0.0,
+    ##      'projection':int=CameraProjection.Perspective,
+    ##      'obj':|this|=>GO_OBJ[rl.Camera3D]}
+    if ('obj' notin position) {
+        return error("position must have obj() function on its map");
+    }
+    if ('obj' notin target) {
+        return error("target must have obj() function on its map");
+    }
+    if ('obj' notin up) {
+        return error("up must have obj() function on its map");
+    }
+    var this = {
+        'position': position,
+        'target': target,
+        'up': up,
+        'fovy': float(fovy),
+        'projection': int(projection),
+    };
+    this.obj = fun() {
+        return __camera3d(this['position']['obj'](), this['target']['obj'](), this['up']['obj'](), float(this['fovy']), int(this['projection']));
+    }
+    return this;
+}
+
 # Specialized Public Functions
 
 fun init_window(width=800, height=600, title="gg - example app") {
@@ -375,4 +460,24 @@ fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle()
     var dst_rec = if (type(dest_rec) == Type.MAP && dest_rec['obj'] != null) { dest_rec.obj() } else { dest_rec };
     var org_vec2 = if (type(origin) == Type.MAP && origin['obj'] != null) { origin.obj() } else { origin };
     __draw_texture_pro(texture, src_rec, dst_rec, org_vec2, float(rotation), tint)
+}
+
+fun begin_mode2d(cam=Camera2D()) {
+    ## `begin_mode2d` will start the 2d mode for an initialized 2d camera
+    ##
+    ## begin_mode2d(cam: Camera2D=Camera2D()) -> null
+    if ('obj' notin cam) {
+        return error("cam must have obj() function on its map");
+    }
+    __begin_mode2d(cam.obj())
+}
+
+fun begin_mode3d(cam=Camera3D()) {
+    ## `begin_mode3d` will start the 3d mode for an initialized 3d camera
+    ##
+    ## begin_mode3d(cam: Camera3D=Camera3D()) -> null
+    if ('obj' notin cam) {
+        return error("cam must have obj() function on its map");
+    }
+    __begin_mode3d(cam.obj())
 }

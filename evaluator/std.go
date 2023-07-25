@@ -3781,6 +3781,123 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.GoObj[rl.Vector4]{Value: rl.NewVector4(x, y, z, w)}
 		},
 	},
+	"_camera2d": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("Camera2D", len(args), 4, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("Camera2D", 1, object.GO_OBJ, args[0].Type())
+			}
+			offset, ok := args[0].(*object.GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("Camera2D", 1, "rl.Vector2", offset)
+			}
+			if args[1].Type() != object.GO_OBJ {
+				return newPositionalTypeError("Camera2D", 2, object.GO_OBJ, args[1].Type())
+			}
+			target, ok := args[1].(*object.GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("Camera2D", 2, "rl.Vector2", target)
+			}
+			if args[2].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Camera2D", 3, object.FLOAT_OBJ, args[2].Type())
+			}
+			if args[3].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Camera2D", 4, object.FLOAT_OBJ, args[3].Type())
+			}
+			rotation := float32(args[2].(*object.Float).Value)
+			zoom := float32(args[3].(*object.Float).Value)
+			return &object.GoObj[rl.Camera2D]{Value: rl.NewCamera2D(offset.Value, target.Value, rotation, zoom)}
+		},
+	},
+	"_begin_mode2d": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("begin_mode2d", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("begin_mode2d", 1, object.GO_OBJ, args[0].Type())
+			}
+			cam, ok := args[0].(*object.GoObj[rl.Camera2D])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("begin_mode2d", 1, "rl.Camera2D", cam)
+			}
+			rl.BeginMode2D(cam.Value)
+			return NULL
+		},
+	},
+	"_end_mode2d": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("end_mode2d", len(args), 0, "")
+			}
+			rl.EndMode2D()
+			return NULL
+		},
+	},
+	"_camera3d": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("Camera3D", len(args), 5, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("Camera3D", 1, object.GO_OBJ, args[0].Type())
+			}
+			position, ok := args[0].(*object.GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("Camera3D", 1, "rl.Vector3", position)
+			}
+			if args[1].Type() != object.GO_OBJ {
+				return newPositionalTypeError("Camera3D", 2, object.GO_OBJ, args[1].Type())
+			}
+			target, ok := args[1].(*object.GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("Camera3D", 2, "rl.Vector3", target)
+			}
+			if args[2].Type() != object.GO_OBJ {
+				return newPositionalTypeError("Camera3D", 3, object.GO_OBJ, args[2].Type())
+			}
+			up, ok := args[2].(*object.GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("Camera3D", 3, "rl.Vector3", up)
+			}
+			if args[3].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("Camera3D", 4, object.FLOAT_OBJ, args[3].Type())
+			}
+			if args[4].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("Camera3D", 5, object.INTEGER_OBJ, args[4].Type())
+			}
+			fovy := float32(args[3].(*object.Float).Value)
+			projection := rl.CameraProjection(args[4].(*object.Integer).Value)
+			return &object.GoObj[rl.Camera3D]{Value: rl.NewCamera3D(position.Value, target.Value, up.Value, fovy, projection)}
+		},
+	},
+	"_begin_mode3d": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("begin_mode3d", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("begin_mode3d", 1, object.GO_OBJ, args[0].Type())
+			}
+			cam, ok := args[0].(*object.GoObj[rl.Camera3D])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("begin_mode3d", 1, "rl.Camera3D", cam)
+			}
+			rl.BeginMode3D(cam.Value)
+			return NULL
+		},
+	},
+	"_end_mode3d": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("end_mode3d", len(args), 0, "")
+			}
+			rl.EndMode3D()
+			return NULL
+		},
+	},
 	"_init_audio_device": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
@@ -3904,6 +4021,98 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("pause_music", 1, "rl.Music", music)
 			}
 			rl.PauseMusicStream(music.Value)
+			return NULL
+		},
+	},
+	"_load_sound": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("load_sound", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("load_sound", 1, object.STRING_OBJ, args[0].Type())
+			}
+			fname := args[0].(*object.Stringo).Value
+			return &object.GoObj[rl.Sound]{Value: rl.LoadSound(fname)}
+		},
+	},
+	"_unload_sound": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("unload_sound", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("unload_sound", 1, object.GO_OBJ, args[0].Type())
+			}
+			sound, ok := args[0].(*object.GoObj[rl.Sound])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("unload_sound", 1, "rl.Sound", sound)
+			}
+			rl.UnloadSound(sound.Value)
+			return NULL
+		},
+	},
+	"_play_sound": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("play_sound", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("play_sound", 1, object.GO_OBJ, args[0].Type())
+			}
+			sound, ok := args[0].(*object.GoObj[rl.Sound])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("play_sound", 1, "rl.Sound", sound)
+			}
+			rl.PlaySound(sound.Value)
+			return NULL
+		},
+	},
+	"_stop_sound": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("stop_sound", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("stop_sound", 1, object.GO_OBJ, args[0].Type())
+			}
+			sound, ok := args[0].(*object.GoObj[rl.Sound])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("stop_sound", 1, "rl.Sound", sound)
+			}
+			rl.StopSound(sound.Value)
+			return NULL
+		},
+	},
+	"_resume_sound": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("resume_sound", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("resume_sound", 1, object.GO_OBJ, args[0].Type())
+			}
+			sound, ok := args[0].(*object.GoObj[rl.Sound])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("resume_sound", 1, "rl.Sound", sound)
+			}
+			rl.ResumeSound(sound.Value)
+			return NULL
+		},
+	},
+	"_pause_sound": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("pause_sound", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("pause_sound", 1, object.GO_OBJ, args[0].Type())
+			}
+			sound, ok := args[0].(*object.GoObj[rl.Sound])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("pause_sound", 1, "rl.Sound", sound)
+			}
+			rl.PauseSound(sound.Value)
 			return NULL
 		},
 	},
