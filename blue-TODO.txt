@@ -1,6 +1,5 @@
 TODO:
 
-- [ ] Support X - (Y/2) thing correctly, this was actually doing something weird where it multiplied by -1 essentially?
 - [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
     - Leave the default one still in place
     - Make sure this works with ctrl+c for exiting it
@@ -132,6 +131,8 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Support X - (Y/2) thing correctly, this was actually doing something weird where it multiplied by -1 essentially?
+    - This was actually a bug in the evaluator that I had put a note on, turns out it was incorrect from the beginning
 - [x] Add defer expression that works kind of like spawn
     - However, it should work at the end of a scope block
 - [-] Add ebiten game engine

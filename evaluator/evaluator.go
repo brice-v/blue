@@ -2368,6 +2368,7 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 	}
 }
 
+// TODO: We can still further optimize many of the math related functions here
 func (e *Evaluator) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	switch {
 	// These are the cases where they are the same type
@@ -2377,8 +2378,6 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		return e.evalBigIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
 		return e.evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return e.evalFloatIntInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
 		return e.evalBigFloatInfixExpression(operator, left, right)
 	case left.Type() == object.UINTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
@@ -2512,7 +2511,7 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		return e.evalBigFloatFloatInfixExpression(operator, left, right)
 	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalBigFloatIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
+	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ || left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalIntegerFloatInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
 		return e.evalIntegerUintegerInfixExpression(operator, left, right)
@@ -3221,9 +3220,20 @@ func (e *Evaluator) evalIntegerUintegerInfixExpression(operator string, left, ri
 	}
 }
 
+// evalIntegerFloatInfixExpression returns the infix expression object from the left and right Float/Integer
 func (e *Evaluator) evalIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := float64(left.(*object.Integer).Value)
-	rightVal := right.(*object.Float).Value
+	// Only Integer and Floats should be passed into this
+	var leftVal, rightVal float64
+	if lF, ok := left.(*object.Float); ok {
+		leftVal = lF.Value
+	} else {
+		leftVal = float64(left.(*object.Integer).Value)
+	}
+	if rF, ok := right.(*object.Float); ok {
+		rightVal = rF.Value
+	} else {
+		rightVal = float64(right.(*object.Integer).Value)
+	}
 	switch operator {
 	case "+":
 		return &object.Float{Value: leftVal + rightVal}
@@ -3524,12 +3534,6 @@ func (e *Evaluator) evalIntegerNonIncRange(leftVal, rightVal int64) object.Objec
 		return &object.List{Elements: listElems}
 	}
 	return &object.List{Elements: []object.Object{}}
-}
-
-func (e *Evaluator) evalFloatIntInfixExpression(operator string, left, right object.Object) object.Object {
-	// Note: this may cause errors to print incorrectly but this is a quick way to solve
-	// for this use case
-	return e.evalIntegerFloatInfixExpression(operator, right, left)
 }
 
 func (e *Evaluator) evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
