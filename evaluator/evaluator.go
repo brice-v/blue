@@ -2368,20 +2368,34 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 	}
 }
 
-// TODO: We can still further optimize many of the math related functions here
 func (e *Evaluator) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	switch {
-	// These are the cases where they are the same type
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.BIG_INTEGER_OBJ:
+	case left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.BIG_INTEGER_OBJ ||
+		left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.INTEGER_OBJ ||
+		left.Type() == object.INTEGER_OBJ && right.Type() == object.BIG_INTEGER_OBJ ||
+		left.Type() == object.UINTEGER_OBJ && right.Type() == object.BIG_INTEGER_OBJ ||
+		left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
 		return e.evalBigIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
+	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ ||
+		left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ ||
+		left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
+	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.BIG_FLOAT_OBJ ||
+		left.Type() == object.FLOAT_OBJ && right.Type() == object.BIG_INTEGER_OBJ ||
+		left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.FLOAT_OBJ ||
+		left.Type() == object.FLOAT_OBJ && right.Type() == object.BIG_FLOAT_OBJ ||
+		left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.FLOAT_OBJ ||
+		left.Type() == object.INTEGER_OBJ && right.Type() == object.BIG_FLOAT_OBJ ||
+		left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.INTEGER_OBJ ||
+		left.Type() == object.UINTEGER_OBJ && right.Type() == object.BIG_FLOAT_OBJ ||
+		left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.UINTEGER_OBJ:
 		return e.evalBigFloatInfixExpression(operator, left, right)
-	case left.Type() == object.UINTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
-		return e.evalUintInfixExpression(operator, left, right)
+	case left.Type() == object.UINTEGER_OBJ && right.Type() == object.UINTEGER_OBJ ||
+		left.Type() == object.INTEGER_OBJ && right.Type() == object.UINTEGER_OBJ ||
+		left.Type() == object.UINTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
+		return e.evalUintegerInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		leftStr := left.(*object.Stringo).Value
 		rightStr := right.(*object.Stringo).Value
@@ -2495,36 +2509,11 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 	case left.Type() == object.BYTES_OBJ && right.Type() == object.BYTES_OBJ:
 		return e.evalBytesInfixExpression(operator, left, right)
 	// These are the cases where they differ
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.BIG_INTEGER_OBJ:
-		return e.evalFloatBigIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.BIG_INTEGER_OBJ:
-		return e.evalIntegerBigIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
-		return e.evalBigIntegerFloatInfixExpression(operator, left, right)
-	case left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
-		return e.evalBigIntegerIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
-		return e.evalFloatBigFloatInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
-		return e.evalIntegerBigFloatInfixExpression(operator, left, right)
-	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
-		return e.evalBigFloatFloatInfixExpression(operator, left, right)
-	case left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return e.evalBigFloatIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ || left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return e.evalIntegerFloatInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.UINTEGER_OBJ:
-		return e.evalIntegerUintegerInfixExpression(operator, left, right)
-	case right.Type() == object.INTEGER_OBJ && left.Type() == object.UINTEGER_OBJ:
-		return e.evalIntegerUintegerInfixExpression(operator, right, left)
-	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ:
-		return e.evalStringIntegerInfixExpression(operator, left, right)
-	case right.Type() == object.STRING_OBJ && left.Type() == object.INTEGER_OBJ:
-		return e.evalStringIntegerInfixExpression(operator, right, left)
-	case left.Type() == object.STRING_OBJ && right.Type() == object.UINTEGER_OBJ:
-		return e.evalStringUintegerInfixExpression(operator, left, right)
-	case right.Type() == object.STRING_OBJ && left.Type() == object.UINTEGER_OBJ:
-		return e.evalStringUintegerInfixExpression(operator, right, left)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ ||
+		left.Type() == object.INTEGER_OBJ && right.Type() == object.STRING_OBJ ||
+		left.Type() == object.STRING_OBJ && right.Type() == object.UINTEGER_OBJ ||
+		left.Type() == object.UINTEGER_OBJ && right.Type() == object.STRING_OBJ:
+		return e.evalStringUIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.LIST_OBJ && !isBooleanOperator(operator):
 		return e.evalListInfixExpression(operator, left, right)
 	case right.Type() == object.SET_OBJ && !isBooleanOperator(operator):
@@ -2973,61 +2962,28 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 	}
 }
 
-func (e *Evaluator) evalBigFloatIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	rightVal := right.(*object.Integer).Value
-	rightBigFloat := decimal.NewFromInt(rightVal)
-	return e.evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
-}
-
-func (e *Evaluator) evalBigFloatFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	rightVal := right.(*object.Float).Value
-	rightBigFloat := decimal.NewFromFloat(rightVal)
-	return e.evalBigFloatInfixExpression(operator, left, &object.BigFloat{Value: rightBigFloat})
-}
-
-func (e *Evaluator) evalIntegerBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Integer).Value
-	leftBigFloat := decimal.NewFromInt(leftVal)
-	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
-}
-
-func (e *Evaluator) evalFloatBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Float).Value
-	leftBigFloat := decimal.NewFromFloat(leftVal)
-	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, right)
-}
-
-func (e *Evaluator) evalBigIntegerIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	rightVal := right.(*object.Integer).Value
-	rightBigInt := new(big.Int).SetInt64(rightVal)
-	return e.evalBigIntegerInfixExpression(operator, left, &object.BigInteger{Value: rightBigInt})
-}
-
-func (e *Evaluator) evalBigIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.BigInteger).Value
-	rightVal := right.(*object.Float).Value
-	leftBigFloat := decimal.NewFromBigInt(leftVal, 1)
-	rightBigFloat := decimal.NewFromFloat(rightVal)
-	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
-}
-
-func (e *Evaluator) evalIntegerBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Integer).Value
-	leftBigInt := new(big.Int).SetInt64(leftVal)
-	return e.evalBigIntegerInfixExpression(operator, &object.BigInteger{Value: leftBigInt}, right)
-}
-
-func (e *Evaluator) evalFloatBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Float).Value
-	rightVal := right.(*object.BigInteger).Value
-	leftBigFloat := decimal.NewFromFloat(leftVal)
-	rightBigFloat := decimal.NewFromBigInt(rightVal, 1)
-	return e.evalBigFloatInfixExpression(operator, &object.BigFloat{Value: leftBigFloat}, &object.BigFloat{Value: rightBigFloat})
-}
-
+// evalBigFloatInfixExpression returns the infix expression object from the left and right BigInteger/UInteger/Integer/Float/BigFloat
+// it converts both left and right to their *big.Int values
 func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.BigFloat).Value
-	rightVal := right.(*object.BigFloat).Value
+	var leftVal, rightVal decimal.Decimal
+	if lBF, ok := left.(*object.BigFloat); ok {
+		leftVal = lBF.Value
+	} else if lF, ok := left.(*object.Float); ok {
+		leftVal = decimal.NewFromFloat(lF.Value)
+	} else if lI, ok := left.(*object.Integer); ok {
+		leftVal = decimal.NewFromInt(lI.Value)
+	} else if lBI, ok := left.(*object.BigInteger); ok {
+		leftVal = decimal.NewFromBigInt(lBI.Value, 1)
+	}
+	if rBF, ok := right.(*object.BigFloat); ok {
+		rightVal = rBF.Value
+	} else if rF, ok := right.(*object.Float); ok {
+		rightVal = decimal.NewFromFloat(rF.Value)
+	} else if rI, ok := right.(*object.Integer); ok {
+		rightVal = decimal.NewFromInt(rI.Value)
+	} else if rBI, ok := right.(*object.BigInteger); ok {
+		rightVal = decimal.NewFromBigInt(rBI.Value, 1)
+	}
 	switch operator {
 	case "+":
 		return &object.BigFloat{Value: leftVal.Add(rightVal)}
@@ -3084,9 +3040,25 @@ func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right obj
 	}
 }
 
+// evalBigIntegerInfixExpression returns the infix expression object from the left and right BigInteger/UInteger/Integer
+// it converts both left and right to their *big.Int values
 func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.BigInteger).Value
-	rightVal := right.(*object.BigInteger).Value
+	// Only Integers, Uintegers or BigIntegers should be passed in
+	var leftVal, rightVal *big.Int
+	if lBI, ok := left.(*object.BigInteger); ok {
+		leftVal = lBI.Value
+	} else if lI, ok := left.(*object.Integer); ok {
+		leftVal = new(big.Int).SetInt64(lI.Value)
+	} else {
+		leftVal = new(big.Int).SetUint64(left.(*object.UInteger).Value)
+	}
+	if rBI, ok := right.(*object.BigInteger); ok {
+		rightVal = rBI.Value
+	} else if rI, ok := right.(*object.Integer); ok {
+		rightVal = new(big.Int).SetInt64(rI.Value)
+	} else {
+		rightVal = new(big.Int).SetUint64(right.(*object.UInteger).Value)
+	}
 	result := big.NewInt(0)
 	switch operator {
 	case "+":
@@ -3147,15 +3119,31 @@ func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right o
 	}
 }
 
-func (e *Evaluator) evalStringIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Stringo).Value
-	rightVal := right.(*object.Integer).Value
+// evalStringUIntegerInfixExpression returns the infix expression object from the left or right string and left/right UInteger/Integer
+// it converts the integer to a uinteger and a string will be returned
+func (e *Evaluator) evalStringUIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+	var strToBuild string
+	var amount uint64
+	if s, ok := left.(*object.Stringo); ok {
+		strToBuild = s.Value
+	} else if lI, ok := left.(*object.Integer); ok {
+		amount = uint64(lI.Value)
+	} else {
+		amount = left.(*object.UInteger).Value
+	}
+	if s, ok := right.(*object.Stringo); ok {
+		strToBuild = s.Value
+	} else if rI, ok := right.(*object.Integer); ok {
+		amount = uint64(rI.Value)
+	} else {
+		amount = right.(*object.UInteger).Value
+	}
 	switch operator {
 	case "*":
 		var out bytes.Buffer
-		var i int64
-		for i = 0; i < rightVal; i++ {
-			out.WriteString(leftVal)
+		var i uint64
+		for i = 0; i < amount; i++ {
+			out.WriteString(strToBuild)
 		}
 		return &object.Stringo{Value: out.String()}
 	default:
@@ -3163,29 +3151,28 @@ func (e *Evaluator) evalStringIntegerInfixExpression(operator string, left, righ
 	}
 }
 
-func (e *Evaluator) evalStringUintegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Stringo).Value
-	rightVal := right.(*object.UInteger).Value
-	switch operator {
-	case "*":
-		var out bytes.Buffer
-		var i uint64
-		for i = 0; i < rightVal; i++ {
-			out.WriteString(leftVal)
+// evalUintegerInfixExpression returns the infix expression object from the left and right Uinteger/Integer
+// it converts both left and right to their uint64 values
+func (e *Evaluator) evalUintegerInfixExpression(operator string, left, right object.Object) object.Object {
+	// Only UIntegers and Integers should be passed into this
+	var leftVal, rightVal uint64
+	if lUI, ok := left.(*object.UInteger); ok {
+		leftVal = lUI.Value
+	} else {
+		leftIntVal := left.(*object.Integer).Value
+		if leftIntVal < 0 {
+			return newError("Left Integer was negative, and is not allowed for Unsigned Integer operations. %s %s %s", left.Inspect(), operator, right.Inspect())
 		}
-		return &object.Stringo{Value: out.String()}
-	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		leftVal = uint64(leftIntVal)
 	}
-}
-
-func (e *Evaluator) evalIntegerUintegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftIntVal := left.(*object.Integer).Value
-	if leftIntVal < 0 {
-		return newError("Negative Integers are not allowed for Unsigned Integer operations")
+	if rUI, ok := right.(*object.UInteger); ok {
+		rightVal = rUI.Value
+	} else {
+		rightIntVal := right.(*object.Integer).Value
+		if rightIntVal < 0 {
+			return newError("Right Integer was negative, and is not allowed for Unsigned Integer operations. %s %s %s", left.Inspect(), operator, right.Inspect())
+		}
 	}
-	leftVal := uint64(left.(*object.Integer).Value)
-	rightVal := right.(*object.UInteger).Value
 	switch operator {
 	case "+":
 		// Note: i think overflow is okay when dealing with unsigned
@@ -3203,6 +3190,16 @@ func (e *Evaluator) evalIntegerUintegerInfixExpression(operator string, left, ri
 		return &object.UInteger{Value: uint64(math.Floor(float64(leftVal) / float64(rightVal)))}
 	case "%":
 		return &object.UInteger{Value: uint64(math.Mod(float64(leftVal), float64(rightVal)))}
+	case "&":
+		return &object.UInteger{Value: leftVal & rightVal}
+	case "|":
+		return &object.UInteger{Value: leftVal | rightVal}
+	case "^":
+		return &object.UInteger{Value: leftVal ^ rightVal}
+	case ">>":
+		return &object.UInteger{Value: leftVal >> rightVal}
+	case "<<":
+		return &object.UInteger{Value: leftVal << rightVal}
 	case "<":
 		return nativeToBooleanObject(leftVal < rightVal)
 	case ">":
@@ -3220,9 +3217,10 @@ func (e *Evaluator) evalIntegerUintegerInfixExpression(operator string, left, ri
 	}
 }
 
-// evalIntegerFloatInfixExpression returns the infix expression object from the left and right Float/Integer
-func (e *Evaluator) evalIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	// Only Integer and Floats should be passed into this
+// evalFloatInfixExpression returns the infix expression object from the left and right Float/Integer
+// it converts both left and right to their float64 values
+func (e *Evaluator) evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
+	// Only Integers and Floats should be passed into this
 	var leftVal, rightVal float64
 	if lF, ok := left.(*object.Float); ok {
 		leftVal = lF.Value
@@ -3534,84 +3532,6 @@ func (e *Evaluator) evalIntegerNonIncRange(leftVal, rightVal int64) object.Objec
 		return &object.List{Elements: listElems}
 	}
 	return &object.List{Elements: []object.Object{}}
-}
-
-func (e *Evaluator) evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Float).Value
-	rightVal := right.(*object.Float).Value
-
-	switch operator {
-	case "+":
-		return &object.Float{Value: leftVal + rightVal}
-	case "-":
-		return &object.Float{Value: leftVal - rightVal}
-	case "/":
-		return &object.Float{Value: leftVal / rightVal}
-	case "*":
-		return &object.Float{Value: leftVal * rightVal}
-	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
-	case "//":
-		return &object.Float{Value: float64(int64(leftVal) / int64(rightVal))}
-	case "%":
-		return &object.Float{Value: math.Mod(leftVal, rightVal)}
-	case "<":
-		return nativeToBooleanObject(leftVal < rightVal)
-	case ">":
-		return nativeToBooleanObject(leftVal > rightVal)
-	case "<=":
-		return nativeToBooleanObject(leftVal <= rightVal)
-	case ">=":
-		return nativeToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return nativeToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return nativeToBooleanObject(leftVal != rightVal)
-	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	}
-}
-
-func (e *Evaluator) evalUintInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.UInteger).Value
-	rightVal := right.(*object.UInteger).Value
-
-	switch operator {
-	case "+":
-		return &object.UInteger{Value: leftVal + rightVal}
-	case "-":
-		return &object.UInteger{Value: leftVal - rightVal}
-	case "/":
-		return &object.UInteger{Value: leftVal / rightVal}
-	case "*":
-		return &object.UInteger{Value: leftVal * rightVal}
-	case "**":
-		return &object.UInteger{Value: uint64(math.Pow(float64(leftVal), float64(rightVal)))}
-	case "&":
-		return &object.UInteger{Value: leftVal & rightVal}
-	case "|":
-		return &object.UInteger{Value: leftVal | rightVal}
-	case "^":
-		return &object.UInteger{Value: leftVal ^ rightVal}
-	case ">>":
-		return &object.UInteger{Value: leftVal >> rightVal}
-	case "<<":
-		return &object.UInteger{Value: leftVal << rightVal}
-	case "<":
-		return nativeToBooleanObject(leftVal < rightVal)
-	case ">":
-		return nativeToBooleanObject(leftVal > rightVal)
-	case "<=":
-		return nativeToBooleanObject(leftVal <= rightVal)
-	case ">=":
-		return nativeToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return nativeToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return nativeToBooleanObject(leftVal != rightVal)
-	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	}
 }
 
 func (e *Evaluator) evalMinusPrefixOperatorExpression(right object.Object) object.Object {
