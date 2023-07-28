@@ -664,9 +664,9 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case object.FLOAT_OBJ:
 				return &object.BigFloat{Value: decimal.NewFromFloat(args[0].(*object.Float).Value)}
 			case object.UINTEGER_OBJ:
-				return &object.BigFloat{Value: decimal.NewFromBigInt(new(big.Int).SetUint64(args[0].(*object.UInteger).Value), 1)}
+				return &object.BigFloat{Value: decimal.NewFromBigInt(new(big.Int).SetUint64(args[0].(*object.UInteger).Value), 0)}
 			case object.BIG_INTEGER_OBJ:
-				return &object.BigFloat{Value: decimal.NewFromBigInt(args[0].(*object.BigInteger).Value, 1)}
+				return &object.BigFloat{Value: decimal.NewFromBigInt(args[0].(*object.BigInteger).Value, 0)}
 			case object.BIG_FLOAT_OBJ:
 				return args[0]
 			default:

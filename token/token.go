@@ -49,6 +49,10 @@ const (
 	BINARY = "BINARY"
 	// UINT is the string rep. of a uinteger tok.
 	UINT = "UINT"
+	// BIGINT is the string rep. of a big int tok.
+	BIGINT = "BIGINT"
+	// BIGFLOAT is the string rep. of a big float tok.
+	BIGFLOAT = "BIGFLOAT"
 	// STRING_DOUBLE_QUOTE is the string rep. of a string literal tok. with "
 	STRING_DOUBLE_QUOTE = "STRING_DOUBLE_QUOTE"
 	// STRING_SINGLE_QUOTE is the string rep. of a string literal tok. with '

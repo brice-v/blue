@@ -2392,7 +2392,9 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		left.Type() == object.INTEGER_OBJ && right.Type() == object.BIG_FLOAT_OBJ ||
 		left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.INTEGER_OBJ ||
 		left.Type() == object.UINTEGER_OBJ && right.Type() == object.BIG_FLOAT_OBJ ||
-		left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.UINTEGER_OBJ:
+		left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.UINTEGER_OBJ ||
+		left.Type() == object.BIG_FLOAT_OBJ && right.Type() == object.BIG_INTEGER_OBJ ||
+		left.Type() == object.BIG_INTEGER_OBJ && right.Type() == object.BIG_FLOAT_OBJ:
 		return e.evalBigFloatInfixExpression(operator, left, right)
 	case left.Type() == object.UINTEGER_OBJ && right.Type() == object.UINTEGER_OBJ ||
 		left.Type() == object.INTEGER_OBJ && right.Type() == object.UINTEGER_OBJ ||
@@ -2975,7 +2977,7 @@ func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right obj
 	} else if lI, ok := left.(*object.Integer); ok {
 		leftVal = decimal.NewFromInt(lI.Value)
 	} else if lBI, ok := left.(*object.BigInteger); ok {
-		leftVal = decimal.NewFromBigInt(lBI.Value, 1)
+		leftVal = decimal.NewFromBigInt(lBI.Value, 0)
 	}
 	if rBF, ok := right.(*object.BigFloat); ok {
 		rightVal = rBF.Value
@@ -2984,7 +2986,7 @@ func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right obj
 	} else if rI, ok := right.(*object.Integer); ok {
 		rightVal = decimal.NewFromInt(rI.Value)
 	} else if rBI, ok := right.(*object.BigInteger); ok {
-		rightVal = decimal.NewFromBigInt(rBI.Value, 1)
+		rightVal = decimal.NewFromBigInt(rBI.Value, 0)
 	}
 	switch operator {
 	case "+":

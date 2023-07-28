@@ -4,8 +4,12 @@ import (
 	"blue/ast"
 	"blue/lexer"
 	"fmt"
+	"math/big"
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/shopspring/decimal"
 )
 
 // checkParserErrors prints out any and all error messages
@@ -485,6 +489,56 @@ func TestUIntLiteralExpression(t *testing.T) {
 	}
 	if literal.Value != uint64(1234) {
 		t.Fatalf("literal.Value not %d. got %d", uint64(1234), literal.Value)
+	}
+}
+
+func TestBigIntLiteralExpression(t *testing.T) {
+	input := "2134n;"
+	l := lexer.New(input, "<internal: test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program does not have enough statements. got=%d", len(program.Statements))
+	}
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not an ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	literal, ok := stmt.Expression.(*ast.BigIntegerLiteral)
+	if !ok {
+		t.Fatalf("exp is not an *ast.BigIntegerLiteral. got=%T", stmt.Expression)
+	}
+	bi := new(big.Int).SetInt64(2134)
+	if !reflect.DeepEqual(literal.Value, bi) {
+		t.Fatalf("literal.Value not %d. got %d", bi, literal.Value)
+	}
+}
+
+func TestBigFloatLiteralExpression(t *testing.T) {
+	input := "2134.1234n ;"
+	l := lexer.New(input, "<internal: test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program does not have enough statements. got=%d", len(program.Statements))
+	}
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not an ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	literal, ok := stmt.Expression.(*ast.BigFloatLiteral)
+	if !ok {
+		t.Fatalf("exp is not an *ast.BigFloatLiteral. got=%T", stmt.Expression)
+	}
+	bf := decimal.NewFromFloat(2134.1234)
+	if !reflect.DeepEqual(literal.Value, bf) {
+		t.Fatalf("literal.Value not %d. got %d", bf, literal.Value)
 	}
 }
 

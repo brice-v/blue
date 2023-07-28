@@ -1,6 +1,5 @@
 TODO:
 
-- [ ] Support n at the end of integer for big int, nf for big float
 - [ ]  Support bundling gg files
     - need to append "embed_files/" to the path probably
 - [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
@@ -134,6 +133,8 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Support n at the end of integer for big int, nf for big float
+    - n for float as well and it just needs a . in it which makes more sense than nf
 - [x] Support u in front of 10 based integer to allow unsigned integers created via another method than 0x 0o 0b (maybe 0u if thats easier)
 - [x] Support X - (Y/2) thing correctly, this was actually doing something weird where it multiplied by -1 essentially?
     - This was actually a bug in the evaluator that I had put a note on, turns out it was incorrect from the beginning

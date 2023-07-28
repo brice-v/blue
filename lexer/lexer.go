@@ -227,10 +227,24 @@ func (l *Lexer) readNumber() (token.Type, string) {
 		}
 		l.readChar()
 	}
+	isBigVal := l.ch == 'n' && (isWs(l.peekChar()) || !isLetter(l.peekChar()))
+	var tok token.Type
 	if dotFlag {
-		return token.FLOAT, string(l.inputAsRunes[position:l.position])
+		if isBigVal {
+			l.readChar()
+			tok = token.BIGFLOAT
+		} else {
+			tok = token.FLOAT
+		}
+	} else {
+		if isBigVal {
+			l.readChar()
+			tok = token.BIGINT
+		} else {
+			tok = token.INT
+		}
 	}
-	return token.INT, string(l.inputAsRunes[position:l.position])
+	return tok, string(l.inputAsRunes[position:l.position])
 }
 
 // readIdentifier will keep consuming valid letters out of the input according to `isLetter`
@@ -388,10 +402,14 @@ func (l *Lexer) readString() (string, error) {
 	return b.String(), nil
 }
 
+func isWs(ch rune) bool {
+	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
 // skipWhitespace will continue to advance if the current byte is considered
 // a whitespace character such as ' ', '\t', '\n', '\r'
 func (l *Lexer) skipWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+	for isWs(l.ch) {
 		l.readChar()
 	}
 }

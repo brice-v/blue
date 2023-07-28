@@ -129,6 +129,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.OCTAL, p.parseOctalLiteral)
 	p.registerPrefix(token.BINARY, p.parseBinaryLiteral)
 	p.registerPrefix(token.UINT, p.parseUIntegerLiteral)
+	p.registerPrefix(token.BIGINT, p.parseBigIntegerLiteral)
+	p.registerPrefix(token.BIGFLOAT, p.parseBigFloatLiteral)
 	p.registerPrefix(token.NOT, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
@@ -649,6 +651,39 @@ func (p *Parser) parseUIntegerLiteral() ast.Expression {
 	if err != nil {
 		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
+// parseBigIntegerLiteral will return the BigInteger literal ast node
+func (p *Parser) parseBigIntegerLiteral() ast.Expression {
+	lit := &ast.BigIntegerLiteral{Token: p.curToken}
+	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
+	tokenLiteral = strings.Replace(tokenLiteral, "n", "", -1)
+	bi := new(big.Int)
+	value, ok := bi.SetString(tokenLiteral, 10)
+	if !ok {
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
+		msg := fmt.Sprintf("could not parse %q as a big integer\n%s", p.curToken.Literal, errorLine)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
+// parseBigFloatLiteral will return the BigFloat literal ast node
+func (p *Parser) parseBigFloatLiteral() ast.Expression {
+	lit := &ast.BigFloatLiteral{Token: p.curToken}
+	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
+	tokenLiteral = strings.Replace(tokenLiteral, "n", "", -1)
+	value, err := decimal.NewFromString(tokenLiteral)
+	if err != nil {
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
+		msg := fmt.Sprintf("could not parse %q as a big float\n%s", p.curToken.Literal, errorLine)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
