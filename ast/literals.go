@@ -114,6 +114,21 @@ func (bl *BinaryLiteral) TokenLiteral() string { return bl.Token.Literal }
 // String returns the string value of the binary number
 func (bl *BinaryLiteral) String() string { return bl.Token.Literal }
 
+// UIntegerLiteral is the binary literal expression
+type UIntegerLiteral struct {
+	Token token.Token // Token == token.BINARY
+	Value uint64      // Value stores the binary as an uint64
+}
+
+// expressionNode satisfies the Expression interface
+func (ul *UIntegerLiteral) expressionNode() {}
+
+// TokenLiteral returns the string value of the binary number
+func (ul *UIntegerLiteral) TokenLiteral() string { return ul.Token.Literal }
+
+// String returns the string value of the binary number
+func (ul *UIntegerLiteral) String() string { return ul.Token.Literal }
+
 // FunctionLiteral is the functional literal ast node
 type FunctionLiteral struct {
 	Token                token.Token // Token == FUNCTION

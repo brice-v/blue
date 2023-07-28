@@ -462,7 +462,30 @@ func TestBinaryLiteralExpression(t *testing.T) {
 	if literal.Value != 240 {
 		t.Fatalf("literal.Value not %b. got %b", 240, literal.Value)
 	}
+}
 
+func TestUIntLiteralExpression(t *testing.T) {
+	input := "0u1234;"
+	l := lexer.New(input, "<internal: test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program does not have enough statements. got=%d", len(program.Statements))
+	}
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not an ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	literal, ok := stmt.Expression.(*ast.UIntegerLiteral)
+	if !ok {
+		t.Fatalf("exp is not an *ast.UIntegerLiteral. got=%T", stmt.Expression)
+	}
+	if literal.Value != uint64(1234) {
+		t.Fatalf("literal.Value not %d. got %d", uint64(1234), literal.Value)
+	}
 }
 
 func TestParsingPrefixExpressions(t *testing.T) {

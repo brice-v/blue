@@ -187,6 +187,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		return &object.UInteger{Value: node.Value}
 	case *ast.BinaryLiteral:
 		return &object.UInteger{Value: node.Value}
+	case *ast.UIntegerLiteral:
+		return &object.UInteger{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
 	case *ast.BigFloatLiteral:

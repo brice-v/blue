@@ -47,6 +47,8 @@ const (
 	OCTAL = "OCTAL"
 	// BINARY is the string rep. of a binary tok.
 	BINARY = "BINARY"
+	// UINT is the string rep. of a uinteger tok.
+	UINT = "UINT"
 	// STRING_DOUBLE_QUOTE is the string rep. of a string literal tok. with "
 	STRING_DOUBLE_QUOTE = "STRING_DOUBLE_QUOTE"
 	// STRING_SINGLE_QUOTE is the string rep. of a string literal tok. with '

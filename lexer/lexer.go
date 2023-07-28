@@ -209,6 +209,13 @@ func (l *Lexer) readNumber() (token.Type, string) {
 			return l.readOctalNumber(position)
 		} else if l.peekChar() == 'b' && isBinaryChar(l.peekSecondChar()) {
 			return l.readBinaryNumber(position)
+		} else if l.peekChar() == 'u' && isDigit(l.peekSecondChar()) {
+			// Skip over 0 and u
+			l.readChar()
+			l.readChar()
+			tok, uis := l.readNumber()
+			tok = token.UINT
+			return tok, uis
 		}
 	}
 	dotFlag := false

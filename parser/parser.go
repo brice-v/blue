@@ -128,6 +128,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.HEX, p.parseHexLiteral)
 	p.registerPrefix(token.OCTAL, p.parseOctalLiteral)
 	p.registerPrefix(token.BINARY, p.parseBinaryLiteral)
+	p.registerPrefix(token.UINT, p.parseUIntegerLiteral)
 	p.registerPrefix(token.NOT, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
@@ -629,6 +630,22 @@ func (p *Parser) parseBinaryLiteral() ast.Expression {
 	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
 	tokenLiteral = strings.Replace(tokenLiteral, "0b", "", -1)
 	value, err := strconv.ParseUint(tokenLiteral, 2, 64)
+	if err != nil {
+		errorLine := lexer.GetErrorLineMessage(p.curToken)
+		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
+// parseUIntegerLiteral will return the UInteger literal ast node
+func (p *Parser) parseUIntegerLiteral() ast.Expression {
+	lit := &ast.UIntegerLiteral{Token: p.curToken}
+	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
+	tokenLiteral = strings.Replace(tokenLiteral, "0u", "", -1)
+	value, err := strconv.ParseUint(tokenLiteral, 10, 64)
 	if err != nil {
 		errorLine := lexer.GetErrorLineMessage(p.curToken)
 		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
