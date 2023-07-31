@@ -3681,22 +3681,6 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.GoObj[rl.Texture2D]{Value: rl.LoadTexture(fname)}
 		},
 	},
-	"_unload_texture": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("unload_texture", len(args), 1, "")
-			}
-			if args[0].Type() != object.GO_OBJ {
-				return newPositionalTypeError("unload_texture", 1, object.GO_OBJ, args[0].Type())
-			}
-			tex, ok := args[0].(*object.GoObj[rl.Texture2D])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("unload_texture", 1, "rl.Texture2D", tex)
-			}
-			rl.UnloadTexture(tex.Value)
-			return NULL
-		},
-	},
 	"_rectangle": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
@@ -3928,22 +3912,6 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.GoObj[rl.Music]{Value: rl.LoadMusicStream(fname)}
 		},
 	},
-	"_unload_music": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("unload_music", len(args), 1, "")
-			}
-			if args[0].Type() != object.GO_OBJ {
-				return newPositionalTypeError("unload_music", 1, object.GO_OBJ, args[0].Type())
-			}
-			music, ok := args[0].(*object.GoObj[rl.Music])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("unload_music", 1, "rl.Music", music)
-			}
-			rl.UnloadMusicStream(music.Value)
-			return NULL
-		},
-	},
 	"_update_music": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -4036,22 +4004,6 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.GoObj[rl.Sound]{Value: rl.LoadSound(fname)}
 		},
 	},
-	"_unload_sound": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("unload_sound", len(args), 1, "")
-			}
-			if args[0].Type() != object.GO_OBJ {
-				return newPositionalTypeError("unload_sound", 1, object.GO_OBJ, args[0].Type())
-			}
-			sound, ok := args[0].(*object.GoObj[rl.Sound])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("unload_sound", 1, "rl.Sound", sound)
-			}
-			rl.UnloadSound(sound.Value)
-			return NULL
-		},
-	},
 	"_play_sound": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -4116,4 +4068,43 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return NULL
 		},
 	},
+	"_unload": {
+		Fun: func(args ...object.Object) object.Object {
+			for i, arg := range args {
+				// If the arg is a list go through the list and check every arg to remove
+				if arg.Type() == object.LIST_OBJ {
+					l := arg.(*object.List).Elements
+					for _, e := range l {
+						maybeErr := unloadFromRaylib(e, i)
+						if isError(maybeErr) {
+							return maybeErr
+						}
+					}
+				} else {
+					maybeErr := unloadFromRaylib(arg, i)
+					if isError(maybeErr) {
+						return maybeErr
+					}
+				}
+			}
+			return NULL
+		},
+	},
 })
+
+func unloadFromRaylib(arg object.Object, pos int) object.Object {
+	if arg.Type() != object.GO_OBJ {
+		return newPositionalTypeError("unload", pos, object.GO_OBJ, arg.Type())
+	}
+	if tex, ok := arg.(*object.GoObj[rl.Texture2D]); ok {
+		rl.UnloadTexture(tex.Value)
+		return NULL
+	} else if music, ok := arg.(*object.GoObj[rl.Music]); ok {
+		rl.UnloadMusicStream(music.Value)
+		return NULL
+	} else if sound, ok := arg.(*object.GoObj[rl.Sound]); ok {
+		rl.UnloadSound(sound.Value)
+		return NULL
+	}
+	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of [rl.Texture2D, rl.Music, rl.Sound]")
+}

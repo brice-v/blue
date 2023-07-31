@@ -1,6 +1,6 @@
 TODO:
 
-- [ ]  Support bundling gg files
+- [ ] Support bundling gg files
     - need to append "embed_files/" to the path probably
 - [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
     - Leave the default one still in place
