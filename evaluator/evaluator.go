@@ -98,7 +98,7 @@ func New() *Evaluator {
 	NewEvaluatorLock.Lock()
 	defer NewEvaluatorLock.Unlock()
 	e := &Evaluator{
-		env: object.NewEnvironment(),
+		env: object.NewEnvironmentWithoutCore(),
 
 		PID: pidCount.Load(),
 
@@ -131,7 +131,7 @@ func New() *Evaluator {
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
 	e.Builtins.PushBack(builtinobjs)
-	e.AddCoreLibToEnv()
+	e.env.SetCore(e.AddCoreLibToEnv())
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
 		Ch: make(chan object.Object, 1),

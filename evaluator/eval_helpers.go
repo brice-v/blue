@@ -891,246 +891,64 @@ func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) interface{
 	return errors
 }
 
+var toNumBuiltin *object.Builtin = nil
+
 func createToNumBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("to_num", len(args), 1, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
-			}
-			s := args[0].(*object.Stringo).Value
-			ll := lexer.New(s, "")
-			pp := parser.New(ll)
-			prog := pp.ParseProgram()
-			if len(pp.Errors()) != 0 {
-				return newError("`to_num` error: failed to parse number from string '%s'", s)
-			}
-			obj := e.Eval(prog)
-			if isError(obj) {
+	if toNumBuiltin == nil {
+		toNumBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("to_num", len(args), 1, "")
+				}
+				if args[0].Type() != object.STRING_OBJ {
+					return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
+				}
+				s := args[0].(*object.Stringo).Value
+				ll := lexer.New(s, "")
+				pp := parser.New(ll)
+				prog := pp.ParseProgram()
+				if len(pp.Errors()) != 0 {
+					return newError("`to_num` error: failed to parse number from string '%s'", s)
+				}
+				obj := e.Eval(prog)
+				if isError(obj) {
+					return obj
+				}
+				if obj.Type() != object.INTEGER_OBJ && obj.Type() != object.UINTEGER_OBJ && obj.Type() != object.FLOAT_OBJ && obj.Type() != object.BIG_FLOAT_OBJ && obj.Type() != object.BIG_INTEGER_OBJ {
+					return newError("`to_num` error: failed to get number type from string '%s'. got=%s", s, obj.Type())
+				}
 				return obj
-			}
-			if obj.Type() != object.INTEGER_OBJ && obj.Type() != object.UINTEGER_OBJ && obj.Type() != object.FLOAT_OBJ && obj.Type() != object.BIG_FLOAT_OBJ && obj.Type() != object.BIG_INTEGER_OBJ {
-				return newError("`to_num` error: failed to get number type from string '%s'. got=%s", s, obj.Type())
-			}
-			return obj
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`to_num` returns the NUM value of the given STRING (int, uint, float, bigint, bigfloat)",
-			signature:   "to_num(arg: str) -> num",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "to_num('1') => 1",
-		}.String(),
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`to_num` returns the NUM value of the given STRING (int, uint, float, bigint, bigfloat)",
+				signature:   "to_num(arg: str) -> num",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "to_num('1') => 1",
+			}.String(),
+		}
 	}
+	return toNumBuiltin
 }
+
+var uiButtonBuiltin *object.Builtin = nil
 
 func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("button", len(args), 2, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("button", 1, object.STRING_OBJ, args[0].Type())
-			}
-			if args[1].Type() != object.FUNCTION_OBJ {
-				return newPositionalTypeError("button", 2, object.FUNCTION_OBJ, args[1].Type())
-			}
-			s := args[0].(*object.Stringo).Value
-			fn := args[1].(*object.Function)
-			buttonId := uiCanvasObjectCount.Add(1)
-			button := widget.NewButton(s, func() {
-				obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
-				if isError(obj) {
-					err := obj.(*object.Error)
-					var buf bytes.Buffer
-					buf.WriteString(err.Message)
-					buf.WriteByte('\n')
-					for e.ErrorTokens.Len() > 0 {
-						tok := e.ErrorTokens.PopBack()
-						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
-					}
-					fmt.Printf("%s`button` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+	if uiButtonBuiltin == nil {
+		uiButtonBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("button", len(args), 2, "")
 				}
-			})
-			UICanvasObjectMap.Put(buttonId, button)
-			return object.CreateBasicMapObject("ui", buttonId)
-		},
-	}
-}
-
-func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("checkbox", len(args), 2, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("checkbox", 1, object.STRING_OBJ, args[0].Type())
-			}
-			if args[1].Type() != object.FUNCTION_OBJ {
-				return newPositionalTypeError("checkbox", 2, object.FUNCTION_OBJ, args[1].Type())
-			}
-			lbl := args[0].(*object.Stringo).Value
-			fn := args[1].(*object.Function)
-			if len(fn.Parameters) != 1 {
-				return newError("`checkbox` error: handler needs 1 argument. got=%d", len(fn.Parameters))
-			}
-			checkBox := widget.NewCheck(lbl, func(value bool) {
-				obj := e.applyFunction(fn, []object.Object{nativeToBooleanObject(value)}, make(map[string]object.Object), []bool{true})
-				if isError(obj) {
-					err := obj.(*object.Error)
-					var buf bytes.Buffer
-					buf.WriteString(err.Message)
-					buf.WriteByte('\n')
-					for e.ErrorTokens.Len() > 0 {
-						tok := e.ErrorTokens.PopBack()
-						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
-					}
-					fmt.Printf("%s`check_box` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+				if args[0].Type() != object.STRING_OBJ {
+					return newPositionalTypeError("button", 1, object.STRING_OBJ, args[0].Type())
 				}
-			})
-			checkBoxId := uiCanvasObjectCount.Add(1)
-			UICanvasObjectMap.Put(checkBoxId, checkBox)
-			return object.CreateBasicMapObject("ui/check", checkBoxId)
-		},
-	}
-}
-
-func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("radio_group", len(args), 2, "")
-			}
-			if args[0].Type() != object.LIST_OBJ {
-				return newPositionalTypeError("radio_group", 1, object.LIST_OBJ, args[0].Type())
-			}
-			if args[1].Type() != object.FUNCTION_OBJ {
-				return newPositionalTypeError("radio_group", 2, object.FUNCTION_OBJ, args[1].Type())
-			}
-			elems := args[0].(*object.List).Elements
-			fn := args[1].(*object.Function)
-			options := make([]string, len(elems))
-			for i, e := range elems {
-				if e.Type() != object.STRING_OBJ {
-					return newError("`radio_group` error: all elements in list should be STRING. found=%s", e.Type())
+				if args[1].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("button", 2, object.FUNCTION_OBJ, args[1].Type())
 				}
-				options[i] = e.(*object.Stringo).Value
-			}
-			if len(fn.Parameters) != 1 {
-				return newError("`radio_group` error: handler needs 1 argument. got=%d", len(fn.Parameters))
-			}
-			radio := widget.NewRadioGroup(options, func(value string) {
-				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
-				if isError(obj) {
-					err := obj.(*object.Error)
-					var buf bytes.Buffer
-					buf.WriteString(err.Message)
-					buf.WriteByte('\n')
-					for e.ErrorTokens.Len() > 0 {
-						tok := e.ErrorTokens.PopBack()
-						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
-					}
-					fmt.Printf("%s`radio_group` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
-				}
-			})
-			radioId := uiCanvasObjectCount.Add(1)
-			UICanvasObjectMap.Put(radioId, radio)
-			return object.CreateBasicMapObject("ui/radio", radioId)
-		},
-	}
-}
-
-func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("option_select", len(args), 2, "")
-			}
-			if args[0].Type() != object.LIST_OBJ {
-				return newPositionalTypeError("option_select", 1, object.LIST_OBJ, args[0].Type())
-			}
-			if args[1].Type() != object.FUNCTION_OBJ {
-				return newPositionalTypeError("option_select", 2, object.FUNCTION_OBJ, args[1].Type())
-			}
-			elems := args[0].(*object.List).Elements
-			fn := args[1].(*object.Function)
-			options := make([]string, len(elems))
-			for i, e := range elems {
-				if e.Type() != object.STRING_OBJ {
-					return newError("`option_select` error: all elements in list should be STRING. found=%s", e.Type())
-				}
-				options[i] = e.(*object.Stringo).Value
-			}
-			if len(fn.Parameters) != 1 {
-				return newError("`option_select` error: handler needs 1 argument. got=%d", len(fn.Parameters))
-			}
-			option := widget.NewSelect(options, func(value string) {
-				obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
-				if isError(obj) {
-					err := obj.(*object.Error)
-					var buf bytes.Buffer
-					buf.WriteString(err.Message)
-					buf.WriteByte('\n')
-					for e.ErrorTokens.Len() > 0 {
-						tok := e.ErrorTokens.PopBack()
-						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
-					}
-					fmt.Printf("%s`option_select` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
-				}
-			})
-			optionId := uiCanvasObjectCount.Add(1)
-			UICanvasObjectMap.Put(optionId, option)
-			return object.CreateBasicMapObject("ui/option", optionId)
-		},
-	}
-}
-
-func createUIFormBuiltin(e *Evaluator) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 3 {
-				return newInvalidArgCountError("form", len(args), 3, "")
-			}
-			if args[0].Type() != object.LIST_OBJ {
-				return newPositionalTypeError("form", 1, object.LIST_OBJ, args[0].Type())
-			}
-			if args[1].Type() != object.LIST_OBJ {
-				return newPositionalTypeError("form", 2, object.LIST_OBJ, args[1].Type())
-			}
-			if args[2].Type() != object.FUNCTION_OBJ {
-				return newPositionalTypeError("form", 3, object.FUNCTION_OBJ, args[2].Type())
-			}
-			var formItems []*widget.FormItem
-			labels := args[0].(*object.List).Elements
-			widgetIds := args[1].(*object.List).Elements
-			if len(labels) != len(widgetIds) {
-				return newError("`form` error: labels and widget ids must be the same length. len(labels)=%d, len(widgetIds)=%d", len(labels), len(widgetIds))
-			}
-			fn := args[2].(*object.Function)
-			for i := 0; i < len(labels); i++ {
-				if labels[i].Type() != object.STRING_OBJ {
-					return newError("`form` error: labels were not all STRINGs. found=%s", labels[i].Type())
-				}
-				if widgetIds[i].Type() != object.UINTEGER_OBJ {
-					return newError("`form` error: widgetIds were not all UINTEGERs. found=%s", widgetIds[i].Type())
-				}
-				w, ok := UICanvasObjectMap.Get(widgetIds[i].(*object.UInteger).Value)
-				if !ok {
-					return newError("`form` error: widget not found")
-				}
-				formItem := &widget.FormItem{
-					Text: labels[i].(*object.Stringo).Value, Widget: w,
-				}
-
-				formItems = append(formItems, formItem)
-			}
-
-			form := &widget.Form{
-				Items: formItems,
-				OnSubmit: func() {
+				s := args[0].(*object.Stringo).Value
+				fn := args[1].(*object.Function)
+				buttonId := uiCanvasObjectCount.Add(1)
+				button := widget.NewButton(s, func() {
 					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
 					if isError(obj) {
 						err := obj.(*object.Error)
@@ -1141,15 +959,227 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 							tok := e.ErrorTokens.PopBack()
 							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
 						}
-						fmt.Printf("%s`form` on_submit error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+						fmt.Printf("%s`button` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
-				},
-			}
-			formId := uiCanvasObjectCount.Add(1)
-			UICanvasObjectMap.Put(formId, form)
-			return object.CreateBasicMapObject("ui", formId)
-		},
+				})
+				UICanvasObjectMap.Put(buttonId, button)
+				return object.CreateBasicMapObject("ui", buttonId)
+			},
+		}
 	}
+	return uiButtonBuiltin
+}
+
+var uiCheckboxBuiltin *object.Builtin = nil
+
+func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
+	if uiCheckboxBuiltin == nil {
+		uiCheckboxBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("checkbox", len(args), 2, "")
+				}
+				if args[0].Type() != object.STRING_OBJ {
+					return newPositionalTypeError("checkbox", 1, object.STRING_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("checkbox", 2, object.FUNCTION_OBJ, args[1].Type())
+				}
+				lbl := args[0].(*object.Stringo).Value
+				fn := args[1].(*object.Function)
+				if len(fn.Parameters) != 1 {
+					return newError("`checkbox` error: handler needs 1 argument. got=%d", len(fn.Parameters))
+				}
+				checkBox := widget.NewCheck(lbl, func(value bool) {
+					obj := e.applyFunction(fn, []object.Object{nativeToBooleanObject(value)}, make(map[string]object.Object), []bool{true})
+					if isError(obj) {
+						err := obj.(*object.Error)
+						var buf bytes.Buffer
+						buf.WriteString(err.Message)
+						buf.WriteByte('\n')
+						for e.ErrorTokens.Len() > 0 {
+							tok := e.ErrorTokens.PopBack()
+							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						}
+						fmt.Printf("%s`check_box` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+					}
+				})
+				checkBoxId := uiCanvasObjectCount.Add(1)
+				UICanvasObjectMap.Put(checkBoxId, checkBox)
+				return object.CreateBasicMapObject("ui/check", checkBoxId)
+			},
+		}
+	}
+	return uiCheckboxBuiltin
+}
+
+var uiRadioButtonBuiltin *object.Builtin = nil
+
+func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
+	if uiRadioButtonBuiltin == nil {
+		uiRadioButtonBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("radio_group", len(args), 2, "")
+				}
+				if args[0].Type() != object.LIST_OBJ {
+					return newPositionalTypeError("radio_group", 1, object.LIST_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("radio_group", 2, object.FUNCTION_OBJ, args[1].Type())
+				}
+				elems := args[0].(*object.List).Elements
+				fn := args[1].(*object.Function)
+				options := make([]string, len(elems))
+				for i, e := range elems {
+					if e.Type() != object.STRING_OBJ {
+						return newError("`radio_group` error: all elements in list should be STRING. found=%s", e.Type())
+					}
+					options[i] = e.(*object.Stringo).Value
+				}
+				if len(fn.Parameters) != 1 {
+					return newError("`radio_group` error: handler needs 1 argument. got=%d", len(fn.Parameters))
+				}
+				radio := widget.NewRadioGroup(options, func(value string) {
+					obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
+					if isError(obj) {
+						err := obj.(*object.Error)
+						var buf bytes.Buffer
+						buf.WriteString(err.Message)
+						buf.WriteByte('\n')
+						for e.ErrorTokens.Len() > 0 {
+							tok := e.ErrorTokens.PopBack()
+							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						}
+						fmt.Printf("%s`radio_group` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+					}
+				})
+				radioId := uiCanvasObjectCount.Add(1)
+				UICanvasObjectMap.Put(radioId, radio)
+				return object.CreateBasicMapObject("ui/radio", radioId)
+			},
+		}
+	}
+	return uiRadioButtonBuiltin
+}
+
+var uiOptionSelectBuiltin *object.Builtin = nil
+
+func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
+	if uiOptionSelectBuiltin == nil {
+		uiOptionSelectBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("option_select", len(args), 2, "")
+				}
+				if args[0].Type() != object.LIST_OBJ {
+					return newPositionalTypeError("option_select", 1, object.LIST_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("option_select", 2, object.FUNCTION_OBJ, args[1].Type())
+				}
+				elems := args[0].(*object.List).Elements
+				fn := args[1].(*object.Function)
+				options := make([]string, len(elems))
+				for i, e := range elems {
+					if e.Type() != object.STRING_OBJ {
+						return newError("`option_select` error: all elements in list should be STRING. found=%s", e.Type())
+					}
+					options[i] = e.(*object.Stringo).Value
+				}
+				if len(fn.Parameters) != 1 {
+					return newError("`option_select` error: handler needs 1 argument. got=%d", len(fn.Parameters))
+				}
+				option := widget.NewSelect(options, func(value string) {
+					obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
+					if isError(obj) {
+						err := obj.(*object.Error)
+						var buf bytes.Buffer
+						buf.WriteString(err.Message)
+						buf.WriteByte('\n')
+						for e.ErrorTokens.Len() > 0 {
+							tok := e.ErrorTokens.PopBack()
+							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						}
+						fmt.Printf("%s`option_select` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+					}
+				})
+				optionId := uiCanvasObjectCount.Add(1)
+				UICanvasObjectMap.Put(optionId, option)
+				return object.CreateBasicMapObject("ui/option", optionId)
+			},
+		}
+	}
+	return uiOptionSelectBuiltin
+}
+
+var uiFormBuiltin *object.Builtin = nil
+
+func createUIFormBuiltin(e *Evaluator) *object.Builtin {
+	if uiFormBuiltin == nil {
+		uiFormBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 3 {
+					return newInvalidArgCountError("form", len(args), 3, "")
+				}
+				if args[0].Type() != object.LIST_OBJ {
+					return newPositionalTypeError("form", 1, object.LIST_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.LIST_OBJ {
+					return newPositionalTypeError("form", 2, object.LIST_OBJ, args[1].Type())
+				}
+				if args[2].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("form", 3, object.FUNCTION_OBJ, args[2].Type())
+				}
+				var formItems []*widget.FormItem
+				labels := args[0].(*object.List).Elements
+				widgetIds := args[1].(*object.List).Elements
+				if len(labels) != len(widgetIds) {
+					return newError("`form` error: labels and widget ids must be the same length. len(labels)=%d, len(widgetIds)=%d", len(labels), len(widgetIds))
+				}
+				fn := args[2].(*object.Function)
+				for i := 0; i < len(labels); i++ {
+					if labels[i].Type() != object.STRING_OBJ {
+						return newError("`form` error: labels were not all STRINGs. found=%s", labels[i].Type())
+					}
+					if widgetIds[i].Type() != object.UINTEGER_OBJ {
+						return newError("`form` error: widgetIds were not all UINTEGERs. found=%s", widgetIds[i].Type())
+					}
+					w, ok := UICanvasObjectMap.Get(widgetIds[i].(*object.UInteger).Value)
+					if !ok {
+						return newError("`form` error: widget not found")
+					}
+					formItem := &widget.FormItem{
+						Text: labels[i].(*object.Stringo).Value, Widget: w,
+					}
+
+					formItems = append(formItems, formItem)
+				}
+
+				form := &widget.Form{
+					Items: formItems,
+					OnSubmit: func() {
+						obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
+						if isError(obj) {
+							err := obj.(*object.Error)
+							var buf bytes.Buffer
+							buf.WriteString(err.Message)
+							buf.WriteByte('\n')
+							for e.ErrorTokens.Len() > 0 {
+								tok := e.ErrorTokens.PopBack()
+								buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+							}
+							fmt.Printf("%s`form` on_submit error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+						}
+					},
+				}
+				formId := uiCanvasObjectCount.Add(1)
+				UICanvasObjectMap.Put(formId, form)
+				return object.CreateBasicMapObject("ui", formId)
+			},
+		}
+	}
+	return uiFormBuiltin
 }
 
 // Helper for `doc` command

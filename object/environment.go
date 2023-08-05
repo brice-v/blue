@@ -13,13 +13,13 @@ import (
 // NewEnclosedEnvironment supports adding an environment to an exisiting
 // environment.  This allows closures and proper binding within functions
 func NewEnclosedEnvironment(outer *Environment) *Environment {
-	env := NewEnvironment()
+	env := NewEnvironment(outer.coreEnv)
 	env.outer = outer
 	return env
 }
 
 // NewEnvironment returns a new environment
-func NewEnvironment() *Environment {
+func NewEnvironmentWithoutCore() *Environment {
 	s := &ConcurrentMap[string, Object]{
 		kv: make(map[string]Object),
 	}
@@ -33,21 +33,40 @@ func NewEnvironment() *Environment {
 	return &Environment{store: s, immutableStore: is, publicFunctionHelpStore: pfhs}
 }
 
+// NewEnvironment returns a new environment
+func NewEnvironment(coreEnv *Environment) *Environment {
+	s := &ConcurrentMap[string, Object]{
+		kv: make(map[string]Object),
+	}
+	is := &ConcurrentMap[string, struct{}]{
+		kv: make(map[string]struct{}),
+	}
+	pfhs := &OrderedMap2[string, string]{
+		store: make(map[string]string),
+		Keys:  []string{},
+	}
+	return &Environment{store: s, immutableStore: is, publicFunctionHelpStore: pfhs, coreEnv: coreEnv}
+}
+
 // Environment is a map of strings to `Object`s
 type Environment struct {
-	store *ConcurrentMap[string, Object]
-
+	store          *ConcurrentMap[string, Object]
 	immutableStore *ConcurrentMap[string, struct{}]
 
 	publicFunctionHelpStore *OrderedMap2[string, string]
 
-	outer *Environment
+	outer   *Environment
+	coreEnv *Environment
+}
+
+func (e *Environment) SetCore(coreEnv *Environment) {
+	e.coreEnv = coreEnv
 }
 
 // Clone will do a deep copy of the environment object and return a new environment
 // it will not write to the outer env, but it will read from it
 func (e *Environment) Clone() *Environment {
-	newEnv := NewEnvironment()
+	newEnv := NewEnvironment(e.coreEnv)
 	for k, v := range e.store.kv {
 		newEnv.store.Put(k, v)
 	}
@@ -86,8 +105,11 @@ func (e *Environment) Clone() *Environment {
 // Get returns the object from the environment store
 func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.store.Get(name)
-	if !ok && e.outer != nil {
-		obj, ok = e.outer.Get(name)
+	if !ok && e.coreEnv != nil {
+		obj, ok = e.coreEnv.Get(name)
+		if !ok && e.outer != nil {
+			obj, ok = e.outer.Get(name)
+		}
 	}
 	return obj, ok
 }

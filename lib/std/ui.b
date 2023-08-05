@@ -35,7 +35,7 @@ val __option_select = _option_select;
 val __form = _form;
 val __append_form = _append_form;
 
-fun window(width=400, height=400, title="blue ui window", content) {
+fun window(width=400, height=400, title="blue ui window", content=null) {
     ## `window` is the main method that should be called when declaring a ui
     ## it will create, show, and run a ui that has a root content layout/widget/form
     ##
@@ -46,6 +46,9 @@ fun window(width=400, height=400, title="blue ui window", content) {
     ##
     ## window(width: int=400, height: int=400, title: str='blue ui window', content: {t: 'ui', v: uint}) ->
     ##        {t: 'ui', v: uint}
+    if (content == null) {
+        return error("`window` content was not given");
+    }
     return match content {
         {t: "ui", v: _} => {
             __window(_app, width, height, title, content.v)
@@ -207,7 +210,7 @@ fun option_select(options, on_change_fun) {
     __option_select(options, on_change_fun)
 }
 
-fun form(children=[], on_submit) {
+fun form(children=[], on_submit=null) {
     ## `form` is a ui object that can be used to group together labels with ui elements
     ## with an on_submit function
     ##
@@ -217,6 +220,9 @@ fun form(children=[], on_submit) {
     ## on_submit is just a regular function that will be called when submitted
     ##
     ## form(children: list[{label: str, widget: {t: 'ui*', v: uint}}]=[]) -> {t: 'ui', v: uint}
+    if (on_submit == null) {
+        return error("`form` on_submit handler was not given");
+    }
     for (child in children) {
         match child {
             {'label': _, 'elem': _} => {
