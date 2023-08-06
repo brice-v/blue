@@ -72,8 +72,10 @@ import (
 
 // StdModFileAndBuiltins keeps the file and builtins together for each std lib module
 type StdModFileAndBuiltins struct {
-	File     string         // File is the actual code used for the module
-	Builtins BuiltinMapType // Builtins is the map of functions to be used by the module
+	File     string              // File is the actual code used for the module
+	Builtins BuiltinMapType      // Builtins is the map of functions to be used by the module
+	Env      *object.Environment // Env is the environment to pull the lib functions/variables from
+	HelpStr  string              // HelpStr is the help string for the std lib program
 }
 
 var _std_mods = map[string]StdModFileAndBuiltins{
@@ -103,49 +105,56 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		os.Exit(1)
 	}
 	fb := _std_mods[name]
-	l := lexer.New(fb.File, "<std/"+name+".b>")
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		for _, msg := range p.Errors() {
+	if fb.Env == nil {
+		l := lexer.New(fb.File, "<std/"+name+".b>")
+		p := parser.New(l)
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			for _, msg := range p.Errors() {
+				splitMsg := strings.Split(msg, "\n")
+				firstPart := fmt.Sprintf("%smodule `%s`: %s\n", consts.PARSER_ERROR_PREFIX, name, splitMsg[0])
+				consts.ErrorPrinter(firstPart)
+				for i, s := range splitMsg {
+					if i == 0 {
+						continue
+					}
+					fmt.Println(s)
+				}
+			}
+			os.Exit(1)
+		}
+		newE := New()
+		newE.Builtins.PushBack(fb.Builtins)
+		val := newE.Eval(program)
+		if isError(val) {
+			errorObj := val.(*object.Error)
+			var buf bytes.Buffer
+			buf.WriteString(errorObj.Message)
+			buf.WriteByte('\n')
+			for newE.ErrorTokens.Len() > 0 {
+				buf.WriteString(lexer.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
+				buf.WriteByte('\n')
+			}
+			msg := fmt.Sprintf("%smodule `%s`: %s", consts.EVAL_ERROR_PREFIX, name, buf.String())
 			splitMsg := strings.Split(msg, "\n")
-			firstPart := fmt.Sprintf("%smodule `%s`: %s\n", consts.PARSER_ERROR_PREFIX, name, splitMsg[0])
-			consts.ErrorPrinter(firstPart)
 			for i, s := range splitMsg {
 				if i == 0 {
+					consts.ErrorPrinter(s + "\n")
 					continue
 				}
-				fmt.Println(s)
+				delimeter := ""
+				if i != len(splitMsg)-1 {
+					delimeter = "\n"
+				}
+				fmt.Printf("%s%s", s, delimeter)
 			}
+			os.Exit(1)
 		}
-		os.Exit(1)
-	}
-	newE := New()
-	newE.Builtins.PushBack(fb.Builtins)
-	val := newE.Eval(program)
-	if isError(val) {
-		errorObj := val.(*object.Error)
-		var buf bytes.Buffer
-		buf.WriteString(errorObj.Message)
-		buf.WriteByte('\n')
-		for newE.ErrorTokens.Len() > 0 {
-			buf.WriteString(lexer.GetErrorLineMessage(newE.ErrorTokens.PopBack()))
-			buf.WriteByte('\n')
-		}
-		msg := fmt.Sprintf("%smodule `%s`: %s", consts.EVAL_ERROR_PREFIX, name, buf.String())
-		splitMsg := strings.Split(msg, "\n")
-		for i, s := range splitMsg {
-			if i == 0 {
-				consts.ErrorPrinter(s + "\n")
-				continue
-			}
-			delimeter := ""
-			if i != len(splitMsg)-1 {
-				delimeter = "\n"
-			}
-			fmt.Printf("%s%s", s, delimeter)
-		}
-		os.Exit(1)
+		NewEvaluatorLock.Lock()
+		fb.Env = newE.env.Clone()
+		pubFunHelpStr := fb.Env.GetPublicFunctionHelpString()
+		fb.HelpStr = CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)
+		NewEvaluatorLock.Unlock()
 	}
 
 	if len(nodeIdentsToImport) >= 1 {
@@ -153,7 +162,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 			if strings.HasPrefix(ident.Value, "_") {
 				return newError("ImportError: imports must be public to import them. failed to import %s from %s", ident.Value, name)
 			}
-			o, ok := newE.env.Get(ident.Value)
+			o, ok := fb.Env.Get(ident.Value)
 			if !ok {
 				return newError("ImportError: failed to import %s from %s", ident.Value, name)
 			}
@@ -163,7 +172,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		return NULL
 	} else if shouldImportAll {
 		// Here we want to import everything from the module
-		for k, v := range newE.env.GetAll() {
+		for k, v := range fb.Env.GetAll() {
 			if !strings.HasPrefix(k, "_") {
 				e.env.Set(k, v)
 			}
@@ -171,8 +180,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		return NULL
 	}
 
-	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
-	mod := &object.Module{Name: name, Env: newE.env, HelpStr: CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)}
+	mod := &object.Module{Name: name, Env: fb.Env, HelpStr: fb.HelpStr}
 	e.env.Set(name, mod)
 	return nil
 }
