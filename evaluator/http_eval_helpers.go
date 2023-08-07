@@ -17,61 +17,66 @@ import (
 	"golang.org/x/net/html"
 )
 
+var httpHandleBuiltin *object.Builtin = nil
+
 func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
-	return &object.Builtin{
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 4 {
-				return newInvalidArgCountError("handle", len(args), 4, "")
-			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("handle", 1, object.UINTEGER_OBJ, args[0].Type())
-			}
-			if args[1].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("handle", 2, object.STRING_OBJ, args[1].Type())
-			}
-			if args[2].Type() != object.FUNCTION_OBJ {
-				return newPositionalTypeError("handle", 3, object.FUNCTION_OBJ, args[2].Type())
-			}
-			if args[3].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("handle", 4, object.STRING_OBJ, args[3].Type())
-			}
-			serverId := args[0].(*object.UInteger).Value
-			app, ok := ServerMap.Get(serverId)
-			if !ok {
-				return newError("`handle` could not find Server Object")
-			}
-			method := strings.ToUpper(args[3].(*object.Stringo).Value)
-			pattern := args[1].(*object.Stringo).Value
-			fn := args[2].(*object.Function)
-			goFiberFunc := func(c *fiber.Ctx) error {
-				return processHandlerFn(e, fn, c, method)
-			}
-			if isUse {
-				if method != "" {
-					return newError("`handle_use` error: method should be '', got=%s", method)
+	if httpHandleBuiltin == nil {
+		httpHandleBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 4 {
+					return newInvalidArgCountError("handle", len(args), 4, "")
 				}
-				if pattern == "" {
-					app.Use(goFiberFunc)
+				if args[0].Type() != object.UINTEGER_OBJ {
+					return newPositionalTypeError("handle", 1, object.UINTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.STRING_OBJ {
+					return newPositionalTypeError("handle", 2, object.STRING_OBJ, args[1].Type())
+				}
+				if args[2].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("handle", 3, object.FUNCTION_OBJ, args[2].Type())
+				}
+				if args[3].Type() != object.STRING_OBJ {
+					return newPositionalTypeError("handle", 4, object.STRING_OBJ, args[3].Type())
+				}
+				serverId := args[0].(*object.UInteger).Value
+				app, ok := ServerMap.Get(serverId)
+				if !ok {
+					return newError("`handle` could not find Server Object")
+				}
+				method := strings.ToUpper(args[3].(*object.Stringo).Value)
+				pattern := args[1].(*object.Stringo).Value
+				fn := args[2].(*object.Function)
+				goFiberFunc := func(c *fiber.Ctx) error {
+					return processHandlerFn(e, fn, c, method)
+				}
+				if isUse {
+					if method != "" {
+						return newError("`handle_use` error: method should be '', got=%s", method)
+					}
+					if pattern == "" {
+						app.Use(goFiberFunc)
+					} else {
+						app.Use(pattern, goFiberFunc)
+					}
 				} else {
-					app.Use(pattern, goFiberFunc)
+					switch method {
+					case "GET":
+						app.Get(pattern, goFiberFunc)
+					case "POST":
+						app.Post(pattern, goFiberFunc)
+					case "PATCH":
+						app.Patch(pattern, goFiberFunc)
+					case "PUT":
+						app.Put(pattern, goFiberFunc)
+					case "DELETE":
+						app.Delete(pattern, goFiberFunc)
+					}
 				}
-			} else {
-				switch method {
-				case "GET":
-					app.Get(pattern, goFiberFunc)
-				case "POST":
-					app.Post(pattern, goFiberFunc)
-				case "PATCH":
-					app.Patch(pattern, goFiberFunc)
-				case "PUT":
-					app.Put(pattern, goFiberFunc)
-				case "DELETE":
-					app.Delete(pattern, goFiberFunc)
-				}
-			}
-			return NULL
-		},
+				return NULL
+			},
+		}
 	}
+	return httpHandleBuiltin
 }
 
 func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m map[string]interface{}) {
