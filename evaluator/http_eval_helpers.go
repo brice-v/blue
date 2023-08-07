@@ -23,8 +23,12 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 			if len(args) != 4 {
 				return newInvalidArgCountError("handle", len(args), 4, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("handle", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("handle", 1, object.GO_OBJ, args[0].Type())
+			}
+			app, ok := args[0].(*object.GoObj[*fiber.App])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("handle", 1, "*fiber.App", app)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle", 2, object.STRING_OBJ, args[1].Type())
@@ -34,11 +38,6 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 			}
 			if args[3].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle", 4, object.STRING_OBJ, args[3].Type())
-			}
-			serverId := args[0].(*object.UInteger).Value
-			app, ok := ServerMap.Get(serverId)
-			if !ok {
-				return newError("`handle` could not find Server Object")
 			}
 			method := strings.ToUpper(args[3].(*object.Stringo).Value)
 			pattern := args[1].(*object.Stringo).Value
@@ -51,22 +50,22 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 					return newError("`handle_use` error: method should be '', got=%s", method)
 				}
 				if pattern == "" {
-					app.Use(goFiberFunc)
+					app.Value.Use(goFiberFunc)
 				} else {
-					app.Use(pattern, goFiberFunc)
+					app.Value.Use(pattern, goFiberFunc)
 				}
 			} else {
 				switch method {
 				case "GET":
-					app.Get(pattern, goFiberFunc)
+					app.Value.Get(pattern, goFiberFunc)
 				case "POST":
-					app.Post(pattern, goFiberFunc)
+					app.Value.Post(pattern, goFiberFunc)
 				case "PATCH":
-					app.Patch(pattern, goFiberFunc)
+					app.Value.Patch(pattern, goFiberFunc)
 				case "PUT":
-					app.Put(pattern, goFiberFunc)
+					app.Value.Put(pattern, goFiberFunc)
 				case "DELETE":
-					app.Delete(pattern, goFiberFunc)
+					app.Value.Delete(pattern, goFiberFunc)
 				}
 			}
 			return NULL
@@ -468,8 +467,12 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 			if len(args) != 3 {
 				return newInvalidArgCountError("handle_ws", len(args), 3, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("handle_ws", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("handle_ws", 1, object.GO_OBJ, args[0].Type())
+			}
+			app, ok := args[0].(*object.GoObj[*fiber.App])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("handle_ws", 1, "*fiber.App", app)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle_ws", 2, object.STRING_OBJ, args[1].Type())
@@ -482,12 +485,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 			if len(fn.Parameters) == 0 {
 				return newError("function arguments should be at least 1 to store the websocket connection")
 			}
-			serverId := args[0].(*object.UInteger).Value
-			app, ok := ServerMap.Get(serverId)
-			if !ok {
-				return newError("`handle_ws` could not find Server Object")
-			}
-			app.Use(pattern, func(c *fiber.Ctx) error {
+			app.Value.Use(pattern, func(c *fiber.Ctx) error {
 				if websocket.IsWebSocketUpgrade(c) {
 					return c.Next()
 				}
@@ -496,8 +494,6 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 
 			var returnObj object.Object = NULL
 			wsHandler := websocket.New(func(c *websocket.Conn) {
-				connCount := wsConnCount.Add(1)
-				WSConnMap.Put(connCount, c)
 				for k, v := range fn.DefaultParameters {
 					isQueryParams := v != nil && fn.Parameters[k].Value == "query_params"
 					isCookies := v != nil && fn.Parameters[k].Value == "cookies"
@@ -553,7 +549,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 				immutableArgs := make([]bool, len(fnArgs))
 				for i, v := range fn.Parameters {
 					if i == 0 {
-						fnArgs[i] = object.CreateBasicMapObject("ws", connCount)
+						fnArgs[i] = object.CreateBasicMapObjectForGoObj[*websocket.Conn]("ws", &object.GoObj[*websocket.Conn]{Value: c, Id: GoObjId.Add(1)})
 					} else {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 					}
@@ -581,7 +577,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 					}
 				}
 			})
-			app.Get(pattern, wsHandler)
+			app.Value.Get(pattern, wsHandler)
 
 			// Always returns NULL here
 			return returnObj

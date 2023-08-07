@@ -5,20 +5,11 @@
 ## compiled in go so it is slower than those compiled
 ## in c
 
-
 val __db_open = _db_open;
 val __db_ping = _db_ping;
 val __db_exec = _db_exec;
 val __db_query = _db_query;
 val __db_close = _db_close;
-
-fun open(db_name=":memory:") {
-    ## `open` will return a core db object that can be used
-    ## to execute sql queries against
-    ##
-    ## open(db_name: str=":memory") -> {t: 'db', v: uint}
-    __db_open(db_name)
-}
 
 fun db_ping(db_id) {
     ## `db_ping` pings the DB connection and returns null if successful
@@ -55,4 +46,26 @@ fun db_close(db_id) {
     ##
     ## db_close(db_id: uint) -> null
     __db_close(db_id)
+}
+
+fun open(db_name=":memory:") {
+    ## `open` will return a core db object that can be used
+    ## to execute sql queries against
+    ##
+    ## open(db_name: str=":memory") -> DB_OBj
+    var this = {};
+    this._db = __db_open(db_name);
+    this.ping = fun() {
+        db_ping(this._db)
+    };
+    this.execute = fun(exec_query, query_args=[]) {
+        db_exec(this._db, exec_query, query_args)
+    };
+    this.query = fun(query_s, query_args=[], named_cols=false) {
+        db_query(this._db, query_s, query_args, named_cols)
+    };
+    this.close = fun() {
+        db_close(this._db);
+    };
+    return this;
 }

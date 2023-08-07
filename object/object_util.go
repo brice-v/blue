@@ -32,6 +32,32 @@ func CreateBasicMapObject(objType string, objValue uint64) *Map {
 	return m
 }
 
+func CreateBasicMapObjectForGoObj[T any](objType string, goObj *GoObj[T]) *Map {
+	m := &Map{
+		Pairs: NewPairsMap(),
+	}
+	typeKeyStr := &Stringo{Value: "t"}
+	typeValueStr := &Stringo{Value: objType}
+
+	typeKeyHashedKey := HashObject(typeKeyStr)
+	typeKeyHashKey := HashKey{Type: STRING_OBJ, Value: typeKeyHashedKey}
+	m.Pairs.Set(typeKeyHashKey, MapPair{
+		Key:   typeKeyStr,
+		Value: typeValueStr,
+	})
+
+	valueKeyStr := &Stringo{Value: "v"}
+
+	valueKeyHashedKey := HashObject(valueKeyStr)
+	valueKeyHashKey := HashKey{Type: STRING_OBJ, Value: valueKeyHashedKey}
+	m.Pairs.Set(valueKeyHashKey, MapPair{
+		Key:   valueKeyStr,
+		Value: goObj,
+	})
+
+	return m
+}
+
 func CreateMapObjectForGoMap(input OrderedMap2[string, Object]) *Map {
 	m := &Map{
 		Pairs: NewPairsMap(),

@@ -170,26 +170,9 @@ fun from_json(json_str) {
     }
 }
 
-fun ping(obj) {
-    ##core:ignore
-    match obj {
-        {t: "db", v: _} => {
-            import db
-            db.db_ping(obj.v)
-        },
-        _ => {
-            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
-        },
-    }
-}
-
 fun close(obj) {
     ##core:ignore
     match obj {
-        {t: "db", v: _} => {
-            import db
-            db.db_close(obj.v)
-        },
         {t: _, v: _} => {
             if ("net" in obj.t) {
                 import net
@@ -198,32 +181,6 @@ fun close(obj) {
         },
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
-        },
-    }
-}
-
-fun execute(db_obj, exec_query, exec_args=[]) {
-    ##core:ignore
-    match db_obj {
-        {t: "db", v: _} => {
-            import db
-            db.db_exec(db_obj.v, exec_query, exec_args)
-        },
-        _ => {
-            error("db_obj `#{db_obj}` is invalid type")
-        },
-    }
-}
-
-fun query(db_obj, query_s, query_args=[], named_cols=false) {
-    ##core:ignore
-    match db_obj {
-        {t: "db", v: _} => {
-            import db
-            db.db_query(db_obj.v, query_s, query_args, named_cols)
-        },
-        _ => {
-            error("db_obj `#{db_obj}` is invalid type")
         },
     }
 }

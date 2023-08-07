@@ -22,6 +22,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/clbanning/mxj/v2"
@@ -947,7 +948,6 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 				}
 				s := args[0].(*object.Stringo).Value
 				fn := args[1].(*object.Function)
-				buttonId := uiCanvasObjectCount.Add(1)
 				button := widget.NewButton(s, func() {
 					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
 					if isError(obj) {
@@ -962,8 +962,7 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`button` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				UICanvasObjectMap.Put(buttonId, button)
-				return object.CreateBasicMapObject("ui", buttonId)
+				return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: button, Id: GoObjId.Add(1)})
 			},
 		}
 	}
@@ -1004,9 +1003,7 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`check_box` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				checkBoxId := uiCanvasObjectCount.Add(1)
-				UICanvasObjectMap.Put(checkBoxId, checkBox)
-				return object.CreateBasicMapObject("ui/check", checkBoxId)
+				return object.CreateBasicMapObjectForGoObj("ui/check", &object.GoObj[fyne.CanvasObject]{Value: checkBox, Id: GoObjId.Add(1)})
 			},
 		}
 	}
@@ -1054,9 +1051,7 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`radio_group` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				radioId := uiCanvasObjectCount.Add(1)
-				UICanvasObjectMap.Put(radioId, radio)
-				return object.CreateBasicMapObject("ui/radio", radioId)
+				return object.CreateBasicMapObjectForGoObj("ui/radio", &object.GoObj[fyne.CanvasObject]{Value: radio, Id: GoObjId.Add(1)})
 			},
 		}
 	}
@@ -1104,9 +1099,7 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`option_select` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				optionId := uiCanvasObjectCount.Add(1)
-				UICanvasObjectMap.Put(optionId, option)
-				return object.CreateBasicMapObject("ui/option", optionId)
+				return object.CreateBasicMapObjectForGoObj("ui/option", &object.GoObj[fyne.CanvasObject]{Value: option, Id: GoObjId.Add(1)})
 			},
 		}
 	}
@@ -1142,15 +1135,15 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 					if labels[i].Type() != object.STRING_OBJ {
 						return newError("`form` error: labels were not all STRINGs. found=%s", labels[i].Type())
 					}
-					if widgetIds[i].Type() != object.UINTEGER_OBJ {
-						return newError("`form` error: widgetIds were not all UINTEGERs. found=%s", widgetIds[i].Type())
+					if widgetIds[i].Type() != object.GO_OBJ {
+						return newError("`form` error: widgetIds were not all GO_OBJs. found=%s", widgetIds[i].Type())
 					}
-					w, ok := UICanvasObjectMap.Get(widgetIds[i].(*object.UInteger).Value)
+					w, ok := widgetIds[i].(*object.GoObj[fyne.CanvasObject])
 					if !ok {
-						return newError("`form` error: widget not found")
+						return newPositionalTypeErrorForGoObj("form", i+1, "fyne.CanvasObject", w)
 					}
 					formItem := &widget.FormItem{
-						Text: labels[i].(*object.Stringo).Value, Widget: w,
+						Text: labels[i].(*object.Stringo).Value, Widget: w.Value,
 					}
 
 					formItems = append(formItems, formItem)
@@ -1173,9 +1166,7 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 						}
 					},
 				}
-				formId := uiCanvasObjectCount.Add(1)
-				UICanvasObjectMap.Put(formId, form)
-				return object.CreateBasicMapObject("ui", formId)
+				return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: form, Id: GoObjId.Add(1)})
 			},
 		}
 	}

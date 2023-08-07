@@ -291,9 +291,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				EnablePrintRoutes:     !disableStartupDebug,
 				DisableStartupMessage: disableStartupDebug,
 			})
-			curServer := serverCount.Add(1)
-			ServerMap.Put(curServer, app)
-			return &object.UInteger{Value: curServer}
+			return &object.GoObj[*fiber.App]{Value: app, Id: GoObjId.Add(1)}
 		},
 	},
 	"_serve": {
@@ -301,8 +299,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 3 {
 				return newInvalidArgCountError("serve", len(args), 3, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("serve", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("serve", 1, object.GO_OBJ, args[0].Type())
+			}
+			app, ok := args[0].(*object.GoObj[*fiber.App])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("serve", 1, "*fiber.App", app)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("serve", 2, object.STRING_OBJ, args[1].Type())
@@ -310,27 +312,23 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[2].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("seve", 3, object.BOOLEAN_OBJ, args[2].Type())
 			}
-			app, ok := ServerMap.Get(args[0].(*object.UInteger).Value)
-			if !ok {
-				return newError("`serve` could not find Server Object")
-			}
 			useEmbeddedTwindAndPreact := args[2].(*object.Boolean).Value
 			addrPort := args[1].(*object.Stringo).Value
 			signal.Notify(c, os.Interrupt)
 			go func() {
 				<-c
 				fmt.Println("Interupt... Shutting down http server")
-				_ = app.Shutdown()
+				_ = app.Value.Shutdown()
 			}()
 			if useEmbeddedTwindAndPreact {
 				sub, err := fs.Sub(lib.WebEmbedFiles, "web")
 				if err != nil {
 					return newError("`serve` error: %s", err.Error())
 				}
-				app.Use(filesystem.New(filesystem.Config{Root: http.FS(sub)}))
+				app.Value.Use(filesystem.New(filesystem.Config{Root: http.FS(sub)}))
 			}
 			// nil here means use the default server mux (ie. things that were http.HandleFunc's)
-			err := app.Listen(addrPort)
+			err := app.Value.Listen(addrPort)
 			if err != nil {
 				return newError("`serve` error: %s", err.Error())
 			}
@@ -351,8 +349,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 4 {
 				return newInvalidArgCountError("static", len(args), 4, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("static", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("static", 1, object.GO_OBJ, args[0].Type())
+			}
+			app, ok := args[0].(*object.GoObj[*fiber.App])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("static", 1, "*fiber.App", app)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("static", 2, object.STRING_OBJ, args[1].Type())
@@ -362,10 +364,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			if args[3].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("static", 4, object.BOOLEAN_OBJ, args[3].Type())
-			}
-			app, ok := ServerMap.Get(args[0].(*object.UInteger).Value)
-			if !ok {
-				return newError("`static` could not find Server Object")
 			}
 			prefix := args[1].(*object.Stringo).Value
 			fpath := args[2].(*object.Stringo).Value
@@ -378,12 +376,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err != nil {
 					return newError("`static` error: %s", err.Error())
 				}
-				app.Use(prefix, filesystem.New(filesystem.Config{
+				app.Value.Use(prefix, filesystem.New(filesystem.Config{
 					Root:   http.FS(sub),
 					Browse: shouldBrowse,
 				}))
 			} else {
-				app.Static(prefix, fpath, fiber.Static{
+				app.Value.Static(prefix, fpath, fiber.Static{
 					Browse: shouldBrowse,
 				})
 			}
@@ -395,22 +393,21 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("ws_send", len(args), 2, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("ws_send", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("ws_send", 1, object.GO_OBJ, args[0].Type())
+			}
+			c, ok := args[0].(*object.GoObj[*websocket.Conn])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", c)
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
 				return newPositionalTypeError("ws_send", 2, "STRING or BYTES", args[1].Type())
 			}
-			connId := args[0].(*object.UInteger).Value
-			c, ok := WSConnMap.Get(connId)
-			if !ok {
-				return newError("`ws_send` could not find ws object")
-			}
 			var err error
 			if args[1].Type() == object.STRING_OBJ {
-				err = c.WriteMessage(websocket.TextMessage, []byte(args[1].(*object.Stringo).Value))
+				err = c.Value.WriteMessage(websocket.TextMessage, []byte(args[1].(*object.Stringo).Value))
 			} else {
-				err = c.WriteMessage(websocket.BinaryMessage, args[1].(*object.Bytes).Value)
+				err = c.Value.WriteMessage(websocket.BinaryMessage, args[1].(*object.Bytes).Value)
 			}
 			if err != nil {
 				return newError("`ws_send` error: %s", err.Error())
@@ -423,18 +420,15 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("ws_recv", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("ws_recv", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("ws_recv", 1, object.GO_OBJ, args[0].Type())
 			}
-			connId := args[0].(*object.UInteger).Value
-			c, ok := WSConnMap.Get(connId)
+			c, ok := args[0].(*object.GoObj[*websocket.Conn])
 			if !ok {
-				return newError("`ws_recv` could not find ws object")
+				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", c)
 			}
-			mt, msg, err := c.ReadMessage()
+			mt, msg, err := c.Value.ReadMessage()
 			if err != nil {
-				// Remove this conn
-				WSConnMap.Remove(connId)
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: %s", err.Error())
 			}
@@ -448,8 +442,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case websocket.PongMessage:
 				return newError("`ws_recv`: pong message type not supported.")
 			default:
-				// Remove the conn
-				WSConnMap.Remove(connId)
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: websocket closed.")
 			}
@@ -468,9 +460,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`new_ws` error: %s", err.Error())
 			}
-			connId := wsClientConnCount.Add(1)
-			WSClientConnMap.Put(connId, conn)
-			return object.CreateBasicMapObject("ws/client", connId)
+			return object.CreateBasicMapObjectForGoObj("ws/client", &object.GoObj[*ws.Conn]{Value: conn, Id: GoObjId.Add(1)})
 		},
 	},
 	"_ws_client_send": {
@@ -478,22 +468,21 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("ws_client_send", len(args), 2, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("ws_client_send", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("ws_client_send", 1, object.GO_OBJ, args[0].Type())
+			}
+			c, ok := args[0].(*object.GoObj[*ws.Conn])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("ws_client_send", 1, "*ws.Conn", c)
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
 				return newPositionalTypeError("ws_client_send", 2, "STRING or BYTES", args[1].Type())
 			}
-			connId := args[0].(*object.UInteger).Value
-			c, ok := WSClientConnMap.Get(connId)
-			if !ok {
-				return newError("`ws_send` could not find ws object")
-			}
 			var err error
 			if args[1].Type() == object.STRING_OBJ {
-				err = c.WriteMessage(websocket.TextMessage, []byte(args[1].(*object.Stringo).Value))
+				err = c.Value.WriteMessage(websocket.TextMessage, []byte(args[1].(*object.Stringo).Value))
 			} else {
-				err = c.WriteMessage(websocket.BinaryMessage, args[1].(*object.Bytes).Value)
+				err = c.Value.WriteMessage(websocket.BinaryMessage, args[1].(*object.Bytes).Value)
 			}
 			if err != nil {
 				return newError("`ws_send` error: %s", err.Error())
@@ -506,18 +495,15 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("ws_client_recv", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("ws_client_recv", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("ws_client_recv", 1, object.GO_OBJ, args[0].Type())
 			}
-			connId := args[0].(*object.UInteger).Value
-			c, ok := WSClientConnMap.Get(connId)
+			c, ok := args[0].(*object.GoObj[*ws.Conn])
 			if !ok {
-				return newError("`ws_recv` could not find ws object")
+				return newPositionalTypeErrorForGoObj("ws_client_recv", 1, "*ws.Conn", c)
 			}
-			mt, msg, err := c.ReadMessage()
+			mt, msg, err := c.Value.ReadMessage()
 			if err != nil {
-				// Remove this conn
-				WSClientConnMap.Remove(connId)
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: %s", err.Error())
 			}
@@ -531,8 +517,6 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case websocket.PongMessage:
 				return newError("`ws_recv`: pong message type not supported.")
 			default:
-				// Remove the conn
-				WSClientConnMap.Remove(connId)
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
 				return newError("`ws_recv`: websocket closed.")
 			}
@@ -543,8 +527,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 3 {
 				return newInvalidArgCountError("handle_monitor", len(args), 3, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("handle_monitor", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("handle_monitor", 1, object.GO_OBJ, args[0].Type())
+			}
+			app, ok := args[0].(*object.GoObj[*fiber.App])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("handle_monitor", 1, "*fiber.App", app)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle_monitor", 2, object.STRING_OBJ, args[1].Type())
@@ -552,14 +540,9 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[2].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("handle_monitor", 3, object.BOOLEAN_OBJ, args[2].Type())
 			}
-			serverId := args[0].(*object.UInteger).Value
 			path := args[1].(*object.Stringo).Value
 			shouldShow := args[2].(*object.Boolean).Value
-			app, ok := ServerMap.Get(serverId)
-			if !ok {
-				return newError("`handle_monitor` could not find server object")
-			}
-			app.Get(path, monitor.New(monitor.Config{
+			app.Value.Get(path, monitor.New(monitor.Config{
 				Next: func(c *fiber.Ctx) bool {
 					return !shouldShow
 				},
@@ -624,36 +607,35 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("inspect", len(args), 2, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("inspect", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("inspect", 1, object.GO_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("inspect", 2, object.STRING_OBJ, args[1].Type())
 			}
-			id := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
 			switch t {
 			case "ws":
-				c, ok := WSConnMap.Get(id)
+				c, ok := args[0].(*object.GoObj[*websocket.Conn])
 				if !ok {
-					return newError("`inspect` ws connection not found")
+					return newPositionalTypeErrorForGoObj("inspect", 1, "*websocket.Conn", c)
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
-				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
-				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.Value.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.Value.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.Value.LocalAddr().Network()})
 				return object.CreateMapObjectForGoMap(*mapObj)
 			case "ws/client":
-				c, ok := WSClientConnMap.Get(id)
+				c, ok := args[0].(*object.GoObj[*ws.Conn])
 				if !ok {
-					return newError("`inspect` ws/client connection not found")
+					return newPositionalTypeErrorForGoObj("inspect", 1, "*ws.Conn", c)
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
-				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
-				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.Value.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.Value.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.Value.LocalAddr().Network()})
 				return object.CreateMapObjectForGoMap(*mapObj)
 			default:
 				return newError("`inspect` expects type of 'ws'")
@@ -823,9 +805,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`db_open` error: %s", err.Error())
 			}
-			curDB := dbCount.Add(1)
-			DBMap.Put(curDB, db)
-			return object.CreateBasicMapObject("db", curDB)
+			return &object.GoObj[*sql.DB]{Value: db, Id: GoObjId.Add(1)}
 		},
 	},
 	"_db_ping": {
@@ -833,18 +813,18 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("db_ping", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("db_ping", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("db_ping", 1, object.GO_OBJ, args[0].Type())
 			}
-			i := args[0].(*object.UInteger).Value
-			if db, ok := DBMap.Get(i); ok {
-				err := db.Ping()
-				if err != nil {
-					return &object.Stringo{Value: err.Error()}
-				}
-				return NULL
+			db, ok := args[0].(*object.GoObj[*sql.DB])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("db_ping", 1, "*sql.DB", db)
 			}
-			return newError("`db_ping` error: DB not found")
+			err := db.Value.Ping()
+			if err != nil {
+				return &object.Stringo{Value: err.Error()}
+			}
+			return NULL
 		},
 	},
 	"_db_close": {
@@ -852,19 +832,18 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("db_close", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("db_close", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("db_close", 1, object.GO_OBJ, args[0].Type())
 			}
-			i := args[0].(*object.UInteger).Value
-			if db, ok := DBMap.Get(i); ok {
-				err := db.Close()
-				if err != nil {
-					return newError("`db_close` error: %s", err.Error())
-				}
-				DBMap.Remove(i)
-				return NULL
+			db, ok := args[0].(*object.GoObj[*sql.DB])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("db_close", 1, "*sql.DB", db)
 			}
-			return newError("`db_close` error: DB not found")
+			err := db.Value.Close()
+			if err != nil {
+				return newError("`db_close` error: %s", err.Error())
+			}
+			return NULL
 		},
 	},
 	"_db_exec": {
@@ -872,8 +851,12 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 3 {
 				return newInvalidArgCountError("db_exec", len(args), 3, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("db_exec", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("db_exec", 1, object.GO_OBJ, args[0].Type())
+			}
+			db, ok := args[0].(*object.GoObj[*sql.DB])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("db_exec", 1, "*sql.DB", db)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("db_exec", 2, object.STRING_OBJ, args[1].Type())
@@ -881,53 +864,50 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[2].Type() != object.LIST_OBJ {
 				return newPositionalTypeError("db_exec", 3, object.LIST_OBJ, args[2].Type())
 			}
-			i := args[0].(*object.UInteger).Value
 			s := args[1].(*object.Stringo).Value
 			l := args[2].(*object.List).Elements
-			if db, ok := DBMap.Get(i); ok {
-				var result sql.Result
-				var err error
-				if len(l) > 1 {
-					execArgs := make([]any, len(l))
-					for idx, e := range l {
-						switch e.Type() {
-						case object.STRING_OBJ:
-							execArgs[idx] = e.(*object.Stringo).Value
-						case object.INTEGER_OBJ:
-							execArgs[idx] = e.(*object.Integer).Value
-						case object.FLOAT_OBJ:
-							execArgs[idx] = e.(*object.Float).Value
-						case object.NULL_OBJ:
-							execArgs[idx] = nil
-						case object.BOOLEAN_OBJ:
-							execArgs[idx] = e.(*object.Boolean).Value
-						case object.BYTES_OBJ:
-							execArgs[idx] = e.(*object.Bytes).Value
-						default:
-							return newError("argument list to `db_exec` included invalid type. got=%s", e.Type())
-						}
+
+			var result sql.Result
+			var err error
+			if len(l) > 1 {
+				execArgs := make([]any, len(l))
+				for idx, e := range l {
+					switch e.Type() {
+					case object.STRING_OBJ:
+						execArgs[idx] = e.(*object.Stringo).Value
+					case object.INTEGER_OBJ:
+						execArgs[idx] = e.(*object.Integer).Value
+					case object.FLOAT_OBJ:
+						execArgs[idx] = e.(*object.Float).Value
+					case object.NULL_OBJ:
+						execArgs[idx] = nil
+					case object.BOOLEAN_OBJ:
+						execArgs[idx] = e.(*object.Boolean).Value
+					case object.BYTES_OBJ:
+						execArgs[idx] = e.(*object.Bytes).Value
+					default:
+						return newError("argument list to `db_exec` included invalid type. got=%s", e.Type())
 					}
-					result, err = db.Exec(s, execArgs...)
-				} else {
-					result, err = db.Exec(s)
 				}
-				if err != nil {
-					return newError("`db_exec` error: %s", err.Error())
-				}
-				lastInsertId, err := result.LastInsertId()
-				if err != nil {
-					return newError("`db_exec` error: %s", err.Error())
-				}
-				rowsAffected, err := result.RowsAffected()
-				if err != nil {
-					return newError("`db_exec` error: %s", err.Error())
-				}
-				mapToConvert := object.NewOrderedMap[string, object.Object]()
-				mapToConvert.Set("last_insert_id", &object.Integer{Value: lastInsertId})
-				mapToConvert.Set("rows_affected", &object.Integer{Value: rowsAffected})
-				return object.CreateMapObjectForGoMap(*mapToConvert)
+				result, err = db.Value.Exec(s, execArgs...)
+			} else {
+				result, err = db.Value.Exec(s)
 			}
-			return newError("`db_exec` error: DB not found")
+			if err != nil {
+				return newError("`db_exec` error: %s", err.Error())
+			}
+			lastInsertId, err := result.LastInsertId()
+			if err != nil {
+				return newError("`db_exec` error: %s", err.Error())
+			}
+			rowsAffected, err := result.RowsAffected()
+			if err != nil {
+				return newError("`db_exec` error: %s", err.Error())
+			}
+			mapToConvert := object.NewOrderedMap[string, object.Object]()
+			mapToConvert.Set("last_insert_id", &object.Integer{Value: lastInsertId})
+			mapToConvert.Set("rows_affected", &object.Integer{Value: rowsAffected})
+			return object.CreateMapObjectForGoMap(*mapToConvert)
 		},
 	},
 	"_db_query": {
@@ -935,8 +915,12 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 4 {
 				return newInvalidArgCountError("db_query", len(args), 4, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("db_query", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("db_query", 1, object.GO_OBJ, args[0].Type())
+			}
+			db, ok := args[0].(*object.GoObj[*sql.DB])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("db_query", 1, "*sql.DB", db)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("db_query", 2, object.STRING_OBJ, args[1].Type())
@@ -947,91 +931,87 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[3].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("db_query", 4, object.BOOLEAN_OBJ, args[3].Type())
 			}
-			i := args[0].(*object.UInteger).Value
 			s := args[1].(*object.Stringo).Value
 			l := args[2].(*object.List).Elements
 			isNamedCols := args[3].(*object.Boolean).Value
-			if db, ok := DBMap.Get(i); ok {
-				var rows *sql.Rows
-				var err error
-				if len(l) >= 1 {
-					execArgs := make([]any, len(l))
-					for idx, e := range l {
-						switch e.Type() {
-						case object.STRING_OBJ:
-							execArgs[idx] = e.(*object.Stringo).Value
-						case object.INTEGER_OBJ:
-							execArgs[idx] = e.(*object.Integer).Value
-						case object.FLOAT_OBJ:
-							execArgs[idx] = e.(*object.Float).Value
-						case object.NULL_OBJ:
-							execArgs[idx] = nil
-						case object.BOOLEAN_OBJ:
-							execArgs[idx] = e.(*object.Boolean).Value
-						case object.BYTES_OBJ:
-							execArgs[idx] = e.(*object.Bytes).Value
-						default:
-							return newError("argument list to `db_query` included invalid type. got=%s", e.Type())
-						}
+			var rows *sql.Rows
+			var err error
+			if len(l) >= 1 {
+				execArgs := make([]any, len(l))
+				for idx, e := range l {
+					switch e.Type() {
+					case object.STRING_OBJ:
+						execArgs[idx] = e.(*object.Stringo).Value
+					case object.INTEGER_OBJ:
+						execArgs[idx] = e.(*object.Integer).Value
+					case object.FLOAT_OBJ:
+						execArgs[idx] = e.(*object.Float).Value
+					case object.NULL_OBJ:
+						execArgs[idx] = nil
+					case object.BOOLEAN_OBJ:
+						execArgs[idx] = e.(*object.Boolean).Value
+					case object.BYTES_OBJ:
+						execArgs[idx] = e.(*object.Bytes).Value
+					default:
+						return newError("argument list to `db_query` included invalid type. got=%s", e.Type())
 					}
-					rows, err = db.Query(s, execArgs...)
-				} else {
-					rows, err = db.Query(s)
 				}
-				if rows != nil {
-					defer rows.Close()
-				}
+				rows, err = db.Value.Query(s, execArgs...)
+			} else {
+				rows, err = db.Value.Query(s)
+			}
+			if rows != nil {
+				defer rows.Close()
+			}
+			if err != nil {
+				return newError("`db_query` error: %s", err.Error())
+			}
+			colNames, err := rows.Columns()
+			if err != nil {
+				return newError("`db_query` error: %s", err.Error())
+			}
+			// Get Types to properly scan
+			// https://www.sqlite.org/datatype3.html
+			// NULL. The value is a NULL value.
+			// INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
+			// REAL. The value is a floating point value, stored as an 8-byte IEEE floating point number.
+			// TEXT. The value is a text string, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
+			// BLOB. The value is a blob of data, stored exactly as it was input.
+			cols := make([]interface{}, len(colNames))
+			colPtrs := make([]interface{}, len(colNames))
+			for i := 0; i < len(colNames); i++ {
+				colPtrs[i] = &cols[i]
+			}
+			returnList := &object.List{
+				Elements: []object.Object{},
+			}
+			for rows.Next() {
+				err = rows.Scan(colPtrs...)
 				if err != nil {
 					return newError("`db_query` error: %s", err.Error())
 				}
-				colNames, err := rows.Columns()
-				if err != nil {
-					return newError("`db_query` error: %s", err.Error())
+				rowList := &object.List{
+					Elements: make([]object.Object, len(cols)),
 				}
-				// Get Types to properly scan
-				// https://www.sqlite.org/datatype3.html
-				// NULL. The value is a NULL value.
-				// INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
-				// REAL. The value is a floating point value, stored as an 8-byte IEEE floating point number.
-				// TEXT. The value is a text string, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
-				// BLOB. The value is a blob of data, stored exactly as it was input.
-				cols := make([]interface{}, len(colNames))
-				colPtrs := make([]interface{}, len(colNames))
-				for i := 0; i < len(colNames); i++ {
-					colPtrs[i] = &cols[i]
-				}
-				returnList := &object.List{
-					Elements: []object.Object{},
-				}
-				for rows.Next() {
-					err = rows.Scan(colPtrs...)
-					if err != nil {
-						return newError("`db_query` error: %s", err.Error())
-					}
-					rowList := &object.List{
-						Elements: make([]object.Object, len(cols)),
-					}
-					rowMap := object.NewOrderedMap[string, object.Object]()
-					for idx, e := range cols {
-						obj := object.CreateObjectFromDbInterface(e)
-						if obj == nil {
-							obj = NULL
-						}
-						if !isNamedCols {
-							rowList.Elements[idx] = obj
-						} else {
-							rowMap.Set(colNames[idx], obj)
-						}
+				rowMap := object.NewOrderedMap[string, object.Object]()
+				for idx, e := range cols {
+					obj := object.CreateObjectFromDbInterface(e)
+					if obj == nil {
+						obj = NULL
 					}
 					if !isNamedCols {
-						returnList.Elements = append(returnList.Elements, rowList)
+						rowList.Elements[idx] = obj
 					} else {
-						returnList.Elements = append(returnList.Elements, object.CreateMapObjectForGoMap(*rowMap))
+						rowMap.Set(colNames[idx], obj)
 					}
 				}
-				return returnList
+				if !isNamedCols {
+					returnList.Elements = append(returnList.Elements, rowList)
+				} else {
+					returnList.Elements = append(returnList.Elements, object.CreateMapObjectForGoMap(*rowMap))
+				}
 			}
-			return newError("`db_query` error: DB not found")
+			return returnList
 		},
 	},
 })
@@ -2206,9 +2186,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`connect` error: %s", err.Error())
 			}
-			curConn := netConnCount.Add(1)
-			NetConnMap.Put(curConn, conn)
-			return object.CreateBasicMapObject("net", curConn)
+			return object.CreateBasicMapObjectForGoObj("net", &object.GoObj[net.Conn]{Value: conn, Id: GoObjId.Add(1)})
 		},
 	},
 	"_listen": {
@@ -2238,17 +2216,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err != nil {
 					return newError("`listen` udp error: %s", err.Error())
 				}
-				curServer := netUDPServerCount.Add(1)
-				NetUDPServerMap.Put(curServer, l)
-				return object.CreateBasicMapObject("net/udp", curServer)
+				return object.CreateBasicMapObjectForGoObj("net/udp", &object.GoObj[*net.UDPConn]{Value: l, Id: GoObjId.Add(1)})
 			}
 			l, err := net.Listen(transport, addrStr)
 			if err != nil {
 				return newError("`listen` error: %s", err.Error())
 			}
-			curServer := netTCPServerCount.Add(1)
-			NetTCPServerMap.Put(curServer, l)
-			return object.CreateBasicMapObject("net/tcp", curServer)
+			return object.CreateBasicMapObjectForGoObj("net/tcp", &object.GoObj[net.Listener]{Value: l, Id: GoObjId.Add(1)})
 		},
 	},
 	"_accept": {
@@ -2256,20 +2230,18 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("accept", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("accept", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("accept", 1, object.GO_OBJ, args[0].Type())
 			}
-			l, ok := NetTCPServerMap.Get(args[0].(*object.UInteger).Value)
+			l, ok := args[0].(*object.GoObj[net.Listener])
 			if !ok {
-				return newError("`accept` error: listener not found")
+				return newPositionalTypeErrorForGoObj("accept", 1, "net.Listener", l)
 			}
-			conn, err := l.Accept()
+			conn, err := l.Value.Accept()
 			if err != nil {
 				return newError("`accept` error: %s", err.Error())
 			}
-			curConn := netConnCount.Add(1)
-			NetConnMap.Put(curConn, conn)
-			return object.CreateBasicMapObject("net", curConn)
+			return object.CreateBasicMapObjectForGoObj("net", &object.GoObj[net.Conn]{Value: conn, Id: GoObjId.Add(1)})
 		},
 	},
 	"_net_close": {
@@ -2277,38 +2249,32 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("net_close", len(args), 2, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("net_close", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("net_close", 1, object.GO_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("net_close", 2, object.STRING_OBJ, args[1].Type())
 			}
-			id := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
 			switch t {
 			case "net/udp":
-				c, ok := NetUDPServerMap.Get(id)
+				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return NULL
+					return newPositionalTypeErrorForGoObj("net_close", 1, "*net.UDPConn", c)
 				}
-				c.Close()
-				NetUDPServerMap.Remove(id)
+				c.Value.Close()
 			case "net/tcp":
-				listener, ok := NetTCPServerMap.Get(id)
+				listener, ok := args[0].(*object.GoObj[net.Listener])
 				if !ok {
-					// Dont error out if were just trying to close
-					return NULL
+					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Listener", listener)
 				}
-				listener.Close()
-				NetTCPServerMap.Remove(id)
+				listener.Value.Close()
 			case "net":
-				conn, ok := NetConnMap.Get(id)
+				conn, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					// Dont error out if were just trying to close
-					return NULL
+					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Conn", conn)
 				}
-				conn.Close()
-				NetConnMap.Remove(id)
+				conn.Value.Close()
 			default:
 				return newError("`net_close` expects type of 'net/tcp', 'net/udp', or 'net'")
 			}
@@ -2320,8 +2286,8 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 4 {
 				return newInvalidArgCountError("net_read", len(args), 4, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("net_read", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("net_read", 1, object.GO_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("net_read", 2, object.STRING_OBJ, args[1].Type())
@@ -2332,21 +2298,20 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[3].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("net_read", 4, object.BOOLEAN_OBJ, args[3].Type())
 			}
-			connId := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
 			var conn net.Conn
 			if t == "net/udp" {
-				c, ok := NetUDPServerMap.Get(connId)
+				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return newError("`net_read` udp error: connection not found")
+					return newPositionalTypeErrorForGoObj("net_read", 1, "*net.UDPConn", c)
 				}
-				conn = c
+				conn = c.Value
 			} else {
-				c, ok := NetConnMap.Get(connId)
+				c, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					return newError("`net_read` error: connection not found")
+					return newPositionalTypeErrorForGoObj("net_read", 1, "net.Conn", c)
 				}
-				conn = c
+				conn = c.Value
 			}
 			if args[2].Type() == object.INTEGER_OBJ {
 				asBytes := args[3].(*object.Boolean).Value
@@ -2390,8 +2355,8 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 3 {
 				return newInvalidArgCountError("net_write", len(args), 3, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("net_write", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("net_write", 1, object.GO_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("net_write", 2, object.STRING_OBJ, args[1].Type())
@@ -2402,21 +2367,20 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[3].Type() != object.NULL_OBJ && args[3].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("net_write", 4, "NULL or STRING", args[3].Type())
 			}
-			connId := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
 			var conn net.Conn
 			if t == "net/udp" {
-				c, ok := NetUDPServerMap.Get(connId)
+				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return newError("`net_write` udp error: connection not found")
+					return newPositionalTypeErrorForGoObj("net_write", 1, "*net.UDPConn", c)
 				}
-				conn = c
+				conn = c.Value
 			} else {
-				c, ok := NetConnMap.Get(connId)
+				c, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					return newError("`net_write` error: connection not found")
+					return newPositionalTypeErrorForGoObj("net_write", 1, "net.Conn", c)
 				}
-				conn = c
+				conn = c.Value
 			}
 			var appendByte *byte = nil
 			if args[3].Type() == object.STRING_OBJ {
@@ -2468,45 +2432,44 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("inspect", len(args), 2, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("inspect", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("inspect", 1, object.GO_OBJ, args[0].Type())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("inspect", 2, object.STRING_OBJ, args[1].Type())
 			}
-			id := args[0].(*object.UInteger).Value
 			t := args[1].(*object.Stringo).Value
 			switch t {
 			case "net/udp":
-				c, ok := NetUDPServerMap.Get(id)
+				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return newError("`inspect` udp server connection not found")
+					return newPositionalTypeErrorForGoObj("inspect", 1, "*net.UDPConn", c)
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
-				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
-				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.Value.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.Value.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.Value.LocalAddr().Network()})
 				return object.CreateMapObjectForGoMap(*mapObj)
 			case "net/tcp":
-				l, ok := NetTCPServerMap.Get(id)
+				l, ok := args[0].(*object.GoObj[net.Listener])
 				if !ok {
-					return newError("`inspect` tcp server connection not found")
+					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Listener", l)
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
-				mapObj.Set("addr", &object.Stringo{Value: l.Addr().String()})
-				mapObj.Set("addr_network", &object.Stringo{Value: l.Addr().Network()})
+				mapObj.Set("addr", &object.Stringo{Value: l.Value.Addr().String()})
+				mapObj.Set("addr_network", &object.Stringo{Value: l.Value.Addr().Network()})
 				return object.CreateMapObjectForGoMap(*mapObj)
 			case "net":
-				c, ok := NetConnMap.Get(id)
+				c, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					return newError("`inspect` connection not found")
+					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Conn", c)
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
-				mapObj.Set("remote_addr", &object.Stringo{Value: c.RemoteAddr().String()})
-				mapObj.Set("local_addr", &object.Stringo{Value: c.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &object.Stringo{Value: c.LocalAddr().Network()})
+				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
+				mapObj.Set("local_addr", &object.Stringo{Value: c.Value.LocalAddr().String()})
+				mapObj.Set("remote_addr_network", &object.Stringo{Value: c.Value.RemoteAddr().Network()})
+				mapObj.Set("local_addr_network", &object.Stringo{Value: c.Value.LocalAddr().Network()})
 				return object.CreateMapObjectForGoMap(*mapObj)
 			default:
 				return newError("`inspect` expects type of 'net/tcp', 'net/udp', or 'net'")
@@ -2522,9 +2485,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("new_app", len(args), 0, "")
 			}
 			app := app.New()
-			appId := uiAppCount.Add(1)
-			UIAppMap.Put(appId, app)
-			return &object.UInteger{Value: appId}
+			return &object.GoObj[fyne.App]{Value: app, Id: GoObjId.Add(1)}
 		},
 	},
 	"_window": {
@@ -2532,8 +2493,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 5 {
 				return newInvalidArgCountError("window", len(args), 5, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("window", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("window", 1, object.GO_OBJ, args[0].Type())
+			}
+			app, ok := args[0].(*object.GoObj[fyne.App])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("window", 1, "fyne.App", app)
 			}
 			if args[1].Type() != object.INTEGER_OBJ {
 				return newPositionalTypeError("window", 2, object.INTEGER_OBJ, args[1].Type())
@@ -2544,25 +2509,19 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[3].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("window", 4, object.STRING_OBJ, args[3].Type())
 			}
-			if args[4].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("window", 5, object.UINTEGER_OBJ, args[4].Type())
+			if args[4].Type() != object.GO_OBJ {
+				return newPositionalTypeError("window", 5, object.GO_OBJ, args[4].Type())
 			}
-			appId := args[0].(*object.UInteger).Value
+			content, ok := args[4].(*object.GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("window", 4, "fyne.CanvasObject", app)
+			}
 			width := args[1].(*object.Integer).Value
 			height := args[2].(*object.Integer).Value
 			title := args[3].(*object.Stringo).Value
-			contentId := args[4].(*object.UInteger).Value
-			app, ok := UIAppMap.Get(appId)
-			if !ok {
-				return newError("`window` could not find app object")
-			}
-			content, ok := UICanvasObjectMap.Get(contentId)
-			if !ok {
-				return newError("`window` could not find content object")
-			}
-			w := app.NewWindow(title)
+			w := app.Value.NewWindow(title)
 			w.Resize(fyne.Size{Width: float32(width), Height: float32(height)})
-			w.SetContent(content)
+			w.SetContent(content.Value)
 			w.ShowAndRun()
 			return NULL
 		},
@@ -2576,10 +2535,8 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("label", 1, object.STRING_OBJ, args[0].Type())
 			}
 			label := args[0].(*object.Stringo).Value
-			labelId := uiCanvasObjectCount.Add(1)
 			l := widget.NewLabel(label)
-			UICanvasObjectMap.Put(labelId, l)
-			return object.CreateBasicMapObject("ui", labelId)
+			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: l, Id: GoObjId.Add(1)})
 		},
 	},
 	"_row": {
@@ -2593,20 +2550,17 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			elements := args[0].(*object.List).Elements
 			canvasObjects := make([]fyne.CanvasObject, len(elements))
 			for i, e := range elements {
-				if e.Type() != object.UINTEGER_OBJ {
-					return newError("`row` error: all children should be UINTEGER. found=%s", e.Type())
+				if e.Type() != object.GO_OBJ {
+					return newError("`row` error: all children should be GO_OBJ[fyne.CanvasObject]. found=%s", e.Type())
 				}
-				elemId := e.(*object.UInteger).Value
-				o, ok := UICanvasObjectMap.Get(elemId)
+				o, ok := e.(*object.GoObj[fyne.CanvasObject])
 				if !ok {
-					return newError("`row` error: could not find ui element")
+					return newPositionalTypeErrorForGoObj("row", i+1, "fyne.CanvasObject", o)
 				}
-				canvasObjects[i] = o
+				canvasObjects[i] = o.Value
 			}
-			vboxId := uiCanvasObjectCount.Add(1)
 			vbox := container.NewVBox(canvasObjects...)
-			UICanvasObjectMap.Put(vboxId, vbox)
-			return object.CreateBasicMapObject("ui", vboxId)
+			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: vbox, Id: GoObjId.Add(1)})
 		},
 	},
 	"_col": {
@@ -2620,20 +2574,17 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			elements := args[0].(*object.List).Elements
 			canvasObjects := make([]fyne.CanvasObject, len(elements))
 			for i, e := range elements {
-				if e.Type() != object.UINTEGER_OBJ {
-					return newError("`col` error: all children should be UINTEGER. found=%s", e.Type())
+				if e.Type() != object.GO_OBJ {
+					return newError("`col` error: all children should be GO_OBJ[fyne.CanvasObject]. found=%s", e.Type())
 				}
-				elemId := e.(*object.UInteger).Value
-				o, ok := UICanvasObjectMap.Get(elemId)
+				o, ok := e.(*object.GoObj[fyne.CanvasObject])
 				if !ok {
-					return newError("`col` error: could not find ui element")
+					return newPositionalTypeErrorForGoObj("col", i+1, "fyne.CanvasObject", o)
 				}
-				canvasObjects[i] = o
+				canvasObjects[i] = o.Value
 			}
-			vboxId := uiCanvasObjectCount.Add(1)
-			vbox := container.NewHBox(canvasObjects...)
-			UICanvasObjectMap.Put(vboxId, vbox)
-			return object.CreateBasicMapObject("ui", vboxId)
+			hbox := container.NewHBox(canvasObjects...)
+			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: hbox, Id: GoObjId.Add(1)})
 		},
 	},
 	"_grid": {
@@ -2658,25 +2609,22 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			elements := args[2].(*object.List).Elements
 			canvasObjects := make([]fyne.CanvasObject, len(elements))
 			for i, e := range elements {
-				if e.Type() != object.UINTEGER_OBJ {
-					return newError("`grid` error: all children should be UINTEGER. found=%s", e.Type())
+				if e.Type() != object.GO_OBJ {
+					return newError("`grid` error: all children should be GO_OBJ[fyne.CanvasObject]. found=%s", e.Type())
 				}
-				elemId := e.(*object.UInteger).Value
-				o, ok := UICanvasObjectMap.Get(elemId)
+				o, ok := e.(*object.GoObj[fyne.CanvasObject])
 				if !ok {
-					return newError("`grid` error: could not find ui element")
+					return newPositionalTypeErrorForGoObj("grid", i+1, "fyne.CanvasObject", o)
 				}
-				canvasObjects[i] = o
+				canvasObjects[i] = o.Value
 			}
-			gridId := uiCanvasObjectCount.Add(1)
 			var grid *fyne.Container
 			if gridType == "ROWS" {
 				grid = container.NewGridWithRows(rowsOrCols, canvasObjects...)
 			} else {
 				grid = container.NewGridWithColumns(rowsOrCols, canvasObjects...)
 			}
-			UICanvasObjectMap.Put(gridId, grid)
-			return object.CreateBasicMapObject("ui", gridId)
+			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: grid, Id: GoObjId.Add(1)})
 		},
 	},
 	"_entry": {
@@ -2699,9 +2647,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				entry = widget.NewEntry()
 			}
 			entry.SetPlaceHolder(placeholderText)
-			entryId := uiCanvasObjectCount.Add(1)
-			UICanvasObjectMap.Put(entryId, entry)
-			return object.CreateBasicMapObject("ui/entry", entryId)
+			return object.CreateBasicMapObjectForGoObj("ui/entry", &object.GoObj[fyne.CanvasObject]{Value: entry, Id: GoObjId.Add(1)})
 		},
 	},
 	"_entry_get_text": {
@@ -2709,19 +2655,18 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("entry_get_text", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("entry_get_text", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("entry_get_text", 1, object.GO_OBJ, args[0].Type())
 			}
-			entryId := args[0].(*object.UInteger).Value
-			entry, ok := UICanvasObjectMap.Get(entryId)
+			entry, ok := args[0].(*object.GoObj[fyne.CanvasObject])
 			if !ok {
-				return newError("`entry_get_text` error: could not find ui element")
+				return newPositionalTypeErrorForGoObj("entry_get_text", 1, "fyne.CanvasObject", entry)
 			}
-			switch x := entry.(type) {
+			switch x := entry.Value.(type) {
 			case *widget.Entry:
 				return &object.Stringo{Value: x.Text}
 			default:
-				return newError("`entry_get_text` error: entry id did not match entry")
+				return newError("`entry_get_text` error: entry id did not match entry. got=%T", x)
 			}
 		},
 	},
@@ -2730,24 +2675,23 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("entry_set_text", len(args), 2, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("entry_set_text", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("entry_set_text", 1, object.GO_OBJ, args[0].Type())
+			}
+			entry, ok := args[0].(*object.GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("entry_set_text", 1, "fyne.CanvasObject", entry)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("entry_set_text", 2, object.STRING_OBJ, args[1].Type())
 			}
-			entryId := args[0].(*object.UInteger).Value
-			entry, ok := UICanvasObjectMap.Get(entryId)
-			if !ok {
-				return newError("`entry_set_text` error: could not find ui element")
-			}
 			value := args[1].(*object.Stringo).Value
-			switch x := entry.(type) {
+			switch x := entry.Value.(type) {
 			case *widget.Entry:
 				x.SetText(value)
 				return NULL
 			default:
-				return newError("`entry_set_text` error: entry id did not match entry")
+				return newError("`entry_set_text` error: entry id did not match entry. got=%T", x)
 			}
 		},
 	},
@@ -2756,33 +2700,31 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 3 {
 				return newInvalidArgCountError("append_form", len(args), 3, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("append_form", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("append_form", 1, object.GO_OBJ, args[0].Type())
+			}
+			maybeForm, ok := args[0].(*object.GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("append_form", 1, "fyne.CanvasObject", maybeForm)
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("append_form", 2, object.STRING_OBJ, args[1].Type())
 			}
-			if args[2].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("append_form", 3, object.UINTEGER_OBJ, args[2].Type())
+			if args[2].Type() != object.GO_OBJ {
+				return newPositionalTypeError("append_form", 3, object.GO_OBJ, args[2].Type())
 			}
-			formId := args[0].(*object.UInteger).Value
-			maybeForm, ok := UICanvasObjectMap.Get(formId)
+			w, ok := args[3].(*object.GoObj[fyne.CanvasObject])
 			if !ok {
-				return newError("`append_form` error: form not found")
+				return newPositionalTypeErrorForGoObj("append_form", 3, "fyne.CanvasObject", w)
 			}
 			var form *widget.Form
-			switch x := maybeForm.(type) {
+			switch x := maybeForm.Value.(type) {
 			case *widget.Form:
 				form = x
 			default:
 				return newError("`append_form` error: id used for form is not form. got=%T", x)
 			}
-			wId := args[2].(*object.UInteger).Value
-			w, ok := UICanvasObjectMap.Get(wId)
-			if !ok {
-				return newError("`append_form` error: widget not found")
-			}
-			form.Append(args[1].(*object.Stringo).Value, w)
+			form.Append(args[1].(*object.Stringo).Value, w.Value)
 			return NULL
 		},
 	},
@@ -2804,11 +2746,6 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("style", 3, object.INTEGER_OBJ, args[2].Type())
 			}
 			arg1, arg2, arg3 := args[0].(*object.Integer).Value, args[1].(*object.Integer).Value, args[2].(*object.Integer).Value
-			// Use another map to get the count if this combination is already created
-			key := fmt.Sprintf("%d;%d;%d", arg1, arg2, arg3)
-			if v, ok := ColorStyleCountMap.Get(key); ok {
-				return object.CreateBasicMapObject("color", v)
-			}
 			textStyle := color.Color(arg1)
 			fgActualColor := color.Color(arg2)
 			fgColor := fgActualColor.ToFg()
@@ -2830,10 +2767,7 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if bgColorName != unknown || bgActualColorName != unknown {
 				s.Add(bgColor)
 			}
-			styleId := colorStyleCount.Add(1)
-			ColorStyleCountMap.Put(key, styleId)
-			ColorStyleMap.Put(styleId, s)
-			return object.CreateBasicMapObject("color", styleId)
+			return object.CreateBasicMapObjectForGoObj("color", &object.GoObj[color.Style]{Value: s, Id: GoObjId.Add(1)})
 		},
 	},
 	"_normal": {
@@ -3409,32 +3343,32 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("color_map", len(args), 0, "")
 			}
 			mapObj := object.NewOrderedMap[string, object.Object]()
-			lightGray := &object.GoObj[rl.Color]{Value: rl.LightGray}
-			gray := &object.GoObj[rl.Color]{Value: rl.Gray}
-			darkGray := &object.GoObj[rl.Color]{Value: rl.DarkGray}
-			yellow := &object.GoObj[rl.Color]{Value: rl.Yellow}
-			gold := &object.GoObj[rl.Color]{Value: rl.Gold}
-			orange := &object.GoObj[rl.Color]{Value: rl.Orange}
-			pink := &object.GoObj[rl.Color]{Value: rl.Pink}
-			red := &object.GoObj[rl.Color]{Value: rl.Red}
-			maroon := &object.GoObj[rl.Color]{Value: rl.Maroon}
-			green := &object.GoObj[rl.Color]{Value: rl.Green}
-			lime := &object.GoObj[rl.Color]{Value: rl.Lime}
-			darkGreen := &object.GoObj[rl.Color]{Value: rl.DarkGreen}
-			skyBlue := &object.GoObj[rl.Color]{Value: rl.SkyBlue}
-			blue := &object.GoObj[rl.Color]{Value: rl.Blue}
-			darkBlue := &object.GoObj[rl.Color]{Value: rl.DarkBlue}
-			purple := &object.GoObj[rl.Color]{Value: rl.Purple}
-			violet := &object.GoObj[rl.Color]{Value: rl.Violet}
-			darkPurple := &object.GoObj[rl.Color]{Value: rl.DarkPurple}
-			beige := &object.GoObj[rl.Color]{Value: rl.Beige}
-			brown := &object.GoObj[rl.Color]{Value: rl.Brown}
-			darkBrown := &object.GoObj[rl.Color]{Value: rl.DarkBrown}
-			white := &object.GoObj[rl.Color]{Value: rl.White}
-			black := &object.GoObj[rl.Color]{Value: rl.Black}
-			blank := &object.GoObj[rl.Color]{Value: rl.Blank}
-			magenta := &object.GoObj[rl.Color]{Value: rl.Magenta}
-			rayWhite := &object.GoObj[rl.Color]{Value: rl.RayWhite}
+			lightGray := &object.GoObj[rl.Color]{Value: rl.LightGray, Id: GoObjId.Add(1)}
+			gray := &object.GoObj[rl.Color]{Value: rl.Gray, Id: GoObjId.Add(1)}
+			darkGray := &object.GoObj[rl.Color]{Value: rl.DarkGray, Id: GoObjId.Add(1)}
+			yellow := &object.GoObj[rl.Color]{Value: rl.Yellow, Id: GoObjId.Add(1)}
+			gold := &object.GoObj[rl.Color]{Value: rl.Gold, Id: GoObjId.Add(1)}
+			orange := &object.GoObj[rl.Color]{Value: rl.Orange, Id: GoObjId.Add(1)}
+			pink := &object.GoObj[rl.Color]{Value: rl.Pink, Id: GoObjId.Add(1)}
+			red := &object.GoObj[rl.Color]{Value: rl.Red, Id: GoObjId.Add(1)}
+			maroon := &object.GoObj[rl.Color]{Value: rl.Maroon, Id: GoObjId.Add(1)}
+			green := &object.GoObj[rl.Color]{Value: rl.Green, Id: GoObjId.Add(1)}
+			lime := &object.GoObj[rl.Color]{Value: rl.Lime, Id: GoObjId.Add(1)}
+			darkGreen := &object.GoObj[rl.Color]{Value: rl.DarkGreen, Id: GoObjId.Add(1)}
+			skyBlue := &object.GoObj[rl.Color]{Value: rl.SkyBlue, Id: GoObjId.Add(1)}
+			blue := &object.GoObj[rl.Color]{Value: rl.Blue, Id: GoObjId.Add(1)}
+			darkBlue := &object.GoObj[rl.Color]{Value: rl.DarkBlue, Id: GoObjId.Add(1)}
+			purple := &object.GoObj[rl.Color]{Value: rl.Purple, Id: GoObjId.Add(1)}
+			violet := &object.GoObj[rl.Color]{Value: rl.Violet, Id: GoObjId.Add(1)}
+			darkPurple := &object.GoObj[rl.Color]{Value: rl.DarkPurple, Id: GoObjId.Add(1)}
+			beige := &object.GoObj[rl.Color]{Value: rl.Beige, Id: GoObjId.Add(1)}
+			brown := &object.GoObj[rl.Color]{Value: rl.Brown, Id: GoObjId.Add(1)}
+			darkBrown := &object.GoObj[rl.Color]{Value: rl.DarkBrown, Id: GoObjId.Add(1)}
+			white := &object.GoObj[rl.Color]{Value: rl.White, Id: GoObjId.Add(1)}
+			black := &object.GoObj[rl.Color]{Value: rl.Black, Id: GoObjId.Add(1)}
+			blank := &object.GoObj[rl.Color]{Value: rl.Blank, Id: GoObjId.Add(1)}
+			magenta := &object.GoObj[rl.Color]{Value: rl.Magenta, Id: GoObjId.Add(1)}
+			rayWhite := &object.GoObj[rl.Color]{Value: rl.RayWhite, Id: GoObjId.Add(1)}
 			newColor := &object.Builtin{
 				Fun: func(args ...object.Object) object.Object {
 					if len(args) != 4 {
@@ -3458,6 +3392,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 							uint8(args[1].(*object.Integer).Value),
 							uint8(args[2].(*object.Integer).Value),
 							uint8(args[3].(*object.Integer).Value)),
+						Id: GoObjId.Add(1),
 					}
 				},
 			}
@@ -3686,7 +3621,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_texture", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
-			return &object.GoObj[rl.Texture2D]{Value: rl.LoadTexture(fname)}
+			return &object.GoObj[rl.Texture2D]{Value: rl.LoadTexture(fname), Id: GoObjId.Add(1)}
 		},
 	},
 	"_rectangle": {
@@ -3710,7 +3645,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			y := float32(args[1].(*object.Float).Value)
 			width := float32(args[2].(*object.Float).Value)
 			height := float32(args[3].(*object.Float).Value)
-			return &object.GoObj[rl.Rectangle]{Value: rl.NewRectangle(x, y, width, height)}
+			return &object.GoObj[rl.Rectangle]{Value: rl.NewRectangle(x, y, width, height), Id: GoObjId.Add(1)}
 		},
 	},
 	"_vector2": {
@@ -3726,7 +3661,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			x := float32(args[0].(*object.Float).Value)
 			y := float32(args[1].(*object.Float).Value)
-			return &object.GoObj[rl.Vector2]{Value: rl.NewVector2(x, y)}
+			return &object.GoObj[rl.Vector2]{Value: rl.NewVector2(x, y), Id: GoObjId.Add(1)}
 		},
 	},
 	"_vector3": {
@@ -3746,7 +3681,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			x := float32(args[0].(*object.Float).Value)
 			y := float32(args[1].(*object.Float).Value)
 			z := float32(args[2].(*object.Float).Value)
-			return &object.GoObj[rl.Vector3]{Value: rl.NewVector3(x, y, z)}
+			return &object.GoObj[rl.Vector3]{Value: rl.NewVector3(x, y, z), Id: GoObjId.Add(1)}
 		},
 	},
 	"_vector4": {
@@ -3770,7 +3705,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			y := float32(args[1].(*object.Float).Value)
 			z := float32(args[2].(*object.Float).Value)
 			w := float32(args[3].(*object.Float).Value)
-			return &object.GoObj[rl.Vector4]{Value: rl.NewVector4(x, y, z, w)}
+			return &object.GoObj[rl.Vector4]{Value: rl.NewVector4(x, y, z, w), Id: GoObjId.Add(1)}
 		},
 	},
 	"_camera2d": {
@@ -3800,7 +3735,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			rotation := float32(args[2].(*object.Float).Value)
 			zoom := float32(args[3].(*object.Float).Value)
-			return &object.GoObj[rl.Camera2D]{Value: rl.NewCamera2D(offset.Value, target.Value, rotation, zoom)}
+			return &object.GoObj[rl.Camera2D]{Value: rl.NewCamera2D(offset.Value, target.Value, rotation, zoom), Id: GoObjId.Add(1)}
 		},
 	},
 	"_begin_mode2d": {
@@ -3862,7 +3797,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			fovy := float32(args[3].(*object.Float).Value)
 			projection := rl.CameraProjection(args[4].(*object.Integer).Value)
-			return &object.GoObj[rl.Camera3D]{Value: rl.NewCamera3D(position.Value, target.Value, up.Value, fovy, projection)}
+			return &object.GoObj[rl.Camera3D]{Value: rl.NewCamera3D(position.Value, target.Value, up.Value, fovy, projection), Id: GoObjId.Add(1)}
 		},
 	},
 	"_begin_mode3d": {
@@ -3917,7 +3852,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_music", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
-			return &object.GoObj[rl.Music]{Value: rl.LoadMusicStream(fname)}
+			return &object.GoObj[rl.Music]{Value: rl.LoadMusicStream(fname), Id: GoObjId.Add(1)}
 		},
 	},
 	"_update_music": {
@@ -4009,7 +3944,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_sound", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
-			return &object.GoObj[rl.Sound]{Value: rl.LoadSound(fname)}
+			return &object.GoObj[rl.Sound]{Value: rl.LoadSound(fname), Id: GoObjId.Add(1)}
 		},
 	},
 	"_play_sound": {

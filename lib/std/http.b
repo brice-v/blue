@@ -359,3 +359,31 @@ fun send_file(path) {
     assert(type(path) == Type.STRING);
     {'t': 'http/send_file','path':path}
 }
+
+
+fun new_server() {
+    ## `new_server` will return a core http server object that can be used
+    ## to call http functions against
+    ##
+    ## new_server() -> HTTP_SERVER_OBJ
+    this._s = __new_server();
+    this.serve = fun(addr_port="localhost:3001", use_embedded_twind_and_preact=true) {
+        __serve(this._s, addr_port, use_embedded_twind_and_preact)
+    };
+    this.handle = fun(pattern, fn, method="GET") {
+        __handle(this._s, pattern, fn, method)
+    };
+    this.handle_use = fun(pattern="", fn) {
+        __handle_use(this._s, pattern, fn, "")
+    };
+    this.handle_ws = fun(pattern, fn) {
+        __handle_ws(this._s, pattern, fn)
+    };
+    this.static = fun(prefix="/", dir_path=".", browse=false) {
+        __static(this._s, prefix, dir_path, browse)
+    };
+    this.handle_monitor = fun(path, should_show=false) {
+        __handle_monitor(this._s, path, should_show)
+    };
+    return this;
+}

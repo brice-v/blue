@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"blue/consts"
+	"blue/evaluator/pubsub"
 	"blue/object"
 	"bufio"
 	"bytes"
@@ -326,16 +327,14 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			var style color.Style
 			for i, arg := range args {
 				if i == 0 {
-					t, v, ok := getBasicObject(arg)
+					t, s, ok := getBasicObjectForGoObj[color.Style](arg)
 					if ok && t == "color" {
 						// Use color printer
 						useColorPrinter = true
-						s, ok := ColorStyleMap.Get(v)
-						if !ok {
-							useColorPrinter = false
-						}
 						style = s
 						continue
+					} else {
+						useColorPrinter = false
 					}
 				}
 				if useColorPrinter {
@@ -359,16 +358,14 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			var style color.Style
 			for i, arg := range args {
 				if i == 0 {
-					t, v, ok := getBasicObject(arg)
+					t, s, ok := getBasicObjectForGoObj[color.Style](arg)
 					if ok && t == "color" {
 						// Use color printer
 						useColorPrinter = true
-						s, ok := ColorStyleMap.Get(v)
-						if !ok {
-							useColorPrinter = false
-						}
 						style = s
 						continue
+					} else {
+						useColorPrinter = false
 					}
 				}
 				if useColorPrinter {
@@ -1347,16 +1344,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[0].Type() != object.MAP_OBJ {
 				return newPositionalTypeError("add_topic", 1, object.MAP_OBJ, args[0].Type())
 			}
-			t, v, ok := getBasicObject(args[0])
-			if !ok {
-				return newError("`add_topic` error: argument 1 should be in the format {t: 'sub', v: uint}. got=%s", args[0].Inspect())
-			}
+			t, sub, ok := getBasicObjectForGoObj[*pubsub.Subscriber](args[0])
 			if t != "sub" {
 				return newError("`add_topic` error: argument 1 should be in the format {t: 'sub', v: uint}")
 			}
-			sub, ok := SubscriberMap.Get(v)
 			if !ok {
-				return newError("`add_topic` error: subscriber with id %d, did not exist", v)
+				return newError("`add_topic` error: argument 1 should be in the format {t: 'sub', v: GO_OBJ[*pubsub.Subscriber]}. got=%s", args[0].Inspect())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("add_topic", 2, object.STRING_OBJ, args[1].Type())
@@ -1381,16 +1374,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[0].Type() != object.MAP_OBJ {
 				return newPositionalTypeError("remove_topic", 1, object.MAP_OBJ, args[0].Type())
 			}
-			t, v, ok := getBasicObject(args[0])
-			if !ok {
-				return newError("`remove_topic` error: argument 1 should be in the format {t: 'sub', v: uint}. got=%s", args[0].Inspect())
-			}
+			t, sub, ok := getBasicObjectForGoObj[*pubsub.Subscriber](args[0])
 			if t != "sub" {
-				return newError("`remove_topic` error: argument 1 should be in the format {t: 'sub', v: uint}")
+				return newError("`remove_topic` error: argument 1 should be in the format {t: 'sub', v: GO_OBJ[*pubsub.Subscriber]}")
 			}
-			sub, ok := SubscriberMap.Get(v)
 			if !ok {
-				return newError("`remove_topic` error: subscriber with id %d, did not exist", v)
+				return newError("`remove_topic` error: argument 1 should be in the format {t: 'sub', v: GO_OBJ[*pubsub.Subscriber]}. got=%s", args[0].Inspect())
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("remove_topic", 2, object.STRING_OBJ, args[1].Type())
@@ -1403,7 +1392,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			explanation: "`remove_topic` will remove a topic STRING from a subscriber object",
 			signature:   "remove_topic(sub: {t: 'sub', v: _}, topic: str) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "remove_topic({t: 'sub', v: 1}, 'blue') => null",
+			example:     "remove_topic({t: 'sub', v: _}, 'blue') => null",
 		}.String(),
 	},
 	"_subscribe": {
@@ -1418,9 +1407,8 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			topic := args[0].(*object.Stringo).Value
 			subId := subscriberCount.Add(1)
 			sub := PubSubBroker.AddSubscriber(subId)
-			SubscriberMap.Put(subId, sub)
 			PubSubBroker.Subscribe(sub, topic)
-			return object.CreateBasicMapObject("sub", subId)
+			return object.CreateBasicMapObjectForGoObj("sub", &object.GoObj[*pubsub.Subscriber]{Value: sub, Id: GoObjId.Add(1)})
 		},
 	},
 	"unsubscribe": {
@@ -1431,27 +1419,22 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[0].Type() != object.MAP_OBJ {
 				return newPositionalTypeError("unsubscribe", 1, object.MAP_OBJ, args[0].Type())
 			}
-			t, v, ok := getBasicObject(args[0])
-			if !ok {
-				return newError("`unsubscribe` error: argument 1 should be in the format {t: 'sub', v: uint}. got=%s", args[0].Inspect())
-			}
+			t, sub, ok := getBasicObjectForGoObj[*pubsub.Subscriber](args[0])
 			if t != "sub" {
-				return newError("`unsubscribe` error: argument 1 should be in the format {t: 'sub', v: uint}")
+				return newError("`unsubscribe` error: argument 1 should be in the format {t: 'sub', v: GO_OBJ[*pubsub.Subscriber]}")
 			}
-			sub, ok := SubscriberMap.Get(v)
 			if !ok {
-				return newError("`unsubscribe` error: subscriber with id %d, did not exist", v)
+				return newError("`unsubscribe` error: argument 1 should be in the format {t: 'sub', v: GO_OBJ[*pubsub.Subscriber]}. got=%s", args[0].Inspect())
 			}
 			// Remove should also destruct the subscriber
 			PubSubBroker.RemoveSubscriber(sub)
-			SubscriberMap.Remove(v)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`unsubscribe` will remove a subscriber object from the pubsub broker",
 			signature:   "unsubscribe(sub: {t: 'sub', v: _}) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "unsubscribe({t: 'sub', v: 1}) => null",
+			example:     "unsubscribe({t: 'sub', v: _}) => null",
 		}.String(),
 	},
 	"_pubsub_sub_listen": {
@@ -1459,15 +1442,14 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("pubsub_sub_listen", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("pubsub_sub_listen", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("pubsub_sub_listen", 1, object.GO_OBJ, args[0].Type())
 			}
-			v := args[0].(*object.UInteger).Value
-			sub, ok := SubscriberMap.Get(v)
+			sub, ok := args[0].(*object.GoObj[*pubsub.Subscriber])
 			if !ok {
-				return newError("`pubsub_sub_listen` error: subscriber with id %d, did not exist", v)
+				return newPositionalTypeErrorForGoObj("pubsub_sub_listen", 1, "*pubsub.Subscriber", sub)
 			}
-			return sub.PollMessage()
+			return sub.Value.PollMessage()
 		},
 	},
 	"_get_subscriber_count": {
@@ -1636,6 +1618,53 @@ func getBasicObject(arg object.Object) (string, uint64, bool) {
 		return "", 0, false
 	}
 	v := mp2.Value.(*object.UInteger).Value
+	return t, v, true
+}
+
+func getBasicObjectForGoObj[T any](arg object.Object) (string, T, bool) {
+	var zero T
+	if arg == nil {
+		return "", zero, false
+	}
+	if arg.Type() != object.MAP_OBJ {
+		return "", zero, false
+	}
+	objPairs := arg.(*object.Map).Pairs
+	if objPairs.Len() != 2 {
+		return "", zero, false
+	}
+	// Get the 't' value
+	hk1 := objPairs.Keys[0]
+	mp1, ok := objPairs.Get(hk1)
+	if !ok {
+		return "", zero, false
+	}
+	if mp1.Key.Type() != object.STRING_OBJ {
+		return "", zero, false
+	}
+	if mp1.Value.Type() != object.STRING_OBJ {
+		return "", zero, false
+	}
+	if mp1.Key.(*object.Stringo).Value != "t" {
+		return "", zero, false
+	}
+	t := mp1.Value.(*object.Stringo).Value
+	// Get the 'v' value
+	hk2 := objPairs.Keys[1]
+	mp2, ok := objPairs.Get(hk2)
+	if !ok {
+		return "", zero, false
+	}
+	if mp2.Key.Type() != object.STRING_OBJ {
+		return "", zero, false
+	}
+	if mp2.Value.Type() != object.GO_OBJ {
+		return "", zero, false
+	}
+	if mp2.Key.(*object.Stringo).Value != "v" {
+		return "", zero, false
+	}
+	v := mp2.Value.(*object.GoObj[T]).Value
 	return t, v, true
 }
 

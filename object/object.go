@@ -323,6 +323,7 @@ func (b *Bytes) Help() string {
 // GoObj is the go object struct which contains a generic value
 type GoObj[T any] struct {
 	Value T
+	Id    uint64
 }
 
 // Type return the go object type string
@@ -332,7 +333,7 @@ func (g *GoObj[T]) Type() Type {
 
 // Inspect returns the string representation of the GoObj with
 func (g *GoObj[T]) Inspect() string {
-	return fmt.Sprintf("GoObj{Type: (%T), Value: %#+v}", g.Value, g.Value)
+	return fmt.Sprintf("GoObj{Type: (%T), ID: %x}", g.Value, g.Id)
 }
 
 func (g *GoObj[T]) Help() string {
@@ -763,6 +764,8 @@ func HashObject(obj Object) uint64 {
 			panic("big int hash failed " + err.Error())
 		}
 		h.Write(bs)
+	case GO_OBJ:
+		h.Write([]byte(obj.Inspect()))
 	default:
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)
