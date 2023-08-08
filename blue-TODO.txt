@@ -2,15 +2,13 @@ TODO:
 
 - [ ] Support bundling gg files
     - need to append "embed_files/" to the path probably
-- [ ] Add http new_server (or something like that) that returns a server object with appropriate methods
-    - Leave the default one still in place
-    - Make sure this works with ctrl+c for exiting it
 - [ ] Make core docs visible
     - [ ] Add docs for all remaining functions
 - [ ] Add some sort of package management with a file like blue.json (or blue.toml)
     - This will allow us to also add a script runner
     - And by this time we can add a `blue init` command to generate the initial scaffolding
         - maybe allow it to accept some sort of template (or have options for type of project)
+- [ ] Add serialization lib (optional path for kv to write it to file? like kv in deno)
 - [ ] Add raylib bindings https://github.com/gen2brain/raylib-go
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
 - [ ] Use swiss map if its better? https://github.com/dolthub/swiss
@@ -24,6 +22,7 @@ TODO:
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Add help strings for all builtins that start with underscore
 - [ ] Decorators?
+- [ ] Add filepath.walk type function
 - [ ] Look to add the following libraries
     - https://github.com/gobwas/ws (for use in net/tcp ws lib)
     - https://github.com/playwright-community/playwright-go
@@ -50,7 +49,7 @@ TODO:
     - [ ] Server Side Events?
     - [ ] ECSDA support/ pub/priv keys? for crypto
     - [x] Date parsing code (this is one of the key missing areas at the moment as mentioned elsewhere in TODO)
-    - [ ] 2d game library
+    - [-] 2d game library - Started
     - [ ] 3d game library
     - [x] UUID somewhere
     - [ ] TUI (charm.sh?) - maybe even tui game lib?
@@ -68,9 +67,7 @@ TODO:
 - [ ] Store doc comments above var/val statements?
 - [ ] add to_fixed() similar to js
 - [ ] Add formatting options for string interpolation?
-- [ ] reduce contention in gos.go
 - [ ] open syscall?
-- [ ] go struct to blue map helper function?
 - [ ] make `wait` allow you to return values to process calling `wait`
 - [ ] add helper to quit/exit pid?
 - [ ] make process errors bubble up if they are waited on?
@@ -94,8 +91,6 @@ TODO:
 - [ ] Fix STDIN write and reading
     - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add variadic arguments (...)
-- [ ] Remove uints from working with big floats and ints
-    - What does this mean? 
 - [ ] Include shift operators and assignment expressions to other types
 - [ ] Support regex literal in parser and evaluator
     - Might just use a syntax such as `re"[0-9]+"`
@@ -103,7 +98,6 @@ TODO:
     - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
         - This is sort of related
-- [ ] Need way to call go code directly while running (use a go interpreter? or compile on the fly?)
 
 LATER ON:
 
@@ -133,6 +127,17 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] reduce contention in gos.go
+    - Updated by using GO_OBJs instead for most things there
+- [-] go struct to blue map helper function?
+    - Not as practical as I originally thought so just using GO_OBJ where needed or MAPs
+- [-] Remove uints from working with big floats and ints
+    - What does this mean? Ignoring this
+- [-] Need way to call go code directly while running (use a go interpreter? or compile on the fly?)
+    - Not going to implement
+- [x] Add http new_server (or something like that) that returns a server object with appropriate methods
+    - Leave the default one still in place
+    - Make sure this works with ctrl+c for exiting it
 - [x] Support n at the end of integer for big int, nf for big float
     - n for float as well and it just needs a . in it which makes more sense than nf
 - [x] Support u in front of 10 based integer to allow unsigned integers created via another method than 0x 0o 0b (maybe 0u if thats easier)
