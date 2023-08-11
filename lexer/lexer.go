@@ -60,7 +60,7 @@ func GetErrorLineMessageForJson(tok token.Token) (string, string) {
 		fullFile = string(fdata)
 	}
 
-	// TODO: This will be VERY SLOW but I just want to test it out
+	// Note: This could be slow
 	lines := strings.Split(fullFile, "\n")
 	var out bytes.Buffer
 	// Fist write the filename of the input
@@ -107,7 +107,7 @@ func GetErrorLineMessage(tok token.Token) string {
 		fullFile = string(fdata)
 	}
 
-	// TODO: This will be VERY SLOW but I just want to test it out
+	// Note: This could be slow
 	lines := strings.Split(fullFile, "\n")
 	var out bytes.Buffer
 	// Fist write the filename of the input

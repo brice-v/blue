@@ -317,10 +317,6 @@ fun inspect(obj) {
     };
 }
 
-#// TODO: Add other options that need to be handled for http server
-
-#// TODO: Could put this into a object called 'handler' so when you call it, it would be http.handler.fun... which is maybe more clear?
-
 fun status(code) {
     ## `status` will return a status code for any http request if returned in an http handler
     ##
