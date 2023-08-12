@@ -10,7 +10,7 @@ require (
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasthttp v1.47.0
-	golang.org/x/sys v0.10.0
+	golang.org/x/sys v0.11.0
 )
 
 require (

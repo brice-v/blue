@@ -13,6 +13,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.46.0
 	github.com/gofiber/websocket/v2 v2.2.1
 	github.com/golang-module/carbon/v2 v2.2.3
+	github.com/google/gops v0.3.28
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.5.3
 	github.com/gookit/config/v2 v2.2.3
@@ -23,13 +24,17 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.25
 	github.com/otiai10/copy v1.12.0
 	github.com/russross/blackfriday/v2 v2.1.0
-	github.com/shirou/gopsutil/v3 v3.23.6
+	github.com/shirou/gopsutil/v3 v3.23.7
 	github.com/shopspring/decimal v1.3.1
+	github.com/spf13/cobra v1.7.0
 	github.com/tdewolff/minify/v2 v2.12.7
+	github.com/xlab/treeprint v1.2.0
 	golang.org/x/crypto v0.11.0
 	golang.org/x/net v0.13.0
+	golang.org/x/sys v0.11.0
 	golang.org/x/text v0.11.0
 	modernc.org/sqlite v1.24.0
+	rsc.io/goversion v1.2.0
 )
 
 require (
@@ -68,6 +73,7 @@ require (
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
@@ -88,6 +94,7 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d // indirect
 	github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
@@ -106,7 +113,6 @@ require (
 	golang.org/x/mobile v0.0.0-20230427221453-e8d11dd0ba41 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect

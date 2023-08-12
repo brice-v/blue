@@ -457,7 +457,7 @@ func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]obj
 
 func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 	var disableHttpServerDebug bool
-	disableHttpServerDebugStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
+	disableHttpServerDebugStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
 	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
 	if err != nil {
 		disableHttpServerDebug = false

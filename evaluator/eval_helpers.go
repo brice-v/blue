@@ -868,7 +868,7 @@ func getErrorTokenTraceAsJson(e *Evaluator) interface{} {
 
 func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) interface{} {
 	var disableHttpServerDebug bool
-	disableHttpServerDebugStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
+	disableHttpServerDebugStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
 	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
 	if err != nil {
 		disableHttpServerDebug = false

@@ -281,7 +281,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("new_server", len(args), 0, "")
 			}
 			var disableStartupDebug bool
-			disableStartupMessageStr := os.Getenv("DISABLE_HTTP_SERVER_DEBUG")
+			disableStartupMessageStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
 			disableStartupDebug, err := strconv.ParseBool(disableStartupMessageStr)
 			if err != nil {
 				disableStartupDebug = false
