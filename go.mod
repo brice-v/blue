@@ -123,6 +123,6 @@ require (
 	modernc.org/token v1.1.0 // indirect
 )
 
-replace github.com/gofiber/fiber/v2 => ./fiber
+replace github.com/gofiber/fiber/v2 => ./ws_vendor/fiber
 
-replace github.com/gen2brain/raylib-go/raylib => ./raylib
+replace github.com/gen2brain/raylib-go/raylib => ./ws_vendor/raylib
