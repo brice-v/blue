@@ -3,12 +3,12 @@ package evaluator
 import (
 	"blue/ast"
 	"blue/consts"
+	"blue/evaluator/list"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
 	"blue/token"
 	"bytes"
-	"container/list"
 	"embed"
 	"fmt"
 	"io"
@@ -62,7 +62,9 @@ type Evaluator struct {
 	UFCSArgIsImmutable *Stack[bool]
 
 	// Builtins is the list of builtin elements to look through based on the files imported
-	Builtins *list.List
+	Builtins *list.List[BuiltinMapType]
+	// BuiltinObjs is the list of builtin elements to look through based on the files imported
+	BuiltinObjs *list.List[BuiltinObjMapType]
 
 	// ErrorTokens is the set 'stack' of tokens which can get the error with file:line:col
 	ErrorTokens *TokenStackSet
@@ -108,7 +110,8 @@ func New() *Evaluator {
 		UFCSArg:            NewStack[*object.Object](),
 		UFCSArgIsImmutable: NewStack[bool](),
 
-		Builtins: list.New(),
+		Builtins:    list.New[BuiltinMapType](),
+		BuiltinObjs: list.New[BuiltinObjMapType](),
 
 		ErrorTokens: NewTokenStackSet(),
 
@@ -130,7 +133,7 @@ func New() *Evaluator {
 	builtins.Put("to_num", createToNumBuiltin(e))
 	e.Builtins.PushBack(builtins)
 	e.Builtins.PushBack(stringbuiltins)
-	e.Builtins.PushBack(builtinobjs)
+	e.BuiltinObjs.PushBack(builtinobjs)
 	e.env.SetCore(e.AddCoreLibToEnv())
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
@@ -2334,15 +2337,13 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 	}
 
 	for b := e.Builtins.Front(); b != nil; b = b.Next() {
-		switch t := b.Value.(type) {
-		case BuiltinMapType:
-			if builtin, ok := t.Get(node.Value); ok {
-				return builtin
-			}
-		case BuiltinObjMapType:
-			if builtin, ok := t[node.Value]; ok {
-				return builtin.Obj
-			}
+		if builtin, ok := b.Value.Get(node.Value); ok {
+			return builtin
+		}
+	}
+	for b := e.BuiltinObjs.Front(); b != nil; b = b.Next() {
+		if builtin, ok := b.Value[node.Value]; ok {
+			return builtin.Obj
 		}
 	}
 

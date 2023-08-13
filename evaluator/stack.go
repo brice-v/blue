@@ -1,18 +1,18 @@
 package evaluator
 
 import (
+	"blue/evaluator/list"
 	"blue/token"
 	"bytes"
-	"container/list"
 	"fmt"
 )
 
 type Stack[T any] struct {
-	s *list.List
+	s *list.List[T]
 }
 
 func NewStack[T any]() *Stack[T] {
-	return &Stack[T]{s: list.New()}
+	return &Stack[T]{s: list.New[T]()}
 }
 
 func (s *Stack[T]) Push(item T) {
@@ -26,7 +26,7 @@ func (s *Stack[T]) Pop() T {
 	}
 	e := s.s.Front()
 	s.s.Remove(e)
-	return e.Value.(T)
+	return e.Value
 }
 
 func (s *Stack[T]) Peek() T {
@@ -35,7 +35,7 @@ func (s *Stack[T]) Peek() T {
 		return result
 	}
 	e := s.s.Front()
-	return e.Value.(T)
+	return e.Value
 }
 
 func (s *Stack[T]) PopBack() T {
@@ -45,7 +45,7 @@ func (s *Stack[T]) PopBack() T {
 	}
 	e := s.s.Back()
 	s.s.Remove(e)
-	return e.Value.(T)
+	return e.Value
 }
 
 func (s *Stack[T]) Len() int {
@@ -63,12 +63,12 @@ func (s *Stack[T]) String() string {
 }
 
 type TokenStackSet struct {
-	s *list.List
+	s *list.List[token.Token]
 	m map[token.Token]struct{}
 }
 
 func NewTokenStackSet() *TokenStackSet {
-	return &TokenStackSet{s: list.New(), m: make(map[token.Token]struct{})}
+	return &TokenStackSet{s: list.New[token.Token](), m: make(map[token.Token]struct{})}
 }
 
 func (s *TokenStackSet) Push(tok token.Token) {
@@ -85,7 +85,7 @@ func (s *TokenStackSet) Pop() token.Token {
 	}
 	e := s.s.Front()
 	s.s.Remove(e)
-	tok := e.Value.(token.Token)
+	tok := e.Value
 	delete(s.m, tok)
 	return tok
 }
@@ -97,7 +97,7 @@ func (s *TokenStackSet) PopBack() token.Token {
 	}
 	e := s.s.Back()
 	s.s.Remove(e)
-	tok := e.Value.(token.Token)
+	tok := e.Value
 	delete(s.m, tok)
 	return tok
 }
@@ -109,5 +109,5 @@ func (s *TokenStackSet) Len() int {
 func (s *TokenStackSet) RemoveAllEntries() {
 	// Just instantiate new instances of the map and list for 'removing everything'
 	s.m = make(map[token.Token]struct{})
-	s.s = list.New()
+	s.s = list.New[token.Token]()
 }

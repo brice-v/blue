@@ -151,12 +151,10 @@ func nativeToBooleanObject(input bool) *object.Boolean {
 
 func (e *Evaluator) getBuiltinForDotCall(key string) (*object.Builtin, bool) {
 	for b := e.Builtins.Front(); b != nil; b = b.Next() {
-		switch t := b.Value.(type) {
-		case BuiltinMapType:
-			if builtin, isBuiltin := t.Get(key); isBuiltin {
-				return builtin, isBuiltin
-			}
+		if builtin, isBuiltin := b.Value.Get(key); isBuiltin {
+			return builtin, isBuiltin
 		}
+
 	}
 	return nil, false
 }

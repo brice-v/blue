@@ -82,6 +82,25 @@ TODO:
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
 - `go tool pprof -http localhost:9999 cpu.prof` (or mem.prof)
+- Or use this below to test out individual runs
+```
+package main
+
+import (
+	"blue/cmd"
+	"os"
+
+	"github.com/mmcloughlin/profile"
+)
+
+func main() {
+	defer profile.Start(profile.CPUProfile, profile.MemProfile).Stop()
+	cmd.RunAgentIfEnabled()
+	cmd.Run(os.Args...)
+	os.Exit(0)
+}
+
+```
 - [ ] Add test cases to cover all the basic functions
 - [ ] sort builtin
     - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
