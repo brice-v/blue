@@ -77,7 +77,7 @@ type Evaluator struct {
 	oneElementForIn   bool
 	doneWithFor       bool
 
-	isInScopeBlock map[int]bool
+	isInScopeBlock map[int]struct{}
 	scopeNestLevel int
 	// scopeVars is the map of scopeNestLevel to the variables that need to be removed
 	scopeVars       map[int][]string
@@ -122,7 +122,7 @@ func New() *Evaluator {
 		oneElementForIn:   false,
 		doneWithFor:       false,
 
-		isInScopeBlock:  make(map[int]bool),
+		isInScopeBlock:  make(map[int]struct{}),
 		scopeNestLevel:  0,
 		scopeVars:       make(map[int][]string),
 		cleanupScopeVar: make(map[string]bool),
@@ -559,7 +559,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			e.ErrorTokens.Push(tok)
 			return newError("'" + name.Value + "' is already defined")
 		}
-		if e.isInScopeBlock[e.scopeNestLevel] {
+		if _, ok := e.isInScopeBlock[e.scopeNestLevel]; ok {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
 		}
 		if isVal {
@@ -606,7 +606,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			e.ErrorTokens.Push(tok)
 			return newError("'" + name.Value + "' is already defined")
 		}
-		if e.isInScopeBlock[e.scopeNestLevel] {
+		if _, ok := e.isInScopeBlock[e.scopeNestLevel]; ok {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
 		}
 		if isVal {
@@ -3629,10 +3629,10 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 	var result object.Object
 
 	e.scopeNestLevel++
-	e.isInScopeBlock[e.scopeNestLevel] = true
+	e.isInScopeBlock[e.scopeNestLevel] = struct{}{}
 
 	defer func() {
-		e.isInScopeBlock[e.scopeNestLevel] = false
+		delete(e.isInScopeBlock, e.scopeNestLevel)
 		if vars, ok := e.scopeVars[e.scopeNestLevel]; ok {
 			// Cleanup any temporary for variables
 			for _, v := range vars {
@@ -3645,7 +3645,6 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 				}
 			}
 			delete(e.scopeVars, e.scopeNestLevel)
-			delete(e.isInScopeBlock, e.scopeNestLevel)
 		}
 		if funAndArgs, ok := e.deferFuns[e.scopeNestLevel]; ok {
 			for funAndArgs.Len() > 0 {
