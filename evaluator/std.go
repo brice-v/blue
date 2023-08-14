@@ -125,6 +125,17 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		}
 		newE := New()
 		newE.Builtins.PushBack(fb.Builtins)
+		if name == "http" {
+			_http_builtin_map.Put("_handle", createHttpHandleBuiltin(newE, false))
+			_http_builtin_map.Put("_handle_use", createHttpHandleBuiltin(newE, true))
+			_http_builtin_map.Put("_handle_ws", createHttpHandleWSBuiltin(newE))
+		} else if name == "ui" {
+			_ui_builtin_map.Put("_button", createUIButtonBuiltin(newE))
+			_ui_builtin_map.Put("_check_box", createUICheckBoxBuiltin(newE))
+			_ui_builtin_map.Put("_radio_group", createUIRadioBuiltin(newE))
+			_ui_builtin_map.Put("_option_select", createUIOptionSelectBuiltin(newE))
+			_ui_builtin_map.Put("_form", createUIFormBuiltin(newE))
+		}
 		val := newE.Eval(program)
 		if isError(val) {
 			errorObj := val.(*object.Error)
