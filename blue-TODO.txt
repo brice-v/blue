@@ -146,6 +146,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Probably need to fix how builtins work for std as they wont have the correct evaluator necessarily given to them
 - [x] reduce contention in gos.go
     - Updated by using GO_OBJs instead for most things there
 - [-] go struct to blue map helper function?

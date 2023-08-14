@@ -197,6 +197,40 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	}
 }
 
+func checkFunctionArgsAreValid(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object) object.Object {
+	defaultParamCount := 0
+	for _, v := range fun.DefaultParameters {
+		if v != nil {
+			defaultParamCount++
+		}
+	}
+	defaultArgCount := 0
+	for _, v := range defaultArgs {
+		if v != nil {
+			defaultArgCount++
+		}
+	}
+	if len(args)+defaultParamCount+defaultArgCount < len(fun.Parameters) {
+		return newError("function called without enough arguments")
+	}
+	defaultArgToDefaultParamMap := make(map[string]struct{})
+	for i, k := range fun.Parameters {
+		if len(fun.DefaultParameters) == len(fun.Parameters) {
+			value := fun.DefaultParameters[i]
+			if value != nil {
+				defaultArgToDefaultParamMap[k.Value] = struct{}{}
+			}
+		}
+	}
+	for k := range defaultArgs {
+		if _, ok := defaultArgToDefaultParamMap[k]; !ok {
+			return newError("function called with default argument that is not in default function parameters")
+		}
+	}
+
+	return nil
+}
+
 func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) object.Object {
 	argElem := e.UFCSArg.Pop()
 	// Note: This is just to keep the UFCS stack size consistent for both
@@ -205,42 +239,9 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		// prepend the argument to pass in to the front
 		args = append([]object.Object{*argElem}, args...)
 	}
-	checkFunctionArgsAreValid := func(fun *object.Function) object.Object {
-		defaultParamCount := 0
-		for _, v := range fun.DefaultParameters {
-			if v != nil {
-				defaultParamCount++
-			}
-		}
-		defaultArgCount := 0
-		for _, v := range defaultArgs {
-			if v != nil {
-				defaultArgCount++
-			}
-		}
-		if len(args)+defaultParamCount+defaultArgCount < len(fun.Parameters) {
-			return newError("function called without enough arguments")
-		}
-		defaultArgToDefaultParamMap := make(map[string]struct{})
-		for i, k := range fun.Parameters {
-			if len(fun.DefaultParameters) == len(fun.Parameters) {
-				value := fun.DefaultParameters[i]
-				if value != nil {
-					defaultArgToDefaultParamMap[k.Value] = struct{}{}
-				}
-			}
-		}
-		for k := range defaultArgs {
-			if _, ok := defaultArgToDefaultParamMap[k]; !ok {
-				return newError("function called with default argument that is not in default function parameters")
-			}
-		}
-
-		return nil
-	}
 	switch function := fun.(type) {
 	case *object.Function:
-		err := checkFunctionArgsAreValid(function)
+		err := checkFunctionArgsAreValid(function, args, defaultArgs)
 		if err != nil {
 			return err
 		}

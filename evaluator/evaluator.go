@@ -91,20 +91,23 @@ type FunAndArgs struct {
 	Args []object.Object
 }
 
+const (
+	cEvalBasePath = "."
+	cCurrentFile  = "<stdin>"
+)
+
 // Note: When creating multiple new evaluators with `spawn` there were race conditions
-// this mostly solves that issue but parallel code still needs some work
+// this now only seems necessary for add std lib to env
 var NewEvaluatorLock = &sync.Mutex{}
 
 func New() *Evaluator {
-	NewEvaluatorLock.Lock()
-	defer NewEvaluatorLock.Unlock()
 	e := &Evaluator{
 		env: object.NewEnvironmentWithoutCore(),
 
 		PID: pidCount.Load(),
 
-		EvalBasePath: ".",
-		CurrentFile:  "<stdin>",
+		EvalBasePath: cEvalBasePath,
+		CurrentFile:  cCurrentFile,
 
 		UFCSArg:            NewStack[*object.Object](),
 		UFCSArgIsImmutable: NewStack[bool](),
