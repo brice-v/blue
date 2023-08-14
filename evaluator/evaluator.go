@@ -3,7 +3,6 @@ package evaluator
 import (
 	"blue/ast"
 	"blue/consts"
-	"blue/evaluator/list"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
@@ -62,9 +61,9 @@ type Evaluator struct {
 	UFCSArgIsImmutable *Stack[bool]
 
 	// Builtins is the list of builtin elements to look through based on the files imported
-	Builtins *list.List[BuiltinMapType]
+	Builtins []BuiltinMapType
 	// BuiltinObjs is the list of builtin elements to look through based on the files imported
-	BuiltinObjs *list.List[BuiltinObjMapType]
+	BuiltinObjs []BuiltinObjMapType
 
 	// ErrorTokens is the set 'stack' of tokens which can get the error with file:line:col
 	ErrorTokens *TokenStackSet
@@ -110,9 +109,6 @@ func New() *Evaluator {
 		UFCSArg:            NewStack[*object.Object](),
 		UFCSArgIsImmutable: NewStack[bool](),
 
-		Builtins:    list.New[BuiltinMapType](),
-		BuiltinObjs: list.New[BuiltinObjMapType](),
-
 		ErrorTokens: NewTokenStackSet(),
 
 		nestLevel:         -1,
@@ -130,10 +126,11 @@ func New() *Evaluator {
 		deferFuns: make(map[int]*Stack[*FunAndArgs]),
 	}
 
-	builtins.Put("to_num", createToNumBuiltin(e))
-	e.Builtins.PushBack(builtins)
-	e.Builtins.PushBack(stringbuiltins)
-	e.BuiltinObjs.PushBack(builtinobjs)
+	e.Builtins = []BuiltinMapType{
+		GetBuiltins(e),
+		stringbuiltins,
+	}
+	e.BuiltinObjs = []BuiltinObjMapType{builtinobjs}
 	e.env.SetCore(e.AddCoreLibToEnv())
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
@@ -2326,13 +2323,13 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 		return val
 	}
 
-	for b := e.Builtins.Front(); b != nil; b = b.Next() {
-		if builtin, ok := b.Value.Get(node.Value); ok {
+	for _, b := range e.Builtins {
+		if builtin, ok := b.Get(node.Value); ok {
 			return builtin
 		}
 	}
-	for b := e.BuiltinObjs.Front(); b != nil; b = b.Next() {
-		if builtin, ok := b.Value[node.Value]; ok {
+	for _, b := range e.BuiltinObjs {
+		if builtin, ok := b[node.Value]; ok {
 			return builtin.Obj
 		}
 	}

@@ -1559,6 +1559,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 })
 
+func GetBuiltins(e *Evaluator) BuiltinMapType {
+	b := builtins
+	b.Put("to_num", createToNumBuiltin(e))
+	return b
+}
+
 func medianBucket(h *metrics.Float64Histogram) float64 {
 	total := uint64(0)
 	for _, count := range h.Counts {

@@ -150,8 +150,8 @@ func nativeToBooleanObject(input bool) *object.Boolean {
 }
 
 func (e *Evaluator) getBuiltinForDotCall(key string) (*object.Builtin, bool) {
-	for b := e.Builtins.Front(); b != nil; b = b.Next() {
-		if builtin, isBuiltin := b.Value.Get(key); isBuiltin {
+	for _, b := range e.Builtins {
+		if builtin, isBuiltin := b.Get(key); isBuiltin {
 			return builtin, isBuiltin
 		}
 

@@ -124,7 +124,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 			os.Exit(1)
 		}
 		newE := New()
-		newE.Builtins.PushBack(fb.Builtins)
+		newE.Builtins = append(newE.Builtins, fb.Builtins)
 		if name == "http" {
 			_http_builtin_map.Put("_handle", createHttpHandleBuiltin(newE, false))
 			_http_builtin_map.Put("_handle_use", createHttpHandleBuiltin(newE, true))
