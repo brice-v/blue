@@ -21,6 +21,7 @@ import (
 const header = `package main
 
 import (
+	"blue/cmd"
 	"blue/evaluator"
 	"blue/lexer"
 	"blue/object"
@@ -40,6 +41,7 @@ var files embed.FS
 `
 
 const mainFunc = `func main() {
+	cmd.RunAgentIfEnabled()
 	entryPoint, err := files.ReadFile("embed_files/" + entryPointPath)
 	if err != nil {
 		out.WriteString("Failed to read EntryPoint File '" + entryPointPath + "'\n")

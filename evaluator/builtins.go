@@ -15,7 +15,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"runtime/metrics"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -1147,85 +1149,6 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 		}.String(),
 	},
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
-	// This is straight out of golang's example for runtime/metrics https://pkg.go.dev/runtime/metrics
-	"_go_metrics": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newInvalidArgCountError("go_metrics", len(args), 0, "")
-			}
-			// TODO: Update this to return a map?
-			var out bytes.Buffer
-			// Get descriptions for all supported metrics.
-			descs := metrics.All()
-
-			// Create a sample for each metric.
-			samples := make([]metrics.Sample, len(descs))
-			for i := range samples {
-				samples[i].Name = descs[i].Name
-			}
-
-			// Sample the metrics. Re-use the samples slice if you can!
-			metrics.Read(samples)
-
-			// Iterate over all results.
-			for _, sample := range samples {
-				// Pull out the name and value.
-				name, value := sample.Name, sample.Value
-
-				// Handle each sample.
-				switch value.Kind() {
-				case metrics.KindUint64:
-					out.WriteString(fmt.Sprintf("%s: %d\n", name, value.Uint64()))
-				case metrics.KindFloat64:
-					out.WriteString(fmt.Sprintf("%s: %f\n", name, value.Float64()))
-				case metrics.KindFloat64Histogram:
-					// The histogram may be quite large, so let's just pull out
-					// a crude estimate for the median for the sake of this example.
-					out.WriteString(fmt.Sprintf("%s: %f\n", name, medianBucket(value.Float64Histogram())))
-				case metrics.KindBad:
-					// This should never happen because all metrics are supported
-					// by construction.
-					panic("bug in runtime/metrics package!")
-				default:
-					// This may happen as new metrics get added.
-					//
-					// The safest thing to do here is to simply log it somewhere
-					// as something to look into, but ignore it for now.
-					// In the worst case, you might temporarily miss out on a new metric.
-					out.WriteString(fmt.Sprintf("%s: unexpected metric Kind: %v\n", name, value.Kind()))
-				}
-			}
-			return &object.Stringo{Value: out.String()}
-		},
-	},
-	"get_os": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newInvalidArgCountError("get_os", len(args), 0, "")
-			}
-			return &object.Stringo{Value: runtime.GOOS}
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`get_os` returns the STRING GOOS of the runtime",
-			signature:   "get_os() -> str",
-			errors:      "InvalidArgCount",
-			example:     "get_os() => windows",
-		}.String(),
-	},
-	"get_arch": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
-				return newInvalidArgCountError("get_arch", len(args), 0, "")
-			}
-			return &object.Stringo{Value: runtime.GOARCH}
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`get_arch` returns the STRING GOARCH of the runtime",
-			signature:   "get_arch() -> str",
-			errors:      "InvalidArgCount",
-			example:     "get_arch() => amd64",
-		}.String(),
-	},
 	"is_valid_json": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -1555,6 +1478,280 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("new_uuid", len(args), 0, "")
 			}
 			return &object.Stringo{Value: uuid.NewString()}
+		},
+	},
+	// This is straight out of golang's example for runtime/metrics https://pkg.go.dev/runtime/metrics
+	"_go_metrics": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("go_metrics", len(args), 0, "")
+			}
+			// TODO: Update this to return a map?
+			var out bytes.Buffer
+			// Get descriptions for all supported metrics.
+			descs := metrics.All()
+
+			// Create a sample for each metric.
+			samples := make([]metrics.Sample, len(descs))
+			for i := range samples {
+				samples[i].Name = descs[i].Name
+			}
+
+			// Sample the metrics. Re-use the samples slice if you can!
+			metrics.Read(samples)
+
+			// Iterate over all results.
+			for _, sample := range samples {
+				// Pull out the name and value.
+				name, value := sample.Name, sample.Value
+
+				// Handle each sample.
+				switch value.Kind() {
+				case metrics.KindUint64:
+					out.WriteString(fmt.Sprintf("%s: %d\n", name, value.Uint64()))
+				case metrics.KindFloat64:
+					out.WriteString(fmt.Sprintf("%s: %f\n", name, value.Float64()))
+				case metrics.KindFloat64Histogram:
+					// The histogram may be quite large, so let's just pull out
+					// a crude estimate for the median for the sake of this example.
+					out.WriteString(fmt.Sprintf("%s: %f\n", name, medianBucket(value.Float64Histogram())))
+				case metrics.KindBad:
+					// This should never happen because all metrics are supported
+					// by construction.
+					panic("bug in runtime/metrics package!")
+				default:
+					// This may happen as new metrics get added.
+					//
+					// The safest thing to do here is to simply log it somewhere
+					// as something to look into, but ignore it for now.
+					// In the worst case, you might temporarily miss out on a new metric.
+					out.WriteString(fmt.Sprintf("%s: unexpected metric Kind: %v\n", name, value.Kind()))
+				}
+			}
+			return &object.Stringo{Value: out.String()}
+		},
+	},
+	"get_os": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_os", len(args), 0, "")
+			}
+			return &object.Stringo{Value: runtime.GOOS}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_os` returns the STRING GOOS of the runtime",
+			signature:   "get_os() -> str",
+			errors:      "InvalidArgCount",
+			example:     "get_os() => windows",
+		}.String(),
+	},
+	"get_arch": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_arch", len(args), 0, "")
+			}
+			return &object.Stringo{Value: runtime.GOARCH}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_arch` returns the STRING GOARCH of the runtime",
+			signature:   "get_arch() -> str",
+			errors:      "InvalidArgCount",
+			example:     "get_arch() => amd64",
+		}.String(),
+	},
+	"_gc": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("gc", len(args), 0, "")
+			}
+			runtime.GC()
+			return NULL
+		},
+	},
+	"_version": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("version", len(args), 0, "")
+			}
+			return &object.Stringo{Value: fmt.Sprintf("%s-%s", runtime.Version(), consts.VERSION)}
+		},
+	},
+	"_num_cpu": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("num_cpu", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(runtime.NumCPU())}
+		},
+	},
+	"_num_process": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("num_process", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(runtime.NumGoroutine())}
+		},
+	},
+	"_num_max_cpu": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("num_max_cpu", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(runtime.GOMAXPROCS(-1))}
+		},
+	},
+	"_num_os_thread": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("num_os_thread", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(pprof.Lookup("threadcreate").Count())}
+		},
+	},
+	"_set_max_cpu": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_max_cpu", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("set_max_cpu", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			i := int(args[0].(*object.Integer).Value)
+			return &object.Integer{Value: int64(runtime.GOMAXPROCS(i))}
+		},
+	},
+	"_set_gc_percent": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_gc_percent", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("set_gc_percent", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			i := int(args[0].(*object.Integer).Value)
+			return &object.Integer{Value: int64(debug.SetGCPercent(i))}
+		},
+	},
+	"_get_mem_stats": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_mem_stats", len(args), 0, "")
+			}
+			formatBytes := func(val uint64) string {
+				units := []string{" bytes", "KB", "MB", "GB", "TB", "PB"}
+				var i int
+				var target uint64
+				for i = range units {
+					target = 1 << uint(10*(i+1))
+					if val < target {
+						break
+					}
+				}
+				if i > 0 {
+					return fmt.Sprintf("%0.2f%s (%d bytes)", float64(val)/(float64(target)/1024), units[i], val)
+				}
+				return fmt.Sprintf("%d bytes", val)
+			}
+			var s runtime.MemStats
+			runtime.ReadMemStats(&s)
+			mapObj := object.NewOrderedMap[string, object.Object]()
+			mapObj.Set("alloc", &object.Stringo{Value: formatBytes(s.Alloc)})
+			mapObj.Set("total-alloc", &object.Stringo{Value: formatBytes(s.TotalAlloc)})
+			mapObj.Set("sys", &object.Stringo{Value: formatBytes(s.Sys)})
+			mapObj.Set("lookups", &object.UInteger{Value: s.Lookups})
+			mapObj.Set("mallocs", &object.UInteger{Value: s.Mallocs})
+			mapObj.Set("frees", &object.UInteger{Value: s.Frees})
+			mapObj.Set("heap-alloc", &object.Stringo{Value: formatBytes(s.HeapAlloc)})
+			mapObj.Set("heap-sys", &object.Stringo{Value: formatBytes(s.HeapSys)})
+			mapObj.Set("heap-idle", &object.Stringo{Value: formatBytes(s.HeapIdle)})
+			mapObj.Set("heap-in-use", &object.Stringo{Value: formatBytes(s.HeapInuse)})
+			mapObj.Set("heap-released", &object.Stringo{Value: formatBytes(s.HeapReleased)})
+			mapObj.Set("heap-objects", &object.UInteger{Value: s.HeapObjects})
+			mapObj.Set("stack-in-use", &object.Stringo{Value: formatBytes(s.StackInuse)})
+			mapObj.Set("stack-sys", &object.Stringo{Value: formatBytes(s.StackSys)})
+			mapObj.Set("stack-mspan-inuse", &object.Stringo{Value: formatBytes(s.MSpanInuse)})
+			mapObj.Set("stack-mspan-sys", &object.Stringo{Value: formatBytes(s.MSpanSys)})
+			mapObj.Set("stack-mcache-inuse", &object.Stringo{Value: formatBytes(s.MCacheInuse)})
+			mapObj.Set("stack-mcache-sys", &object.Stringo{Value: formatBytes(s.MCacheSys)})
+			mapObj.Set("other-sys", &object.Stringo{Value: formatBytes(s.OtherSys)})
+			mapObj.Set("gc-sys", &object.Stringo{Value: formatBytes(s.GCSys)})
+			mapObj.Set("next-gc: when heap-alloc >=", &object.Stringo{Value: formatBytes(s.NextGC)})
+			lastGC := "-"
+			if s.LastGC != 0 {
+				lastGC = fmt.Sprint(time.Unix(0, int64(s.LastGC)))
+			}
+			mapObj.Set("last-gc", &object.Stringo{Value: lastGC})
+			mapObj.Set("gc-pause-total", &object.Stringo{Value: time.Duration(s.PauseTotalNs).String()})
+			mapObj.Set("gc-pause", &object.UInteger{Value: s.PauseNs[(s.NumGC+255)%256]})
+			mapObj.Set("gc-pause-end", &object.UInteger{Value: s.PauseEnd[(s.NumGC+255)%256]})
+			mapObj.Set("num-gc", &object.UInteger{Value: uint64(s.NumGC)})
+			mapObj.Set("num-forced-gc", &object.UInteger{Value: uint64(s.NumForcedGC)})
+			mapObj.Set("gc-cpu-fraction", &object.Float{Value: s.GCCPUFraction})
+			mapObj.Set("enable-gc", &object.Boolean{Value: s.EnableGC})
+			mapObj.Set("debug-gc", &object.Boolean{Value: s.DebugGC})
+			return object.CreateMapObjectForGoMap(*mapObj)
+		},
+	},
+	"_get_stack_trace": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_stack_trace", len(args), 0, "")
+			}
+			return &object.Stringo{Value: string(debug.Stack())}
+		},
+	},
+	"_free_os_mem": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("free_os_mem", len(args), 0, "")
+			}
+			debug.FreeOSMemory()
+			return NULL
+		},
+	},
+	"_print_stack_trace": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("print_stack_trace", len(args), 0, "")
+			}
+			debug.PrintStack()
+			return NULL
+		},
+	},
+	"_set_max_stack": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_max_stack", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("set_max_stack", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			i := int(args[0].(*object.Integer).Value)
+			return &object.Integer{Value: int64(debug.SetMaxStack(i))}
+		},
+	},
+	"_set_max_threads": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_max_threads", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("set_max_threads", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			i := int(args[0].(*object.Integer).Value)
+			return &object.Integer{Value: int64(debug.SetMaxThreads(i))}
+		},
+	},
+	"_set_mem_limit": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_mem_limit", len(args), 1, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("set_mem_limit", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			i := args[0].(*object.Integer).Value
+			return &object.Integer{Value: debug.SetMemoryLimit(i)}
 		},
 	},
 })
