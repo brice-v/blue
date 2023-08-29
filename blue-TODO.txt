@@ -1,7 +1,10 @@
 TODO:
 
-- [ ] Support bundling gg files
-    - need to append "embed_files/" to the path probably
+- [ ] Get wasm stuff running and working (include wasm_exec.js in lib/web if necessary) wazero is what I was using (wasi_preview1 is available now via go)
+- [ ] Make main function use args given to it as flags
+    - Default help
+    - Call main by default?
+- [ ] Support golang float with e in it
 - [ ] Make core docs visible
     - [ ] Add docs for all remaining functions
 - [ ] Add some sort of package management with a file like blue.json (or blue.toml)
@@ -146,6 +149,11 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Support bundling gg files
+    - need to append "embed_files/" to the path probably
+- [x] Add water.css (or other basic styled css files) to lib/web
+- [-] Try the env copy idea with more tests running or more functions running specifically
+    - Spawn seems to like the way things are currently done
 - [x] Probably need to fix how builtins work for std as they wont have the correct evaluator necessarily given to them
 - [x] reduce contention in gos.go
     - Updated by using GO_OBJs instead for most things there

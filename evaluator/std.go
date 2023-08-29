@@ -32,6 +32,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -3632,6 +3633,18 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_texture", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
+			if IsEmbed {
+				s := fname
+				if strings.HasPrefix(s, "./") {
+					s = strings.TrimLeft(s, "./")
+				}
+				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				if err != nil {
+					ext := filepath.Ext(s)
+					img := rl.LoadImageFromMemory(ext, fileData, int32(len(fileData)))
+					return &object.GoObj[rl.Texture2D]{Value: rl.LoadTextureFromImage(img)}
+				}
+			}
 			return &object.GoObj[rl.Texture2D]{Value: rl.LoadTexture(fname), Id: GoObjId.Add(1)}
 		},
 	},
@@ -3863,6 +3876,17 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_music", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
+			if IsEmbed {
+				s := fname
+				if strings.HasPrefix(s, "./") {
+					s = strings.TrimLeft(s, "./")
+				}
+				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				if err != nil {
+					ext := filepath.Ext(s)
+					return &object.GoObj[rl.Music]{Value: rl.LoadMusicStreamFromMemory(ext, fileData, int32(len(fileData)))}
+				}
+			}
 			return &object.GoObj[rl.Music]{Value: rl.LoadMusicStream(fname), Id: GoObjId.Add(1)}
 		},
 	},
@@ -3955,6 +3979,18 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_sound", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
+			if IsEmbed {
+				s := fname
+				if strings.HasPrefix(s, "./") {
+					s = strings.TrimLeft(s, "./")
+				}
+				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				if err != nil {
+					ext := filepath.Ext(s)
+					wav := rl.LoadWaveFromMemory(ext, fileData, int32(len(fileData)))
+					return &object.GoObj[rl.Sound]{Value: rl.LoadSoundFromWave(wav)}
+				}
+			}
 			return &object.GoObj[rl.Sound]{Value: rl.LoadSound(fname), Id: GoObjId.Add(1)}
 		},
 	},
