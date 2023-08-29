@@ -323,7 +323,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[2].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("seve", 3, object.BOOLEAN_OBJ, args[2].Type())
 			}
-			useEmbeddedTwindAndPreact := args[2].(*object.Boolean).Value
+			useEmbeddedLibWeb := args[2].(*object.Boolean).Value
 			addrPort := args[1].(*object.Stringo).Value
 			signal.Notify(c, os.Interrupt)
 			go func() {
@@ -331,7 +331,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				fmt.Println("Interupt... Shutting down http server")
 				_ = app.Value.Shutdown()
 			}()
-			if useEmbeddedTwindAndPreact {
+			if useEmbeddedLibWeb {
 				sub, err := fs.Sub(lib.WebEmbedFiles, "web")
 				if err != nil {
 					return newError("`serve` error: %s", err.Error())

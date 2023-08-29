@@ -118,7 +118,7 @@ fun delete(url, full_resp=false) {
     fetch(url, options, full_resp=full_resp)
 }
 
-fun serve(addr_port="localhost:3001", use_embedded_twind_and_preact=true) {
+fun serve(addr_port="localhost:3001", use_embedded_lib_web=true) {
     ## `serve` will start up the _server in http on the given
     ## address and port.
     ##
@@ -128,13 +128,15 @@ fun serve(addr_port="localhost:3001", use_embedded_twind_and_preact=true) {
     ## other http module functions will operate on this
     ## open server object.
     ##
-    ## use_embedded_twind_and_preact is set to true by default and allows the use
-    ## of an embedded copy of both files
+    ## use_embedded_lib_web is set to true by default and allows the use
+    ## of an embedded copy of twind, preact, and water(-dark/light).css
     ##    Example for twind: <script src="twind.js"></script> in <head> tag
     ##    Example for preact: import { html, render } from './preact.js' (in mjs files/modules)
+    ##    Example for water: <link rel="stylesheet" type="text/css" href="/water-dark.css">
+    ##                       or water-light.css or water.css which uses system theme
     ##
-    ## serve(addr_port: str='localhost:3001', use_embedded_twind_and_preact: bool=true) -> null
-    __serve(_server, addr_port, use_embedded_twind_and_preact)
+    ## serve(addr_port: str='localhost:3001', use_embedded_lib_web: bool=true) -> null
+    __serve(_server, addr_port, use_embedded_lib_web)
 }
 
 fun handle(pattern, fn, method="GET") {
@@ -363,8 +365,8 @@ fun new_server() {
     ##
     ## new_server() -> HTTP_SERVER_OBJ
     this._s = __new_server();
-    this.serve = fun(addr_port="localhost:3001", use_embedded_twind_and_preact=true) {
-        __serve(this._s, addr_port, use_embedded_twind_and_preact)
+    this.serve = fun(addr_port="localhost:3001", use_embedded_lib_web=true) {
+        __serve(this._s, addr_port, use_embedded_lib_web)
     };
     this.handle = fun(pattern, fn, method="GET") {
         __handle(this._s, pattern, fn, method)
