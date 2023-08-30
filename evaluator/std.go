@@ -289,9 +289,13 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 	"_new_server": {
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 0 {
+			if len(args) != 1 {
 				return newInvalidArgCountError("new_server", len(args), 0, "")
 			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("new_server", 1, object.STRING_OBJ, args[0].Type())
+			}
+			network := args[0].(*object.Stringo).Value
 			var disableStartupDebug bool
 			disableStartupMessageStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
 			disableStartupDebug, err := strconv.ParseBool(disableStartupMessageStr)
@@ -302,6 +306,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				Immutable:             true,
 				EnablePrintRoutes:     !disableStartupDebug,
 				DisableStartupMessage: disableStartupDebug,
+				Network:               network,
 			})
 			return &object.GoObj[*fiber.App]{Value: app, Id: GoObjId.Add(1)}
 		},

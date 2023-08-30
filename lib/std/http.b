@@ -20,7 +20,7 @@ var __server = null;
 val __new_server = _new_server;
 val _server = fun() {
     if (__server == null) {
-        __server = __new_server();
+        __server = __new_server('tcp4');
     }
     return __server;
 }();
@@ -359,12 +359,15 @@ fun send_file(path) {
 }
 
 
-fun new_server() {
+fun new_server(network="tcp4") {
     ## `new_server` will return a core http server object that can be used
     ## to call http functions against
     ##
-    ## new_server() -> HTTP_SERVER_OBJ
-    this._s = __new_server();
+    ## network should be 'tcp4' or 'tcp6'
+    ##
+    ## new_server(network: str='tcp4') -> HTTP_SERVER_OBJ
+    var this = {};
+    this._s = __new_server(network);
     this.serve = fun(addr_port="localhost:3001", use_embedded_lib_web=true) {
         __serve(this._s, addr_port, use_embedded_lib_web)
     };
