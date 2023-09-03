@@ -81,6 +81,7 @@ type Evaluator struct {
 	// scopeVars is the map of scopeNestLevel to the variables that need to be removed
 	scopeVars       map[int][]string
 	cleanupScopeVar map[string]bool
+	evalingNodeCond map[int]struct{}
 
 	// deferFuns is the map of scopeNestLevel function to execute at scope block cleanup
 	deferFuns map[int]*Stack[*FunAndArgs]
@@ -125,6 +126,7 @@ func New() *Evaluator {
 		scopeNestLevel:  0,
 		scopeVars:       make(map[int][]string),
 		cleanupScopeVar: make(map[string]bool),
+		evalingNodeCond: make(map[int]struct{}),
 
 		deferFuns: make(map[int]*Stack[*FunAndArgs]),
 	}
@@ -1020,9 +1022,12 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 	if isError(evaluatedRight) {
 		return evaluatedRight
 	}
-	_, identExists := e.env.Get(ident.Value)
+	identValue, identExists := e.env.Get(ident.Value)
 	if _, ok := e.cleanupScopeVar[ident.Value]; !ok {
 		e.cleanupScopeVar[ident.Value] = identExists
+	}
+	if _, ok := e.evalingNodeCond[e.nestLevel]; !ok && identExists {
+		return e.evalDefaultInfixExpression("in", identValue, evaluatedRight)
 	}
 	// IF the item existed originally then we fallback to regular evalInfixExpression code
 	if existedOriginally, ok := e.cleanupScopeVar[ident.Value]; ok && existedOriginally {
@@ -1405,7 +1410,9 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 	}()
 	firstRun := true
 	for {
+		e.evalingNodeCond[e.nestLevel] = struct{}{}
 		evalCond := e.Eval(node.Condition)
+		delete(e.evalingNodeCond, e.nestLevel)
 		if isError(evalCond) {
 			return evalCond
 		}
