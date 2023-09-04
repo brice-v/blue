@@ -103,8 +103,8 @@ func (b *Broker) Unsubscribe(s *Subscriber, topic string) {
 func (b *Broker) Publish(topic string, msg object.Object) {
 	// publish the message to given topic.
 	b.mut.RLock()
+	defer b.mut.RUnlock()
 	bTopics := b.topics[topic]
-	b.mut.RUnlock()
 	for _, s := range bTopics {
 		m := NewMessage(topic, msg)
 		if !s.active {
