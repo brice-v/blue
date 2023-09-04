@@ -1,0 +1,10 @@
+package main
+
+func main() {}
+
+//export add
+func add(a, b uint32) uint32 {
+	return a + b
+}
+
+// To build: tinygo build -o add.wasm -target=wasi main.go

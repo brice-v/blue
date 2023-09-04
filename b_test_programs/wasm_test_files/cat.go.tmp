@@ -1,0 +1,21 @@
+package main
+
+import (
+	"os"
+)
+
+func main() {
+	dir, _ := os.Getwd()
+	os.Stdout.WriteString("dir = " + dir + "\n")
+	for _, f := range os.Args {
+		os.Stdout.WriteString("file = " + f + "\n")
+		bs, err := os.ReadFile(f)
+		if err != nil {
+			os.Stdout.WriteString("File '" + f + "' does not exist\n")
+			continue
+		}
+		os.Stdout.Write(bs)
+	}
+}
+
+// To Build: GOOS=wasip1 GOARCH=wasm go build -o cat.wasm

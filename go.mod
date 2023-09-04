@@ -28,6 +28,7 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/cobra v1.7.0
 	github.com/tdewolff/minify/v2 v2.12.7
+	github.com/tetratelabs/wazero v1.5.0
 	github.com/xlab/treeprint v1.2.0
 	golang.org/x/crypto v0.11.0
 	golang.org/x/net v0.13.0

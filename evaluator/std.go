@@ -3,6 +3,7 @@ package evaluator
 import (
 	"blue/ast"
 	"blue/consts"
+	"blue/evaluator/wazm"
 	"blue/lexer"
 	"blue/lib"
 	"blue/object"
@@ -66,6 +67,7 @@ import (
 	psutilnet "github.com/shirou/gopsutil/v3/net"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
+	"github.com/tetratelabs/wazero/api"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/scrypt"
 	_ "modernc.org/sqlite"
@@ -93,6 +95,7 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"csv":    {File: lib.ReadStdFileToString("csv.b"), Builtins: _csv_builtin_map},
 	"psutil": {File: lib.ReadStdFileToString("psutil.b"), Builtins: _psutil_builtin_map},
 	"gg":     {File: lib.ReadStdFileToString("gg.b"), Builtins: _gg_builtin_map},
+	"wasm":   {File: lib.ReadStdFileToString("wasm.b"), Builtins: _wasm_builtin_map},
 }
 
 func (e *Evaluator) IsStd(name string) bool {
@@ -4103,3 +4106,316 @@ func unloadFromRaylib(arg object.Object, pos int) object.Object {
 	}
 	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of [rl.Texture2D, rl.Music, rl.Sound]")
 }
+
+var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
+	"_wasm_init": {
+		Fun: func(args ...object.Object) object.Object {
+			//_wasm_init(wasm_code_path, args, mounts, stdout, stderr, stdin, envs, enable_rand, enable_time_and_sleep_precision, host_logging, listens, timeout)
+			//(wasm_code_path, args=ARGV, mounts={'.':'/'}, stdout=FSTDOUT, stderr=FSTDERR, stdin=FSTDIN,
+			//envs=ENV, enable_rand=true, enable_time_and_sleep_precision=true, host_logging='', listens=[], timeout=0) {
+			if len(args) != 12 {
+				return newInvalidArgCountError("wasm_init", len(args), 12, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("wasm_init", 1, object.STRING_OBJ, args[0].Type())
+			}
+			wasmCodePath := args[0].(*object.Stringo).Value
+			wasmArgs := []string{}
+			if args[1].Type() != object.LIST_OBJ && args[1].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("wasm_init", 2, "list[str] or null", args[1].Type())
+			}
+			if args[1].Type() == object.LIST_OBJ {
+				l := args[1].(*object.List).Elements
+				wasmArgs = make([]string, len(l))
+				for i, e := range l {
+					if e.Type() != object.STRING_OBJ {
+						return newError("`wasm_init` error: found non-string element in 'args' list")
+					}
+					wasmArgs[i] = e.(*object.Stringo).Value
+				}
+			}
+			mounts := make(map[string]string)
+			if args[2].Type() != object.MAP_OBJ && args[2].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("wasm_init", 3, "map[str]str or null", args[2].Type())
+			}
+			if args[2].Type() == object.MAP_OBJ {
+				m := args[2].(*object.Map).Pairs
+				for _, k := range m.Keys {
+					mp, _ := m.Get(k)
+					if mp.Key.Type() != object.STRING_OBJ {
+						return newError("`wasm_init` error: found non-string key in 'mounts' map")
+					}
+					if mp.Value.Type() != object.STRING_OBJ {
+						return newError("`wasm_init` error: found non-string key in 'mounts' map")
+					}
+					mounts[mp.Key.(*object.Stringo).Value] = mp.Value.(*object.Stringo).Value
+				}
+			}
+			if args[3].Type() != object.GO_OBJ && args[3].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("wasm_init", 4, "GO_OBJ[*os.File] or null", args[3].Type())
+			}
+			var stdout io.Writer = nil
+			var stdin io.Reader = nil
+			var stderr *os.File
+			if args[3].Type() == object.GO_OBJ {
+				sout, ok := args[3].(*object.GoObj[*os.File])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("wasm_init", 4, "*os.File", sout)
+				}
+				stdout = sout.Value
+			} else {
+				stdout = nil
+			}
+			if args[4].Type() != object.GO_OBJ && args[4].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("wasm_init", 5, "GO_OBJ[*os.File] or null", args[4].Type())
+			}
+			if args[4].Type() == object.GO_OBJ {
+				serr, ok := args[4].(*object.GoObj[*os.File])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("wasm_init", 5, "*os.File", serr)
+				}
+				stderr = serr.Value
+			} else {
+				stderr = nil
+			}
+			if args[5].Type() != object.GO_OBJ && args[5].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("wasm_init", 6, "GO_OBJ[*os.File] or null", args[5].Type())
+			}
+			if args[5].Type() == object.GO_OBJ {
+				sin, ok := args[5].(*object.GoObj[*os.File])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("wasm_init", 6, "*os.File", sin)
+				}
+				stdin = sin.Value
+			} else {
+				stdin = nil
+			}
+			envs := make(map[string]string)
+			if args[6].Type() != object.MAP_OBJ && args[6].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("wasm_init", 7, "map[str]str or null", args[6].Type())
+			}
+			if args[6].Type() == object.MAP_OBJ {
+				m := args[6].(*object.Map).Pairs
+				for _, k := range m.Keys {
+					mp, _ := m.Get(k)
+					if mp.Key.Type() != object.STRING_OBJ {
+						return newError("`wasm_init` error: found non-string key in 'envs' map")
+					}
+					if mp.Value.Type() != object.STRING_OBJ {
+						return newError("`wasm_init` error: found non-string value in 'envs' map")
+					}
+					envs[mp.Key.(*object.Stringo).Value] = mp.Value.(*object.Stringo).Value
+				}
+			}
+			if args[7].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("wasm_init", 8, object.BOOLEAN_OBJ, args[7].Type())
+			}
+			enableRand := args[7].(*object.Boolean).Value
+			if args[8].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("wasm_init", 9, object.BOOLEAN_OBJ, args[8].Type())
+			}
+			enableTimeAndSleepPrecision := args[8].(*object.Boolean).Value
+			if args[9].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("wasm_init", 10, object.STRING_OBJ, args[9].Type())
+			}
+			hostLogging := args[9].(*object.Stringo).Value
+			listens := []string{}
+			if args[10].Type() != object.LIST_OBJ && args[10].Type() != object.NULL_OBJ {
+				return newPositionalTypeError("wasm_init", 11, "list[str] or null", args[10].Type())
+			}
+			if args[10].Type() == object.LIST_OBJ {
+				l := args[10].(*object.List).Elements
+				listens = make([]string, len(l))
+				for i, e := range l {
+					if e.Type() != object.STRING_OBJ {
+						return newError("`wasm_init` error: found non-string element in 'listens' list")
+					}
+					listens[i] = e.(*object.Stringo).Value
+				}
+			}
+			if args[11].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("wasm_init", 12, object.INTEGER_OBJ, args[11].Type())
+			}
+			timeoutDuration := time.Duration(args[11].(*object.Integer).Value)
+
+			var bs []byte
+			if IsEmbed {
+				s := wasmCodePath
+				if strings.HasPrefix(s, "./") {
+					s = strings.TrimLeft(s, "./")
+				}
+				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				if err != nil {
+					// Fallback option for reading when in embedded context
+					fileData, err := os.ReadFile(wasmCodePath)
+					if err != nil {
+						return newError("`wasm_init` error reading wasm_code_path `%s`: %s", wasmCodePath, err.Error())
+					}
+					bs = fileData
+				} else {
+					bs = fileData
+				}
+			} else {
+				fileData, err := os.ReadFile(wasmCodePath)
+				if err != nil {
+					return newError("`wasm_init` error reading wasm_code_path `%s`: %s", wasmCodePath, err.Error())
+				}
+				bs = fileData
+			}
+			wc := wazm.Config{
+				WasmExe: bs,
+				StdIn:   stdin,
+				StdOut:  stdout,
+				StdErr:  stderr,
+				Args:    wasmArgs,
+				Envs:    envs,
+				Mounts:  mounts,
+				Listens: listens,
+
+				EnableRandSource:            enableRand,
+				EnableTimeAndSleepPrecision: enableTimeAndSleepPrecision,
+
+				HostLogging: hostLogging,
+				Timeout:     timeoutDuration,
+			}
+			wm, err := wazm.WazmInit(wc)
+			if err != nil {
+				return newError("`wasm_init` error: failed initalizing %s", err.Error())
+			}
+			return &object.GoObj[*wazm.Module]{Value: wm, Id: GoObjId.Add(1)}
+		},
+		HelpStr: "TODO: Add a help string",
+	},
+	"_wasm_get_functions": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("wasm_get_functions", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("wasm_get_functions", 1, object.GO_OBJ, "")
+			}
+			wm, ok := args[0].(*object.GoObj[*wazm.Module])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("wasm_get_functions", 1, "*wazm.Module", wm)
+			}
+			funs := wazm.GetFunctions(wm.Value)
+			l := &object.List{
+				Elements: make([]object.Object, len(funs)),
+			}
+			for i, fun := range funs {
+				l.Elements[i] = &object.Stringo{Value: fun}
+			}
+			return l
+		},
+	},
+	"_wasm_get_exported_function": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("wasm_get_exported_function", len(args), 2, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("wasm_get_exported_function", 1, object.GO_OBJ, args[0].Type())
+			}
+			wm, ok := args[0].(*object.GoObj[*wazm.Module])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("wasm_get_exported_function", 1, "*wazm.Module", wm)
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("wasm_get_exported_function", 2, object.STRING_OBJ, args[1].Type())
+			}
+			fnName := args[1].(*object.Stringo).Value
+			if _, ok := wm.Value.Module.ExportedFunctions()[fnName]; !ok {
+				return newError("`wasm_get_exported_function` error: function '%s' not found", fnName)
+			}
+			// Return a builtin function to call the wasm function
+			return &object.Builtin{
+				Fun: func(args ...object.Object) object.Object {
+					argsForCall := make([]uint64, len(args))
+					for i, arg := range args {
+						if arg.Type() != object.UINTEGER_OBJ {
+							return newPositionalTypeError("wasm_call", i+1, object.UINTEGER_OBJ, arg.Type())
+						}
+						argsForCall[i] = arg.(*object.UInteger).Value
+					}
+					var mod api.Module
+					// TODO: Figure out timeout stuff
+					// if wm.Value.CancelFun != nil {
+					// 	defer wm.Value.CancelFun()
+					// }
+					if !wm.Value.IsInstantiated {
+						module, _, err := wazm.WazmRun(wm.Value)
+						if err != nil {
+							return newError("`wasm_call` error: instantiating failed %s", err.Error())
+						}
+						wm.Value = module
+						mod = wm.Value.ApiMod
+					} else {
+						mod = wm.Value.ApiMod
+					}
+					fn := mod.ExportedFunction(fnName)
+					var err error
+					var retVal []uint64
+					if len(argsForCall) == 0 {
+						retVal, err = fn.Call(wm.Value.Ctx)
+					} else {
+						retVal, err = fn.Call(wm.Value.Ctx, argsForCall...)
+					}
+					if err != nil {
+						return newError("`wasm_call` error: calling '%s' failed with params %v. %s", fnName, argsForCall, err.Error())
+					}
+					returnValue := &object.List{
+						Elements: make([]object.Object, len(retVal)),
+					}
+					for i, e := range retVal {
+						returnValue.Elements[i] = &object.UInteger{Value: e}
+					}
+					return returnValue
+				},
+			}
+		},
+	},
+	"_wasm_run": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("wasm_run", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("wasm_run", 1, object.GO_OBJ, args[0].Type())
+			}
+			wm, ok := args[0].(*object.GoObj[*wazm.Module])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("wasm_run", 1, "*wazm.Module", wm)
+			}
+			if wm.Value.CancelFun != nil {
+				defer wm.Value.CancelFun()
+			}
+			defer wm.Value.Runtime.Close(wm.Value.Ctx)
+			module, rc, err := wazm.WazmRun(wm.Value)
+			if err != nil {
+				return newError("`wasm_run` error: %s", err.Error())
+			}
+			wm.Value = module
+			return &object.Integer{Value: int64(rc)}
+		},
+	},
+	"_wasm_close": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("wasm_close", len(args), 1, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("wasm_close", 1, object.GO_OBJ, args[0].Type())
+			}
+			wm, ok := args[0].(*object.GoObj[*wazm.Module])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("wasm_close", 1, "*wazm.Module", wm)
+			}
+			err := wm.Value.Runtime.Close(wm.Value.Ctx)
+			if err != nil {
+				// Convert error to just string to return so we dont cause an exception
+				return &object.Stringo{Value: "`wasm_close` error: " + err.Error()}
+			}
+			return NULL
+		},
+	},
+})

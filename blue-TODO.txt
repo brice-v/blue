@@ -1,9 +1,5 @@
 TODO:
 
-- [ ] Get wasm stuff running and working (include wasm_exec.js in lib/web if necessary) wazero is what I was using (wasi_preview1 is available now via go)
-- [ ] Make main function use args given to it as flags
-    - Default help
-    - Call main by default?
 - [ ] Support golang float with e in it
 - [ ] Make core docs visible
     - [ ] Add docs for all remaining functions
@@ -149,6 +145,19 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [-] Get wasm stuff running and working (include wasm_exec.js in lib/web if necessary) wazero is what I was using (wasi_preview1 is available now via go)
+    - [x] Make sure we support wasi_preview1
+        - Only really supporting wasi_preview1 go and tinygo (tinygo can essentially make a lib - couldnt get zig to work)
+    - [x] Support via default vars to the init function what we want to allow? maybe sensible defaults? or just all
+    - [ ] Support Memory limits?
+    - [ ] Shared var between the 2?
+    - [ ] Passing variables back and forth? Maybe strings if possible?
+    - [x] Figure out how to close it/deallocate the runtime
+    - Mostly working for now
+- [x] BUG: I think if theres an in expression within a for expression it may be getting the wrong nest level?
+- [-] Make main function use args given to it as flags
+    - Default help
+    - Call main by default?
 - [x] Support bundling gg files
     - need to append "embed_files/" to the path probably
 - [x] Add water.css (or other basic styled css files) to lib/web
