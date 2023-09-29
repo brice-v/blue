@@ -1331,7 +1331,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			subId := subscriberCount.Add(1)
 			sub := PubSubBroker.AddSubscriber(subId)
 			PubSubBroker.Subscribe(sub, topic)
-			return object.CreateBasicMapObjectForGoObj("sub", &object.GoObj[*pubsub.Subscriber]{Value: sub, Id: GoObjId.Add(1)})
+			return object.CreateBasicMapObjectForGoObj("sub", NewGoObj(sub))
 		},
 	},
 	"unsubscribe": {
@@ -1370,7 +1370,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			sub, ok := args[0].(*object.GoObj[*pubsub.Subscriber])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("pubsub_sub_listen", 1, "*pubsub.Subscriber", sub)
+				return newPositionalTypeErrorForGoObj("pubsub_sub_listen", 1, "*pubsub.Subscriber", args[0])
 			}
 			return sub.Value.PollMessage()
 		},

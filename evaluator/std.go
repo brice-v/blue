@@ -200,6 +200,10 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 	return nil
 }
 
+func NewGoObj[T any](obj T) *object.GoObj[T] {
+	return &object.GoObj[T]{Value: obj, Id: GoObjId.Add(1)}
+}
+
 // Used to catch Interupt to shutdown server
 var c = make(chan os.Signal, 1)
 
@@ -311,7 +315,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				DisableStartupMessage: disableStartupDebug,
 				Network:               network,
 			})
-			return &object.GoObj[*fiber.App]{Value: app, Id: GoObjId.Add(1)}
+			return NewGoObj(app)
 		},
 	},
 	"_serve": {
@@ -324,7 +328,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			app, ok := args[0].(*object.GoObj[*fiber.App])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("serve", 1, "*fiber.App", app)
+				return newPositionalTypeErrorForGoObj("serve", 1, "*fiber.App", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("serve", 2, object.STRING_OBJ, args[1].Type())
@@ -374,7 +378,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			app, ok := args[0].(*object.GoObj[*fiber.App])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("static", 1, "*fiber.App", app)
+				return newPositionalTypeErrorForGoObj("static", 1, "*fiber.App", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("static", 2, object.STRING_OBJ, args[1].Type())
@@ -418,7 +422,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			c, ok := args[0].(*object.GoObj[*websocket.Conn])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", c)
+				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
 				return newPositionalTypeError("ws_send", 2, "STRING or BYTES", args[1].Type())
@@ -445,7 +449,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			c, ok := args[0].(*object.GoObj[*websocket.Conn])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", c)
+				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", args[0])
 			}
 			mt, msg, err := c.Value.ReadMessage()
 			if err != nil {
@@ -480,7 +484,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`new_ws` error: %s", err.Error())
 			}
-			return object.CreateBasicMapObjectForGoObj("ws/client", &object.GoObj[*ws.Conn]{Value: conn, Id: GoObjId.Add(1)})
+			return object.CreateBasicMapObjectForGoObj("ws/client", NewGoObj(conn))
 		},
 	},
 	"_ws_client_send": {
@@ -493,7 +497,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			c, ok := args[0].(*object.GoObj[*ws.Conn])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("ws_client_send", 1, "*ws.Conn", c)
+				return newPositionalTypeErrorForGoObj("ws_client_send", 1, "*ws.Conn", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.BYTES_OBJ {
 				return newPositionalTypeError("ws_client_send", 2, "STRING or BYTES", args[1].Type())
@@ -520,7 +524,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			c, ok := args[0].(*object.GoObj[*ws.Conn])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("ws_client_recv", 1, "*ws.Conn", c)
+				return newPositionalTypeErrorForGoObj("ws_client_recv", 1, "*ws.Conn", args[0])
 			}
 			mt, msg, err := c.Value.ReadMessage()
 			if err != nil {
@@ -552,7 +556,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			app, ok := args[0].(*object.GoObj[*fiber.App])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("handle_monitor", 1, "*fiber.App", app)
+				return newPositionalTypeErrorForGoObj("handle_monitor", 1, "*fiber.App", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle_monitor", 2, object.STRING_OBJ, args[1].Type())
@@ -638,7 +642,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case "ws":
 				c, ok := args[0].(*object.GoObj[*websocket.Conn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("inspect", 1, "*websocket.Conn", c)
+					return newPositionalTypeErrorForGoObj("inspect", 1, "*websocket.Conn", args[0])
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
 				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
@@ -649,7 +653,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case "ws/client":
 				c, ok := args[0].(*object.GoObj[*ws.Conn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("inspect", 1, "*ws.Conn", c)
+					return newPositionalTypeErrorForGoObj("inspect", 1, "*ws.Conn", args[0])
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
 				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
@@ -825,7 +829,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`db_open` error: %s", err.Error())
 			}
-			return &object.GoObj[*sql.DB]{Value: db, Id: GoObjId.Add(1)}
+			return NewGoObj(db)
 		},
 	},
 	"_db_ping": {
@@ -838,7 +842,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			db, ok := args[0].(*object.GoObj[*sql.DB])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("db_ping", 1, "*sql.DB", db)
+				return newPositionalTypeErrorForGoObj("db_ping", 1, "*sql.DB", args[0])
 			}
 			err := db.Value.Ping()
 			if err != nil {
@@ -857,7 +861,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			db, ok := args[0].(*object.GoObj[*sql.DB])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("db_close", 1, "*sql.DB", db)
+				return newPositionalTypeErrorForGoObj("db_close", 1, "*sql.DB", args[0])
 			}
 			err := db.Value.Close()
 			if err != nil {
@@ -876,7 +880,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			db, ok := args[0].(*object.GoObj[*sql.DB])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("db_exec", 1, "*sql.DB", db)
+				return newPositionalTypeErrorForGoObj("db_exec", 1, "*sql.DB", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("db_exec", 2, object.STRING_OBJ, args[1].Type())
@@ -940,7 +944,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			db, ok := args[0].(*object.GoObj[*sql.DB])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("db_query", 1, "*sql.DB", db)
+				return newPositionalTypeErrorForGoObj("db_query", 1, "*sql.DB", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("db_query", 2, object.STRING_OBJ, args[1].Type())
@@ -2206,7 +2210,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`connect` error: %s", err.Error())
 			}
-			return object.CreateBasicMapObjectForGoObj("net", &object.GoObj[net.Conn]{Value: conn, Id: GoObjId.Add(1)})
+			return object.CreateBasicMapObjectForGoObj("net", NewGoObj(conn))
 		},
 	},
 	"_listen": {
@@ -2236,13 +2240,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err != nil {
 					return newError("`listen` udp error: %s", err.Error())
 				}
-				return object.CreateBasicMapObjectForGoObj("net/udp", &object.GoObj[*net.UDPConn]{Value: l, Id: GoObjId.Add(1)})
+				return object.CreateBasicMapObjectForGoObj("net/udp", NewGoObj(l))
 			}
 			l, err := net.Listen(transport, addrStr)
 			if err != nil {
 				return newError("`listen` error: %s", err.Error())
 			}
-			return object.CreateBasicMapObjectForGoObj("net/tcp", &object.GoObj[net.Listener]{Value: l, Id: GoObjId.Add(1)})
+			return object.CreateBasicMapObjectForGoObj("net/tcp", NewGoObj(l))
 		},
 	},
 	"_accept": {
@@ -2255,13 +2259,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			l, ok := args[0].(*object.GoObj[net.Listener])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("accept", 1, "net.Listener", l)
+				return newPositionalTypeErrorForGoObj("accept", 1, "net.Listener", args[0])
 			}
 			conn, err := l.Value.Accept()
 			if err != nil {
 				return newError("`accept` error: %s", err.Error())
 			}
-			return object.CreateBasicMapObjectForGoObj("net", &object.GoObj[net.Conn]{Value: conn, Id: GoObjId.Add(1)})
+			return object.CreateBasicMapObjectForGoObj("net", NewGoObj(conn))
 		},
 	},
 	"_net_close": {
@@ -2280,19 +2284,19 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case "net/udp":
 				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("net_close", 1, "*net.UDPConn", c)
+					return newPositionalTypeErrorForGoObj("net_close", 1, "*net.UDPConn", args[0])
 				}
 				c.Value.Close()
 			case "net/tcp":
 				listener, ok := args[0].(*object.GoObj[net.Listener])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Listener", listener)
+					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Listener", args[0])
 				}
 				listener.Value.Close()
 			case "net":
 				conn, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Conn", conn)
+					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Conn", args[0])
 				}
 				conn.Value.Close()
 			default:
@@ -2323,13 +2327,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if t == "net/udp" {
 				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("net_read", 1, "*net.UDPConn", c)
+					return newPositionalTypeErrorForGoObj("net_read", 1, "*net.UDPConn", args[0])
 				}
 				conn = c.Value
 			} else {
 				c, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("net_read", 1, "net.Conn", c)
+					return newPositionalTypeErrorForGoObj("net_read", 1, "net.Conn", args[0])
 				}
 				conn = c.Value
 			}
@@ -2392,13 +2396,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if t == "net/udp" {
 				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("net_write", 1, "*net.UDPConn", c)
+					return newPositionalTypeErrorForGoObj("net_write", 1, "*net.UDPConn", args[0])
 				}
 				conn = c.Value
 			} else {
 				c, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("net_write", 1, "net.Conn", c)
+					return newPositionalTypeErrorForGoObj("net_write", 1, "net.Conn", args[0])
 				}
 				conn = c.Value
 			}
@@ -2463,7 +2467,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case "net/udp":
 				c, ok := args[0].(*object.GoObj[*net.UDPConn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("inspect", 1, "*net.UDPConn", c)
+					return newPositionalTypeErrorForGoObj("inspect", 1, "*net.UDPConn", args[0])
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
 				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
@@ -2474,7 +2478,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case "net/tcp":
 				l, ok := args[0].(*object.GoObj[net.Listener])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Listener", l)
+					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Listener", args[0])
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
 				mapObj.Set("addr", &object.Stringo{Value: l.Value.Addr().String()})
@@ -2483,7 +2487,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case "net":
 				c, ok := args[0].(*object.GoObj[net.Conn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Conn", c)
+					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Conn", args[0])
 				}
 				mapObj := object.NewOrderedMap[string, object.Object]()
 				mapObj.Set("remote_addr", &object.Stringo{Value: c.Value.RemoteAddr().String()})
@@ -2505,7 +2509,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("new_app", len(args), 0, "")
 			}
 			app := app.New()
-			return &object.GoObj[fyne.App]{Value: app, Id: GoObjId.Add(1)}
+			return NewGoObj(app)
 		},
 	},
 	"_window": {
@@ -2518,7 +2522,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			app, ok := args[0].(*object.GoObj[fyne.App])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("window", 1, "fyne.App", app)
+				return newPositionalTypeErrorForGoObj("window", 1, "fyne.App", args[0])
 			}
 			if args[1].Type() != object.INTEGER_OBJ {
 				return newPositionalTypeError("window", 2, object.INTEGER_OBJ, args[1].Type())
@@ -2534,7 +2538,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			content, ok := args[4].(*object.GoObj[fyne.CanvasObject])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("window", 4, "fyne.CanvasObject", app)
+				return newPositionalTypeErrorForGoObj("window", 4, "fyne.CanvasObject", args[4])
 			}
 			width := args[1].(*object.Integer).Value
 			height := args[2].(*object.Integer).Value
@@ -2556,7 +2560,47 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			label := args[0].(*object.Stringo).Value
 			l := widget.NewLabel(label)
-			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: l, Id: GoObjId.Add(1)})
+			return NewGoObj[fyne.CanvasObject](l)
+		},
+	},
+	"_progress_bar": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("progress_bar", len(args), 1, "")
+			}
+			if args[0].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("progress_bar", 1, object.BOOLEAN_OBJ, args[0].Type())
+			}
+			isInfinite := args[0].(*object.Boolean).Value
+			if isInfinite {
+				return NewGoObj[fyne.CanvasObject](widget.NewProgressBarInfinite())
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewProgressBar())
+		},
+	},
+	"_progress_bar_set_value": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("progress_bar_set_value", len(args), 2, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("progress_bar_set_value", 1, object.GO_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("progress_bar_set_value", 2, object.FLOAT_OBJ, args[1].Type())
+			}
+			value := args[1].(*object.Float).Value
+			progressBar, ok := args[0].(*object.GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("progress_bar_set_value", 1, "fyne.CanvasObject", args[0])
+			}
+			switch x := progressBar.Value.(type) {
+			case *widget.ProgressBar:
+				x.SetValue(value)
+				return NULL
+			default:
+				return newError("`progress_bar_set_value` error: type mismatch. got=%T", x)
+			}
 		},
 	},
 	"_row": {
@@ -2575,12 +2619,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				o, ok := e.(*object.GoObj[fyne.CanvasObject])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("row", i+1, "fyne.CanvasObject", o)
+					return newPositionalTypeErrorForGoObj("row(children)", i+1, "fyne.CanvasObject", e)
 				}
 				canvasObjects[i] = o.Value
 			}
 			vbox := container.NewVBox(canvasObjects...)
-			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: vbox, Id: GoObjId.Add(1)})
+			return NewGoObj[fyne.CanvasObject](vbox)
 		},
 	},
 	"_col": {
@@ -2599,12 +2643,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				o, ok := e.(*object.GoObj[fyne.CanvasObject])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("col", i+1, "fyne.CanvasObject", o)
+					return newPositionalTypeErrorForGoObj("col", i+1, "fyne.CanvasObject", e)
 				}
 				canvasObjects[i] = o.Value
 			}
 			hbox := container.NewHBox(canvasObjects...)
-			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: hbox, Id: GoObjId.Add(1)})
+			return NewGoObj[fyne.CanvasObject](hbox)
 		},
 	},
 	"_grid": {
@@ -2634,7 +2678,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				o, ok := e.(*object.GoObj[fyne.CanvasObject])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("grid", i+1, "fyne.CanvasObject", o)
+					return newPositionalTypeErrorForGoObj("grid", i+1, "fyne.CanvasObject", e)
 				}
 				canvasObjects[i] = o.Value
 			}
@@ -2644,7 +2688,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			} else {
 				grid = container.NewGridWithColumns(rowsOrCols, canvasObjects...)
 			}
-			return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: grid, Id: GoObjId.Add(1)})
+			return NewGoObj[fyne.CanvasObject](grid)
 		},
 	},
 	"_entry": {
@@ -2667,7 +2711,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				entry = widget.NewEntry()
 			}
 			entry.SetPlaceHolder(placeholderText)
-			return object.CreateBasicMapObjectForGoObj("ui/entry", &object.GoObj[fyne.CanvasObject]{Value: entry, Id: GoObjId.Add(1)})
+			return NewGoObj[fyne.CanvasObject](entry)
 		},
 	},
 	"_entry_get_text": {
@@ -2680,7 +2724,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			entry, ok := args[0].(*object.GoObj[fyne.CanvasObject])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("entry_get_text", 1, "fyne.CanvasObject", entry)
+				return newPositionalTypeErrorForGoObj("entry_get_text", 1, "fyne.CanvasObject", args[0])
 			}
 			switch x := entry.Value.(type) {
 			case *widget.Entry:
@@ -2700,7 +2744,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			entry, ok := args[0].(*object.GoObj[fyne.CanvasObject])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("entry_set_text", 1, "fyne.CanvasObject", entry)
+				return newPositionalTypeErrorForGoObj("entry_set_text", 1, "fyne.CanvasObject", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("entry_set_text", 2, object.STRING_OBJ, args[1].Type())
@@ -2725,7 +2769,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			maybeForm, ok := args[0].(*object.GoObj[fyne.CanvasObject])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("append_form", 1, "fyne.CanvasObject", maybeForm)
+				return newPositionalTypeErrorForGoObj("append_form", 1, "fyne.CanvasObject", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("append_form", 2, object.STRING_OBJ, args[1].Type())
@@ -2733,9 +2777,9 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[2].Type() != object.GO_OBJ {
 				return newPositionalTypeError("append_form", 3, object.GO_OBJ, args[2].Type())
 			}
-			w, ok := args[3].(*object.GoObj[fyne.CanvasObject])
+			w, ok := args[2].(*object.GoObj[fyne.CanvasObject])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("append_form", 3, "fyne.CanvasObject", w)
+				return newPositionalTypeErrorForGoObj("append_form", 3, "fyne.CanvasObject", args[2])
 			}
 			var form *widget.Form
 			switch x := maybeForm.Value.(type) {
@@ -2787,7 +2831,7 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if bgColorName != unknown || bgActualColorName != unknown {
 				s.Add(bgColor)
 			}
-			return object.CreateBasicMapObjectForGoObj("color", &object.GoObj[color.Style]{Value: s, Id: GoObjId.Add(1)})
+			return object.CreateBasicMapObjectForGoObj("color", NewGoObj(s))
 		},
 	},
 	"_normal": {
@@ -3363,32 +3407,32 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("color_map", len(args), 0, "")
 			}
 			mapObj := object.NewOrderedMap[string, object.Object]()
-			lightGray := &object.GoObj[rl.Color]{Value: rl.LightGray, Id: GoObjId.Add(1)}
-			gray := &object.GoObj[rl.Color]{Value: rl.Gray, Id: GoObjId.Add(1)}
-			darkGray := &object.GoObj[rl.Color]{Value: rl.DarkGray, Id: GoObjId.Add(1)}
-			yellow := &object.GoObj[rl.Color]{Value: rl.Yellow, Id: GoObjId.Add(1)}
-			gold := &object.GoObj[rl.Color]{Value: rl.Gold, Id: GoObjId.Add(1)}
-			orange := &object.GoObj[rl.Color]{Value: rl.Orange, Id: GoObjId.Add(1)}
-			pink := &object.GoObj[rl.Color]{Value: rl.Pink, Id: GoObjId.Add(1)}
-			red := &object.GoObj[rl.Color]{Value: rl.Red, Id: GoObjId.Add(1)}
-			maroon := &object.GoObj[rl.Color]{Value: rl.Maroon, Id: GoObjId.Add(1)}
-			green := &object.GoObj[rl.Color]{Value: rl.Green, Id: GoObjId.Add(1)}
-			lime := &object.GoObj[rl.Color]{Value: rl.Lime, Id: GoObjId.Add(1)}
-			darkGreen := &object.GoObj[rl.Color]{Value: rl.DarkGreen, Id: GoObjId.Add(1)}
-			skyBlue := &object.GoObj[rl.Color]{Value: rl.SkyBlue, Id: GoObjId.Add(1)}
-			blue := &object.GoObj[rl.Color]{Value: rl.Blue, Id: GoObjId.Add(1)}
-			darkBlue := &object.GoObj[rl.Color]{Value: rl.DarkBlue, Id: GoObjId.Add(1)}
-			purple := &object.GoObj[rl.Color]{Value: rl.Purple, Id: GoObjId.Add(1)}
-			violet := &object.GoObj[rl.Color]{Value: rl.Violet, Id: GoObjId.Add(1)}
-			darkPurple := &object.GoObj[rl.Color]{Value: rl.DarkPurple, Id: GoObjId.Add(1)}
-			beige := &object.GoObj[rl.Color]{Value: rl.Beige, Id: GoObjId.Add(1)}
-			brown := &object.GoObj[rl.Color]{Value: rl.Brown, Id: GoObjId.Add(1)}
-			darkBrown := &object.GoObj[rl.Color]{Value: rl.DarkBrown, Id: GoObjId.Add(1)}
-			white := &object.GoObj[rl.Color]{Value: rl.White, Id: GoObjId.Add(1)}
-			black := &object.GoObj[rl.Color]{Value: rl.Black, Id: GoObjId.Add(1)}
-			blank := &object.GoObj[rl.Color]{Value: rl.Blank, Id: GoObjId.Add(1)}
-			magenta := &object.GoObj[rl.Color]{Value: rl.Magenta, Id: GoObjId.Add(1)}
-			rayWhite := &object.GoObj[rl.Color]{Value: rl.RayWhite, Id: GoObjId.Add(1)}
+			lightGray := NewGoObj[rl.Color](rl.LightGray)
+			gray := NewGoObj[rl.Color](rl.Gray)
+			darkGray := NewGoObj[rl.Color](rl.DarkGray)
+			yellow := NewGoObj[rl.Color](rl.Yellow)
+			gold := NewGoObj[rl.Color](rl.Gold)
+			orange := NewGoObj[rl.Color](rl.Orange)
+			pink := NewGoObj[rl.Color](rl.Pink)
+			red := NewGoObj[rl.Color](rl.Red)
+			maroon := NewGoObj[rl.Color](rl.Maroon)
+			green := NewGoObj[rl.Color](rl.Green)
+			lime := NewGoObj[rl.Color](rl.Lime)
+			darkGreen := NewGoObj[rl.Color](rl.DarkGreen)
+			skyBlue := NewGoObj[rl.Color](rl.SkyBlue)
+			blue := NewGoObj[rl.Color](rl.Blue)
+			darkBlue := NewGoObj[rl.Color](rl.DarkBlue)
+			purple := NewGoObj[rl.Color](rl.Purple)
+			violet := NewGoObj[rl.Color](rl.Violet)
+			darkPurple := NewGoObj[rl.Color](rl.DarkPurple)
+			beige := NewGoObj[rl.Color](rl.Beige)
+			brown := NewGoObj[rl.Color](rl.Brown)
+			darkBrown := NewGoObj[rl.Color](rl.DarkBrown)
+			white := NewGoObj[rl.Color](rl.White)
+			black := NewGoObj[rl.Color](rl.Black)
+			blank := NewGoObj[rl.Color](rl.Blank)
+			magenta := NewGoObj[rl.Color](rl.Magenta)
+			rayWhite := NewGoObj[rl.Color](rl.RayWhite)
 			newColor := &object.Builtin{
 				Fun: func(args ...object.Object) object.Object {
 					if len(args) != 4 {
@@ -3406,14 +3450,11 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					if args[3].Type() != object.INTEGER_OBJ {
 						return newPositionalTypeError("new_color", 4, object.INTEGER_OBJ, args[3].Type())
 					}
-					return &object.GoObj[rl.Color]{
-						Value: rl.NewColor(
-							uint8(args[0].(*object.Integer).Value),
-							uint8(args[1].(*object.Integer).Value),
-							uint8(args[2].(*object.Integer).Value),
-							uint8(args[3].(*object.Integer).Value)),
-						Id: GoObjId.Add(1),
-					}
+					return NewGoObj[rl.Color](rl.NewColor(
+						uint8(args[0].(*object.Integer).Value),
+						uint8(args[1].(*object.Integer).Value),
+						uint8(args[2].(*object.Integer).Value),
+						uint8(args[3].(*object.Integer).Value)))
 				},
 			}
 			mapObj.Set("light_gray", lightGray)
@@ -3488,7 +3529,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			tex, ok := args[0].(*object.GoObj[rl.Texture2D])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture", 1, "rl.Texture2D", tex)
+				return newPositionalTypeErrorForGoObj("draw_texture", 1, "rl.Texture2D", args[0])
 			}
 			if args[1].Type() != object.INTEGER_OBJ {
 				return newPositionalTypeError("draw_texture", 2, object.INTEGER_OBJ, args[1].Type())
@@ -3501,7 +3542,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			tint, ok := args[3].(*object.GoObj[rl.Color])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture", 4, "rl.Color", tint)
+				return newPositionalTypeErrorForGoObj("draw_texture", 4, "rl.Color", args[3])
 			}
 			posX := int32(args[1].(*object.Integer).Value)
 			posY := int32(args[2].(*object.Integer).Value)
@@ -3520,28 +3561,28 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			tex, ok := args[0].(*object.GoObj[rl.Texture2D])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 1, "rl.Texture2D", tex)
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 1, "rl.Texture2D", args[0])
 			}
 			if args[1].Type() != object.GO_OBJ {
 				return newPositionalTypeError("draw_texture_pro", 2, object.GO_OBJ, args[1].Type())
 			}
 			srcRect, ok := args[1].(*object.GoObj[rl.Rectangle])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 2, "rl.Rectangle", srcRect)
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 2, "rl.Rectangle", args[1])
 			}
 			if args[2].Type() != object.GO_OBJ {
 				return newPositionalTypeError("draw_texture_pro", 3, object.GO_OBJ, args[2].Type())
 			}
 			dstRect, ok := args[2].(*object.GoObj[rl.Rectangle])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 3, "rl.Rectangle", dstRect)
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 3, "rl.Rectangle", args[2])
 			}
 			if args[3].Type() != object.GO_OBJ {
 				return newPositionalTypeError("draw_texture_pro", 4, object.GO_OBJ, args[3].Type())
 			}
 			origin, ok := args[3].(*object.GoObj[rl.Vector2])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Rectangle", origin)
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Rectangle", args[3])
 			}
 			if args[4].Type() != object.FLOAT_OBJ {
 				return newPositionalTypeError("draw_texture_pro", 5, object.FLOAT_OBJ, args[4].Type())
@@ -3552,7 +3593,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			tint, ok := args[5].(*object.GoObj[rl.Color])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 6, "rl.Color", tint)
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 6, "rl.Color", args[5])
 			}
 			rl.DrawTexturePro(tex.Value, srcRect.Value, dstRect.Value, origin.Value, rotation, tint.Value)
 			return NULL
@@ -3650,10 +3691,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err != nil {
 					ext := filepath.Ext(s)
 					img := rl.LoadImageFromMemory(ext, fileData, int32(len(fileData)))
-					return &object.GoObj[rl.Texture2D]{Value: rl.LoadTextureFromImage(img)}
+					img1 := rl.LoadTextureFromImage(img)
+					return NewGoObj(img1)
 				}
 			}
-			return &object.GoObj[rl.Texture2D]{Value: rl.LoadTexture(fname), Id: GoObjId.Add(1)}
+			img := rl.LoadTexture(fname)
+			return NewGoObj(img)
 		},
 	},
 	"_rectangle": {
@@ -3677,7 +3720,8 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			y := float32(args[1].(*object.Float).Value)
 			width := float32(args[2].(*object.Float).Value)
 			height := float32(args[3].(*object.Float).Value)
-			return &object.GoObj[rl.Rectangle]{Value: rl.NewRectangle(x, y, width, height), Id: GoObjId.Add(1)}
+			rect := rl.NewRectangle(x, y, width, height)
+			return NewGoObj(rect)
 		},
 	},
 	"_vector2": {
@@ -3693,7 +3737,8 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			x := float32(args[0].(*object.Float).Value)
 			y := float32(args[1].(*object.Float).Value)
-			return &object.GoObj[rl.Vector2]{Value: rl.NewVector2(x, y), Id: GoObjId.Add(1)}
+			vec2 := rl.NewVector2(x, y)
+			return NewGoObj(vec2)
 		},
 	},
 	"_vector3": {
@@ -3713,7 +3758,8 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			x := float32(args[0].(*object.Float).Value)
 			y := float32(args[1].(*object.Float).Value)
 			z := float32(args[2].(*object.Float).Value)
-			return &object.GoObj[rl.Vector3]{Value: rl.NewVector3(x, y, z), Id: GoObjId.Add(1)}
+			vec3 := rl.NewVector3(x, y, z)
+			return NewGoObj(vec3)
 		},
 	},
 	"_vector4": {
@@ -3737,7 +3783,8 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			y := float32(args[1].(*object.Float).Value)
 			z := float32(args[2].(*object.Float).Value)
 			w := float32(args[3].(*object.Float).Value)
-			return &object.GoObj[rl.Vector4]{Value: rl.NewVector4(x, y, z, w), Id: GoObjId.Add(1)}
+			vec4 := rl.NewVector4(x, y, z, w)
+			return NewGoObj(vec4)
 		},
 	},
 	"_camera2d": {
@@ -3750,14 +3797,14 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			offset, ok := args[0].(*object.GoObj[rl.Vector2])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("Camera2D", 1, "rl.Vector2", offset)
+				return newPositionalTypeErrorForGoObj("Camera2D", 1, "rl.Vector2", args[0])
 			}
 			if args[1].Type() != object.GO_OBJ {
 				return newPositionalTypeError("Camera2D", 2, object.GO_OBJ, args[1].Type())
 			}
 			target, ok := args[1].(*object.GoObj[rl.Vector2])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("Camera2D", 2, "rl.Vector2", target)
+				return newPositionalTypeErrorForGoObj("Camera2D", 2, "rl.Vector2", args[1])
 			}
 			if args[2].Type() != object.FLOAT_OBJ {
 				return newPositionalTypeError("Camera2D", 3, object.FLOAT_OBJ, args[2].Type())
@@ -3767,7 +3814,8 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			rotation := float32(args[2].(*object.Float).Value)
 			zoom := float32(args[3].(*object.Float).Value)
-			return &object.GoObj[rl.Camera2D]{Value: rl.NewCamera2D(offset.Value, target.Value, rotation, zoom), Id: GoObjId.Add(1)}
+			cam2d := rl.NewCamera2D(offset.Value, target.Value, rotation, zoom)
+			return NewGoObj(cam2d)
 		},
 	},
 	"_begin_mode2d": {
@@ -3780,7 +3828,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			cam, ok := args[0].(*object.GoObj[rl.Camera2D])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("begin_mode2d", 1, "rl.Camera2D", cam)
+				return newPositionalTypeErrorForGoObj("begin_mode2d", 1, "rl.Camera2D", args[0])
 			}
 			rl.BeginMode2D(cam.Value)
 			return NULL
@@ -3805,21 +3853,21 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			position, ok := args[0].(*object.GoObj[rl.Vector3])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("Camera3D", 1, "rl.Vector3", position)
+				return newPositionalTypeErrorForGoObj("Camera3D", 1, "rl.Vector3", args[0])
 			}
 			if args[1].Type() != object.GO_OBJ {
 				return newPositionalTypeError("Camera3D", 2, object.GO_OBJ, args[1].Type())
 			}
 			target, ok := args[1].(*object.GoObj[rl.Vector3])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("Camera3D", 2, "rl.Vector3", target)
+				return newPositionalTypeErrorForGoObj("Camera3D", 2, "rl.Vector3", args[1])
 			}
 			if args[2].Type() != object.GO_OBJ {
 				return newPositionalTypeError("Camera3D", 3, object.GO_OBJ, args[2].Type())
 			}
 			up, ok := args[2].(*object.GoObj[rl.Vector3])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("Camera3D", 3, "rl.Vector3", up)
+				return newPositionalTypeErrorForGoObj("Camera3D", 3, "rl.Vector3", args[2])
 			}
 			if args[3].Type() != object.FLOAT_OBJ {
 				return newPositionalTypeError("Camera3D", 4, object.FLOAT_OBJ, args[3].Type())
@@ -3829,7 +3877,8 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			fovy := float32(args[3].(*object.Float).Value)
 			projection := rl.CameraProjection(args[4].(*object.Integer).Value)
-			return &object.GoObj[rl.Camera3D]{Value: rl.NewCamera3D(position.Value, target.Value, up.Value, fovy, projection), Id: GoObjId.Add(1)}
+			cam3d := rl.NewCamera3D(position.Value, target.Value, up.Value, fovy, projection)
+			return NewGoObj(cam3d)
 		},
 	},
 	"_begin_mode3d": {
@@ -3842,7 +3891,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			cam, ok := args[0].(*object.GoObj[rl.Camera3D])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("begin_mode3d", 1, "rl.Camera3D", cam)
+				return newPositionalTypeErrorForGoObj("begin_mode3d", 1, "rl.Camera3D", args[0])
 			}
 			rl.BeginMode3D(cam.Value)
 			return NULL
@@ -3892,10 +3941,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
 					ext := filepath.Ext(s)
-					return &object.GoObj[rl.Music]{Value: rl.LoadMusicStreamFromMemory(ext, fileData, int32(len(fileData)))}
+					music := rl.LoadMusicStreamFromMemory(ext, fileData, int32(len(fileData)))
+					return NewGoObj(music)
 				}
 			}
-			return &object.GoObj[rl.Music]{Value: rl.LoadMusicStream(fname), Id: GoObjId.Add(1)}
+			music := rl.LoadMusicStream(fname)
+			return NewGoObj(music)
 		},
 	},
 	"_update_music": {
@@ -3908,7 +3959,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			music, ok := args[0].(*object.GoObj[rl.Music])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("update_music", 1, "rl.Music", music)
+				return newPositionalTypeErrorForGoObj("update_music", 1, "rl.Music", args[0])
 			}
 			rl.UpdateMusicStream(music.Value)
 			return NULL
@@ -3924,7 +3975,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			music, ok := args[0].(*object.GoObj[rl.Music])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("play_music", 1, "rl.Music", music)
+				return newPositionalTypeErrorForGoObj("play_music", 1, "rl.Music", args[0])
 			}
 			rl.PlayMusicStream(music.Value)
 			return NULL
@@ -3940,7 +3991,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			music, ok := args[0].(*object.GoObj[rl.Music])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("stop_music", 1, "rl.Music", music)
+				return newPositionalTypeErrorForGoObj("stop_music", 1, "rl.Music", args[0])
 			}
 			rl.StopMusicStream(music.Value)
 			return NULL
@@ -3956,7 +4007,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			music, ok := args[0].(*object.GoObj[rl.Music])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("resume_music", 1, "rl.Music", music)
+				return newPositionalTypeErrorForGoObj("resume_music", 1, "rl.Music", args[0])
 			}
 			rl.ResumeMusicStream(music.Value)
 			return NULL
@@ -3972,7 +4023,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			music, ok := args[0].(*object.GoObj[rl.Music])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("pause_music", 1, "rl.Music", music)
+				return newPositionalTypeErrorForGoObj("pause_music", 1, "rl.Music", args[0])
 			}
 			rl.PauseMusicStream(music.Value)
 			return NULL
@@ -3996,10 +4047,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err != nil {
 					ext := filepath.Ext(s)
 					wav := rl.LoadWaveFromMemory(ext, fileData, int32(len(fileData)))
-					return &object.GoObj[rl.Sound]{Value: rl.LoadSoundFromWave(wav)}
+					sound := rl.LoadSoundFromWave(wav)
+					return NewGoObj(sound)
 				}
 			}
-			return &object.GoObj[rl.Sound]{Value: rl.LoadSound(fname), Id: GoObjId.Add(1)}
+			sound := rl.LoadSound(fname)
+			return NewGoObj(sound)
 		},
 	},
 	"_play_sound": {
@@ -4012,7 +4065,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			sound, ok := args[0].(*object.GoObj[rl.Sound])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("play_sound", 1, "rl.Sound", sound)
+				return newPositionalTypeErrorForGoObj("play_sound", 1, "rl.Sound", args[0])
 			}
 			rl.PlaySound(sound.Value)
 			return NULL
@@ -4028,7 +4081,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			sound, ok := args[0].(*object.GoObj[rl.Sound])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("stop_sound", 1, "rl.Sound", sound)
+				return newPositionalTypeErrorForGoObj("stop_sound", 1, "rl.Sound", args[0])
 			}
 			rl.StopSound(sound.Value)
 			return NULL
@@ -4044,7 +4097,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			sound, ok := args[0].(*object.GoObj[rl.Sound])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("resume_sound", 1, "rl.Sound", sound)
+				return newPositionalTypeErrorForGoObj("resume_sound", 1, "rl.Sound", args[0])
 			}
 			rl.ResumeSound(sound.Value)
 			return NULL
@@ -4060,7 +4113,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			sound, ok := args[0].(*object.GoObj[rl.Sound])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("pause_sound", 1, "rl.Sound", sound)
+				return newPositionalTypeErrorForGoObj("pause_sound", 1, "rl.Sound", args[0])
 			}
 			rl.PauseSound(sound.Value)
 			return NULL
@@ -4160,7 +4213,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[3].Type() == object.GO_OBJ {
 				sout, ok := args[3].(*object.GoObj[*os.File])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("wasm_init", 4, "*os.File", sout)
+					return newPositionalTypeErrorForGoObj("wasm_init", 4, "*os.File", args[3])
 				}
 				stdout = sout.Value
 			} else {
@@ -4172,7 +4225,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[4].Type() == object.GO_OBJ {
 				serr, ok := args[4].(*object.GoObj[*os.File])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("wasm_init", 5, "*os.File", serr)
+					return newPositionalTypeErrorForGoObj("wasm_init", 5, "*os.File", args[4])
 				}
 				stderr = serr.Value
 			} else {
@@ -4184,7 +4237,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[5].Type() == object.GO_OBJ {
 				sin, ok := args[5].(*object.GoObj[*os.File])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("wasm_init", 6, "*os.File", sin)
+					return newPositionalTypeErrorForGoObj("wasm_init", 6, "*os.File", args[5])
 				}
 				stdin = sin.Value
 			} else {
@@ -4282,7 +4335,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`wasm_init` error: failed initalizing %s", err.Error())
 			}
-			return &object.GoObj[*wazm.Module]{Value: wm, Id: GoObjId.Add(1)}
+			return NewGoObj(wm)
 		},
 		HelpStr: "TODO: Add a help string",
 	},
@@ -4296,7 +4349,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			wm, ok := args[0].(*object.GoObj[*wazm.Module])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("wasm_get_functions", 1, "*wazm.Module", wm)
+				return newPositionalTypeErrorForGoObj("wasm_get_functions", 1, "*wazm.Module", args[0])
 			}
 			funs := wazm.GetFunctions(wm.Value)
 			l := &object.List{
@@ -4318,7 +4371,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			wm, ok := args[0].(*object.GoObj[*wazm.Module])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("wasm_get_exported_function", 1, "*wazm.Module", wm)
+				return newPositionalTypeErrorForGoObj("wasm_get_exported_function", 1, "*wazm.Module", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("wasm_get_exported_function", 2, object.STRING_OBJ, args[1].Type())
@@ -4384,7 +4437,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			wm, ok := args[0].(*object.GoObj[*wazm.Module])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("wasm_run", 1, "*wazm.Module", wm)
+				return newPositionalTypeErrorForGoObj("wasm_run", 1, "*wazm.Module", args[0])
 			}
 			if wm.Value.CancelFun != nil {
 				defer wm.Value.CancelFun()
@@ -4408,7 +4461,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			wm, ok := args[0].(*object.GoObj[*wazm.Module])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("wasm_close", 1, "*wazm.Module", wm)
+				return newPositionalTypeErrorForGoObj("wasm_close", 1, "*wazm.Module", args[0])
 			}
 			err := wm.Value.Runtime.Close(wm.Value.Ctx)
 			if err != nil {

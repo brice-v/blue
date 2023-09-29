@@ -31,6 +31,8 @@ val __entry_set_text = _entry_set_text;
 val __checkbox = _check_box;
 val __radio_group = _radio_group;
 val __option_select = _option_select;
+val __progress_bar = _progress_bar;
+val __progress_bar_set_value = _progress_bar_set_value;
 # Form
 val __form = _form;
 val __append_form = _append_form;
@@ -49,14 +51,17 @@ fun window(width=400, height=400, title="blue ui window", content=null) {
     if (content == null) {
         return error("`window` content was not given");
     }
-    return match content {
-        {t: "ui", v: _} => {
-            __window(_app, width, height, title, content.v)
-        },
-        _ => {
-            error("ui window: content type was not 'ui', got=#{content}")
-        },
-    };
+    var id = null;
+    if (type(content) == Type.GO_OBJ) {
+        id = content;
+    } else if (type(content) == Type.MAP) {
+        if ('_form' in content) {
+            id = content._form;
+        } else if ('widget' in content) {
+            id = content.widget;
+        }
+    }
+    return __window(_app, width, height, title, id);
 }
 
 fun row(children=[]) {
@@ -70,12 +75,26 @@ fun row(children=[]) {
     }
 
     for (child in children) {
-        if ("ui" notin child.t) {
-            return error("ui row: found child without 'ui' type, got=#{child}");
+        if (type(child) == Type.GO_OBJ) {
+            continue;
+        } else if (type(child) == Type.MAP) {
+            if ("widget" notin child) {
+                return error("ui row: 'widget' not found in child #{child}");
+            }
+        } else {
+            return error("ui row: Unexpected child #{child}");
         }
     }
-
-    var ids = [child.v for (child in children)];
+    var ids = [];
+    for (child in children) {
+        if (type(child) == Type.GO_OBJ) {
+            ids << child;
+            continue;
+        }
+        if ("widget" in child) {
+            ids << child.widget;
+        }
+    }
     # get the ids of all the child 'canvas object elements' to put into the row
     __row(ids)
 }
@@ -91,12 +110,26 @@ fun col(children=[]) {
     }
 
     for (child in children) {
-        if ("ui" notin child.t) {
-            return error("ui col: found child without 'ui' type, got=#{child}");
+        if (type(child) == Type.GO_OBJ) {
+            continue;
+        } else if (type(child) == Type.MAP) {
+            if ("widget" notin child) {
+                return error("ui col: 'widget' not found in child #{child}");
+            }
+        } else {
+            return error("ui col: Unexpected child #{child}");
         }
     }
-
-    var ids = [child.v for (child in children)];
+    var ids = [];
+    for (child in children) {
+        if (type(child) == Type.GO_OBJ) {
+            ids << child;
+            continue;
+        }
+        if ("widget" in child) {
+            ids << child.widget;
+        }
+    }
     # get the ids of all the child 'canvas object elements' to put into the col
     __col(ids)
 }
@@ -105,36 +138,42 @@ val GridType = {
     COLS: 'COLS',
     ROWS: 'ROWS'
 };
-fun grid(rowcols, type=GridType.COLS, children=[]) {
+fun grid(rowcols, t=GridType.COLS, children=[]) {
     ## `grid` is a layout function for the ui that accepts a list of layouts/widgets/forms
     ##
-    ## the layout for children is dependent on the grid type (either GridType.COLS or GridType.ROWS)
+    ## the layout for children is dependent on the grid type [t] (either GridType.COLS or GridType.ROWS)
     ## as well as the rowcols value which determins the # of rows, or cols
     ##
-    ## grid(rowcols: int, type: 'ROWS'|'COLS', children: list[{t: "ui*", v: uint}]=[]) -> {t: "ui", v: uint}
+    ## grid(rowcols: int, t: 'ROWS'|'COLS', children: list[{t: "ui*", v: uint}]=[]) -> {t: "ui", v: uint}
     if (children.len() == 0) {
         return error("ui grid: children length should be greater than 0")
     }
 
     for (child in children) {
-        if ("ui" notin child.t) {
-            return error("ui grid: found child without 'ui' type, got=#{child}");
+        if (type(child) == Type.GO_OBJ) {
+            continue;
+        } else if (type(child) == Type.MAP) {
+            if ("widget" notin child) {
+                return error("ui grid: 'widget' not found in child #{child}");
+            }
+        } else {
+            return error("ui grid: Unexpected child #{child}");
+        }
+    }
+    var ids = [];
+    for (child in children) {
+        if (type(child) == Type.GO_OBJ) {
+            ids << child;
+            continue;
+        }
+        if ("widget" in child) {
+            ids << child.widget;
         }
     }
 
-    var ids = [child.v for (child in children)];
     # get the ids of all the child 'canvas object elements' to put into the col
-    __grid(rowcols, type, ids)
+    __grid(rowcols, t, ids)
 }
-
-# Note: Cant use this function as the it will be called first when we do child.label
-# instead of using the string value (for form())
-###fun label(label_str) {
-    ## `label` will create a label widget with the given string
-    ##
-    ## label(label_str: str) -> {t: 'ui', v: uint}
-    __label(label_str)
-}###
 
 fun button(button_label_str, on_click_fun) {
     ## `button` will create a button widget with a label and function that responds on click
@@ -152,29 +191,17 @@ fun entry(is_multiline=false, placeholder="") {
     ## is_multiline is a boolean to determine if the entry should support multiline
     ##
     ## entry(is_multiline: bool=false) -> {t: "ui/entry", v: uint}
-    __entry(is_multiline, placeholder)
-}
+    var this = {};
+    this.widget = __entry(is_multiline, placeholder);
 
-fun entry_get_text(entry_id) {
-    ## `entry_get_text` gets the text from an entry widget
-    ## note: this function should mostly be called with the core function 'get_text'
-    ##
-    ## NOTE: this can only be called on an entry_id belonging to an entry object
-    ## ie. {t: 'ui/entry', v: _}
-    ##
-    ## entry_get_text(entry_id: uint) -> str
-    __entry_get_text(entry_id)
-}
+    this.set_text = fun(value) {
+        return __entry_set_text(this.widget, value);
+    };
+    this.get_text = fun() {
+        return __entry_get_text(this.widget);
+    };
 
-fun entry_set_text(entry_id, value) {
-    ## `entry_set_text` set the text for an entry widget
-    ## note: this function should mostly be called with the core function 'set_text'
-    ##
-    ## NOTE: this can only be called on an entry_id belonging to an entry object
-    ## ie. {t: 'ui/entry', v: _}
-    ##
-    ## entry_set_text(entry_id: uint, value: str) -> null
-    __entry_set_text(entry_id, value)
+    return this;
 }
 
 fun checkbox(checkbox_label, on_change_fun) {
@@ -220,14 +247,23 @@ fun form(children=[], on_submit=null) {
     ## on_submit is just a regular function that will be called when submitted
     ##
     ## form(children: list[{label: str, widget: {t: 'ui*', v: uint}}]=[]) -> {t: 'ui', v: uint}
+    var this = {};
     if (on_submit == null) {
         return error("`form` on_submit handler was not given");
     }
     for (child in children) {
         match child {
             {'label': _, 'elem': _} => {
-                if ("ui" notin child.elem.t) {
-                    return error("`form` children elements should all be {t: '*ui*', v: _}. got=`#{child.elem}`")
+                if (type(child.elem) == Type.GO_OBJ) {
+                    continue;
+                } else if (type(child.elem) == Type.MAP) {
+                    if ('t' in child.elem) {
+                        if ("ui" notin child.elem.t) {
+                            return error("`form` children elements should all be {t: '*ui*', v: _}. got=`#{child.elem}`");
+                        }
+                    } else if ('widget' notin child.elem) {
+                        return error("`form` children elements should all have a 'widget'");
+                    }
                 }
             },
             _ => {
@@ -239,26 +275,45 @@ fun form(children=[], on_submit=null) {
     var widgets = [];
     if (children.len() > 0) {
         for (child in children) {
-            labels = labels.append(child.label);
-            widgets = widgets.append(child.elem.v);
+            labels << child.label;
+            if (type(child.elem) == Type.GO_OBJ) {
+                widgets << child.elem;
+            } else {
+                if ('v' in child.elem) {
+                    widgets << child.elem.v;
+                } else if ('widget' in child.elem) {
+                    widgets << child.elem.widget;
+                }
+            }
         }
     }
-    __form(labels, widgets, on_submit)
+    this._form = __form(labels, widgets, on_submit);
+    this.append_form = fun(label, _widget) {
+        var id = null;
+        if (type(_widget) == Type.GO_OBJ) {
+            id = _widget;
+        } else {
+            if ('v' in _widget) {
+                id = widget.v;
+            } else if ('widget' in _widget) {
+                id = _widget.widget;
+            }
+        }
+        return __append_form(this._form, label, id);
+    }
+    return this;
 }
 
-fun append_form(form_obj, label, widget) {
-    ## `append_form` will take a form object and append a label and widget
-    ##
-    ## form_obj is an object that represents the form with shape {t: 'ui', v: uint}
-    ## label is a string
-    ## widget is a widget object with the shape {t: 'ui*', v: uint}
-    ##
-    ## append_form(form_obj: {t: 'ui', v: uint}, label: str, widget: {t: 'ui*', v: uint}) -> null
-    if ("ui" notin form_obj.t) {
-        return error("`append_form` error: form_obj must be {t: '*ui*', v: _}. got=`#{form_obj}`")
+fun progress_bar(is_infinite=false) {
+    var this = {};
+
+    this.widget = __progress_bar(is_infinite);
+
+    this.set_value = fun(value) {
+        if (is_infinite) {
+            return null;
+        }
+        return __progress_bar_set_value(this.widget.v, value);
     }
-    if ("ui" notin widget.t) {
-        return error("`append_form` error: widget must be {t: '*ui*', v: _}. got=`#{widget}`")
-    }
-    __append_form(form_obj.v, label, widget.v)
+    return this;
 }

@@ -26,13 +26,13 @@ var builtinobjs = BuiltinObjMapType{
 		Obj: &object.Stringo{Value: os.Stdout.Name()},
 	},
 	"FSTDIN": {
-		Obj: &object.GoObj[*os.File]{Value: os.Stdin, Id: GoObjId.Add(1)},
+		Obj: NewGoObj(os.Stdin),
 	},
 	"FSTDERR": {
-		Obj: &object.GoObj[*os.File]{Value: os.Stderr, Id: GoObjId.Add(1)},
+		Obj: NewGoObj(os.Stderr),
 	},
 	"FSTDOUT": {
-		Obj: &object.GoObj[*os.File]{Value: os.Stdout, Id: GoObjId.Add(1)},
+		Obj: NewGoObj(os.Stderr),
 	},
 	"VERSION": {
 		Obj: &object.Stringo{Value: consts.VERSION},

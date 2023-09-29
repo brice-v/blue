@@ -961,7 +961,7 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`button` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: button, Id: GoObjId.Add(1)})
+				return NewGoObj[fyne.CanvasObject](button)
 			},
 		}
 	}
@@ -1002,7 +1002,7 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`check_box` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				return object.CreateBasicMapObjectForGoObj("ui/check", &object.GoObj[fyne.CanvasObject]{Value: checkBox, Id: GoObjId.Add(1)})
+				return NewGoObj[fyne.CanvasObject](checkBox)
 			},
 		}
 	}
@@ -1050,7 +1050,7 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`radio_group` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				return object.CreateBasicMapObjectForGoObj("ui/radio", &object.GoObj[fyne.CanvasObject]{Value: radio, Id: GoObjId.Add(1)})
+				return NewGoObj[fyne.CanvasObject](radio)
 			},
 		}
 	}
@@ -1098,7 +1098,7 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`option_select` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				})
-				return object.CreateBasicMapObjectForGoObj("ui/option", &object.GoObj[fyne.CanvasObject]{Value: option, Id: GoObjId.Add(1)})
+				return NewGoObj[fyne.CanvasObject](option)
 			},
 		}
 	}
@@ -1165,7 +1165,7 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 						}
 					},
 				}
-				return object.CreateBasicMapObjectForGoObj("ui", &object.GoObj[fyne.CanvasObject]{Value: form, Id: GoObjId.Add(1)})
+				return NewGoObj[fyne.CanvasObject](form)
 			},
 		}
 	}

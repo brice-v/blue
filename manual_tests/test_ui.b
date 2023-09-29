@@ -25,14 +25,18 @@ fun option_handler(v) {
     println("option_handler `#{v}`");
 }
 
+#var tgrid = ui.text_grid();
+
 # Note these all had to be the same # of elements in order to get the button to show up
-var ui_content = ui.col([
+var ui_content = ui.row([ui.col([
     ui.row(children=[ui.label("Hello World!"), ui.label("Should be 2")]),
     ui.row(children=[ui.label("column 2"), ui.label("under column 2?")]),
     ui.row([ui.button("Click Me!", button_handler), entry]),
     ui.row([ui.button("Button 2!", button2_handler), entry2]),
     ui.row([ui.checkbox("Optional", checkbox_handler), ui.radio_group(["1", "2"], radio_handler), ui.option_select(["a", "b"], option_handler)])
-]);
+]), ui.col([
+    ui.row([ui.label("SOMETHING HERE!!!"), ui.progress_bar(true)])
+])]);
 
 println("ui_content = #{ui_content}");
 

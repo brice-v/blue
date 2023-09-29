@@ -13,6 +13,7 @@ val Type = {
     FUN: 'FUNCTION',
     BUILTIN: 'BUILTIN',
     MODULE: 'MODULE_OBJ',
+    GO_OBJ: 'GO_OBJ',
 };
 
 fun send(obj, value) {
@@ -191,32 +192,6 @@ fun accept(obj) {
         {t: "net/tcp", v: _} => {
             import net
             net.net_accept(obj.v)
-        },
-        _ => {
-            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
-        },
-    }
-}
-
-fun get_text(obj) {
-    ##core:ignore
-    match obj {
-        {t: "ui/entry", v: _} => {
-            import ui
-            ui.entry_get_text(obj.v)
-        },
-        _ => {
-            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
-        },
-    }
-}
-
-fun set_text(obj, value) {
-    ##core:ignore
-    match obj {
-        {t: "ui/entry", v: _} => {
-            import ui
-            ui.entry_set_text(obj.v, value)
         },
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")

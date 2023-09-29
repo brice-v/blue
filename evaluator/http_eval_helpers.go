@@ -28,7 +28,7 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 			}
 			app, ok := args[0].(*object.GoObj[*fiber.App])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("handle", 1, "*fiber.App", app)
+				return newPositionalTypeErrorForGoObj("handle", 1, "*fiber.App", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle", 2, object.STRING_OBJ, args[1].Type())
@@ -472,7 +472,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 			}
 			app, ok := args[0].(*object.GoObj[*fiber.App])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("handle_ws", 1, "*fiber.App", app)
+				return newPositionalTypeErrorForGoObj("handle_ws", 1, "*fiber.App", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle_ws", 2, object.STRING_OBJ, args[1].Type())
@@ -549,7 +549,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 				immutableArgs := make([]bool, len(fnArgs))
 				for i, v := range fn.Parameters {
 					if i == 0 {
-						fnArgs[i] = object.CreateBasicMapObjectForGoObj[*websocket.Conn]("ws", &object.GoObj[*websocket.Conn]{Value: c, Id: GoObjId.Add(1)})
+						fnArgs[i] = object.CreateBasicMapObjectForGoObj("ws", NewGoObj(c))
 					} else {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 					}
