@@ -60,6 +60,8 @@ fun window(width=400, height=400, title="blue ui window", content=null) {
         } else if ('widget' in content) {
             id = content.widget;
         }
+    } else {
+        return error("`window` expects content to be a GO_OBJ[fyne.CanvasObject] or MAP, got=#{type(content)}");
     }
     return __window(_app, width, height, title, id);
 }
