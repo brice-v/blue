@@ -11,8 +11,6 @@ var rc = mod.run();
 assert(rc == 0);
 
 var mod1 = wasm.init(prefix+'wasm_test_files/add.wasm');
-import time
-time.sleep(1000);
 defer(fun() { 
     try {
         mod1.close();
@@ -21,6 +19,7 @@ defer(fun() {
     }
 }); 
 var functions = mod1.get_functions();
+println("functions = #{functions}")
 var expected_functions = ['realloc', '_start', 'add', 'asyncify_start_unwind', 'asyncify_stop_unwind', 'asyncify_start_rewind', 'free', 'calloc', 'asyncify_stop_rewind', 'malloc', 'asyncify_get_state'];
 assert(len(functions) == len(expected_functions));
 for (func in expected_functions) {

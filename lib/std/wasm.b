@@ -15,7 +15,8 @@ fun init(wasm_code_path, args=ARGV, mounts={'.':'/'}, stdout=FSTDOUT, stderr=FST
     this.get_functions = fun() {
         __wasm_get_functions(this.mod)
     };
-    for (func in __wasm_get_functions(this.mod)) {
+    val functions = __wasm_get_functions(this.mod);
+    for (func in functions) {
         this[func] = __wasm_get_exported_function(this.mod, func);
     }
     this.close = fun() {

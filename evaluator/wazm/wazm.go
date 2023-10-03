@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -179,6 +180,7 @@ func GetFunctions(wm *Module) []string {
 		result[i] = k
 		i++
 	}
+	sort.Strings(result)
 	return result
 }
 
@@ -210,9 +212,9 @@ func wazmInstantiate(wm *Module) (apiMod api.Module, err error) {
 }
 
 func WazmRun(wm *Module) (*Module, int, error) {
+	wm.IsInstantiated = true
 	apiMod, err := wazmInstantiate(wm)
 	wm.ApiMod = apiMod
-	wm.IsInstantiated = true
 	if err != nil {
 		if exitErr, ok := err.(*sys.ExitError); ok {
 			exitCode := exitErr.ExitCode()
