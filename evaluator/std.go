@@ -42,6 +42,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/antchfx/htmlquery"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -139,6 +140,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 			_ui_builtin_map.Put("_radio_group", createUIRadioBuiltin(newE))
 			_ui_builtin_map.Put("_option_select", createUIOptionSelectBuiltin(newE))
 			_ui_builtin_map.Put("_form", createUIFormBuiltin(newE))
+			_ui_builtin_map.Put("_toolbar_action", createUIToolbarAction(newE))
 		}
 		val := newE.Eval(program)
 		if isError(val) {
@@ -2603,6 +2605,41 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 		},
 	},
+	"_toolbar": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) == 0 {
+				return newInvalidArgCountError("toolbar", len(args), 1, "or more")
+			}
+			tis := []widget.ToolbarItem{}
+			for i, arg := range args {
+				if arg.Type() != object.GO_OBJ {
+					return newPositionalTypeError("toolbar", i+1, object.GO_OBJ, arg.Type())
+				}
+				ti, ok := args[0].(*object.GoObj[widget.ToolbarItem])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("toolbar", 1, "widget.ToolbarItem", args[0])
+				}
+				tis = append(tis, ti.Value)
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewToolbar(tis...))
+		},
+	},
+	"_toolbar_spacer": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("toolbar_spacer", len(args), 0, "")
+			}
+			return NewGoObj[widget.ToolbarItem](widget.NewToolbarSpacer())
+		},
+	},
+	"_toolbar_separator": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("toolbar_separator", len(args), 0, "")
+			}
+			return NewGoObj[widget.ToolbarItem](widget.NewToolbarSeparator())
+		},
+	},
 	"_row": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -2790,6 +2827,718 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			form.Append(args[1].(*object.Stringo).Value, w.Value)
 			return NULL
+		},
+	},
+	"_icon_account": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_account", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.AccountIcon())
+		},
+	},
+	"_icon_cancel": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_cancel", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.CancelIcon())
+		},
+	},
+	"_icon_check_button_checked": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_check_button_checked", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.CheckButtonCheckedIcon())
+		},
+	},
+	"_icon_check_button": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_check_button", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.CheckButtonIcon())
+		},
+	},
+	"_icon_color_achromatic": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_color_achromatic", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ColorAchromaticIcon())
+		},
+	},
+	"_icon_color_chromatic": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_color_chromatic", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ColorChromaticIcon())
+		},
+	},
+	"_icon_color_palette": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_color_palette", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ColorPaletteIcon())
+		},
+	},
+	"_icon_computer": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_computer", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ComputerIcon())
+		},
+	},
+	"_icon_confirm": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_confirm", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ConfirmIcon())
+		},
+	},
+	"_icon_content_add": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_add", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentAddIcon())
+		},
+	},
+	"_icon_content_clear": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_clear", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentClearIcon())
+		},
+	},
+	"_icon_content_copy": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_copy", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentCopyIcon())
+		},
+	},
+	"_icon_content_cut": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_cut", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentCutIcon())
+		},
+	},
+	"_icon_content_paste": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_paste", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentPasteIcon())
+		},
+	},
+	"_icon_content_redo": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_redo", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentRedoIcon())
+		},
+	},
+	"_icon_content_remove": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_remove", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentRemoveIcon())
+		},
+	},
+	"_icon_content_undo": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_content_undo", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ContentUndoIcon())
+		},
+	},
+	"_icon_delete": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_delete", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.DeleteIcon())
+		},
+	},
+	"_icon_document_create": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_document_create", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.DocumentCreateIcon())
+		},
+	},
+	"_icon_document": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_document", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.DocumentIcon())
+		},
+	},
+	"_icon_document_print": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_document_print", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.DocumentPrintIcon())
+		},
+	},
+	"_icon_document_save": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_document_save", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.DocumentSaveIcon())
+		},
+	},
+	"_icon_download": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_download", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.DownloadIcon())
+		},
+	},
+	"_icon_error": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_error", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ErrorIcon())
+		},
+	},
+	"_icon_file_application": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_file_application", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FileApplicationIcon())
+		},
+	},
+	"_icon_file_audio": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_file_audio", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FileAudioIcon())
+		},
+	},
+	"_icon_file": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_file", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FileIcon())
+		},
+	},
+	"_icon_file_image": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_file_image", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FileImageIcon())
+		},
+	},
+	"_icon_file_text": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_file_text", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FileTextIcon())
+		},
+	},
+	"_icon_file_video": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_file_video", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FileVideoIcon())
+		},
+	},
+	"_icon_folder": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_folder", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FolderIcon())
+		},
+	},
+	"_icon_folder_new": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_folder_new", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FolderNewIcon())
+		},
+	},
+	"_icon_folder_open": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_folder_open", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.FolderOpenIcon())
+		},
+	},
+	"_icon_grid": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_grid", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.GridIcon())
+		},
+	},
+	"_icon_help": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_help", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.HelpIcon())
+		},
+	},
+	"_icon_history": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_history", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.HistoryIcon())
+		},
+	},
+	"_icon_home": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_home", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.HomeIcon())
+		},
+	},
+	"_icon_info": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_info", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.InfoIcon())
+		},
+	},
+	"_icon_list": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_list", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ListIcon())
+		},
+	},
+	"_icon_login": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_login", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.LoginIcon())
+		},
+	},
+	"_icon_logout": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_logout", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.LogoutIcon())
+		},
+	},
+	"_icon_mail_attachment": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_mail_attachment", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MailAttachmentIcon())
+		},
+	},
+	"_icon_mail_compose": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_mail_compose", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MailComposeIcon())
+		},
+	},
+	"_icon_mail_forward": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_mail_forward", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MailForwardIcon())
+		},
+	},
+	"_icon_mail_reply_all": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_mail_reply_all", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MailReplyAllIcon())
+		},
+	},
+	"_icon_mail_reply": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_mail_reply", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MailReplyIcon())
+		},
+	},
+	"_icon_mail_send": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_mail_send", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MailSendIcon())
+		},
+	},
+	"_icon_media_fast_forward": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_fast_forward", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaFastForwardIcon())
+		},
+	},
+	"_icon_media_fast_rewind": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_fast_rewind", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaFastRewindIcon())
+		},
+	},
+	"_icon_media_music": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_music", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaMusicIcon())
+		},
+	},
+	"_icon_media_pause": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_pause", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaPauseIcon())
+		},
+	},
+	"_icon_media_photo": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_photo", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaPhotoIcon())
+		},
+	},
+	"_icon_media_play": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_play", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaPlayIcon())
+		},
+	},
+	"_icon_media_record": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_record", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaRecordIcon())
+		},
+	},
+	"_icon_media_replay": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_replay", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaReplayIcon())
+		},
+	},
+	"_icon_media_skip_next": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_skip_next", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaSkipNextIcon())
+		},
+	},
+	"_icon_media_skip_previous": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_skip_previous", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaSkipPreviousIcon())
+		},
+	},
+	"_icon_media_stop": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_stop", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaStopIcon())
+		},
+	},
+	"_icon_media_video": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_media_video", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MediaVideoIcon())
+		},
+	},
+	"_icon_menu_drop_down": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_menu_drop_down", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MenuDropDownIcon())
+		},
+	},
+	"_icon_menu_drop_up": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_menu_drop_up", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MenuDropUpIcon())
+		},
+	},
+	"_icon_menu_expand": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_menu_expand", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MenuExpandIcon())
+		},
+	},
+	"_icon_menu": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_menu", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MenuIcon())
+		},
+	},
+	"_icon_more_horizontal": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_more_horizontal", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MoreHorizontalIcon())
+		},
+	},
+	"_icon_more_vertical": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_more_vertical", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MoreVerticalIcon())
+		},
+	},
+	"_icon_move_down": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_move_down", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MoveDownIcon())
+		},
+	},
+	"_icon_move_up": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_move_up", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.MoveUpIcon())
+		},
+	},
+	"_icon_navigate_back": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_navigate_back", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.NavigateBackIcon())
+		},
+	},
+	"_icon_navigate_next": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_navigate_next", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.NavigateNextIcon())
+		},
+	},
+	"_icon_question": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_question", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.QuestionIcon())
+		},
+	},
+	"_icon_radio_button_checked": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_radio_button_checked", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.RadioButtonCheckedIcon())
+		},
+	},
+	"_icon_radio_button": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_radio_button", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.RadioButtonIcon())
+		},
+	},
+	"_icon_search": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_search", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.SearchIcon())
+		},
+	},
+	"_icon_search_replace": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_search_replace", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.SearchReplaceIcon())
+		},
+	},
+	"_icon_settings": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_settings", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.SettingsIcon())
+		},
+	},
+	"_icon_storage": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_storage", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.StorageIcon())
+		},
+	},
+	"_icon_upload": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_upload", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.UploadIcon())
+		},
+	},
+	"_icon_view_full_screen": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_view_full_screen", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ViewFullScreenIcon())
+		},
+	},
+	"_icon_view_refresh": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_view_refresh", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ViewRefreshIcon())
+		},
+	},
+	"_icon_view_restore": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_view_restore", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ViewRestoreIcon())
+		},
+	},
+	"_icon_visibility": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_visibility", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.VisibilityIcon())
+		},
+	},
+	"_icon_visibility_off": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_visibility_off", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.VisibilityOffIcon())
+		},
+	},
+	"_icon_volume_down": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_volume_down", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.VolumeDownIcon())
+		},
+	},
+	"_icon_volume_mute": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_volume_mute", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.VolumeMuteIcon())
+		},
+	},
+	"_icon_volume_up": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_volume_up", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.VolumeUpIcon())
+		},
+	},
+	"_icon_warning": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_warning", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.WarningIcon())
+		},
+	},
+	"_icon_zoom_fit": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_zoom_fit", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ZoomFitIcon())
+		},
+	},
+	"_icon_zoom_in": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_zoom_in", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ZoomInIcon())
+		},
+	},
+	"_icon_zoom_out": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("icon_zoom_out", len(args), 0, "")
+			}
+			return NewGoObj[fyne.Resource](theme.ZoomOutIcon())
 		},
 	},
 })

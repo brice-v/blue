@@ -1172,6 +1172,46 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 	return uiFormBuiltin
 }
 
+var uiToolbarAction *object.Builtin = nil
+
+func createUIToolbarAction(e *Evaluator) *object.Builtin {
+	if uiToolbarAction == nil {
+		uiToolbarAction = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("toolbar_action", len(args), 2, "")
+				}
+				if args[0].Type() != object.GO_OBJ {
+					return newPositionalTypeError("toolbar_action", 1, object.GO_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("toolbar_action", 2, object.FUNCTION_OBJ, args[1].Type())
+				}
+				r, ok := args[0].(*object.GoObj[fyne.Resource])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("toolbar_action", 1, "fyne.Resource", args[0])
+				}
+				fn := args[1].(*object.Function)
+				return NewGoObj[widget.ToolbarItem](widget.NewToolbarAction(r.Value, func() {
+					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
+					if isError(obj) {
+						err := obj.(*object.Error)
+						var buf bytes.Buffer
+						buf.WriteString(err.Message)
+						buf.WriteByte('\n')
+						for e.ErrorTokens.Len() > 0 {
+							tok := e.ErrorTokens.PopBack()
+							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						}
+						fmt.Printf("%s`toolbar_action` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+					}
+				}))
+			},
+		}
+	}
+	return uiToolbarAction
+}
+
 // Helper for `doc` command
 func (e *Evaluator) GetAllStdPublicFunctionHelpStrings() string {
 	mods := make([]string, len(_std_mods))
