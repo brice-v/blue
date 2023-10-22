@@ -932,6 +932,7 @@ func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object
 		return newError("ListCompLiteral error: %s", strings.Join(p.Errors(), " | "))
 	}
 	result := e.Eval(rootNode)
+	defer e.env.RemoveIdentifier("__internal__")
 	if isError(result) {
 		return newError("ListCompLiteral error: %s", result.(*object.Error).Message)
 	}
@@ -939,7 +940,6 @@ func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object
 	if !ok {
 		return nil
 	}
-	e.env.RemoveIdentifier("__internal__")
 	return &object.ListCompLiteral{Elements: someVal.(*object.List).Elements}
 }
 
@@ -954,6 +954,7 @@ func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
 		return newError("MapCompLiteral error: %s", strings.Join(p.Errors(), " | "))
 	}
 	result := e.Eval(rootNode)
+	defer e.env.RemoveIdentifier("__internal__")
 	if isError(result) {
 		return newError("MapCompLiteral error: %s", result.(*object.Error).Message)
 	}
@@ -961,7 +962,6 @@ func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
 	if !ok {
 		return nil
 	}
-	e.env.RemoveIdentifier("__internal__")
 	return &object.Map{Pairs: someVal.(*object.Map).Pairs}
 }
 
@@ -976,6 +976,7 @@ func (e *Evaluator) evalSetCompLiteral(node *ast.SetCompLiteral) object.Object {
 		return newError("SetCompLiteral error: %s", strings.Join(p.Errors(), " | "))
 	}
 	result := e.Eval(rootNode)
+	defer e.env.RemoveIdentifier("__internal__")
 	if isError(result) {
 		return newError("SetCompLiteral error: %s", result.(*object.Error).Message)
 	}
@@ -983,7 +984,6 @@ func (e *Evaluator) evalSetCompLiteral(node *ast.SetCompLiteral) object.Object {
 	if !ok {
 		return nil
 	}
-	e.env.RemoveIdentifier("__internal__")
 	return &object.Set{Elements: someVal.(*object.Set).Elements}
 }
 
