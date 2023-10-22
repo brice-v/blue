@@ -217,6 +217,12 @@ func (p *Parser) peekError(t token.Type) {
 	p.errors = append(p.errors, msg)
 }
 
+func (p *Parser) peekError2(t token.Type) {
+	errorLine := lexer.GetErrorLineMessage(p.peekToken)
+	msg := fmt.Sprintf("expected next token to be not be %s, got %s\n%s", t, p.peekToken.Type, errorLine)
+	p.errors = append(p.errors, msg)
+}
+
 // noPrefixParseFunError will append an error if no prefix parse function is found
 func (p *Parser) noPrefixParseFunError(t token.Type) {
 	errorLine := lexer.GetErrorLineMessage(p.curToken)
@@ -910,8 +916,8 @@ func (p *Parser) parseParenGroupExpresion() ast.Expression {
 func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken, Conditions: []ast.Expression{}, Consequences: []*ast.BlockStatement{}}
 	for {
-		if !p.expectPeekIs(token.LPAREN) {
-			return nil
+		if p.curTokenIs(token.IF) {
+			p.nextToken()
 		}
 		// parse the (group) expression as the condition
 		expression.Conditions = append(expression.Conditions, p.parseExpression(LOWEST))
@@ -1271,22 +1277,21 @@ func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 	}
 }
 
-// parseForExpression parses a for expression and returns the for expressions
-// ast node
+// parseForExpression parses a for expression and returns the for expressions ast node
 func (p *Parser) parseForExpression() ast.Expression {
 	exp := &ast.ForExpression{
 		Token: p.curToken,
 	}
 	// current token is for, expect next to be lparen
-	if !p.expectPeekIs(token.LPAREN) {
-		return nil
+	if p.curTokenIs(token.FOR) {
+		p.nextToken()
 	}
-	// move to the expression in the condition
-	p.nextToken()
+	shouldExpectRPAREN := p.curTokenIs(token.LPAREN)
 
 	exp.Condition = p.parseExpression(LOWEST)
 
-	if !p.expectPeekIs(token.RPAREN) {
+	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
+		p.peekError(p.curToken.Type)
 		return nil
 	}
 	if !p.expectPeekIs(token.LBRACE) {
@@ -1440,20 +1445,30 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 	// Skip over the for
 	p.nextToken()
 	// current token is for, expect next to be lparen
-	if !p.expectPeekIs(token.LPAREN) {
-		return nil
+	shouldExpectRPAREN := false
+	if p.peekTokenIs(token.LPAREN) {
+		p.nextToken()
+		shouldExpectRPAREN = true
 	}
-	// move to the expression in the condition
-	p.nextToken()
+	if p.curTokenIs(token.FOR) {
+		p.nextToken()
+	}
 
 	expCond := p.parseExpression(LOWEST)
-	if !p.expectPeekIs(token.RPAREN) {
+	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
+		p.peekError(token.RPAREN)
 		return nil
+	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
+		p.peekError2(token.RPAREN)
+		return nil
+	}
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
 	}
 
 	var ifCond ast.Expression
 	if p.peekTokenIs(token.IF) {
-		// skip RPAREN
+		// skip expression ending/RPAREN
 		p.nextToken()
 		// skip IF
 		p.nextToken()
@@ -1476,20 +1491,30 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 	// Skip over the for
 	p.nextToken()
 	// current token is for, expect next to be lparen
-	if !p.expectPeekIs(token.LPAREN) {
-		return nil
+	shouldExpectRPAREN := false
+	if p.peekTokenIs(token.LPAREN) {
+		p.nextToken()
+		shouldExpectRPAREN = true
 	}
-	// move to the expression in the condition
-	p.nextToken()
+	if p.curTokenIs(token.FOR) {
+		p.nextToken()
+	}
 
 	expCond := p.parseExpression(LOWEST)
-	if !p.expectPeekIs(token.RPAREN) {
+	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
+		p.peekError(token.RPAREN)
 		return nil
+	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
+		p.peekError2(token.RPAREN)
+		return nil
+	}
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
 	}
 
 	var ifCond ast.Expression
 	if p.peekTokenIs(token.IF) {
-		// skip RPAREN
+		// skip RPAREN/ending exp
 		p.nextToken()
 		// skip IF
 		p.nextToken()
@@ -1513,20 +1538,30 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 	// Skip over the for
 	p.nextToken()
 	// current token is for, expect next to be lparen
-	if !p.expectPeekIs(token.LPAREN) {
-		return nil
+	shouldExpectRPAREN := false
+	if p.peekTokenIs(token.LPAREN) {
+		p.nextToken()
+		shouldExpectRPAREN = true
 	}
-	// move to the expression in the condition
-	p.nextToken()
+	if p.curTokenIs(token.FOR) {
+		p.nextToken()
+	}
 
 	expCond := p.parseExpression(LOWEST)
-	if !p.expectPeekIs(token.RPAREN) {
+	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
+		p.peekError(token.RPAREN)
 		return nil
+	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
+		p.peekError2(token.RPAREN)
+		return nil
+	}
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
 	}
 
 	var ifCond ast.Expression
 	if p.peekTokenIs(token.IF) {
-		// skip RPAREN
+		// skip RPAREN/ending exp
 		p.nextToken()
 		// skip IF
 		p.nextToken()
