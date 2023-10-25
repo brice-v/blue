@@ -1409,8 +1409,36 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		}
 	}()
 	firstRun := true
+	initalizerRan := false
+	scopeToClear := -1
+	defer func() {
+		if node.UsesVar && initalizerRan {
+			for _, k := range e.scopeVars[scopeToClear] {
+				e.env.RemoveIdentifier(k)
+			}
+			delete(e.scopeVars, scopeToClear)
+			delete(e.isInScopeBlock, scopeToClear)
+			e.scopeNestLevel--
+		}
+	}()
 	for {
 		e.evalingNodeCond[e.nestLevel] = struct{}{}
+		if node.UsesVar && !initalizerRan {
+			val := e.Eval(node.Initializer.Value)
+			if isError(val) {
+				e.ErrorTokens.Push(node.Token)
+				return val
+			}
+			e.scopeNestLevel++
+			scopeToClear = e.scopeNestLevel
+			e.isInScopeBlock[e.scopeNestLevel] = struct{}{}
+			initalizerStmt := e.evalVariableStatement(false, node.Initializer.IsMapDestructor,
+				node.Initializer.IsListDestructor, val, node.Initializer.Names, node.Initializer.KeyValueNames, node.Initializer.Token)
+			if isError(initalizerStmt) {
+				return initalizerStmt
+			}
+			initalizerRan = true
+		}
 		evalCond := e.Eval(node.Condition)
 		delete(e.evalingNodeCond, e.nestLevel)
 		if isError(evalCond) {
@@ -1440,6 +1468,27 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		if evalBlock == BREAK {
 			evalBlock = NULL
 			break
+		}
+		if node.UsesVar {
+			result := e.Eval(node.PostExp)
+			if isError(result) {
+				return result
+			}
+			// Check the eval cond at the end of our post exp in case we need to exit
+			e.evalingNodeCond[e.nestLevel] = struct{}{}
+			evalCond := e.Eval(node.Condition)
+			delete(e.evalingNodeCond, e.nestLevel)
+			if isError(evalCond) {
+				return evalCond
+			}
+			if evalCond.Type() != object.BOOLEAN_OBJ {
+				return newError("for expression condition expects BOOLEAN. got=%s", evalCond.Type())
+			}
+			ok := evalCond.(*object.Boolean).Value
+			if !ok {
+				e.doneWithFor = true
+				return NULL
+			}
 		}
 		if evalBlock == CONTINUE && ok {
 			evalBlock = NULL

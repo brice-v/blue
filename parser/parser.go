@@ -1280,7 +1280,8 @@ func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 // parseForExpression parses a for expression and returns the for expressions ast node
 func (p *Parser) parseForExpression() ast.Expression {
 	exp := &ast.ForExpression{
-		Token: p.curToken,
+		Token:   p.curToken,
+		UsesVar: false,
 	}
 	// current token is for, expect next to be lparen
 	if p.curTokenIs(token.FOR) {
@@ -1288,7 +1289,33 @@ func (p *Parser) parseForExpression() ast.Expression {
 	}
 	shouldExpectRPAREN := p.curTokenIs(token.LPAREN)
 
-	exp.Condition = p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.VAR) || (!shouldExpectRPAREN && p.curTokenIs(token.VAR)) {
+		exp.UsesVar = true
+		if shouldExpectRPAREN {
+			p.nextToken()
+		}
+		exp.Initializer = p.parseVarStatement()
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		exp.Condition = p.parseExpression(LOWEST)
+		if !p.expectPeekIs(token.SEMICOLON) {
+			return nil
+		}
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		exp.PostExp = p.parseExpression(LOWEST)
+		if shouldExpectRPAREN {
+			p.nextToken()
+		}
+	} else {
+		exp.Condition = p.parseExpression(LOWEST)
+	}
 
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
 		p.peekError(p.curToken.Type)
