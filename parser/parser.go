@@ -1481,7 +1481,38 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 		p.nextToken()
 	}
 
-	expCond := p.parseExpression(LOWEST)
+	skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
+	parseNewFor := p.curTokenIs(token.VAR) || skipLparen
+	condStr := ""
+	if parseNewFor {
+		if skipLparen {
+			p.nextToken()
+		}
+		varStmt := p.parseVarStatement()
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		cond := p.parseExpression(LOWEST)
+		if !p.expectPeekIs(token.SEMICOLON) {
+			return nil
+		}
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		postExp := p.parseExpression(LOWEST)
+		condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
+		if skipLparen {
+			p.nextToken()
+		}
+	} else {
+		expCond := p.parseExpression(LOWEST)
+		condStr = expCond.String()
+	}
+
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
 		p.peekError(token.RPAREN)
 		return nil
@@ -1504,9 +1535,9 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 
 	var program string
 	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { var __result__ = %s; __internal__ << __result__; } };", expCond, ifCond, valueToBind.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { var __result__ = %s; __internal__ << __result__; } };", condStr, ifCond, valueToBind.String())
 	} else {
-		program = fmt.Sprintf("var __internal__ = []; for %s { var __result__ = %s; __internal__ << __result__; };", expCond, valueToBind.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { var __result__ = %s; __internal__ << __result__; };", condStr, valueToBind.String())
 	}
 	if !p.expectPeekIs(token.RBRACKET) {
 		return nil
@@ -1527,7 +1558,38 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 		p.nextToken()
 	}
 
-	expCond := p.parseExpression(LOWEST)
+	skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
+	parseNewFor := p.curTokenIs(token.VAR) || skipLparen
+	condStr := ""
+	if parseNewFor {
+		if skipLparen {
+			p.nextToken()
+		}
+		varStmt := p.parseVarStatement()
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		cond := p.parseExpression(LOWEST)
+		if !p.expectPeekIs(token.SEMICOLON) {
+			return nil
+		}
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		postExp := p.parseExpression(LOWEST)
+		condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
+		if skipLparen {
+			p.nextToken()
+		}
+	} else {
+		expCond := p.parseExpression(LOWEST)
+		condStr = expCond.String()
+	}
+
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
 		p.peekError(token.RPAREN)
 		return nil
@@ -1550,9 +1612,9 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 
 	var program string
 	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = {}; for %s { if %s { __internal__[%s] = %s } };", expCond, ifCond, key.String(), value.String())
+		program = fmt.Sprintf("var __internal__ = {}; for %s { if %s { __internal__[%s] = %s } };", condStr, ifCond, key.String(), value.String())
 	} else {
-		program = fmt.Sprintf("var __internal__ = {}; for %s { __internal__[%s] = %s  };", expCond, key.String(), value.String())
+		program = fmt.Sprintf("var __internal__ = {}; for %s { __internal__[%s] = %s  };", condStr, key.String(), value.String())
 	}
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil
@@ -1574,7 +1636,38 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 		p.nextToken()
 	}
 
-	expCond := p.parseExpression(LOWEST)
+	skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
+	parseNewFor := p.curTokenIs(token.VAR) || skipLparen
+	condStr := ""
+	if parseNewFor {
+		if skipLparen {
+			p.nextToken()
+		}
+		varStmt := p.parseVarStatement()
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		cond := p.parseExpression(LOWEST)
+		if !p.expectPeekIs(token.SEMICOLON) {
+			return nil
+		}
+		if !p.curTokenIs(token.SEMICOLON) {
+			p.peekError2(token.SEMICOLON)
+			return nil
+		}
+		p.nextToken()
+		postExp := p.parseExpression(LOWEST)
+		condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
+		if skipLparen {
+			p.nextToken()
+		}
+	} else {
+		expCond := p.parseExpression(LOWEST)
+		condStr = expCond.String()
+	}
+
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
 		p.peekError(token.RPAREN)
 		return nil
@@ -1597,9 +1690,9 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 
 	var program string
 	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { __internal__ << %s } }; __internal__ = set(__internal__);", expCond, ifCond, value.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { __internal__ << %s } }; __internal__ = set(__internal__);", condStr, ifCond, value.String())
 	} else {
-		program = fmt.Sprintf("var __internal__ = []; for %s { __internal__ << %s }; __internal__ = set(__internal__);", expCond, value.String())
+		program = fmt.Sprintf("var __internal__ = []; for %s { __internal__ << %s }; __internal__ = set(__internal__);", condStr, value.String())
 	}
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil
