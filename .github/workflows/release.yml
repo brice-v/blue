@@ -1,8 +1,8 @@
 name: Release
-on: 
+on:
   push:
     tags:
-    - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   release:
@@ -14,64 +14,62 @@ jobs:
         os: [ubuntu-latest, windows-2019, macos-latest]
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        persist-credentials: false
-    - uses: WillAbides/setup-go-faster@v1.8.0
-      with:
-        go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+      - uses: WillAbides/setup-go-faster@v1.8.0
+        with:
+          go-version: ${{ matrix.go-version }}
 
-    - name: Get dependencies Linux
-      run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
-      if: ${{ runner.os == 'Linux' }}
+      - name: Get dependencies Linux
+        run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
+        if: ${{ runner.os == 'Linux' }}
 
-    - name: Tests
-      run: go test ./...
-    
-    - name: Build Windows
-      if: matrix.os == 'windows-2019'
-      run: go build -ldflags='-s -w -extldflags "-static" -H=windowsgui' -o blue-win.exe .
-    
-    - name: Build Linux
-      if: matrix.os == 'ubuntu-latest'
-      run: go build -ldflags='-s -w' -o blue-linux .
+      - name: Tests
+        run: go test ./...
 
-    - name: Build Macos
-      if: matrix.os == 'macos-latest'
-      run: go build -ldflags='-s -w' -o blue-mac .
-      
-    - name: Compress windows binaries
-      if: matrix.os == 'windows-2019'
-      uses: svenstaro/upx-action@v2
-      with:
-        file: blue-win.exe
-    
-    - name: Compress linux binaries
-      if: matrix.os == 'ubuntu-latest'
-      uses: svenstaro/upx-action@v2
-      with:
-        file: blue-linux
+      - name: Build Windows
+        if: matrix.os == 'windows-2019'
+        run: go build -ldflags='-s -w -extldflags "-static"' -o blue-win.exe .
 
-    - name: Compress macos binaries
-      if: matrix.os == 'macos-latest'
-      uses: svenstaro/upx-action@v2
-      with:
-        file: blue-mac
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: go build -ldflags='-s -w' -o blue-linux .
 
-    # This will draft a new release & will attach the binaries produced by the above outputs.
-    # You still need to publish this release though after job ends.
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: true
-        files: |
-          ./blue-win.exe
-          ./blue-linux
-          ./blue-mac
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # You don't need to add this in secrets it's by default.
+      - name: Build Macos
+        if: matrix.os == 'macos-latest'
+        run: go build -ldflags='-s -w' -o blue-mac .
 
+      - name: Compress windows binaries
+        if: matrix.os == 'windows-2019'
+        uses: svenstaro/upx-action@v2
+        with:
+          file: blue-win.exe
 
+      - name: Compress linux binaries
+        if: matrix.os == 'ubuntu-latest'
+        uses: svenstaro/upx-action@v2
+        with:
+          file: blue-linux
+
+      - name: Compress macos binaries
+        if: matrix.os == 'macos-latest'
+        uses: svenstaro/upx-action@v2
+        with:
+          file: blue-mac
+
+      # This will draft a new release & will attach the binaries produced by the above outputs.
+      # You still need to publish this release though after job ends.
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          files: |
+            ./blue-win.exe
+            ./blue-linux
+            ./blue-mac
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # You don't need to add this in secrets it's by default.
 
