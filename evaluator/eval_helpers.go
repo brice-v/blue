@@ -172,10 +172,12 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	if isInEnv && envVar.Type() != object.FUNCTION_OBJ {
 		return nil
 	}
-	// Allow either a string object or identifier to be passed to the builtin
+	// Allow either a string, identifier, or call expr to be passed to the builtin
 	_, ok1 := left.(*object.Stringo)
 	ident, ok2 := leftNode.(*ast.Identifier)
-	if !ok1 && !ok2 {
+	// If its a call expr, I assume it will fail out if the value was invalid to be passed
+	_, ok3 := leftNode.(*ast.CallExpression)
+	if !ok1 && !ok2 && !ok3 {
 		return nil
 	}
 	// If its immutable and the function can mutate than return an error

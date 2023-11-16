@@ -18,6 +18,7 @@ import (
 	"runtime/debug"
 	"runtime/metrics"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"time"
 
@@ -602,6 +603,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.Integer{Value: args[0].(*object.BigFloat).Value.IntPart()}
 			case object.INTEGER_OBJ:
 				return args[0]
+			case object.STRING_OBJ:
+				s := args[0].(*object.Stringo).Value
+				i, err := strconv.ParseInt(s, 10, 64)
+				if err != nil {
+					return newError("`int` error: %s", err.Error())
+				}
+				return &object.Integer{Value: i}
 			default:
 				return newError("`int` error: unsupported type '%s'", args[0].Type())
 			}
@@ -624,6 +632,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.Float{Value: args[0].(*object.BigFloat).Value.InexactFloat64()}
 			case object.FLOAT_OBJ:
 				return args[0]
+			case object.STRING_OBJ:
+				s := args[0].(*object.Stringo).Value
+				f, err := strconv.ParseFloat(s, 64)
+				if err != nil {
+					return newError("`float` error: %s", err.Error())
+				}
+				return &object.Float{Value: f}
 			default:
 				return newError("`float` error: unsupported type '%s'", args[0].Type())
 			}
@@ -646,6 +661,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.BigInteger{Value: args[0].(*object.BigFloat).Value.BigInt()}
 			case object.BIG_INTEGER_OBJ:
 				return args[0]
+			case object.STRING_OBJ:
+				s := args[0].(*object.Stringo).Value
+				b, ok := new(big.Int).SetString(s, 10)
+				if !ok || b == nil {
+					return newError("`bigint` error: %s is not a valid bigint", s)
+				}
+				return &object.BigInteger{Value: b}
 			default:
 				return newError("`bigint` error: unsupported type '%s'", args[0].Type())
 			}
@@ -668,6 +690,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.BigFloat{Value: decimal.NewFromBigInt(args[0].(*object.BigInteger).Value, 0)}
 			case object.BIG_FLOAT_OBJ:
 				return args[0]
+			case object.STRING_OBJ:
+				s := args[0].(*object.Stringo).Value
+				bf, err := decimal.NewFromString(s)
+				if err != nil {
+					return newError("`bigfloat` error: %s", err.Error())
+				}
+				return &object.BigFloat{Value: bf}
 			default:
 				return newError("`bigfloat` error: unsupported type '%s'", args[0].Type())
 			}
@@ -690,6 +719,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.UInteger{Value: args[0].(*object.BigFloat).Value.BigInt().Uint64()}
 			case object.UINTEGER_OBJ:
 				return args[0]
+			case object.STRING_OBJ:
+				s := args[0].(*object.Stringo).Value
+				u, err := strconv.ParseUint(s, 10, 64)
+				if err != nil {
+					return newError("`uint` error: %s", err.Error())
+				}
+				return &object.UInteger{Value: u}
 			default:
 				return newError("`uint` error: unsupported type '%s'", args[0].Type())
 			}
