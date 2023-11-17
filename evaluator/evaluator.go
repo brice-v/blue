@@ -1465,6 +1465,11 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		if isError(evalBlock) {
 			return evalBlock
 		}
+		rv, isReturn := evalBlock.(*object.ReturnValue)
+		if isReturn {
+			e.doneWithFor = true
+			return rv
+		}
 		if evalBlock == BREAK {
 			evalBlock = NULL
 			break
@@ -1496,11 +1501,6 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		} else if evalBlock == CONTINUE && !ok {
 			evalBlock = NULL
 			break
-		}
-		rv, isReturn := evalBlock.(*object.ReturnValue)
-		if isReturn {
-			e.doneWithFor = true
-			return rv
 		}
 		// Still evaluate on the last run then break if its false
 		if !ok {
