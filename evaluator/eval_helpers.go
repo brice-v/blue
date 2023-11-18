@@ -172,16 +172,31 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	if isInEnv && envVar.Type() != object.FUNCTION_OBJ {
 		return nil
 	}
-	// Allow either a string, identifier, or call expr to be passed to the builtin
-	_, ok1 := left.(*object.Stringo)
-	ident, ok2 := leftNode.(*ast.Identifier)
-	// If its a call expr, I assume it will fail out if the value was invalid to be passed
-	_, ok3 := leftNode.(*ast.CallExpression)
-	if !ok1 && !ok2 && !ok3 {
+	// Allow either a string, or collection type to be passed to the builtin
+	ident, isIdent := leftNode.(*ast.Identifier)
+	isValidType := false
+	switch x := left.(type) {
+	case *object.List, *object.Set, *object.Stringo:
+		isValidType = true
+	case *object.Map:
+		isValidType = true
+		hashKey := object.HashObject(indx)
+		hk := object.HashKey{
+			Type:  object.STRING_OBJ,
+			Value: hashKey,
+		}
+		// If the Pairs has the index as a key then this is not valid for UFCS
+		if _, ok := x.Pairs.Get(hk); ok {
+			return nil
+		}
+	default:
+		isValidType = false
+	}
+	if !isValidType && !isIdent {
 		return nil
 	}
 	// If its immutable and the function can mutate than return an error
-	if ok2 && e.env.IsImmutable(ident.Value) {
+	if isIdent && e.env.IsImmutable(ident.Value) {
 		if isBuiltin && builtin.Mutates {
 			return newError("'%s' is immutable", ident.Value)
 		}
