@@ -167,6 +167,8 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	builtin, isBuiltin := e.getBuiltinForDotCall(indx.Inspect())
 	envVar, isInEnv := e.env.Get(indx.Inspect())
 	if !isBuiltin && !isInEnv {
+		msg := fmt.Sprintf("index `%s` is not in environment", indx.Inspect())
+		e.maybeNullMapFnCall.Push(msg)
 		return nil
 	}
 	if isInEnv && envVar.Type() != object.FUNCTION_OBJ {
@@ -276,7 +278,12 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 	case *object.Builtin:
 		return function.Fun(args...)
 	default:
-		return newError("not a function %s", function.Type())
+		msg := fmt.Sprintf("not a function %s", function.Type())
+		if function.Type() == NULL.Type() && e.maybeNullMapFnCall.Peek() != "" {
+			extraMsg := e.maybeNullMapFnCall.Pop()
+			msg = fmt.Sprintf("%s, %s", msg, extraMsg)
+		}
+		return newError(msg)
 	}
 }
 

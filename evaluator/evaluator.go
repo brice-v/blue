@@ -66,7 +66,8 @@ type Evaluator struct {
 	BuiltinObjs []BuiltinObjMapType
 
 	// ErrorTokens is the set 'stack' of tokens which can get the error with file:line:col
-	ErrorTokens *TokenStackSet
+	ErrorTokens        *TokenStackSet
+	maybeNullMapFnCall *Stack[string]
 
 	// Used for: indx, elem in for expression
 	nestLevel         int
@@ -113,7 +114,8 @@ func New() *Evaluator {
 		UFCSArg:            NewStack[*object.Object](),
 		UFCSArgIsImmutable: NewStack[bool](),
 
-		ErrorTokens: NewTokenStackSet(),
+		ErrorTokens:        NewTokenStackSet(),
+		maybeNullMapFnCall: NewStack[string](),
 
 		nestLevel:         -1,
 		iterCount:         []int{},
@@ -3666,6 +3668,9 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
 			}
 			delete(e.deferFuns, e.scopeNestLevel)
+		}
+		for i := 0; i < e.maybeNullMapFnCall.Len(); i++ {
+			e.maybeNullMapFnCall.Pop()
 		}
 	}()
 
