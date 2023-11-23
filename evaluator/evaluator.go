@@ -75,7 +75,7 @@ type Evaluator struct {
 	cleanupTmpVar     map[string]int
 	cleanupTmpVarIter map[string]int
 	oneElementForIn   bool
-	doneWithFor       bool
+	doneWithFor       map[int]struct{}
 
 	isInScopeBlock map[int]struct{}
 	scopeNestLevel int
@@ -122,7 +122,7 @@ func New() *Evaluator {
 		cleanupTmpVar:     make(map[string]int),
 		cleanupTmpVarIter: make(map[string]int),
 		oneElementForIn:   false,
-		doneWithFor:       false,
+		doneWithFor:       make(map[int]struct{}),
 
 		isInScopeBlock:  make(map[int]struct{}),
 		scopeNestLevel:  0,
@@ -1384,7 +1384,8 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		doCleanup := false
 		for k, v := range e.cleanupTmpVar {
 			if maxIter, ok := e.cleanupTmpVarIter[k]; ok {
-				if v == e.nestLevel && maxIter >= e.iterCount[e.nestLevel] && e.doneWithFor {
+				_, maybeDoneWithFor := e.doneWithFor[e.scopeNestLevel]
+				if v == e.nestLevel && maxIter >= e.iterCount[e.nestLevel] && maybeDoneWithFor {
 					e.env.RemoveIdentifier(k)
 					delete(e.cleanupTmpVar, k)
 					delete(e.cleanupScopeVar, k)
@@ -1407,7 +1408,7 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 				}
 				e.nestLevel--
 			}
-			e.doneWithFor = false
+			delete(e.doneWithFor, e.scopeNestLevel)
 		}
 	}()
 	firstRun := true
@@ -1454,14 +1455,14 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		if !e.oneElementForIn && !ok && firstRun {
 			// If the condition is FALSE to begin with we need to return early
 			// The evaluated block may not be valid in that case (ie. a list could be empty)
-			e.doneWithFor = true
+			e.doneWithFor[e.scopeNestLevel] = struct{}{}
 			return NULL
 		}
 		firstRun = false
 		e.oneElementForIn = false
 		evalBlock = e.Eval(node.Consequence)
 		if evalBlock == nil {
-			e.doneWithFor = true
+			e.doneWithFor[e.scopeNestLevel] = struct{}{}
 			return NULL
 		}
 		if isError(evalBlock) {
@@ -1469,7 +1470,7 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		}
 		rv, isReturn := evalBlock.(*object.ReturnValue)
 		if isReturn {
-			e.doneWithFor = true
+			e.doneWithFor[e.scopeNestLevel] = struct{}{}
 			return rv
 		}
 		if evalBlock == BREAK {
@@ -1493,7 +1494,7 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 			}
 			ok := evalCond.(*object.Boolean).Value
 			if !ok {
-				e.doneWithFor = true
+				e.doneWithFor[e.scopeNestLevel] = struct{}{}
 				return NULL
 			}
 		}
@@ -1509,7 +1510,7 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 			break
 		}
 	}
-	e.doneWithFor = true
+	e.doneWithFor[e.scopeNestLevel] = struct{}{}
 	return evalBlock
 }
 
