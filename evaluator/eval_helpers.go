@@ -216,7 +216,7 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	}
 }
 
-func checkFunctionArgsAreValid(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object) object.Object {
+func checkFunctionArgsAreValid(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object, isFirstArgUFCSMod bool) object.Object {
 	defaultParamCount := 0
 	for _, v := range fun.DefaultParameters {
 		if v != nil {
@@ -229,12 +229,22 @@ func checkFunctionArgsAreValid(fun *object.Function, args []object.Object, defau
 			defaultArgCount++
 		}
 	}
-	if len(args)+defaultParamCount+defaultArgCount < len(fun.Parameters) {
+	argLen := len(args)
+	paramLen := len(fun.Parameters)
+	countToCheck := argLen + defaultArgCount
+	if isFirstArgUFCSMod {
+		countToCheck -= 1
+	}
+	if countToCheck > paramLen {
+		return newError("function called with too many arguments")
+	}
+
+	if argLen+defaultParamCount+defaultArgCount < paramLen {
 		return newError("function called without enough arguments")
 	}
 	defaultArgToDefaultParamMap := make(map[string]struct{})
 	for i, k := range fun.Parameters {
-		if len(fun.DefaultParameters) == len(fun.Parameters) {
+		if len(fun.DefaultParameters) == paramLen {
 			value := fun.DefaultParameters[i]
 			if value != nil {
 				defaultArgToDefaultParamMap[k.Value] = struct{}{}
@@ -254,13 +264,16 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 	argElem := e.UFCSArg.Pop()
 	// Note: This is just to keep the UFCS stack size consistent for both
 	_ = e.UFCSArgIsImmutable.Pop()
+	firstArgUFCSIsMod := false
 	if argElem != nil {
+		argElemType := (*argElem).Type()
+		firstArgUFCSIsMod = argElemType == object.MODULE_OBJ
 		// prepend the argument to pass in to the front
 		args = append([]object.Object{*argElem}, args...)
 	}
 	switch function := fun.(type) {
 	case *object.Function:
-		err := checkFunctionArgsAreValid(function, args, defaultArgs)
+		err := checkFunctionArgsAreValid(function, args, defaultArgs, firstArgUFCSIsMod)
 		if err != nil {
 			return err
 		}
