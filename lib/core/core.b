@@ -127,6 +127,32 @@ fun reduce(list, f, acc=null) {
     return acc;
 }
 
+fun zip(lol) {
+    ##core:ignore
+    #lol is the list of lists (this should be more like varags)
+    assert(lol.type() == Type.LIST);
+    var __minL = -1;
+    for __l in lol {
+        assert(__l.type() == Type.LIST);
+        val __curL = __l.len();
+        if __minL == -1 {
+            __minL = __curL;
+            continue;
+        }
+        if __curL < __minL {
+            __minL = __curL;
+        }
+    }
+    var result = [[] for var i = 0; i < __minL; i += 1];
+    assert(__minL != -1);
+    for (var __j = 0; __j < __minL; __j += 1) {
+        for (__l in lol) {
+            result[__j] << __l[__j];
+        }
+    }
+    return result;
+}
+
 fun find_all(str_to_search, query, method="regex") {
     ##core:ignore
     import search
