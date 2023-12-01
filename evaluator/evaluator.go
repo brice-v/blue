@@ -2451,113 +2451,9 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		left.Type() == object.UINTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalUintegerInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
-		leftStr := left.(*object.Stringo).Value
-		rightStr := right.(*object.Stringo).Value
-		switch operator {
-		case "+":
-			return &object.Stringo{Value: leftStr + rightStr}
-		case "==":
-			return nativeToBooleanObject(leftStr == rightStr)
-		case "!=":
-			return nativeToBooleanObject(leftStr != rightStr)
-		case "in":
-			if strings.Contains(rightStr, leftStr) {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if strings.Contains(rightStr, leftStr) {
-				return FALSE
-			}
-			return TRUE
-		case "..":
-			if runeLen(leftStr) != 1 {
-				return newError("operator .. expects left string to be 1 rune")
-			}
-			if runeLen(rightStr) != 1 {
-				return newError("operator .. expects right string to be 1 rune")
-			}
-			lr := []rune(leftStr)[0]
-			rr := []rune(rightStr)[0]
-			if lr == rr {
-				// If they are the same just return a list with the single element
-				// because this is the inclusive operator
-				return &object.List{Elements: []object.Object{left}}
-			}
-			elements := []object.Object{}
-			if lr > rr {
-				// Left rune is > so we are descending
-				for i := lr; i >= rr; i-- {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return &object.List{Elements: elements}
-			} else {
-				// Right rune is > so we are ascending
-				for i := lr; i <= rr; i++ {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return &object.List{Elements: elements}
-			}
-		case "..<":
-			if runeLen(leftStr) != 1 {
-				return newError("operator ..< expects left string to be 1 rune")
-			}
-			if runeLen(rightStr) != 1 {
-				return newError("operator ..< expects right string to be 1 rune")
-			}
-			lr := []rune(leftStr)[0]
-			rr := []rune(rightStr)[0]
-			if lr == rr {
-				// If they are the same just return an empty list because this is non-inclusive
-				return &object.List{Elements: []object.Object{}}
-			}
-			elements := []object.Object{}
-			if lr > rr {
-				// Left rune is > so we are descending
-				for i := lr; i > rr; i-- {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return &object.List{Elements: elements}
-			} else {
-				// Right rune is > so we are ascending
-				for i := lr; i < rr; i++ {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return &object.List{Elements: elements}
-			}
-		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
+		return e.evalStringInfixExpression(operator, left, right)
 	case left.Type() == object.LIST_OBJ && right.Type() == object.LIST_OBJ:
-		leftListObj := left.(*object.List)
-		rightListObj := right.(*object.List)
-		leftElements := leftListObj.Elements
-		rightElements := rightListObj.Elements
-		leftSize := len(leftElements)
-		rightSize := len(rightElements)
-		switch operator {
-		case "+":
-			newList := make([]object.Object, 0, leftSize+rightSize)
-			newList = append(newList, leftElements...)
-			newList = append(newList, rightElements...)
-			return &object.List{Elements: newList}
-		case "==":
-			if object.HashObject(leftListObj) == object.HashObject(rightListObj) {
-				return TRUE
-			}
-			return FALSE
-		case "!=":
-			if object.HashObject(leftListObj) == object.HashObject(rightListObj) {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
+		return e.evalDefaultListInfixExpression(operator, left, right)
 	case left.Type() == object.SET_OBJ && right.Type() == object.SET_OBJ:
 		return e.evalSetInfixExpression(operator, left, right)
 	case left.Type() == object.BYTES_OBJ && right.Type() == object.BYTES_OBJ:
@@ -2574,6 +2470,110 @@ func (e *Evaluator) evalInfixExpression(operator string, left, right object.Obje
 		return e.evalRightSideSetInfixExpression(operator, left, right)
 	default:
 		return e.evalDefaultInfixExpression(operator, left, right)
+	}
+}
+
+func (e *Evaluator) evalDefaultListInfixExpression(operator string, left, right object.Object) object.Object {
+	leftListObj := left.(*object.List)
+	rightListObj := right.(*object.List)
+	leftElements := leftListObj.Elements
+	rightElements := rightListObj.Elements
+	leftSize := len(leftElements)
+	rightSize := len(rightElements)
+	switch operator {
+	case "+":
+		newList := make([]object.Object, 0, leftSize+rightSize)
+		newList = append(newList, leftElements...)
+		newList = append(newList, rightElements...)
+		return &object.List{Elements: newList}
+	case "==", "!=":
+		return e.evalDefaultInfixExpression(operator, left, right)
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func (e *Evaluator) evalStringInfixExpression(operator string, left, right object.Object) object.Object {
+	leftStr := left.(*object.Stringo).Value
+	rightStr := right.(*object.Stringo).Value
+	switch operator {
+	case "+":
+		return &object.Stringo{Value: leftStr + rightStr}
+	case "==":
+		return nativeToBooleanObject(leftStr == rightStr)
+	case "!=":
+		return nativeToBooleanObject(leftStr != rightStr)
+	case "in":
+		if strings.Contains(rightStr, leftStr) {
+			return TRUE
+		}
+		return FALSE
+	case "notin":
+		if strings.Contains(rightStr, leftStr) {
+			return FALSE
+		}
+		return TRUE
+	case "..":
+		if runeLen(leftStr) != 1 {
+			return newError("operator .. expects left string to be 1 rune")
+		}
+		if runeLen(rightStr) != 1 {
+			return newError("operator .. expects right string to be 1 rune")
+		}
+		lr := []rune(leftStr)[0]
+		rr := []rune(rightStr)[0]
+		if lr == rr {
+			// If they are the same just return a list with the single element
+			// because this is the inclusive operator
+			return &object.List{Elements: []object.Object{left}}
+		}
+		elements := []object.Object{}
+		if lr > rr {
+			// Left rune is > so we are descending
+			for i := lr; i >= rr; i-- {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return &object.List{Elements: elements}
+		} else {
+			// Right rune is > so we are ascending
+			for i := lr; i <= rr; i++ {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return &object.List{Elements: elements}
+		}
+	case "..<":
+		if runeLen(leftStr) != 1 {
+			return newError("operator ..< expects left string to be 1 rune")
+		}
+		if runeLen(rightStr) != 1 {
+			return newError("operator ..< expects right string to be 1 rune")
+		}
+		lr := []rune(leftStr)[0]
+		rr := []rune(rightStr)[0]
+		if lr == rr {
+			// If they are the same just return an empty list because this is non-inclusive
+			return &object.List{Elements: []object.Object{}}
+		}
+		elements := []object.Object{}
+		if lr > rr {
+			// Left rune is > so we are descending
+			for i := lr; i > rr; i-- {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return &object.List{Elements: elements}
+		} else {
+			// Right rune is > so we are ascending
+			for i := lr; i < rr; i++ {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return &object.List{Elements: elements}
+		}
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -2615,6 +2615,10 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 		return FALSE
 	case (operator == "in" || operator == "notin") && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ):
 		return e.evalInOrNotinInfixExpression(operator, left, right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return e.evalStringInfixExpression(operator, left, right)
+	case left.Type() == object.LIST_OBJ && right.Type() == object.LIST_OBJ:
+		return e.evalDefaultListInfixExpression(operator, left, right)
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	default:
