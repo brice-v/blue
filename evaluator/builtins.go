@@ -565,23 +565,27 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"set": {
 		// This is needed so we can return a set from a list of objects
 		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("set", len(args), 1, "")
+			if len(args) != 0 && len(args) != 1 {
+				return newInvalidArgCountError("set", len(args), 0, "or 1")
+			}
+			setMap := object.NewSetElements()
+			resultSet := &object.Set{Elements: setMap}
+			if len(args) == 0 {
+				return resultSet
 			}
 			if args[0].Type() != object.LIST_OBJ {
 				return newPositionalTypeError("set", 1, object.LIST_OBJ, args[0].Type())
 			}
 			elements := args[0].(*object.List).Elements
-			setMap := object.NewSetElements()
 			for _, e := range elements {
 				hashKey := object.HashObject(e)
-				setMap.Set(hashKey, object.SetPair{Value: e, Present: true})
+				resultSet.Elements.Set(hashKey, object.SetPair{Value: e, Present: true})
 			}
-			return &object.Set{Elements: setMap}
+			return resultSet
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`set` returns the SET version of a LIST",
-			signature:   "set(arg: list[any]) -> set[any]",
+			explanation: "`set` returns the SET version of a LIST, or an empty set with no args",
+			signature:   "set(arg: list[any]|none) -> set[any]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "set([1,2,2,3]) => {1,2,3}",
 		}.String(),

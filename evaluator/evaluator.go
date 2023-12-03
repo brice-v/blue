@@ -2889,8 +2889,8 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 	leftE := left.(*object.Set).Elements
 	rightE := right.(*object.Set).Elements
 	newSet := &object.Set{Elements: object.NewSetElements()}
-	leftElems := object.NewSetElements()
-	rightElems := object.NewSetElements()
+	var leftElems *object.OrderedMap2[uint64, object.SetPair]
+	var rightElems *object.OrderedMap2[uint64, object.SetPair]
 	if leftE.Len() >= rightE.Len() {
 		leftElems = leftE
 		rightElems = rightE

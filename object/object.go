@@ -468,23 +468,6 @@ func (m *Map) Help() string {
 	return createHelpStringForObject("Map", "is the object that represents a key value pair where keys and values are arbitrary objects", m)
 }
 
-// hashMap hashes the entire map to be used for checking equality
-func (m *Map) hashMap() uint64 {
-	h, err := siphash.New64(_siphash_key[:])
-	if err != nil {
-		panic("siphash init error " + err.Error())
-	}
-	for _, k := range m.Pairs.Keys {
-		v, _ := m.Pairs.Get(k)
-		// Just using xor as a way to get a unique uint64 with the value hash
-		hashedKeyObj := k.Value ^ HashObject(v.Value)
-		b := new8ByteBuf()
-		binary.BigEndian.PutUint64(b, hashedKeyObj)
-		h.Write(b)
-	}
-	return h.Sum64()
-}
-
 // MapCompLiteral is the map comprehension object struct
 type MapCompLiteral struct {
 	Pairs OrderedMap2[HashKey, MapPair] // Pairs is the map of HashKey to other MapPair objects
@@ -699,6 +682,39 @@ func (l *List) hashList() uint64 {
 	return h.Sum64()
 }
 
+// hashSet implements hashing for set objects
+func (s *Set) hashSet() uint64 {
+	h, err := siphash.New64(_siphash_key[:])
+	if err != nil {
+		panic("siphash init error " + err.Error())
+	}
+	for _, k := range s.Elements.Keys {
+		v, _ := s.Elements.Get(k)
+		hashedObj := HashObject(v.Value)
+		b := new8ByteBuf()
+		binary.BigEndian.PutUint64(b, hashedObj)
+		h.Write(b)
+	}
+	return h.Sum64()
+}
+
+// hashMap hashes the entire map to be used for checking equality
+func (m *Map) hashMap() uint64 {
+	h, err := siphash.New64(_siphash_key[:])
+	if err != nil {
+		panic("siphash init error " + err.Error())
+	}
+	for _, k := range m.Pairs.Keys {
+		v, _ := m.Pairs.Get(k)
+		// Just using xor as a way to get a unique uint64 with the value hash
+		hashedKeyObj := k.Value ^ HashObject(v.Value)
+		b := new8ByteBuf()
+		binary.BigEndian.PutUint64(b, hashedKeyObj)
+		h.Write(b)
+	}
+	return h.Sum64()
+}
+
 // HashObject is a generic function to hash any of the hashable object types
 // It is very likely I wont keep it like this because it will probably break things
 // but for now this naive implementation should do
@@ -744,6 +760,11 @@ func HashObject(obj Object) uint64 {
 		b := new8ByteBuf()
 		listObj := obj.(*List)
 		binary.BigEndian.PutUint64(b, listObj.hashList())
+		h.Write(b)
+	case SET_OBJ:
+		b := new8ByteBuf()
+		setObj := obj.(*Set)
+		binary.BigEndian.PutUint64(b, setObj.hashSet())
 		h.Write(b)
 	case MAP_OBJ:
 		b := new8ByteBuf()
