@@ -1455,7 +1455,10 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		if !e.oneElementForIn && !ok && firstRun {
 			// If the condition is FALSE to begin with we need to return early
 			// The evaluated block may not be valid in that case (ie. a list could be empty)
-			e.doneWithFor[e.scopeNestLevel] = struct{}{}
+			// Note: There was a bug where we were setting the scopeNestLevel to be cleaned up even when it wasnt ready
+			// see test_for_scope_still_broken.b from d3p2 of aoc2023, specifically for (for x in ...) when nested heavily
+			// the for var x = 0; ... loops seemed to avoid this issue due to a different way of setting e.doneWithFor
+			e.doneWithFor[e.scopeNestLevel+1] = struct{}{}
 			return NULL
 		}
 		firstRun = false
