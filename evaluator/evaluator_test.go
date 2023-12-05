@@ -307,10 +307,6 @@ func TestErrorHandling(t *testing.T) {
 			"foobar",
 			"identifier not found: foobar",
 		},
-		{
-			`{"name": "Monkey"}[fun(x) { x }];`,
-			"unusable as a map key: FUNCTION",
-		},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -546,13 +542,15 @@ func TestMapLiterals(t *testing.T) {
 	if !ok {
 		t.Fatalf("Eval didn't return Hash. got=%T (%+v)", evaluated, evaluated)
 	}
+
 	expected := map[object.HashKey]int64{
-		(&object.Stringo{Value: "one"}).HashKey():   1,
-		(&object.Stringo{Value: "two"}).HashKey():   2,
-		(&object.Stringo{Value: "three"}).HashKey(): 3,
-		(&object.Integer{Value: 4}).HashKey():       4,
-		TRUE.HashKey():                              5,
-		FALSE.HashKey():                             6,
+		{Type: object.STRING_OBJ, Value: object.HashObject(&object.Stringo{Value: "one"})}:   1,
+		{Type: object.STRING_OBJ, Value: object.HashObject(&object.Stringo{Value: "two"})}:   2,
+		{Type: object.STRING_OBJ, Value: object.HashObject(&object.Stringo{Value: "three"})}: 3,
+		{Type: object.INTEGER_OBJ, Value: object.HashObject(&object.Integer{Value: 4})}:      4,
+
+		{Type: object.BOOLEAN_OBJ, Value: object.HashObject(TRUE)}:  5,
+		{Type: object.BOOLEAN_OBJ, Value: object.HashObject(FALSE)}: 6,
 	}
 
 	if result.Pairs.Len() != len(expected) {

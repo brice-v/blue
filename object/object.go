@@ -618,49 +618,10 @@ func (cs *ContinueStatement) Help() string {
 
 // ------------------------------- HashKey Stuff --------------------------------
 
-// Hashable allows us to check if an object is hashable
-type Hashable interface {
-	HashKey() HashKey
-}
-
 // HashKey is the hash key for any of the object types we want to use in maps
 type HashKey struct {
 	Type  Type   // Type is the objects type
 	Value uint64 // Value is the value of the "hash" key
-}
-
-// HashKey implements hashing for boolean values
-func (b *Boolean) HashKey() HashKey {
-	var value uint64
-	if b.Value {
-		value = 1
-	} else {
-		value = 0
-	}
-
-	return HashKey{Type: b.Type(), Value: value}
-}
-
-// HashKey implements hashing for integer values
-func (i *Integer) HashKey() HashKey {
-	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
-}
-
-// HashKey implements hashing for unsigned integer values
-func (ui *UInteger) HashKey() HashKey {
-	return HashKey{Type: ui.Type(), Value: ui.Value}
-}
-
-// HashKey implements hashing for string values it uses a
-// hash method builtin from golang
-func (s *Stringo) HashKey() HashKey {
-	h, err := siphash.New64(_siphash_key[:])
-	if err != nil {
-		panic("siphash init error " + err.Error())
-	}
-	h.Write([]byte(s.Value))
-
-	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
 
 func new8ByteBuf() []byte {
@@ -792,4 +753,23 @@ func HashObject(obj Object) uint64 {
 		fmt.Printf("Unsupported hashable object: %T\n", obj)
 	}
 	return h.Sum64()
+}
+
+func IsHashable(obj Object) bool {
+	t := obj.Type()
+	return t == INTEGER_OBJ ||
+		t == UINTEGER_OBJ ||
+		t == BOOLEAN_OBJ ||
+		t == NULL_OBJ ||
+		t == FLOAT_OBJ ||
+		t == STRING_OBJ ||
+		t == FUNCTION_OBJ ||
+		t == ERROR_OBJ ||
+		t == LIST_OBJ ||
+		t == SET_OBJ ||
+		t == MAP_OBJ ||
+		t == BYTES_OBJ ||
+		t == BIG_FLOAT_OBJ ||
+		t == BIG_INTEGER_OBJ ||
+		t == GO_OBJ
 }

@@ -1849,8 +1849,9 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return key
 			}
 
-			if hashKey, ok := key.(object.Hashable); ok {
-				hashed := hashKey.HashKey()
+			if ok := object.IsHashable(key); ok {
+				hk := object.HashObject(key)
+				hashed := object.HashKey{Type: key.Type(), Value: hk}
 				switch node.Token.Literal {
 				case "=":
 					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: value})
@@ -2111,17 +2112,18 @@ func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
 			key = &object.Stringo{Value: keyNode.String()}
 		}
 
-		mapKey, ok := key.(object.Hashable)
+		ok := object.IsHashable(key)
 		if !ok {
 			return newError("unusable as a map key: %s", key.Type())
 		}
+		hk := object.HashObject(key)
+		hashed := object.HashKey{Type: key.Type(), Value: hk}
 
 		value := e.Eval(valueNode)
 		if isError(value) {
 			return value
 		}
 
-		hashed := mapKey.HashKey()
 		pairs.Set(hashed, object.MapPair{Key: key, Value: value})
 	}
 
@@ -2163,12 +2165,14 @@ func (e *Evaluator) evalModuleIndexExpression(module, indx object.Object) object
 func (e *Evaluator) evalMapIndexExpression(mapObject, indx object.Object) (object.Object, bool) {
 	mapObj := mapObject.(*object.Map)
 
-	key, ok := indx.(object.Hashable)
+	ok := object.IsHashable(indx)
 	if !ok {
 		return newError("unusable as a map key: %s", indx.Type()), false
 	}
+	hashed := object.HashObject(indx)
+	key := object.HashKey{Type: indx.Type(), Value: hashed}
 
-	pair, ok := mapObj.Pairs.Get(key.HashKey())
+	pair, ok := mapObj.Pairs.Get(key)
 	if !ok {
 		return NULL, true
 	}
@@ -2704,15 +2708,15 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			return e.evalDefaultInfixExpression(operator, left, right)
 		}
 	case object.UINTEGER_OBJ:
-		uintVal := left.(*object.UInteger).HashKey().Value
+		hk := object.HashObject(left)
 		switch operator {
 		case "in":
-			if _, ok := setElems.Get(uintVal); ok {
+			if _, ok := setElems.Get(hk); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems.Get(uintVal); ok {
+			if _, ok := setElems.Get(hk); ok {
 				return FALSE
 			}
 			return TRUE
@@ -2752,15 +2756,15 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
 	case object.BOOLEAN_OBJ:
-		boolHash := left.(*object.Boolean).HashKey().Value
+		hk := object.HashObject(left)
 		switch operator {
 		case "in":
-			if _, ok := setElems.Get(boolHash); ok {
+			if _, ok := setElems.Get(hk); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems.Get(boolHash); ok {
+			if _, ok := setElems.Get(hk); ok {
 				return FALSE
 			}
 			return TRUE
@@ -2768,15 +2772,15 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			return e.evalDefaultInfixExpression(operator, left, right)
 		}
 	case object.STRING_OBJ:
-		strHash := left.(*object.Stringo).HashKey().Value
+		hk := object.HashObject(left)
 		switch operator {
 		case "in":
-			if _, ok := setElems.Get(strHash); ok {
+			if _, ok := setElems.Get(hk); ok {
 				return TRUE
 			}
 			return FALSE
 		case "notin":
-			if _, ok := setElems.Get(strHash); ok {
+			if _, ok := setElems.Get(hk); ok {
 				return FALSE
 			}
 			return TRUE
@@ -2784,7 +2788,7 @@ func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
 	case object.NULL_OBJ:
-		nullHash := object.HashObject(left.(*object.Null))
+		nullHash := object.HashObject(NULL)
 		switch operator {
 		case "in":
 			if _, ok := setElems.Get(nullHash); ok {

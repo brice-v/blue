@@ -9,15 +9,19 @@ import (
 func TestStringHashKey(t *testing.T) {
 	hello1 := &Stringo{Value: "Hello World"}
 	hello2 := &Stringo{Value: "Hello World"}
+	hello1hk := HashKey{Type: STRING_OBJ, Value: HashObject(hello1)}
+	hello2hk := HashKey{Type: STRING_OBJ, Value: HashObject(hello2)}
 	diff1 := &Stringo{Value: "My name is johnny"}
 	diff2 := &Stringo{Value: "My name is johnny"}
-	if hello1.HashKey() != hello2.HashKey() {
+	diff1hk := HashKey{Type: STRING_OBJ, Value: HashObject(diff1)}
+	diff2hk := HashKey{Type: STRING_OBJ, Value: HashObject(diff2)}
+	if hello1hk != hello2hk {
 		t.Errorf("strings with same content have different hash keys")
 	}
-	if diff1.HashKey() != diff2.HashKey() {
+	if diff1hk != diff2hk {
 		t.Errorf("strings with same content have different hash keys")
 	}
-	if hello1.HashKey() == diff1.HashKey() {
+	if hello1hk == diff1hk {
 		t.Errorf("strings with different content have same hash keys")
 	}
 }

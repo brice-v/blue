@@ -1,5 +1,13 @@
 TODO:
 
+- [ ] Add all, any, reverse builtins
+- [ ] Add multi for support in comprehensions (see test_flatten)
+    - https://www.learndatasci.com/solutions/python-list-comprehension/
+- [ ] Put zip, map, filter, etc. into actual builtins
+- [ ] Map on lambda with destructuring (for maps, lists, etc.)
+- [ ] Optimize List/Set/Map comps so they execute go code?
+- [ ] If for loop returns list in expression it needs to be ordered, otherwise it wont work
+- [ ] Add catch with a block to expressions to handle errors?
 - [ ] Support golang float with e in it
 - [ ] Make core docs visible
     - [ ] Add docs for all remaining functions
@@ -145,6 +153,10 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Fix bug when passing 2 args to core lib function that only has 1 it doesnt error out?
+- [x] return inside function is showing null instead of value? - look at d13 code
+- [x] Fix List/Set/Map comps so that __internal__ is already defined cant happen in repl or otherwise
+    - If Optimizing fixes this thats even better
 - [-] Get wasm stuff running and working (include wasm_exec.js in lib/web if necessary) wazero is what I was using (wasi_preview1 is available now via go)
     - [x] Make sure we support wasi_preview1
         - Only really supporting wasi_preview1 go and tinygo (tinygo can essentially make a lib - couldnt get zig to work)
