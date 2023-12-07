@@ -103,7 +103,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "split('Hello', '') => ['H','e','l','l','o']",
 		}.String(),
 	},
-	"replace": {
+	"_replace": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("replace", len(args), 3, "")
@@ -125,6 +125,36 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`replace` will return a STRING with all occurrences of the given replacer STRING replaced by the next given STRING",
+			signature:   "replace(arg: str, replacer: str, replaced: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "replace('Hello', 'l', 'X') => 'HeXXo'",
+		}.String(),
+	},
+	"_replace_regex": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("replace_regex", len(args), 3, "")
+			}
+			arg0, ok := args[0].(*object.Stringo)
+			if !ok {
+				return newPositionalTypeError("replace_regex", 1, object.STRING_OBJ, args[0].Type())
+			}
+			arg1, ok := args[1].(*object.Stringo)
+			if !ok {
+				return newPositionalTypeError("replace_regex", 2, object.STRING_OBJ, args[1].Type())
+			}
+			arg2, ok := args[2].(*object.Stringo)
+			if !ok {
+				return newPositionalTypeError("replace_regex", 3, object.STRING_OBJ, args[2].Type())
+			}
+			re, err := regexp.Compile(arg1.Value)
+			if err != nil {
+				return newError("`replace_regex` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: string(re.ReplaceAll([]byte(arg0.Value), []byte(arg2.Value)))}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`replace_regex` will return a STRING with all occurrences of the given replacer REGEX STRING replaced by the next given STRING",
 			signature:   "replace(arg: str, replacer: str, replaced: str) -> str",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "replace('Hello', 'l', 'X') => 'HeXXo'",

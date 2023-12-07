@@ -312,6 +312,16 @@ fun to_bytes(str_to_convert, is_hex=false) {
     }
 }
 
+val __replace = _replace;
+val __replace_regex = _replace_regex;
+fun replace(str_to_replace, replacer, replaced, is_regex=false) {
+    if is_regex {
+        return __replace_regex(str_to_replace, replacer, replaced);
+    } else {
+        return __replace(str_to_replace, replacer, replaced);
+    }
+}
+
 val KV = {
     put: _kv_put,
     get: _kv_get,
