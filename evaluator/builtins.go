@@ -128,13 +128,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "keys({'a': 1, 'B': 2}) => [1, 2]",
 		}.String(),
 	},
-	"delete": {
+	"del": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newInvalidArgCountError("delete", len(args), 2, "")
+				return newInvalidArgCountError("del", len(args), 2, "")
 			}
 			if args[0].Type() != object.MAP_OBJ {
-				return newPositionalTypeError("delete", 1, object.MAP_OBJ, args[0].Type())
+				return newPositionalTypeError("del", 1, object.MAP_OBJ, args[0].Type())
 			}
 			m := args[0].(*object.Map)
 			hk := object.HashKey{
@@ -145,10 +145,10 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return NULL
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`delete` deletes a key from a MAP",
-			signature:   "delete(m: map, key: any) -> null",
+			explanation: "`del` deletes a key from a MAP",
+			signature:   "del(m: map, key: any) -> null",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "delete({'a': 1, 'B': 2}, 'a') => null - side effect: {'B': 2}",
+			example:     "del({'a': 1, 'B': 2}, 'a') => null - side effect: {'B': 2}",
 		}.String(),
 	},
 	"len": {
