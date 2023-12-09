@@ -1,5 +1,16 @@
 TODO:
 
+- go test ./... -coverprofile=c.out
+- go tool cover -html=c.out
+- [ ] Add list builtin to convert set to list? 
+- [ ] Expand blueToGoObject and goToBlueObject to support all nested variations as well
+- [ ] Add a fix for interface maps to use ordered so we can translate back and forth from blue <-> go <-> blue objects
+    - Assuming this doesnt break any existing areas its much more consistent for sorting objects
+- [ ] Make sure + and << work for sets (maybe, technically union operator works)
+- [ ] Add ||=, &&= for bool stuff
+- [ ] Add regex go_obj, make it work with string builtins and give it some specific functions
+    - these specific functions should cross work with strings passed in (we will auto-convert to regex in those cases)
+- [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] Add all, any, reverse builtins
 - [ ] Add multi for support in comprehensions (see test_flatten)
     - https://www.learndatasci.com/solutions/python-list-comprehension/
@@ -109,8 +120,6 @@ func main() {
 
 ```
 - [ ] Add test cases to cover all the basic functions
-- [ ] sort builtin
-    - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
 - [ ] Add time related functions (and expand stdlb)
 - [ ] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
 - [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
@@ -153,6 +162,23 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] sort builtin
+    - reverse as well, or easy way to reverse sort, plus way where function is provided to compare
+- [x] Add support for more blueToGoObject and back (set, map with different types as keys)
+    - all places with *object.OrderedMap2[string, interface{}] we need to also support other valid keys
+- [x] REALLY NEED TO FIGURE OUT SORTING
+    - [x] Implement basic sort for ints, floats, strings
+    - [-] Implement ability to do custom sort for any list
+        - Sort of implemented but I should be able to do more
+        - Technically for < or > than I can do evalDefaultInfixExpression with the operator and the 2 values (saving some decoding back and forth time)
+            - Tried a bit of this it didnt work
+        - Also I can use slices package for different sorting stuff thats more generic
+    - [x] Implement sort for list of objs
+        - So we can now use a key function which essentially determines what to use as the sorter
+        - it has to be a string, int, or float but overall works pretty well
+        - Although I have to imagine the back and forth encoding/decoding is slow from blue <-> go <-> blue
+    - [x] Implement sorting for multiple key functions (ie. use the first one if equal, go to the next, reverse should still use same key function order in that case)
+- [x] delete key from map
 - [x] Fix bug when passing 2 args to core lib function that only has 1 it doesnt error out?
 - [x] return inside function is showing null instead of value? - look at d13 code
 - [x] Fix List/Set/Map comps so that __internal__ is already defined cant happen in repl or otherwise
