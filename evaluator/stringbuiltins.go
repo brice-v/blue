@@ -492,18 +492,6 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: xstrings.ToSnakeCase(s)}
 		},
 	},
-	"reverse": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("reverse", len(args), 1, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("reverse", 1, object.STRING_OBJ, args[0].Type())
-			}
-			s := args[0].(*object.Stringo).Value
-			return &object.Stringo{Value: xstrings.Reverse(s)}
-		},
-	},
 	"matches": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {

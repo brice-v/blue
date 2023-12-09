@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gookit/color"
 	clone "github.com/huandu/go-clone"
+	"github.com/huandu/xstrings"
 	"github.com/shopspring/decimal"
 )
 
@@ -346,6 +347,27 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "concat([1,2,3], [1]) => [1,2,3,1]",
 		}.String(),
+	},
+	"reverse": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("reverse", len(args), 1, "")
+			}
+			if args[0].Type() != object.LIST_OBJ && args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("reverse", 1, object.LIST_OBJ+" or STRING", args[0].Type())
+			}
+			if args[0].Type() == object.STRING_OBJ {
+				s := args[0].(*object.Stringo).Value
+				return &object.Stringo{Value: xstrings.Reverse(s)}
+			}
+			l := args[0].(*object.List)
+			length := len(l.Elements)
+			newl := make([]object.Object, length)
+			for i := 0; i < len(l.Elements); i++ {
+				newl[length-i-1] = l.Elements[i]
+			}
+			return &object.List{Elements: newl}
+		},
 	},
 	"println": {
 		Fun: func(args ...object.Object) object.Object {
