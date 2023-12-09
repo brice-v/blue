@@ -127,6 +127,29 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "keys({'a': 1, 'B': 2}) => [1, 2]",
 		}.String(),
 	},
+	"delete": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("delete", len(args), 2, "")
+			}
+			if args[0].Type() != object.MAP_OBJ {
+				return newPositionalTypeError("delete", 1, object.MAP_OBJ, args[0].Type())
+			}
+			m := args[0].(*object.Map)
+			hk := object.HashKey{
+				Type:  args[1].Type(),
+				Value: object.HashObject(args[1]),
+			}
+			m.Pairs.Delete(hk)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`delete` deletes a key from a MAP",
+			signature:   "delete(m: map, key: any) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "delete({'a': 1, 'B': 2}, 'a') => null - side effect: {'B': 2}",
+		}.String(),
+	},
 	"len": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
