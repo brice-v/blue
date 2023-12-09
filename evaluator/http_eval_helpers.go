@@ -73,12 +73,12 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 	}
 }
 
-func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m map[string]interface{}) {
+func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m *object.OrderedMap2[string, interface{}]) {
 	isAction, action, m = false, "", nil
 	mObj, err := blueObjectToGoObject(respObj)
 	if err == nil {
-		if mm, ok := mObj.(map[string]interface{}); ok {
-			if kt, ok := mm["t"]; ok {
+		if mm, ok := mObj.(*object.OrderedMap2[string, interface{}]); ok {
+			if kt, ok := mm.Get("t"); ok {
 				if kts, ok := kt.(string); ok {
 					if strings.Contains(kts, "http/") {
 						// Now we know this is good to use
@@ -105,30 +105,50 @@ func processHandlerFn(e *Evaluator, fn *object.Function, c *fiber.Ctx, method st
 		if isAction {
 			switch action {
 			case "status":
-				code, ok := m["code"].(int64)
+				maybeCode, ok := m.Get("code")
 				if !ok {
-					err := fmt.Sprintf("http/status 'code' must be INTEGER. got=%T", m["code"])
+					err := "http/status 'code' key not found."
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				code, ok := maybeCode.(int64)
+				if !ok {
+					err := fmt.Sprintf("http/status 'code' must be INTEGER. got=%T", maybeCode)
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
 				return c.SendStatus(int(code))
 			case "redirect":
-				location, ok := m["location"].(string)
+				maybeLocation, ok := m.Get("location")
 				if !ok {
-					err := fmt.Sprintf("http/redirect 'location' must be STRING. got=%T", m["location"])
+					err := "http/redirect 'location' key not found."
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
-				code, ok := m["code"].(int64)
+				location, ok := maybeLocation.(string)
 				if !ok {
-					err := fmt.Sprintf("http/redirect code 'must' be INTEGER. got=%T", m["code"])
+					err := fmt.Sprintf("http/redirect 'location' must be STRING. got=%T", maybeLocation)
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				maybeCode, ok := m.Get("code")
+				if !ok {
+					err := "http/redirect 'code' key not found."
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				code, ok := maybeCode.(int64)
+				if !ok {
+					err := fmt.Sprintf("http/redirect 'code' must be INTEGER. got=%T", maybeCode)
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
 				return c.Redirect(location, int(code))
 			case "next":
 				return c.Next()
 			case "send_file":
-				path, ok := m["path"].(string)
+				maybePath, ok := m.Get("path")
 				if !ok {
-					err := fmt.Sprintf("http/send_file 'path' must be STRING. got=%T", m["path"])
+					err := "http/send_file 'path' key not found."
+					return c.Status(fiber.StatusInternalServerError).JSON(err)
+				}
+				path, ok := maybePath.(string)
+				if !ok {
+					err := fmt.Sprintf("http/send_file 'path' must be STRING. got=%T", maybePath)
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
 				return c.SendFile(path, false)

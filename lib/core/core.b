@@ -127,8 +127,8 @@ fun reduce(list, f, acc=null) {
     return acc;
 }
 
-fun sort(list, reverse=false) {
-    return _sort(list, reverse);
+fun sort(list, reverse=false, key=null) {
+    return _sort(list, reverse, key);
 }
 
 fun zip(lol) {

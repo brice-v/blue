@@ -139,6 +139,9 @@ func execCommand(arg0 string, args ...string) *exec.Cmd {
 
 func twoListsEqual(leftList, rightList *object.List) bool {
 	// This is a deep equality expensive function
+	if len(leftList.Elements) != len(rightList.Elements) {
+		return false
+	}
 	return object.HashObject(leftList) == object.HashObject(rightList)
 }
 
@@ -669,6 +672,13 @@ func decodeInterfaceToObject(value interface{}) object.Object {
 			mapObj.Set(k, decodeInterfaceToObject(v))
 		}
 		return object.CreateMapObjectForGoMap(*mapObj)
+	case *object.OrderedMap2[string, interface{}]:
+		mapObj := object.NewOrderedMap[string, object.Object]()
+		for _, k := range x.Keys {
+			v, _ := x.Get(k)
+			mapObj.Set(k, decodeInterfaceToObject(v))
+		}
+		return object.CreateMapObjectForGoMap(*mapObj)
 	default:
 		consts.ErrorPrinter("decodeInterfaceToObject: HANDLE TYPE = %T\n", x)
 		os.Exit(1)
@@ -732,7 +742,7 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 		return blueObject.(*object.Boolean).Value, nil
 	case object.MAP_OBJ:
 		m := blueObject.(*object.Map)
-		pairs := make(map[string]interface{})
+		pairs := object.NewOrderedMap[string, interface{}]()
 		for _, k := range m.Pairs.Keys {
 			mp, _ := m.Pairs.Get(k)
 			if mp.Key.Type() != object.STRING_OBJ {
@@ -745,7 +755,7 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			pairs[mp.Key.(*object.Stringo).Value] = val
+			pairs.Set(mp.Key.(*object.Stringo).Value, val)
 		}
 		return pairs, nil
 	case object.LIST_OBJ:
@@ -807,6 +817,25 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 			hk := object.HashKey{
 				Type:  object.STRING_OBJ,
 				Value: hashKey,
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	case *object.OrderedMap2[string, interface{}]:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			key := &object.Stringo{Value: k}
+			hk := object.HashKey{
+				Type:  object.STRING_OBJ,
+				Value: object.HashObject(key),
 			}
 			val, err := goObjectToBlueObject(v)
 			if err != nil {
@@ -965,6 +994,205 @@ func createToNumBuiltin(e *Evaluator) *object.Builtin {
 		}
 	}
 	return toNumBuiltin
+}
+
+var sortBuiltin *object.Builtin = nil
+
+func createSortBuiltin(e *Evaluator) *object.Builtin {
+	if sortBuiltin == nil {
+		sortBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 3 {
+					return newInvalidArgCountError("sort", len(args), 3, "")
+				}
+				if args[0].Type() != object.LIST_OBJ {
+					return newPositionalTypeError("sort", 1, object.LIST_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.BOOLEAN_OBJ {
+					return newPositionalTypeError("sort", 2, object.BOOLEAN_OBJ, args[1].Type())
+				}
+				if args[2].Type() != object.NULL_OBJ && args[2].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("sort", 3, object.FUNCTION_OBJ+" or null", args[2].Type())
+				}
+				l := args[0].(*object.List)
+				shouldReverse := args[1].(*object.Boolean).Value
+				if args[2].Type() == object.NULL_OBJ {
+					allInts := true
+					allFloats := true
+					allStrings := true
+					for _, e := range l.Elements {
+						allInts = allInts && e.Type() == object.INTEGER_OBJ
+						allFloats = allFloats && e.Type() == object.FLOAT_OBJ
+						allStrings = allStrings && e.Type() == object.STRING_OBJ
+					}
+					if !allStrings && !allFloats && !allInts {
+						return newError("`sort` error: all elements in list must be STRING, INTEGER, or FLOAT")
+					}
+					newElems := make([]object.Object, len(l.Elements))
+					if allStrings {
+						strs := make([]string, len(l.Elements))
+						for i, e := range l.Elements {
+							strs[i] = e.(*object.Stringo).Value
+						}
+						if shouldReverse {
+							sort.Stable(sort.Reverse(sort.StringSlice(strs)))
+						} else {
+							sort.Strings(strs)
+						}
+						for i, e := range strs {
+							newElems[i] = &object.Stringo{Value: e}
+						}
+					}
+					if allInts {
+						ints := make([]int, len(l.Elements))
+						for i, e := range l.Elements {
+							ints[i] = int(e.(*object.Integer).Value)
+						}
+						if shouldReverse {
+							sort.Stable(sort.Reverse(sort.IntSlice(ints)))
+						} else {
+							sort.Ints(ints)
+						}
+						for i, e := range ints {
+							newElems[i] = &object.Integer{Value: int64(e)}
+						}
+					}
+					if allFloats {
+						floats := make([]float64, len(l.Elements))
+						for i, e := range l.Elements {
+							floats[i] = e.(*object.Float).Value
+						}
+						if shouldReverse {
+							sort.Stable(sort.Reverse(sort.Float64Slice(floats)))
+						} else {
+							sort.Float64s(floats)
+						}
+						for i, e := range floats {
+							newElems[i] = &object.Float{Value: e}
+						}
+					}
+					return &object.List{Elements: newElems}
+				}
+				// Using custom comparator
+				anys := make([]interface{}, len(l.Elements))
+				for i, e := range l.Elements {
+					obj, err := blueObjectToGoObject(e)
+					if err != nil {
+						return newError("`sort` key error: %s", err.Error())
+					}
+					anys[i] = obj
+				}
+				fun := args[2].(*object.Function)
+				if len(fun.Parameters) != 1 {
+					return newError("`sort` key error: key function must take 1 arg. got=%d", len(fun.Parameters))
+				}
+
+				sorter := func(i, j int) bool {
+					ai := anys[i]
+					aj := anys[j]
+					aib, err := goObjectToBlueObject(ai)
+					if err != nil {
+						fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
+						return false
+					}
+					ajb, err := goObjectToBlueObject(aj)
+					if err != nil {
+						fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
+						return false
+					}
+					biObj := e.applyFunction(fun, []object.Object{aib}, make(map[string]object.Object), []bool{false})
+					if isError(biObj) {
+						err := biObj.(*object.Error)
+						var buf bytes.Buffer
+						buf.WriteString(err.Message)
+						buf.WriteByte('\n')
+						for e.ErrorTokens.Len() > 0 {
+							tok := e.ErrorTokens.PopBack()
+							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						}
+						fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+						return false
+					}
+					if biObj.Type() != object.FLOAT_OBJ && biObj.Type() != object.INTEGER_OBJ && biObj.Type() != object.STRING_OBJ {
+						fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT\n", consts.EVAL_ERROR_PREFIX)
+						return false
+					}
+					bjObj := e.applyFunction(fun, []object.Object{ajb}, make(map[string]object.Object), []bool{false})
+					if isError(bjObj) {
+						err := bjObj.(*object.Error)
+						var buf bytes.Buffer
+						buf.WriteString(err.Message)
+						buf.WriteByte('\n')
+						for e.ErrorTokens.Len() > 0 {
+							tok := e.ErrorTokens.PopBack()
+							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						}
+						fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+						return false
+					}
+					if bjObj.Type() != object.FLOAT_OBJ && bjObj.Type() != object.INTEGER_OBJ && bjObj.Type() != object.STRING_OBJ {
+						fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT\n", consts.EVAL_ERROR_PREFIX)
+						return false
+					}
+					left, err := blueObjectToGoObject(biObj)
+					if err != nil {
+						fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
+						return false
+					}
+					right, err := blueObjectToGoObject(bjObj)
+					if err != nil {
+						fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
+						return false
+					}
+					if leftO, ok := left.(int64); ok {
+						if rightO, ok := right.(int64); ok {
+							if shouldReverse {
+								return leftO > rightO
+							}
+							return leftO < rightO
+						}
+					}
+					if leftO, ok := left.(int); ok {
+						if rightO, ok := right.(int); ok {
+							if shouldReverse {
+								return leftO > rightO
+							}
+							return leftO < rightO
+						}
+					}
+					if leftO, ok := left.(float64); ok {
+						if rightO, ok := right.(float64); ok {
+							if shouldReverse {
+								return leftO > rightO
+							}
+							return leftO < rightO
+						}
+					}
+					if leftO, ok := left.(string); ok {
+						if rightO, ok := right.(string); ok {
+							if shouldReverse {
+								return leftO > rightO
+							}
+							return leftO < rightO
+						}
+					}
+					fmt.Printf("%s`sort` key error: key function returned mismatched types: i = %d (%T), j = %d (%T)\n", consts.EVAL_ERROR_PREFIX, i, left, j, right)
+					return false
+				}
+				sort.SliceStable(anys, sorter)
+				newObjs := make([]object.Object, len(l.Elements))
+				for i, e := range anys {
+					obj, err := goObjectToBlueObject(e)
+					if err != nil {
+						return newError("`sort` key error: %s", err.Error())
+					}
+					newObjs[i] = obj
+				}
+				return &object.List{Elements: newObjs}
+			},
+		}
+	}
+	return sortBuiltin
 }
 
 var uiButtonBuiltin *object.Builtin = nil

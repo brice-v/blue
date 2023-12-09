@@ -14,7 +14,7 @@ fun hello_handler(name) {
     "<b>Hello #{name}!</b>"
 }
 
-# form_values shouldn't be handled in a get request
+# form_values shouldnt be handled in a get request
 # Should we use default params to figure out what we need to pass in though? - we can set them to nil
 # This would be specialty logic that ignores default params for function handlers
 # Example: http://localhost:3001/abc/AAAA/BBBB?name=Brice&email=brice%40example.com
