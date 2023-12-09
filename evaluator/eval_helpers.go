@@ -998,6 +998,18 @@ func createToNumBuiltin(e *Evaluator) *object.Builtin {
 
 var sortBuiltin *object.Builtin = nil
 
+func simpleKeyErrorPrint(e *Evaluator, obj object.Object) {
+	err := obj.(*object.Error)
+	var buf bytes.Buffer
+	buf.WriteString(err.Message)
+	buf.WriteByte('\n')
+	for e.ErrorTokens.Len() > 0 {
+		tok := e.ErrorTokens.PopBack()
+		buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+	}
+	fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
+}
+
 func createSortBuiltin(e *Evaluator) *object.Builtin {
 	if sortBuiltin == nil {
 		sortBuiltin = &object.Builtin{
@@ -1011,7 +1023,7 @@ func createSortBuiltin(e *Evaluator) *object.Builtin {
 				if args[1].Type() != object.BOOLEAN_OBJ {
 					return newPositionalTypeError("sort", 2, object.BOOLEAN_OBJ, args[1].Type())
 				}
-				if args[2].Type() != object.NULL_OBJ && args[2].Type() != object.FUNCTION_OBJ {
+				if args[2].Type() != object.NULL_OBJ && args[2].Type() != object.FUNCTION_OBJ && args[2].Type() != object.LIST_OBJ {
 					return newPositionalTypeError("sort", 3, object.FUNCTION_OBJ+" or null", args[2].Type())
 				}
 				l := args[0].(*object.List)
@@ -1073,6 +1085,27 @@ func createSortBuiltin(e *Evaluator) *object.Builtin {
 					}
 					return &object.List{Elements: newElems}
 				}
+				var funs []*object.Function
+				if args[2].Type() == object.LIST_OBJ {
+					ll := args[2].(*object.List)
+					funs = make([]*object.Function, len(ll.Elements))
+					for i, e := range ll.Elements {
+						if e.Type() != object.FUNCTION_OBJ {
+							return newError("`sort` key error: all elemments must be function")
+						}
+						fun := e.(*object.Function)
+						if len(fun.Parameters) != 1 {
+							return newError("`sort` key error: each key function must take 1 arg. got=%d for index %d", len(fun.Parameters), i)
+						}
+						funs[i] = fun
+					}
+				} else {
+					fun := args[2].(*object.Function)
+					funs = []*object.Function{fun}
+					if len(fun.Parameters) != 1 {
+						return newError("`sort` key error: key function must take 1 arg. got=%d", len(fun.Parameters))
+					}
+				}
 				// Using custom comparator
 				anys := make([]interface{}, len(l.Elements))
 				for i, e := range l.Elements {
@@ -1081,10 +1114,6 @@ func createSortBuiltin(e *Evaluator) *object.Builtin {
 						return newError("`sort` key error: %s", err.Error())
 					}
 					anys[i] = obj
-				}
-				fun := args[2].(*object.Function)
-				if len(fun.Parameters) != 1 {
-					return newError("`sort` key error: key function must take 1 arg. got=%d", len(fun.Parameters))
 				}
 
 				sorter := func(i, j int) bool {
@@ -1100,83 +1129,95 @@ func createSortBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
 						return false
 					}
-					biObj := e.applyFunction(fun, []object.Object{aib}, make(map[string]object.Object), []bool{false})
-					if isError(biObj) {
-						err := biObj.(*object.Error)
-						var buf bytes.Buffer
-						buf.WriteString(err.Message)
-						buf.WriteByte('\n')
-						for e.ErrorTokens.Len() > 0 {
-							tok := e.ErrorTokens.PopBack()
-							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+					for k := 0; k < len(funs); k++ {
+						biObj := e.applyFunction(funs[k], []object.Object{aib}, make(map[string]object.Object), []bool{false})
+						if isError(biObj) {
+							simpleKeyErrorPrint(e, biObj)
+							return false
 						}
-						fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
-						return false
-					}
-					if biObj.Type() != object.FLOAT_OBJ && biObj.Type() != object.INTEGER_OBJ && biObj.Type() != object.STRING_OBJ {
-						fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT\n", consts.EVAL_ERROR_PREFIX)
-						return false
-					}
-					bjObj := e.applyFunction(fun, []object.Object{ajb}, make(map[string]object.Object), []bool{false})
-					if isError(bjObj) {
-						err := bjObj.(*object.Error)
-						var buf bytes.Buffer
-						buf.WriteString(err.Message)
-						buf.WriteByte('\n')
-						for e.ErrorTokens.Len() > 0 {
-							tok := e.ErrorTokens.PopBack()
-							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						if biObj.Type() != object.FLOAT_OBJ && biObj.Type() != object.INTEGER_OBJ && biObj.Type() != object.STRING_OBJ {
+							fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT\n", consts.EVAL_ERROR_PREFIX)
+							return false
 						}
-						fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
-						return false
-					}
-					if bjObj.Type() != object.FLOAT_OBJ && bjObj.Type() != object.INTEGER_OBJ && bjObj.Type() != object.STRING_OBJ {
-						fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT\n", consts.EVAL_ERROR_PREFIX)
-						return false
-					}
-					left, err := blueObjectToGoObject(biObj)
-					if err != nil {
-						fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
-						return false
-					}
-					right, err := blueObjectToGoObject(bjObj)
-					if err != nil {
-						fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
-						return false
-					}
-					if leftO, ok := left.(int64); ok {
-						if rightO, ok := right.(int64); ok {
-							if shouldReverse {
-								return leftO > rightO
+						bjObj := e.applyFunction(funs[k], []object.Object{ajb}, make(map[string]object.Object), []bool{false})
+						if isError(bjObj) {
+							simpleKeyErrorPrint(e, bjObj)
+							return false
+						}
+						if bjObj.Type() != object.FLOAT_OBJ && bjObj.Type() != object.INTEGER_OBJ && bjObj.Type() != object.STRING_OBJ {
+							fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT\n", consts.EVAL_ERROR_PREFIX)
+							return false
+						}
+						left, err := blueObjectToGoObject(biObj)
+						if err != nil {
+							fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
+							return false
+						}
+						right, err := blueObjectToGoObject(bjObj)
+						if err != nil {
+							fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.EVAL_ERROR_PREFIX, err.Error())
+							return false
+						}
+						if leftO, ok := left.(int64); ok {
+							if rightO, ok := right.(int64); ok {
+								if shouldReverse {
+									if leftO == rightO && k != len(funs)-1 {
+										continue
+									}
+									return leftO > rightO
+								}
+								if leftO == rightO && k != len(funs)-1 {
+									continue
+								}
+								return leftO < rightO
 							}
-							return leftO < rightO
 						}
-					}
-					if leftO, ok := left.(int); ok {
-						if rightO, ok := right.(int); ok {
-							if shouldReverse {
-								return leftO > rightO
+						if leftO, ok := left.(int); ok {
+							if rightO, ok := right.(int); ok {
+								if shouldReverse {
+									if leftO == rightO && k != len(funs)-1 {
+										continue
+									}
+									return leftO > rightO
+								}
+								if leftO == rightO && k != len(funs)-1 {
+									continue
+								}
+								return leftO < rightO
 							}
-							return leftO < rightO
 						}
-					}
-					if leftO, ok := left.(float64); ok {
-						if rightO, ok := right.(float64); ok {
-							if shouldReverse {
-								return leftO > rightO
+						if leftO, ok := left.(float64); ok {
+							if rightO, ok := right.(float64); ok {
+								if shouldReverse {
+									if leftO == rightO && k != len(funs)-1 {
+										continue
+									}
+									return leftO > rightO
+								}
+								if leftO == rightO && k != len(funs)-1 {
+									continue
+								}
+								return leftO < rightO
 							}
-							return leftO < rightO
 						}
-					}
-					if leftO, ok := left.(string); ok {
-						if rightO, ok := right.(string); ok {
-							if shouldReverse {
-								return leftO > rightO
+						if leftO, ok := left.(string); ok {
+							if rightO, ok := right.(string); ok {
+								if shouldReverse {
+									if leftO == rightO && k != len(funs)-1 {
+										continue
+									}
+									return leftO > rightO
+								}
+								if leftO == rightO && k != len(funs)-1 {
+									continue
+								}
+								return leftO < rightO
 							}
-							return leftO < rightO
 						}
+						fmt.Printf("%s`sort` key error: key function returned mismatched types: i = %d (%T), j = %d (%T)\n", consts.EVAL_ERROR_PREFIX, i, left, j, right)
+						return false
 					}
-					fmt.Printf("%s`sort` key error: key function returned mismatched types: i = %d (%T), j = %d (%T)\n", consts.EVAL_ERROR_PREFIX, i, left, j, right)
+					fmt.Printf("%s`sort` key error: reached end of for loop, this should not happen\n", consts.EVAL_ERROR_PREFIX)
 					return false
 				}
 				sort.SliceStable(anys, sorter)

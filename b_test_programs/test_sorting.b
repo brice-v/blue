@@ -25,20 +25,29 @@ try {
 }
 
 
-val users = [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steven", age: 28}];
+val users = [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}];
 val users_sorted = users.sort(key=fun(user) { return user.age });
 val users_sorted_rev = users.sort(key=|user| => user.age, reverse=true);
-val users_sorted_expected = [{name: 'Amanda', age: 16}, {name: 'Rajeev', age: 28}, {name: 'Steven', age: 28}, {name: 'Monica', age: 31}, {name: 'John', age: 56}];
-val users_sorted_expected_rev = [{name: 'John', age: 56}, {name: 'Monica', age: 31}, {name: 'Rajeev', age: 28}, {name: 'Steven', age: 28}, {name: 'Amanda', age: 16}];
+val users_sorted_expected = [{name: 'Amanda', age: 16}, {name: 'Rajeev', age: 28}, {name: 'Steve', age: 28}, {name: 'Monica', age: 31}, {name: 'John', age: 56}];
+val users_sorted_expected_rev = [{name: 'John', age: 56}, {name: 'Monica', age: 31}, {name: 'Rajeev', age: 28}, {name: 'Steve', age: 28}, {name: 'Amanda', age: 16}];
 println("users        = #{users}")
 println("users_sorted = #{users_sorted}")
-println([{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steven", age: 28}] == [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steven", age: 28}]);
-assert([{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steven", age: 28}] == [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steven", age: 28}]);
-assert(users == [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steven", age: 28}]);
+println([{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}] == [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}]);
+assert([{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}] == [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}]);
+assert(users == [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}]);
 assert(users_sorted == users_sorted_expected);
-assert(users_sorted == [{name: 'Amanda', age: 16}, {name: 'Rajeev', age: 28}, {name: 'Steven', age: 28}, {name: 'Monica', age: 31}, {name: 'John', age: 56}]);
+assert(users_sorted == [{name: 'Amanda', age: 16}, {name: 'Rajeev', age: 28}, {name: 'Steve', age: 28}, {name: 'Monica', age: 31}, {name: 'John', age: 56}]);
 println("users_sorted_rev = #{users_sorted_rev}")
 assert(users_sorted_rev == users_sorted_expected_rev);
-assert(users_sorted_rev == [{name: 'John', age: 56}, {name: 'Monica', age: 31}, {name: 'Rajeev', age: 28}, {name: 'Steven', age: 28}, {name: 'Amanda', age: 16}]);
+assert(users_sorted_rev == [{name: 'John', age: 56}, {name: 'Monica', age: 31}, {name: 'Rajeev', age: 28}, {name: 'Steve', age: 28}, {name: 'Amanda', age: 16}]);
+
+val users_sorted_2keys = users.sort(key=[|user| => user.age, |user| => len(user.name)]);
+println("users_sorted_2keys = #{users_sorted_2keys}")
+val users_sorted_2keys_expected = [{name: 'Amanda', age: 16}, {name: 'Steve', age: 28}, {name: 'Rajeev', age: 28}, {name: 'Monica', age: 31}, {name: 'John', age: 56}];
+val users_sorted_2keys_rev = users.sort(key=[|user| => user.age, |user| => user.name], reverse=true);
+println("users_sorted_2keys_rev = #{users_sorted_2keys_rev}")
+val users_sorted_2keys_expected_rev = [{name: 'John', age: 56}, {name: 'Monica', age: 31}, {name: 'Steve', age: 28}, {name: 'Rajeev', age: 28}, {name: 'Amanda', age: 16}];
+assert(users_sorted_2keys == users_sorted_2keys_expected);
+assert(users_sorted_2keys_rev == users_sorted_2keys_expected_rev);
 
 assert(true);
