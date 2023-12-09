@@ -50,4 +50,27 @@ val users_sorted_2keys_expected_rev = [{name: 'John', age: 56}, {name: 'Monica',
 assert(users_sorted_2keys == users_sorted_2keys_expected);
 assert(users_sorted_2keys_rev == users_sorted_2keys_expected_rev);
 
+
+val set_ex = [{"quick", "brown", 1}, {"fox", "jumps", 2}];
+println("set_ex = #{set_ex}")
+val set_ex_sorted = set_ex.sort(key=|e| => e[0]);
+println("set_ex_sorted = #{set_ex_sorted}")
+assert(set_ex_sorted == [{"fox", "jumps", 2}, {"quick", "brown", 1}]);
+val list_ex = [["quick", "brown", 2], ["fox", "jumps", 1]];
+println("list_ex = #{list_ex}")
+val list_ex_sorted = list_ex.sort(key=|e| => e[2]);
+println("list_ex_sorted = #{list_ex_sorted}")
+assert(list_ex_sorted == [["fox", "jumps", 1], ["quick", "brown", 2]])
+val obj_int_key = [{28: "Rajeev"}, {31: "Monica"}, {56: "John"}, {16: "Amanda"}, {28: "Steve"}];
+println("obj_int_key = #{obj_int_key}")
+val obj_int_key_sorted = obj_int_key.sort(key=|e| => e.keys()[0]);
+println("obj_int_key_sorted = #{obj_int_key_sorted}")
+assert(obj_int_key_sorted == [{16: "Amanda"},{28: "Rajeev"},{28: "Steve"},{31: "Monica"},{56: "John"}]);
+val obj_float_key = [{19.5: "Rajeev"}, {176.8: "Monica"}, {20.8: "John"}, {57.4: "Amanda"}];
+println("obj_float_key = #{obj_float_key}")
+val obj_float_key_sorted = obj_float_key.sort(key=|e| => e.keys()[0]);
+println("obj_float_key_sorted = #{obj_float_key_sorted}")
+assert(obj_float_key_sorted == [{19.5: "Rajeev"},{20.8: "John"},{57.4: "Amanda"},{176.8: "Monica"}]);
+
+
 assert(true);

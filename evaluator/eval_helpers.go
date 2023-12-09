@@ -742,22 +742,62 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 		return blueObject.(*object.Boolean).Value, nil
 	case object.MAP_OBJ:
 		m := blueObject.(*object.Map)
-		pairs := object.NewOrderedMap[string, interface{}]()
+		allInts := true
+		allFloats := true
+		allStrings := true
 		for _, k := range m.Pairs.Keys {
 			mp, _ := m.Pairs.Get(k)
-			if mp.Key.Type() != object.STRING_OBJ {
-				return nil, fmt.Errorf("blueObjectToGoObject: Map must only have string keys. got=%s", mp.Key.Type())
-			}
-			if mp.Value.Type() == object.MAP_OBJ {
-				return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
-			}
-			val, err := blueObjectToGoObject(mp.Value)
-			if err != nil {
-				return nil, err
-			}
-			pairs.Set(mp.Key.(*object.Stringo).Value, val)
+			allInts = allInts && mp.Key.Type() == object.INTEGER_OBJ
+			allFloats = allFloats && mp.Key.Type() == object.FLOAT_OBJ
+			allStrings = allStrings && mp.Key.Type() == object.STRING_OBJ
 		}
-		return pairs, nil
+		if !allStrings && !allFloats && !allInts {
+			return nil, fmt.Errorf("blueObjectToGoObject: Map must only have STRING, INTEGER, or FLOAT keys")
+		}
+		if allStrings {
+			pairs := object.NewOrderedMap[string, interface{}]()
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				if mp.Value.Type() == object.MAP_OBJ {
+					return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
+				}
+				val, err := blueObjectToGoObject(mp.Value)
+				if err != nil {
+					return nil, err
+				}
+				pairs.Set(mp.Key.(*object.Stringo).Value, val)
+			}
+			return pairs, nil
+		} else if allInts {
+			pairs := object.NewOrderedMap[int64, interface{}]()
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				if mp.Value.Type() == object.MAP_OBJ {
+					return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
+				}
+				val, err := blueObjectToGoObject(mp.Value)
+				if err != nil {
+					return nil, err
+				}
+				pairs.Set(mp.Key.(*object.Integer).Value, val)
+			}
+			return pairs, nil
+		} else {
+			// Floats
+			pairs := object.NewOrderedMap[float64, interface{}]()
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				if mp.Value.Type() == object.MAP_OBJ {
+					return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
+				}
+				val, err := blueObjectToGoObject(mp.Value)
+				if err != nil {
+					return nil, err
+				}
+				pairs.Set(mp.Key.(*object.Float).Value, val)
+			}
+			return pairs, nil
+		}
 	case object.LIST_OBJ:
 		l := blueObject.(*object.List).Elements
 		elements := make([]interface{}, len(l))
@@ -772,6 +812,18 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 			elements[i] = val
 		}
 		return elements, nil
+	case object.SET_OBJ:
+		s := blueObject.(*object.Set)
+		set := object.NewOrderedMap[uint64, object.SetPairGo]()
+		for _, k := range s.Elements.Keys {
+			v, _ := s.Elements.Get(k)
+			val, err := blueObjectToGoObject(v.Value)
+			if err != nil {
+				return nil, err
+			}
+			set.Set(k, object.SetPairGo{Value: val, Present: v.Present})
+		}
+		return set, nil
 	default:
 		return nil, fmt.Errorf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
 	}
@@ -847,6 +899,55 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 			})
 		}
 		return m, nil
+	case *object.OrderedMap2[int64, interface{}]:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			key := &object.Integer{Value: k}
+			hk := object.HashKey{
+				Type:  object.INTEGER_OBJ,
+				Value: object.HashObject(key),
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	case *object.OrderedMap2[float64, interface{}]:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			key := &object.Float{Value: k}
+			hk := object.HashKey{
+				Type:  object.FLOAT_OBJ,
+				Value: object.HashObject(key),
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	case *object.OrderedMap2[uint64, object.SetPairGo]:
+		set := &object.Set{Elements: object.NewOrderedMap[uint64, object.SetPair]()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			val, err := goObjectToBlueObject(v.Value)
+			if err != nil {
+				return nil, err
+			}
+			set.Elements.Set(k, object.SetPair{Value: val, Present: v.Present})
+		}
+		return set, nil
 	default:
 		return nil, fmt.Errorf("goObjectToBlueObject: TODO: Type currently unsupported: (%T)", obj)
 	}

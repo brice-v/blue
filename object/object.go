@@ -503,6 +503,11 @@ type SetPair struct {
 	Present bool
 }
 
+type SetPairGo struct {
+	Value   interface{}
+	Present bool
+}
+
 // Set is the set object type struct
 type Set struct {
 	Elements *OrderedMap2[uint64, SetPair]
