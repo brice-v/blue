@@ -18,6 +18,7 @@ import (
 	"runtime/debug"
 	"runtime/metrics"
 	"runtime/pprof"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -346,6 +347,76 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "concat([1,2,3], [1]) => [1,2,3,1]",
 		}.String(),
+	},
+	"_sort": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("sort", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("sort", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.BOOLEAN_OBJ {
+				return newPositionalTypeError("sort", 2, object.BOOLEAN_OBJ, args[1].Type())
+			}
+			l := args[0].(*object.List)
+			shouldReverse := args[1].(*object.Boolean).Value
+			allInts := true
+			allFloats := true
+			allStrings := true
+			for _, e := range l.Elements {
+				allInts = allInts && e.Type() == object.INTEGER_OBJ
+				allFloats = allFloats && e.Type() == object.FLOAT_OBJ
+				allStrings = allStrings && e.Type() == object.STRING_OBJ
+			}
+			if !allStrings && !allFloats && !allInts {
+				return newError("`sort` error: all elements in list must be STRING, INTEGER, or FLOAT")
+			}
+			newElems := make([]object.Object, len(l.Elements))
+			if allStrings {
+				strs := make([]string, len(l.Elements))
+				for i, e := range l.Elements {
+					strs[i] = e.(*object.Stringo).Value
+				}
+				if shouldReverse {
+					sort.Sort(sort.Reverse(sort.StringSlice(strs)))
+				} else {
+					sort.Strings(strs)
+				}
+				for i, e := range strs {
+					newElems[i] = &object.Stringo{Value: e}
+				}
+			}
+			if allInts {
+				ints := make([]int, len(l.Elements))
+				for i, e := range l.Elements {
+					ints[i] = int(e.(*object.Integer).Value)
+				}
+				if shouldReverse {
+					sort.Sort(sort.Reverse(sort.IntSlice(ints)))
+				} else {
+					sort.Ints(ints)
+				}
+				for i, e := range ints {
+					newElems[i] = &object.Integer{Value: int64(e)}
+				}
+			}
+			if allFloats {
+				floats := make([]float64, len(l.Elements))
+				for i, e := range l.Elements {
+					floats[i] = e.(*object.Float).Value
+				}
+				if shouldReverse {
+					sort.Sort(sort.Reverse(sort.Float64Slice(floats)))
+				} else {
+					sort.Float64s(floats)
+				}
+				for i, e := range floats {
+					newElems[i] = &object.Float{Value: e}
+				}
+			}
+			return &object.List{Elements: newElems}
+		},
 	},
 	"println": {
 		Fun: func(args ...object.Object) object.Object {

@@ -127,6 +127,10 @@ fun reduce(list, f, acc=null) {
     return acc;
 }
 
+fun sort(list, reverse=false) {
+    return _sort(list, reverse);
+}
+
 fun zip(lol) {
     ##core:ignore
     #lol is the list of lists (this should be more like varags)
