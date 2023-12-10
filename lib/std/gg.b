@@ -171,7 +171,7 @@ val Key = {
 };
 
 val Mouse = {
-    # Mouse Buttons'
+    # Mouse Buttons
     'LeftButton': 0,
     'RightButton': 1,
     'MiddleButton': 2,
@@ -185,13 +185,13 @@ val Mouse = {
 val MaxTouchPoints = 2;
 
 val Gamepad = {
-    # Gamepad Number'
+    # Gamepad Number
     'Player1': 0,
     'Player2': 1,
     'Player3': 2,
     'Player4': 3,
     
-    # Gamepad Buttons/Axis'
+    # Gamepad Buttons/Axis
     
     # PS3 USB Controller Buttons
     'Ps3ButtonTriangle': 0,
@@ -363,7 +363,7 @@ val CameraProjection = {
 fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fovy=0.0, projection=CameraProjection.Perspective) {
     ## `Camera3D` is an object constructor that represents the GO_OBJ for 2D Cameras
     ##
-    ## position - camera's position
+    ## position - cameras position
 	## target - where it looks-at
 	## up vector (rotation over its axis)
 	## fovy - field-of-view apperture in Y (degrees) in perspective, used as near plane width in orthographic

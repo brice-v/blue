@@ -239,7 +239,7 @@ func prepareAndApplyHttpHandleFn(e *Evaluator, fn *object.Function, c *fiber.Ctx
 		return false, nil, errors
 	}
 	fnArgs, immutableArgs := getAndSetHttpParams(e, fn, c)
-	return true, e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs), []string{}
+	return true, e.applyFunctionFast(fn, fnArgs, make(map[string]object.Object), immutableArgs), []string{}
 }
 
 func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Function, c *fiber.Ctx) (bool, []string) {
@@ -575,7 +575,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 					}
 					immutableArgs[i] = true
 				}
-				returnObj = e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs)
+				returnObj = e.applyFunctionFast(fn, fnArgs, make(map[string]object.Object), immutableArgs)
 				if isError(returnObj) {
 					var buf bytes.Buffer
 					buf.WriteString(returnObj.(*object.Error).Message)

@@ -73,13 +73,15 @@ func (e *Environment) Clone() *Environment {
 	for k, v := range e.immutableStore.kv {
 		newEnv.immutableStore.Put(k, v)
 	}
-	if e.outer != nil {
-		for k, v := range e.outer.store.kv {
+	outer := e.outer
+	for outer != nil {
+		for k, v := range outer.store.kv {
 			newEnv.store.Put(k, v)
 		}
-		for k, v := range e.outer.immutableStore.kv {
+		for k, v := range outer.immutableStore.kv {
 			newEnv.immutableStore.Put(k, v)
 		}
+		outer = outer.outer
 	}
 	for _, k := range e.publicFunctionHelpStore.Keys {
 		v, _ := e.publicFunctionHelpStore.Get(k)

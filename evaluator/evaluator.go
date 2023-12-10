@@ -820,7 +820,7 @@ func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
 	newE := New()
 	newE.PID = pid
 	elems := arg1.(*object.List).Elements
-	newObj := newE.applyFunction(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
+	newObj := newE.applyFunctionFast(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
 	if isError(newObj) {
 		err := newObj.(*object.Error)
 		var buf bytes.Buffer
@@ -3677,7 +3677,7 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 			for funAndArgs.Len() > 0 {
 				funAndArg := funAndArgs.Pop()
 				// Note: Return values are ignored for defer functions
-				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+				e.applyFunctionFast(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
 			}
 			delete(e.deferFuns, e.scopeNestLevel)
 		}
@@ -3723,7 +3723,7 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 			for funAndArgs.Len() > 0 {
 				funAndArg := funAndArgs.Pop()
 				// Note: Return values are ignored for defer functions
-				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+				e.applyFunctionFast(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
 			}
 			delete(e.deferFuns, e.scopeNestLevel)
 		}
