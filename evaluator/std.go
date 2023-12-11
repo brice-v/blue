@@ -1042,6 +1042,25 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	},
 })
 
+// greatest common divisor (GCD) via Euclidean algorithm
+func gcd(a, b int64) int64 {
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+// find Least Common Multiple (LCM) via GCD
+func lcm(a, b int64, integers ...int64) int64 {
+	result := a * b / gcd(a, b)
+	for i := 0; i < len(integers); i++ {
+		result = lcm(result, integers[i])
+	}
+	return result
+}
+
 var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_rand": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1059,7 +1078,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.NaN()}
 		},
 	},
-	"acos": {
+	"_acos": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("acos", len(args), 1, "")
@@ -1071,7 +1090,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Acos(x)}
 		},
 	},
-	"acosh": {
+	"_acosh": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("acosh", len(args), 1, "")
@@ -1083,7 +1102,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Acosh(x)}
 		},
 	},
-	"asin": {
+	"_asin": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("asin", len(args), 1, "")
@@ -1095,7 +1114,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Asin(x)}
 		},
 	},
-	"asinh": {
+	"_asinh": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("asinh", len(args), 1, "")
@@ -1107,7 +1126,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Asinh(x)}
 		},
 	},
-	"atan": {
+	"_atan": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("atan", len(args), 1, "")
@@ -1119,7 +1138,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Atan(x)}
 		},
 	},
-	"atan2": {
+	"_atan2": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("atan2", len(args), 2, "")
@@ -1135,7 +1154,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Atan2(x, y)}
 		},
 	},
-	"atanh": {
+	"_atanh": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("atanh", len(args), 1, "")
@@ -1147,7 +1166,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Atanh(x)}
 		},
 	},
-	"cbrt": {
+	"_cbrt": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("cbrt", len(args), 1, "")
@@ -1159,7 +1178,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Cbrt(x)}
 		},
 	},
-	"ceil": {
+	"_ceil": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("ceil", len(args), 1, "")
@@ -1171,7 +1190,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Ceil(x)}
 		},
 	},
-	"copysign": {
+	"_copysign": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("copysign", len(args), 2, "")
@@ -1187,7 +1206,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Copysign(f, sign)}
 		},
 	},
-	"cos": {
+	"_cos": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("cos", len(args), 1, "")
@@ -1199,7 +1218,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Cos(x)}
 		},
 	},
-	"cosh": {
+	"_cosh": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("cosh", len(args), 1, "")
@@ -1211,7 +1230,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Cosh(x)}
 		},
 	},
-	"dim": {
+	"_dim": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("dim", len(args), 2, "")
@@ -1227,7 +1246,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Dim(x, y)}
 		},
 	},
-	"erf": {
+	"_erf": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erf", len(args), 1, "")
@@ -1239,7 +1258,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Erf(x)}
 		},
 	},
-	"erfc": {
+	"_erfc": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erfc", len(args), 1, "")
@@ -1251,7 +1270,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Erfc(x)}
 		},
 	},
-	"erfcinv": {
+	"_erfcinv": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erfcinv", len(args), 1, "")
@@ -1263,7 +1282,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Erfcinv(x)}
 		},
 	},
-	"erfinv": {
+	"_erfinv": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erfinv", len(args), 1, "")
@@ -1275,7 +1294,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Erfinv(x)}
 		},
 	},
-	"exp": {
+	"_exp": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("exp", len(args), 1, "")
@@ -1287,7 +1306,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Exp(x)}
 		},
 	},
-	"exp2": {
+	"_exp2": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("exp2", len(args), 1, "")
@@ -1299,7 +1318,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Exp2(x)}
 		},
 	},
-	"expm1": {
+	"_expm1": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("expm1", len(args), 1, "")
@@ -1311,7 +1330,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Expm1(x)}
 		},
 	},
-	"fma": {
+	"_fma": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("fma", len(args), 3, "")
@@ -1331,7 +1350,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.FMA(x, y, z)}
 		},
 	},
-	"floor": {
+	"_floor": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("floor", len(args), 1, "")
@@ -1343,20 +1362,22 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Floor(x)}
 		},
 	},
-	"frexp": {Fun: func(args ...object.Object) object.Object {
-		if len(args) != 1 {
-			return newInvalidArgCountError("frexp", len(args), 1, "")
-		}
-		if args[0].Type() != object.FLOAT_OBJ {
-			return newPositionalTypeError("frexp", 1, object.FLOAT_OBJ, args[0].Type())
-		}
-		frac, exp := math.Frexp(args[0].(*object.Float).Value)
-		mapObj := object.NewOrderedMap[string, object.Object]()
-		mapObj.Set("frac", &object.Float{Value: frac})
-		mapObj.Set("exp", &object.Integer{Value: int64(exp)})
-		return object.CreateMapObjectForGoMap(*mapObj)
-	}},
-	"gamma": {
+	"_frexp": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("frexp", len(args), 1, "")
+			}
+			if args[0].Type() != object.FLOAT_OBJ {
+				return newPositionalTypeError("frexp", 1, object.FLOAT_OBJ, args[0].Type())
+			}
+			frac, exp := math.Frexp(args[0].(*object.Float).Value)
+			mapObj := object.NewOrderedMap[string, object.Object]()
+			mapObj.Set("frac", &object.Float{Value: frac})
+			mapObj.Set("exp", &object.Integer{Value: int64(exp)})
+			return object.CreateMapObjectForGoMap(*mapObj)
+		},
+	},
+	"_gamma": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("gamma", len(args), 1, "")
@@ -1368,7 +1389,22 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Gamma(x)}
 		},
 	},
-	"hypot": {
+	"_gcd": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("gcd", len(args), 2, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("gcd", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("gcd", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			a, b := args[0].(*object.Integer).Value, args[1].(*object.Integer).Value
+			return &object.Integer{Value: gcd(a, b)}
+		},
+	},
+	"_hypot": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("hypot", len(args), 2, "")
@@ -1384,7 +1420,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Hypot(p, q)}
 		},
 	},
-	"ilogb": {
+	"_ilogb": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("ilogb", len(args), 1, "")
@@ -1396,7 +1432,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Integer{Value: int64(math.Ilogb(x))}
 		},
 	},
-	"inf": {
+	"_inf": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("inf", len(args), 1, "")
@@ -1408,7 +1444,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Inf(int(sign))}
 		},
 	},
-	"is_inf": {
+	"_is_inf": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("is_inf", len(args), 2, "")
@@ -1424,7 +1460,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return nativeToBooleanObject(math.IsInf(f, sign))
 		},
 	},
-	"is_NaN": {
+	"_is_NaN": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("is_NaN", len(args), 1, "")
@@ -1436,7 +1472,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return nativeToBooleanObject(math.IsNaN(f))
 		},
 	},
-	"j0": {
+	"_j0": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("j0", len(args), 1, "")
@@ -1448,7 +1484,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.J0(x)}
 		},
 	},
-	"j1": {
+	"_j1": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("j1", len(args), 1, "")
@@ -1460,7 +1496,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.J1(x)}
 		},
 	},
-	"jn": {
+	"_jn": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("jn", len(args), 2, "")
@@ -1476,7 +1512,52 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Jn(n, x)}
 		},
 	},
-	"ldexp": {
+	"_lcm": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) < 1 {
+				return newInvalidArgCountError("lcm", len(args), 1, "as a list, or 2 or more")
+			}
+			if args[0].Type() == object.LIST_OBJ {
+				l := args[0].(*object.List)
+				ints := make([]int64, len(l.Elements))
+				if len(l.Elements) < 2 {
+					return newError("`lcm` error: list must be at least 2 elements long")
+				}
+				for i, e := range l.Elements {
+					if e.Type() != object.INTEGER_OBJ {
+						return newError("`lcm` error: all elements in list need to be INTEGER. got=%s", e.Type())
+					}
+					ints[i] = e.(*object.Integer).Value
+				}
+				if len(ints) > 2 {
+					return &object.Integer{Value: lcm(ints[0], ints[1], ints[2:]...)}
+				}
+				return &object.Integer{Value: lcm(ints[0], ints[1])}
+			}
+			if len(args) < 2 {
+				return newInvalidArgCountError("lcm", len(args), 2, "or more")
+			}
+			if len(args) == 2 {
+				if args[0].Type() != object.INTEGER_OBJ {
+					return newPositionalTypeError("lcm", 1, object.INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.INTEGER_OBJ {
+					return newPositionalTypeError("lcm", 2, object.INTEGER_OBJ, args[1].Type())
+				}
+				return &object.Integer{Value: lcm(args[0].(*object.Integer).Value, args[1].(*object.Integer).Value)}
+			} else {
+				ints := make([]int64, len(args))
+				for i, e := range args {
+					if e.Type() != object.INTEGER_OBJ {
+						return newPositionalTypeError("lcm", i+1, object.INTEGER_OBJ, e.Type())
+					}
+					ints[i] = e.(*object.Integer).Value
+				}
+				return &object.Integer{Value: lcm(ints[0], ints[1], ints[2:]...)}
+			}
+		},
+	},
+	"_ldexp": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("ldexp", len(args), 2, "")
@@ -1492,7 +1573,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Ldexp(frac, exp)}
 		},
 	},
-	"lgamma": {
+	"_lgamma": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("lgamma", len(args), 1, "")
@@ -1507,7 +1588,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return object.CreateMapObjectForGoMap(*mapObj)
 		},
 	},
-	"log": {
+	"_log": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log", len(args), 1, "")
@@ -1519,7 +1600,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Log(x)}
 		},
 	},
-	"log10": {
+	"_log10": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log10", len(args), 1, "")
@@ -1531,7 +1612,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Log10(x)}
 		},
 	},
-	"log1p": {
+	"_log1p": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log1p", len(args), 1, "")
@@ -1543,7 +1624,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Log1p(x)}
 		},
 	},
-	"log2": {
+	"_log2": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log2", len(args), 1, "")
@@ -1555,7 +1636,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Log2(x)}
 		},
 	},
-	"logb": {
+	"_logb": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("logb", len(args), 1, "")
@@ -1567,7 +1648,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Logb(x)}
 		},
 	},
-	"mod": {
+	"_mod": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("mod", len(args), 2, "")
@@ -1583,7 +1664,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Mod(x, y)}
 		},
 	},
-	"modf": {
+	"_modf": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("modf", len(args), 1, "")
@@ -1598,7 +1679,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return object.CreateMapObjectForGoMap(*mapObj)
 		},
 	},
-	"next_after": {
+	"_next_after": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("next_after", len(args), 2, "")
@@ -1614,7 +1695,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Nextafter(x, y)}
 		},
 	},
-	"remainder": {
+	"_remainder": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("remainder", len(args), 2, "")
@@ -1630,7 +1711,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Remainder(x, y)}
 		},
 	},
-	"round": {
+	"_round": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("round", len(args), 1, "")
@@ -1642,7 +1723,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Round(x)}
 		},
 	},
-	"round_to_even": {
+	"_round_to_even": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("round_to_even", len(args), 1, "")
@@ -1654,7 +1735,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.RoundToEven(x)}
 		},
 	},
-	"signbit": {
+	"_signbit": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("signbit", len(args), 1, "")
@@ -1666,7 +1747,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return nativeToBooleanObject(math.Signbit(x))
 		},
 	},
-	"sin": {
+	"_sin": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("sin", len(args), 1, "")
@@ -1678,7 +1759,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Sin(x)}
 		},
 	},
-	"sincos": {
+	"_sincos": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("sincos", len(args), 1, "")
@@ -1693,7 +1774,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return object.CreateMapObjectForGoMap(*mapObj)
 		},
 	},
-	"sinh": {
+	"_sinh": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("sinh", len(args), 1, "")
@@ -1705,7 +1786,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Sinh(x)}
 		},
 	},
-	"tan": {
+	"_tan": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("tan", len(args), 1, "")
@@ -1717,7 +1798,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Tan(x)}
 		},
 	},
-	"tanh": {
+	"_tanh": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("tanh", len(args), 1, "")
@@ -1729,7 +1810,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Tanh(x)}
 		},
 	},
-	"trunc": {
+	"_trunc": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("trunc", len(args), 1, "")
@@ -1741,7 +1822,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Trunc(x)}
 		},
 	},
-	"y0": {
+	"_y0": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("y0", len(args), 1, "")
@@ -1753,7 +1834,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Y0(x)}
 		},
 	},
-	"y1": {
+	"_y1": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("y1", len(args), 1, "")
@@ -1765,7 +1846,7 @@ var _math_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Float{Value: math.Y1(x)}
 		},
 	},
-	"yn": {
+	"_yn": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("yn", len(args), 2, "")

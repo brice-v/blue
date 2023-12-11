@@ -25,6 +25,64 @@ val __rand = _rand;
 
 val NaN = _NaN();
 
+val acos = _acos;
+val acosh = _acosh;
+val asin = _asin;
+val asinh = _asinh;
+val atan = _atan;
+val atan2 = _atan2;
+val atanh = _atanh;
+val cbrt = _cbrt;
+val ceil = _ceil;
+val copysign = _copysign;
+val cos = _cos;
+val cosh = _cosh;
+val dim = _dim;
+val erf = _erf;
+val erfc = _erfc;
+val erfcinv = _erfcinv;
+val erfinv = _erfinv;
+val exp = _exp;
+val exp2 = _exp2;
+val expm1 = _expm1;
+val fma = _fma;
+val floor = _floor;
+val frexp = _frexp;
+val gamma = _gamma;
+val gcd = _gcd;
+val hypot = _hypot;
+val ilogb = _ilogb;
+val inf = _inf;
+val is_inf = _is_inf;
+val is_NaN = _is_NaN;
+val j0 = _j0;
+val j1 = _j1;
+val jn = _jn;
+val lcm = _lcm;
+val ldexp = _ldexp;
+val lgamma = _lgamma;
+val log = _log;
+val log10 = _log10;
+val log1p = _log1p;
+val log2 = _log2;
+val logb = _logb;
+val mod = _mod;
+val modf = _modf;
+val next_after = _next_after;
+val remainder = _remainder;
+val round = _round;
+val round_to_even = _round_to_even;
+val signbit = _signbit;
+val sin = _sin;
+val sincos = _sincos;
+val sinh = _sinh;
+val tan = _tan;
+val tanh = _tanh;
+val trunc = _trunc;
+val y0 = _y0;
+val y1 = _y1;
+val yn = _yn;
+
 fun max(x, y) {
     ## `max` will return the max of the 2 numbers passed in
     ##
