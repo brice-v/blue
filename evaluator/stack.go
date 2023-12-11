@@ -54,7 +54,7 @@ func (s *Stack[T]) Len() int {
 
 func (s *Stack[T]) String() string {
 	var out bytes.Buffer
-	out.WriteString("Stack{")
+	out.WriteString(fmt.Sprintf("%T{", s))
 	for e := s.s.Front(); e != nil; e = e.Next() {
 		out.WriteString(fmt.Sprintf("%#v,", e.Value))
 	}
