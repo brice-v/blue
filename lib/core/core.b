@@ -14,6 +14,7 @@ val Type = {
     BUILTIN: 'BUILTIN',
     MODULE: 'MODULE_OBJ',
     GO_OBJ: 'GO_OBJ',
+    REGEX: 'REGEX',
 };
 
 fun send(obj, value) {
@@ -160,6 +161,9 @@ fun zip(lol) {
 fun find_all(str_to_search, query, method="regex") {
     ##core:ignore
     import search
+    if type(query) == Type.REGEX {
+        method = 'regex';
+    }
     match method {
         "regex" => {
             search.by_regex(str_to_search, query, false)
@@ -176,6 +180,9 @@ fun find_all(str_to_search, query, method="regex") {
 fun find_one(str_to_search, query, method="regex") {
     ##core:ignore
     import search
+    if type(query) == Type.REGEX {
+        method = 'regex';
+    }
     match method {
         "regex" => {
             search.by_regex(str_to_search, query, true)
@@ -319,6 +326,9 @@ fun to_bytes(str_to_convert, is_hex=false) {
 val __replace = _replace;
 val __replace_regex = _replace_regex;
 fun replace(str_to_replace, replacer, replaced, is_regex=false) {
+    if type(replacer) == Type.REGEX {
+        is_regex = true;
+    }
     if is_regex {
         return __replace_regex(str_to_replace, replacer, replaced);
     } else {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"regexp"
 	"strings"
 
 	"github.com/aead/siphash"
@@ -60,6 +61,8 @@ const (
 	BYTES_OBJ = "BYTES"
 	// GO_OBJ is the go object type string
 	GO_OBJ = "GO_OBJ"
+	// REGEX_OBJ is the Regex object type string
+	REGEX_OBJ = "REGEX"
 	// BUILTIN_OBJ is the builtin function object type string
 	BUILTIN_OBJ = "BUILTIN"
 	// LIST_OBJ is the list object type string
@@ -338,6 +341,21 @@ func (g *GoObj[T]) Inspect() string {
 
 func (g *GoObj[T]) Help() string {
 	return createHelpStringForObject("GoObj", "is the object that represents an arbitrary go object", g)
+}
+
+// Regex is the string oject struct which contains a string value
+type Regex struct {
+	Value *regexp.Regexp
+}
+
+// Type returns the string object type
+func (r *Regex) Type() Type { return REGEX_OBJ }
+
+// Inspect returns the string value
+func (r *Regex) Inspect() string { return r.Value.String() }
+
+func (r *Regex) Help() string {
+	return createHelpStringForObject("Regex", "is the object that represents the Regex", r)
 }
 
 // BuiltinFunction is the type that will allow us to support

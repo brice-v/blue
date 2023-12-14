@@ -206,6 +206,18 @@ func (sl *StringLiteral) String() string {
 // StringWithoutQuotes returns the string value without quotes
 func (sl *StringLiteral) StringWithoutQuotes() string { return sl.Value }
 
+type RegexLiteral struct {
+	Token token.Token
+	Value string
+}
+
+func (rl *RegexLiteral) expressionNode()      {}
+func (rl *RegexLiteral) TokenLiteral() string { return rl.Token.Literal }
+func (rl *RegexLiteral) String() string {
+	// replace literal backslash as escaped to make it easier to see
+	return "r/" + strings.ReplaceAll(rl.Value, "\\", "\\\\") + "/"
+}
+
 // ListLiteral is the list literal ast node representation
 type ListLiteral struct {
 	Token    token.Token  // Token == [ (LBRACE)

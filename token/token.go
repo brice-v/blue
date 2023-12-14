@@ -76,6 +76,9 @@ const (
 	// STRINGINTERP is the string interpolation token
 	STRINGINTERP = "#{"
 
+	// REGEX is the string rep. of the regex literal start token
+	REGEX = "r/"
+
 	// NOTE: ANDEQ, OREQ, BINNOTEQ, and XOREQ might also be used for sets and other data types eventually
 
 	// ANDEQ is the string rep. of the binary and equal tok.

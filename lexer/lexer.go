@@ -353,14 +353,15 @@ func (l *Lexer) readString() (string, error) {
 	b := &strings.Builder{}
 
 	stringStart := string(l.ch)
+	strStart := l.ch
 	for {
 		l.readChar()
 
 		// Support some basic escapes like \"
 		if l.ch == '\\' {
 			switch l.peekChar() {
-			case '"':
-				b.WriteByte('"')
+			case strStart:
+				b.WriteRune(strStart)
 			case 'n':
 				b.WriteByte('\n')
 			case 'r':
@@ -398,6 +399,33 @@ func (l *Lexer) readString() (string, error) {
 	if l.ch != '"' && l.ch != '\'' {
 		return "", fmt.Errorf("string is not ended")
 	}
+
+	return b.String(), nil
+}
+
+// readRegexLiteral will consume tokens until the regex literal is fully read
+func (l *Lexer) readRegexLiteral() (string, error) {
+	b := &strings.Builder{}
+
+	for {
+		l.readChar()
+
+		if l.ch == '\\' && l.peekChar() == '/' {
+			b.WriteByte('/')
+			l.readChar()
+			l.readChar()
+		}
+		if l.ch == '/' || l.ch == 0 {
+			break
+		}
+
+		b.WriteRune(l.ch)
+	}
+
+	if l.ch != '/' {
+		return "", fmt.Errorf("string is not ended")
+	}
+	l.readChar()
 
 	return b.String(), nil
 }
@@ -615,6 +643,18 @@ func (l *Lexer) NextToken() token.Token {
 			tok.PositionInLine = l.posInLine
 		}
 	default:
+		if l.ch == 'r' && l.peekChar() == '/' {
+			tok = l.makeTwoCharToken(token.REGEX)
+			str, err := l.readRegexLiteral()
+			if err != nil {
+				tok = l.newToken(token.ILLEGAL, l.prevCh)
+				tok.Filepath = l.fname
+				tok.LineNumber = l.lineNo
+				tok.PositionInLine = l.posInLine
+			}
+			tok.Literal = str
+			return tok
+		}
 		if l.prevTokType == token.IMPORT || l.prevTokType == token.FROM {
 			if l.prevTokType == token.FROM {
 				l.prevTokType = token.IMPORT_PATH

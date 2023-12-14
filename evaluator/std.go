@@ -780,25 +780,27 @@ var _search_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[0].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("by_regex", 1, object.STRING_OBJ, args[0].Type())
 			}
-			if args[1].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("by_regex", 2, object.STRING_OBJ, args[1].Type())
+			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.REGEX_OBJ {
+				return newPositionalTypeError("by_regex", 2, object.STRING_OBJ+" or REGEX", args[1].Type())
 			}
 			if args[2].Type() != object.BOOLEAN_OBJ {
 				return newPositionalTypeError("by_regex", 3, object.BOOLEAN_OBJ, args[2].Type())
 			}
 			strToSearch := args[0].(*object.Stringo).Value
-			if strToSearch == "" {
-				return newError("`by_regex` error: str_to_search argument is empty")
-			}
-			strQuery := args[1].(*object.Stringo).Value
-			if strQuery == "" {
-				return newError("`by_regex` error: query argument is empty")
+
+			var re *regexp.Regexp
+			if args[1].Type() == object.STRING_OBJ {
+				strQuery := args[1].(*object.Stringo).Value
+				re1, err := regexp.Compile(strQuery)
+				if err != nil {
+					return newError("`by_regex` error: failed to compile regexp %q", strQuery)
+				}
+				re = re1
+			} else {
+				re = args[1].(*object.Regex).Value
 			}
 			shouldFindOne := args[2].(*object.Boolean).Value
-			re, err := regexp.Compile(strQuery)
-			if err != nil {
-				return newError("`by_regex` error: failed to compile regexp %q", strQuery)
-			}
+
 			if !shouldFindOne {
 				listToReturn := &object.List{Elements: []object.Object{}}
 				results := re.FindAllString(strToSearch, -1)

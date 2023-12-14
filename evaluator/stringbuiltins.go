@@ -139,25 +139,30 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if !ok {
 				return newPositionalTypeError("replace_regex", 1, object.STRING_OBJ, args[0].Type())
 			}
-			arg1, ok := args[1].(*object.Stringo)
-			if !ok {
-				return newPositionalTypeError("replace_regex", 2, object.STRING_OBJ, args[1].Type())
+			if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.REGEX_OBJ {
+				return newPositionalTypeError("replace_regex", 2, object.STRING_OBJ+" or REGEX", args[1].Type())
+			}
+			var re *regexp.Regexp
+			if args[1].Type() == object.STRING_OBJ {
+				re1, err := regexp.Compile(args[1].(*object.Stringo).Value)
+				if err != nil {
+					return newError("`replace_regex` error: %s", err.Error())
+				}
+				re = re1
+			} else {
+				re = args[1].(*object.Regex).Value
 			}
 			arg2, ok := args[2].(*object.Stringo)
 			if !ok {
 				return newPositionalTypeError("replace_regex", 3, object.STRING_OBJ, args[2].Type())
 			}
-			re, err := regexp.Compile(arg1.Value)
-			if err != nil {
-				return newError("`replace_regex` error: %s", err.Error())
-			}
 			return &object.Stringo{Value: string(re.ReplaceAll([]byte(arg0.Value), []byte(arg2.Value)))}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`replace_regex` will return a STRING with all occurrences of the given replacer REGEX STRING replaced by the next given STRING",
-			signature:   "replace(arg: str, replacer: str, replaced: str) -> str",
+			signature:   "replace_regex(arg: str, replacer: str, replaced: str) -> str",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "replace('Hello', 'l', 'X') => 'HeXXo'",
+			example:     "replace_regex('Hello', 'l', 'X') => 'HeXXo'",
 		}.String(),
 	},
 	"strip": {
@@ -497,22 +502,38 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("matches", len(args), 2, "")
 			}
+			if args[0].Type() != object.STRING_OBJ && args[0].Type() != object.REGEX_OBJ {
+				return newPositionalTypeError("matches", 1, object.STRING_OBJ+" or REGEX", args[0].Type())
+			}
+			if args[0].Type() == object.REGEX_OBJ {
+				if args[1].Type() != object.STRING_OBJ {
+					return newPositionalTypeError("matches", 2, object.STRING_OBJ, args[1].Type())
+				}
+				re := args[0].(*object.Regex).Value
+				str := args[1].(*object.Stringo).Value
+				return nativeToBooleanObject(re.MatchString(str))
+			}
+			// TODO: Support inverted arg as well? Like regex on left and string on right
 			arg0, ok := args[0].(*object.Stringo)
 			if !ok {
 				return newPositionalTypeError("matches", 1, object.STRING_OBJ, args[0].Type())
 			}
-			arg1, ok := args[1].(*object.Stringo)
-			if !ok {
-				return newPositionalTypeError("matches", 2, object.STRING_OBJ, args[1].Type())
+			if args[1].Type() == object.STRING_OBJ {
+				arg1, ok := args[1].(*object.Stringo)
+				if !ok {
+					return newPositionalTypeError("matches", 2, object.STRING_OBJ, args[1].Type())
+				}
+				re, err := regexp.Compile(arg1.Value)
+				if err != nil {
+					return newError("`matches` error: %s", err.Error())
+				}
+				return nativeToBooleanObject(re.MatchString(arg0.Value))
 			}
-			re, err := regexp.Compile(arg1.Value)
-			if err != nil {
-				return newError("`matches` error: %s", err.Error())
+			if args[1].Type() != object.REGEX_OBJ {
+				return newPositionalTypeError("matches", 2, object.REGEX_OBJ, args[1].Type())
 			}
-			if re.MatchString(arg0.Value) {
-				return TRUE
-			}
-			return FALSE
+			re := args[1].(*object.Regex).Value
+			return nativeToBooleanObject(re.MatchString(arg0.Value))
 		},
 	},
 })

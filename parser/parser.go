@@ -154,6 +154,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.DEFER, p.parseDeferExpression)
 	p.registerPrefix(token.SELF, p.parseSelfExpression)
 	p.registerPrefix(token.LSHIFT, p.parsePrefixExpression)
+	p.registerPrefix(token.REGEX, p.parseRegexLiteral)
 	p.infixParseFuns = make(map[token.Type]infixParseFun)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -1136,6 +1137,14 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 
 	exp.InterpolationValues, exp.OriginalInterpolationString = p.parseStringInterpolationValues(p.curToken.Literal)
 	return exp
+}
+
+// parseRegexLiteral will parse the regex literal and return its ast node
+func (p *Parser) parseRegexLiteral() ast.Expression {
+	return &ast.RegexLiteral{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
 }
 
 // parseListLiteral parses a list literal and returns the ast node

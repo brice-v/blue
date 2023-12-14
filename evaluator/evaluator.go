@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -373,6 +374,12 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 		}
 		return val
+	case *ast.RegexLiteral:
+		r, err := regexp.Compile(node.Token.Literal)
+		if err != nil {
+			return newError("failed to create regex literal %q", node.TokenLiteral())
+		}
+		return &object.Regex{Value: r}
 	case *ast.StringLiteral:
 		if len(node.InterpolationValues) == 0 {
 			return &object.Stringo{Value: node.Value}
