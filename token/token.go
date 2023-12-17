@@ -81,6 +81,10 @@ const (
 
 	// NOTE: ANDEQ, OREQ, BINNOTEQ, and XOREQ might also be used for sets and other data types eventually
 
+	// ANDANDEQ is the string rep. of the boolean and equal tok.
+	ANDANDEQ = "&&="
+	// OROREQ is the string rep. of the boolean or equal tok.
+	OROREQ = "||="
 	// ANDEQ is the string rep. of the binary and equal tok.
 	ANDEQ = "&="
 	// OREQ is the string rep. of the binary or equal tok.

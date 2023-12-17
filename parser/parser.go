@@ -81,6 +81,8 @@ var precedences = map[token.Type]int{
 	token.MULEQ:       COMPOUND_ASSIGNMENT,
 	token.POWEQ:       COMPOUND_ASSIGNMENT,
 	token.FDIVEQ:      COMPOUND_ASSIGNMENT,
+	token.ANDANDEQ:    COMPOUND_ASSIGNMENT,
+	token.OROREQ:      COMPOUND_ASSIGNMENT,
 	token.ANDEQ:       COMPOUND_ASSIGNMENT,
 	token.OREQ:        COMPOUND_ASSIGNMENT,
 	token.BINNOTEQ:    COMPOUND_ASSIGNMENT,
@@ -192,6 +194,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.POWEQ, p.parseAssignmentExpression)
 	p.registerInfix(token.ANDEQ, p.parseAssignmentExpression)
 	p.registerInfix(token.OREQ, p.parseAssignmentExpression)
+	p.registerInfix(token.ANDANDEQ, p.parseAssignmentExpression)
+	p.registerInfix(token.OROREQ, p.parseAssignmentExpression)
 	p.registerInfix(token.BINNOTEQ, p.parseAssignmentExpression)
 	p.registerInfix(token.PERCENTEQ, p.parseAssignmentExpression)
 	p.registerInfix(token.LSHIFTEQ, p.parseAssignmentExpression)
@@ -1828,6 +1832,8 @@ func (p *Parser) peekTokenIsAssignmentToken() bool {
 		p.peekTokenIs(token.POWEQ) ||
 		p.peekTokenIs(token.ANDEQ) ||
 		p.peekTokenIs(token.OREQ) ||
+		p.peekTokenIs(token.ANDANDEQ) ||
+		p.peekTokenIs(token.OROREQ) ||
 		p.peekTokenIs(token.BINNOTEQ) ||
 		p.peekTokenIs(token.LSHIFTEQ) ||
 		p.peekTokenIs(token.RSHIFTEQ) ||

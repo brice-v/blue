@@ -287,6 +287,8 @@ func TestNextTokenMulti(t *testing.T) {
 	+=
 	-=
 	/=
+	&&=
+	||=
 	`
 
 	tests := []struct {
@@ -310,6 +312,8 @@ func TestNextTokenMulti(t *testing.T) {
 		{token.PLUSEQ, "+="},
 		{token.MINUSEQ, "-="},
 		{token.DIVEQ, "/="},
+		{token.ANDANDEQ, "&&="},
+		{token.OROREQ, "||="},
 
 		{token.EOF, ""},
 	}

@@ -32,10 +32,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if !ok {
 				return newPositionalTypeError("startswith", 2, object.STRING_OBJ, args[1].Type())
 			}
-			if strings.HasPrefix(arg0.Value, arg1.Value) {
-				return TRUE
-			}
-			return FALSE
+			return nativeToBooleanObject(strings.HasPrefix(arg0.Value, arg1.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`startswith` returns a BOOLEAN if the given STRING starts with the prefix STRING",
@@ -57,10 +54,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if !ok {
 				return newPositionalTypeError("endswith", 2, object.STRING_OBJ, args[1].Type())
 			}
-			if strings.HasSuffix(arg0.Value, arg1.Value) {
-				return TRUE
-			}
-			return FALSE
+			return nativeToBooleanObject(strings.HasSuffix(arg0.Value, arg1.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`endswith` returns a BOOLEAN if the given STRING ends with the suffix STRING",

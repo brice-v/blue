@@ -564,11 +564,11 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 	for i, name := range names {
 		if ok := e.env.IsImmutable(name.Value); ok {
 			e.ErrorTokens.Push(tok)
-			return newError("'" + name.Value + "' is already defined as immutable, cannot reassign")
+			return newError("'%s' is already defined as immutable, cannot reassign", name.Value)
 		}
 		if _, ok := e.env.Get(name.Value); ok {
 			e.ErrorTokens.Push(tok)
-			return newError("'" + name.Value + "' is already defined")
+			return newError("'%s' is already defined", name.Value)
 		}
 		if _, ok := e.isInScopeBlock[e.scopeNestLevel]; ok {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
@@ -611,11 +611,11 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 		}
 		if ok := e.env.IsImmutable(name.Value); ok {
 			e.ErrorTokens.Push(tok)
-			return newError("'" + name.Value + "' is already defined as immutable, cannot reassign")
+			return newError("'%s' is already defined as immutable, cannot reassign", name.Value)
 		}
 		if _, ok := e.env.Get(name.Value); ok {
 			e.ErrorTokens.Push(tok)
-			return newError("'" + name.Value + "' is already defined")
+			return newError("'%s' is already defined", name.Value)
 		}
 		if _, ok := e.isInScopeBlock[e.scopeNestLevel]; ok {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
@@ -1066,17 +1066,11 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.nestLevel++
 			e.env.Set(ident.Value, list[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
-			if len(list) == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(ident.Value, list[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
-		if len(list) == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		// This is where we handle if its a Map
 		mapPairs := evaluatedRight.(*object.Map).Pairs
@@ -1102,17 +1096,11 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.nestLevel++
 			e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
-			if len(pairObjs) == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(len(pairObjs) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
-		if mapPairs.Len() == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(mapPairs.Len() != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.STRING_OBJ {
 		// This is where we handle if its a string
 		strVal := evaluatedRight.(*object.Stringo).Value
@@ -1137,17 +1125,11 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.nestLevel++
 			e.env.Set(ident.Value, stringObjs[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
-			if len(chars) == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(len(chars) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(ident.Value, stringObjs[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
-		if len(stringObjs) == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(len(stringObjs) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.SET_OBJ {
 		// This is where we handle if its a set
 		set := evaluatedRight.(*object.Set).Elements
@@ -1177,10 +1159,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			}
 			e.env.Set(ident.Value, val)
 			e.iterCount[e.nestLevel]++
-			if set.Len() == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(set.Len() != e.iterCount[e.nestLevel])
 		}
 		var val object.Object
 		for i, k := range set.Keys {
@@ -1193,10 +1172,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		}
 		e.env.Set(ident.Value, val)
 		e.iterCount[e.nestLevel]++
-		if set.Len() == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(set.Len() != e.iterCount[e.nestLevel])
 	}
 	return newError("Expected List, Map, Set, or String on right hand side. got=%s", evaluatedRight.Type())
 }
@@ -1238,18 +1214,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
 			e.env.Set(identRight.Value, list[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
-			if len(list) == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
 		e.env.Set(identRight.Value, list[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
-		if len(list) == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		mapPairs := evaluatedRight.(*object.Map).Pairs
 		if mapPairs.Len() == 0 {
@@ -1277,18 +1247,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.env.Set(identLeft.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[0])
 			e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
 			e.iterCount[e.nestLevel]++
-			if len(pairObjs) == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(len(pairObjs) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(identLeft.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[0])
 		e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
 		e.iterCount[e.nestLevel]++
-		if mapPairs.Len() == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(mapPairs.Len() != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.STRING_OBJ {
 		// This is where we handle if its a string
 		strVal := evaluatedRight.(*object.Stringo).Value
@@ -1316,18 +1280,12 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
 			e.env.Set(identRight.Value, stringObjs[e.iterCount[e.nestLevel]])
 			e.iterCount[e.nestLevel]++
-			if len(chars) == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(len(chars) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
 		e.env.Set(identRight.Value, stringObjs[e.iterCount[e.nestLevel]])
 		e.iterCount[e.nestLevel]++
-		if len(stringObjs) == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(len(stringObjs) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.SET_OBJ {
 		// This is where we handle if its a set
 		set := evaluatedRight.(*object.Set).Elements
@@ -1359,10 +1317,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			}
 			e.env.Set(identRight.Value, val)
 			e.iterCount[e.nestLevel]++
-			if set.Len() == e.iterCount[e.nestLevel] {
-				return FALSE
-			}
-			return TRUE
+			return nativeToBooleanObject(set.Len() != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
 		var val object.Object
@@ -1376,10 +1331,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		}
 		e.env.Set(identRight.Value, val)
 		e.iterCount[e.nestLevel]++
-		if set.Len() == e.iterCount[e.nestLevel] {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(set.Len() != e.iterCount[e.nestLevel])
 	}
 	return newError("Expected List, Map, Set, or String on right hand side. got=%s", evaluatedRight.Type())
 }
@@ -1563,7 +1515,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "+=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("+", orig, value)
 			if isError(evaluated) {
@@ -1573,7 +1525,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "-=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("-", orig, value)
 			if isError(evaluated) {
@@ -1583,7 +1535,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "*=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("*", orig, value)
 			if isError(evaluated) {
@@ -1593,7 +1545,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "/=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("/", orig, value)
 			if isError(evaluated) {
@@ -1603,7 +1555,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "//=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("//", orig, value)
 			if isError(evaluated) {
@@ -1613,7 +1565,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "**=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("**", orig, value)
 			if isError(evaluated) {
@@ -1623,7 +1575,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "&=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("&", orig, value)
 			if isError(evaluated) {
@@ -1633,9 +1585,29 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "|=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("|", orig, value)
+			if isError(evaluated) {
+				return evaluated
+			}
+			e.env.Set(ident.Value, evaluated)
+		case "&&=":
+			orig, ok := e.env.Get(ident.Value)
+			if !ok {
+				return newError("identifier '%s' does not exist", ident.String())
+			}
+			evaluated := e.evalInfixExpression("&&", orig, value)
+			if isError(evaluated) {
+				return evaluated
+			}
+			e.env.Set(ident.Value, evaluated)
+		case "||=":
+			orig, ok := e.env.Get(ident.Value)
+			if !ok {
+				return newError("identifier '%s' does not exist", ident.String())
+			}
+			evaluated := e.evalInfixExpression("||", orig, value)
 			if isError(evaluated) {
 				return evaluated
 			}
@@ -1643,7 +1615,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "~=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("~", orig, value)
 			if isError(evaluated) {
@@ -1653,7 +1625,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "<<=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("<<", orig, value)
 			if isError(evaluated) {
@@ -1663,7 +1635,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case ">>=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression(">>", orig, value)
 			if isError(evaluated) {
@@ -1673,7 +1645,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "%=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("%", orig, value)
 			if isError(evaluated) {
@@ -1683,7 +1655,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		case "^=":
 			orig, ok := e.env.Get(ident.Value)
 			if !ok {
-				return newError("identifier '" + ident.String() + "' does not exist")
+				return newError("identifier '%s' does not exist", ident.String())
 			}
 			evaluated := e.evalInfixExpression("^", orig, value)
 			if isError(evaluated) {
@@ -1691,7 +1663,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			}
 			e.env.Set(ident.Value, evaluated)
 		default:
-			return newError("assignment operator not supported `" + node.Token.Literal + "`")
+			return newError("assignment operator not supported `%s`", node.Token.Literal)
 		}
 	} else if ie, ok := node.Left.(*ast.IndexExpression); ok {
 		// Handle Assignment to Builtin Obj
@@ -2065,14 +2037,14 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 			// unset the var
 			err := os.Unsetenv(key)
 			if err != nil {
-				return newError("failed to unset ENV key '" + key + "'")
+				return newError("failed to unset ENV key '%s'", key)
 			}
 		} else {
 			// set the env var
 			v := value.(*object.Stringo).Value
 			err := os.Setenv(key, v)
 			if err != nil {
-				return newError("failed to set ENV key='" + key + "', value='" + v + "'")
+				return newError("failed to set ENV key='%s', value='%s'", key, v)
 			}
 		}
 		builtinobjs["ENV"].Obj = populateENVObj()
@@ -2095,7 +2067,7 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 		return list.Elements[i]
 	}
 
-	return newError("unhandled builtin obj assignment on '" + ident.Value + "'")
+	return newError("unhandled builtin obj assignment on '%s'", ident.Value)
 }
 
 func (e *Evaluator) evalMapLiteral(node *ast.MapLiteral) object.Object {
@@ -2518,15 +2490,9 @@ func (e *Evaluator) evalStringInfixExpression(operator string, left, right objec
 	case "!=":
 		return nativeToBooleanObject(leftStr != rightStr)
 	case "in":
-		if strings.Contains(rightStr, leftStr) {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(strings.Contains(rightStr, leftStr))
 	case "notin":
-		if strings.Contains(rightStr, leftStr) {
-			return FALSE
-		}
-		return TRUE
+		return nativeToBooleanObject(!strings.Contains(rightStr, leftStr))
 	case "..":
 		if runeLen(leftStr) != 1 {
 			return newError("operator .. expects left string to be 1 rune")
@@ -2606,10 +2572,7 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 		if !ok {
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
-		if leftBool.Value && rightBool.Value {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(leftBool.Value && rightBool.Value)
 	case operator == "or" || operator == "||":
 		if left == NULL {
 			// Null coalescing operator returns right side if left is null
@@ -2623,10 +2586,7 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 		if !ok {
 			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 		}
-		if leftBool.Value || rightBool.Value {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(leftBool.Value || rightBool.Value)
 	case (operator == "in" || operator == "notin") && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ):
 		return e.evalInOrNotinInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
@@ -2697,170 +2657,16 @@ func (e *Evaluator) evalInOrNotinInfixExpression(operator string, left, right ob
 
 func (e *Evaluator) evalRightSideSetInfixExpression(operator string, left, right object.Object) object.Object {
 	setElems := right.(*object.Set).Elements
-	switch left.Type() {
-	case object.INTEGER_OBJ:
-		intVal := object.HashObject(left.(*object.Integer))
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(intVal); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(intVal); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return e.evalDefaultInfixExpression(operator, left, right)
+	if operator == "in" || operator == "notin" {
+		hashed := object.HashObject(left)
+		_, ok := setElems.Get(hashed)
+		if operator == "in" {
+			return nativeToBooleanObject(ok)
+		} else {
+			return nativeToBooleanObject(!ok)
 		}
-	case object.UINTEGER_OBJ:
-		hk := object.HashObject(left)
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(hk); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(hk); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-	case object.FUNCTION_OBJ:
-		funHash := object.HashObject(left.(*object.Function))
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(funHash); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(funHash); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return e.evalDefaultInfixExpression(operator, left, right)
-		}
-	case object.MAP_OBJ:
-		mapHash := object.HashObject(left.(*object.Map))
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(mapHash); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(mapHash); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-	case object.BOOLEAN_OBJ:
-		hk := object.HashObject(left)
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(hk); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(hk); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return e.evalDefaultInfixExpression(operator, left, right)
-		}
-	case object.STRING_OBJ:
-		hk := object.HashObject(left)
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(hk); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(hk); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-	case object.NULL_OBJ:
-		nullHash := object.HashObject(NULL)
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(nullHash); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(nullHash); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return e.evalDefaultInfixExpression(operator, left, right)
-		}
-	case object.LIST_OBJ:
-		listHash := object.HashObject(left.(*object.List))
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(listHash); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(listHash); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-	case object.BIG_FLOAT_OBJ:
-		bigFloat := object.HashObject(left.(*object.BigFloat))
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(bigFloat); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(bigFloat); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return e.evalDefaultInfixExpression(operator, left, right)
-		}
-	case object.BIG_INTEGER_OBJ:
-		bigInt := object.HashObject(left.(*object.BigInteger))
-		switch operator {
-		case "in":
-			if _, ok := setElems.Get(bigInt); ok {
-				return TRUE
-			}
-			return FALSE
-		case "notin":
-			if _, ok := setElems.Get(bigInt); ok {
-				return FALSE
-			}
-			return TRUE
-		default:
-			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-		}
-	default:
-		return e.evalDefaultInfixExpression(operator, left, right)
 	}
+	return e.evalDefaultInfixExpression(operator, left, right)
 }
 
 func (e *Evaluator) evalBytesInfixExpression(operator string, left, right object.Object) object.Object {
@@ -3073,40 +2879,22 @@ func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right obj
 		return &object.BigFloat{Value: leftVal.Mod(rightVal)}
 	case "<":
 		compared := leftVal.Cmp(rightVal)
-		if compared == -1 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == -1)
 	case ">":
 		compared := leftVal.Cmp(rightVal)
-		if compared == 1 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == 1)
 	case "<=":
 		compared := leftVal.Cmp(rightVal)
-		if compared == -1 || compared == 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == -1 || compared == 0)
 	case ">=":
 		compared := leftVal.Cmp(rightVal)
-		if compared == 1 || compared == 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == 1 || compared == 0)
 	case "==":
 		compared := leftVal.Cmp(rightVal)
-		if compared == 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == 0)
 	case "!=":
 		compared := leftVal.Cmp(rightVal)
-		if compared != 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared != 0)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -3152,40 +2940,22 @@ func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right o
 		return &object.BigInteger{Value: result.Mod(leftVal, rightVal)}
 	case "<":
 		compared := leftVal.Cmp(rightVal)
-		if compared == -1 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == -1)
 	case ">":
 		compared := leftVal.Cmp(rightVal)
-		if compared == 1 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == 1)
 	case "<=":
 		compared := leftVal.Cmp(rightVal)
-		if compared == -1 || compared == 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == -1 || compared == 0)
 	case ">=":
 		compared := leftVal.Cmp(rightVal)
-		if compared == 1 || compared == 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == 1 || compared == 0)
 	case "==":
 		compared := leftVal.Cmp(rightVal)
-		if compared == 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared == 0)
 	case "!=":
 		compared := leftVal.Cmp(rightVal)
-		if compared != 0 {
-			return TRUE
-		}
-		return FALSE
+		return nativeToBooleanObject(compared != 0)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
