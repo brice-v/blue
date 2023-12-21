@@ -12,7 +12,9 @@ TODO:
 - [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] Add multi for support in comprehensions (see test_flatten)
     - https://www.learndatasci.com/solutions/python-list-comprehension/
-- [ ] Put zip, map, filter, etc. into actual builtins
+- [ ] Put zip, reduce, etc. into actual builtins
+    - [x] map
+    - [x] filter
 - [ ] Map on lambda with destructuring (for maps, lists, etc.)
 - [ ] Optimize List/Set/Map comps so they execute go code?
 - [ ] If for loop returns list in expression it needs to be ordered, otherwise it wont work

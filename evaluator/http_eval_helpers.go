@@ -17,6 +17,36 @@ import (
 	"golang.org/x/net/html"
 )
 
+func getErrorTokenTraceAsJson(e *Evaluator) interface{} {
+	return getErrorTokenTraceAsJsonWithError(e, "")
+}
+
+func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) interface{} {
+	var disableHttpServerDebug bool
+	disableHttpServerDebugStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
+	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
+	if err != nil {
+		disableHttpServerDebug = false
+	}
+	var errors []string
+	if errorMsg == "" {
+		errors = []string{}
+	} else {
+		errors = []string{errorMsg}
+	}
+	if !disableHttpServerDebug {
+		for e.ErrorTokens.Len() > 0 {
+			firstPart, carat := lexer.GetErrorLineMessageForJson(e.ErrorTokens.PopBack())
+			errors = append(errors, firstPart, carat)
+		}
+		fmt.Println("`http handler` error: " + errorMsg)
+		for _, err := range errors {
+			fmt.Printf("%s\n", err)
+		}
+	}
+	return errors
+}
+
 func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 	return &object.Builtin{
 		Fun: func(args ...object.Object) object.Object {

@@ -90,26 +90,6 @@ fun write(obj, value) {
     }
 }
 
-fun map(list, f) {
-    ##core:ignore
-    var __internal__ = [];
-    for (e in list) {
-        __internal__ << f(e);
-    }
-    return __internal__;
-}
-
-fun filter(list, f) {
-    ##core:ignore
-    var __internal__ = [];
-    for (e in list) {
-        if (f(e)) {
-            __internal__ << e;
-        }
-    }
-    return __internal__;
-}
-
 fun reduce(list, f, acc=null) {
     ##core:ignore
     ###
