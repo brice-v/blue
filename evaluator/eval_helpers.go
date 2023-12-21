@@ -1406,6 +1406,45 @@ func createAllBuiltin(e *Evaluator) *object.Builtin {
 	return allBuiltin
 }
 
+var anyBuiltin *object.Builtin = nil
+
+func createAnyBuiltin(e *Evaluator) *object.Builtin {
+	if anyBuiltin == nil {
+		anyBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("any", len(args), 2, "")
+				}
+				if args[0].Type() != object.LIST_OBJ {
+					return newPositionalTypeError("any", 1, object.LIST_OBJ, args[0].Type())
+				}
+				if args[1].Type() != object.FUNCTION_OBJ {
+					return newPositionalTypeError("any", 2, object.FUNCTION_OBJ, args[1].Type())
+				}
+				l := args[0].(*object.List)
+				fn := args[1].(*object.Function)
+				if len(fn.Parameters) != 1 {
+					return newError("`any` error: function must have 1 parameter")
+				}
+				anyTrue := false
+				for _, elem := range l.Elements {
+					obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`any` error: %s", errMsg)
+					}
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`any` error: function must return boolean")
+					}
+					anyTrue = anyTrue || obj.(*object.Boolean).Value
+				}
+				return nativeToBooleanObject(anyTrue)
+			},
+		}
+	}
+	return anyBuiltin
+}
+
 var uiButtonBuiltin *object.Builtin = nil
 
 func createUIButtonBuiltin(e *Evaluator) *object.Builtin {

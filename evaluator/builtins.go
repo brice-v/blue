@@ -1846,6 +1846,7 @@ func GetBuiltins(e *Evaluator) BuiltinMapType {
 	b.Put("to_num", createToNumBuiltin(e))
 	b.Put("_sort", createSortBuiltin(e))
 	b.Put("all", createAllBuiltin(e))
+	b.Put("any", createAnyBuiltin(e))
 	return b
 }
 

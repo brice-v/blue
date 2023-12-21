@@ -10,7 +10,6 @@ TODO:
     - Assuming this doesnt break any existing areas its much more consistent for sorting objects
 - [ ] Make sure + and << work for sets (maybe, technically union operator works)
 - [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
-- [ ] Add all, any, reverse builtins
 - [ ] Add multi for support in comprehensions (see test_flatten)
     - https://www.learndatasci.com/solutions/python-list-comprehension/
 - [ ] Put zip, map, filter, etc. into actual builtins
@@ -161,6 +160,7 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Add all, any, reverse builtins
 - [x] Add ||=, &&= for bool stuff
 - [-] Add regex go_obj, make it work with string builtins and give it some specific functions
     - these specific functions should cross work with strings passed in (we will auto-convert to regex in those cases)
