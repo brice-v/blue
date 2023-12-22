@@ -1856,6 +1856,26 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Regex{Value: re}
 		},
 	},
+	"to_list": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_list", len(args), 1, "")
+			}
+			if args[0].Type() != object.SET_OBJ {
+				return newPositionalTypeError("to_list", 1, object.SET_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Set).Elements
+			newElems := []object.Object{}
+			for _, k := range s.Keys {
+				if obj, ok := s.Get(k); ok {
+					if obj.Present {
+						newElems = append(newElems, obj.Value)
+					}
+				}
+			}
+			return &object.List{Elements: newElems}
+		},
+	},
 })
 
 func GetBuiltins(e *Evaluator) BuiltinMapType {

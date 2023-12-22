@@ -245,6 +245,34 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				l := right.(*object.List)
 				l.Elements = append([]object.Object{left}, l.Elements...)
 				return NULL
+			case left.Type() == object.SET_OBJ && operator == "<<":
+				if ident, ok := node.Left.(*ast.Identifier); ok {
+					if e.env.IsImmutable(ident.Value) {
+						return newError("'%s' is immutable", ident.Value)
+					}
+				}
+				s := left.(*object.Set)
+				key := object.HashObject(right)
+				if _, ok := s.Elements.Get(key); ok {
+					// If obj exists do nothing
+					return NULL
+				}
+				s.Elements.Set(key, object.SetPair{Value: right, Present: true})
+				return NULL
+			case right.Type() == object.SET_OBJ && operator == ">>":
+				if ident, ok := node.Right.(*ast.Identifier); ok {
+					if e.env.IsImmutable(ident.Value) {
+						return newError("'%s' is immutable", ident.Value)
+					}
+				}
+				s := right.(*object.Set)
+				key := object.HashObject(left)
+				if _, ok := s.Elements.Get(key); ok {
+					// If obj exists do nothing
+					return NULL
+				}
+				s.Elements.Set(key, object.SetPair{Value: left, Present: true})
+				return NULL
 			}
 		}
 		obj := e.evalInfixExpression(node.Operator, left, right)
@@ -2407,6 +2435,10 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 }
 
 func (e *Evaluator) evalInfixExpression(operator string, left, right object.Object) object.Object {
+	// Special Case for adding to set
+	if operator == "+" && (left.Type() == object.SET_OBJ || right.Type() == object.SET_OBJ) {
+		return e.evalSetInfixExpression(operator, left, right)
+	}
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return e.evalIntegerInfixExpression(operator, left, right)
@@ -2706,9 +2738,36 @@ func (e *Evaluator) evalBytesInfixExpression(operator string, left, right object
 }
 
 func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.Object) object.Object {
+	newSet := &object.Set{Elements: object.NewSetElements()}
+	if operator == "+" {
+		var s *object.Set
+		var key uint64
+		var obj object.Object
+		if left.Type() == object.SET_OBJ {
+			// return set with right obj added
+			s = left.(*object.Set)
+			key = object.HashObject(right)
+			obj = right
+		} else {
+			// return set with left obj added
+			s = right.(*object.Set)
+			key = object.HashObject(left)
+			obj = left
+		}
+		for _, k := range s.Elements.Keys {
+			v, ok := s.Elements.Get(k)
+			if ok && v.Present {
+				newSet.Elements.Set(k, v)
+			}
+		}
+		if _, ok := s.Elements.Get(key); !ok {
+			// Key does not exist, add new elem
+			newSet.Elements.Set(key, object.SetPair{Value: obj, Present: true})
+		}
+		return newSet
+	}
 	leftE := left.(*object.Set).Elements
 	rightE := right.(*object.Set).Elements
-	newSet := &object.Set{Elements: object.NewSetElements()}
 	var leftElems *object.OrderedMap2[uint64, object.SetPair]
 	var rightElems *object.OrderedMap2[uint64, object.SetPair]
 	if leftE.Len() >= rightE.Len() {

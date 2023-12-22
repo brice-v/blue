@@ -3,11 +3,9 @@ TODO:
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
-- [ ] Add list builtin to convert set to list? 
 - [ ] Expand blueToGoObject and goToBlueObject to support all nested variations as well
 - [ ] Add a fix for interface maps to use ordered so we can translate back and forth from blue <-> go <-> blue objects
     - Assuming this doesnt break any existing areas its much more consistent for sorting objects
-- [ ] Make sure + and << work for sets (maybe, technically union operator works)
 - [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] Add multi for support in comprehensions (see test_flatten)
     - https://www.learndatasci.com/solutions/python-list-comprehension/
@@ -161,6 +159,8 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Add list builtin to convert set to list? 
+- [x] Make sure + and << work for sets (maybe, technically union operator works)
 - [x] Support regex literal in parser and evaluator
     - Might just use a syntax such as `re"[0-9]+"`
 - [x] Add all, any, reverse builtins
