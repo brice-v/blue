@@ -3,7 +3,7 @@ TODO:
 - go test ./... -coverprofile=c.out
 - go tool cover -html=c.out
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
-    - [ ] Add function like re('') to convert string to regex object
+    - [x] Add function like re('') to convert string to regex object
 - [ ] Add list builtin to convert set to list? 
 - [ ] Expand blueToGoObject and goToBlueObject to support all nested variations as well
 - [ ] Add a fix for interface maps to use ordered so we can translate back and forth from blue <-> go <-> blue objects

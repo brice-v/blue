@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"runtime/metrics"
@@ -1837,6 +1838,22 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			i := args[0].(*object.Integer).Value
 			return &object.Integer{Value: debug.SetMemoryLimit(i)}
+		},
+	},
+	"re": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("re", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("re", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			re, err := regexp.Compile(s)
+			if err != nil {
+				return newError("`re` error: %s", err.Error())
+			}
+			return &object.Regex{Value: re}
 		},
 	},
 })
