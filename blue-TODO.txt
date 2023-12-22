@@ -1,8 +1,7 @@
 TODO:
 
-- go test ./... -coverprofile=c.out
-- go tool cover -html=c.out
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
+    - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
 - [ ] Add list builtin to convert set to list? 
 - [ ] Expand blueToGoObject and goToBlueObject to support all nested variations as well
@@ -127,8 +126,6 @@ func main() {
     - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add variadic arguments (...)
 - [ ] Include shift operators and assignment expressions to other types
-- [ ] Support regex literal in parser and evaluator
-    - Might just use a syntax such as `re"[0-9]+"`
 - [ ] Support string interpolation helper to print out objects
     - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
@@ -136,6 +133,8 @@ func main() {
 
 LATER ON:
 
+- go test ./... -coverprofile=c.out
+- go tool cover -html=c.out
 - [ ] See if we can add go -coverage for tests (including the b_test_programs dir)
     - Try to get coverage as high as we can
 - [ ] Performance testing and high level optimizations first
@@ -162,6 +161,8 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [x] Support regex literal in parser and evaluator
+    - Might just use a syntax such as `re"[0-9]+"`
 - [x] Add all, any, reverse builtins
 - [x] Add ||=, &&= for bool stuff
 - [-] Add regex go_obj, make it work with string builtins and give it some specific functions
