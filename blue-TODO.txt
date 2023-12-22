@@ -93,6 +93,19 @@ TODO:
 - still want to have way of starting a blue process like Erlang/Elixr with ways to connect and send over the network, etc.
 - in children, see if we can bind and convert strings to label with binding?
 - [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
+- [ ] Add test cases to cover all the basic functions
+- [ ] Add time related functions (and expand stdlb)
+- [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
+- [ ] Fix STDIN write and reading
+    - [ ] Make sure STDOUT and STDERR are working as expected
+- [ ] Add variadic arguments (...)
+- [ ] Support string interpolation helper to print out objects
+    - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
+    - [ ] Add debug printing that works like ic to evaluator
+        - This is sort of related
+
+LATER ON:
+
 - [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
@@ -116,21 +129,6 @@ func main() {
 }
 
 ```
-- [ ] Add test cases to cover all the basic functions
-- [ ] Add time related functions (and expand stdlb)
-- [ ] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
-- [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
-- [ ] Fix STDIN write and reading
-    - [ ] Make sure STDOUT and STDERR are working as expected
-- [ ] Add variadic arguments (...)
-- [ ] Include shift operators and assignment expressions to other types
-- [ ] Support string interpolation helper to print out objects
-    - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
-    - [ ] Add debug printing that works like ic to evaluator
-        - This is sort of related
-
-LATER ON:
-
 - go test ./... -coverprofile=c.out
 - go tool cover -html=c.out
 - [ ] See if we can add go -coverage for tests (including the b_test_programs dir)
@@ -159,6 +157,8 @@ LATER ON:
 
 COMPLETED TASKS:
 
+- [-] Include shift operators and assignment expressions to other types
+- [x] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
 - [x] Add list builtin to convert set to list? 
 - [x] Make sure + and << work for sets (maybe, technically union operator works)
 - [x] Support regex literal in parser and evaluator
