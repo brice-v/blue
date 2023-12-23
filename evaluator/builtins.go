@@ -1876,6 +1876,22 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.List{Elements: newElems}
 		},
 	},
+	"abs_path": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("abs_path", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("abs_path", 1, object.STRING_OBJ, args[0].Type())
+			}
+			fpath := args[0].(*object.Stringo).Value
+			path, err := filepath.Abs(fpath)
+			if err != nil {
+				return newError("`abs_path` error: %s", err.Error())
+			}
+			return &object.Stringo{Value: path}
+		},
+	},
 })
 
 func GetBuiltins(e *Evaluator) BuiltinMapType {
