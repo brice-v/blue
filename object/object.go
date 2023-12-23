@@ -352,7 +352,7 @@ type Regex struct {
 func (r *Regex) Type() Type { return REGEX_OBJ }
 
 // Inspect returns the string value
-func (r *Regex) Inspect() string { return r.Value.String() }
+func (r *Regex) Inspect() string { return "/" + r.Value.String() + "/" }
 
 func (r *Regex) Help() string {
 	return createHelpStringForObject("Regex", "is the object that represents the Regex", r)

@@ -369,6 +369,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.List{Elements: newl}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`reverse` reverse a string or list",
+			signature:   "reverse(arg: list[any]|str) -> list[any]|str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "reverse([1,2,3]) => [3,2,1]",
+		}.String(),
 	},
 	"println": {
 		Fun: func(args ...object.Object) object.Object {
@@ -527,6 +533,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: string(respBody)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`fetch` returns the body or full response of a network request",
+			signature:   "fetch(resource: str, method: str[POST|PUT|GET|HEAD|DELETE], headers: map[str]str, body: null|str|bytes, full_resp: bool)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "fetch('https://danluu.com',full_resp=false) => <html>...</html>",
+		}.String(),
 	},
 	"_read": {
 		Fun: func(args ...object.Object) object.Object {
@@ -664,6 +676,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`int` error: unsupported type '%s'", args[0].Type())
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`int` returns the INTEGER version of a number or STRING, it will error out on unsupported types or a parse error",
+			signature:   "int(arg: float|uint|bint|bfloat|str|int) -> int",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "int('123') => 123",
+		}.String(),
 	},
 	// This function is lossy
 	"float": {
@@ -693,6 +711,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`float` error: unsupported type '%s'", args[0].Type())
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`float` returns the FLOAT version of the number or string, with potential loss, and it will error out on unsupported types or a parse error",
+			signature:   "float(arg: int|uint|bint|bfloat|str|float) -> float",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "float('123') => 123.0",
+		}.String(),
 	},
 	// This function is lossy
 	"bigint": {
@@ -722,6 +746,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`bigint` error: unsupported type '%s'", args[0].Type())
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`bigint` returns the BIG INTEGER version of a number or STRING, it will error out on unsupported types or a parse error",
+			signature:   "bigint(arg: int|float|uint|bfloat|str|bint) -> bint",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "bigint('123') => 123n",
+		}.String(),
 	},
 	// This function is lossy
 	"bigfloat": {
@@ -751,6 +781,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`bigfloat` error: unsupported type '%s'", args[0].Type())
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`bigfloat` returns the BIG FLOAT version of a number or STRING, it will error out on unsupported types or a parse error",
+			signature:   "bigfloat(arg: int|float|uint|bint|str|bfloat) -> bfloat",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "bigfloat('123') => 123.0n",
+		}.String(),
 	},
 	// This function is lossy
 	"uint": {
@@ -780,6 +816,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`uint` error: unsupported type '%s'", args[0].Type())
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`uint` returns the UINTEGER version of a number or STRING, it will error out on unsupported types or a parse error",
+			signature:   "uint(arg: int|float|bint|bfloat|str|uint) -> uint",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "uint('123') => 0u123",
+		}.String(),
 	},
 	"eval_template": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1419,6 +1461,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			PubSubBroker.Subscribe(sub, topic)
 			return object.CreateBasicMapObjectForGoObj("sub", NewGoObj(sub))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`subscribe` will add a subscriber to the pubsub broker for a topic",
+			signature:   "subscribe(sub: str) -> {t: 'sub', v: _}",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "subscribe('TOPIC') => {t: 'sub', v: _} -> _.recv()",
+		}.String(),
 	},
 	"unsubscribe": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1460,6 +1508,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return sub.Value.PollMessage()
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`pubsub_sub_listen` is used when receiving on a subscribed topic for the kv",
+			signature:   "pubsub_sub_listen(arg: {t: 'sub', v: _}) -> any",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "pubsub_sub_listen({t: 'sub', v: _}) => any",
+		}.String(),
 	},
 	"_get_subscriber_count": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1476,6 +1530,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			topic := args[0].(*object.Stringo).Value
 			return &object.Integer{Value: int64(PubSubBroker.GetNumSubscribersForTopic(topic))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_subscriber_count` returns the number of subscribers for a topic, if there is no topic passed in the total subscribers are returned",
+			signature:   "get_subscriber_count(arg: str|none) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "get_subscriber_count('TOPIC') => 1",
+		}.String(),
 	},
 	"_kv_put": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1502,6 +1562,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			KVMap.Put(topic, m)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`kv_put` puts a value into the kv for a specific topic and key",
+			signature:   "kv_put(topic: str, key: any, val: any) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "kv_put('TOPIC', 1, 3) => null",
+		}.String(),
 	},
 	"_kv_get": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1527,6 +1593,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return val.Value
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`kv_get` gets a value from the kv for a specific topic and key",
+			signature:   "kv_get(topic: str, key: any) -> any",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "kv_get('TOPIC', 1) => 3",
+		}.String(),
 	},
 	"_kv_delete": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1557,6 +1629,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return NULL
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`kv_delete` deletes a value from the kv for a specific topic and key, if there is no key the topic is removed",
+			signature:   "kv_delete(topic: str, key: any|none) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "kv_delete('TOPIC', 1) => null",
+		}.String(),
 	},
 	"_new_uuid": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1565,6 +1643,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: uuid.NewString()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`new_uuid` returns a new random UUID STRING",
+			signature:   "new_uuid() -> str",
+			errors:      "InvalidArgCount",
+			example:     "new_uuid() => 'a38dc5fa-7f18-4e1c-8a70-f8d343109708'",
+		}.String(),
 	},
 	// This is straight out of golang's example for runtime/metrics https://pkg.go.dev/runtime/metrics
 	"_go_metrics": {
@@ -1616,6 +1700,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: out.String()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`go_metrics` returns the STRING version of the golang runtime metrics",
+			signature:   "go_metrics() -> str",
+			errors:      "InvalidArgCount",
+			example:     "go_metrics() => str",
+		}.String(),
 	},
 	"get_os": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1653,6 +1743,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			runtime.GC()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`gc` calls the golang garbage collector",
+			signature:   "gc() -> null",
+			errors:      "InvalidArgCount",
+			example:     "gc() => null",
+		}.String(),
 	},
 	"_version": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1661,6 +1757,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: fmt.Sprintf("%s-%s", runtime.Version(), consts.VERSION)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`version` returns the golang version and blue version hyphenated",
+			signature:   "version() -> str",
+			errors:      "InvalidArgCount",
+			example:     "version() => go1.21.5-0.1.16-684f398-windows/amd64",
+		}.String(),
 	},
 	"_num_cpu": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1669,6 +1771,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(runtime.NumCPU())}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`num_cpu` returns the number of cpus available to the blue process",
+			signature:   "num_cpu() -> int",
+			errors:      "InvalidArgCount",
+			example:     "num_cpu() => 12",
+		}.String(),
 	},
 	"_num_process": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1677,6 +1785,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(runtime.NumGoroutine())}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`num_process` returns the number of processes used by the runtime",
+			signature:   "num_process() -> int",
+			errors:      "InvalidArgCount",
+			example:     "num_process() => 6",
+		}.String(),
 	},
 	"_num_max_cpu": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1685,6 +1799,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(runtime.GOMAXPROCS(-1))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`num_max_cpu` returns the max number of cpus available to the runtime",
+			signature:   "num_max_cpu() -> int",
+			errors:      "InvalidArgCount",
+			example:     "num_max_cpu() => 12",
+		}.String(),
 	},
 	"_num_os_thread": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1693,6 +1813,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(pprof.Lookup("threadcreate").Count())}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`num_os_thread` returns the number of os threads being used by the runtime",
+			signature:   "num_os_thread() -> int",
+			errors:      "InvalidArgCount",
+			example:     "num_os_thread() => 15",
+		}.String(),
 	},
 	"_set_max_cpu": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1705,6 +1831,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			i := int(args[0].(*object.Integer).Value)
 			return &object.Integer{Value: int64(runtime.GOMAXPROCS(i))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_max_cpu` sets the max number of cpus for the runtime and returns the previous setting. if arg < 1 => defaults to current number of cpus",
+			signature:   "set_max_cpu(arg: int) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_max_cpu(3) => 6",
+		}.String(),
 	},
 	"_set_gc_percent": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1717,6 +1849,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			i := int(args[0].(*object.Integer).Value)
 			return &object.Integer{Value: int64(debug.SetGCPercent(i))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_gc_percent` sets the gc target percentage and returns the previous setting. a lower setting essentially limits the memory, 100 is default, and negative numbers turn gc off",
+			signature:   "set_gc_percent(arg: int) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_gc_percent(30) => 100",
+		}.String(),
 	},
 	"_get_mem_stats": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1777,6 +1915,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			mapObj.Set("debug-gc", &object.Boolean{Value: s.DebugGC})
 			return object.CreateMapObjectForGoMap(*mapObj)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_mem_stats` returns the runtime memory stats",
+			signature:   "get_mem_stats() -> map[str]any",
+			errors:      "InvalidArgCount",
+			example:     "get_mem_stats() => object (all mem stats)",
+		}.String(),
 	},
 	"_get_stack_trace": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1785,6 +1929,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: string(debug.Stack())}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_stack_trace` returns the runtime current stack trace",
+			signature:   "get_stack_trace() -> str",
+			errors:      "InvalidArgCount",
+			example:     "get_stack_trace() => str",
+		}.String(),
 	},
 	"_free_os_mem": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1794,6 +1944,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			debug.FreeOSMemory()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`free_os_mem` runs gc and returns memory to the os (this happens in background task regardless)",
+			signature:   "free_os_mem() -> null",
+			errors:      "InvalidArgCount",
+			example:     "free_os_mem() => null",
+		}.String(),
 	},
 	"_print_stack_trace": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1803,6 +1959,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			debug.PrintStack()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`print_stack_trace` prints the current stack trace to stderr",
+			signature:   "print_stack_trace() -> null",
+			errors:      "InvalidArgCount",
+			example:     "print_stack_trace() => null",
+		}.String(),
 	},
 	"_set_max_stack": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1815,6 +1977,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			i := int(args[0].(*object.Integer).Value)
 			return &object.Integer{Value: int64(debug.SetMaxStack(i))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_max_stack` sets the max amount of memory that can be used by blue process, only limiting future stack sizes and returning previous setting",
+			signature:   "set_max_stack(arg: int) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_max_stack(12*1024*1024) => 1073741824",
+		}.String(),
 	},
 	"_set_max_threads": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1827,6 +1995,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			i := int(args[0].(*object.Integer).Value)
 			return &object.Integer{Value: int64(debug.SetMaxThreads(i))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_max_threads` sets the max number of os threads the program can use and returns the previous setting",
+			signature:   "set_max_threads(arg: int) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_max_threads(20) => 1000",
+		}.String(),
 	},
 	"_set_mem_limit": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1839,6 +2013,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			i := args[0].(*object.Integer).Value
 			return &object.Integer{Value: debug.SetMemoryLimit(i)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_mem_limit` sets the soft max memory limit of the program, returning the previous setting, a negative limit retuns the current setting",
+			signature:   "set_mem_limit(arg: int) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_mem_limit(12*1024*1024*1024*1024) => 2**64-1",
+		}.String(),
 	},
 	"re": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1855,6 +2035,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Regex{Value: re}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`re` returns a regex object for the given string",
+			signature:   "re(arg: str) -> regex",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "re('abc') => /abc/",
+		}.String(),
 	},
 	"to_list": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1875,6 +2061,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.List{Elements: newElems}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_list` returns a list from the given set",
+			signature:   "to_list(arg: set[any]) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "to_list({1,2,3}) => [1,2,3]",
+		}.String(),
 	},
 	"abs_path": {
 		Fun: func(args ...object.Object) object.Object {
@@ -1884,6 +2076,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if args[0].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("abs_path", 1, object.STRING_OBJ, args[0].Type())
 			}
+			// TODO: Fix so this works with embedded files?
 			fpath := args[0].(*object.Stringo).Value
 			path, err := filepath.Abs(fpath)
 			if err != nil {
@@ -1891,6 +2084,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: path}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`abs_path` returns the absolute path of the given filepath",
+			signature:   "abs_path(arg: str) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "abs_path('some_file.txt') => '/the/path/to/some_file.txt'",
+		}.String(),
 	},
 })
 
