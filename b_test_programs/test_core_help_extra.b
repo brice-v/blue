@@ -38,7 +38,15 @@ assert(y == yy);
 
 val z = help(replace);
 println(z);
-val zz = """`replace` will return a STRING with all occurrences of the given replacer STRING replaced by the next given STRING
+val zz = """`replace` will take the string, and replace the replacer with replaced
+
+replacer can be a string or regex
+replaced should be a string
+
+is_regex can be used to convert a replacer string to a regex object
+
+replace(str_to_replace: str, replacer: str|regex, replaced: str, is_regex: bool=false) -> str
+`replace` will return a STRING with all occurrences of the given replacer STRING replaced by the next given STRING
     Signature:  replace(arg: str, replacer: str, replaced: str) -> str
     Error(s):   InvalidArgCount,PositionalType
     Example(s): replace('Hello', 'l', 'X') => 'HeXXo'

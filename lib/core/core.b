@@ -312,7 +312,15 @@ fun to_bytes(str_to_convert, is_hex=false) {
 val __replace = _replace;
 val __replace_regex = _replace_regex;
 fun replace(str_to_replace, replacer, replaced, is_regex=false) {
-    ##core:__replace,__replace_regex
+    ##core:this,__replace,__replace_regex
+    ## `replace` will take the string, and replace the replacer with replaced
+    ##
+    ## replacer can be a string or regex
+    ## replaced should be a string
+    ##
+    ## is_regex can be used to convert a replacer string to a regex object
+    ##
+    ## replace(str_to_replace: str, replacer: str|regex, replaced: str, is_regex: bool=false) -> str
     if type(replacer) == Type.REGEX {
         is_regex = true;
     }
