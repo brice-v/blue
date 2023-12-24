@@ -535,7 +535,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`fetch` returns the body or full response of a network request",
-			signature:   "fetch(resource: str, method: str[POST|PUT|GET|HEAD|DELETE], headers: map[str]str, body: null|str|bytes, full_resp: bool)",
+			signature:   "fetch(resource: str, method: str('POST'|'PUT'|'GET'|'HEAD'|'DELETE')='GET', headers: map[str]str, body: null|str|bytes, full_resp: bool)",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "fetch('https://danluu.com',full_resp=false) => <html>...</html>",
 		}.String(),

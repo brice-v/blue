@@ -121,12 +121,59 @@ func (e *Environment) GetAll() map[string]Object {
 	return e.store.GetAll()
 }
 
+func (e *Environment) getCoreFunctionHelpString(origHelp string) string {
+	parts := strings.Split(origHelp, "\n")
+	thingsToGet := strings.Split(strings.Split(parts[0], "core:")[1], ",")
+	var out bytes.Buffer
+	for _, v := range thingsToGet {
+		if v == "this" {
+			indexForTypeFun := 0
+			for i, e := range parts {
+				if strings.HasPrefix(e, "type(") {
+					indexForTypeFun = i - 1
+					break
+				}
+			}
+			newHelp := strings.Join(parts[1:indexForTypeFun][:], "\n")
+			if len(thingsToGet) > 1 {
+				out.WriteString(newHelp)
+				out.WriteByte('\n')
+			} else {
+				out.WriteString(newHelp)
+			}
+		} else {
+			if val, ok := e.Get(v); ok {
+				out.WriteString(val.Help())
+			}
+		}
+	}
+	return out.String()
+}
+
+func (e *Environment) SetFunctionHelpStr(name, newHelpStr string) {
+	if val, ok := e.Get(name); ok {
+		if fun, ok := val.(*Function); ok {
+			fun.HelpStr = newHelpStr
+			e.Set(name, fun)
+		}
+	}
+}
+
 // Set puts a new object into the environment
 func (e *Environment) Set(name string, val Object) Object {
 	e.store.Put(name, val)
 	// We do store nil values so those can be skipped entirely for pfhs
-	if val != nil && (val.Type() == "FUNCTION" && !strings.HasPrefix(name, "_") && !strings.HasPrefix(val.Help(), "core:ignore")) {
-		e.publicFunctionHelpStore.Set(name, val.Help())
+	if val != nil && (val.Type() == "FUNCTION" && !strings.HasPrefix(name, "_")) {
+		coreIgnored := strings.HasPrefix(val.Help(), "core:ignore")
+		if !coreIgnored {
+			ogHelp := val.Help()
+			if strings.HasPrefix(ogHelp, "core:") {
+				coreHelpStr := e.getCoreFunctionHelpString(ogHelp)
+				e.SetFunctionHelpStr(name, coreHelpStr)
+			} else {
+				e.publicFunctionHelpStore.Set(name, ogHelp)
+			}
+		}
 	}
 	return val
 }

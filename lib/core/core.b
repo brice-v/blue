@@ -108,7 +108,9 @@ fun reduce(list, f, acc=null) {
     return acc;
 }
 
+val __sort = _sort;
 fun sort(list, reverse=false, key=null) {
+    ##core:__sort
     return _sort(list, reverse, key);
 }
 
@@ -238,7 +240,7 @@ fun rjust(s, length, pad=" ") {
 
 val __fetch = _fetch;
 fun fetch(resource, options=null, full_resp=true) {
-    ##core:ignore
+    ##core:this,__fetch
     ## `fetch` allows the user to send GET, POST, PUT, PATCH, and DELETE
     ## http methods to a various resource
     ##
@@ -286,7 +288,7 @@ fun fetch(resource, options=null, full_resp=true) {
 
 val __to_bytes = _to_bytes;
 fun to_bytes(str_to_convert, is_hex=false) {
-    ##core:ignore
+    ##core:this,__to_bytes
     ## `to_bytes` will convert the given string to the bytes representation
     ## this is useful to get the binary version of the string to use in various
     ## functions
@@ -306,6 +308,7 @@ fun to_bytes(str_to_convert, is_hex=false) {
 val __replace = _replace;
 val __replace_regex = _replace_regex;
 fun replace(str_to_replace, replacer, replaced, is_regex=false) {
+    ##core:__replace,__replace_regex
     if type(replacer) == Type.REGEX {
         is_regex = true;
     }
