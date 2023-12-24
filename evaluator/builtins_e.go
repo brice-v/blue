@@ -289,6 +289,12 @@ func createSortBuiltin(e *Evaluator) *object.Builtin {
 				}
 				return &object.List{Elements: newObjs}
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`sort` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int)",
+				signature:   "sort(l: list[int|float|str|any], reverse: bool=false, key: null|fun(e: list[any])=>int|str|float=null) -> list[int|float|str|any] (sorted)",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "sort(['c','b','a']) => ['a','b','c']",
+			}.String(),
 		}
 	}
 	return sortBuiltin
@@ -306,28 +312,49 @@ func createAllBuiltin(e *Evaluator) *object.Builtin {
 				if args[0].Type() != object.LIST_OBJ {
 					return newPositionalTypeError("all", 1, object.LIST_OBJ, args[0].Type())
 				}
-				if args[1].Type() != object.FUNCTION_OBJ {
-					return newPositionalTypeError("all", 2, object.FUNCTION_OBJ, args[1].Type())
+				if args[1].Type() != object.FUNCTION_OBJ && args[1].Type() != object.BUILTIN_OBJ {
+					return newPositionalTypeError("all", 2, object.FUNCTION_OBJ+" or BUILTIN", args[1].Type())
 				}
 				l := args[0].(*object.List)
-				fn := args[1].(*object.Function)
-				if len(fn.Parameters) != 1 {
-					return newError("`all` error: function must have 1 parameter")
-				}
 				allTrue := true
-				for _, elem := range l.Elements {
-					obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
-					if isError(obj) {
-						errMsg := obj.(*object.Error).Message
-						return newError("`all` error: %s", errMsg)
+				if args[1].Type() == object.FUNCTION_OBJ {
+					fn := args[1].(*object.Function)
+					if len(fn.Parameters) != 1 {
+						return newError("`all` error: function must have 1 parameter")
 					}
-					if obj.Type() != object.BOOLEAN_OBJ {
-						return newError("`all` error: function must return boolean")
+					for _, elem := range l.Elements {
+						obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						if isError(obj) {
+							errMsg := obj.(*object.Error).Message
+							return newError("`all` error: %s", errMsg)
+						}
+						if obj.Type() != object.BOOLEAN_OBJ {
+							return newError("`all` error: function must return boolean")
+						}
+						allTrue = allTrue && obj.(*object.Boolean).Value
 					}
-					allTrue = allTrue && obj.(*object.Boolean).Value
+				} else {
+					fn := args[1].(*object.Builtin)
+					for _, elem := range l.Elements {
+						obj := e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						if isError(obj) {
+							errMsg := obj.(*object.Error).Message
+							return newError("`all` error: %s", errMsg)
+						}
+						if obj.Type() != object.BOOLEAN_OBJ {
+							return newError("`all` error: function must return boolean")
+						}
+						allTrue = allTrue && obj.(*object.Boolean).Value
+					}
 				}
 				return nativeToBooleanObject(allTrue)
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`all` returns the true if all the elements in the list return true for the given function",
+				signature:   "all(arg: list[any], f: fun(e: any)=>bool) -> bool",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "all([1,2,3], |e| => e > 0) => true",
+			}.String(),
 		}
 	}
 	return allBuiltin
@@ -345,28 +372,49 @@ func createAnyBuiltin(e *Evaluator) *object.Builtin {
 				if args[0].Type() != object.LIST_OBJ {
 					return newPositionalTypeError("any", 1, object.LIST_OBJ, args[0].Type())
 				}
-				if args[1].Type() != object.FUNCTION_OBJ {
-					return newPositionalTypeError("any", 2, object.FUNCTION_OBJ, args[1].Type())
+				if args[1].Type() != object.FUNCTION_OBJ && args[1].Type() != object.BUILTIN_OBJ {
+					return newPositionalTypeError("any", 2, object.FUNCTION_OBJ+" or BUILTIN", args[1].Type())
 				}
 				l := args[0].(*object.List)
-				fn := args[1].(*object.Function)
-				if len(fn.Parameters) != 1 {
-					return newError("`any` error: function must have 1 parameter")
-				}
 				anyTrue := false
-				for _, elem := range l.Elements {
-					obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
-					if isError(obj) {
-						errMsg := obj.(*object.Error).Message
-						return newError("`any` error: %s", errMsg)
+				if args[1].Type() == object.FUNCTION_OBJ {
+					fn := args[1].(*object.Function)
+					if len(fn.Parameters) != 1 {
+						return newError("`any` error: function must have 1 parameter")
 					}
-					if obj.Type() != object.BOOLEAN_OBJ {
-						return newError("`any` error: function must return boolean")
+					for _, elem := range l.Elements {
+						obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						if isError(obj) {
+							errMsg := obj.(*object.Error).Message
+							return newError("`any` error: %s", errMsg)
+						}
+						if obj.Type() != object.BOOLEAN_OBJ {
+							return newError("`any` error: function must return boolean")
+						}
+						anyTrue = anyTrue || obj.(*object.Boolean).Value
 					}
-					anyTrue = anyTrue || obj.(*object.Boolean).Value
+				} else {
+					fn := args[1].(*object.Builtin)
+					for _, elem := range l.Elements {
+						obj := e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						if isError(obj) {
+							errMsg := obj.(*object.Error).Message
+							return newError("`any` error: %s", errMsg)
+						}
+						if obj.Type() != object.BOOLEAN_OBJ {
+							return newError("`any` error: function must return boolean")
+						}
+						anyTrue = anyTrue || obj.(*object.Boolean).Value
+					}
 				}
 				return nativeToBooleanObject(anyTrue)
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`any` returns the true if any of the elements in the list return true for the given function",
+				signature:   "any(arg: list[any], f: fun(e: any)=>bool) -> bool",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "any([1,2,3], |e| => e > 0) => true",
+			}.String(),
 		}
 	}
 	return anyBuiltin
@@ -407,6 +455,12 @@ func createMapBuiltin(e *Evaluator) *object.Builtin {
 				}
 				return &object.List{Elements: newElements}
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`map` returns the a new list with the given function mapped to each element",
+				signature:   "map(arg: list[any], f: fun(e: any)=>any) -> list[any]",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "map([1,2,3], |e| => e + 1) => [2,3,4]",
+			}.String(),
 		}
 	}
 	return mapBuiltin
@@ -449,6 +503,12 @@ func createFilterBuiltin(e *Evaluator) *object.Builtin {
 				}
 				return &object.List{Elements: newElements}
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`filter` returns the a new list with the elements that return true on the given function",
+				signature:   "filter(arg: list[any], f: fun(e: any)=>bool|any) -> list[any]",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "filter([1,2,3], |e| => e > 1) => [2,3]",
+			}.String(),
 		}
 	}
 	return filterBuiltin
