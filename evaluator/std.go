@@ -206,8 +206,8 @@ func NewGoObj[T any](obj T) *object.GoObj[T] {
 	return &object.GoObj[T]{Value: obj, Id: GoObjId.Add(1)}
 }
 
-// Used to catch Interupt to shutdown server
-var c = make(chan os.Signal, 1)
+// Used to catch interrupt to shutdown server
+var interruptCh = make(chan os.Signal, 1)
 
 // Note: Look at how we import the get function in http.b
 var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
@@ -226,6 +226,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: u.String()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`url_encode` returns the STRING encoded as a valid URL",
+			signature:   "url_encode(arg: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "url_encode('hello world') => 'hello%20world'",
+		}.String(),
 	},
 	"_url_escape": {
 		Fun: func(args ...object.Object) object.Object {
@@ -238,6 +244,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			s := args[0].(*object.Stringo).Value
 			return &object.Stringo{Value: url.QueryEscape(s)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`url_escape` returns the STRING encoded as a valid value to be passed through a URL",
+			signature:   "url_escape(arg: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "url_escape('hello world') => 'hello+world'",
+		}.String(),
 	},
 	"_url_unescape": {
 		Fun: func(args ...object.Object) object.Object {
@@ -254,6 +266,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: urlUnescaped}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`url_unescape` returns the STRING encoded as a valid value to be passed through a URL",
+			signature:   "url_unescape(arg: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "url_unescape('hello+world') => 'hello world'",
+		}.String(),
 	},
 	"_download": {
 		Fun: func(args ...object.Object) object.Object {
@@ -340,9 +358,9 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			useEmbeddedLibWeb := args[2].(*object.Boolean).Value
 			addrPort := args[1].(*object.Stringo).Value
-			signal.Notify(c, os.Interrupt)
+			signal.Notify(interruptCh, os.Interrupt)
 			go func() {
-				<-c
+				<-interruptCh
 				fmt.Println("Interupt... Shutting down http server")
 				_ = app.Value.Shutdown()
 			}()
@@ -366,7 +384,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("shutdown_server", len(args), 0, "")
 			}
-			c <- os.Interrupt
+			interruptCh <- os.Interrupt
 			return NULL
 		},
 	},
