@@ -1,7 +1,9 @@
 TODO:
 
-- [ ] Add help strings for all std lib builtins (and add the functions into help_test)
-- [ ] When assigning a new variable with val, make it inherit the help for it?
+- [ ] HELP STRINGS
+    - [ ] Add for all std lib builtins (and add the functions into help_test)
+    - [ ] Add for all string builtins - make sure it works with new core version that was created
+    - [ ] When assigning a new variable to a builtin (maybe only work for val), make it inherit the help for it?
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
