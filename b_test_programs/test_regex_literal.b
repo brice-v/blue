@@ -1,18 +1,28 @@
 var x = r/abc[\t|\s]/;
 var xx = re("abc[\\t|\\s]");
+assert(x.type() == Type.REGEX);
 assert(xx.type() == Type.REGEX);
 
 var content = "abc\t";
 println(content.matches(x));
 assert(content.matches(x));
 assert(content.matches(xx));
+println(x.matches(content));
+assert(x.matches(content));
+assert(xx.matches(content));
 x = r/abc[\/|\s]/;
 xx = re("abc[\\/|\\s]");
 content = "abc/";
 println(content.matches(x));
 assert(content.matches(x));
 assert(content.matches(xx));
+println(x.matches(content));
+assert(x.matches(content));
+assert(xx.matches(content));
 content = "abc ";
 println(content.matches(x));
 assert(content.matches(x));
 assert(content.matches(xx));
+println(x.matches(content));
+assert(x.matches(content));
+assert(xx.matches(content));

@@ -220,6 +220,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`lstrip` returns a STRING with the given character stripped from the left side",
+			signature:   "lstrip(s: str, chr: str=' ') -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "lstrip(' Hello') => 'Hello'",
+		}.String(),
 	},
 	"rstrip": {
 		Fun: func(args ...object.Object) object.Object {
@@ -248,6 +254,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`rstrip` returns a STRING with the given character stripped from the right side",
+			signature:   "rstrip(s: str, chr: str=' ') -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "rstrip('Hello ') => 'Hello'",
+		}.String(),
 	},
 	"to_json": {
 		Fun: func(args ...object.Object) object.Object {
@@ -354,10 +366,10 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.Stringo{Value: s[start:end]}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`_substr` returns the STRING from start INTEGER to end INTEGER",
-			signature:   "_substr(arg: str, start: int=0, end: int=-1) -> str",
+			explanation: "`substr` returns the STRING from start INTEGER to end INTEGER",
+			signature:   "substr(arg: str, start: int=0, end: int=-1) -> str",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "_substr('Hello', 1, 3) => 'el'",
+			example:     "substr('Hello', 1, 3) => 'el'",
 		}.String(),
 	},
 	"index_of": {
@@ -401,6 +413,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			pad := args[2].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.Center(s, length, pad)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`center` returns a STRING centered given the length and pad character",
+			signature:   "center(s: str, length: int, pad: str=' ') -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "center('Hello', 11) => '   Hello   '",
+		}.String(),
 	},
 	"_ljust": {
 		Fun: func(args ...object.Object) object.Object {
@@ -421,6 +439,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			pad := args[2].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.LeftJustify(s, length, pad)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`ljust` returns a STRING left justified given the length and pad character",
+			signature:   "ljust(s: str, length: int, pad: str=' ') -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "ljust('Hello', 10) => 'Hello     '",
+		}.String(),
 	},
 	"_rjust": {
 		Fun: func(args ...object.Object) object.Object {
@@ -441,6 +465,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			pad := args[2].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.RightJustify(s, length, pad)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`rjust` returns a STRING right justified given the length and pad character",
+			signature:   "rjust(s: str, length: int, pad: str=' ') -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "rjust('Hello', 10) => '     Hello'",
+		}.String(),
 	},
 	"to_title": {
 		Fun: func(args ...object.Object) object.Object {
@@ -454,6 +484,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			caser := cases.Title(language.Und)
 			return &object.Stringo{Value: caser.String(s)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_title` returns a STRING title cased",
+			signature:   "to_title(s: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "to_title('hello world') => 'Hello World'",
+		}.String(),
 	},
 	"to_kebab": {
 		Fun: func(args ...object.Object) object.Object {
@@ -466,6 +502,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			s := args[0].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.ToKebabCase(s)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_kebab` returns a STRING kebab cased",
+			signature:   "to_kebab(s: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "to_kebab('hello world') => 'hello-world'",
+		}.String(),
 	},
 	"to_camel": {
 		Fun: func(args ...object.Object) object.Object {
@@ -478,6 +520,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			s := args[0].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.ToCamelCase(s)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_camel` returns a STRING camel cased",
+			signature:   "to_camel(s: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "to_camel('hello world') => 'HelloWorld'",
+		}.String(),
 	},
 	"to_snake": {
 		Fun: func(args ...object.Object) object.Object {
@@ -490,6 +538,12 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			s := args[0].(*object.Stringo).Value
 			return &object.Stringo{Value: xstrings.ToSnakeCase(s)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_snake` returns a STRING snake cased",
+			signature:   "to_snake(s: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "to_snake('hello world') => 'hello_world'",
+		}.String(),
 	},
 	"matches": {
 		Fun: func(args ...object.Object) object.Object {
@@ -529,5 +583,11 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			re := args[1].(*object.Regex).Value
 			return nativeToBooleanObject(re.MatchString(arg0.Value))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`matches` returns true if the regex matches the string (on the left or right)",
+			signature:   "matches(arg0: str|regex, arg1: str|regex) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "matches('hello', re('hello')) => true  ||  matches(/hello/, 'hello') => true",
+		}.String(),
 	},
 })

@@ -125,7 +125,8 @@ func (e *Environment) getCoreFunctionHelpString(origHelp string) string {
 	parts := strings.Split(origHelp, "\n")
 	thingsToGet := strings.Split(strings.Split(parts[0], "core:")[1], ",")
 	var out bytes.Buffer
-	for _, v := range thingsToGet {
+	l := len(thingsToGet)
+	for j, v := range thingsToGet {
 		if v == "this" {
 			indexForTypeFun := 0
 			for i, e := range parts {
@@ -135,16 +136,14 @@ func (e *Environment) getCoreFunctionHelpString(origHelp string) string {
 				}
 			}
 			newHelp := strings.Join(parts[1:indexForTypeFun][:], "\n")
-			if len(thingsToGet) > 1 {
-				out.WriteString(newHelp)
-				out.WriteByte('\n')
-			} else {
-				out.WriteString(newHelp)
-			}
+			out.WriteString(newHelp)
 		} else {
 			if val, ok := e.Get(v); ok {
 				out.WriteString(val.Help())
 			}
+		}
+		if l > 1 && j != j-1 {
+			out.WriteByte('\n')
 		}
 	}
 	return out.String()

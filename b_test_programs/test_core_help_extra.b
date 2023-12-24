@@ -31,5 +31,26 @@ fetch(resource: str, options: map[any:str]=null, full_resp: bool=true) -> any
     Example(s): fetch('https://danluu.com',full_resp=false) => <html>...</html>
 
     type = 'BUILTIN'
-    inspect = 'builtin function'""".replace("\r", "");
+    inspect = 'builtin function'
+""".replace("\r", "");
 assert(y == yy);
+
+
+val z = help(replace);
+println(z);
+val zz = """`replace` will return a STRING with all occurrences of the given replacer STRING replaced by the next given STRING
+    Signature:  replace(arg: str, replacer: str, replaced: str) -> str
+    Error(s):   InvalidArgCount,PositionalType
+    Example(s): replace('Hello', 'l', 'X') => 'HeXXo'
+
+    type = 'BUILTIN'
+    inspect = 'builtin function'
+`replace_regex` will return a STRING with all occurrences of the given replacer REGEX STRING replaced by the next given STRING
+    Signature:  replace_regex(arg: str, replacer: str, replaced: str) -> str
+    Error(s):   InvalidArgCount,PositionalType
+    Example(s): replace_regex('Hello', 'l', 'X') => 'HeXXo'
+
+    type = 'BUILTIN'
+    inspect = 'builtin function'
+""".replace("\r", "");
+assert(z == zz);

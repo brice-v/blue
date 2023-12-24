@@ -218,24 +218,28 @@ fun accept(obj) {
     }
 }
 
+val __substr = _substr;
 fun substr(s, start=0, end=-1) {
-    ##core:ignore
-    _substr(s, start, end)
+    ##core:__substr
+    __substr(s, start, end)
 }
 
+val __center = _center;
 fun center(s, length, pad=" ") {
-    ##core:ignore
-    _center(s, length, pad)
+    ##core:__center
+    __center(s, length, pad)
 }
 
+val __ljust = _ljust;
 fun ljust(s, length, pad=" ") {
-    ##core:ignore
-    _ljust(s, length, pad)
+    ##core:__ljust
+    __ljust(s, length, pad)
 }
 
+val __rjust = _rjust;
 fun rjust(s, length, pad=" ") {
-    ##core:ignore
-    _rjust(s, length, pad)
+    ##core:__rjust
+    __rjust(s, length, pad)
 }
 
 val __fetch = _fetch;
