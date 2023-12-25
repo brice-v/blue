@@ -43,6 +43,7 @@ fun get(url, full_resp=false) {
 }
 
 fun download(url, filename="") {
+    ##std:this,__download
     ## `download` will download the given url to a file passed in
     ##
     ## This function will work best with actual files hosted on the
@@ -119,6 +120,7 @@ fun delete(url, full_resp=false) {
 }
 
 fun serve(addr_port="localhost:3001", use_embedded_lib_web=true) {
+    ##std:this,__serve
     ## `serve` will start up the _server in http on the given
     ## address and port.
     ##
@@ -140,6 +142,7 @@ fun serve(addr_port="localhost:3001", use_embedded_lib_web=true) {
 }
 
 fun handle(pattern, fn, method="GET") {
+    ##std:this,__handle
     ## `handle` takes a pattern, function, and method
     ## and attaches itself to the _server http object
     ## 
@@ -168,6 +171,7 @@ fun handle(pattern, fn, method="GET") {
 }
 
 fun handle_use(pattern="", fn) {
+    ##std:this,__handle_use
     ## `handle_use` takes an optional pattern, and a function, and method
     ## and attaches itself to the _server http object
     ##
@@ -192,6 +196,7 @@ fun handle_use(pattern="", fn) {
 }
 
 fun handle_ws(pattern, fn) {
+    ##std:this,__handle_ws
     ## `handle_ws` allows the user to receive and send on a
     ## websocket connection. It attaches itself to the _server
     ## http object (so serve must be called first)
@@ -210,6 +215,7 @@ fun handle_ws(pattern, fn) {
 }
 
 fun static(prefix="/", dir_path=".", browse=false) {
+    ##std:this,__static
     ## `static` declares a static directory to be used by the http
     ## server that is attached to the _server http object
     ##
@@ -226,6 +232,7 @@ fun static(prefix="/", dir_path=".", browse=false) {
 }
 
 fun handle_monitor(path, should_show=true) {
+    ##std:this,__handle_monitor
     ## `handle_monitor` serves the fiber monitor to the user
     ## at the specified path on the _http server object
     ##
@@ -239,6 +246,7 @@ fun handle_monitor(path, should_show=true) {
 }
 
 fun sanitize_and_minify(content, should_sanitize=true, should_minify=true) {
+    ##std:this,__sanitize_and_minify
     ## `sanitize_and_minify` is used to minify and/or sanitize the string
     ## content passed in
     ##
@@ -250,6 +258,7 @@ fun sanitize_and_minify(content, should_sanitize=true, should_minify=true) {
 }
 
 fun ws_send(ws_id, value) {
+    ##std:this,__ws_send
     ## `ws_send` will send on the websocket connection within an http server websocket handler
     ## note: this function should mostly be called from the core 'send' function
     ##
@@ -258,6 +267,7 @@ fun ws_send(ws_id, value) {
 }
 
 fun ws_recv(ws_id) {
+    ##std:this,__ws_recv
     ## `ws_recv` will receive on the websocket connection within an http server websocket handler
     ## note: this function should mostly be called from the core 'recv' function
     ##
@@ -266,6 +276,7 @@ fun ws_recv(ws_id) {
 }
 
 fun ws_client_send(ws_id, value) {
+    ##std:this,__ws_client_send
     ## `ws_client_send` will send on a websocket connection initalized via 'new_ws'
     ## note: this function should mostly be called from the core 'send' function
     ##
@@ -274,6 +285,7 @@ fun ws_client_send(ws_id, value) {
 }
 
 fun ws_client_recv(ws_id) {
+    ##std:this,__ws_client_recv
     ## `ws_client_recv` will receive on a websocket connection initalized via 'new_ws'
     ## note: this function should mostly be called from the core 'recv' function
     ##
@@ -282,6 +294,7 @@ fun ws_client_recv(ws_id) {
 }
 
 fun new_ws(path) {
+    ##std:this,__new_ws
     ## `new_ws` will initalize a websocket client to be used to 'send' and 'recv' on
     ##
     ## path should be in the normal websocket format
@@ -292,6 +305,7 @@ fun new_ws(path) {
 }
 
 fun shutdown_server() {
+    ##std:this,__shutdown_server
     ## `shutdown_server` will catch interupts to shutdown the http server
     ##
     ## shutdown_server() -> null
@@ -299,6 +313,7 @@ fun shutdown_server() {
 }
 
 fun md_to_html(content) {
+    ##std:this,__md_to_html
     ## `md_to_html` will transform the markdown content passed in to valid html
     ##
     ## md_to_html(content: str) -> str
@@ -306,6 +321,7 @@ fun md_to_html(content) {
 }
 
 fun inspect(obj) {
+    ##std:this,__inspect
     ## `inspect` prints out the details of the http object
     ##
     ## inspect(obj: {t: 'ws': v: uint}) -> str
@@ -360,6 +376,7 @@ fun send_file(path) {
 
 
 fun new_server(network="tcp4") {
+    ##std:this,__new_server
     ## `new_server` will return a core http server object that can be used
     ## to call http functions against
     ##

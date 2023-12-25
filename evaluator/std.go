@@ -313,6 +313,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			io.Copy(f, resp.Body)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`download` copys the file at the URL to the given file path. if the fpath is empty, then the URL is used to determine the name",
+			signature:   "download(url: str, fpath: str='') -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "download('http://example.com/test.txt') => null => writes test.txt to current directory",
+		}.String(),
 	},
 	"_new_server": {
 		Fun: func(args ...object.Object) object.Object {
@@ -337,6 +343,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			})
 			return NewGoObj(app)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`new_server` returns a new server object",
+			signature:   "new_server(network: str('tcp','tcp4','tcp6')='tcp4') -> GoObj[*fiber.App]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "new_server() => server obj",
+		}.String(),
 	},
 	"_serve": {
 		Fun: func(args ...object.Object) object.Object {
@@ -378,6 +390,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`serve` starts the http server listener at the given address/port with the embedded lib web files included if set to true",
+			signature:   "serve(server: GoObj[*fiber.App], addr_port: str='localhost:3001', use_embedded_lib_web: bool=true) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "serve() => null => starts server",
+		}.String(),
 	},
 	"_shutdown_server": {
 		Fun: func(args ...object.Object) object.Object {
@@ -387,6 +405,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			interruptCh <- os.Interrupt
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`shutdown_server` shuts down the given http server cleanly. it does not need to happen in the same process",
+			signature:   "shutdown_server() -> null",
+			errors:      "InvalidArgCount",
+			example:     "shutdown_server() => null",
+		}.String(),
 	},
 	"_static": {
 		Fun: func(args ...object.Object) object.Object {
@@ -431,6 +455,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`static` serves the given directory as static files for the http server",
+			signature:   "static(server: GoObj[*fiber.App], prefix: str='/', dir_path: str='.', browse: bool=false) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "static() => null => current directory served at addr:port/",
+		}.String(),
 	},
 	"_ws_send": {
 		Fun: func(args ...object.Object) object.Object {
@@ -458,6 +488,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`ws_send` sends the given value on the websocket connection, if the value is a string the websocket message type is TextMessage, otherwise if bytes BinaryMessage",
+			signature:   "ws_send(c: GoObj[*websocket.Conn], value: str|bytes) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "ws_send(c, '1') => null",
+		}.String(),
 	},
 	"_ws_recv": {
 		Fun: func(args ...object.Object) object.Object {
@@ -474,7 +510,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			mt, msg, err := c.Value.ReadMessage()
 			if err != nil {
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
-				return newError("`ws_recv`: %s", err.Error())
+				return newError("`ws_recv` error: %s", err.Error())
 			}
 			switch mt {
 			case websocket.BinaryMessage:
@@ -482,14 +518,20 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case websocket.TextMessage:
 				return &object.Stringo{Value: string(msg)}
 			case websocket.PingMessage:
-				return newError("`ws_recv`: ping message type not supported.")
+				return newError("`ws_recv` error: ping message type not supported.")
 			case websocket.PongMessage:
-				return newError("`ws_recv`: pong message type not supported.")
+				return newError("`ws_recv` error: pong message type not supported.")
 			default:
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
-				return newError("`ws_recv`: websocket closed.")
+				return newError("`ws_recv` error: websocket closed.")
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`ws_recv` receives a websocket message on the given websocket connection",
+			signature:   "ws_recv(c: GoObj[*websocket.Conn]) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "ws_recv(c) => str|bytes",
+		}.String(),
 	},
 	"_new_ws": {
 		Fun: func(args ...object.Object) object.Object {
@@ -506,6 +548,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return object.CreateBasicMapObjectForGoObj("ws/client", NewGoObj(conn))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`new_ws` returns a new websocket client object",
+			signature:   "new_ws(url: str) -> {t: 'ws/client', v: GoObj[*ws.Conn]}",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "new_ws('http://localhost:3001/ws') => ws client obj",
+		}.String(),
 	},
 	"_ws_client_send": {
 		Fun: func(args ...object.Object) object.Object {
@@ -533,6 +581,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`ws_client_send` sends the given value on the websocket client connection, if the value is a string the websocket message type is TextMessage, otherwise if bytes BinaryMessage",
+			signature:   "ws_client_send(c: GoObj[*ws.Conn], value: str|bytes) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "ws_client_send(c, '1') => null",
+		}.String(),
 	},
 	"_ws_client_recv": {
 		Fun: func(args ...object.Object) object.Object {
@@ -549,7 +603,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			mt, msg, err := c.Value.ReadMessage()
 			if err != nil {
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
-				return newError("`ws_recv`: %s", err.Error())
+				return newError("`ws_client_recv` error: %s", err.Error())
 			}
 			switch mt {
 			case websocket.BinaryMessage:
@@ -557,14 +611,20 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			case websocket.TextMessage:
 				return &object.Stringo{Value: string(msg)}
 			case websocket.PingMessage:
-				return newError("`ws_recv`: ping message type not supported.")
+				return newError("`ws_client_recv` error: ping message type not supported.")
 			case websocket.PongMessage:
-				return newError("`ws_recv`: pong message type not supported.")
+				return newError("`ws_client_recv` error: pong message type not supported.")
 			default:
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
-				return newError("`ws_recv`: websocket closed.")
+				return newError("`ws_client_recv` error: websocket closed.")
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`ws_client_recv` receives a value on the websocket client connection",
+			signature:   "ws_client_recv(c: GoObj[*ws.Conn]) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "ws_client_recv(c) => str|bytes",
+		}.String(),
 	},
 	"_handle_monitor": {
 		Fun: func(args ...object.Object) object.Object {
@@ -593,6 +653,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}))
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`handle_monitor` creates a monitor handler on the given http server at the given path a boolean that determines when it should show",
+			signature:   "handle_monitor(s: GoObj[*fiber.App], path: str, should_show: bool) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "handle_monitor(s, '/monitor', true) => null",
+		}.String(),
 	},
 	"_md_to_html": {
 		Fun: func(args ...object.Object) object.Object {
@@ -606,6 +672,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			output := blackfriday.Run(bs)
 			return &object.Stringo{Value: string(output)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`md_to_html` converts a given markdown string to valid html",
+			signature:   "md_to_html(s: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "md_to_html('# Hello World') => '<h1>Hello World</h1>'",
+		}.String(),
 	},
 	"_sanitize_and_minify": {
 		Fun: func(args ...object.Object) object.Object {
@@ -645,6 +717,12 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: string(htmlContent)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`sanitize_and_minify` santizes and/or minifies the given content",
+			signature:   "sanitize_and_minify(content: str, should_sanitize: bool=true, should_minify: bool=true) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "sanitize_and_minify('<script></script>') => ''",
+		}.String(),
 	},
 	"_inspect": {
 		Fun: func(args ...object.Object) object.Object {
@@ -682,9 +760,15 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				mapObj.Set("local_addr_network", &object.Stringo{Value: c.Value.LocalAddr().Network()})
 				return object.CreateMapObjectForGoMap(*mapObj)
 			default:
-				return newError("`inspect` expects type of 'ws'")
+				return newError("`inspect` error: expects type of 'ws'|'ws/client'")
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`inspect` will return a map of info for the given ws connection",
+			signature:   "inspect(c: GoObj[*ws.Conn]|GoObj[*ws.Connection]) -> map[str]str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "inspect(c) => {remote_addr: ...}",
+		}.String(),
 	},
 })
 

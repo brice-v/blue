@@ -121,9 +121,9 @@ func (e *Environment) GetAll() map[string]Object {
 	return e.store.GetAll()
 }
 
-func (e *Environment) getCoreFunctionHelpString(origHelp string) string {
+func (e *Environment) getFunctionHelpString(origHelp, prefix string) string {
 	parts := strings.Split(origHelp, "\n")
-	thingsToGet := strings.Split(strings.Split(parts[0], "core:")[1], ",")
+	thingsToGet := strings.Split(strings.Split(parts[0], prefix)[1], ",")
 	var out bytes.Buffer
 	l := len(thingsToGet)
 	for j, v := range thingsToGet {
@@ -167,8 +167,11 @@ func (e *Environment) Set(name string, val Object) Object {
 		if !coreIgnored {
 			ogHelp := val.Help()
 			if strings.HasPrefix(ogHelp, "core:") {
-				coreHelpStr := e.getCoreFunctionHelpString(ogHelp)
+				coreHelpStr := e.getFunctionHelpString(ogHelp, "core:")
 				e.SetFunctionHelpStr(name, coreHelpStr)
+			} else if strings.HasPrefix(ogHelp, "std:") {
+				stdHelpStr := e.getFunctionHelpString(ogHelp, "std:")
+				e.SetFunctionHelpStr(name, stdHelpStr)
 			} else {
 				e.publicFunctionHelpStore.Set(name, ogHelp)
 			}

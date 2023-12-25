@@ -100,6 +100,12 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`handle` puts a handler on the server for a given pattern and method, `handle_use` also can use this function if no method is provided",
+			signature:   "handle(server: GoObj[*fiber.App], pattern: str, fn: fun, method: str='GET') -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "handle(s, '/', fn) => null",
+		}.String(),
 	}
 }
 
@@ -632,5 +638,11 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 			// Always returns NULL here
 			return returnObj
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`handle_ws` puts a websocket handler on the server for a given pattern and method",
+			signature:   "handle_ws(server: GoObj[*fiber.App], pattern: str, fn: fun) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "handle_ws(s, '/ws', fn) => null",
+		}.String(),
 	}
 }
