@@ -5,6 +5,7 @@ val __parse = _parse;
 val __dump = _dump;
 
 fun parse(data, delimeter=',', named_fields=false, comment=null, lazy_quotes=false, trim_leading_space=false) {
+    ##std:this,__parse
     ## `parse` will take data as a string and return a list of rows represented by
     ## the csv file
     ##
@@ -30,6 +31,7 @@ fun parse(data, delimeter=',', named_fields=false, comment=null, lazy_quotes=fal
 }
 
 fun dump(data, comma=',', use_crlf=false) {
+    ##std:this,__dump
     ## `dump` will take the data and dump it to a string formatted as a csv
     ## the data must be in the form list[list[str]] or list[map[any:any]]
     ##

@@ -2342,6 +2342,12 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: c.ToJSON()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_file` returns the object version of the parsed config file (yaml, ini, toml, properties, json)",
+			signature:   "load_file(fpath: str) -> str(json)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "load_file(fpath) => {}",
+		}.String(),
 	},
 	"_dump_config": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2381,6 +2387,12 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`dump_config` takes the config map and writes it to a file in the given format",
+			signature:   "dump_config(c: str(json), fpath: str, format: str('JSON'|'TOML'|'YAML'|'INI'|'PROPERTIES')='JSON') -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "dump_config(c, 'test.json') => null",
+		}.String(),
 	},
 })
 
@@ -4313,6 +4325,12 @@ var _csv_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return allRows
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`parse` parses the string or bytes as a CSV and returns the data as a list of objects",
+			signature:   "parse(data: str|bytes, delimeter: str=',', named_fields: bool=false, comment: str|null=null, lazy_quotes: bool=false, trim_leading_space: bool=false) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "parse(data) => list[any]",
+		}.String(),
 	},
 	"_dump": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4402,6 +4420,12 @@ var _csv_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: sb.String()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`dump` dumps the data to a CSV",
+			signature:   "dump(data: list[any], comma: str=',', use_crlf: bool=false) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "dump(data) => null",
+		}.String(),
 	},
 })
 
