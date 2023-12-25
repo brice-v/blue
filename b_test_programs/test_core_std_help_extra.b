@@ -132,3 +132,16 @@ handle(pattern: str, fn: fun, method: str='GET') -> null
     inspect = 'builtin function'
 """.replace("\r", "");
 assert(handle_use_h == expected_handle_use_h);
+
+import math
+
+val hypot_h = help(math.hypot);
+println(hypot_h);
+val expected_hypot_h = """`hypot` returns sqrt(p*p + q*q), taking care to avoid unnecessary overflow and underflow
+    Signature:  hypot(p: float, q: float) -> float
+    Error(s):   InvalidArgCount,PositionalType
+    Example(s): hypot(3.0,4.0) => 5.0
+
+    type = 'BUILTIN'
+    inspect = 'builtin function'""".replace("\r", "");
+assert(hypot_h == expected_hypot_h);

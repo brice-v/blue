@@ -6,6 +6,7 @@ val __by_xpath = _by_xpath;
 val __by_regex = _by_regex;
 
 fun by_xpath(str_to_search, str_query, should_find_one) {
+    ##std:this,__by_xpath
     ## `by_xpath` is the search method for xpaths
     ## this is only usable on an HTML document
     ## it will return a list of strings if should_find_one is false
@@ -15,6 +16,7 @@ fun by_xpath(str_to_search, str_query, should_find_one) {
 }
 
 fun by_regex(str_to_search, str_query, should_find_one) {
+    ##std:this,__by_regex
     ## `by_regex` is the search method for regular expressions
     ## the underlying engine is the go standard library
     ## it will return a list of strings if should_find_one is false

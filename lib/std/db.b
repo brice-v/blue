@@ -12,6 +12,7 @@ val __db_query = _db_query;
 val __db_close = _db_close;
 
 fun db_ping(db_id) {
+    ##std:this,__db_ping
     ## `db_ping` pings the DB connection and returns null if successful
     ##
     ## db_ping(db_id: uint) -> null
@@ -19,6 +20,7 @@ fun db_ping(db_id) {
 }
 
 fun db_exec(db_id, exec_query, query_args) {
+    ##std:this,__db_exec
     ## `db_exec` will execute the statment on the DB connection and return an object
     ## with the last_insert_id as well as the rows_affected
     ##
@@ -29,6 +31,7 @@ fun db_exec(db_id, exec_query, query_args) {
 }
 
 fun db_query(db_id, query_s, query_args, named_cols) {
+    ##std:this,__db_query
     ## `db_query` will execute the given query with the parameters set on the DB connection
     ## and it will return a list of objects or lists depending if named_cols is true
     ##
@@ -42,6 +45,7 @@ fun db_query(db_id, query_s, query_args, named_cols) {
 }
 
 fun db_close(db_id) {
+    ##std:this,__db_close
     ## `db_close` will close the DB connection object and remove it
     ##
     ## db_close(db_id: uint) -> null
@@ -49,6 +53,7 @@ fun db_close(db_id) {
 }
 
 fun open(db_name=":memory:") {
+    ##std:this,__db_open
     ## `open` will return a core db object that can be used
     ## to execute sql queries against
     ##

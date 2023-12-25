@@ -2039,7 +2039,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			explanation: "`re` returns a regex object for the given string",
 			signature:   "re(arg: str) -> regex",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "re('abc') => /abc/",
+			example:     "re('abc') => r/abc/",
 		}.String(),
 	},
 	"to_list": {
