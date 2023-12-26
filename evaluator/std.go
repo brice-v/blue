@@ -3377,6 +3377,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.AccountIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_account` returns the object of the icon_account resource",
+			signature:   "icon_account() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_account() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_cancel": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3385,6 +3391,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.CancelIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_cancel` returns the object of the icon_cancel resource",
+			signature:   "icon_cancel() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_cancel() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_check_button_checked": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3393,6 +3405,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.CheckButtonCheckedIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_check_button_checked` returns the object of the icon_check_button_checked resource",
+			signature:   "icon_check_button_checked() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_check_button_checked() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_check_button": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3401,6 +3419,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.CheckButtonIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_check_button` returns the object of the icon_check_button resource",
+			signature:   "icon_check_button() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_check_button() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_color_achromatic": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3409,6 +3433,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ColorAchromaticIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_color_achromatic` returns the object of the icon_color_achromatic resource",
+			signature:   "icon_color_achromatic() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_color_achromatic() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_color_chromatic": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3417,6 +3447,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ColorChromaticIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_color_chromatic` returns the object of the icon_color_chromatic resource",
+			signature:   "icon_color_chromatic() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_color_chromatic() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_color_palette": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3425,6 +3461,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ColorPaletteIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_color_palette` returns the object of the icon_color_palette resource",
+			signature:   "icon_color_palette() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_color_palette() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_computer": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3433,6 +3475,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ComputerIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_computer` returns the object of the icon_computer resource",
+			signature:   "icon_computer() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_computer() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_confirm": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3441,6 +3489,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ConfirmIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_confirm` returns the object of the icon_confirm resource",
+			signature:   "icon_confirm() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_confirm() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_add": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3449,6 +3503,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentAddIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_add` returns the object of the icon_content_add resource",
+			signature:   "icon_content_add() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_add() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_clear": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3457,6 +3517,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentClearIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_clear` returns the object of the icon_content_clear resource",
+			signature:   "icon_content_clear() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_clear() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_copy": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3465,6 +3531,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentCopyIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_copy` returns the object of the icon_content_copy resource",
+			signature:   "icon_content_copy() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_copy() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_cut": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3473,6 +3545,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentCutIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_cut` returns the object of the icon_content_cut resource",
+			signature:   "icon_content_cut() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_cut() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_paste": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3481,6 +3559,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentPasteIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_paste` returns the object of the icon_content_paste resource",
+			signature:   "icon_content_paste() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_paste() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_redo": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3489,6 +3573,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentRedoIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_redo` returns the object of the icon_content_redo resource",
+			signature:   "icon_content_redo() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_redo() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_remove": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3497,6 +3587,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentRemoveIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_remove` returns the object of the icon_content_remove resource",
+			signature:   "icon_content_remove() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_remove() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_content_undo": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3505,6 +3601,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ContentUndoIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_content_undo` returns the object of the icon_content_undo resource",
+			signature:   "icon_content_undo() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_content_undo() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_delete": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3513,6 +3615,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.DeleteIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_delete` returns the object of the icon_delete resource",
+			signature:   "icon_delete() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_delete() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_document_create": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3521,6 +3629,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.DocumentCreateIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_document_create` returns the object of the icon_document_create resource",
+			signature:   "icon_document_create() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_document_create() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_document": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3529,6 +3643,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.DocumentIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_document` returns the object of the icon_document resource",
+			signature:   "icon_document() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_document() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_document_print": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3537,6 +3657,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.DocumentPrintIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_document_print` returns the object of the icon_document_print resource",
+			signature:   "icon_document_print() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_document_print() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_document_save": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3545,6 +3671,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.DocumentSaveIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_document_save` returns the object of the icon_document_save resource",
+			signature:   "icon_document_save() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_document_save() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_download": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3553,6 +3685,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.DownloadIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_download` returns the object of the icon_download resource",
+			signature:   "icon_download() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_download() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_error": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3561,6 +3699,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ErrorIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_error` returns the object of the icon_error resource",
+			signature:   "icon_error() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_error() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_file_application": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3569,6 +3713,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FileApplicationIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_file_application` returns the object of the icon_file_application resource",
+			signature:   "icon_file_application() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_file_application() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_file_audio": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3577,6 +3727,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FileAudioIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_file_audio` returns the object of the icon_file_audio resource",
+			signature:   "icon_file_audio() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_file_audio() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_file": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3585,6 +3741,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FileIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_file` returns the object of the icon_file resource",
+			signature:   "icon_file() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_file() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_file_image": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3593,6 +3755,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FileImageIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_file_image` returns the object of the icon_file_image resource",
+			signature:   "icon_file_image() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_file_image() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_file_text": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3601,6 +3769,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FileTextIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_file_text` returns the object of the icon_file_text resource",
+			signature:   "icon_file_text() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_file_text() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_file_video": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3609,6 +3783,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FileVideoIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_file_video` returns the object of the icon_file_video resource",
+			signature:   "icon_file_video() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_file_video() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_folder": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3617,6 +3797,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FolderIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_folder` returns the object of the icon_folder resource",
+			signature:   "icon_folder() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_folder() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_folder_new": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3625,6 +3811,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FolderNewIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_folder_new` returns the object of the icon_folder_new resource",
+			signature:   "icon_folder_new() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_folder_new() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_folder_open": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3633,6 +3825,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.FolderOpenIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_folder_open` returns the object of the icon_folder_open resource",
+			signature:   "icon_folder_open() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_folder_open() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_grid": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3641,6 +3839,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.GridIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_grid` returns the object of the icon_grid resource",
+			signature:   "icon_grid() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_grid() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_help": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3649,6 +3853,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.HelpIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_help` returns the object of the icon_help resource",
+			signature:   "icon_help() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_help() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_history": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3657,6 +3867,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.HistoryIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_history` returns the object of the icon_history resource",
+			signature:   "icon_history() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_history() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_home": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3665,6 +3881,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.HomeIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_home` returns the object of the icon_home resource",
+			signature:   "icon_home() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_home() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3673,6 +3895,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.InfoIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_info` returns the object of the icon_info resource",
+			signature:   "icon_info() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_info() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_list": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3681,6 +3909,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ListIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_list` returns the object of the icon_list resource",
+			signature:   "icon_list() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_list() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_login": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3689,6 +3923,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.LoginIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_login` returns the object of the icon_login resource",
+			signature:   "icon_login() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_login() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_logout": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3697,6 +3937,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.LogoutIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_logout` returns the object of the icon_logout resource",
+			signature:   "icon_logout() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_logout() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_mail_attachment": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3705,6 +3951,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MailAttachmentIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_mail_attachment` returns the object of the icon_mail_attachment resource",
+			signature:   "icon_mail_attachment() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_mail_attachment() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_mail_compose": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3713,6 +3965,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MailComposeIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_mail_compose` returns the object of the icon_mail_compose resource",
+			signature:   "icon_mail_compose() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_mail_compose() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_mail_forward": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3721,6 +3979,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MailForwardIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_mail_forward` returns the object of the icon_mail_forward resource",
+			signature:   "icon_mail_forward() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_mail_forward() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_mail_reply_all": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3729,6 +3993,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MailReplyAllIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_mail_reply_all` returns the object of the icon_mail_reply_all resource",
+			signature:   "icon_mail_reply_all() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_mail_reply_all() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_mail_reply": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3737,6 +4007,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MailReplyIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_mail_reply` returns the object of the icon_mail_reply resource",
+			signature:   "icon_mail_reply() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_mail_reply() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_mail_send": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3745,6 +4021,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MailSendIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_mail_send` returns the object of the icon_mail_send resource",
+			signature:   "icon_mail_send() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_mail_send() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_fast_forward": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3753,6 +4035,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaFastForwardIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_fast_forward` returns the object of the icon_media_fast_forward resource",
+			signature:   "icon_media_fast_forward() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_fast_forward() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_fast_rewind": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3761,6 +4049,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaFastRewindIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_fast_rewind` returns the object of the icon_media_fast_rewind resource",
+			signature:   "icon_media_fast_rewind() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_fast_rewind() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_music": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3769,6 +4063,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaMusicIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_music` returns the object of the icon_media_music resource",
+			signature:   "icon_media_music() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_music() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_pause": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3777,6 +4077,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaPauseIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_pause` returns the object of the icon_media_pause resource",
+			signature:   "icon_media_pause() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_pause() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_photo": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3785,6 +4091,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaPhotoIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_photo` returns the object of the icon_media_photo resource",
+			signature:   "icon_media_photo() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_photo() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_play": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3793,6 +4105,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaPlayIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_play` returns the object of the icon_media_play resource",
+			signature:   "icon_media_play() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_play() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_record": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3801,6 +4119,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaRecordIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_record` returns the object of the icon_media_record resource",
+			signature:   "icon_media_record() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_record() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_replay": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3809,6 +4133,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaReplayIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_replay` returns the object of the icon_media_replay resource",
+			signature:   "icon_media_replay() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_replay() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_skip_next": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3817,6 +4147,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaSkipNextIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_skip_next` returns the object of the icon_media_skip_next resource",
+			signature:   "icon_media_skip_next() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_skip_next() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_skip_previous": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3825,6 +4161,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaSkipPreviousIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_skip_previous` returns the object of the icon_media_skip_previous resource",
+			signature:   "icon_media_skip_previous() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_skip_previous() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_stop": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3833,6 +4175,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaStopIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_stop` returns the object of the icon_media_stop resource",
+			signature:   "icon_media_stop() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_stop() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_media_video": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3841,6 +4189,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MediaVideoIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_media_video` returns the object of the icon_media_video resource",
+			signature:   "icon_media_video() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_media_video() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_menu_drop_down": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3849,6 +4203,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MenuDropDownIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_menu_drop_down` returns the object of the icon_menu_drop_down resource",
+			signature:   "icon_menu_drop_down() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_menu_drop_down() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_menu_drop_up": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3857,6 +4217,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MenuDropUpIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_menu_drop_up` returns the object of the icon_menu_drop_up resource",
+			signature:   "icon_menu_drop_up() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_menu_drop_up() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_menu_expand": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3865,6 +4231,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MenuExpandIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_menu_expand` returns the object of the icon_menu_expand resource",
+			signature:   "icon_menu_expand() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_menu_expand() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_menu": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3873,6 +4245,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MenuIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_menu` returns the object of the icon_menu resource",
+			signature:   "icon_menu() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_menu() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_more_horizontal": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3881,6 +4259,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MoreHorizontalIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_more_horizontal` returns the object of the icon_more_horizontal resource",
+			signature:   "icon_more_horizontal() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_more_horizontal() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_more_vertical": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3889,6 +4273,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MoreVerticalIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_more_vertical` returns the object of the icon_more_vertical resource",
+			signature:   "icon_more_vertical() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_more_vertical() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_move_down": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3897,6 +4287,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MoveDownIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_move_down` returns the object of the icon_move_down resource",
+			signature:   "icon_move_down() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_move_down() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_move_up": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3905,6 +4301,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.MoveUpIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_move_up` returns the object of the icon_move_up resource",
+			signature:   "icon_move_up() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_move_up() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_navigate_back": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3913,6 +4315,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.NavigateBackIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_navigate_back` returns the object of the icon_navigate_back resource",
+			signature:   "icon_navigate_back() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_navigate_back() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_navigate_next": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3921,6 +4329,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.NavigateNextIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_navigate_next` returns the object of the icon_navigate_next resource",
+			signature:   "icon_navigate_next() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_navigate_next() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_question": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3929,6 +4343,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.QuestionIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_question` returns the object of the icon_question resource",
+			signature:   "icon_question() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_question() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_radio_button_checked": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3937,6 +4357,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.RadioButtonCheckedIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_radio_button_checked` returns the object of the icon_radio_button_checked resource",
+			signature:   "icon_radio_button_checked() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_radio_button_checked() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_radio_button": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3945,6 +4371,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.RadioButtonIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_radio_button` returns the object of the icon_radio_button resource",
+			signature:   "icon_radio_button() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_radio_button() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_search": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3953,6 +4385,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.SearchIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_search` returns the object of the icon_search resource",
+			signature:   "icon_search() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_search() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_search_replace": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3961,6 +4399,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.SearchReplaceIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_search_replace` returns the object of the icon_search_replace resource",
+			signature:   "icon_search_replace() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_search_replace() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_settings": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3969,6 +4413,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.SettingsIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_settings` returns the object of the icon_settings resource",
+			signature:   "icon_settings() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_settings() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_storage": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3977,6 +4427,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.StorageIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_storage` returns the object of the icon_storage resource",
+			signature:   "icon_storage() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_storage() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_upload": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3985,6 +4441,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.UploadIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_upload` returns the object of the icon_upload resource",
+			signature:   "icon_upload() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_upload() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_view_full_screen": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3993,6 +4455,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ViewFullScreenIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_view_full_screen` returns the object of the icon_view_full_screen resource",
+			signature:   "icon_view_full_screen() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_view_full_screen() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_view_refresh": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4001,6 +4469,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ViewRefreshIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_view_refresh` returns the object of the icon_view_refresh resource",
+			signature:   "icon_view_refresh() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_view_refresh() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_view_restore": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4009,6 +4483,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ViewRestoreIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_view_restore` returns the object of the icon_view_restore resource",
+			signature:   "icon_view_restore() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_view_restore() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_visibility": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4017,6 +4497,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.VisibilityIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_visibility` returns the object of the icon_visibility resource",
+			signature:   "icon_visibility() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_visibility() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_visibility_off": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4025,6 +4511,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.VisibilityOffIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_visibility_off` returns the object of the icon_visibility_off resource",
+			signature:   "icon_visibility_off() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_visibility_off() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_volume_down": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4033,6 +4525,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.VolumeDownIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_volume_down` returns the object of the icon_volume_down resource",
+			signature:   "icon_volume_down() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_volume_down() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_volume_mute": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4041,6 +4539,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.VolumeMuteIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_volume_mute` returns the object of the icon_volume_mute resource",
+			signature:   "icon_volume_mute() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_volume_mute() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_volume_up": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4049,6 +4553,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.VolumeUpIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_volume_up` returns the object of the icon_volume_up resource",
+			signature:   "icon_volume_up() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_volume_up() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_warning": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4057,6 +4567,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.WarningIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_warning` returns the object of the icon_warning resource",
+			signature:   "icon_warning() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_warning() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_zoom_fit": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4065,6 +4581,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ZoomFitIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_zoom_fit` returns the object of the icon_zoom_fit resource",
+			signature:   "icon_zoom_fit() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_zoom_fit() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_zoom_in": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4073,6 +4595,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ZoomInIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_zoom_in` returns the object of the icon_zoom_in resource",
+			signature:   "icon_zoom_in() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_zoom_in() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 	"_icon_zoom_out": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4081,6 +4609,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.Resource](theme.ZoomOutIcon())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_zoom_out` returns the object of the icon_zoom_out resource",
+			signature:   "icon_zoom_out() -> GoObj[fyne.Resource]",
+			errors:      "InvalidArgCount",
+			example:     "icon_zoom_out() -> GoObj[fyne.Resouce]",
+		}.String(),
 	},
 })
 
@@ -4123,6 +4657,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return object.CreateBasicMapObjectForGoObj("color", NewGoObj(s))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`style` returns an object to be used in printing that affects the stylized output",
+			signature:   "style(text: int=normal, fg_color: int=normal, bg_color: int=normal) -> {t: 'color', v: GoObj[color.Style]}",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "style(fg_color=magenta, bg_color=white) => color style object",
+		}.String(),
 	},
 	"_normal": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4131,6 +4671,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Normal)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`normal` returns the int version of the normal color",
+			signature:   "normal() -> int",
+			errors:      "InvalidArgCount",
+			example:     "normal() -> int",
+		}.String(),
 	},
 	"_red": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4139,6 +4685,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Red)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`red` returns the int version of the red color",
+			signature:   "red() -> int",
+			errors:      "InvalidArgCount",
+			example:     "red() -> int",
+		}.String(),
 	},
 	"_cyan": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4147,6 +4699,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Cyan)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`cyan` returns the int version of the cyan color",
+			signature:   "cyan() -> int",
+			errors:      "InvalidArgCount",
+			example:     "cyan() -> int",
+		}.String(),
 	},
 	"_gray": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4155,6 +4713,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Gray)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`gray` returns the int version of the gray color",
+			signature:   "gray() -> int",
+			errors:      "InvalidArgCount",
+			example:     "gray() -> int",
+		}.String(),
 	},
 	"_blue": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4163,6 +4727,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Blue)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`blue` returns the int version of the blue color",
+			signature:   "blue() -> int",
+			errors:      "InvalidArgCount",
+			example:     "blue() -> int",
+		}.String(),
 	},
 	"_black": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4171,6 +4741,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Black)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`black` returns the int version of the black color",
+			signature:   "black() -> int",
+			errors:      "InvalidArgCount",
+			example:     "black() -> int",
+		}.String(),
 	},
 	"_green": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4179,6 +4755,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Green)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`green` returns the int version of the green color",
+			signature:   "green() -> int",
+			errors:      "InvalidArgCount",
+			example:     "green() -> int",
+		}.String(),
 	},
 	"_white": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4187,6 +4769,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.White)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`white` returns the int version of the white color",
+			signature:   "white() -> int",
+			errors:      "InvalidArgCount",
+			example:     "white() -> int",
+		}.String(),
 	},
 	"_yellow": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4195,6 +4783,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Yellow)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`yellow` returns the int version of the yellow color",
+			signature:   "yellow() -> int",
+			errors:      "InvalidArgCount",
+			example:     "yellow() -> int",
+		}.String(),
 	},
 	"_magenta": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4203,6 +4797,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Magenta)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`magenta` returns the int version of the magenta color",
+			signature:   "magenta() -> int",
+			errors:      "InvalidArgCount",
+			example:     "magenta() -> int",
+		}.String(),
 	},
 	"_bold": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4211,6 +4811,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.Bold)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`bold` returns the int version of the bold color",
+			signature:   "bold() -> int",
+			errors:      "InvalidArgCount",
+			example:     "bold() -> int",
+		}.String(),
 	},
 	"_italic": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4219,6 +4825,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.OpItalic)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`italic` returns the int version of the italic color",
+			signature:   "italic() -> int",
+			errors:      "InvalidArgCount",
+			example:     "italic() -> int",
+		}.String(),
 	},
 	"_underlined": {
 		Fun: func(args ...object.Object) object.Object {
@@ -4227,6 +4839,12 @@ var _color_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(color.OpUnderscore)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`underlined` returns the int version of the underlined color",
+			signature:   "underlined() -> int",
+			errors:      "InvalidArgCount",
+			example:     "underlined() -> int",
+		}.String(),
 	},
 })
 

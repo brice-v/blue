@@ -36,6 +36,7 @@ val underlined = _underlined();
 var __style = _style;
 
 fun style(text=normal, fg_color=normal, bg_color=normal) {
+    ##std:this,__style
     ## `style` takes a text style, foreground color, and background color
     ## to create a style object of shape {t: 'color', v: _}
     ##
