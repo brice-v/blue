@@ -12,11 +12,7 @@ assert(rc == 0);
 
 var mod1 = wasm.init(prefix+'wasm_test_files/add.wasm');
 defer(fun() { 
-    try {
-        mod1.close();
-    } catch (e) {
-        println("error closing mod1 #{e}");
-    }
+    mod1.close();
 }); 
 var functions = mod1.get_functions();
 println("functions = #{functions}")

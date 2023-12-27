@@ -6317,7 +6317,14 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj(wm)
 		},
-		HelpStr: "TODO: Add a help string",
+		HelpStr: helpStrArgs{
+			explanation: "`wasm_init` initalizes a wasm module with all the necessary parameters to interact with it. Note: the module should be built with wasi_preview1 ie. GOOS=wasip1 GOARCH=wasm go build -o cat.wasm",
+			signature: `wasm_init(wasm_code_path: str, args: list[str], mounts: map[str:str], stdout: GoObj[*os.File],
+			stderr: GoObj[*os.File], stdin: GoObj[*os.File], envs: map[str:str], enable_rand: bool=true
+			enable_time_and_sleep_precision: bool=true, host_logging: str='', listens: list[str]|null=[], timeout: int=0) -> GoObj[*wazm.Module]`,
+			errors:  "InvalidArgCount,PositionalType,CustomError",
+			example: "wasm_init('wasm_test_files/cat.wasm', args=['wasm_test_files/cat.go.tmp']) => GoObj[*wazm.Module]",
+		}.String(),
 	},
 	"_wasm_get_functions": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6340,6 +6347,12 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`wasm_get_functions` returns the available functions on the wasm module and works closely with wasm_get_exported_functions",
+			signature:   "wasm_get_functions(mod: GoObj[*wazm.Module])",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "wasm_get_functions(add_mod) => ['realloc', '_start', 'add', 'asyncify_start_unwind', 'asyncify_stop_unwind', 'asyncify_start_rewind', 'free', 'calloc', 'asyncify_stop_rewind', 'malloc', 'asyncify_get_state']",
+		}.String(),
 	},
 	"_wasm_get_exported_function": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6406,6 +6419,12 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				},
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`wasm_get_exported_functions` returns the available function on the wasm module to be callable (via a BUILTIN) and works closely with wasm_get_functions",
+			signature:   "wasm_get_exported_functions(mod: GoObj[*wazm.Module], func: str) -> (fn(any...) -> any)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "wasm_get_exported_functions(add_mod, 'add')(0x3, 0x7) => 0u10",
+		}.String(),
 	},
 	"_wasm_run": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6430,6 +6449,12 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			wm.Value = module
 			return &object.Integer{Value: int64(rc)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`wasm_run` runs the main or _start of the wasm module and returns its return code as an integer",
+			signature:   "wasm_run(mod: GoObj[*wazm.Module]) -> int",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "wasm_run(cat_mod) => 0 (side-effects may happen such as writing to stdout)",
+		}.String(),
 	},
 	"_wasm_close": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6445,10 +6470,15 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			err := wm.Value.Runtime.Close(wm.Value.Ctx)
 			if err != nil {
-				// Convert error to just string to return so we dont cause an exception
-				return &object.Stringo{Value: "`wasm_close` error: " + err.Error()}
+				return newError("`wasm_close` error: %s", err.Error())
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`wasm_close` closes the wasm module and disposes of the resource, currently if an error occurs a string is returned with the error",
+			signature:   "wasm_close(mod: GoObj[*wazm.Module]) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "wasm_close(cat_mod) => null",
+		}.String(),
 	},
 })
