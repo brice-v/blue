@@ -13,6 +13,7 @@ val __encode_hex = _encode_hex;
 val __decode_hex = _decode_hex;
 
 fun md5(content) {
+    ##std:this,__md5
     ## `md5` is the stringified version of the md5 sum for the string or bytes content passed in
     ##
     ## md5(content: str|bytes) -> str
@@ -20,6 +21,7 @@ fun md5(content) {
 }
 
 fun generate_from_password(password) {
+    ##std:this,__generate_from_password
     ## `generate_from_password` will return a bcrypt hash string from the given password string
     ##
     ## generate_from_password(password: str) -> str
@@ -27,6 +29,7 @@ fun generate_from_password(password) {
 }
 
 fun compare_hash_and_password(password, hashed_pw) {
+    ##std:this,__compare_hash_and_password
     ## `compare_hash_and_password` will return true if the given password matches the hashed password
     ##
     ## compare_hash_and_password(password: str, hashed_pw: str) -> bool
@@ -34,6 +37,7 @@ fun compare_hash_and_password(password, hashed_pw) {
 }
 
 fun sha(content, algo=256) {
+    ##std:this,__sha
     ## `sha` will take a string or bytes and compute the sha1/256/512 value and return a string
     ##
     ## sha(content: str|bytes, algo: 1|256|512=256) -> str
@@ -41,6 +45,7 @@ fun sha(content, algo=256) {
 }
 
 fun encrypt(pw, data) {
+    ##std:this,__encrypt
     ## `encrypt` wil take a pw and the data to encrypt and encrypt it
     ## with a key made from the pw
     ##
@@ -52,6 +57,7 @@ fun encrypt(pw, data) {
 }
 
 fun decrypt(pw, data, as_bytes=false) {
+    ##std:this,__decrypt
     ## `decrypt` will take a pw and the data to decrypt and decrypt it
     ## with a key derived from the pw
     ##
@@ -64,6 +70,7 @@ fun decrypt(pw, data, as_bytes=false) {
 }
 
 fun encode(data, as_bytes=false, method='hex') {
+    ##std:this,__encode_hex,__encode_base_64_32
     ## `encode` will take data as STRING or BYTES and encode it with the specified method
     ## supported methods are 'hex', 'base32', or 'base64'
     ##
@@ -87,6 +94,7 @@ fun encode(data, as_bytes=false, method='hex') {
 }
 
 fun decode(data, as_bytes=false, method='hex') {
+    ##std:this,__decode_hex,__decode_base_64_32
     ## `decode` will take data as STRING or BYTES and decode it with the specified method
     ## supported methods are 'hex', 'base32', or 'base64'
     ##

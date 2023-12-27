@@ -2429,6 +2429,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			hasher.Write(bs)
 			return &object.Stringo{Value: fmt.Sprintf("%x", hasher.Sum(nil))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`sha` returns the sha 1, 256, or 512 sum of the given content as a STRING",
+			signature:   "sha(content: str|bytes, type: int(1|256|512)) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "sha('a',1) => '86f7e437faa5a7fce15d1ddcb9eaeaea377667b8'",
+		}.String(),
 	},
 	"_md5": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2448,6 +2454,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			hasher.Write(bs)
 			return &object.Stringo{Value: fmt.Sprintf("%x", hasher.Sum(nil))}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`md5` returns the md5 sum of the given content as a STRING",
+			signature:   "md5(content: str|bytes) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "md5('a') => '0cc175b9c0f1b6a831c399e269772661'",
+		}.String(),
 	},
 	"_generate_from_password": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2464,6 +2476,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: string(hashedPw)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`generate_from_password` returns a bcyrpt STRING for the given password STRING",
+			signature:   "generate_from_password(pw: str) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "generate_from_password('a') => '$2a$10$4GjpUS8/60qPsxFtPbo.3e5ueULg4Llk0iCwVsGAV9LBDuw2FkSa2'",
+		}.String(),
 	},
 	"_compare_hash_and_password": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2484,6 +2502,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return TRUE
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`compare_hash_and_password` returns a true if the given hashed password matches the given password",
+			signature:   "compare_hash_and_password(hashed_pw: str, pw: str) -> bool",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "compare_hash_and_password('$2a$10$4GjpUS8/60qPsxFtPbo.3e5ueULg4Llk0iCwVsGAV9LBDuw2FkSa2', 'a') => true",
+		}.String(),
 	},
 	"_encrypt": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2536,6 +2560,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			ciphertext = append(ciphertext, salt...)
 			return &object.Bytes{Value: ciphertext}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`encrypt` encrypts the data given with the password given",
+			signature:   "encrypt(pw: str|bytes, data: str|bytes) -> bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "encrypt('a','test') => bytes",
+		}.String(),
 	},
 	"_decrypt": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2587,6 +2617,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return &object.Stringo{Value: string(plaintext)}
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`decrypt` decrypts the data given with the password given, bytes are returned if as_bytes is set to true",
+			signature:   "decrypt(pw: str|bytes, data: bytes, as_bytes: bool=false) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "decrypt('a',bs) => 'test'",
+		}.String(),
 	},
 	"_encode_base_64_32": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2621,6 +2657,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: encoded}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`encode_base_64_32` encodes the data given in base64 if true, else base32, bytes are returned if as_bytes is set to true. Note: this function should only be called from encode",
+			signature:   "encode_base_64_32(data: str|bytes, is_base_64: bool=false, as_bytes: bool=false) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "encode_base_64_32('a', true, false) => 'YQ=='",
+		}.String(),
 	},
 	"_decode_base_64_32": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2659,6 +2701,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Bytes{Value: decoded}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`decode_base_64_32` decodes the data given in base64 if true, else base32, bytes are returned if as_bytes is set to true. Note: this function should only be called from decode",
+			signature:   "decode_base_64_32(data: str|bytes, is_base_64: bool=false, as_bytes: bool=false) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "decode_base_64_32('YQ==', true, false) => 'a'",
+		}.String(),
 	},
 	"_decode_hex": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2696,6 +2744,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Bytes{Value: bs}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`decode_hex` decodes the data given in hex, bytes are returned if as_bytes is set to true. Note: this function should only be called from decode",
+			signature:   "decode_hex(data: str|bytes, as_bytes: bool=false) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "decode_hex('61') => 'a'",
+		}.String(),
 	},
 	"_encode_hex": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2727,6 +2781,12 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: s}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`encode_hex` encodes the data given as hex, bytes are returned if as_bytes is set to true. Note: this function should only be called from encode",
+			signature:   "encode_hex(data: str|bytes, as_bytes: bool=false) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "encode_hex('a') => '61'",
+		}.String(),
 	},
 })
 
