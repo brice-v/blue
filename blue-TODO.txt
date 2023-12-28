@@ -2,6 +2,7 @@ TODO:
 
 - [ ] HELP STRINGS
     - [ ] Add for all std lib builtins (and add the functions into help_test)
+        - Finish up net, ui, and gg help strings
     - [x] Add for all string builtins - make sure it works with new core version that was created
     - [x] When assigning a new variable to a builtin (maybe only work for val), make it inherit the help for it?
         - I think this already works

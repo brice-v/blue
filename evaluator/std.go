@@ -5123,6 +5123,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`cpu_usage_percent` returns a list of cpu usages as floats per core",
+			signature:   "cpu_usage_percent() -> list[float]",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "cpu_usage_percent() => [1.0,0.4,0.2,0.6]",
+		}.String(),
 	},
 	"_cpu_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5139,6 +5145,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`cpu_info` returns a list of json strings of cpu info per prcoessor",
+			signature:   "cpu_info() -> list[str]",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "cpu_info() => [json_with_keys('cpu','vendorId','family','model','stepping','physicalId','coreId','cores','modelName','mhz','cacheSize','flags','microcode')]",
+		}.String(),
 	},
 	"_cpu_time_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5155,6 +5167,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`cpu_time_info` returns a list of json strings of cpu time stat info per prcoessor",
+			signature:   "cpu_time_info() -> list[str]",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "cpu_time_info() => [json_with_keys('cpu','user','system','idle','nice','iowait','irq','softirq','steal','guest','guestNice')]",
+		}.String(),
 	},
 	"_cpu_count": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5167,6 +5185,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Integer{Value: int64(count)}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`cpu_count` returns the number of cores as an INTEGER",
+			signature:   "cpu_count() -> int",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "cpu_count() => 4",
+		}.String(),
 	},
 	"_mem_virt_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5179,6 +5203,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: v.String()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`mem_virt_info` returns a json string of virtual memory info",
+			signature:   "mem_virt_info() -> str",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "mem_virt_info() => json_with_keys('total','available','used','usedPercent','free','active','inactive','wired','laundry','buffers','cached','writeBack','dirty','writeBackTmp','shared','slab','sreclaimable','sunreclaim','pageTables','swapCached','commitLimit','committedAS','highTotal','highFree','lowTotal','lowFree','swapTotal','swapFree','mapped','vmallocTotal','vmallocUsed','vmallocChunk','hugePagesTotal','hugePagesFree','hugePagesRsvd','hugePagesSurp','hugePageSize')",
+		}.String(),
 	},
 	"_mem_swap_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5191,6 +5221,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: v.String()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`mem_swap_info` returns a json string of swap memory info",
+			signature:   "mem_swap_info() -> str",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "mem_swap_info() => json_with_keys('total','used','free','usedPercent','sin','sout','pgIn','pgOut','pgFault','pgMajFault')",
+		}.String(),
 	},
 	"_host_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5203,6 +5239,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: i.String()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`host_info` returns a json string of host info",
+			signature:   "host_info() -> str",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "host_info() => json_with_keys('hostname','uptime','bootTime','procs','os','platform','platformFamily','platformVersion','kernelVersion','kernelArch','virtualizationSystem','virtualizationRole','hostId')",
+		}.String(),
 	},
 	"_host_temps_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5221,6 +5263,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`host_temps_info` returns a list of json strings of host sensor temperature info",
+			signature:   "host_temps_info() -> list[str]",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "host_temps_info() => [json_with_keys('sensorKey','temperature','sensorHigh','sensorCritical')]",
+		}.String(),
 	},
 	"_net_connections": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5241,6 +5289,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`net_connections` returns a list of json strings of host network connection stats for the given option",
+			signature:   "net_connections(option: str('all'|'tcp'|'tcp4'|'tcp6'|'udp'|'udp4'|'udp6'|'inet'|'inet4'|'inet6')='all') -> list[str]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "net_connections() => [json_with_keys('fd','family','type','localaddr','remoteaddr','status','uids','pid')]",
+		}.String(),
 	},
 	"_net_io_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5257,6 +5311,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`net_io_info` returns a list of json strings of network io stat info",
+			signature:   "net_io_info() -> list[str]",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "net_io_info() => [json_with_keys('name','bytesSent','bytesRecv','packetsSent','packetsRecv','errin','errout','dropin','dropout','fifoin','fifoout')]",
+		}.String(),
 	},
 	"_disk_partitions": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5273,6 +5333,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return l
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`disk_partitions` returns a list of json strings of disk partition info",
+			signature:   "disk_partitions() -> list[str]",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "disk_partitions() => [json_with_keys('device','mountpoint','fstype','opts')]",
+		}.String(),
 	},
 	"_disk_io_info": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5289,6 +5355,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return object.CreateMapObjectForGoMap(*m)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`disk_io_info` returns a map of drive to json string of disk io info",
+			signature:   "disk_io_info() -> map[str:str]",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "disk_io_info() => {'drive': json_with_keys('readCount','mergedReadCount','writeCount','mergedWriteCount','readBytes','writeBytes','readTime','writeTime','iopsInProgress','ioTime','weightedIO','name','serialNumber','label')...}",
+		}.String(),
 	},
 	"_disk_usage": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5305,6 +5377,12 @@ var _psutil_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: usage.String()}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`disk_usage` returns a json string of disk usage for the given path",
+			signature:   "disk_usage(path: str) -> str",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "disk_usage(root_path) => json_with_keys('path','fstype','total','free','used','usedPercent','inodesTotal','inodesUsed','inodesFree','inodesUsedPercent')",
+		}.String(),
 	},
 })
 
