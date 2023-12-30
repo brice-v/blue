@@ -145,3 +145,45 @@ val expected_hypot_h = """`hypot` returns sqrt(p*p + q*q), taking care to avoid 
     type = 'BUILTIN'
     inspect = 'builtin function'""".replace("\r", "");
 assert(hypot_h == expected_hypot_h);
+
+
+
+import psutil
+val cpu_percent_help = help(psutil.cpu.percent);
+println(cpu_percent_help);
+val cpu_percent_expected = """`cpu_usage_percent` returns a list of cpu usages as floats per core
+    Signature:  cpu_usage_percent() -> list[float]
+    Error(s):   InvalidArgCount,CustomError
+    Example(s): cpu_usage_percent() => [1.0,0.4,0.2,0.6]
+
+    type = 'BUILTIN'
+    inspect = 'builtin function'""".replace("\r","");
+assert(cpu_percent_help == cpu_percent_expected)
+val host_temps_help = help(psutil.host.temps);
+println(host_temps_help);
+val host_temps_expected = """`host.temps()`: `psutil_host_temps_info_to_map` returns the mapped version of host_temps_info json
+
+host.temps() -> list[map[str:any]]
+`host_temps_info` returns a list of json strings of host sensor temperature info
+    Signature:  host_temps_info() -> list[str]
+    Error(s):   InvalidArgCount,CustomError
+    Example(s): host_temps_info() => [json_with_keys('sensorKey','temperature','sensorHigh','sensorCritical')]
+
+    type = 'BUILTIN'
+    inspect = 'builtin function'
+""".replace("\r","");
+assert(host_temps_help == host_temps_expected);
+val mem_virtual_help = help(psutil.mem.virtual);
+println(mem_virtual_help);
+val mem_virtual_expected = """`mem.virtual()`: `psutil_mem_info_to_map` returns the mapped version of mem_virt_info json
+
+mem.virtual() -> map[str:int]
+`mem_virt_info` returns a json string of virtual memory info
+    Signature:  mem_virt_info() -> str
+    Error(s):   InvalidArgCount,CustomError
+    Example(s): mem_virt_info() => json_with_keys('total','available','used','usedPercent','free','active','inactive','wired','laundry','buffers','cached','writeBack','dirty','writeBackTmp','shared','slab','sreclaimable','sunreclaim','pageTables','swapCached','commitLimit','committedAS','highTotal','highFree','lowTotal','lowFree','swapTotal','swapFree','mapped','vmallocTotal','vmallocUsed','vmallocChunk','hugePagesTotal','hugePagesFree','hugePagesRsvd','hugePagesSurp','hugePageSize')
+
+    type = 'BUILTIN'
+    inspect = 'builtin function'
+""".replace("\r", "");
+assert(mem_virtual_help == mem_virtual_expected);

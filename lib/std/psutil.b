@@ -41,7 +41,11 @@ val __disk_partitions = _disk_partitions;
 val __disk_io_info = _disk_io_info;
 val __disk_usage = _disk_usage;
 
-fun _cpu_info_json_to_map() {
+fun psutil_cpu_info_json_to_map() {
+    ##std:this,__cpu_info
+    ## `cpu.info`: `psutil_cpu_info_json_to_map` returns the mapped version of cpu_info json
+    ## 
+    ## cpu.info -> list[map[str:any]]
     var __result = [];
     val ___data = __cpu_info();
     for (__e in ___data) {
@@ -50,7 +54,11 @@ fun _cpu_info_json_to_map() {
     return __result;
 }
 
-fun _cpu_time_info_json_to_map() {
+fun psutil_cpu_time_info_json_to_map() {
+    ##std:this,__cpu_time_info
+    ## `cpu.time_info`: `psutil_cpu_time_info_json_to_map` returns the mapped version of cpu_time_info json
+    ## 
+    ## cpu.time_info -> list[map[str:any]]
     var __result = [];
     val ___data = __cpu_time_info();
     for (__e in ___data) {
@@ -59,19 +67,35 @@ fun _cpu_time_info_json_to_map() {
     return __result;
 }
 
-fun _mem_info_to_map() {
+fun psutil_mem_info_to_map() {
+    ##std:this,__mem_virt_info
+    ## `mem.virtual()`: `psutil_mem_info_to_map` returns the mapped version of mem_virt_info json
+    ## 
+    ## mem.virtual() -> map[str:int]
     __mem_virt_info().from_json()
 }
 
-fun _mem_swap_to_map() {
+fun psutil_mem_swap_to_map() {
+    ##std:this,__mem_swap_info
+    ## `mem.swap()`: `psutil_mem_swap_to_map` returns the mapped version of mem_swap_info json
+    ## 
+    ## mem.swap() -> map[str:int|float]
     __mem_swap_info().from_json()
 }
 
-fun _host_info_to_map() {
+fun psutil_host_info_to_map() {
+    ##std:this,__host_info
+    ## `host.info`: `psutil_host_info_to_map` returns the mapped version of host_info json
+    ## 
+    ## host.info -> map[str:any]
     __host_info().from_json()
 }
 
-fun _host_temps_info_to_map() {
+fun psutil_host_temps_info_to_map() {
+    ##std:this,__host_temps_info
+    ## `host.temps()`: `psutil_host_temps_info_to_map` returns the mapped version of host_temps_info json
+    ## 
+    ## host.temps() -> list[map[str:any]]
     var __result = [];
     val ___data = __host_temps_info();
     for (__e in ___data) {
@@ -80,7 +104,11 @@ fun _host_temps_info_to_map() {
     return __result;
 }
 
-fun _net_connections_to_map(option="all") {
+fun psutil_net_connections_to_map(option="all") {
+    ##std:this,__net_connections
+    ## `net.connections()`: `psutil_net_connections_to_map` returns the mapped version of net_connections json
+    ## 
+    ## net.connections(option: str='all') -> list[map[str:any]]
     val __valid_options = ["all", "tcp", "tcp4", "tcp6", "udp", "udp4", "udp6", "unix", "inet", "inet4", "inet6"];
     if (option notin __valid_options) {
         return error("expected a valid option: #{__valid_options}");
@@ -93,7 +121,11 @@ fun _net_connections_to_map(option="all") {
     return __result;
 }
 
-fun _net_io_info_to_map() {
+fun psutil_net_io_info_to_map() {
+    ##std:this,__net_io_info
+    ## `net.io_info()`: `psutil_net_io_info_to_map` returns the mapped version of net_io_info json
+    ## 
+    ## net.io_info() -> list[map[str:any]]
     var __result = [];
     val ___data = __net_io_info();
     for (__e in ___data) {
@@ -102,7 +134,11 @@ fun _net_io_info_to_map() {
     return __result;
 }
 
-fun _disk_partions_to_map() {
+fun psutil_disk_partions_to_map() {
+    ##std:this,__disk_partitions
+    ## `disk.partitions`: `psutil_disk_partions_to_map` returns the mapped version of disk_partitions json
+    ## 
+    ## disk.partitions -> list[map[str:any]]
     var __result = [];
     val ___data = __disk_partitions();
     for (__e in ___data) {
@@ -111,7 +147,11 @@ fun _disk_partions_to_map() {
     return __result;
 }
 
-fun _disk_io_info_to_map() {
+fun psutil_disk_io_info_to_map() {
+    ##std:this,__disk_io_info
+    ## `disk.io_info()`: `psutil_disk_io_info_to_map` returns the mapped version of disk_io_info json
+    ## 
+    ## disk.io_info() -> map[str:any]
     var __result = {};
     val ___data = __disk_io_info();
     for ([__k,__e] in ___data) {
@@ -120,34 +160,38 @@ fun _disk_io_info_to_map() {
     return __result;
 }
 
-fun _disk_usage_to_map(path) {
+fun psutil_disk_usage_to_map(path) {
+    ##std:this,__disk_io_info
+    ## `disk.usage(path)`: `psutil_disk_usage_to_map` returns the mapped version of disk_usage json
+    ## 
+    ## disk.usage(path: str) -> map[str:any]
     __disk_usage(path).from_json()
 }
 
 val cpu = {
     percent: _cpu_usage_percent,
-    info: _cpu_info_json_to_map(),
-    time_info: _cpu_time_info_json_to_map(),
+    info: psutil_cpu_info_json_to_map(),
+    time_info: psutil_cpu_time_info_json_to_map(),
     count: _cpu_count(),
 };
 
 val mem = {
-    virtual: _mem_info_to_map,
-    swap: _mem_swap_to_map,
+    virtual: psutil_mem_info_to_map,
+    swap: psutil_mem_swap_to_map,
 };
 
 val host = {
-    info: _host_info_to_map(),
-    temps: _host_temps_info_to_map,
+    info: psutil_host_info_to_map(),
+    temps: psutil_host_temps_info_to_map,
 };
 
 val net = {
-    connections: _net_connections_to_map,
-    io_info: _net_io_info_to_map,
+    connections: psutil_net_connections_to_map,
+    io_info: psutil_net_io_info_to_map,
 };
 
 val disk = {
-    partitions: _disk_partions_to_map(),
-    io_info: _disk_io_info_to_map,
-    usage: _disk_usage_to_map,
+    partitions: psutil_disk_partions_to_map(),
+    io_info: psutil_disk_io_info_to_map,
+    usage: psutil_disk_usage_to_map,
 };
