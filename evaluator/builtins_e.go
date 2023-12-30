@@ -549,6 +549,12 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 				})
 				return NewGoObj[fyne.CanvasObject](button)
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`button` returns a ui button widget object with a string label and an onclick function handler",
+				signature:   "button(label: str, fn: fun()) -> GoObj[fyne.CanvasObject](Value: *widget.Button)",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "button('Click Me!', || => {println('clicked')}) => GoObj[fyne.CanvasObject](Value: *widget.Button)",
+			}.String(),
 		}
 	}
 	return uiButtonBuiltin
@@ -590,6 +596,12 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 				})
 				return NewGoObj[fyne.CanvasObject](checkBox)
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`check_box` returns a ui check_box widget object with a string label and an onchecked function handler",
+				signature:   "check_box(label: str, fn: fun(is_checked: bool)) -> GoObj[fyne.CanvasObject](Value: *widget.Check)",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "check_box('Check Me!', |e| => {println('checked? #{e}')}) => GoObj[fyne.CanvasObject](Value: *widget.Check)",
+			}.String(),
 		}
 	}
 	return uiCheckboxBuiltin
@@ -638,6 +650,12 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 				})
 				return NewGoObj[fyne.CanvasObject](radio)
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`radio_group` returns a ui radio_group widget object with a list of string radio labels and an onchecked function handler",
+				signature:   "radio_group(labels: list[str], fn: fun(checked_label: str)) -> GoObj[fyne.CanvasObject](Value: *widget.RadioGroup)",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "radio_group(['Check Me 1!', 'Check Me 2!'], |e| => {println('checked #{e}')}) => GoObj[fyne.CanvasObject](Value: *widget.RadioGroup)",
+			}.String(),
 		}
 	}
 	return uiRadioButtonBuiltin
@@ -686,6 +704,12 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 				})
 				return NewGoObj[fyne.CanvasObject](option)
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`option_select` returns a ui option_select widget object with a list of string options and an onchecked function handler",
+				signature:   "option_select(labels: list[str], fn: fun(checked_option: str)) -> GoObj[fyne.CanvasObject](Value: *widget.Select)",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "option_select(['Check Me 1!', 'Check Me 2!'], |e| => {println('checked #{e}')}) => GoObj[fyne.CanvasObject](Value: *widget.Select)",
+			}.String(),
 		}
 	}
 	return uiOptionSelectBuiltin
@@ -753,6 +777,12 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 				}
 				return NewGoObj[fyne.CanvasObject](form)
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`form` returns a ui form widget object with the given list of labels and widgets, and a submit function",
+				signature:   "form(elements: list[{'label': str, 'widget': GoObj[fyne.CanvasObject]}]=[], fn: fun()) -> GoObj[fyne.CanvasObject](Value: *widget.Form)",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "form(|| => {println('submit')}) => GoObj[fyne.CanvasObject](Value: *widget.Form)",
+			}.String(),
 		}
 	}
 	return uiFormBuiltin
@@ -793,6 +823,12 @@ func createUIToolbarAction(e *Evaluator) *object.Builtin {
 					}
 				}))
 			},
+			HelpStr: helpStrArgs{
+				explanation: "`toolbar.action()`: `toolbar_action` returns a ui toolbar_action widget object which can be added to a toolbar when given a resource a function to execute on action",
+				signature:   "toolbar_action(res: GoObj[fyne.Resource], fn: fun()) -> GoObj[widget.ToolbarItem](Value: *widget.ToolbarAction)",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "toolbar_action(icon.computer, || => {println('action!')}) => GoObj[widget.ToolbarItem](Value: *widget.ToolbarAction)",
+			}.String(),
 		}
 	}
 	return uiToolbarAction

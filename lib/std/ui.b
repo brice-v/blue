@@ -38,6 +38,7 @@ val __form = _form;
 val __append_form = _append_form;
 
 fun window(width=400, height=400, title="blue ui window", content=null) {
+    ##std:this,__window
     ## `window` is the main method that should be called when declaring a ui
     ## it will create, show, and run a ui that has a root content layout/widget/form
     ##
@@ -67,6 +68,7 @@ fun window(width=400, height=400, title="blue ui window", content=null) {
 }
 
 fun row(children=[]) {
+    ##std:this,__row
     ## `row` is a layout function for the ui that accepts a list of layouts/widgets/forms
     ##
     ## the layout for row is vertical such that the first item is on top of the second item
@@ -102,6 +104,7 @@ fun row(children=[]) {
 }
 
 fun col(children=[]) {
+    ##std:this,__col
     ## `col` is a layout function for the ui that accepts a list of layouts/widgets/forms
     ##
     ## the layout for col is horizontal such that the first item is to the left of the second item
@@ -141,6 +144,7 @@ val GridType = {
     ROWS: 'ROWS'
 };
 fun grid(rowcols, t=GridType.COLS, children=[]) {
+    ##std:this,__grid
     ## `grid` is a layout function for the ui that accepts a list of layouts/widgets/forms
     ##
     ## the layout for children is dependent on the grid type [t] (either GridType.COLS or GridType.ROWS)
@@ -178,6 +182,7 @@ fun grid(rowcols, t=GridType.COLS, children=[]) {
 }
 
 fun button(button_label_str, on_click_fun) {
+    ##std:this,__button
     ## `button` will create a button widget with a label and function that responds on click
     ##
     ## button(button_label_str: str, on_click_fun: fun) -> {t: 'ui', v: uint}
@@ -185,6 +190,7 @@ fun button(button_label_str, on_click_fun) {
 }
 
 fun entry(is_multiline=false, placeholder="") {
+    ##std:this,__entry
     ## `entry` is a ui widget that returns an input
     ##
     ## this input can be used with the core method get_text to retrieve the string
@@ -207,6 +213,7 @@ fun entry(is_multiline=false, placeholder="") {
 }
 
 fun checkbox(checkbox_label, on_change_fun) {
+    ##std:this,__checkbox
     ## `checkbox` will create a checkbox widget with the given label and a 
     ## function thats called on change
     ##
@@ -218,6 +225,7 @@ fun checkbox(checkbox_label, on_change_fun) {
 }
 
 fun radio_group(options, on_change_fun) {
+    ##std:this,__radio_group
     ## `radio_group` will create a radio_group widget with the given options and
     ## a function thats called on change
     ##
@@ -229,6 +237,7 @@ fun radio_group(options, on_change_fun) {
 }
 
 fun option_select(options, on_change_fun) {
+    ##std:this,__option_select
     ## `option_select` will create a option_select widget with the given options
     ## and a function thats called on change
     ##
@@ -240,6 +249,7 @@ fun option_select(options, on_change_fun) {
 }
 
 fun form(children=[], on_submit=null) {
+    ##std:this,__form
     ## `form` is a ui object that can be used to group together labels with ui elements
     ## with an on_submit function
     ##
@@ -307,6 +317,14 @@ fun form(children=[], on_submit=null) {
 }
 
 fun progress_bar(is_infinite=false) {
+    ##std:this,__progress_bar,__progress_bar_set_value
+    ## `progress_bar` is a ui object that returns a progress_bar object map
+    ## that has a function to set its value if its not infinite
+    ##
+    ## is_infinite: bool that determines whether this is an infinite progress bar
+    ## set_value: sets this progress bar to the given float value
+    ##
+    ## progress_bar(is_infinite: bool=false) -> {'widget': this, set_value: fun(v: float)->null}
     var this = {};
 
     this.widget = __progress_bar(is_infinite);

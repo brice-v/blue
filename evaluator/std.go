@@ -3158,6 +3158,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			app := app.New()
 			return NewGoObj(app)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`new_app` returns the base ui app object to be used for all other ui functions",
+			signature:   "new_app() -> GoObj[fyne.App]",
+			errors:      "InvalidArgCount",
+			example:     "new_app() => GoObj[fyne.App]",
+		}.String(),
 	},
 	"_window": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3196,6 +3202,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			w.ShowAndRun()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`window` runs the window function on the given app to display the ui with the given content",
+			signature:   "window(app: GoObj[fyne.App], width: int=400, height: int=400, title: str='blue ui window', content: GoObj[fyne.CanvasObject]=null) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "window(app) => null (side effect, shows ui window)",
+		}.String(),
 	},
 	"_label": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3209,6 +3221,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			l := widget.NewLabel(label)
 			return NewGoObj[fyne.CanvasObject](l)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`label` returns the label ui widget with the given STRING as the label",
+			signature:   "label(title: str) -> GoObj[fyne.CanvasObject](Value: *widget.Label)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "label('Hello World') => GoObj[fyne.CanvasObject](Value: *widget.Label)",
+		}.String(),
 	},
 	"_progress_bar": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3224,6 +3242,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.CanvasObject](widget.NewProgressBar())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`progress_bar` returns the progress_bar ui widget with sets it to infinite if is_infinite is true",
+			signature:   "progress_bar(is_infinite: bool=false) -> GoObj[fyne.CanvasObject](Value: *widget.ProgressBar)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "progress_bar() => GoObj[fyne.CanvasObject](Value: *widget.ProgressBar|Infinite)",
+		}.String(),
 	},
 	"_progress_bar_set_value": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3249,6 +3273,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`progress_bar_set_value` error: type mismatch. got=%T", x)
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`progress_bar_set_value` sets the float value of a progress bar widget",
+			signature:   "progress_bar_set_value(pb: GoObj[fyne.CanvasObject](Value: *widget.ProgressBar), value: float) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "progress_bar_set_value(pb, 1.0) => null (side effect, refresh ui with updated progress bar)",
+		}.String(),
 	},
 	"_toolbar": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3268,6 +3298,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.CanvasObject](widget.NewToolbar(tis...))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`toolbar.new()`: `toolbar` accepts a variable amount of widget.ToolbarItems to create a ui toolbar widget",
+			signature:   "toolbar(args...: GoObj[widget.ToolbarItem]) -> GoObj[fyne.CanvasObject](Value: *widget.ToolBar)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "toolbar() => GoObj[fyne.CanvasObject](Value: *widget.ToolBar)",
+		}.String(),
 	},
 	"_toolbar_spacer": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3276,6 +3312,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[widget.ToolbarItem](widget.NewToolbarSpacer())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`toolbar.spacer()`: `toolbar_spacer` returns a toolbar spacer widget",
+			signature:   "toolbar_spacer() -> GoObj[widget.ToolbarItem](Value: *widget.ToolbarSpacer)",
+			errors:      "InvalidArgCount",
+			example:     "toolbar_spacer() => GoObj[widget.ToolbarItem](Value: *widget.ToolBarSpacer)",
+		}.String(),
 	},
 	"_toolbar_separator": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3284,6 +3326,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[widget.ToolbarItem](widget.NewToolbarSeparator())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`toolbar.separator()`: `toolbar_separator` returns a toolbar separator widget",
+			signature:   "toolbar_separator() -> GoObj[widget.ToolbarItem](Value: *widget.ToolbarSeparator)",
+			errors:      "InvalidArgCount",
+			example:     "toolbar_separator() => GoObj[widget.ToolbarItem](Value: *widget.ToolbarSeparator)",
+		}.String(),
 	},
 	"_row": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3308,6 +3356,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			vbox := container.NewVBox(canvasObjects...)
 			return NewGoObj[fyne.CanvasObject](vbox)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`row` returns a ui object to align items given to it vertically",
+			signature:   "row(elements: list[GoObject[fyne.CanvasObject]]=[]) -> GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "row(elems) => GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+		}.String(),
 	},
 	"_col": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3332,6 +3386,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			hbox := container.NewHBox(canvasObjects...)
 			return NewGoObj[fyne.CanvasObject](hbox)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`col` returns a ui object to align items given to it horizontally",
+			signature:   "col(elements: list[GoObject[fyne.CanvasObject]]=[]) -> GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "col(elems) => GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+		}.String(),
 	},
 	"_grid": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3372,6 +3432,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NewGoObj[fyne.CanvasObject](grid)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`grid` returns a ui object to align items given to it in a grid based on the number of rowcols",
+			signature:   "grid(rowcols: int, t: str('ROWS'|'COLS'), children: list[GoObject[fyne.CanvasObject]]=[]) -> GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "grid(elems) => GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+		}.String(),
 	},
 	"_entry": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3395,6 +3461,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			entry.SetPlaceHolder(placeholderText)
 			return NewGoObj[fyne.CanvasObject](entry)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`entry` returns a ui entry widget object with placeholder text if given and its multiline if is_multiline is true",
+			signature:   "entry(is_multiline: bool=false, placeholder: str='') -> GoObj[fyne.CanvasObject](Value: *widget.Entry)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "entry() => GoObj[fyne.CanvasObject](Value: *widget.Entry)",
+		}.String(),
 	},
 	"_entry_get_text": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3415,6 +3487,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`entry_get_text` error: entry id did not match entry. got=%T", x)
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`entry_get_text` returns the text that is currently present in the entry ui widget object",
+			signature:   "entry_get_text(e: GoObj[fyne.CanvasObject](Value: *widget.Entry)) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "entry_get_text(e) => 'test'",
+		}.String(),
 	},
 	"_entry_set_text": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3440,6 +3518,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`entry_set_text` error: entry id did not match entry. got=%T", x)
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`entry_set_text` sets the text of the entry ui widget object with the given string",
+			signature:   "entry_set_text(e: GoObj[fyne.CanvasObject](Value: *widget.Entry), v: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "entry_set_text(e, 'test') => null (side effect, refresh ui with updated entry)",
+		}.String(),
 	},
 	"_append_form": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3473,6 +3557,12 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			form.Append(args[1].(*object.Stringo).Value, w.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`append_form` appends a label with the given string and a corresponding widget to the given form",
+			signature:   "append_form(f: GoObj[fyne.CanvasObject](Value: *widget.Form), title: str, widget: GoObj[fyne.CanvasObject]) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "append_form(f, 'test', w) => null (side effect, refresh ui form with updated label/widget)",
+		}.String(),
 	},
 	"_icon_account": {
 		Fun: func(args ...object.Object) object.Object {
