@@ -11,6 +11,7 @@ val __net_read = _net_read;
 val __net_write = _net_write;
 
 fun connect(transport="tcp", addr="localhost", port="18650") {
+    ##std:this,__connect
     ## `connect` creates a net object from the given parameters
     ##
     ## transport can be any valid go transport such as 'tcp' or 'udp'
@@ -23,6 +24,7 @@ fun connect(transport="tcp", addr="localhost", port="18650") {
 }
 
 fun listen(transport="tcp", addr="localhost", port="18650") {
+    ##std:this,__listen
     ## `listen` creates a net object to that represents a net server
     ##
     ## transport can be any valid go transport such as 'tcp' or 'udp'
@@ -35,6 +37,7 @@ fun listen(transport="tcp", addr="localhost", port="18650") {
 }
 
 fun inspect(obj) {
+    ##std:this,__inspect
     ## `inspect` prints out the details of the net object
     ##
     ## inspect(obj: {t: 'net'|'net/tcp'|'net/udp': v: uint}) -> str
@@ -49,6 +52,7 @@ fun inspect(obj) {
 }
 
 fun net_accept(net_id) {
+    ##std:this,__net_accept
     ## `net_accept` will accept connections on the listener server created via 'listen'
     ## note: this function should mostly be called with the core 'accept' function
     ##
@@ -57,6 +61,7 @@ fun net_accept(net_id) {
 }
 
 fun net_close(net_id, net_str) {
+    ##std:this,__net_close
     ## `net_close` will close the connection based on the net_str passed in
     ## note: this function should mostly be called with the core 'close' function
     ##
@@ -65,6 +70,7 @@ fun net_close(net_id, net_str) {
 }
 
 fun net_read(net_id, net_str, end_byte_or_len=null, as_bytes=false) {
+    ##std:this,__net_read
     ## `net_read` will read on the connection based on the net_str passed in
     ## note: this function should mostly be called with the core 'read' function
     ##
@@ -83,6 +89,7 @@ fun net_read(net_id, net_str, end_byte_or_len=null, as_bytes=false) {
 }
 
 fun net_write(net_id, net_str, value, end_byte='\n') {
+    ##std:this,__net_write
     ## `net_write` will write the value to the connection based on the net_str passed in
     ## note: this function should mostly be called with the 'write' function
     ##

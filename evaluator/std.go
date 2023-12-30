@@ -2815,6 +2815,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return object.CreateBasicMapObjectForGoObj("net", NewGoObj(conn))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`connect` connects to the given transport://addr:port",
+			signature: `connect(transport: str('tcp'|'tcp4'|'tcp6'|'udp'|'udp4'|'udp6'|'ip'|'ip4'|'ip6'|'unix'|'unixgram'|'unixpacket')='tcp',
+			addr: str='localhost', port: str='18650') -> {t: 'net', v: GoObj[net.Conn]}`,
+			errors:  "InvalidArgCount,PositionalType,CustomError",
+			example: "connect() => {t: 'net', v: GoObj[net.Conn]}",
+		}.String(),
 	},
 	"_listen": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2851,6 +2858,13 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return object.CreateBasicMapObjectForGoObj("net/tcp", NewGoObj(l))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`listen` listens for connections on the given transport://addr:port",
+			signature: `listen(transport: str('tcp'|'tcp4'|'tcp6'|'udp'|'udp4'|'udp6'|'ip'|'ip4'|'ip6'|'unix'|'unixgram'|'unixpacket')='tcp',
+			addr: str='localhost', port: str='18650') -> {t: 'net/tcp'|'net/udp', v: GoObj[net.Listener]|GoObj[*net.UDPConn]}`,
+			errors:  "InvalidArgCount,PositionalType,CustomError",
+			example: "listen() => {t: 'net/tcp', v: GoObj[net.Listener]}",
+		}.String(),
 	},
 	"_accept": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2870,6 +2884,12 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return object.CreateBasicMapObjectForGoObj("net", NewGoObj(conn))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`accept` accepts connections on the given listener",
+			signature:   "accept(l: {t: 'net/tcp', v: GoObj[net.Listener]}) -> {t: 'net', v: GoObj[net.Conn]}",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "accept(l) => {t: 'net', v: GoObj[net.Conn]}",
+		}.String(),
 	},
 	"_net_close": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2907,6 +2927,12 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`net_close` closes the given connection/listener",
+			signature:   "net_close(c: {t: 'net/tcp', v: GoObj[net.Listener]}|{t: 'net/udp', v: GoObj[*net.UDPConn]}|{t: 'net', v: GoObj[net.Conn]}) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "net_close(c) => null",
+		}.String(),
 	},
 	"_net_read": {
 		Fun: func(args ...object.Object) object.Object {
@@ -2976,6 +3002,12 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return &object.Stringo{Value: s[:len(s)-1]}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`net_read` reads on the given connection to end_byte (default '\\n') or the buffer length, returning a string or bytes if as_bytes is true",
+			signature:   "net_read(conn_v: GoObj[*net.UDPConn]|GoObj[net.Conn], conn_t: 'net/tcp'|'net/udp'|'net', end_byte_or_len: str|int|null=null, as_bytes: bool=false) -> str|bytes",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "net_read(c.v, c.t) => 'test'",
+		}.String(),
 	},
 	"_net_write": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3053,6 +3085,12 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`net_write` writes the string/bytes on the given connection in full or to the end_byte (default null)",
+			signature:   "net_write(conn_v: GoObj[*net.UDPConn]|GoObj[net.Conn], conn_t: 'net/tcp'|'net/udp'|'net', value: str|bytes, end_byte: str|null=null) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "net_write(c.v, c.t, 'test') => null",
+		}.String(),
 	},
 	"_inspect": {
 		Fun: func(args ...object.Object) object.Object {
@@ -3102,6 +3140,12 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`inspect` expects type of 'net/tcp', 'net/udp', or 'net'")
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`inspect` returns a map of info for the given net object",
+			signature:   "inspect(conn_v: GoObj[*net.UDPConn]|GoObj[net.Conn]|GoObj[net.Listener], conn_t: 'net/tcp'|'net/udp'|'net') -> map[str:str]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "inspect(c.v, c.t) => {'addr': '127.0.0.1', 'addr_network': 'tcp'}",
+		}.String(),
 	},
 })
 
