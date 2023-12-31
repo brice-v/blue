@@ -271,6 +271,7 @@ val Gamepad = {
 # GG Objects
 
 fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
+    ##std:this,__rectangle
     ## `Rectangle` is an object constructor that represents the GO_OBJ for rectangles
     ##
     ## the object can be modified using the x,y,width,height variables and the GO_OBJ
@@ -291,6 +292,7 @@ fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
 }
 
 fun Vector(x=0.0, y=0.0, z=null, w=null) {
+    ##std:this,__vector2,__vector3,__vector4
     ## `Vector` is an object constructor that represents the GO_OBJ for a 2, 3, or 4 Point Vector
     ## currently there is no way to edit it so any vec will just need to be recreated with .obj()
     ##
@@ -328,6 +330,7 @@ fun Vector(x=0.0, y=0.0, z=null, w=null) {
 }
 
 fun Camera2D(offset=Vector(), target=Vector(), rotation=0.0, zoom=1.0) {
+    ##std:this,__camera2d
     ## `Camera2D` is an object constructor that represents the GO_OBJ for 2D Cameras
     ##
     ## offset (displacement from target)
@@ -361,6 +364,7 @@ val CameraProjection = {
 };
 
 fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fovy=0.0, projection=CameraProjection.Perspective) {
+    ##std:this,__camera3d
     ## `Camera3D` is an object constructor that represents the GO_OBJ for 2D Cameras
     ##
     ## position - cameras position
@@ -401,6 +405,7 @@ fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fov
 # Specialized Public Functions
 
 fun init_window(width=800, height=600, title="gg - example app") {
+    ##std:this,__init_window
     ## `init_window` will initialize the raylib window
     ##
     ## init_window(width: int=800, height: int=600, title: str="gg - example app") -> null
@@ -408,6 +413,7 @@ fun init_window(width=800, height=600, title="gg - example app") {
 }
 
 fun clear_background(clear_color=color.white) {
+    ##std:this,__clear_background
     ## `clear_background` will use the clear color to clear the background with that color
     ##
     ## clear_background(clear_color: GO_OBJ[rl.Color]=color.white) -> null
@@ -415,6 +421,7 @@ fun clear_background(clear_color=color.white) {
 }
 
 fun draw_text(text, pos_x=0, pos_y=0, font_size=20, text_color=color.black) {
+    ##std:this,__draw_text
     ## `draw_text` will draw the given text to the raylib window with the given parameters
     ##
     ## pos_x the x position of the text
@@ -427,6 +434,7 @@ fun draw_text(text, pos_x=0, pos_y=0, font_size=20, text_color=color.black) {
 }
 
 fun draw_texture(texture, pos_x=0, pos_y=0, tint=color.white) {
+    ##std:this,__draw_texture
     ## `draw_texture` will draw the given 2D texture to the raylib window with the given parameters
     ##
     ## texture is the 2D texture, likely a file loaded with `load_texture`
@@ -439,6 +447,7 @@ fun draw_texture(texture, pos_x=0, pos_y=0, tint=color.white) {
 }
 
 fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle().obj(), origin=Vector().obj(), rotation=0.0, tint=color.white) {
+    ##std:this,__draw_texture_pro
     ## `draw_texture_pro` will draw the given 2D texture to the raylib window with the given parameters defined
     ## by a rectangle with 'pro' parameters
     ##
@@ -461,6 +470,7 @@ fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle()
 }
 
 fun begin_mode2d(cam=Camera2D()) {
+    ##std:this,__begin_mode2d
     ## `begin_mode2d` will start the 2d mode for an initialized 2d camera
     ##
     ## begin_mode2d(cam: Camera2D=Camera2D()) -> null
@@ -471,6 +481,7 @@ fun begin_mode2d(cam=Camera2D()) {
 }
 
 fun begin_mode3d(cam=Camera3D()) {
+    ##std:this,__begin_mode3d
     ## `begin_mode3d` will start the 3d mode for an initialized 3d camera
     ##
     ## begin_mode3d(cam: Camera3D=Camera3D()) -> null

@@ -5541,6 +5541,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.InitWindow(width, height, title)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`init_window` initalizes the gg graphics window with the given width, height, and title",
+			signature:   "init_window(width: int=800, height: int=600, title: str='gg - example app') -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "init_window() => null",
+		}.String(),
 	},
 	"_close_window": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5550,6 +5556,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.CloseWindow()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`close_window` closes the gg graphics window",
+			signature:   "close_window() -> null",
+			errors:      "InvalidArgCount",
+			example:     "close_window() => null",
+		}.String(),
 	},
 	"_window_should_close": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5558,6 +5570,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return nativeToBooleanObject(rl.WindowShouldClose())
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`window_should_close` returns true if the window is closing with an 'ESC' press or 'X' close button on the window",
+			signature:   "window_should_close() -> bool",
+			errors:      "InvalidArgCount",
+			example:     "window_should_close() => false",
+		}.String(),
 	},
 	"_begin_drawing": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5567,6 +5585,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.BeginDrawing()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`begin_drawing` sets up the drawing canvas to start drawing",
+			signature:   "begin_drawing() -> null",
+			errors:      "InvalidArgCount",
+			example:     "begin_drawing() => null",
+		}.String(),
 	},
 	"_end_drawing": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5576,6 +5600,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.EndDrawing()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`end_drawing` ends canvas drawing and swaps buffers (double buffering)",
+			signature:   "end_drawing() -> null",
+			errors:      "InvalidArgCount",
+			example:     "end_drawing() => null",
+		}.String(),
 	},
 	"_clear_background": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5592,6 +5622,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.ClearBackground(goObj.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`clear_background` sets the background color to the given color",
+			signature:   "clear_background(color: GoObj[rl.Color]=color.white) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "clear_background() => null",
+		}.String(),
 	},
 	"_color_map": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5648,6 +5684,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 						uint8(args[2].(*object.Integer).Value),
 						uint8(args[3].(*object.Integer).Value)))
 				},
+				HelpStr: helpStrArgs{
+					explanation: "`new_color` returns a color based on the rgba values",
+					signature:   "new_color(r: int(u8), g: int(u8), b: int(u8), a: int(u8)) -> GoObj[rl.Color]",
+					errors:      "InvalidArgCount,PositionalType",
+					example:     "new_color(230,230,240,1) => GoObj[rl.Color]",
+				}.String(),
 			}
 			mapObj.Set("light_gray", lightGray)
 			mapObj.Set("gray", gray)
@@ -5678,6 +5720,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			mapObj.Set("new", newColor)
 			return object.CreateMapObjectForGoMap(*mapObj)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`color_map` returns a map with all the colors available as well as a function 'new' to generate a color from an rgba value",
+			signature:   "color_map() -> map[str:GoObj[rl.Color]|fun(r,g,b,a)->GoObj[rl.Color]]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "color_map() => map[str:GoObj[rl.Color]|fun(r,g,b,a)->GoObj[rl.Color]]",
+		}.String(),
 	},
 	"_draw_text": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5710,6 +5758,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.DrawText(text, posX, posY, fontSize, goObj.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_text` draws text on the canvas with the given text at (x,y) with font_size, and color",
+			signature:   "draw_text(text: str, pos_x: int=0, pos_y: int=0, font_size: int=20, text_color: GO_OBJ[rl.Color]=color.black) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "draw_text('Hello World!') => null",
+		}.String(),
 	},
 	"_draw_texture": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5741,10 +5795,15 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.DrawTexture(tex.Value, posX, posY, tint.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_texture` draws the 2d texture on the canvas at (x,y) with given tint tint",
+			signature:   "draw_texture(texture: GO_OBJ[rl.Texture2D], pos_x: int=0, pos_y: int=0, tint: GO_OBJ[rl.Color]=color.white) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "draw_texture(texture) => null",
+		}.String(),
 	},
 	"_draw_texture_pro": {
 		Fun: func(args ...object.Object) object.Object {
-			// draw_texture_pro(texture: GO_OBJ[rl.Texture2D], source_rec: GO_OBJ[rl.Rectangle]=Rectangle(), dest_rec: GO_OBJ[rl.Rectangle]=Rectangle(), origin: GO_OBJ[rl.Vector2]=Vector2(), rotation: float=0.0, tint=color.white)
 			if len(args) != 6 {
 				return newInvalidArgCountError("draw_texture_pro", len(args), 4, "")
 			}
@@ -5790,6 +5849,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.DrawTexturePro(tex.Value, srcRect.Value, dstRect.Value, origin.Value, rotation, tint.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_texture_pro` draws a part of the 2d texture on the canvas with the given source_rec, dest_rec, origin, rotation, and tint",
+			signature:   "draw_texture_pro(texture: GO_OBJ[rl.Texture2D], source_rec: GO_OBJ[rl.Rectangle]=Rectangle(), dest_rec: GO_OBJ[rl.Rectangle]=Rectangle(), origin: GO_OBJ[rl.Vector2]=Vector2(), rotation: float=0.0, tint=color.white) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "draw_texture_pro(texture) => null",
+		}.String(),
 	},
 	"_set_target_fps": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5803,6 +5868,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.SetTargetFPS(fps)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_target_fps` sets the target fps to the given integer",
+			signature:   "set_target_fps(fps: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_target_fps(60) => null",
+		}.String(),
 	},
 	"_set_exit_key": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5816,6 +5887,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.SetExitKey(key)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_exit_key` sets the exit key to the given key (integer)",
+			signature:   "set_exit_key(key: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_exit_key(key.Q) => null",
+		}.String(),
 	},
 	"_is_key_up": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5828,6 +5905,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			key := int32(args[0].(*object.Integer).Value)
 			return nativeToBooleanObject(rl.IsKeyUp(key))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_key_up` returns true if the given key is up",
+			signature:   "is_key_up(key: int) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_key_up(key.Q) => false",
+		}.String(),
 	},
 	"_is_key_down": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5840,6 +5923,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			key := int32(args[0].(*object.Integer).Value)
 			return nativeToBooleanObject(rl.IsKeyDown(key))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_key_down` returns true if the given key is down",
+			signature:   "is_key_down(key: int) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_key_down(key.Q) => false",
+		}.String(),
 	},
 	"_is_key_pressed": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5852,6 +5941,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			key := int32(args[0].(*object.Integer).Value)
 			return nativeToBooleanObject(rl.IsKeyPressed(key))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_key_pressed` returns true if the given key is pressed",
+			signature:   "is_key_pressed(key: int) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_key_pressed(key.Q) => false",
+		}.String(),
 	},
 	"_is_key_released": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5864,6 +5959,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			key := int32(args[0].(*object.Integer).Value)
 			return nativeToBooleanObject(rl.IsKeyReleased(key))
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_key_released` returns true if the given key is released",
+			signature:   "is_key_released(key: int) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_key_released(key.Q) => false",
+		}.String(),
 	},
 	"_load_texture": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5890,6 +5991,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			img := rl.LoadTexture(fname)
 			return NewGoObj(img)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_texture` loads a 2d texture image resource and returns an object referencing it",
+			signature:   "load_texture(path: str) -> GoObj[rl.Texture2D]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "load_texture(key.Q) => GoObj[rl.Texture2D]",
+		}.String(),
 	},
 	"_rectangle": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5915,6 +6022,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rect := rl.NewRectangle(x, y, width, height)
 			return NewGoObj(rect)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`rectangle` returns a rectangle with position (x,y) and w,h",
+			signature:   "rectangle(x: float=0.0, y: float=0.0, width: float=0.0, height: float=0.0) -> GoObj[rl.Rectangle]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "rectangle() => GoObj[rl.Rectangle]",
+		}.String(),
 	},
 	"_vector2": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5932,6 +6045,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			vec2 := rl.NewVector2(x, y)
 			return NewGoObj(vec2)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`vector2` returns a vector2 with x,y",
+			signature:   "vector2(x: float=0.0, y: float=0.0) -> GoObj[rl.Vector2]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "vector2() => GoObj[rl.Vector2]",
+		}.String(),
 	},
 	"_vector3": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5953,6 +6072,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			vec3 := rl.NewVector3(x, y, z)
 			return NewGoObj(vec3)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`vector3` returns a vector3 with x,y,z",
+			signature:   "vector3(x: float=0.0, y: float=0.0, z: float=0.0) -> GoObj[rl.Vector3]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "vector3() => GoObj[rl.Vector3]",
+		}.String(),
 	},
 	"_vector4": {
 		Fun: func(args ...object.Object) object.Object {
@@ -5978,6 +6103,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			vec4 := rl.NewVector4(x, y, z, w)
 			return NewGoObj(vec4)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`vector4` returns a vector4 with x,y,z,w",
+			signature:   "vector4(x: float=0.0, y: float=0.0, z: float=0.0, w: float=0.0) -> GoObj[rl.Vector4]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "vector4() => GoObj[rl.Vector4]",
+		}.String(),
 	},
 	"_camera2d": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6009,6 +6140,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			cam2d := rl.NewCamera2D(offset.Value, target.Value, rotation, zoom)
 			return NewGoObj(cam2d)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`camera2d` returns a 2D camera with offset, target, rotation, and zoom",
+			signature:   "camera2d(offset: GoObj[rl.Vector2], target: GoObj[rl.Vector2], rotation: float=0.0, zoom: float=1.0) -> GoObj[rl.Camera2D]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "camera2d() => GoObj[rl.Camera2D]",
+		}.String(),
 	},
 	"_begin_mode2d": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6025,6 +6162,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.BeginMode2D(cam.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`begin_mode2d` initializes 2d with a custom 2d camera",
+			signature:   "begin_mode2d(cam: GoObj[rl.Camera2D]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "begin_mode2d(cam) => null",
+		}.String(),
 	},
 	"_end_mode2d": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6034,6 +6177,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.EndMode2D()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`end_mode2d` ends 2d camera mode",
+			signature:   "end_mode2d() -> null",
+			errors:      "InvalidArgCount",
+			example:     "end_mode2d() => null",
+		}.String(),
 	},
 	"_camera3d": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6072,6 +6221,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			cam3d := rl.NewCamera3D(position.Value, target.Value, up.Value, fovy, projection)
 			return NewGoObj(cam3d)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`camera3d` returns a 3D camera with position, target, up, fovy, and projection",
+			signature:   "camera3d(position: GoObj[rl.Vector3], target: GoObj[rl.Vector3], up: GoObj[rl.Vector3], fovy: float=0.0, projection: int[CameraProjection.Perspective|Orthographic]=CameraProjection.Perspective) -> GoObj[rl.Camera3D]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "camera3d(Vector(z=0.0), Vector(z=0.0), Vector(z=0.0)) => GoObj[rl.Camera3D]",
+		}.String(),
 	},
 	"_begin_mode3d": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6088,6 +6243,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.BeginMode3D(cam.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`begin_mode3d` begins 3d camera mode with the custom camera",
+			signature:   "begin_mode3d(cam: GoObj[rl.Camera3D]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "begin_mode3d() => null",
+		}.String(),
 	},
 	"_end_mode3d": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6097,6 +6258,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.EndMode3D()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`end_mode3d` ends 3d camera mode",
+			signature:   "end_mode3d() -> null",
+			errors:      "InvalidArgCount",
+			example:     "end_mode3d() => null",
+		}.String(),
 	},
 	"_init_audio_device": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6106,6 +6273,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.InitAudioDevice()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`init_audio_device` initalizes the audio device and context",
+			signature:   "init_audio_device() -> null",
+			errors:      "InvalidArgCount",
+			example:     "init_audio_device() => null",
+		}.String(),
 	},
 	"_close_audio_device": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6115,6 +6288,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.CloseAudioDevice()
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`close_audio_device` closes the audio device and context",
+			signature:   "close_audio_device() -> null",
+			errors:      "InvalidArgCount",
+			example:     "close_audio_device() => null",
+		}.String(),
 	},
 	"_load_music": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6140,6 +6319,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			music := rl.LoadMusicStream(fname)
 			return NewGoObj(music)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_music` loads the music stream from the given path and returns the music object resource reference",
+			signature:   "load_music(path: str) -> GoObj[rl.Music]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "load_music() => GoObj[rl.Music]",
+		}.String(),
 	},
 	"_update_music": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6156,6 +6341,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.UpdateMusicStream(music.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`update_music` updates the buffer for music streaming from the given music object",
+			signature:   "update_music(music: GoObj[rl.Music]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "update_music(music) => null",
+		}.String(),
 	},
 	"_play_music": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6172,6 +6363,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.PlayMusicStream(music.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`play_music` starts playing the music from the given music object",
+			signature:   "play_music(music: GoObj[rl.Music]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "play_music(music) => null",
+		}.String(),
 	},
 	"_stop_music": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6188,6 +6385,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.StopMusicStream(music.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`stop_music` stops playing the music from the given music object",
+			signature:   "stop_music(music: GoObj[rl.Music]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "stop_music(music) => null",
+		}.String(),
 	},
 	"_resume_music": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6204,6 +6407,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.ResumeMusicStream(music.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`resume_music` resumes playing the paused music from the given music object",
+			signature:   "resume_music(music: GoObj[rl.Music]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "resume_music(music) => null",
+		}.String(),
 	},
 	"_pause_music": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6220,6 +6429,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.PauseMusicStream(music.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`pause_music` pauses the music from the given music object",
+			signature:   "pause_music(music: GoObj[rl.Music]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "pause_music(music) => null",
+		}.String(),
 	},
 	"_load_sound": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6246,6 +6461,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			sound := rl.LoadSound(fname)
 			return NewGoObj(sound)
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_sound` loads the sound stream from the given path and returns the sound object resource reference",
+			signature:   "load_sound(path: str) -> GoObj[rl.Sound]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "load_sound() => GoObj[rl.Sound]",
+		}.String(),
 	},
 	"_play_sound": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6262,6 +6483,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.PlaySound(sound.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`play_sound` starts playing the sound from the given sound object",
+			signature:   "play_sound(sound: GoObj[rl.Sound]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "play_sound(sound) => null",
+		}.String(),
 	},
 	"_stop_sound": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6278,6 +6505,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.StopSound(sound.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`stop_sound` stops playing the sound from the given sound object",
+			signature:   "stop_sound(sound: GoObj[rl.Sound]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "stop_sound(sound) => null",
+		}.String(),
 	},
 	"_resume_sound": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6294,6 +6527,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.ResumeSound(sound.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`resume_sound` resumes playing the paused sound from the given sound object",
+			signature:   "resume_sound(sound: GoObj[rl.Sound]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "resume_sound(sound) => null",
+		}.String(),
 	},
 	"_pause_sound": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6310,6 +6549,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			rl.PauseSound(sound.Value)
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`pause_sound` pauses the sound from the given sound object",
+			signature:   "pause_sound(sound: GoObj[rl.Sound]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "pause_sound(sound) => null",
+		}.String(),
 	},
 	"_unload": {
 		Fun: func(args ...object.Object) object.Object {
@@ -6332,6 +6577,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			return NULL
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`unload` unloads the given objects from the gg object",
+			signature:   "unload(args...: GoObject[rl.Texture2D|rl.Music|rl.Sound]|list[GoObject[rl.Texture2D|rl.Music|rl.Sound]]) -> null",
+			errors:      "CustomError",
+			example:     "unload() => null",
+		}.String(),
 	},
 })
 
