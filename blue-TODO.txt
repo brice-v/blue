@@ -1,11 +1,5 @@
 TODO:
 
-- [ ] HELP STRINGS
-    - [ ] Add for all std lib builtins (and add the functions into help_test)
-        - Finish up ui, and gg help strings
-    - [x] Add for all string builtins - make sure it works with new core version that was created
-    - [x] When assigning a new variable to a builtin (maybe only work for val), make it inherit the help for it?
-        - I think this already works
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
@@ -159,6 +153,12 @@ func main() {
 
 COMPLETED TASKS:
 
+- [x] HELP STRINGS
+    - [x] Add for all std lib builtins (and add the functions into help_test)
+        - Finish up ui, and gg help strings
+    - [x] Add for all string builtins - make sure it works with new core version that was created
+    - [x] When assigning a new variable to a builtin (maybe only work for val), make it inherit the help for it?
+        - I think this already works
 - [x] Add help strings for all builtins that start with underscore
 - [-] Move std lib maps into their own files - just to organize things
     - Could do this but itll just increase the # of files in the evaluator directory
