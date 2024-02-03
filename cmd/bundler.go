@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"blue/consts"
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -93,7 +96,7 @@ func bundleFile(fpath string) error {
 	// These steps need to executed in this order
 
 	// change dir to tmp
-	tmpDir, err := createTmpWorkspace()
+	tmpDir, err := createTmpWorkspaceAndChangeToIt()
 	defer changeBackToSavedDir(savedCurrentDir)
 	if err != nil {
 		return fmt.Errorf("`createTmpWorkspace` error: %s", err.Error())
@@ -156,7 +159,7 @@ func changeBackToSavedDir(savedCurrentDir string) {
 	}
 }
 
-func createTmpWorkspace() (string, error) {
+func createTmpWorkspaceAndChangeToIt() (string, error) {
 	tmpDir := os.TempDir() + string(os.PathSeparator) + "blue-build-" + uuid.NewString()
 	err := os.Mkdir(tmpDir, 0700)
 	if err != nil {
@@ -175,31 +178,52 @@ func checkAndGetBlueSouce() error {
 		fmt.Printf("bundler::checkAndGetBlueSouce: filepath does not exist at path (%s), trying to clone from github...", mainFpath)
 		return gitCloneFilesToBlueInstallPath(dirPath)
 	}
-	return nil
+	_, err := execBundleCmd("git pull origin", dirPath)
+	if err != nil {
+		return err
+	}
+	// TODO: Remove once merged to master
+	_, err = execBundleCmd("git checkout bundler", dirPath)
+	return err
+}
+
+func execBundleCmd(cmdStr, dirPath string) (string, error) {
+	cmd := strings.Split(cmdStr, " ")
+	if runtime.GOOS == "windows" {
+		winArgs := []string{"cmd", "/c"}
+		cmd = append(winArgs, cmd...)
+	}
+	log.Printf("cmd %q", cmd)
+	command := exec.Command(cmd[0], cmd[1:]...)
+	command.Stdout = os.Stdout
+	command.Dir = dirPath
+	stdout, err := command.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+	if err := command.Start(); err != nil {
+		return "", err
+	}
+	scanner := bufio.NewScanner(stdout)
+	var output bytes.Buffer
+	for scanner.Scan() {
+		text := scanner.Text()
+		output.WriteString(text)
+		output.WriteByte('\n')
+		fmt.Println(text)
+	}
+	if err := scanner.Err(); err != nil {
+		return output.String(), err
+	}
+	if err := command.Wait(); err != nil {
+		return output.String(), err
+	}
+	return output.String(), nil
 }
 
 func gitCloneFilesToBlueInstallPath(dirPath string) error {
-	cmd := []string{"git", "clone", "https://github.com/brice-v/blue.git", dirPath}
-	if runtime.GOOS == "windows" {
-		winArgs := []string{"/c"}
-		winArgs = append(winArgs, cmd...)
-		output, err := exec.Command("cmd", winArgs...).CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(winArgs, " "), err.Error())
-		}
-		if len(output) > 0 {
-			return nil
-		}
-	} else {
-		output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(cmd, " "), err.Error())
-		}
-		if len(output) > 0 {
-			return nil
-		}
-	}
-	return nil
+	_, err := execBundleCmd("git clone https://github.com/brice-v/blue.git "+dirPath, dirPath)
+	return err
 }
 
 func makeEmbedFilesDir() error {
@@ -249,35 +273,16 @@ func writeMainGoFile(fdata string) error {
 
 func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) error {
 	exeName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
-	extension := ""
 	if runtime.GOOS == "windows" {
-		extension = ".exe"
+		exeName += ".exe"
 	}
-	cmd := []string{"go", "build", "-o", exeName + extension}
-	if runtime.GOOS == "windows" {
-		winArgs := []string{"/c"}
-		winArgs = append(winArgs, cmd...)
-		command := exec.Command("cmd", winArgs...)
-		command.Dir = tmpDir
-		output, err := command.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(winArgs, " "), err.Error())
-		}
-		if len(output) == 0 {
-			color.New(color.FgGreen, color.Bold).Printf("Successfully built `%s` as Executable!\n", cmd[len(cmd)-1])
-			return copyFileToSavedDirAndPackIfPossible(exeName+extension, savedCurrentDir)
-		}
-	} else {
-		command := exec.Command(cmd[0], cmd[1:]...)
-		command.Dir = tmpDir
-		output, err := command.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to exec `%s`. error: %s", strings.Join(cmd, " "), err.Error())
-		}
-		if len(output) == 0 {
-			color.New(color.FgGreen, color.Bold).Printf("Successfully built `%s` as Executable!\n", cmd[len(cmd)-1])
-			return copyFileToSavedDirAndPackIfPossible(exeName+extension, savedCurrentDir)
-		}
+	output, err := execBundleCmd("go build -o "+exeName, tmpDir)
+	if err != nil {
+		return err
+	}
+	if len(output) == 0 {
+		color.New(color.FgGreen, color.Bold).Printf("Successfully built `%s` as Executable!\n", exeName)
+		return copyFileToSavedDirAndPackIfPossible(exeName, savedCurrentDir)
 	}
 	panic("should not reach this line")
 }
