@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -137,10 +136,11 @@ func bundleFile(fpath string) error {
 	}
 	consts.InfoPrinter("Renamed Original Main Go File to bundler Main\n")
 	consts.InfoPrinter("Building Exe with go toolchain...\n")
-	err = buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir)
+	exeName, err := buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir)
 	if err != nil {
 		return fmt.Errorf("`buildExeAndWriteToSavedDir` error: %s", err.Error())
 	}
+	defer tryToPack(savedCurrentDir, exeName)
 	err = removeMainGoFile()
 	if err != nil {
 		return fmt.Errorf("`removeMainGoFile` error: %s", err.Error())
@@ -173,17 +173,15 @@ func checkAndGetBlueSouce() error {
 	if !isDir(dirPath) {
 		return errors.New("`BLUE_INSTALL_PATH` not set")
 	}
-	mainFpath := path.Clean(dirPath + string(filepath.Separator) + "main.go")
+	mainFpath := filepath.Clean(dirPath + string(filepath.Separator) + "main.go")
 	if !isFile(mainFpath) {
 		fmt.Printf("bundler::checkAndGetBlueSouce: filepath does not exist at path (%s), trying to clone from github...", mainFpath)
-		return gitCloneFilesToBlueInstallPath(dirPath)
+		err := gitCloneFilesToBlueInstallPath(dirPath)
+		if err != nil {
+			return err
+		}
 	}
 	_, err := execBundleCmd("git pull origin", dirPath)
-	if err != nil {
-		return err
-	}
-	// TODO: Remove once merged to master
-	_, err = execBundleCmd("git checkout bundler", dirPath)
 	return err
 }
 
@@ -193,9 +191,8 @@ func execBundleCmd(cmdStr, dirPath string) (string, error) {
 		winArgs := []string{"cmd", "/c"}
 		cmd = append(winArgs, cmd...)
 	}
-	log.Printf("cmd %q", cmd)
+	consts.InfoPrinter("    executing command: %s\n", cmdStr)
 	command := exec.Command(cmd[0], cmd[1:]...)
-	command.Stdout = os.Stdout
 	command.Dir = dirPath
 	stdout, err := command.StdoutPipe()
 	if err != nil {
@@ -210,7 +207,7 @@ func execBundleCmd(cmdStr, dirPath string) (string, error) {
 		text := scanner.Text()
 		output.WriteString(text)
 		output.WriteByte('\n')
-		fmt.Println(text)
+		fmt.Println("        " + text)
 	}
 	if err := scanner.Err(); err != nil {
 		return output.String(), err
@@ -271,23 +268,23 @@ func writeMainGoFile(fdata string) error {
 	return nil
 }
 
-func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) error {
+func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) (string, error) {
 	exeName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
 	if runtime.GOOS == "windows" {
 		exeName += ".exe"
 	}
 	output, err := execBundleCmd("go build -o "+exeName, tmpDir)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if len(output) == 0 {
 		color.New(color.FgGreen, color.Bold).Printf("Successfully built `%s` as Executable!\n", exeName)
-		return copyFileToSavedDirAndPackIfPossible(exeName, savedCurrentDir)
+		return exeName, copyFileToSavedDir(exeName, savedCurrentDir)
 	}
 	panic("should not reach this line")
 }
 
-func copyFileToSavedDirAndPackIfPossible(exeName, savedCurrentDir string) error {
+func copyFileToSavedDir(exeName, savedCurrentDir string) error {
 	src, err := os.Open(exeName)
 	if err != nil {
 		return err
@@ -321,23 +318,15 @@ func copyFileToSavedDirAndPackIfPossible(exeName, savedCurrentDir string) error 
 		return err
 	}
 
-	tryToPack(dstFile)
-
 	return nil
 }
 
-func tryToPack(exeName string) {
-	cmd := []string{"upx", "--best", exeName}
-	var command *exec.Cmd
-	if runtime.GOOS == "windows" {
-		winArgs := []string{"/c"}
-		winArgs = append(winArgs, cmd...)
-		command = exec.Command("cmd", winArgs...)
-	} else {
-		command = exec.Command(cmd[0], cmd[1:]...)
+func tryToPack(dirPath, exeName string) {
+	if exeName == "" {
+		return
 	}
-	consts.InfoPrinter("Trying to pack exe '%s' with UPX\n", exeName)
-	command.CombinedOutput()
+	consts.InfoPrinter("Trying to pack exe `%s` with UPX\n", exeName)
+	execBundleCmd("upx --best "+exeName, dirPath)
 }
 
 func removeMainGoFile() error {

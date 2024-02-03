@@ -22,10 +22,10 @@ var out = os.Stdout
 // exists and if not return false
 func isFile(fpath string) bool {
 	info, err := os.Stat(fpath)
-	if err == nil {
-		return !info.IsDir()
+	if os.IsNotExist(err) {
+		return false
 	}
-	return false
+	return !info.IsDir()
 }
 
 // isDir is a helper function to check if the dirPath given
