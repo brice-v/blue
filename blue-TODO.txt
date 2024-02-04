@@ -1,5 +1,9 @@
 TODO:
 
+- [ ] name windows batch blue-static blues
+- [ ] Put the variable in at build time so we can put it next to version number
+- [ ] Build with tinygo for wasm
+- [ ] Update gh pipelines to also test/release static version
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
