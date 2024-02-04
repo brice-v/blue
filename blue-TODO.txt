@@ -71,7 +71,6 @@ TODO:
     - [ ] Selenium/Playright integration?
     - [ ] Video/Audio library
 - [ ] DNS resolver function? like the dig cmd
-- [ ] Fix up bundler so that if it has the source, it git pulls first
 - [ ] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
     - [ ] Accept subcmd for gui/browser that specifies what you want to do
 - [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
@@ -143,8 +142,6 @@ func main() {
 - [ ] Add way to print out ast by node name rather than strings
 - [ ] Look into the performance benefits of different hashing algorthims
 - [ ] Look into the performance benefits of enum of types rather than strings
-- [ ] Fix all Math functions that are currently lossy due to conversion
-    - Just fix them in general (make it strongly typed so the user has to force lossiness if thats desired)
 - [ ] Think about compiling to go
     - Still could try this out - but definitely a future thing
 - [ ] Tagged Unions/ enums working properly with match
@@ -153,6 +150,9 @@ func main() {
 
 COMPLETED TASKS:
 
+- [x] Fix all Math functions that are currently lossy due to conversion
+    - Just fix them in general (make it strongly typed so the user has to force lossiness if thats desired)
+- [x] Fix up bundler so that if it has the source, it git pulls first
 - [x] HELP STRINGS
     - [x] Add for all std lib builtins (and add the functions into help_test)
         - Finish up ui, and gg help strings
