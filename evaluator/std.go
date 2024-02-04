@@ -89,6 +89,8 @@ var _std_mods = map[string]StdModFileAndBuiltins{
 	"csv":    {File: lib.ReadStdFileToString("csv.b"), Builtins: _csv_builtin_map},
 	"psutil": {File: lib.ReadStdFileToString("psutil.b"), Builtins: _psutil_builtin_map},
 	"wasm":   {File: lib.ReadStdFileToString("wasm.b"), Builtins: _wasm_builtin_map},
+	"ui":     {File: lib.ReadStdFileToString("ui-static.b"), Builtins: NewBuiltinObjMap(BuiltinMapTypeInternal{})},
+	"gg":     {File: lib.ReadStdFileToString("gg-static.b"), Builtins: NewBuiltinObjMap(BuiltinMapTypeInternal{})},
 }
 
 func (e *Evaluator) IsStd(name string) bool {

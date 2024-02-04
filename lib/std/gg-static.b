@@ -1,0 +1,1 @@
+error("Failed to Import 'gg', blue built statically")

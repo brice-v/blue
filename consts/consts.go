@@ -7,10 +7,11 @@ import (
 	"github.com/gookit/color"
 )
 
-// VERSION is the version number of the blang repl and language
-// it will be incremented as seen fit
-var VERSION = func() string {
-	version := "0.1.17"
+// versionNumber is the current version #
+const versionNumber = "0.1.17"
+
+// versionFn is the function that returns the formatted version number of the blang repl and language
+func versionFn() string {
 	hash := ""
 	os := ""
 	arch := ""
@@ -29,10 +30,11 @@ var VERSION = func() string {
 		}
 	}
 	if hash == "" {
-		return version
+		return versionNumber
 	}
-	return version + "-" + hash + "-" + os + "/" + arch
-}()
+	versionStr := versionNumber + "-" + hash + "-" + os + "/" + arch
+	return versionStr
+}
 
 const PARSER_ERROR_PREFIX = "ParserError: "
 const PROCESS_ERROR_PREFIX = "ProcessError: "
