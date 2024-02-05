@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         go-version: [1.21]
-        os: [ubuntu-latest, windows-2019, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v3
