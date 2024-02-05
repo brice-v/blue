@@ -4,6 +4,12 @@ import (
 	"time"
 )
 
+// IsDST reports whether is daylight saving time.
+// 是否是夏令时
+func (c Carbon) IsDST() bool {
+	return c.time.IsDST()
+}
+
 // IsZero reports whether is zero time.
 // 是否是零值时间
 func (c Carbon) IsZero() bool {
@@ -23,6 +29,18 @@ func (c Carbon) IsValid() bool {
 // 是否是无效时间
 func (c Carbon) IsInvalid() bool {
 	return !c.IsValid()
+}
+
+// IsAM reports whether is before noon.
+// 是否是上午
+func (c Carbon) IsAM() bool {
+	return c.Format("a") == "am"
+}
+
+// IsPM reports whether is after noon.
+// 是否是下午
+func (c Carbon) IsPM() bool {
+	return c.Format("a") == "pm"
 }
 
 // IsNow reports whether is now time.
@@ -189,7 +207,7 @@ func (c Carbon) IsMonday() bool {
 	if c.IsInvalid() {
 		return false
 	}
-	return c.time.In(c.loc).Weekday() == time.Monday
+	return c.StdTime().Weekday() == time.Monday
 }
 
 // IsTuesday reports whether is Tuesday.
@@ -198,7 +216,7 @@ func (c Carbon) IsTuesday() bool {
 	if c.IsInvalid() {
 		return false
 	}
-	return c.time.In(c.loc).Weekday() == time.Tuesday
+	return c.StdTime().Weekday() == time.Tuesday
 }
 
 // IsWednesday reports whether is Wednesday.
@@ -207,7 +225,7 @@ func (c Carbon) IsWednesday() bool {
 	if c.IsInvalid() {
 		return false
 	}
-	return c.time.In(c.loc).Weekday() == time.Wednesday
+	return c.StdTime().Weekday() == time.Wednesday
 }
 
 // IsThursday reports whether is Thursday.
@@ -216,7 +234,7 @@ func (c Carbon) IsThursday() bool {
 	if c.IsInvalid() {
 		return false
 	}
-	return c.time.In(c.loc).Weekday() == time.Thursday
+	return c.StdTime().Weekday() == time.Thursday
 }
 
 // IsFriday reports whether is Friday.
@@ -225,7 +243,7 @@ func (c Carbon) IsFriday() bool {
 	if c.IsInvalid() {
 		return false
 	}
-	return c.time.In(c.loc).Weekday() == time.Friday
+	return c.StdTime().Weekday() == time.Friday
 }
 
 // IsSaturday reports whether is Saturday.
@@ -234,7 +252,7 @@ func (c Carbon) IsSaturday() bool {
 	if c.IsInvalid() {
 		return false
 	}
-	return c.time.In(c.loc).Weekday() == time.Saturday
+	return c.StdTime().Weekday() == time.Saturday
 }
 
 // IsSunday reports whether is Sunday.
@@ -243,7 +261,7 @@ func (c Carbon) IsSunday() bool {
 	if c.IsInvalid() {
 		return false
 	}
-	return c.time.In(c.loc).Weekday() == time.Sunday
+	return c.StdTime().Weekday() == time.Sunday
 }
 
 // IsWeekday reports whether is weekday.

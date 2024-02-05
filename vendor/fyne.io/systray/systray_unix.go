@@ -227,10 +227,57 @@ func nativeStart() {
 	instance.menuProps = menuProps
 	instance.lock.Unlock()
 
-	obj := conn.Object("org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher")
+	go stayRegistered()
+}
+
+func register() bool {
+	obj := instance.conn.Object("org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher")
 	call := obj.Call("org.kde.StatusNotifierWatcher.RegisterStatusNotifierItem", 0, path)
 	if call.Err != nil {
-		log.Printf("systray error: failed to register our icon with the notifier watcher (maybe no tray is running?): %s\n", call.Err)
+		log.Printf("systray error: failed to register: %v\n", call.Err)
+		return false
+	}
+
+	return true
+}
+
+func stayRegistered() {
+	register()
+
+	conn := instance.conn
+	if err := conn.AddMatchSignal(
+		dbus.WithMatchObjectPath("/org/freedesktop/DBus"),
+		dbus.WithMatchInterface("org.freedesktop.DBus"),
+		dbus.WithMatchSender("org.freedesktop.DBus"),
+		dbus.WithMatchMember("NameOwnerChanged"),
+		dbus.WithMatchArg(0, "org.kde.StatusNotifierWatcher"),
+	); err != nil {
+		log.Printf("systray error: failed to register signal matching: %v\n", err)
+		// If we can't monitor signals, there is no point in
+		// us being here. we're either registered or not (per
+		// above) and will roll the dice from here...
+		return
+	}
+
+	sc := make(chan *dbus.Signal, 10)
+	conn.Signal(sc)
+
+	for {
+		select {
+		case sig := <-sc:
+			if sig == nil {
+				return // We get a nil signal when closing the window.
+			} else if len(sig.Body) < 3 {
+				return // malformed signal?
+			}
+
+			// sig.Body has the args, which are [name old_owner new_owner]
+			if s, ok := sig.Body[2].(string); ok && s != "" {
+				register()
+			}
+		case <-quitChan:
+			return
+		}
 	}
 }
 
@@ -253,7 +300,11 @@ type tray struct {
 
 func (t *tray) createPropSpec() map[string]map[string]*prop.Prop {
 	t.lock.Lock()
-	t.lock.Unlock()
+	defer t.lock.Unlock()
+	id := t.title
+	if id == "" {
+		id = fmt.Sprintf("systray_%d", os.Getpid())
+	}
 	return map[string]map[string]*prop.Prop{
 		"org.kde.StatusNotifierItem": {
 			"Status": {
@@ -269,7 +320,7 @@ func (t *tray) createPropSpec() map[string]map[string]*prop.Prop {
 				Callback: nil,
 			},
 			"Id": {
-				Value:    "1",
+				Value:    id,
 				Writable: false,
 				Emit:     prop.EmitTrue,
 				Callback: nil,

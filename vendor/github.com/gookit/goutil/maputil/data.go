@@ -20,8 +20,8 @@ func (d Data) Has(key string) bool {
 	return ok
 }
 
-// IsEmtpy if the data map
-func (d Data) IsEmtpy() bool {
+// IsEmpty if the data map
+func (d Data) IsEmpty() bool {
 	return len(d) == 0
 }
 
@@ -127,9 +127,17 @@ func (d Data) Int64(key string) int64 {
 }
 
 // Uint value get
-func (d Data) Uint(key string) uint64 {
+func (d Data) Uint(key string) uint {
 	if val, ok := d.GetByPath(key); ok {
 		return mathutil.QuietUint(val)
+	}
+	return 0
+}
+
+// Uint64 value get
+func (d Data) Uint64(key string) uint64 {
+	if val, ok := d.GetByPath(key); ok {
+		return mathutil.QuietUint64(val)
 	}
 	return 0
 }
@@ -188,10 +196,7 @@ func (d Data) StrSplit(key, sep string) []string {
 
 // StringsByStr value get by key
 func (d Data) StringsByStr(key string) []string {
-	if val, ok := d.GetByPath(key); ok {
-		return strings.Split(strutil.QuietString(val), ",")
-	}
-	return nil
+	return d.StrSplit(key, ",")
 }
 
 // StrMap get map[string]string value
@@ -224,6 +229,16 @@ func (d Data) Sub(key string) Data {
 		}
 	}
 	return nil
+}
+
+// Slice get []any value from data map
+func (d Data) Slice(key string) ([]any, error) {
+	val, ok := d.GetByPath(key)
+	if !ok {
+		return nil, nil
+	}
+
+	return arrutil.AnyToSlice(val)
 }
 
 // Keys of the data map

@@ -2,12 +2,11 @@
 package strutil
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
-	"text/template"
+
+	"github.com/gookit/goutil/comdef"
 )
 
 // OrCond return s1 on cond is True, OR return s2.
@@ -19,7 +18,32 @@ func OrCond(cond bool, s1, s2 string) string {
 	return s2
 }
 
-// OrElse return s OR orVal(new-value) on s is empty
+// BlankOr return default value on val is blank, otherwise return val
+func BlankOr(val, defVal string) string {
+	val = strings.TrimSpace(val)
+	if val != "" {
+		return val
+	}
+	return defVal
+}
+
+// ZeroOr return default value on val is zero, otherwise return val. same of OrElse()
+func ZeroOr[T ~string](val, defVal T) T {
+	if val != "" {
+		return val
+	}
+	return defVal
+}
+
+// ErrorOr return default value on err is not nil, otherwise return s
+// func ErrorOr(s string, err error, defVal string) string {
+// 	if err != nil {
+// 		return defVal
+// 	}
+// 	return s
+// }
+
+// OrElse return default value on s is empty, otherwise return s
 func OrElse(s, orVal string) string {
 	if s != "" {
 		return s
@@ -28,7 +52,7 @@ func OrElse(s, orVal string) string {
 }
 
 // OrHandle return fn(s) on s is not empty.
-func OrHandle(s string, fn func(s string) string) string {
+func OrHandle(s string, fn comdef.StringHandleFunc) string {
 	if s != "" {
 		return fn(s)
 	}
@@ -65,62 +89,6 @@ func NewReplacer(pairs map[string]string) *strings.Replacer {
 	return strings.NewReplacer(ss...)
 }
 
-// PrettyJSON get pretty Json string
-// Deprecated: please use fmtutil.PrettyJSON() or jsonutil.Pretty() instead it
-func PrettyJSON(v any) (string, error) {
-	out, err := json.MarshalIndent(v, "", "    ")
-	return string(out), err
-}
-
-// RenderTemplate render text template
-func RenderTemplate(input string, data any, fns template.FuncMap, isFile ...bool) string {
-	return RenderText(input, data, fns, isFile...)
-}
-
-// RenderText render text template
-func RenderText(input string, data any, fns template.FuncMap, isFile ...bool) string {
-	t := template.New("simple-text")
-	t.Funcs(template.FuncMap{
-		// don't escape content
-		"raw": func(s string) string {
-			return s
-		},
-		"trim": func(s string) string {
-			return strings.TrimSpace(s)
-		},
-		// join strings
-		"join": func(ss []string, sep string) string {
-			return strings.Join(ss, sep)
-		},
-		// lower first char
-		"lcFirst": func(s string) string {
-			return LowerFirst(s)
-		},
-		// upper first char
-		"upFirst": func(s string) string {
-			return UpperFirst(s)
-		},
-	})
-
-	// add custom template functions
-	if len(fns) > 0 {
-		t.Funcs(fns)
-	}
-
-	if len(isFile) > 0 && isFile[0] {
-		template.Must(t.ParseFiles(input))
-	} else {
-		template.Must(t.Parse(input))
-	}
-
-	// use buffer receive rendered content
-	buf := new(bytes.Buffer)
-	if err := t.Execute(buf, data); err != nil {
-		panic(err)
-	}
-	return buf.String()
-}
-
 // WrapTag for given string.
 func WrapTag(s, tag string) string {
 	if s == "" {
@@ -131,11 +99,12 @@ func WrapTag(s, tag string) string {
 
 // SubstrCount returns the number of times the substr substring occurs in the s string.
 // Actually, it comes from strings.Count().
-// s The string to search in
-// substr The substring to search for
-// params[0] The offset where to start counting.
-// params[1] The maximum length after the specified offset to search for the substring.
-func SubstrCount(s string, substr string, params ...uint64) (int, error) {
+//
+//   - s The string to search in
+//   - substr The substring to search for
+//   - params[0] The offset where to start counting.
+//   - params[1] The maximum length after the specified offset to search for the substring.
+func SubstrCount(s, substr string, params ...uint64) (int, error) {
 	larg := len(params)
 	hasArgs := larg != 0
 	if hasArgs && larg > 2 {
@@ -144,9 +113,11 @@ func SubstrCount(s string, substr string, params ...uint64) (int, error) {
 	if !hasArgs {
 		return strings.Count(s, substr), nil
 	}
+
 	strlen := len(s)
 	offset := 0
 	end := strlen
+
 	if hasArgs {
 		offset = int(params[0])
 		if larg == 2 {
@@ -157,6 +128,7 @@ func SubstrCount(s string, substr string, params ...uint64) (int, error) {
 			end = strlen
 		}
 	}
+
 	s = string([]rune(s)[offset:end])
 	return strings.Count(s, substr), nil
 }

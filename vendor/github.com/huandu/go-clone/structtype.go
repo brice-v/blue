@@ -14,8 +14,14 @@ import (
 )
 
 type structType struct {
+	ZeroFields    []structFieldSize
 	PointerFields []structFieldType
 	fn            Func
+}
+
+type structFieldSize struct {
+	Offset uintptr // The offset from the beginning of the struct.
+	Size   uintptr // The size of the field.
 }
 
 type structFieldType struct {
@@ -211,6 +217,11 @@ func copyScalarValue(src reflect.Value) reflect.Value {
 		return src
 	}
 
+	dst := newScalarValue(src)
+	return dst.Convert(src.Type())
+}
+
+func newScalarValue(src reflect.Value) reflect.Value {
 	// src is an unexported field value. Copy its value.
 	switch src.Kind() {
 	case reflect.Bool:

@@ -7,79 +7,103 @@ import (
 	"github.com/gookit/goutil/comdef"
 )
 
-// Min compare two value and return max value
-func Min[T comdef.XintOrFloat](x, y T) T {
-	if x < y {
-		return x
-	}
-	return y
+// OrElse return default value on val is zero, else return val
+func OrElse[T comdef.XintOrFloat](val, defVal T) T {
+	return ZeroOr(val, defVal)
 }
 
-// Max compare two value and return max value
-func Max[T comdef.XintOrFloat](x, y T) T {
-	if x > y {
-		return x
+// ZeroOr return default value on val is zero, else return val
+func ZeroOr[T comdef.XintOrFloat](val, defVal T) T {
+	if val != 0 {
+		return val
 	}
-	return y
+	return defVal
 }
 
-// SwapMin compare and always return [min, max] value
-func SwapMin[T comdef.XintOrFloat](x, y T) (T, T) {
-	if x < y {
-		return x, y
+// LessOr return val on val < max, else return default value.
+//
+// Example:
+//
+//	LessOr(11, 10, 1) // 1
+//	LessOr(2, 10, 1) // 2
+//	LessOr(10, 10, 1) // 1
+func LessOr[T comdef.XintOrFloat](val, max, devVal T) T {
+	if val < max {
+		return val
 	}
-	return y, x
+	return devVal
 }
 
-// SwapMax compare and always return [max, min] value
-func SwapMax[T comdef.XintOrFloat](x, y T) (T, T) {
-	if x > y {
-		return x, y
+// LteOr return val on val <= max, else return default value.
+//
+// Example:
+//
+//	LteOr(11, 10, 1) // 11
+//	LteOr(2, 10, 1) // 2
+//	LteOr(10, 10, 1) // 10
+func LteOr[T comdef.XintOrFloat](val, max, devVal T) T {
+	if val <= max {
+		return val
 	}
-	return y, x
+	return devVal
 }
 
-// MaxInt compare and return max value
-func MaxInt(x, y int) int {
-	if x > y {
-		return x
+// GreaterOr return val on val > max, else return default value.
+//
+// Example:
+//
+//	GreaterOr(23, 0, 2) // 23
+//	GreaterOr(0, 0, 2) // 2
+func GreaterOr[T comdef.XintOrFloat](val, min, defVal T) T {
+	if val > min {
+		return val
 	}
-	return y
+	return defVal
 }
 
-// SwapMaxInt compare and return max, min value
-func SwapMaxInt(x, y int) (int, int) {
-	if x > y {
-		return x, y
+// GteOr return val on val >= max, else return default value.
+//
+// Example:
+//
+//	GteOr(23, 0, 2) // 23
+//	GteOr(0, 0, 2) // 0
+func GteOr[T comdef.XintOrFloat](val, min, defVal T) T {
+	if val >= min {
+		return val
 	}
-	return y, x
+	return defVal
 }
 
-// MaxI64 compare and return max value
-func MaxI64(x, y int64) int64 {
-	if x > y {
-		return x
-	}
-	return y
+// Mul computes the a*b value, rounding the result.
+func Mul[T1, T2 comdef.XintOrFloat](a T1, b T2) float64 {
+	return math.Round(SafeFloat(a) * SafeFloat(b))
 }
 
-// SwapMaxI64 compare and return max, min value
-func SwapMaxI64(x, y int64) (int64, int64) {
-	if x > y {
-		return x, y
-	}
-	return y, x
+// MulF2i computes the float64 type a * b value, rounding the result to an integer.
+func MulF2i(a, b float64) int {
+	return int(math.Round(a * b))
 }
 
-// MaxFloat compare and return max value
-func MaxFloat(x, y float64) float64 {
-	return math.Max(x, y)
+// Div computes the a/b value, result use round handle.
+func Div[T1, T2 comdef.XintOrFloat](a T1, b T2) float64 {
+	return math.Round(SafeFloat(a) / SafeFloat(b))
 }
 
-// OrElse return s OR nv(new-value) on s is empty
-func OrElse[T comdef.XintOrFloat](in, nv T) T {
-	if in != 0 {
-		return in
+// DivInt computes the int type a / b value, rounding the result to an integer.
+func DivInt[T comdef.Integer](a, b T) int {
+	fv := math.Round(float64(a) / float64(b))
+	return int(fv)
+}
+
+// DivF2i computes the float64 type a / b value, rounding the result to an integer.
+func DivF2i(a, b float64) int {
+	return int(math.Round(a / b))
+}
+
+// Percent returns a values percent of the total
+func Percent(val, total int) float64 {
+	if total == 0 {
+		return float64(0)
 	}
-	return nv
+	return (float64(val) / float64(total)) * 100
 }

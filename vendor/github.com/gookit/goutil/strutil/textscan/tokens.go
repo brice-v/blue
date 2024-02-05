@@ -134,11 +134,11 @@ func (t *StringToken) HasMore() bool {
 }
 
 // ScanMore implements
-func (t *StringToken) ScanMore(ts *TextScanner) error {
+func (t *StringToken) ScanMore(_ *TextScanner) error {
 	return nil
 }
 
 // MergeSame implements
-func (t *StringToken) MergeSame(tok Token) error {
+func (t *StringToken) MergeSame(_ Token) error {
 	return errorx.Raw("cannot merge any token to Invalid token")
 }

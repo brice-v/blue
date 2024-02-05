@@ -22,7 +22,7 @@ to eventually compile the language to `go` which could improve its speed?!
 
 ## Building
 
-- go1.19 required
+- go1.21 required
   - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
 - C Compiler
   - `brew install gcc` or `scoop install gcc`
@@ -32,17 +32,19 @@ to eventually compile the language to `go` which could improve its speed?!
     - added `export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig` to
       `~/.bashrc`
   - windows has no requirements
-  - still havent tested on macos
-  - `fyne-cross` giving issues due to go1.19
+  - tested on macos that still works on my old macbook (latest may or may not work)
 - Install `upx` [here](https://upx.github.io/) (or other methods) to make the
   binary super small
   - small exe cmd =
     `go build -ldflags="-s -w -extldflags='-static'" && strip blue && upx blue`
+- Static build now available (with no CGO) making it much easier to cross compile
+  - See `make_release_static.*` to see how its being built and tested locally
 
 ## Notes
 
 - bundler will only work with ui deps installed (on linux/mac)
   - does not work cross-platform yet for building (gh actions handles it)
+  - This will soon work with static builds (no ui or gg)
 - set `DISABLE_HTTP_SERVER_DEBUG` to `true` to disable http server route/welcome
   message printing
   - it will also prevent the stack trace from returning in http request failures

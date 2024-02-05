@@ -29,6 +29,18 @@ func (m SMap) HasValue(val string) bool {
 	return false
 }
 
+// Load data to the map
+func (m SMap) Load(data map[string]string) {
+	for k, v := range data {
+		m[k] = v
+	}
+}
+
+// Set value to the data map
+func (m SMap) Set(key string, val any) {
+	m[key] = strutil.MustString(val)
+}
+
 // Value get from the data map
 func (m SMap) Value(key string) (string, bool) {
 	val, ok := m[key]
@@ -91,6 +103,20 @@ func (m SMap) Strings(key string) (ss []string) {
 		return strutil.ToSlice(val, ValSepStr)
 	}
 	return
+}
+
+// IfExist key, then call the fn with value.
+func (m SMap) IfExist(key string, fn func(val string)) {
+	if val, ok := m[key]; ok {
+		fn(val)
+	}
+}
+
+// IfValid value is not empty, then call the fn
+func (m SMap) IfValid(key string, fn func(val string)) {
+	if val, ok := m[key]; ok && val != "" {
+		fn(val)
+	}
 }
 
 // Keys of the string-map

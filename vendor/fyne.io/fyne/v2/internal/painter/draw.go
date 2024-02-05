@@ -10,6 +10,8 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+const quarterCircleControl = 1 - 0.55228
+
 // DrawCircle rasterizes the given circle object into an image.
 // The bounds of the output image will be increased by vectorPad to allow for stroke overflow at the edges.
 // The scale function is used to understand how many pixels are required per unit of size.
@@ -44,20 +46,22 @@ func DrawCircle(circle *canvas.Circle, vectorPad float32, scale func(float32) fl
 // The scale function is used to understand how many pixels are required per unit of size.
 func DrawLine(line *canvas.Line, vectorPad float32, scale func(float32) float32) *image.RGBA {
 	col := line.StrokeColor
-	width := int(scale(line.Size().Width + vectorPad*2))
-	height := int(scale(line.Size().Height + vectorPad*2))
+	size := line.Size()
+	width := int(scale(size.Width + vectorPad*2))
+	height := int(scale(size.Height + vectorPad*2))
 	stroke := scale(line.StrokeWidth)
 	if stroke < 1 { // software painter doesn't fade lines to compensate
 		stroke = 1
 	}
 
 	raw := image.NewRGBA(image.Rect(0, 0, width, height))
-	scanner := rasterx.NewScannerGV(int(line.Size().Width), int(line.Size().Height), raw, raw.Bounds())
+	scanner := rasterx.NewScannerGV(int(size.Width), int(size.Height), raw, raw.Bounds())
 	dasher := rasterx.NewDasher(width, height, scanner)
 	dasher.SetColor(col)
 	dasher.SetStroke(fixed.Int26_6(float64(stroke)*64), 0, nil, nil, nil, 0, nil, 0)
-	p1x, p1y := scale(line.Position1.X-line.Position().X+vectorPad), scale(line.Position1.Y-line.Position().Y+vectorPad)
-	p2x, p2y := scale(line.Position2.X-line.Position().X+vectorPad), scale(line.Position2.Y-line.Position().Y+vectorPad)
+	positon := line.Position()
+	p1x, p1y := scale(line.Position1.X-positon.X+vectorPad), scale(line.Position1.Y-positon.Y+vectorPad)
+	p2x, p2y := scale(line.Position2.X-positon.X+vectorPad), scale(line.Position2.Y-positon.Y+vectorPad)
 
 	if stroke <= 1.5 { // adjust to support 1px
 		if p1x == p2x {
@@ -82,34 +86,56 @@ func DrawLine(line *canvas.Line, vectorPad float32, scale func(float32) float32)
 // The bounds of the output image will be increased by vectorPad to allow for stroke overflow at the edges.
 // The scale function is used to understand how many pixels are required per unit of size.
 func DrawRectangle(rect *canvas.Rectangle, vectorPad float32, scale func(float32) float32) *image.RGBA {
-	width := int(scale(rect.Size().Width + vectorPad*2))
-	height := int(scale(rect.Size().Height + vectorPad*2))
+	size := rect.Size()
+	width := int(scale(size.Width + vectorPad*2))
+	height := int(scale(size.Height + vectorPad*2))
 	stroke := scale(rect.StrokeWidth)
 
 	raw := image.NewRGBA(image.Rect(0, 0, width, height))
-	scanner := rasterx.NewScannerGV(int(rect.Size().Width), int(rect.Size().Height), raw, raw.Bounds())
+	scanner := rasterx.NewScannerGV(int(size.Width), int(size.Height), raw, raw.Bounds())
 
 	scaledPad := scale(vectorPad)
 	p1x, p1y := scaledPad, scaledPad
-	p2x, p2y := scale(rect.Size().Width)+scaledPad, scaledPad
-	p3x, p3y := scale(rect.Size().Width)+scaledPad, scale(rect.Size().Height)+scaledPad
+	p2x, p2y := scale(size.Width)+scaledPad, scaledPad
+	p3x, p3y := scale(size.Width)+scaledPad, scale(size.Height)+scaledPad
 	p4x, p4y := scaledPad, scale(rect.Size().Height)+scaledPad
 
 	if rect.FillColor != nil {
 		filler := rasterx.NewFiller(width, height, scanner)
 		filler.SetColor(rect.FillColor)
-		rasterx.AddRect(float64(p1x), float64(p1y), float64(p3x), float64(p3y), 0, filler)
+		if rect.CornerRadius == 0 {
+			rasterx.AddRect(float64(p1x), float64(p1y), float64(p3x), float64(p3y), 0, filler)
+		} else {
+			r := float64(scale(rect.CornerRadius))
+			rasterx.AddRoundRect(float64(p1x), float64(p1y), float64(p3x), float64(p3y), r, r, 0, rasterx.RoundGap, filler)
+		}
 		filler.Draw()
 	}
 
 	if rect.StrokeColor != nil && rect.StrokeWidth > 0 {
+		r := scale(rect.CornerRadius)
+		c := quarterCircleControl * r
 		dasher := rasterx.NewDasher(width, height, scanner)
 		dasher.SetColor(rect.StrokeColor)
 		dasher.SetStroke(fixed.Int26_6(float64(stroke)*64), 0, nil, nil, nil, 0, nil, 0)
-		dasher.Start(rasterx.ToFixedP(float64(p1x), float64(p1y)))
-		dasher.Line(rasterx.ToFixedP(float64(p2x), float64(p2y)))
-		dasher.Line(rasterx.ToFixedP(float64(p3x), float64(p3y)))
-		dasher.Line(rasterx.ToFixedP(float64(p4x), float64(p4y)))
+		if c != 0 {
+			dasher.Start(rasterx.ToFixedP(float64(p1x), float64(p1y+r)))
+			dasher.CubeBezier(rasterx.ToFixedP(float64(p1x), float64(p1y+c)), rasterx.ToFixedP(float64(p1x+c), float64(p1y)), rasterx.ToFixedP(float64(p1x+r), float64(p2y)))
+		} else {
+			dasher.Start(rasterx.ToFixedP(float64(p1x), float64(p1y)))
+		}
+		dasher.Line(rasterx.ToFixedP(float64(p2x-r), float64(p2y)))
+		if c != 0 {
+			dasher.CubeBezier(rasterx.ToFixedP(float64(p2x-c), float64(p2y)), rasterx.ToFixedP(float64(p2x), float64(p2y+c)), rasterx.ToFixedP(float64(p2x), float64(p2y+r)))
+		}
+		dasher.Line(rasterx.ToFixedP(float64(p3x), float64(p3y-r)))
+		if c != 0 {
+			dasher.CubeBezier(rasterx.ToFixedP(float64(p3x), float64(p3y-c)), rasterx.ToFixedP(float64(p3x-c), float64(p3y)), rasterx.ToFixedP(float64(p3x-r), float64(p3y)))
+		}
+		dasher.Line(rasterx.ToFixedP(float64(p4x+r), float64(p4y)))
+		if c != 0 {
+			dasher.CubeBezier(rasterx.ToFixedP(float64(p4x+c), float64(p4y)), rasterx.ToFixedP(float64(p4x), float64(p4y-c)), rasterx.ToFixedP(float64(p4x), float64(p4y-r)))
+		}
 		dasher.Stop(true)
 		dasher.Draw()
 	}

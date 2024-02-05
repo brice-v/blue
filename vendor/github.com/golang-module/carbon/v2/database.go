@@ -8,9 +8,13 @@ import (
 
 // Scan an interface used by Scan in package database/sql for Scanning value from database to local golang variable.
 func (c *Carbon) Scan(v interface{}) error {
-	value, ok := v.(time.Time)
-	if ok {
-		*c = Carbon{time: value, loc: time.Local}
+	if value, ok := v.(time.Time); ok {
+		loc, err := getLocationByTimezone(defaultTimezone)
+		if c.loc != nil {
+			loc = c.loc
+		}
+		*c = CreateFromStdTime(value)
+		c.loc, c.Error = loc, err
 		return nil
 	}
 	return fmt.Errorf("can not convert %v to carbon", v)
@@ -21,5 +25,11 @@ func (c Carbon) Value() (driver.Value, error) {
 	if c.IsZero() {
 		return nil, nil
 	}
-	return c.time, nil
+	return c.StdTime(), nil
+}
+
+// GormDataType implements the interface GormDataTypeInterface for Carbon struct.
+// 实现 GormDataTypeInterface 接口
+func (c Carbon) GormDataType() string {
+	return "time"
 }

@@ -825,9 +825,9 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			tm := time.UnixMilli(i)
 			if args[1].Type() == object.STRING_OBJ {
 				tz := args[1].(*object.Stringo).Value
-				return &object.Stringo{Value: carbon.FromStdTime(tm).ToDateTimeMilliString(tz)}
+				return &object.Stringo{Value: carbon.CreateFromStdTime(tm).ToDateTimeMilliString(tz)}
 			} else {
-				return &object.Stringo{Value: carbon.FromStdTime(tm).ToDateTimeMilliString()}
+				return &object.Stringo{Value: carbon.CreateFromStdTime(tm).ToDateTimeMilliString()}
 			}
 		},
 		HelpStr: helpStrArgs{

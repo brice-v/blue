@@ -76,10 +76,21 @@ func (c *Config) MapOnExists(key string, dst any) error {
 //
 //	dbInfo := Db{}
 //	config.Structure("db", &dbInfo)
-func (c *Config) Structure(key string, dst any) error {
+func (c *Config) Structure(key string, dst any) (err error) {
 	var data any
-	// binding all data
+	// binding all data on key is empty.
 	if key == "" {
+		// fix: if c.data is nil, don't need to apply map structure
+		if len(c.data) == 0 {
+			// init default value by tag: default
+			if c.opts.ParseDefault {
+				err = structs.InitDefaults(dst, func(opt *structs.InitOptions) {
+					opt.ParseEnv = c.opts.ParseEnv
+				})
+			}
+			return
+		}
+
 		data = c.data
 	} else {
 		// binding sub-data of the config
@@ -90,6 +101,7 @@ func (c *Config) Structure(key string, dst any) error {
 		}
 	}
 
+	// map structure from data
 	bindConf := c.opts.makeDecoderConfig()
 	// set result struct ptr
 	bindConf.Result = dst
@@ -109,7 +121,7 @@ func (c *Config) Structure(key string, dst any) error {
 	return err
 }
 
-// ToJSON string
+// ToJSON string, will ignore error
 func (c *Config) ToJSON() string {
 	buf := &bytes.Buffer{}
 
@@ -117,7 +129,6 @@ func (c *Config) ToJSON() string {
 	if err != nil {
 		return ""
 	}
-
 	return buf.String()
 }
 
@@ -156,7 +167,6 @@ func (c *Config) DumpTo(out io.Writer, format string) (n int64, err error) {
 
 	// write content to out
 	num, _ := fmt.Fprintln(out, string(encoded))
-
 	return int64(num), nil
 }
 

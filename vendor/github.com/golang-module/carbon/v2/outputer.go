@@ -5,31 +5,39 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // String implements the interface Stringer for Carbon struct.
 // 实现 Stringer 接口
 func (c Carbon) String() string {
-	return c.ToDateTimeString()
+	key, value, tz := c.parseTag()
+	if key == "layout" {
+		return c.Layout(value, tz)
+	}
+	if key == "format" {
+		return c.Format(value, tz)
+	}
+	return c.ToDateTimeString(c.Location())
 }
 
 // ToString outputs a string in "2006-01-02 15:04:05.999999999 -0700 MST" layout.
 // 输出 "2006-01-02 15:04:05.999999999 -0700 MST" 格式字符串
 func (c Carbon) ToString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).String()
+	return c.StdTime().String()
 }
 
 // ToMonthString outputs a string in month layout like "January", i18n is supported.
 // 输出完整月份字符串，支持i18n
 func (c Carbon) ToMonthString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
@@ -37,9 +45,11 @@ func (c Carbon) ToMonthString(timezone ...string) string {
 	if len(c.lang.resources) == 0 {
 		c.lang.SetLocale(defaultLocale)
 	}
-	if months, ok := c.lang.resources["months"]; ok {
-		slice := strings.Split(months, "|")
-		if len(slice) == 12 {
+	c.lang.rw.Lock()
+	defer c.lang.rw.Unlock()
+	if resources, ok := c.lang.resources["months"]; ok {
+		slice := strings.Split(resources, "|")
+		if len(slice) == MonthsPerYear {
 			return slice[c.Month()-1]
 		}
 	}
@@ -50,7 +60,7 @@ func (c Carbon) ToMonthString(timezone ...string) string {
 // 输出缩写月份字符串，支持i18n
 func (c Carbon) ToShortMonthString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
@@ -58,9 +68,11 @@ func (c Carbon) ToShortMonthString(timezone ...string) string {
 	if len(c.lang.resources) == 0 {
 		c.lang.SetLocale(defaultLocale)
 	}
-	if months, ok := c.lang.resources["short_months"]; ok {
-		slice := strings.Split(months, "|")
-		if len(slice) == 12 {
+	c.lang.rw.Lock()
+	defer c.lang.rw.Unlock()
+	if resources, ok := c.lang.resources["short_months"]; ok {
+		slice := strings.Split(resources, "|")
+		if len(slice) == MonthsPerYear {
 			return slice[c.Month()-1]
 		}
 	}
@@ -71,7 +83,7 @@ func (c Carbon) ToShortMonthString(timezone ...string) string {
 // 输出完整星期字符串，支持i18n
 func (c Carbon) ToWeekString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
@@ -79,10 +91,12 @@ func (c Carbon) ToWeekString(timezone ...string) string {
 	if len(c.lang.resources) == 0 {
 		c.lang.SetLocale(defaultLocale)
 	}
-	if months, ok := c.lang.resources["weeks"]; ok {
-		slice := strings.Split(months, "|")
-		if len(slice) == 7 {
-			return slice[c.Week()]
+	c.lang.rw.Lock()
+	defer c.lang.rw.Unlock()
+	if resources, ok := c.lang.resources["weeks"]; ok {
+		slice := strings.Split(resources, "|")
+		if len(slice) == DaysPerWeek {
+			return slice[c.DayOfWeek()%DaysPerWeek]
 		}
 	}
 	return ""
@@ -92,7 +106,7 @@ func (c Carbon) ToWeekString(timezone ...string) string {
 // 输出缩写星期字符串，支持i18n
 func (c Carbon) ToShortWeekString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
@@ -100,10 +114,12 @@ func (c Carbon) ToShortWeekString(timezone ...string) string {
 	if len(c.lang.resources) == 0 {
 		c.lang.SetLocale(defaultLocale)
 	}
-	if months, ok := c.lang.resources["short_weeks"]; ok {
-		slice := strings.Split(months, "|")
-		if len(slice) == 7 {
-			return slice[c.Week()]
+	c.lang.rw.Lock()
+	defer c.lang.rw.Unlock()
+	if resources, ok := c.lang.resources["short_weeks"]; ok {
+		slice := strings.Split(resources, "|")
+		if len(slice) == DaysPerWeek {
+			return slice[c.DayOfWeek()%DaysPerWeek]
 		}
 	}
 	return ""
@@ -113,342 +129,348 @@ func (c Carbon) ToShortWeekString(timezone ...string) string {
 // 输出 "Mon, Jan 2, 2006 3:04 PM" 格式字符串
 func (c Carbon) ToDayDateTimeString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DayDateTimeLayout)
+	return c.StdTime().Format(DayDateTimeLayout)
 }
 
 // ToDateTimeString outputs a string in "2006-01-02 15:04:05" layout.
 // 输出 "2006-01-02 15:04:05" 格式字符串
 func (c Carbon) ToDateTimeString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateTimeLayout)
+	return c.StdTime().Format(DateTimeLayout)
 }
 
 // ToDateTimeMilliString outputs a string in "2006-01-02 15:04:05.999" layout.
 // 输出 "2006-01-02 15:04:05.999" 格式字符串
 func (c Carbon) ToDateTimeMilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateTimeMilliLayout)
+	return c.StdTime().Format(DateTimeMilliLayout)
 }
 
 // ToDateTimeMicroString outputs a string in "2006-01-02 15:04:05.999999" layout.
 // 输出 "2006-01-02 15:04:05.999999" 格式字符串
 func (c Carbon) ToDateTimeMicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateTimeMicroLayout)
+	return c.StdTime().Format(DateTimeMicroLayout)
 }
 
 // ToDateTimeNanoString outputs a string in "2006-01-02 15:04:05.999999999" layout.
 // 输出 "2006-01-02 15:04:05.999999999" 格式字符串
 func (c Carbon) ToDateTimeNanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateTimeNanoLayout)
+	return c.StdTime().Format(DateTimeNanoLayout)
 }
 
 // ToShortDateTimeString outputs a string in "20060102150405" layout.
 // 输出 "20060102150405" 格式字符串
 func (c Carbon) ToShortDateTimeString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateTimeLayout)
+	return c.StdTime().Format(ShortDateTimeLayout)
 }
 
 // ToShortDateTimeMilliString outputs a string in "20060102150405.999" layout.
 // 输出 "20060102150405.999" 格式字符串
 func (c Carbon) ToShortDateTimeMilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateTimeMilliLayout)
+	return c.StdTime().Format(ShortDateTimeMilliLayout)
 }
 
 // ToShortDateTimeMicroString outputs a string in "20060102150405.999999" layout.
 // 输出 "20060102150405.999999" 格式字符串
 func (c Carbon) ToShortDateTimeMicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateTimeMicroLayout)
+	return c.StdTime().Format(ShortDateTimeMicroLayout)
 }
 
 // ToShortDateTimeNanoString outputs a string in "20060102150405.999999999" layout.
 // 输出 "20060102150405.999999999" 格式字符串
 func (c Carbon) ToShortDateTimeNanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateTimeNanoLayout)
+	return c.StdTime().Format(ShortDateTimeNanoLayout)
 }
 
 // ToDateString outputs a string in "2006-01-02" layout.
 // 输出 "2006-01-02" 格式字符串
 func (c Carbon) ToDateString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateLayout)
+	return c.StdTime().Format(DateLayout)
 }
 
 // ToDateMilliString outputs a string in "2006-01-02.999" layout.
 // 输出 "2006-01-02.999" 格式字符串
 func (c Carbon) ToDateMilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateMilliLayout)
+	return c.StdTime().Format(DateMilliLayout)
 }
 
 // ToDateMicroString outputs a string in "2006-01-02.999999" layout.
 // 输出 "2006-01-02.999999" 格式字符串
 func (c Carbon) ToDateMicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateMicroLayout)
+	return c.StdTime().Format(DateMicroLayout)
 }
 
 // ToDateNanoString outputs a string in "2006-01-02.999999999" layout.
 // 输出 "2006-01-02.999999999" 格式字符串
 func (c Carbon) ToDateNanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(DateNanoLayout)
+	return c.StdTime().Format(DateNanoLayout)
 }
 
 // ToShortDateString outputs a string in "20060102" layout.
 // 输出 "20060102" 格式字符串
 func (c Carbon) ToShortDateString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateLayout)
+	return c.StdTime().Format(ShortDateLayout)
 }
 
 // ToShortDateMilliString outputs a string in "20060102.999" layout.
 // 输出 "20060102.999" 格式字符串
 func (c Carbon) ToShortDateMilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateMilliLayout)
+	return c.StdTime().Format(ShortDateMilliLayout)
 }
 
 // ToShortDateMicroString outputs a string in "20060102.999999" layout.
 // 输出 "20060102.999999" 格式字符串
 func (c Carbon) ToShortDateMicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateMicroLayout)
+	return c.StdTime().Format(ShortDateMicroLayout)
 }
 
 // ToShortDateNanoString outputs a string in "20060102.999999999" layout.
 // 输出 "20060102.999999999" 格式字符串
 func (c Carbon) ToShortDateNanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortDateNanoLayout)
+	return c.StdTime().Format(ShortDateNanoLayout)
 }
 
 // ToTimeString outputs a string in "15:04:05" layout.
 // 输出 "15:04:05" 格式字符串
 func (c Carbon) ToTimeString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(TimeLayout)
+	return c.StdTime().Format(TimeLayout)
 }
 
 // ToTimeMilliString outputs a string in "15:04:05.999" layout.
 // 输出 "15:04:05.999" 格式字符串
 func (c Carbon) ToTimeMilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(TimeMilliLayout)
+	return c.StdTime().Format(TimeMilliLayout)
 }
 
 // ToTimeMicroString outputs a string in "15:04:05.999999" layout.
 // 输出 "15:04:05.999999" 格式字符串
 func (c Carbon) ToTimeMicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(TimeMicroLayout)
+	return c.StdTime().Format(TimeMicroLayout)
 }
 
 // ToTimeNanoString outputs a string in "15:04:05.999999999" layout.
 // 输出 "15:04:05.999999999" 格式字符串
 func (c Carbon) ToTimeNanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(TimeNanoLayout)
+	return c.StdTime().Format(TimeNanoLayout)
 }
 
 // ToShortTimeString outputs a string in "150405" layout.
 // 输出 "150405" 格式字符串
 func (c Carbon) ToShortTimeString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortTimeLayout)
+	return c.StdTime().Format(ShortTimeLayout)
 }
 
 // ToShortTimeMilliString outputs a string in "150405.999" layout.
 // 输出 "150405.999" 格式字符串
 func (c Carbon) ToShortTimeMilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortTimeMilliLayout)
+	return c.StdTime().Format(ShortTimeMilliLayout)
 }
 
 // ToShortTimeMicroString outputs a string in "150405.999999" layout.
 // 输出 "150405.999999" 格式字符串
 func (c Carbon) ToShortTimeMicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortTimeMicroLayout)
+	return c.StdTime().Format(ShortTimeMicroLayout)
 }
 
 // ToShortTimeNanoString outputs a string in "150405.999999999" layout.
 // 输出 "150405.999999999" 格式字符串
 func (c Carbon) ToShortTimeNanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ShortTimeNanoLayout)
+	return c.StdTime().Format(ShortTimeNanoLayout)
 }
 
 // ToAtomString outputs a string in "2006-01-02T15:04:05Z07:00" layout.
 // 输出 "2006-01-02T15:04:05Z07:00" 格式字符串
 func (c Carbon) ToAtomString(timezone ...string) string {
-	return c.ToRfc3339String(timezone...)
-}
-
-// ToANSICString outputs a string in "Mon Jan _2 15:04:05 2006" layout.
-// 输出 "Mon Jan _2 15:04:05 2006" 格式字符串
-func (c Carbon) ToANSICString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ANSICLayout)
+	return c.StdTime().Format(AtomLayout)
+}
+
+// ToAnsicString outputs a string in "Mon Jan _2 15:04:05 2006" layout.
+// 输出 "Mon Jan _2 15:04:05 2006" 格式字符串
+func (c Carbon) ToAnsicString(timezone ...string) string {
+	if len(timezone) > 0 {
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
+	}
+	if c.IsInvalid() {
+		return ""
+	}
+	return c.StdTime().Format(ANSICLayout)
 }
 
 // ToCookieString outputs a string in "Monday, 02-Jan-2006 15:04:05 MST" layout.
 // 输出 "Monday, 02-Jan-2006 15:04:05 MST" 格式字符串
 func (c Carbon) ToCookieString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(CookieLayout)
+	return c.StdTime().Format(CookieLayout)
 }
 
 // ToRssString outputs a string in "Mon, 02 Jan 2006 15:04:05 -0700" format.
 // 输出 "Mon, 02 Jan 2006 15:04:05 -0700" 格式字符串
 func (c Carbon) ToRssString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RssLayout)
+	return c.StdTime().Format(RssLayout)
 }
 
 // ToW3cString outputs a string in "2006-01-02T15:04:05Z07:00" layout.
@@ -461,240 +483,240 @@ func (c Carbon) ToW3cString(timezone ...string) string {
 // 输出 "Mon Jan _2 15:04:05 MST 2006" 格式字符串
 func (c Carbon) ToUnixDateString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(UnixDateLayout)
+	return c.StdTime().Format(UnixDateLayout)
 }
 
 // ToRubyDateString outputs a string in "Mon Jan 02 15:04:05 -0700 2006" layout.
 // 输出 "Mon Jan 02 15:04:05 -0700 2006" 格式字符串
 func (c Carbon) ToRubyDateString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RubyDateLayout)
+	return c.StdTime().Format(RubyDateLayout)
 }
 
 // ToKitchenString outputs a string in "3:04PM" layout.
 // 输出 "3:04PM" 格式字符串
 func (c Carbon) ToKitchenString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(KitchenLayout)
+	return c.StdTime().Format(KitchenLayout)
 }
 
 // ToIso8601String outputs a string in "2006-01-02T15:04:05-07:00" layout.
 // 输出 "2006-01-02T15:04:05-07:00" 格式字符串
 func (c Carbon) ToIso8601String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ISO8601Layout)
+	return c.StdTime().Format(ISO8601Layout)
 }
 
 // ToIso8601MilliString outputs a string in "2006-01-02T15:04:05.999-07:00" layout.
 // 输出 "2006-01-02T15:04:05.999-07:00" 格式字符串
 func (c Carbon) ToIso8601MilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ISO8601MilliLayout)
+	return c.StdTime().Format(ISO8601MilliLayout)
 }
 
 // ToIso8601MicroString outputs a string in "2006-01-02T15:04:05.999999-07:00" layout.
 // 输出 "2006-01-02T15:04:05.999999-07:00" 格式字符串
 func (c Carbon) ToIso8601MicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ISO8601MicroLayout)
+	return c.StdTime().Format(ISO8601MicroLayout)
 }
 
 // ToIso8601NanoString outputs a string in "2006-01-02T15:04:05.999999999-07:00" layout.
 // 输出 "2006-01-02T15:04:05.999999999-07:00" 格式字符串
 func (c Carbon) ToIso8601NanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(ISO8601NanoLayout)
+	return c.StdTime().Format(ISO8601NanoLayout)
 }
 
 // ToRfc822String outputs a string in "02 Jan 06 15:04 MST" layout.
 // 输出 "02 Jan 06 15:04 MST" 格式字符串
 func (c Carbon) ToRfc822String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC822Layout)
+	return c.StdTime().Format(RFC822Layout)
 }
 
 // ToRfc822zString outputs a string in "02 Jan 06 15:04 -0700" layout.
 // 输出 "02 Jan 06 15:04 -0700" 格式字符串
 func (c Carbon) ToRfc822zString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC822ZLayout)
+	return c.StdTime().Format(RFC822ZLayout)
 }
 
 // ToRfc850String outputs a string in "Monday, 02-Jan-06 15:04:05 MST" layout.
 // 输出 "Monday, 02-Jan-06 15:04:05 MST" 格式字符串
 func (c Carbon) ToRfc850String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC850Layout)
+	return c.StdTime().Format(RFC850Layout)
 }
 
 // ToRfc1036String outputs a string in "Mon, 02 Jan 06 15:04:05 -0700" layout.
 // 输出 "Mon, 02 Jan 06 15:04:05 -0700" 格式字符串
 func (c Carbon) ToRfc1036String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC1036Layout)
+	return c.StdTime().Format(RFC1036Layout)
 }
 
 // ToRfc1123String outputs a string in "Mon, 02 Jan 2006 15:04:05 MST" layout.
 // 输出 "Mon, 02 Jan 2006 15:04:05 MST" 格式字符串
 func (c Carbon) ToRfc1123String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC1123Layout)
+	return c.StdTime().Format(RFC1123Layout)
 }
 
 // ToRfc1123zString outputs a string in "Mon, 02 Jan 2006 15:04:05 -0700" layout.
 // 输出 "Mon, 02 Jan 2006 15:04:05 -0700" 格式字符串
 func (c Carbon) ToRfc1123zString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC1123ZLayout)
+	return c.StdTime().Format(RFC1123ZLayout)
 }
 
 // ToRfc2822String outputs a string in "Mon, 02 Jan 2006 15:04:05 -0700" layout.
 // 输出 "Mon, 02 Jan 2006 15:04:05 -0700" 格式字符串
 func (c Carbon) ToRfc2822String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC2822Layout)
+	return c.StdTime().Format(RFC2822Layout)
 }
 
 // ToRfc3339String outputs a string in "2006-01-02T15:04:05Z07:00" layout.
 // 输出 "2006-01-02T15:04:05Z07:00" 格式字符串
 func (c Carbon) ToRfc3339String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC3339Layout)
+	return c.StdTime().Format(RFC3339Layout)
 }
 
 // ToRfc3339MilliString outputs a string in "2006-01-02T15:04:05.999Z07:00" layout.
 // 输出 "2006-01-02T15:04:05.999Z07:00" 格式字符串
 func (c Carbon) ToRfc3339MilliString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC3339MilliLayout)
+	return c.StdTime().Format(RFC3339MilliLayout)
 }
 
 // ToRfc3339MicroString outputs a string in "2006-01-02T15:04:05.999999Z07:00" layout.
 // 输出 "2006-01-02T15:04:05.999999Z07:00" 格式字符串
 func (c Carbon) ToRfc3339MicroString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC3339MicroLayout)
+	return c.StdTime().Format(RFC3339MicroLayout)
 }
 
 // ToRfc3339NanoString outputs a string in "2006-01-02T15:04:05.999999999Z07:00" layout.
 // 输出 "2006-01-02T15:04:05.999999999Z07:00" 格式字符串
 func (c Carbon) ToRfc3339NanoString(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC3339NanoLayout)
+	return c.StdTime().Format(RFC3339NanoLayout)
 }
 
 // ToRfc7231String outputs a string in "Mon, 02 Jan 2006 15:04:05 GMT" layout.
 // 输出 "Mon, 02 Jan 2006 15:04:05 GMT" 格式字符串
 func (c Carbon) ToRfc7231String(timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(RFC7231Layout)
+	return c.StdTime().Format(RFC7231Layout)
 }
 
 // ToLayoutString outputs a string by layout.
 // 输出指定布局模板的时间字符串
 func (c Carbon) ToLayoutString(layout string, timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
 	}
-	return c.time.In(c.loc).Format(layout)
+	return c.StdTime().Format(layout)
 }
 
 // Layout outputs a string by layout, it is shorthand for ToLayoutString.
@@ -707,7 +729,7 @@ func (c Carbon) Layout(layout string, timezone ...string) string {
 // 输出指定格式模板的时间字符串
 func (c Carbon) ToFormatString(format string, timezone ...string) string {
 	if len(timezone) > 0 {
-		c.loc, c.Error = getLocationByTimezone(timezone[len(timezone)-1])
+		c.loc, c.Error = getLocationByTimezone(timezone[0])
 	}
 	if c.IsInvalid() {
 		return ""
@@ -725,8 +747,16 @@ func (c Carbon) ToFormatString(format string, timezone ...string) string {
 				buffer.WriteString(c.ToMonthString())
 			case 'M': // short month, such as Jan
 				buffer.WriteString(c.ToShortMonthString())
+			case 'U': // timestamp with second, such as 1596604455
+				buffer.WriteString(strconv.FormatInt(c.Timestamp(), 10))
+			case 'V': // timestamp with millisecond, such as 1596604455000
+				buffer.WriteString(strconv.FormatInt(c.TimestampMilli(), 10))
+			case 'X': // timestamp with microsecond, such as 1596604455000000
+				buffer.WriteString(strconv.FormatInt(c.TimestampMicro(), 10))
+			case 'Z': // timestamp with nanoseconds, such as 1596604455000000000
+				buffer.WriteString(strconv.FormatInt(c.TimestampNano(), 10))
 			default: // common symbols
-				buffer.WriteString(c.time.In(c.loc).Format(layout))
+				buffer.WriteString(c.StdTime().Format(layout))
 			}
 		} else {
 			switch format[i] {
@@ -759,10 +789,15 @@ func (c Carbon) ToFormatString(format string, timezone ...string) string {
 				}
 			case 'G': // 24-hour format, no padding, ranging from 0-23
 				buffer.WriteString(strconv.Itoa(c.Hour()))
-			case 'U': // timestamp with second, such as 1611818268
-				buffer.WriteString(strconv.FormatInt(c.Timestamp(), 10))
-			case 'u': // current millisecond, such as 999
-				buffer.WriteString(strconv.Itoa(c.Millisecond()))
+			case 'v': // current millisecond, such as 999
+				s := c.Layout(".999")
+				buffer.WriteString(strings.Trim(s, "."))
+			case 'u': // current microsecond, such as 999999
+				s := c.Layout(".999999")
+				buffer.WriteString(strings.Trim(s, "."))
+			case 'x': // current nanosecond, such as 999999999
+				s := c.Layout(".999999999")
+				buffer.WriteString(strings.Trim(s, "."))
 			case 'w': // day of the week represented by the number, ranging from 0-6
 				buffer.WriteString(strconv.Itoa(c.DayOfWeek() - 1))
 			case 't': // number of days in the month, ranging from 28-31
@@ -787,4 +822,12 @@ func (c Carbon) ToFormatString(format string, timezone ...string) string {
 // 输出指定格式模板的时间字符串, 是 ToFormatString 的简写
 func (c Carbon) Format(format string, timezone ...string) string {
 	return c.ToFormatString(format, timezone...)
+}
+
+// Deprecated: it will be removed in the future, use StdTime instead.
+//
+// ToStdTime converts Carbon to standard time.Time.
+// 将 Carbon 转换成标准 time.Time
+func (c Carbon) ToStdTime() time.Time {
+	return c.StdTime()
 }

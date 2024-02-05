@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/mobile"
 	"fyne.io/fyne/v2/internal/app"
 	"fyne.io/fyne/v2/internal/driver"
@@ -29,8 +30,8 @@ type mobileCanvas struct {
 	scale            float32
 	size             fyne.Size
 
-	touched map[int]mobile.Touchable
-	padded  bool
+	touched       map[int]mobile.Touchable
+	padded, debug bool
 
 	onTypedRune func(rune)
 	onTypedKey  func(event *fyne.KeyEvent)
@@ -49,6 +50,7 @@ type mobileCanvas struct {
 // NewCanvas creates a new gomobile mobileCanvas. This is a mobileCanvas that will render on a mobile device using OpenGL.
 func NewCanvas() fyne.Canvas {
 	ret := &mobileCanvas{padded: true}
+	ret.debug = fyne.CurrentApp().Settings().BuildType() == fyne.BuildDebug
 	ret.scale = fyne.CurrentDevice().SystemScaleForWindow(nil) // we don't need a window parameter on mobile
 	ret.touched = make(map[int]mobile.Touchable)
 	ret.lastTapDownPos = make(map[int]fyne.Position)
@@ -166,6 +168,9 @@ func (c *mobileCanvas) setMenu(menu fyne.CanvasObject) {
 }
 
 func (c *mobileCanvas) setWindowHead(head fyne.CanvasObject) {
+	if c.padded {
+		head = container.NewPadded(head)
+	}
 	c.windowHead = head
 	c.SetMobileWindowHeadTree(head)
 }
@@ -292,7 +297,7 @@ func (c *mobileCanvas) tapMove(pos fyne.Position, tapID int,
 		}
 	}
 
-	ev := new(fyne.DragEvent)
+	ev := &fyne.DragEvent{}
 	draggedObjDelta := c.dragStart.Subtract(c.dragging.(fyne.CanvasObject).Position())
 	ev.Position = pos.Subtract(c.dragOffset).Add(draggedObjDelta)
 	ev.Dragged = fyne.Delta{DX: deltaX, DY: deltaY}
@@ -344,9 +349,10 @@ func (c *mobileCanvas) tapUp(pos fyne.Position, tapID int,
 		c.touched[tapID] = nil
 	}
 
-	ev := new(fyne.PointEvent)
-	ev.Position = objPos
-	ev.AbsolutePosition = pos
+	ev := &fyne.PointEvent{
+		Position:         objPos,
+		AbsolutePosition: pos,
+	}
 
 	if duration < tapSecondaryDelay {
 		_, doubleTap := co.(fyne.DoubleTappable)
