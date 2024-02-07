@@ -5,6 +5,7 @@ import (
 	"blue/token"
 	"bytes"
 	"fmt"
+	"sync"
 )
 
 type Stack[T any] struct {
@@ -63,15 +64,18 @@ func (s *Stack[T]) String() string {
 }
 
 type TokenStackSet struct {
-	s *list.List[token.Token]
-	m map[token.Token]struct{}
+	s    *list.List[token.Token]
+	m    map[token.Token]struct{}
+	lock sync.RWMutex
 }
 
 func NewTokenStackSet() *TokenStackSet {
-	return &TokenStackSet{s: list.New[token.Token](), m: make(map[token.Token]struct{})}
+	return &TokenStackSet{s: list.New[token.Token](), m: make(map[token.Token]struct{}), lock: sync.RWMutex{}}
 }
 
 func (s *TokenStackSet) Push(tok token.Token) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	if _, ok := s.m[tok]; !ok {
 		s.s.PushFront(tok)
 		s.m[tok] = struct{}{}
@@ -79,6 +83,8 @@ func (s *TokenStackSet) Push(tok token.Token) {
 }
 
 func (s *TokenStackSet) Pop() token.Token {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	var result token.Token
 	if s.s.Len() == 0 {
 		return result
@@ -91,6 +97,8 @@ func (s *TokenStackSet) Pop() token.Token {
 }
 
 func (s *TokenStackSet) PopBack() token.Token {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	var result token.Token
 	if s.s.Len() == 0 {
 		return result
@@ -103,10 +111,14 @@ func (s *TokenStackSet) PopBack() token.Token {
 }
 
 func (s *TokenStackSet) Len() int {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return s.s.Len()
 }
 
 func (s *TokenStackSet) RemoveAllEntries() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	// Just instantiate new instances of the map and list for 'removing everything'
 	s.m = make(map[token.Token]struct{})
 	s.s = list.New[token.Token]()
