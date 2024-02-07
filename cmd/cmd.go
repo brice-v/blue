@@ -6,6 +6,8 @@ import (
 	"blue/ws_vendor/gops"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -151,11 +153,53 @@ func handleParseCommand(argc int, arguments []string) {
 	}
 }
 
+func detectAllCommandsNeeded() error {
+	consts.InfoPrinter("Detecting git and go are present...\n")
+	_, err := exec.LookPath("git")
+	if err != nil {
+		return err
+	}
+	_, err = exec.LookPath("go")
+	if err != nil {
+		return err
+	}
+	if _, err = exec.LookPath("upx"); err != nil {
+		color.FgYellow.Println("    bundler::detectAllCommands: upx not present so packing will not happen")
+	}
+	if _, err = exec.LookPath("strip"); err != nil {
+		color.FgYellow.Println("    bundler::detectAllCommands: strip not present so stripping will not happen")
+	}
+	return nil
+}
+
 func handleBundleCommand(argc int, arguments []string) {
-	if argc == 2 {
-		fpath := arguments[1]
+	err := detectAllCommandsNeeded()
+	if err != nil {
+		consts.ErrorPrinter("`bundle` error: %s\n", err.Error())
+		os.Exit(1)
+	}
+	if argc == 2 || argc == 3 || argc == 4 || argc == 5 {
+		isStatic := false
+		oos := runtime.GOOS
+		arch := runtime.GOARCH
+		fpath := ""
+		for _, arg := range arguments[1:] {
+			if strings.HasPrefix(arg, "--static") {
+				isStatic = true
+			} else if strings.HasPrefix(arg, "--os=") {
+				newOs := strings.Split(arg, "--os=")[1]
+				if newOs != oos {
+					isStatic = true
+				}
+				oos = newOs
+			} else if strings.HasPrefix(arg, "--arch=") {
+				arch = strings.Split(arg, "--arch=")[1]
+			} else {
+				fpath = arg
+			}
+		}
 		if isFile(fpath) {
-			err := bundleFile(fpath)
+			err := bundleFile(fpath, isStatic, oos, arch)
 			if err != nil {
 				consts.ErrorPrinter("`bundle` error: %s\n", err.Error())
 				os.Exit(1)

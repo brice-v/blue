@@ -80,7 +80,7 @@ const mainFunc = `func main() {
 
 // bundleFile takes the given file as an entry point
 // and bundles the interpreter with the code into a go executable
-func bundleFile(fpath string) error {
+func bundleFile(fpath string, isStatic bool, oos, arch string) error {
 	entryPointPath := fmt.Sprintf("const entryPointPath = `%s`\n", fpath)
 	gomain := fmt.Sprintf("%s\n%s\n%s", header, entryPointPath, mainFunc)
 	defer color.Reset()
@@ -136,11 +136,12 @@ func bundleFile(fpath string) error {
 	}
 	consts.InfoPrinter("Renamed Original Main Go File to bundler Main\n")
 	consts.InfoPrinter("Building Exe with go toolchain...\n")
-	exeName, err := buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir)
+	exeName, err := buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir, isStatic, oos, arch)
 	if err != nil {
 		return fmt.Errorf("`buildExeAndWriteToSavedDir` error: %s", err.Error())
 	}
 	defer tryToPack(savedCurrentDir, exeName)
+	defer tryToStrip(savedCurrentDir, exeName)
 	err = removeMainGoFile()
 	if err != nil {
 		return fmt.Errorf("`removeMainGoFile` error: %s", err.Error())
@@ -175,7 +176,7 @@ func checkAndGetBlueSouce() error {
 	}
 	mainFpath := filepath.Clean(dirPath + string(filepath.Separator) + "main.go")
 	if !isFile(mainFpath) {
-		fmt.Printf("bundler::checkAndGetBlueSouce: filepath does not exist at path (%s), trying to clone from github...", mainFpath)
+		color.FgYellow.Printf("    bundler::checkAndGetBlueSouce: filepath does not exist at path (%s), trying to clone from github...\n", mainFpath)
 		err := gitCloneFilesToBlueInstallPath(dirPath)
 		if err != nil {
 			return err
@@ -185,15 +186,19 @@ func checkAndGetBlueSouce() error {
 	return err
 }
 
-func execBundleCmd(cmdStr, dirPath string) (string, error) {
-	cmd := strings.Split(cmdStr, " ")
+func execBundleCmdWithEnv(cmd []string, dirPath string, env []string, printOutput bool) (string, error) {
 	if runtime.GOOS == "windows" {
 		winArgs := []string{"cmd", "/c"}
 		cmd = append(winArgs, cmd...)
 	}
-	consts.InfoPrinter("    executing command: %s\n", cmdStr)
+	consts.InfoPrinter("    executing command: %s\n", strings.Join(cmd, " "))
 	command := exec.Command(cmd[0], cmd[1:]...)
 	command.Dir = dirPath
+	if env != nil {
+		eenv := command.Environ()
+		eenv = append(eenv, env...)
+		command.Env = eenv
+	}
 	stdout, err := command.StdoutPipe()
 	if err != nil {
 		return "", err
@@ -207,7 +212,9 @@ func execBundleCmd(cmdStr, dirPath string) (string, error) {
 		text := scanner.Text()
 		output.WriteString(text)
 		output.WriteByte('\n')
-		fmt.Println("        " + text)
+		if printOutput {
+			fmt.Println("        " + text)
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		return output.String(), err
@@ -216,6 +223,14 @@ func execBundleCmd(cmdStr, dirPath string) (string, error) {
 		return output.String(), err
 	}
 	return output.String(), nil
+}
+
+func execBundleCmdNoOutput(cmdStr, dirPath string) (string, error) {
+	return execBundleCmdWithEnv(strings.Split(cmdStr, " "), dirPath, nil, false)
+}
+
+func execBundleCmd(cmdStr, dirPath string) (string, error) {
+	return execBundleCmdWithEnv(strings.Split(cmdStr, " "), dirPath, nil, true)
 }
 
 func gitCloneFilesToBlueInstallPath(dirPath string) error {
@@ -268,12 +283,44 @@ func writeMainGoFile(fdata string) error {
 	return nil
 }
 
-func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string) (string, error) {
+func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string, isStatic bool, oos, arch string) (string, error) {
 	exeName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
-	if runtime.GOOS == "windows" {
+	if oos == "windows" {
 		exeName += ".exe"
 	}
-	output, err := execBundleCmd("go build -o "+exeName, tmpDir)
+	goos := "GOOS=" + oos
+	goarch := "GOARCH=" + arch
+	buildCmd := []string{"go", "build"}
+	if isStatic {
+		buildCmd = append(buildCmd, []string{"-tags=static", "-ldflags=-s -w -extldflags static"}...)
+	} else {
+		buildCmd = append(buildCmd, "-ldflags=-s -w")
+	}
+	env := []string{goos, goarch}
+	if isStatic {
+		env = append(env, "CGO_ENABLED=0")
+	} else {
+		env = append(env, "CGO_ENABLED=1")
+	}
+	buildCmd = append(buildCmd, []string{"-o", exeName, "."}...)
+	oo, err := execBundleCmdNoOutput("go env", tmpDir)
+	if err != nil {
+		return "", err
+	}
+	for _, o := range strings.Split(oo, "\n") {
+		if o == "" {
+			continue
+		}
+		if strings.Contains(o, "GOOS=") || strings.Contains(o, "GOARCH=") || strings.Contains(o, "CGO_ENABLED=") {
+			continue
+		}
+		if strings.Contains(o, "set ") {
+			env = append(env, strings.Split(o, "set ")[1])
+		} else {
+			env = append(env, o)
+		}
+	}
+	output, err := execBundleCmdWithEnv(buildCmd, tmpDir, env, true)
 	if err != nil {
 		return "", err
 	}
@@ -319,6 +366,14 @@ func copyFileToSavedDir(exeName, savedCurrentDir string) error {
 	}
 
 	return nil
+}
+
+func tryToStrip(dirPath, exeName string) {
+	if exeName == "" {
+		return
+	}
+	consts.InfoPrinter("Trying to strip exe `%s`\n", exeName)
+	execBundleCmd("strip "+exeName, dirPath)
 }
 
 func tryToPack(dirPath, exeName string) {

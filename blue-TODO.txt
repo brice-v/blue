@@ -8,6 +8,8 @@ TODO:
     - [ ] Update gh pipelines to also test/release static version
     - [ ] Update bundle command to support static in build
     - [ ] Update bundle command to support cross compilation (if static)
+    - [ ] Add --o= for output filename
+    - [x] TODO: Make bundler more efficent
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
