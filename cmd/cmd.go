@@ -178,11 +178,12 @@ func handleBundleCommand(argc int, arguments []string) {
 		consts.ErrorPrinter("`bundle` error: %s\n", err.Error())
 		os.Exit(1)
 	}
-	if argc == 2 || argc == 3 || argc == 4 || argc == 5 {
+	if argc == 2 || argc == 3 || argc == 4 || argc == 5 || argc == 6 {
 		isStatic := false
 		oos := runtime.GOOS
 		arch := runtime.GOARCH
 		fpath := ""
+		outputFileName := ""
 		for _, arg := range arguments[1:] {
 			if strings.HasPrefix(arg, "--static") {
 				isStatic = true
@@ -194,12 +195,14 @@ func handleBundleCommand(argc int, arguments []string) {
 				oos = newOs
 			} else if strings.HasPrefix(arg, "--arch=") {
 				arch = strings.Split(arg, "--arch=")[1]
+			} else if strings.HasPrefix(arg, "--o=") {
+				outputFileName = strings.Split(arg, "--o=")[1]
 			} else {
 				fpath = arg
 			}
 		}
 		if isFile(fpath) {
-			err := bundleFile(fpath, isStatic, oos, arch)
+			err := bundleFile(fpath, isStatic, oos, arch, outputFileName)
 			if err != nil {
 				consts.ErrorPrinter("`bundle` error: %s\n", err.Error())
 				os.Exit(1)

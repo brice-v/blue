@@ -1,15 +1,7 @@
 TODO:
 
-- Static Stuff/Cross Compilation
-    - [x] name windows batch blue-static blues
-    - [x] Put the variable in at build time so we can put it next to version number
-    - [ ] Build with tinygo for wasm
-        - [ ] Update associated files/std lib that cant be built
-    - [ ] Update gh pipelines to also test/release static version
-    - [ ] Update bundle command to support static in build
-    - [ ] Update bundle command to support cross compilation (if static)
-    - [ ] Add --o= for output filename
-    - [x] TODO: Make bundler more efficent
+- [ ] Build with tinygo for wasm
+    - [ ] Update associated files/std lib that cant be built
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
@@ -27,8 +19,6 @@ TODO:
 - [ ] If for loop returns list in expression it needs to be ordered, otherwise it wont work
 - [ ] Add catch with a block to expressions to handle errors?
 - [ ] Support golang float with e in it
-- [ ] Make core docs visible
-    - [ ] Add docs for all remaining functions
 - [ ] Add some sort of package management with a file like blue.json (or blue.toml)
     - This will allow us to also add a script runner
     - And by this time we can add a `blue init` command to generate the initial scaffolding
@@ -160,6 +150,17 @@ func main() {
 
 COMPLETED TASKS:
 
+- [x] Update gh pipelines to also test static version
+    - Not going to publish static version as it contains less
+- Static Stuff/Cross Compilation
+    - [x] name windows batch blue-static blues
+    - [x] Put the variable in at build time so we can put it next to version number
+    - [x] Update bundle command to support static in build
+    - [x] Update bundle command to support cross compilation (if static)
+    - [x] Add --o= for output filename
+    - [x] TODO: Make bundler more efficent
+- [x] Make core docs visible
+    - [x] Add docs for all remaining functions
 - [x] Fix all Math functions that are currently lossy due to conversion
     - Just fix them in general (make it strongly typed so the user has to force lossiness if thats desired)
 - [x] Fix up bundler so that if it has the source, it git pulls first

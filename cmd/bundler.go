@@ -80,7 +80,7 @@ const mainFunc = `func main() {
 
 // bundleFile takes the given file as an entry point
 // and bundles the interpreter with the code into a go executable
-func bundleFile(fpath string, isStatic bool, oos, arch string) error {
+func bundleFile(fpath string, isStatic bool, oos, arch, outputFileName string) error {
 	entryPointPath := fmt.Sprintf("const entryPointPath = `%s`\n", fpath)
 	gomain := fmt.Sprintf("%s\n%s\n%s", header, entryPointPath, mainFunc)
 	defer color.Reset()
@@ -136,7 +136,7 @@ func bundleFile(fpath string, isStatic bool, oos, arch string) error {
 	}
 	consts.InfoPrinter("Renamed Original Main Go File to bundler Main\n")
 	consts.InfoPrinter("Building Exe with go toolchain...\n")
-	exeName, err := buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir, isStatic, oos, arch)
+	exeName, err := buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir, isStatic, oos, arch, outputFileName)
 	if err != nil {
 		return fmt.Errorf("`buildExeAndWriteToSavedDir` error: %s", err.Error())
 	}
@@ -283,10 +283,15 @@ func writeMainGoFile(fdata string) error {
 	return nil
 }
 
-func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string, isStatic bool, oos, arch string) (string, error) {
-	exeName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
-	if oos == "windows" {
-		exeName += ".exe"
+func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string, isStatic bool, oos, arch, outputFileName string) (string, error) {
+	exeName := ""
+	if outputFileName == "" {
+		exeName = strings.ReplaceAll(filepath.Base(fpath), ".b", "")
+		if oos == "windows" {
+			exeName += ".exe"
+		}
+	} else {
+		exeName = outputFileName
 	}
 	goos := "GOOS=" + oos
 	goarch := "GOARCH=" + arch

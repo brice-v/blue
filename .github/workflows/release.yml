@@ -29,7 +29,7 @@ jobs:
         run: go test ./...
 
       - name: Build Windows
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-latest'
         run: go build -ldflags='-s -w -extldflags "-static"' -o blue-win.exe .
 
       - name: Build Linux
@@ -41,7 +41,7 @@ jobs:
         run: go build -ldflags='-s -w' -o blue-mac .
 
       - name: Compress windows binaries
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-latest'
         uses: svenstaro/upx-action@v2
         with:
           file: blue-win.exe
