@@ -7,7 +7,9 @@ import (
 	"blue/parser"
 	"bytes"
 	"fmt"
+	"math"
 	"sort"
+	"strings"
 )
 
 // Core Builtins
@@ -25,6 +27,11 @@ func createToNumBuiltin(e *Evaluator) *object.Builtin {
 					return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
 				}
 				s := args[0].(*object.Stringo).Value
+				if strings.Contains(s, "+Inf") {
+					return &object.Float{Value: math.Inf(1)}
+				} else if strings.Contains(s, "-Inf") {
+					return &object.Float{Value: math.Inf(-1)}
+				}
 				ll := lexer.New(s, "")
 				pp := parser.New(ll)
 				prog := pp.ParseProgram()
