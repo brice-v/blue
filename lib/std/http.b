@@ -34,6 +34,9 @@ val url_encode = _url_encode;
 val url_escape = _url_escape;
 val url_unescape = _url_unescape;
 
+# This doesn't really belong here but is most likely useful if creating servers
+val open_browser = _open_browser;
+
 fun get(url, full_resp=false) {
     ## `get` is just a call to `fetch` with the given url
     ## it will return the body returned as a string, or null

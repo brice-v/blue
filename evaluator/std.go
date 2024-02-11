@@ -32,8 +32,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"os/signal"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -751,6 +753,38 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			signature:   "inspect(c: GoObj[*ws.Conn]|GoObj[*ws.Connection]) -> map[str]str",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "inspect(c) => {remote_addr: ...}",
+		}.String(),
+	},
+	"_open_browser": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("open_browser", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("open_browser", 1, object.STRING_OBJ, args[0].Type())
+			}
+			url := args[0].(*object.Stringo).Value
+			var err error
+			switch runtime.GOOS {
+			case "linux":
+				err = exec.Command("xdg-open", url).Start()
+			case "windows":
+				err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+			case "darwin":
+				err = exec.Command("open", url).Start()
+			default:
+				err = fmt.Errorf("unsupported platform")
+			}
+			if err != nil {
+				return newError("`open_browser` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`open_browser` will open the user's default browser with the given URL",
+			signature:   "open_browser(url: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "open_browser('http://localhost:3000/') => null -> open's browser (side effect)",
 		}.String(),
 	},
 })
