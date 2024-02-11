@@ -7,22 +7,34 @@ TODO:
         - [ ] Fix styling on browser
         - [ ] Return errors in cleaner way when it times out or errors out for any other reason
         - [ ] Make sure limiter works at all?
+        - [ ] Support stdin somehow?
+- [ ] Ensure destructuring works in more places (possibly update imports to work like they do in JS)
+    - [ ] Aliasing for destructuring
+    - [ ] Spread operator from JS
+    - [ ] Map on lambda with destructuring (for maps, lists, etc.)
+- [ ] Support sse (server streamed events)
+- [ ] Support more middlewares with gofiber for internal http server
 - [ ] Build with tinygo for wasm
     - [ ] Update associated files/std lib that cant be built
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
+    - Make regex literal work in match statement (kind of like what ruby does?)
 - [ ] Expand blueToGoObject and goToBlueObject to support all nested variations as well
 - [ ] Add a fix for interface maps to use ordered so we can translate back and forth from blue <-> go <-> blue objects
     - Assuming this doesnt break any existing areas its much more consistent for sorting objects
-- [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] Add multi for support in comprehensions (see test_flatten)
     - https://www.learndatasci.com/solutions/python-list-comprehension/
+- Shell Supoort:
+    - [x] Using `` to call cmd on computer - returning the output of that command
+    - [ ] Add support for piped output
+    - [ ] Parse command with strings, pipes, &&, etc so this can work more like a proper shell?
 - [ ] Put zip, reduce, etc. into actual builtins
     - [x] map
     - [x] filter
-- [ ] Map on lambda with destructuring (for maps, lists, etc.)
+- [ ] Add select statement?
 - [ ] Optimize List/Set/Map comps so they execute go code?
+- [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] If for loop returns list in expression it needs to be ordered, otherwise it wont work
 - [ ] Add catch with a block to expressions to handle errors?
 - [ ] Support golang float with e in it
@@ -31,37 +43,19 @@ TODO:
     - And by this time we can add a `blue init` command to generate the initial scaffolding
         - maybe allow it to accept some sort of template (or have options for type of project)
 - [ ] Add serialization lib (optional path for kv to write it to file? like kv in deno)
+- [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
+- [ ] Fix STDIN write and reading
+    - [ ] Make sure STDOUT and STDERR are working as expected
+- [ ] Add variadic arguments (...)
+- [ ] Add formatting options for string interpolation?
+    - [ ] Support string interpolation helper to print out objects
+        - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
+    - [ ] Add debug printing that works like ic to evaluator
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
-- [ ] Use swiss map if its better? https://github.com/dolthub/swiss
-- [ ] Add select statement?
-- [ ] Add range from python for quick loops
-    - Use empty struct slice? (or way to yield values)
-- [ ] See if we can add streams properly as its own object type?
-    - Use go generator pattern maybe?
 - [ ] Add plotting lib like matplot lib?
-- [ ] Make `from` look more like js rather than python
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Decorators?
 - [ ] Add filepath.walk type function
-- [ ] Look to add the following libraries
-    - https://github.com/gobwas/ws (for use in net/tcp ws lib)
-        - [ ] Make WS Conn work on net connection?
-    - https://github.com/playwright-community/playwright-go
-    [-] https://github.com/huandu/xstrings
-    [-] https://github.com/golang-module/carbon (partially added)
-    - https://github.com/iancmcc/bingo
-    - https://github.com/theckman/yacspin
-    - https://github.com/cheynewallace/tabby
-    - https://github.com/guptarohit/asciigraph
-    - https://github.com/xhit/go-simple-mail
-    - https://github.com/JoelOtter/termloop
-    - https://github.com/youthlin/stream
-    - https://github.com/go-echarts/go-echarts
-    - https://github.com/gonum/plot
-    - https://github.com/benhoyt/goawk
-- [ ] Spread operator from JS
-- [ ] Ensure destructuring works in more places (possibly update imports to work like they do in JS)
-    - [ ] Aliasing for destructuring
 - [ ] Replace println with just print and pass endln char to builtin (simplifies things a bit)
 - STD Updates:
     - [ ] Add WebView
@@ -77,7 +71,23 @@ TODO:
     - [ ] TUI (charm.sh?) - maybe even tui game lib?
     - [ ] Selenium/Playright integration?
     - [ ] Video/Audio library
-- [ ] DNS resolver function? like the dig cmd
+    - [ ] Add time related functions (and expand stdlb)
+    - [ ] Look to add the following libraries
+        - https://github.com/gobwas/ws (for use in net/tcp ws lib)
+            - [ ] Make WS Conn work on net connection?
+        - https://github.com/playwright-community/playwright-go
+        [-] https://github.com/huandu/xstrings
+        [-] https://github.com/golang-module/carbon (partially added)
+        - https://github.com/iancmcc/bingo
+        - https://github.com/theckman/yacspin
+        - https://github.com/cheynewallace/tabby
+        - https://github.com/guptarohit/asciigraph
+        - https://github.com/xhit/go-simple-mail
+        - https://github.com/JoelOtter/termloop
+        - https://github.com/youthlin/stream
+        - https://github.com/go-echarts/go-echarts
+        - https://github.com/gonum/plot
+        - https://github.com/benhoyt/goawk
 - [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
     - Also add `blue test` command to specify file or maybe just run everything
 - [ ] Store doc comments above var/val statements?
@@ -92,17 +102,6 @@ TODO:
     - debugger statement that pops user into repl with access to variables (then just need a way to exit repl and continue execution)
 - still want to have way of starting a blue process like Erlang/Elixr with ways to connect and send over the network, etc.
 - in children, see if we can bind and convert strings to label with binding?
-- [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
-- [ ] Add test cases to cover all the basic functions
-- [ ] Add time related functions (and expand stdlb)
-- [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
-- [ ] Fix STDIN write and reading
-    - [ ] Make sure STDOUT and STDERR are working as expected
-- [ ] Add variadic arguments (...)
-- [ ] Add formatting options for string interpolation?
-    - [ ] Support string interpolation helper to print out objects
-        - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
-    - [ ] Add debug printing that works like ic to evaluator
 
 LATER ON:
 
@@ -138,6 +137,7 @@ func main() {
 - [ ] Add code for CLI arg parser
 - [ ] Support unicode throughout
 - [ ] TESTS! Lots of them covering a variety of scenarios
+    - [ ] Add test cases to cover all the basic functions
     - Test all math casting and max and min working
     - Test lists with variety of data types
     - Test maps with all types
@@ -150,11 +150,20 @@ func main() {
 - [ ] Think about compiling to go
     - Still could try this out - but definitely a future thing
 - [ ] Tagged Unions/ enums working properly with match
-- [x] Using `` to call cmd on computer - returning the output of that command
-    - [ ] Add support for piped output
+- [ ] See if we can add streams properly as its own object type?
+    - Use go generator pattern maybe?
+    - Until go has yielding functions I think this will wait
+- [ ] DNS resolver function? like the dig cmd
+- [ ] Use swiss map if its better? https://github.com/dolthub/swiss
+- [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
 
 COMPLETED TASKS:
 
+- [-] Make `from` look more like js rather than python
+    - Going to likely leave this as is for now
+- [-] Add range from python for quick loops
+    - Use empty struct slice? (or way to yield values)
+    - For now we have for (var i = 0; i < ...; i += 1) which should be good enough
 - [x] Update gh pipelines to also test static version
     - Not going to publish static version as it contains less
 - Static Stuff/Cross Compilation
