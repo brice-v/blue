@@ -10,9 +10,9 @@
             const resp = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: jsonCode});
             if (resp.status === 200) {
                 const t = await resp.json()
-                const stdoutElem = document.getElementById('stdout-container');
+                const stdoutElem = document.getElementById('stdout-output');
                 stdoutElem.innerText = t.stdout;
-                const stderrElem = document.getElementById('stderr-container');
+                const stderrElem = document.getElementById('stderr-output');
                 stderrElem.innerText = t.stderr;
             } else {
                 console.error(`Non 200 Status from URL ${url}`);
@@ -22,20 +22,19 @@
 	</head>
 	<body>
 		<h2>blue - playground - run blue code</h2>
-        <button onclick="getResponse()">Click Me</button>
+        <button onclick="getResponse()">Run</button>
 		<div id="container" style="width: 800px; height: 600px; border: 1px solid grey"></div>
-        <div id="stdout-container" style="width: 800px; height: 100px; border: 1px solid grey"></div>
-        <div id="stderr-container" style="width: 800px; height: 100px; border: 1px solid grey"></div>
+        <div id="stdout-container" style="width: 800px; height: 100px; border: 1px solid grey; overflow-y: scroll;">
+			<pre id="stdout-output" style="padding-left: 1em;"></pre>
+		</div>
+        <div id="stderr-container" style="width: 800px; height: 100px; border: 1px solid grey; overflow-y: scroll;">
+			<pre id="stderr-output" style="padding-left: 1em;"></pre>
+		</div>
 
-
-		<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
-		<script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
-		<script src="https://unpkg.com/monaco-editor@latest/min/vs/basic-languages/kotlin/kotlin.js"></script>
+		<script src="loader.js"></script>
+		<script src="kotlin.js"></script>
 		<script>
 			require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
-			window.MonacoEnvironment = { getWorkerUrl: () => proxy };
-
-			let proxy = URL.createObjectURL(new Blob(["self.MonacoEnvironment = {baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'};importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');"], { type: 'text/javascript' }));
 
 			require(["vs/editor/editor.main"], function () {
 				window.editor = monaco.editor.create(document.getElementById('container'), {

@@ -28,6 +28,12 @@ import (
 //go:embed play_static/index.html
 var indexPage string
 
+//go:embed play_static/loader.js
+var loaderJS string
+
+//go:embed play_static/kotlin.js
+var kotlinJS string
+
 type EvalCode struct {
 	Code string `json:"code"`
 }
@@ -121,6 +127,28 @@ func handlePlayCommand(argc int, arguments []string) {
 		_, err := fmt.Fprint(w, indexPage)
 		if err != nil {
 			log.Printf("GET / error: %s", err.Error())
+		}
+	})
+	mux.HandleFunc("/loader.js", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" && r.Method != "HEAD" {
+			log.Printf("/loader.js invalid method: %s, expected GET or HEAD", r.Method)
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+		_, err := fmt.Fprint(w, loaderJS)
+		if err != nil {
+			log.Printf("GET /loader.js error: %s", err.Error())
+		}
+	})
+	mux.HandleFunc("/kotlin.js", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" && r.Method != "HEAD" {
+			log.Printf("/kotlin.js invalid method: %s, expected GET or HEAD", r.Method)
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+		_, err := fmt.Fprint(w, kotlinJS)
+		if err != nil {
+			log.Printf("GET /kotlin.js error: %s", err.Error())
 		}
 	})
 	mux.HandleFunc("/eval", func(w http.ResponseWriter, r *http.Request) {
