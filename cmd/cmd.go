@@ -87,15 +87,24 @@ func Run(args ...string) {
 	case "bundle":
 		handleBundleCommand(argc, arguments)
 	case "eval":
+	case "-e":
 		handleEvalCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
 	case "ps":
 		handlePsCommand(argc, arguments)
+	case "play":
+		handlePlayCommand(argc, arguments)
 	default:
 		if isFile(command) {
 			// Eval the file
-			evalFile(command)
+			noExec := false
+			for _, arg := range arguments {
+				if arg == "--no-exec" {
+					noExec = true
+				}
+			}
+			evalFile(command, noExec)
 		} else {
 			printUsage()
 		}
@@ -218,9 +227,21 @@ func handleBundleCommand(argc int, arguments []string) {
 }
 
 func handleEvalCommand(argc int, arguments []string) {
-	if argc == 2 {
-		strToEval := arguments[1]
-		evalString(strToEval)
+	if argc == 2 || argc == 3 {
+		strToEval := ""
+		flagNoExec := false
+		for _, arg := range arguments[1:] {
+			if arg == "--no-exec" {
+				flagNoExec = true
+			} else {
+				strToEval = arg
+			}
+		}
+		if isFile(strToEval) {
+			evalFile(strToEval, flagNoExec)
+		} else {
+			evalString(strToEval, flagNoExec)
+		}
 	} else {
 		consts.ErrorPrinter("unexpected `eval` arguments. got=%+v\n", arguments)
 		os.Exit(1)

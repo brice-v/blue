@@ -84,6 +84,9 @@ func isError(obj object.Object) bool {
 }
 
 func ExecStringCommand(str string) object.Object {
+	if NoExec {
+		return newError("cannot execute string command `%s`. NoExec set to true.", str)
+	}
 	splitStr := strings.Split(str, " ")
 	if len(splitStr) == 0 {
 		return newError("unable to exec the string `%s`", str)
@@ -116,21 +119,12 @@ func ExecStringCommand(str string) object.Object {
 }
 
 func execCommand(arg0 string, args ...string) *exec.Cmd {
-	if args == nil {
-		if runtime.GOOS == "windows" {
-			winArgs := []string{"/c"}
-			winArgs = append(winArgs, arg0)
-			return exec.Command("cmd", winArgs...)
-		}
-		return exec.Command(arg0)
-	}
 	if runtime.GOOS == "windows" {
-		winArgs := []string{"/c"}
-		winArgs = append(winArgs, arg0)
-		winArgs = append(winArgs, args...)
-		return exec.Command("cmd", winArgs...)
+		cmdArgs := append([]string{"cmd", "/c", arg0}, args...)
+		return exec.Command(cmdArgs[0], cmdArgs...)
+	} else {
+		return exec.Command(arg0, args...)
 	}
-	return exec.Command(arg0, args...)
 }
 
 func twoListsEqual(leftList, rightList *object.List) bool {

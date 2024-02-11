@@ -28,6 +28,9 @@ import (
 var IsEmbed = false
 var Files embed.FS
 
+// NoExec is a global to prevent execution of shell commands on the system
+var NoExec = false
+
 var (
 	// TRUE is the true object which should be the same everywhere
 	TRUE = &object.Boolean{Value: true}

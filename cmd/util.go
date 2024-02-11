@@ -75,7 +75,7 @@ func parseFile(fpath string) {
 }
 
 // evalFile evaluates the given file
-func evalFile(fpath string) {
+func evalFile(fpath string, noExec bool) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
 		consts.ErrorPrinter("`evalFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
@@ -90,6 +90,7 @@ func evalFile(fpath string) {
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
+	evaluator.NoExec = noExec
 	e := evaluator.New()
 	e.CurrentFile = filepath.Clean(fpath)
 	e.EvalBasePath = filepath.Dir(fpath)
@@ -125,7 +126,7 @@ func evalFile(fpath string) {
 }
 
 // evalString evaluates the given string
-func evalString(strToEval string) {
+func evalString(strToEval string, noExec bool) {
 	l := lexer.New(strToEval, "<stdin>")
 
 	p := parser.New(l)
@@ -134,6 +135,7 @@ func evalString(strToEval string) {
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
+	evaluator.NoExec = noExec
 	e := evaluator.New()
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
