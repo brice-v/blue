@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>blue - playground</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+		<script>
+		async function getResponse() {
+			const url = window.location.protocol+"//"+window.location.host+"/eval";
+            const jsonCode = JSON.stringify({'code': window.editor.getValue()});
+            const resp = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: jsonCode});
+            if (resp.status === 200) {
+                const t = await resp.json()
+                const stdoutElem = document.getElementById('stdout-container');
+                stdoutElem.innerText = t.stdout;
+                const stderrElem = document.getElementById('stderr-container');
+                stderrElem.innerText = t.stderr;
+            } else {
+                console.error(`Non 200 Status from URL ${url}`);
+            }
+		}
+		</script>
+	</head>
+	<body>
+		<h2>blue - playground - run blue code</h2>
+        <button onclick="getResponse()">Click Me</button>
+		<div id="container" style="width: 800px; height: 600px; border: 1px solid grey"></div>
+        <div id="stdout-container" style="width: 800px; height: 100px; border: 1px solid grey"></div>
+        <div id="stderr-container" style="width: 800px; height: 100px; border: 1px solid grey"></div>
+
+
+		<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
+		<script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
+		<script src="https://unpkg.com/monaco-editor@latest/min/vs/basic-languages/kotlin/kotlin.js"></script>
+		<script>
+			require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
+			window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+
+			let proxy = URL.createObjectURL(new Blob(["self.MonacoEnvironment = {baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'};importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');"], { type: 'text/javascript' }));
+
+			require(["vs/editor/editor.main"], function () {
+				window.editor = monaco.editor.create(document.getElementById('container'), {
+					value: [
+						'fun main() {',
+						'\tprintln("Hello world!");',
+						'}',
+						'',
+						'main();'
+					].join('\n'),
+					language: 'kotlin',
+					theme: 'vs-dark'
+				});
+			});
+		</script>
+	</body>
+</html>

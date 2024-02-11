@@ -1,5 +1,12 @@
 TODO:
 
+- [-] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
+    - [ ] Accept subcmd for gui/browser that specifies what you want to do
+        - Just implemented browser for now but technically gui should also be possible (this should still be done)
+    - Browser: Lots of issues with it currently
+        - [ ] Fix styling on browser
+        - [ ] Return errors in cleaner way when it times out or errors out for any other reason
+        - [ ] Make sure limiter works at all?
 - [ ] Build with tinygo for wasm
     - [ ] Update associated files/std lib that cant be built
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
@@ -71,8 +78,6 @@ TODO:
     - [ ] Selenium/Playright integration?
     - [ ] Video/Audio library
 - [ ] DNS resolver function? like the dig cmd
-- [ ] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
-    - [ ] Accept subcmd for gui/browser that specifies what you want to do
 - [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
     - Also add `blue test` command to specify file or maybe just run everything
 - [ ] Store doc comments above var/val statements?
