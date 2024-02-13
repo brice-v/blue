@@ -7,8 +7,9 @@ and developing it since then. The language draws inspiration from many others
 but mostly I just wanted a scripting language that was fun to use and fun to
 develop.
 
-Note: Its __not__ _blazingly fast_ but that was never the point. It may be practical
-to eventually compile the language to `go` which could improve its speed?!
+Note: Its **not** _blazingly fast_ but that was never the point. It may be
+practical to eventually compile the language to `go` which could improve its
+speed?!
 
 ## Details
 
@@ -32,12 +33,14 @@ to eventually compile the language to `go` which could improve its speed?!
     - added `export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig` to
       `~/.bashrc`
   - windows has no requirements
-  - tested on macos that still works on my old macbook (latest may or may not work)
+  - tested on macos that still works on my old macbook (latest may or may not
+    work)
 - Install `upx` [here](https://upx.github.io/) (or other methods) to make the
   binary super small
   - small exe cmd =
     `go build -ldflags="-s -w -extldflags='-static'" && strip blue && upx blue`
-- Static build now available (with no CGO) making it much easier to cross compile
+- Static build now available (with no CGO) making it much easier to cross
+  compile
   - See `make_release_static.*` to see how its being built and tested locally
 
 ## Notes
@@ -154,6 +157,8 @@ The commands are:
             all functions - so any side effects may take place
     ps      list the 'blue' (and other gops agent) listeners
             which have commands that can be run
+    play    starts a server and opens the browser to execute
+            blue code
     help    prints this help message
     version prints the current version
 

@@ -38,6 +38,8 @@ The commands are:
             all functions - so any side effects may take place
     ps      list the 'blue' (and other gops agent) listeners
             which have commands that can be run
+    play    starts a server and opens the browser to execute
+            blue code
     help    prints this help message
     version prints the current version
 
