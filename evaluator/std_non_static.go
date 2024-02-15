@@ -95,6 +95,34 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "window_should_close() => false",
 		}.String(),
 	},
+	"_get_screen_width": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_screen_width", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(rl.GetScreenWidth())}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_screen_width` gets the screen width as an int",
+			signature:   "get_screen_width() -> int",
+			errors:      "InvalidArgCount",
+			example:     "get_screen_width() => 800",
+		}.String(),
+	},
+	"_get_screen_height": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_screen_height", len(args), 0, "")
+			}
+			return &object.Integer{Value: int64(rl.GetScreenHeight())}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_screen_height` gets the screen height as an int",
+			signature:   "get_screen_height() -> int",
+			errors:      "InvalidArgCount",
+			example:     "get_screen_height() => 800",
+		}.String(),
+	},
 	"_begin_drawing": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 0 {
@@ -323,7 +351,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"_draw_texture_pro": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 6 {
-				return newInvalidArgCountError("draw_texture_pro", len(args), 4, "")
+				return newInvalidArgCountError("draw_texture_pro", len(args), 6, "")
 			}
 			if args[0].Type() != object.GO_OBJ {
 				return newPositionalTypeError("draw_texture_pro", 1, object.GO_OBJ, args[0].Type())
@@ -372,6 +400,44 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			signature:   "draw_texture_pro(texture: GO_OBJ[rl.Texture2D], source_rec: GO_OBJ[rl.Rectangle]=Rectangle(), dest_rec: GO_OBJ[rl.Rectangle]=Rectangle(), origin: GO_OBJ[rl.Vector2]=Vector2(), rotation: float=0.0, tint=color.white) -> null",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "draw_texture_pro(texture) => null",
+		}.String(),
+	},
+	"_draw_rectangle": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("draw_rectangle", len(args), 5, "")
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_rectangle", 1, object.INTEGER_OBJ, args[0].Type())
+			}
+			posx := int32(args[0].(*object.Integer).Value)
+			if args[1].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_rectangle", 2, object.INTEGER_OBJ, args[1].Type())
+			}
+			posy := int32(args[1].(*object.Integer).Value)
+			if args[2].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_rectangle", 3, object.INTEGER_OBJ, args[2].Type())
+			}
+			width := int32(args[2].(*object.Integer).Value)
+			if args[3].Type() != object.INTEGER_OBJ {
+				return newPositionalTypeError("draw_rectangle", 4, object.INTEGER_OBJ, args[3].Type())
+			}
+			height := int32(args[3].(*object.Integer).Value)
+			if args[4].Type() != object.GO_OBJ {
+				return newPositionalTypeError("draw_rectangle", 5, object.GO_OBJ, args[4].Type())
+			}
+			color, ok := args[4].(*object.GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Color", args[4])
+			}
+			rl.DrawRectangle(posx, posy, width, height, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_rectangle` draws a rectangle at the given position with width and height",
+			signature:   "draw_rectangle(posx: int, posy: int, width: int, height: int, color=color.black) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "draw_rectangle() (used as Rectangle().draw(color))=> null",
 		}.String(),
 	},
 	"_set_target_fps": {
@@ -545,6 +611,34 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			signature:   "rectangle(x: float=0.0, y: float=0.0, width: float=0.0, height: float=0.0) -> GoObj[rl.Rectangle]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "rectangle() => GoObj[rl.Rectangle]",
+		}.String(),
+	},
+	"_rectangle_check_collision": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("rectangle_check_collision", len(args), 4, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("rectangle_check_collision", 1, object.GO_OBJ, args[0].Type())
+			}
+			rec1, ok := args[0].(*object.GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("rectangle_check_collision", 1, "rl.Rectangle", args[0])
+			}
+			if args[1].Type() != object.GO_OBJ {
+				return newPositionalTypeError("rectangle_check_collision", 2, object.GO_OBJ, args[1].Type())
+			}
+			rec2, ok := args[1].(*object.GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("rectangle_check_collision", 2, "rl.Rectangle", args[1])
+			}
+			return nativeToBooleanObject(rl.CheckCollisionRecs(rec1.Value, rec2.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`rectangle_check_collision` returns true if the 2 rectangles collide",
+			signature:   "rectangle_check_collision(rec1: GoObj[rl.Rectangle], rec2: GoObj[rl.Rectangle]) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "rectangle_check_collision(rec1, rec2) => true",
 		}.String(),
 	},
 	"_vector2": {

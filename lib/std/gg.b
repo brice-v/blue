@@ -3,6 +3,8 @@
 
 
 val __init_window = _init_window;
+val get_screen_width = _get_screen_width;
+val get_screen_height = _get_screen_height;
 val __clear_background = _clear_background;
 val color = _color_map();
 val begin_drawing = _begin_drawing;
@@ -48,6 +50,11 @@ val __begin_mode2d = _begin_mode2d;
 val end_mode2d = _end_mode2d;
 val __begin_mode3d = _begin_mode3d;
 val end_mode3d = _end_mode3d;
+
+val __draw_rectangle = _draw_rectangle;
+
+# TODO: Once we have more check_collision functions, just make it standalone
+val __rectangle_check_collision = _rectangle_check_collision;
 
 # Input Constants
 
@@ -287,6 +294,15 @@ fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
     };
     this.obj = fun() {
         return __rectangle(float(this['x']), float(this['y']), float(this['width']), float(this['height']));
+    }
+    this.draw = fun(c=color.red) {
+        __draw_rectangle(int(this.x), int(this.y), int(this.width), int(this.height), c);
+    }
+    this.check_collision = fun(rec) {
+        if ('obj' notin rec) {
+            return error("rec must have obj() function on its map");
+        }
+        return __rectangle_check_collision(this.obj(), rec.obj());
     }
     return this;
 }
