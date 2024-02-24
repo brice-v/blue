@@ -14,12 +14,17 @@ TODO:
     - [ ] Map on lambda with destructuring (for maps, lists, etc.)
 - [ ] Support sse (server streamed events)
 - [ ] Support more middlewares with gofiber for internal http server
+    - [ ] Add helmet
+    - [ ] Add compression
+    - [ ] Add limiter
+    - [ ] Add encrypt cookie
 - [ ] Build with tinygo for wasm
     - [ ] Update associated files/std lib that cant be built
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
     - Make regex literal work in match statement (kind of like what ruby does?)
+    - [ ] Add `igm` flags and support them in regex literal or re() function
 - [ ] Expand blueObjectToGoObject and goObjectToBlueObject to support all nested variations as well
 - [ ] Add a fix for interface maps to use ordered so we can translate back and forth from blue <-> go <-> blue objects
     - Assuming this doesnt break any existing areas its much more consistent for sorting objects
