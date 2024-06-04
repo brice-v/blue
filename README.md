@@ -121,6 +121,10 @@ fun send(obj, value) {
 
 - check out files in `b_test_programs` for more
 
+### Space Invaders Example
+
+![SpaceInvaders](https://github.com/brice-v/assets/blob/133b60479f94302b8fb2078870a8dc738a8e4287/basic.gif)
+
 ### Usage
 
 - Download the binary from the
