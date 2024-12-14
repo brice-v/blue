@@ -109,9 +109,15 @@ fun reduce(list, f, acc=null) {
 }
 
 val __sort = _sort;
+val __sorted = _sorted;
 fun sort(list, reverse=false, key=null) {
     ##core:__sort
     return _sort(list, reverse, key);
+}
+
+fun sorted(list, reverse=false, key=null) {
+    ##core:__sorted
+    return _sorted(list, reverse, key);
 }
 
 fun zip(lol) {
