@@ -908,7 +908,7 @@ func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object
 	return NULL
 }
 
-func (e *Evaluator) evalSelfExpression(node *ast.SelfExpression) object.Object {
+func (e *Evaluator) evalSelfExpression(_ *ast.SelfExpression) object.Object {
 	return object.CreateBasicMapObject("pid", e.PID)
 }
 

@@ -274,7 +274,7 @@ func prepareAndApplyHttpHandleFn(e *Evaluator, fn *object.Function, c *fiber.Ctx
 	if !ok {
 		return false, nil, errors
 	}
-	fnArgs, immutableArgs := getAndSetHttpParams(e, fn, c)
+	fnArgs, immutableArgs := getAndSetHttpParams(fn, c)
 	return true, e.applyFunctionFast(fn, fnArgs, make(map[string]object.Object), immutableArgs), []string{}
 }
 
@@ -476,7 +476,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 	return object.CreateMapObjectForGoMap(*mapObj)
 }
 
-func getAndSetHttpParams(e *Evaluator, fn *object.Function, c *fiber.Ctx) ([]object.Object, []bool) {
+func getAndSetHttpParams(fn *object.Function, c *fiber.Ctx) ([]object.Object, []bool) {
 	fnArgs := make([]object.Object, len(fn.Parameters))
 	immutableArgs := make([]bool, len(fnArgs))
 	for i, v := range fn.Parameters {

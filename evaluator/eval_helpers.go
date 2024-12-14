@@ -976,7 +976,7 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 func getBlueObjectFromResp(resp *http.Response) object.Object {
 	_body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 	body := &object.Stringo{Value: string(_body)}
