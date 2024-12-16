@@ -64,13 +64,17 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("new", len(args), 1, "")
 			}
-			if args[0].Type() != object.MAP_OBJ {
-				return newPositionalTypeError("new", 1, object.MAP_OBJ, args[0].Type())
+			if args[0].Type() != object.MAP_OBJ && args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("new", 1, "MAP or LIST", args[0].Type())
 			}
-			m := args[0].(*object.Map)
-			newMap := clone.Clone(m).(*object.Map)
-
-			return newMap
+			if args[0].Type() == object.MAP_OBJ {
+				m := args[0].(*object.Map)
+				newMap := clone.Clone(m).(*object.Map)
+				return newMap
+			}
+			l := args[0].(*object.List)
+			newList := clone.Clone(l).(*object.List)
+			return newList
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`new` returns a cloned MAP object from the given arg",
@@ -134,20 +138,30 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("del", len(args), 2, "")
 			}
-			if args[0].Type() != object.MAP_OBJ {
+			if args[0].Type() != object.MAP_OBJ && args[0].Type() != object.LIST_OBJ {
 				return newPositionalTypeError("del", 1, object.MAP_OBJ, args[0].Type())
 			}
-			m := args[0].(*object.Map)
-			hk := object.HashKey{
-				Type:  args[1].Type(),
-				Value: object.HashObject(args[1]),
+			if args[0].Type() == object.MAP_OBJ {
+				m := args[0].(*object.Map)
+				hk := object.HashKey{
+					Type:  args[1].Type(),
+					Value: object.HashObject(args[1]),
+				}
+				m.Pairs.Delete(hk)
+			} else {
+				// TODO: Support other num types? Also do we have helpers for generic isNumber
+				if args[1].Type() != object.INTEGER_OBJ {
+					return newPositionalTypeError("del", 2, object.LIST_OBJ, args[1].Type())
+				}
+				l := args[0].(*object.List)
+				index := args[1].(*object.Integer).Value
+				l.Elements = append(l.Elements[:index], l.Elements[index+1:]...)
 			}
-			m.Pairs.Delete(hk)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`del` deletes a key from a MAP",
-			signature:   "del(m: map, key: any) -> null",
+			explanation: "`del` deletes a key from a MAP or index from a LIST",
+			signature:   "del(m: map|list, key: any|int) -> null",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "del({'a': 1, 'B': 2}, 'a') => null - side effect: {'B': 2}",
 		}.String(),
