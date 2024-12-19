@@ -3538,7 +3538,7 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 }
 
 func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object {
-	var result object.Object
+	var result object.Object = NULL
 
 	e.scopeNestLevel++
 	e.isInScopeBlock[e.scopeNestLevel] = struct{}{}
