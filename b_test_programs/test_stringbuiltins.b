@@ -44,3 +44,10 @@ val regex_to_use = ".*\\swoRd$";
 assert(example_string_to_match.matches(regex_to_use));
 val example_string_to_not_match = "Some odd string with anotherwoRd";
 assert(!example_string_to_not_match.matches(regex_to_use));
+
+
+val input_for_regex_split = "90 Hello";
+val re_for_split = r/\d\d\s/;
+val result_for_re_split = input_for_regex_split.split(re_for_split);
+println(result_for_re_split)
+assert(result_for_re_split == ['', "Hello"])

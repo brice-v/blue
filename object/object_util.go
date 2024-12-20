@@ -98,3 +98,7 @@ func CreateObjectFromDbInterface(input interface{}) Object {
 func createHelpStringForObject(name, desc string, obj Object) string {
 	return fmt.Sprintf("Help:    `%s` %s\nType:    '%s'\nInspect: %s", name, desc, obj.Type(), obj.Inspect())
 }
+
+func IsCollectionType(t Type) bool {
+	return t == LIST_OBJ || t == SET_OBJ || t == MAP_OBJ
+}

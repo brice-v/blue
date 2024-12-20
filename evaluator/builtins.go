@@ -64,21 +64,23 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("new", len(args), 1, "")
 			}
-			if args[0].Type() != object.MAP_OBJ && args[0].Type() != object.LIST_OBJ {
-				return newPositionalTypeError("new", 1, "MAP or LIST", args[0].Type())
+			if !object.IsCollectionType(args[0].Type()) {
+				return newPositionalTypeError("new", 1, "MAP or LIST or SET", args[0].Type())
 			}
 			if args[0].Type() == object.MAP_OBJ {
 				m := args[0].(*object.Map)
-				newMap := clone.Clone(m).(*object.Map)
-				return newMap
+				return clone.Clone(m).(*object.Map)
+			} else if args[0].Type() == object.LIST_OBJ {
+				l := args[0].(*object.List)
+				return clone.Clone(l).(*object.List)
+			} else {
+				s := args[0].(*object.Set)
+				return clone.Clone(s).(*object.Set)
 			}
-			l := args[0].(*object.List)
-			newList := clone.Clone(l).(*object.List)
-			return newList
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`new` returns a cloned MAP object from the given arg",
-			signature:   "new(arg: map) -> map",
+			signature:   "new(arg: map|list|set) -> map|list|set",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "new({'x': 1}) => {'x': 1}",
 		}.String(),
@@ -138,8 +140,8 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("del", len(args), 2, "")
 			}
-			if args[0].Type() != object.MAP_OBJ && args[0].Type() != object.LIST_OBJ {
-				return newPositionalTypeError("del", 1, object.MAP_OBJ, args[0].Type())
+			if !object.IsCollectionType(args[0].Type()) {
+				return newPositionalTypeError("del", 1, "MAP or LIST or SET", args[0].Type())
 			}
 			if args[0].Type() == object.MAP_OBJ {
 				m := args[0].(*object.Map)
@@ -148,14 +150,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					Value: object.HashObject(args[1]),
 				}
 				m.Pairs.Delete(hk)
-			} else {
-				// TODO: Support other num types? Also do we have helpers for generic isNumber
+			} else if args[1].Type() == object.LIST_OBJ {
 				if args[1].Type() != object.INTEGER_OBJ {
 					return newPositionalTypeError("del", 2, object.LIST_OBJ, args[1].Type())
 				}
 				l := args[0].(*object.List)
 				index := args[1].(*object.Integer).Value
 				l.Elements = append(l.Elements[:index], l.Elements[index+1:]...)
+			} else {
+				hk := object.HashKey{
+					Type:  args[1].Type(),
+					Value: object.HashObject(args[1]),
+				}
+				s := args[0].(*object.Set)
+				s.Elements.Delete(hk.Value)
 			}
 			return NULL
 		},
@@ -651,7 +659,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			elements := args[0].(*object.List).Elements
 			for _, e := range elements {
 				hashKey := object.HashObject(e)
-				resultSet.Elements.Set(hashKey, object.SetPair{Value: e, Present: true})
+				resultSet.Elements.Set(hashKey, object.SetPair{Value: e, Present: struct{}{}})
 			}
 			return resultSet
 		},
@@ -2068,9 +2076,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			newElems := []object.Object{}
 			for _, k := range s.Keys {
 				if obj, ok := s.Get(k); ok {
-					if obj.Present {
-						newElems = append(newElems, obj.Value)
-					}
+					newElems = append(newElems, obj.Value)
 				}
 			}
 			return &object.List{Elements: newElems}
@@ -2103,6 +2109,29 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			signature:   "abs_path(arg: str) -> str",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "abs_path('some_file.txt') => '/the/path/to/some_file.txt'",
+		}.String(),
+	},
+	"fmt": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("fmt", len(args), 1, "")
+			}
+			val, err := anyBlueObjectToGoObject(args[0])
+			if err != nil {
+				// Escape to just using value as string
+				val = args[0].Inspect()
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("fmt", 2, object.STRING_OBJ, args[1].Type())
+			}
+			fmtString := args[1].(*object.Stringo).Value
+			return &object.Stringo{Value: fmt.Sprintf(fmtString, val)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`fmt` returns the formatted version of the given INTEGER",
+			signature:   "fmt(arg: int, fmtStr: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "fmt(3, '%04b') => '0011'",
 		}.String(),
 	},
 })

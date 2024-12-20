@@ -81,18 +81,25 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if !ok {
 					return newPositionalTypeError("split", 1, object.STRING_OBJ, args[0].Type())
 				}
-				arg1, ok := args[1].(*object.Stringo)
-				if !ok {
-					return newPositionalTypeError("split", 2, object.STRING_OBJ, args[1].Type())
+				if args[1].Type() != object.STRING_OBJ && args[1].Type() != object.REGEX_OBJ {
+					return newPositionalTypeError("split", 2, "STRING or REGEX", args[1].Type())
 				}
-				strList := strings.Split(arg0.Value, arg1.Value)
+				var strList []string
+				arg1, isStr := args[1].(*object.Stringo)
+				if isStr {
+					strList = strings.Split(arg0.Value, arg1.Value)
+				} else {
+					re := args[1].(*object.Regex).Value
+					strList = re.Split(arg0.Value, -1)
+
+				}
 				return &object.List{Elements: createStringList(strList)}
 			}
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`split` returns a LIST of STRINGs based on a STRING separator",
-			signature:   "split(arg: str, sep: str) -> list[str]",
+			signature:   "split(arg: str, sep: str|regex) -> list[str]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "split('Hello', '') => ['H','e','l','l','o']",
 		}.String(),

@@ -841,9 +841,24 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			set.Set(k, object.SetPairGo{Value: val, Present: v.Present})
+			set.Set(k, object.SetPairGo{Value: val, Present: struct{}{}})
 		}
 		return set, nil
+	default:
+		return nil, fmt.Errorf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
+	}
+}
+
+// TODO: Eventually allow MAPs to be more variable
+func anyBlueObjectToGoObject(blueObject object.Object) (interface{}, error) {
+	if blueObject == nil {
+		return nil, fmt.Errorf("blueObjectToGoObject: blueObject must not be nil")
+	}
+	switch blueObject.Type() {
+	case object.STRING_OBJ, object.INTEGER_OBJ, object.FLOAT_OBJ, object.NULL_OBJ, object.BOOLEAN_OBJ, object.MAP_OBJ, object.LIST_OBJ, object.SET_OBJ:
+		return blueObjectToGoObject(blueObject)
+	case object.UINTEGER_OBJ:
+		return blueObject.(*object.UInteger).Value, nil
 	default:
 		return nil, fmt.Errorf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
 	}

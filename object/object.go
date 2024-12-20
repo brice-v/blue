@@ -518,12 +518,12 @@ func (mcl *MapCompLiteral) Help() string {
 // SetPair is the set object and bool to represent its precense in the set
 type SetPair struct {
 	Value   Object
-	Present bool
+	Present struct{}
 }
 
 type SetPairGo struct {
 	Value   interface{}
-	Present bool
+	Present struct{}
 }
 
 // Set is the set object type struct

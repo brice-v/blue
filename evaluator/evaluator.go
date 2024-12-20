@@ -260,7 +260,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 					// If obj exists do nothing
 					return NULL
 				}
-				s.Elements.Set(key, object.SetPair{Value: right, Present: true})
+				s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
 				return NULL
 			case right.Type() == object.SET_OBJ && operator == ">>":
 				if ident, ok := node.Right.(*ast.Identifier); ok {
@@ -274,7 +274,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 					// If obj exists do nothing
 					return NULL
 				}
-				s.Elements.Set(key, object.SetPair{Value: left, Present: true})
+				s.Elements.Set(key, object.SetPair{Value: left, Present: struct{}{}})
 				return NULL
 			}
 		}
@@ -804,7 +804,7 @@ func (e *Evaluator) evalSetLiteral(node *ast.SetLiteral) object.Object {
 	setMap := object.NewSetElements()
 	for _, e := range elements {
 		hashKey := object.HashObject(e)
-		setMap.Set(hashKey, object.SetPair{Value: e, Present: true})
+		setMap.Set(hashKey, object.SetPair{Value: e, Present: struct{}{}})
 	}
 	return &object.Set{Elements: setMap}
 }
@@ -817,7 +817,7 @@ func (e *Evaluator) evalEvalExpression(node *ast.EvalExpression) object.Object {
 	s := evalStr.(*object.Stringo).Value
 	obj, err := e.EvalString(s)
 	if err != nil {
-		return newError(err.Error())
+		return newError("%s", err.Error())
 	}
 	return obj
 }
@@ -1182,8 +1182,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			var val object.Object
 			for i, k := range set.Keys {
 				if i == e.iterCount[e.nestLevel] {
-					sp, _ := set.Get(k)
-					if sp.Present {
+					if sp, ok := set.Get(k); ok {
 						val = sp.Value
 					}
 				}
@@ -1195,8 +1194,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		var val object.Object
 		for i, k := range set.Keys {
 			if i == e.iterCount[e.nestLevel] {
-				sp, _ := set.Get(k)
-				if sp.Present {
+				if sp, ok := set.Get(k); ok {
 					val = sp.Value
 				}
 			}
@@ -1340,8 +1338,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			var val object.Object
 			for i, k := range set.Keys {
 				if i == e.iterCount[e.nestLevel] {
-					sp, _ := set.Get(k)
-					if sp.Present {
+					if sp, ok := set.Get(k); ok {
 						val = sp.Value
 					}
 				}
@@ -1354,8 +1351,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		var val object.Object
 		for i, k := range set.Keys {
 			if i == e.iterCount[e.nestLevel] {
-				sp, _ := set.Get(k)
-				if sp.Present {
+				if sp, ok := set.Get(k); ok {
 					val = sp.Value
 				}
 			}
@@ -2759,13 +2755,13 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 		}
 		for _, k := range s.Elements.Keys {
 			v, ok := s.Elements.Get(k)
-			if ok && v.Present {
+			if ok {
 				newSet.Elements.Set(k, v)
 			}
 		}
 		if _, ok := s.Elements.Get(key); !ok {
 			// Key does not exist, add new elem
-			newSet.Elements.Set(key, object.SetPair{Value: obj, Present: true})
+			newSet.Elements.Set(key, object.SetPair{Value: obj, Present: struct{}{}})
 		}
 		return newSet
 	}
@@ -2805,13 +2801,11 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 			if !ok {
 				continue
 			}
-			v1, ok := rightElems.Get(k)
+			_, ok = rightElems.Get(k)
 			if !ok {
 				continue
 			}
-			if v1.Present {
-				newSet.Elements.Set(k, v)
-			}
+			newSet.Elements.Set(k, v)
 		}
 		return newSet
 	case "^":
@@ -2821,11 +2815,8 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 			if !ok {
 				continue
 			}
-			v1, ok := rightElems.Get(k)
+			_, ok = rightElems.Get(k)
 			if !ok {
-				newSet.Elements.Set(k, v)
-			}
-			if !v1.Present {
 				newSet.Elements.Set(k, v)
 			}
 		}
@@ -2834,11 +2825,8 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 			if !ok {
 				continue
 			}
-			v1, ok := leftElems.Get(k)
+			_, ok = leftElems.Get(k)
 			if !ok {
-				newSet.Elements.Set(k, v)
-			}
-			if !v1.Present {
 				newSet.Elements.Set(k, v)
 			}
 		}
@@ -2866,33 +2854,24 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 			if !ok {
 				continue
 			}
-			v1, ok := rightElems.Get(k)
+			_, ok = rightElems.Get(k)
 			if !ok {
-				newSet.Elements.Set(k, v)
-			}
-			if !v1.Present {
 				newSet.Elements.Set(k, v)
 			}
 		}
 		return newSet
 	case "==":
 		for _, k := range leftElems.Keys {
-			v1, ok := rightElems.Get(k)
+			_, ok := rightElems.Get(k)
 			if !ok {
-				return FALSE
-			}
-			if !v1.Present {
 				return FALSE
 			}
 		}
 		return TRUE
 	case "!=":
 		for _, k := range leftElems.Keys {
-			v1, ok := rightElems.Get(k)
+			_, ok := rightElems.Get(k)
 			if !ok {
-				return TRUE
-			}
-			if !v1.Present {
 				return TRUE
 			}
 		}
