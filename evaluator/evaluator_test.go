@@ -5,6 +5,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"log"
+	"strings"
 	"testing"
 )
 
@@ -173,7 +174,7 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"((1 > 2) and true) == true", false},
 		{"((1 > 2) or true) == false", false},
 		{"((1 <= 2) and not false) == true", true},
-		{"(1 <= 2) and not true) == false", false},
+		{"((1 <= 2) and not true) == false", true},
 		{"((1 >= 2) and false) == true", false},
 		{"((1 >= 2) or false) == false", true},
 	}
@@ -674,6 +675,9 @@ func testEval(input string) object.Object {
 	l := lexer.New(input, "<internal: test>")
 	p := parser.New(l)
 	program := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		log.Fatalf("Parser Errors in Test `%s`: %s", input, strings.Join(p.Errors(), "\n"))
+	}
 	e := New()
 	return e.Eval(program)
 }

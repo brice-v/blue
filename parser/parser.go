@@ -291,6 +291,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 				program.Statements = append(program.Statements, stmt)
 			}
 			p.nextToken()
+			if p.curTokenIs(token.SEMICOLON) {
+				p.nextToken()
+			}
 		}
 	}
 
@@ -1789,7 +1792,13 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 			}
 			origStrings = append(origStrings, fmt.Sprintf("#{%s}", toLex.String()))
 			parseString := New(l)
-			interps = append(interps, parseString.parseExpression(LOWEST))
+			parsedExp := parseString.parseExpression(LOWEST)
+			if parsedExp == nil {
+				// If the Interpolation is empty #{} we want to replace with empty string for the evaluator to use
+				interps = append(interps, &ast.StringLiteral{Value: ""})
+			} else {
+				interps = append(interps, parsedExp)
+			}
 		} else if sl.peekChar() == 0 {
 			break
 		}
