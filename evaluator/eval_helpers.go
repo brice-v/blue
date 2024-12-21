@@ -290,7 +290,7 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 			extraMsg := e.maybeNullMapFnCall.Pop()
 			msg = fmt.Sprintf("%s, %s", msg, extraMsg)
 		}
-		return newError(msg)
+		return newError("%s", msg)
 	}
 }
 

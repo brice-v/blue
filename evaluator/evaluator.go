@@ -221,6 +221,11 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			e.ErrorTokens.Push(node.Token)
 			return left
 		}
+		// Implement Shortcuts for Truthiness in Infix Expressions
+		if ((node.Operator == "&&" || node.Operator == "and") && left == FALSE) ||
+			((node.Operator == "||" || node.Operator == "or") && left == TRUE) {
+			return left
+		}
 		right := e.Eval(node.Right)
 		if isError(right) {
 			e.ErrorTokens.Push(node.Token)

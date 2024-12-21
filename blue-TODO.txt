@@ -1,5 +1,12 @@
 TODO:
 
+- [ ] FEAT: Implement proper scopes so variable shadowing can work
+    - assigning to global variable failed eg. var ll = [3,2,1]; fun () { ll = ll.sort(); } => ll still [3,2,1]
+    - when assigning to a variable, we are not allocating new?
+- [ ] FEAT: allow functions to be defined later down in the file
+- [ ] FEAT: sort doesnt work when nulls are in collections (realistically we can put at beginning or end)
+    - by fixing this we might as well add true and false to be sortable in collection as well?
+- [ ] TASK: add helper to format multi object positional type errors (if possible) so you dont have to write "or ..."
 - [-] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
     - [ ] Accept subcmd for gui/browser that specifies what you want to do
         - Just implemented browser for now but technically gui should also be possible (this should still be done)
@@ -161,9 +168,37 @@ func main() {
 - [ ] DNS resolver function? like the dig cmd
 - [ ] Use swiss map if its better? https://github.com/dolthub/swiss
 - [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
+- allow ! onto function names so that I can name methods that mutate with an !
+- [ ] BUG: maybe bug in for loop using var and len of split lines (failing in d4 when I didnt subtract 1 [it shoudlve ended at 140 ])
+    - also had nested loop so maybe that has something to do with it
+- [ ] Future FEAT: Look at d7 and see if we can create a pattern that spins up some # of processes and completes with a result based on a list of items
+- [~] FEAT: Add regex for split method builtin
+    - [ ] MAYBE FEAT: Update to support n on 'split' for regex (or update so that we can do something like split_n)
+    - [x] TASK: Add tests in string builtins
+- [ ] FEAT: IMPLEMENT CRASH HANDLER (it should record the relevant info but allow execution to continue [for now as everything is beta])
 
 COMPLETED TASKS:
 
+- [x] FEAT: if NULL < INTEGER (should shortcut in if statement (and others) if null check is first and fails)
+- [x] support deleting at index for other collections?
+    - Done
+- when assigning to a variable, we are not allocating new?
+    - also new doesnt work for list
+    - Done: added for list
+        - [-] need tests
+- [x] sort that mutates list (do we have that?)
+    - Done: calling it sorted
+    - [x] needs tests
+- [-] BUG: if if statement only contains comments, something weird happens (doesnt process?)
+    - Dont know how to reproduce
+- [-] CRASH: evalInExpressionWithListOnLeft causes panic if we are trying to check if a "tuple/list" is in another list
+    - Dont know how to reproduce
+- [x] FEAT: String formatting?
+    - Added very basic version just for simple int
+    - Add tests for this
+- [x] CRASH: Called function with single arg and no body and it crashed
+- [x] FEAT: support new for all collections
+- [x] FEAT: support del for all collections
 - [-] Make `from` look more like js rather than python
     - Going to likely leave this as is for now
 - [-] Add range from python for quick loops
