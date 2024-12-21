@@ -7,6 +7,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/token"
+	"blue/util"
 	"bytes"
 	"embed"
 	"fmt"
@@ -60,9 +61,9 @@ type Evaluator struct {
 	CurrentFile string
 
 	// UFCSArg is the argument to be given to the function
-	UFCSArg *Stack[*object.Object]
+	UFCSArg *util.Stack[*object.Object]
 	// UFCSArgIsImmutable determines whether the arg passed in to function is immutable
-	UFCSArgIsImmutable *Stack[bool]
+	UFCSArgIsImmutable *util.Stack[bool]
 
 	// Builtins is the list of builtin elements to look through based on the files imported
 	Builtins []BuiltinMapType
@@ -71,7 +72,7 @@ type Evaluator struct {
 
 	// ErrorTokens is the set 'stack' of tokens which can get the error with file:line:col
 	ErrorTokens        *TokenStackSet
-	maybeNullMapFnCall *Stack[string]
+	maybeNullMapFnCall *util.Stack[string]
 
 	// Used for: indx, elem in for expression
 	nestLevel         int
@@ -89,7 +90,7 @@ type Evaluator struct {
 	evalingNodeCond map[int]struct{}
 
 	// deferFuns is the map of scopeNestLevel function to execute at scope block cleanup
-	deferFuns map[int]*Stack[*FunAndArgs]
+	deferFuns map[int]*util.Stack[*FunAndArgs]
 }
 
 type FunAndArgs struct {
@@ -115,11 +116,11 @@ func New() *Evaluator {
 		EvalBasePath: cEvalBasePath,
 		CurrentFile:  cCurrentFile,
 
-		UFCSArg:            NewStack[*object.Object](),
-		UFCSArgIsImmutable: NewStack[bool](),
+		UFCSArg:            util.NewStack[*object.Object](),
+		UFCSArgIsImmutable: util.NewStack[bool](),
 
 		ErrorTokens:        NewTokenStackSet(),
-		maybeNullMapFnCall: NewStack[string](),
+		maybeNullMapFnCall: util.NewStack[string](),
 
 		nestLevel:         -1,
 		iterCount:         []int{},
@@ -134,7 +135,7 @@ func New() *Evaluator {
 		cleanupScopeVar: make(map[string]bool),
 		evalingNodeCond: make(map[int]struct{}),
 
-		deferFuns: make(map[int]*Stack[*FunAndArgs]),
+		deferFuns: make(map[int]*util.Stack[*FunAndArgs]),
 	}
 
 	e.Builtins = []BuiltinMapType{
@@ -907,7 +908,7 @@ func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object
 	fun := arg0.(*object.Function)
 	if _, ok := e.deferFuns[e.scopeNestLevel]; !ok {
 		// Initialize map if its not there yet
-		e.deferFuns[e.scopeNestLevel] = NewStack[*FunAndArgs]()
+		e.deferFuns[e.scopeNestLevel] = util.NewStack[*FunAndArgs]()
 	}
 	e.deferFuns[e.scopeNestLevel].Push(&FunAndArgs{Fun: fun, Args: arg1.(*object.List).Elements})
 	return NULL
