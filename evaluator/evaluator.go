@@ -367,7 +367,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			}
 			defaultParams = append(defaultParams, obj)
 		}
-		// TODO: Should Clone here too?
+		// TODO: Should Clone here too? (breaks recursion if we do)
 		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env}
 		funObj.HelpStr = createHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
 		e.env.Set(node.Name.Value, funObj)

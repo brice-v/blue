@@ -11,11 +11,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aead/siphash"
+	"github.com/minio/highwayhash"
 	"github.com/shopspring/decimal"
 )
 
-var _siphash_key = [16]byte{
+var _highwayhash_key = [32]byte{
 	0x10,
 	0x20,
 	0x30,
@@ -32,6 +32,22 @@ var _siphash_key = [16]byte{
 	0x60,
 	0x70,
 	0x80,
+	0x11,
+	0x21,
+	0x31,
+	0x41,
+	0x51,
+	0x61,
+	0x71,
+	0x81,
+	0x11,
+	0x21,
+	0x31,
+	0x41,
+	0x51,
+	0x61,
+	0x71,
+	0x81,
 }
 
 const (
@@ -653,9 +669,9 @@ func new8ByteBuf() []byte {
 
 // hashList implements hashing for list objects
 func (l *List) hashList() uint64 {
-	h, err := siphash.New64(_siphash_key[:])
+	h, err := highwayhash.New64(_highwayhash_key[:])
 	if err != nil {
-		panic("siphash init error " + err.Error())
+		panic("highwayhash init error " + err.Error())
 	}
 	for _, obj := range l.Elements {
 		hashedObj := HashObject(obj)
@@ -668,9 +684,9 @@ func (l *List) hashList() uint64 {
 
 // hashSet implements hashing for set objects
 func (s *Set) hashSet() uint64 {
-	h, err := siphash.New64(_siphash_key[:])
+	h, err := highwayhash.New64(_highwayhash_key[:])
 	if err != nil {
-		panic("siphash init error " + err.Error())
+		panic("highwayhash init error " + err.Error())
 	}
 	for _, k := range s.Elements.Keys {
 		v, _ := s.Elements.Get(k)
@@ -684,9 +700,9 @@ func (s *Set) hashSet() uint64 {
 
 // hashMap hashes the entire map to be used for checking equality
 func (m *Map) hashMap() uint64 {
-	h, err := siphash.New64(_siphash_key[:])
+	h, err := highwayhash.New64(_highwayhash_key[:])
 	if err != nil {
-		panic("siphash init error " + err.Error())
+		panic("highwayhash init error " + err.Error())
 	}
 	for _, k := range m.Pairs.Keys {
 		v, _ := m.Pairs.Get(k)
@@ -703,9 +719,9 @@ func (m *Map) hashMap() uint64 {
 // It is very likely I wont keep it like this because it will probably break things
 // but for now this naive implementation should do
 func HashObject(obj Object) uint64 {
-	h, err := siphash.New64(_siphash_key[:])
+	h, err := highwayhash.New64(_highwayhash_key[:])
 	if err != nil {
-		panic("siphash init error " + err.Error())
+		panic("highwayhash init error " + err.Error())
 	}
 	switch obj.Type() {
 	case INTEGER_OBJ:

@@ -6,7 +6,6 @@ toolchain go1.21.6
 
 require (
 	fyne.io/fyne/v2 v2.4.3
-	github.com/aead/siphash v1.0.1
 	github.com/antchfx/htmlquery v1.3.0
 	github.com/chzyer/readline v1.5.1
 	github.com/clbanning/mxj/v2 v2.7.0
@@ -24,6 +23,7 @@ require (
 	github.com/huandu/go-clone v1.7.2
 	github.com/huandu/xstrings v1.4.0
 	github.com/microcosm-cc/bluemonday v1.0.26
+	github.com/minio/highwayhash v1.0.3
 	github.com/otiai10/copy v1.14.0
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/shirou/gopsutil/v3 v3.24.1
@@ -34,7 +34,7 @@ require (
 	github.com/xlab/treeprint v1.2.0
 	golang.org/x/crypto v0.18.0
 	golang.org/x/net v0.20.0
-	golang.org/x/sys v0.16.0
+	golang.org/x/sys v0.21.0
 	golang.org/x/text v0.14.0
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	modernc.org/sqlite v1.28.0
