@@ -78,10 +78,10 @@ fun g_input() {
 }
 
 fun update_enemy_speed() {
-    if G.enemy_speed > 8 {
+    if G.enemy_speed > 7 {
         return null;
     }
-    G.enemy_speed += 0.5;
+    G.enemy_speed += 0.25;
 }
 
 fun check_bullet_hit() {
@@ -121,26 +121,28 @@ fun update_enemy_heights_and_speeds() {
             if !enemy {
                 continue;
             }
-            enemy.y += ENEMY_HEIGHT;
+            enemy.y += int(ENEMY_HEIGHT/2);
         }
     }
 }
 
 fun move_enemies() {
+    var original_speed = G.enemy_speed;
+    var original_direction = G.enemy_direction;
     for ([i, row] in G.enemies) {
         for ([j, enemy] in row) {
             if enemy {
-                if G.enemy_direction == 'right' {
-                    enemy.x += G.enemy_speed;
+                if original_direction == 'right' {
+                    enemy.x += original_speed;
                 } else {
-                    enemy.x -= G.enemy_speed;
+                    enemy.x -= original_speed;
                 }
-                if enemy.x > SCREEN_WIDTH-enemy.width {
-                    enemy.x -= G.enemy_speed;
+                if enemy.x >= SCREEN_WIDTH-enemy.width {
+                    enemy.x = SCREEN_WIDTH-enemy.width;
                     G.enemy_direction = 'left';
                     update_enemy_heights_and_speeds();
-                } else if enemy.x < 0 {
-                    enemy.x += G.enemy_speed;
+                } else if enemy.x <= 0 {
+                    enemy.x = 0;
                     G.enemy_direction = 'right';
                     update_enemy_heights_and_speeds();
                 }
@@ -148,6 +150,18 @@ fun move_enemies() {
         }
     }
 }
+
+###fun check_enemy_pos() {
+    var enemy_x_poss = [];
+    for ([i, row] in G.enemies) {
+        for ([j, enemy] in row) {
+            if enemy {
+                enemy_x_poss << [enemy.x, enemy.x+enemy.width];
+            }
+        }
+    }
+    println("x pos = #{enemy_x_poss}");
+}###
 
 fun check_lost() {
     for ([i, row] in G.enemies) {
@@ -179,6 +193,7 @@ fun g_update() {
         fire_bullet();
         check_bullet_hit();
         move_enemies();
+        #check_enemy_pos();
     }
     check_won();
     check_lost();
