@@ -181,32 +181,32 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("color_map", len(args), 0, "")
 			}
 			mapObj := object.NewOrderedMap[string, object.Object]()
-			lightGray := NewGoObj[rl.Color](rl.LightGray)
-			gray := NewGoObj[rl.Color](rl.Gray)
-			darkGray := NewGoObj[rl.Color](rl.DarkGray)
-			yellow := NewGoObj[rl.Color](rl.Yellow)
-			gold := NewGoObj[rl.Color](rl.Gold)
-			orange := NewGoObj[rl.Color](rl.Orange)
-			pink := NewGoObj[rl.Color](rl.Pink)
-			red := NewGoObj[rl.Color](rl.Red)
-			maroon := NewGoObj[rl.Color](rl.Maroon)
-			green := NewGoObj[rl.Color](rl.Green)
-			lime := NewGoObj[rl.Color](rl.Lime)
-			darkGreen := NewGoObj[rl.Color](rl.DarkGreen)
-			skyBlue := NewGoObj[rl.Color](rl.SkyBlue)
-			blue := NewGoObj[rl.Color](rl.Blue)
-			darkBlue := NewGoObj[rl.Color](rl.DarkBlue)
-			purple := NewGoObj[rl.Color](rl.Purple)
-			violet := NewGoObj[rl.Color](rl.Violet)
-			darkPurple := NewGoObj[rl.Color](rl.DarkPurple)
-			beige := NewGoObj[rl.Color](rl.Beige)
-			brown := NewGoObj[rl.Color](rl.Brown)
-			darkBrown := NewGoObj[rl.Color](rl.DarkBrown)
-			white := NewGoObj[rl.Color](rl.White)
-			black := NewGoObj[rl.Color](rl.Black)
-			blank := NewGoObj[rl.Color](rl.Blank)
-			magenta := NewGoObj[rl.Color](rl.Magenta)
-			rayWhite := NewGoObj[rl.Color](rl.RayWhite)
+			lightGray := NewGoObj(rl.LightGray)
+			gray := NewGoObj(rl.Gray)
+			darkGray := NewGoObj(rl.DarkGray)
+			yellow := NewGoObj(rl.Yellow)
+			gold := NewGoObj(rl.Gold)
+			orange := NewGoObj(rl.Orange)
+			pink := NewGoObj(rl.Pink)
+			red := NewGoObj(rl.Red)
+			maroon := NewGoObj(rl.Maroon)
+			green := NewGoObj(rl.Green)
+			lime := NewGoObj(rl.Lime)
+			darkGreen := NewGoObj(rl.DarkGreen)
+			skyBlue := NewGoObj(rl.SkyBlue)
+			blue := NewGoObj(rl.Blue)
+			darkBlue := NewGoObj(rl.DarkBlue)
+			purple := NewGoObj(rl.Purple)
+			violet := NewGoObj(rl.Violet)
+			darkPurple := NewGoObj(rl.DarkPurple)
+			beige := NewGoObj(rl.Beige)
+			brown := NewGoObj(rl.Brown)
+			darkBrown := NewGoObj(rl.DarkBrown)
+			white := NewGoObj(rl.White)
+			black := NewGoObj(rl.Black)
+			blank := NewGoObj(rl.Blank)
+			magenta := NewGoObj(rl.Magenta)
+			rayWhite := NewGoObj(rl.RayWhite)
 			newColor := &object.Builtin{
 				Fun: func(args ...object.Object) object.Object {
 					if len(args) != 4 {
@@ -224,7 +224,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					if args[3].Type() != object.INTEGER_OBJ {
 						return newPositionalTypeError("new_color", 4, object.INTEGER_OBJ, args[3].Type())
 					}
-					return NewGoObj[rl.Color](rl.NewColor(
+					return NewGoObj(rl.NewColor(
 						uint8(args[0].(*object.Integer).Value),
 						uint8(args[1].(*object.Integer).Value),
 						uint8(args[2].(*object.Integer).Value),
@@ -1635,7 +1635,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_account", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.AccountIcon())
+			return NewGoObj(theme.AccountIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_account` returns the object of the icon_account resource",
@@ -1649,7 +1649,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_cancel", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.CancelIcon())
+			return NewGoObj(theme.CancelIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_cancel` returns the object of the icon_cancel resource",
@@ -1663,7 +1663,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_check_button_checked", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.CheckButtonCheckedIcon())
+			return NewGoObj(theme.CheckButtonCheckedIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_check_button_checked` returns the object of the icon_check_button_checked resource",
@@ -1677,7 +1677,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_check_button", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.CheckButtonIcon())
+			return NewGoObj(theme.CheckButtonIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_check_button` returns the object of the icon_check_button resource",
@@ -1691,7 +1691,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_color_achromatic", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ColorAchromaticIcon())
+			return NewGoObj(theme.ColorAchromaticIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_color_achromatic` returns the object of the icon_color_achromatic resource",
@@ -1705,7 +1705,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_color_chromatic", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ColorChromaticIcon())
+			return NewGoObj(theme.ColorChromaticIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_color_chromatic` returns the object of the icon_color_chromatic resource",
@@ -1719,7 +1719,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_color_palette", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ColorPaletteIcon())
+			return NewGoObj(theme.ColorPaletteIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_color_palette` returns the object of the icon_color_palette resource",
@@ -1733,7 +1733,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_computer", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ComputerIcon())
+			return NewGoObj(theme.ComputerIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_computer` returns the object of the icon_computer resource",
@@ -1747,7 +1747,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_confirm", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ConfirmIcon())
+			return NewGoObj(theme.ConfirmIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_confirm` returns the object of the icon_confirm resource",
@@ -1761,7 +1761,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_add", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentAddIcon())
+			return NewGoObj(theme.ContentAddIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_add` returns the object of the icon_content_add resource",
@@ -1775,7 +1775,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_clear", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentClearIcon())
+			return NewGoObj(theme.ContentClearIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_clear` returns the object of the icon_content_clear resource",
@@ -1789,7 +1789,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_copy", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentCopyIcon())
+			return NewGoObj(theme.ContentCopyIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_copy` returns the object of the icon_content_copy resource",
@@ -1803,7 +1803,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_cut", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentCutIcon())
+			return NewGoObj(theme.ContentCutIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_cut` returns the object of the icon_content_cut resource",
@@ -1817,7 +1817,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_paste", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentPasteIcon())
+			return NewGoObj(theme.ContentPasteIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_paste` returns the object of the icon_content_paste resource",
@@ -1831,7 +1831,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_redo", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentRedoIcon())
+			return NewGoObj(theme.ContentRedoIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_redo` returns the object of the icon_content_redo resource",
@@ -1845,7 +1845,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_remove", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentRemoveIcon())
+			return NewGoObj(theme.ContentRemoveIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_remove` returns the object of the icon_content_remove resource",
@@ -1859,7 +1859,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_content_undo", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ContentUndoIcon())
+			return NewGoObj(theme.ContentUndoIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_content_undo` returns the object of the icon_content_undo resource",
@@ -1873,7 +1873,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_delete", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.DeleteIcon())
+			return NewGoObj(theme.DeleteIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_delete` returns the object of the icon_delete resource",
@@ -1887,7 +1887,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_document_create", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.DocumentCreateIcon())
+			return NewGoObj(theme.DocumentCreateIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_document_create` returns the object of the icon_document_create resource",
@@ -1901,7 +1901,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_document", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.DocumentIcon())
+			return NewGoObj(theme.DocumentIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_document` returns the object of the icon_document resource",
@@ -1915,7 +1915,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_document_print", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.DocumentPrintIcon())
+			return NewGoObj(theme.DocumentPrintIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_document_print` returns the object of the icon_document_print resource",
@@ -1929,7 +1929,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_document_save", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.DocumentSaveIcon())
+			return NewGoObj(theme.DocumentSaveIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_document_save` returns the object of the icon_document_save resource",
@@ -1943,7 +1943,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_download", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.DownloadIcon())
+			return NewGoObj(theme.DownloadIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_download` returns the object of the icon_download resource",
@@ -1957,7 +1957,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_error", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ErrorIcon())
+			return NewGoObj(theme.ErrorIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_error` returns the object of the icon_error resource",
@@ -1971,7 +1971,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_file_application", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FileApplicationIcon())
+			return NewGoObj(theme.FileApplicationIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_file_application` returns the object of the icon_file_application resource",
@@ -1985,7 +1985,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_file_audio", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FileAudioIcon())
+			return NewGoObj(theme.FileAudioIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_file_audio` returns the object of the icon_file_audio resource",
@@ -1999,7 +1999,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_file", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FileIcon())
+			return NewGoObj(theme.FileIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_file` returns the object of the icon_file resource",
@@ -2013,7 +2013,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_file_image", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FileImageIcon())
+			return NewGoObj(theme.FileImageIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_file_image` returns the object of the icon_file_image resource",
@@ -2027,7 +2027,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_file_text", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FileTextIcon())
+			return NewGoObj(theme.FileTextIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_file_text` returns the object of the icon_file_text resource",
@@ -2041,7 +2041,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_file_video", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FileVideoIcon())
+			return NewGoObj(theme.FileVideoIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_file_video` returns the object of the icon_file_video resource",
@@ -2055,7 +2055,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_folder", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FolderIcon())
+			return NewGoObj(theme.FolderIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_folder` returns the object of the icon_folder resource",
@@ -2069,7 +2069,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_folder_new", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FolderNewIcon())
+			return NewGoObj(theme.FolderNewIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_folder_new` returns the object of the icon_folder_new resource",
@@ -2083,7 +2083,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_folder_open", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.FolderOpenIcon())
+			return NewGoObj(theme.FolderOpenIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_folder_open` returns the object of the icon_folder_open resource",
@@ -2097,7 +2097,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_grid", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.GridIcon())
+			return NewGoObj(theme.GridIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_grid` returns the object of the icon_grid resource",
@@ -2111,7 +2111,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_help", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.HelpIcon())
+			return NewGoObj(theme.HelpIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_help` returns the object of the icon_help resource",
@@ -2125,7 +2125,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_history", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.HistoryIcon())
+			return NewGoObj(theme.HistoryIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_history` returns the object of the icon_history resource",
@@ -2139,7 +2139,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_home", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.HomeIcon())
+			return NewGoObj(theme.HomeIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_home` returns the object of the icon_home resource",
@@ -2153,7 +2153,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_info", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.InfoIcon())
+			return NewGoObj(theme.InfoIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_info` returns the object of the icon_info resource",
@@ -2167,7 +2167,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_list", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ListIcon())
+			return NewGoObj(theme.ListIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_list` returns the object of the icon_list resource",
@@ -2181,7 +2181,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_login", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.LoginIcon())
+			return NewGoObj(theme.LoginIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_login` returns the object of the icon_login resource",
@@ -2195,7 +2195,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_logout", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.LogoutIcon())
+			return NewGoObj(theme.LogoutIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_logout` returns the object of the icon_logout resource",
@@ -2209,7 +2209,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_mail_attachment", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MailAttachmentIcon())
+			return NewGoObj(theme.MailAttachmentIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_mail_attachment` returns the object of the icon_mail_attachment resource",
@@ -2223,7 +2223,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_mail_compose", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MailComposeIcon())
+			return NewGoObj(theme.MailComposeIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_mail_compose` returns the object of the icon_mail_compose resource",
@@ -2237,7 +2237,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_mail_forward", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MailForwardIcon())
+			return NewGoObj(theme.MailForwardIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_mail_forward` returns the object of the icon_mail_forward resource",
@@ -2251,7 +2251,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_mail_reply_all", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MailReplyAllIcon())
+			return NewGoObj(theme.MailReplyAllIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_mail_reply_all` returns the object of the icon_mail_reply_all resource",
@@ -2265,7 +2265,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_mail_reply", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MailReplyIcon())
+			return NewGoObj(theme.MailReplyIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_mail_reply` returns the object of the icon_mail_reply resource",
@@ -2279,7 +2279,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_mail_send", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MailSendIcon())
+			return NewGoObj(theme.MailSendIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_mail_send` returns the object of the icon_mail_send resource",
@@ -2293,7 +2293,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_fast_forward", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaFastForwardIcon())
+			return NewGoObj(theme.MediaFastForwardIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_fast_forward` returns the object of the icon_media_fast_forward resource",
@@ -2307,7 +2307,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_fast_rewind", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaFastRewindIcon())
+			return NewGoObj(theme.MediaFastRewindIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_fast_rewind` returns the object of the icon_media_fast_rewind resource",
@@ -2321,7 +2321,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_music", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaMusicIcon())
+			return NewGoObj(theme.MediaMusicIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_music` returns the object of the icon_media_music resource",
@@ -2335,7 +2335,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_pause", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaPauseIcon())
+			return NewGoObj(theme.MediaPauseIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_pause` returns the object of the icon_media_pause resource",
@@ -2349,7 +2349,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_photo", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaPhotoIcon())
+			return NewGoObj(theme.MediaPhotoIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_photo` returns the object of the icon_media_photo resource",
@@ -2363,7 +2363,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_play", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaPlayIcon())
+			return NewGoObj(theme.MediaPlayIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_play` returns the object of the icon_media_play resource",
@@ -2377,7 +2377,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_record", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaRecordIcon())
+			return NewGoObj(theme.MediaRecordIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_record` returns the object of the icon_media_record resource",
@@ -2391,7 +2391,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_replay", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaReplayIcon())
+			return NewGoObj(theme.MediaReplayIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_replay` returns the object of the icon_media_replay resource",
@@ -2405,7 +2405,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_skip_next", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaSkipNextIcon())
+			return NewGoObj(theme.MediaSkipNextIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_skip_next` returns the object of the icon_media_skip_next resource",
@@ -2419,7 +2419,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_skip_previous", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaSkipPreviousIcon())
+			return NewGoObj(theme.MediaSkipPreviousIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_skip_previous` returns the object of the icon_media_skip_previous resource",
@@ -2433,7 +2433,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_stop", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaStopIcon())
+			return NewGoObj(theme.MediaStopIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_stop` returns the object of the icon_media_stop resource",
@@ -2447,7 +2447,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_media_video", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MediaVideoIcon())
+			return NewGoObj(theme.MediaVideoIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_media_video` returns the object of the icon_media_video resource",
@@ -2461,7 +2461,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_menu_drop_down", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MenuDropDownIcon())
+			return NewGoObj(theme.MenuDropDownIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_menu_drop_down` returns the object of the icon_menu_drop_down resource",
@@ -2475,7 +2475,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_menu_drop_up", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MenuDropUpIcon())
+			return NewGoObj(theme.MenuDropUpIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_menu_drop_up` returns the object of the icon_menu_drop_up resource",
@@ -2489,7 +2489,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_menu_expand", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MenuExpandIcon())
+			return NewGoObj(theme.MenuExpandIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_menu_expand` returns the object of the icon_menu_expand resource",
@@ -2503,7 +2503,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_menu", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MenuIcon())
+			return NewGoObj(theme.MenuIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_menu` returns the object of the icon_menu resource",
@@ -2517,7 +2517,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_more_horizontal", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MoreHorizontalIcon())
+			return NewGoObj(theme.MoreHorizontalIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_more_horizontal` returns the object of the icon_more_horizontal resource",
@@ -2531,7 +2531,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_more_vertical", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MoreVerticalIcon())
+			return NewGoObj(theme.MoreVerticalIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_more_vertical` returns the object of the icon_more_vertical resource",
@@ -2545,7 +2545,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_move_down", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MoveDownIcon())
+			return NewGoObj(theme.MoveDownIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_move_down` returns the object of the icon_move_down resource",
@@ -2559,7 +2559,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_move_up", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.MoveUpIcon())
+			return NewGoObj(theme.MoveUpIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_move_up` returns the object of the icon_move_up resource",
@@ -2573,7 +2573,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_navigate_back", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.NavigateBackIcon())
+			return NewGoObj(theme.NavigateBackIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_navigate_back` returns the object of the icon_navigate_back resource",
@@ -2587,7 +2587,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_navigate_next", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.NavigateNextIcon())
+			return NewGoObj(theme.NavigateNextIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_navigate_next` returns the object of the icon_navigate_next resource",
@@ -2601,7 +2601,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_question", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.QuestionIcon())
+			return NewGoObj(theme.QuestionIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_question` returns the object of the icon_question resource",
@@ -2615,7 +2615,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_radio_button_checked", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.RadioButtonCheckedIcon())
+			return NewGoObj(theme.RadioButtonCheckedIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_radio_button_checked` returns the object of the icon_radio_button_checked resource",
@@ -2629,7 +2629,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_radio_button", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.RadioButtonIcon())
+			return NewGoObj(theme.RadioButtonIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_radio_button` returns the object of the icon_radio_button resource",
@@ -2643,7 +2643,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_search", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.SearchIcon())
+			return NewGoObj(theme.SearchIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_search` returns the object of the icon_search resource",
@@ -2657,7 +2657,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_search_replace", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.SearchReplaceIcon())
+			return NewGoObj(theme.SearchReplaceIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_search_replace` returns the object of the icon_search_replace resource",
@@ -2671,7 +2671,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_settings", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.SettingsIcon())
+			return NewGoObj(theme.SettingsIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_settings` returns the object of the icon_settings resource",
@@ -2685,7 +2685,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_storage", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.StorageIcon())
+			return NewGoObj(theme.StorageIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_storage` returns the object of the icon_storage resource",
@@ -2699,7 +2699,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_upload", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.UploadIcon())
+			return NewGoObj(theme.UploadIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_upload` returns the object of the icon_upload resource",
@@ -2713,7 +2713,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_view_full_screen", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ViewFullScreenIcon())
+			return NewGoObj(theme.ViewFullScreenIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_view_full_screen` returns the object of the icon_view_full_screen resource",
@@ -2727,7 +2727,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_view_refresh", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ViewRefreshIcon())
+			return NewGoObj(theme.ViewRefreshIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_view_refresh` returns the object of the icon_view_refresh resource",
@@ -2741,7 +2741,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_view_restore", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ViewRestoreIcon())
+			return NewGoObj(theme.ViewRestoreIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_view_restore` returns the object of the icon_view_restore resource",
@@ -2755,7 +2755,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_visibility", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.VisibilityIcon())
+			return NewGoObj(theme.VisibilityIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_visibility` returns the object of the icon_visibility resource",
@@ -2769,7 +2769,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_visibility_off", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.VisibilityOffIcon())
+			return NewGoObj(theme.VisibilityOffIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_visibility_off` returns the object of the icon_visibility_off resource",
@@ -2783,7 +2783,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_volume_down", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.VolumeDownIcon())
+			return NewGoObj(theme.VolumeDownIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_volume_down` returns the object of the icon_volume_down resource",
@@ -2797,7 +2797,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_volume_mute", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.VolumeMuteIcon())
+			return NewGoObj(theme.VolumeMuteIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_volume_mute` returns the object of the icon_volume_mute resource",
@@ -2811,7 +2811,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_volume_up", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.VolumeUpIcon())
+			return NewGoObj(theme.VolumeUpIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_volume_up` returns the object of the icon_volume_up resource",
@@ -2825,7 +2825,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_warning", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.WarningIcon())
+			return NewGoObj(theme.WarningIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_warning` returns the object of the icon_warning resource",
@@ -2839,7 +2839,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_zoom_fit", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ZoomFitIcon())
+			return NewGoObj(theme.ZoomFitIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_zoom_fit` returns the object of the icon_zoom_fit resource",
@@ -2853,7 +2853,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_zoom_in", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ZoomInIcon())
+			return NewGoObj(theme.ZoomInIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_zoom_in` returns the object of the icon_zoom_in resource",
@@ -2867,7 +2867,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 0 {
 				return newInvalidArgCountError("icon_zoom_out", len(args), 0, "")
 			}
-			return NewGoObj[fyne.Resource](theme.ZoomOutIcon())
+			return NewGoObj(theme.ZoomOutIcon())
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`icon_zoom_out` returns the object of the icon_zoom_out resource",

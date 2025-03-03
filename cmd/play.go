@@ -43,7 +43,7 @@ type EvalCodeResponse struct {
 	Stderr string `json:"stderr"`
 }
 
-func encode[T any](w http.ResponseWriter, r *http.Request, status int, v T) error {
+func encode[T any](w http.ResponseWriter, status int, v T) error {
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -229,7 +229,7 @@ func handlePlayCommand(argc int, arguments []string) {
 		}
 		log.Printf("stdoutString = %s", stdoutOut.String())
 		log.Printf("stderrString = %s", stderrOut.String())
-		err = encode(w, r, http.StatusOK, EvalCodeResponse{Stdout: stdoutOut.String(), Stderr: stderrOut.String()})
+		err = encode(w, http.StatusOK, EvalCodeResponse{Stdout: stdoutOut.String(), Stderr: stderrOut.String()})
 		if err != nil {
 			log.Printf("POST /eval error encodind response: %s", err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

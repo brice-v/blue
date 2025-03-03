@@ -2825,7 +2825,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			transport := strings.ToLower(args[0].(*object.Stringo).Value)
 			addr := args[1].(*object.Stringo).Value
 			port := args[2].(*object.Stringo).Value
-			addrStr := fmt.Sprintf("%s:%s", addr, port)
+			addrStr := net.JoinHostPort(addr, port)
 			conn, err := net.Dial(transport, addrStr)
 			if err != nil {
 				return newError("`connect` error: %s", err.Error())
