@@ -15,6 +15,7 @@ val Type = {
     MODULE: 'MODULE_OBJ',
     GO_OBJ: 'GO_OBJ',
     REGEX: 'REGEX',
+    NULL: 'NULL',
 };
 
 fun send(obj, value) {

@@ -113,6 +113,8 @@ type Object interface {
 	Type() Type      // Type is a function that returns the objects type
 	Inspect() string // Inspect is used for debugging an object
 	Help() string    // Help is used to get the help string for an object
+	Encode() ([]byte, error)
+	IType() iType
 }
 
 // Integer is the integer object type

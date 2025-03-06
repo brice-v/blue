@@ -9,6 +9,7 @@ require (
 	github.com/antchfx/htmlquery v1.3.0
 	github.com/chzyer/readline v1.5.1
 	github.com/clbanning/mxj/v2 v2.7.0
+	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/gen2brain/raylib-go/raylib v0.0.0-20230719211022-1083eace2049
 	github.com/gobuffalo/plush v3.8.3+incompatible
 	github.com/gofiber/fiber/v2 v2.46.0
@@ -110,6 +111,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.47.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/goldmark v1.5.5 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect

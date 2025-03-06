@@ -2114,7 +2114,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"fmt": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
-				return newInvalidArgCountError("fmt", len(args), 1, "")
+				return newInvalidArgCountError("fmt", len(args), 2, "")
 			}
 			val, err := anyBlueObjectToGoObject(args[0])
 			if err != nil {
@@ -2132,6 +2132,51 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			signature:   "fmt(arg: int, fmtStr: str) -> str",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "fmt(3, '%04b') => '0011'",
+		}.String(),
+	},
+	"save": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("save", len(args), 1, "")
+			}
+			bs, err := args[0].Encode()
+			if err != nil {
+				return newError("`save` error: %s", err.Error())
+			}
+			return &object.Bytes{Value: bs}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`save` returns the bytes of the encoded object",
+			signature:   "save(arg: any) -> bytes",
+			errors:      "InvalidArgCount,CustomError",
+			example:     "save(1234) => '82001904d2'",
+		}.String(),
+	},
+	"load": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("load", len(args), 1, "")
+			}
+			if args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("load", 1, object.BYTES_OBJ, args[0].Type())
+			}
+			obj, err := object.Decode(args[0].(*object.Bytes).Value)
+			if err != nil {
+				return newError("`load` error: %s", err.Error())
+			}
+			if o, ok := obj.(*object.Boolean); ok {
+				return nativeToBooleanObject(o.Value)
+			}
+			if _, ok := obj.(*object.Null); ok {
+				return NULL
+			}
+			return obj
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load` returns the object decoded from bytes",
+			signature:   "load(arg: bytes) -> any",
+			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
+			example:     "load('82001904d2'.to_bytes()) => 1234",
 		}.String(),
 	},
 })
