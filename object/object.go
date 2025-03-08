@@ -299,7 +299,7 @@ type Process struct {
 }
 
 func (p *Process) Inspect() string {
-	return "TODO: Process.Inspect()"
+	return "process.Inspect()"
 }
 
 func (p *Process) Type() Type {

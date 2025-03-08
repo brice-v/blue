@@ -243,7 +243,7 @@ func (x BigFloat) IType() iType {
 }
 
 func (x *ReturnValue) Encode() ([]byte, error) {
-	return nil, fmt.Errorf("TODO")
+	panic(fmt.Sprintf("encode handle %T?", x))
 }
 
 func (x *ReturnValue) IType() iType {
@@ -251,7 +251,7 @@ func (x *ReturnValue) IType() iType {
 }
 
 func (x *Error) Encode() ([]byte, error) {
-	return nil, fmt.Errorf("TODO")
+	panic(fmt.Sprintf("encode handle %T?", x))
 }
 
 func (x *Error) IType() iType {
@@ -259,19 +259,11 @@ func (x *Error) IType() iType {
 }
 
 func (x *Function) Encode() ([]byte, error) {
-	panic("TODO")
+	panic(fmt.Sprintf("encode handle %T", x))
 }
 
 func (x *Function) IType() iType {
 	return i_FUNCTION_OBJ
-}
-
-func (x *Process) Encode() ([]byte, error) {
-	panic("TODO")
-}
-
-func (x *Process) IType() iType {
-	return i_PROCESS_OBJ
 }
 
 func (x *Stringo) Encode() ([]byte, error) {
@@ -299,7 +291,7 @@ func (x *Bytes) IType() iType {
 }
 
 func (x *GoObj[T]) Encode() ([]byte, error) {
-	panic("TODO")
+	panic(fmt.Sprintf("encode handle %T", x))
 }
 
 func (x *GoObj[T]) IType() iType {
@@ -321,23 +313,6 @@ func (x *Regex) Encode() ([]byte, error) {
 
 func (x *Regex) IType() iType {
 	return i_REGEX_OBJ
-}
-
-func (x *Builtin) Encode() ([]byte, error) {
-	panic("TODO")
-}
-
-func (x *Builtin) IType() iType {
-	return i_BUILTIN_OBJ
-}
-
-func (x *BuiltinObj) Encode() ([]byte, error) {
-	panic("TODO")
-}
-
-func (x *BuiltinObj) IType() iType {
-	// TODO: Should IType return different type for this object?
-	return i_BUILTIN_OBJ
 }
 
 func (x *List) Encode() ([]byte, error) {
@@ -365,7 +340,7 @@ func (x *List) IType() iType {
 }
 
 func (x *Map) Encode() ([]byte, error) {
-	return nil, nil
+	panic(fmt.Sprintf("encode handle %T", x))
 }
 
 func (x *Map) IType() iType {
@@ -373,7 +348,7 @@ func (x *Map) IType() iType {
 }
 
 func (x *Set) Encode() ([]byte, error) {
-	return nil, nil
+	panic(fmt.Sprintf("encode handle %T", x))
 }
 
 func (x *Set) IType() iType {
@@ -381,7 +356,7 @@ func (x *Set) IType() iType {
 }
 
 func (x *Module) Encode() ([]byte, error) {
-	return nil, nil
+	panic(fmt.Sprintf("encode handle %T", x))
 }
 
 func (x *Module) IType() iType {
@@ -389,7 +364,7 @@ func (x *Module) IType() iType {
 }
 
 func (x *BreakStatement) Encode() ([]byte, error) {
-	return nil, nil
+	panic(fmt.Sprintf("encode handle %T", x))
 }
 
 func (x *BreakStatement) IType() iType {
@@ -397,15 +372,17 @@ func (x *BreakStatement) IType() iType {
 }
 
 func (x *ContinueStatement) Encode() ([]byte, error) {
-	return nil, nil
+	panic(fmt.Sprintf("encode handle %T", x))
 }
 
 func (x *ContinueStatement) IType() iType {
 	return i_CONTINUE_OBJ
 }
 
+// The Objects Below cannot be encoded but are included to satisfy the Object interface
+
 func (x *ListCompLiteral) Encode() ([]byte, error) {
-	return nil, fmt.Errorf("%T cannot be encoded: this should not occur", x)
+	panic(fmt.Sprintf("%T cannot be encoded", x))
 }
 
 func (x *ListCompLiteral) IType() iType {
@@ -413,7 +390,7 @@ func (x *ListCompLiteral) IType() iType {
 }
 
 func (x *MapCompLiteral) Encode() ([]byte, error) {
-	return nil, fmt.Errorf("%T cannot be encoded: this should not occur", x)
+	panic(fmt.Sprintf("%T cannot be encoded", x))
 }
 
 func (x *MapCompLiteral) IType() iType {
@@ -421,9 +398,33 @@ func (x *MapCompLiteral) IType() iType {
 }
 
 func (x *SetCompLiteral) Encode() ([]byte, error) {
-	return nil, fmt.Errorf("%T cannot be encoded: this should not occur", x)
+	panic(fmt.Sprintf("%T cannot be encoded", x))
 }
 
 func (x *SetCompLiteral) IType() iType {
 	return i_SET_COMP_OBJ
+}
+
+func (x *Builtin) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *Builtin) IType() iType {
+	return i_BUILTIN_OBJ
+}
+
+func (x *BuiltinObj) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *BuiltinObj) IType() iType {
+	return i_BUILTIN_OBJ
+}
+
+func (x *Process) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *Process) IType() iType {
+	return i_PROCESS_OBJ
 }
