@@ -192,6 +192,14 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			pairs.Set(hk, MapPair{Key: kobj, Value: vobj})
 		}
 		return &Map{Pairs: pairs}, nil
+	case i_FUNCTION_OBJ:
+		var x string
+		diag("FUNCTION", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			return nil, err
+		}
+		return &StringFunction{Value: x}, nil
 	default:
 		return nil, fmt.Errorf("decodeFromType: handle %d", t)
 	}
@@ -269,6 +277,9 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 			ows = append(ows, vow)
 		}
 		data, err = cbor.Marshal(ows)
+	case i_FUNCTION_OBJ:
+		s := obj.(*Function).Inspect()
+		data, err = cbor.Marshal(s)
 	default:
 		data, err = cbor.Marshal(obj)
 	}
@@ -362,7 +373,7 @@ func (x *Error) IType() iType {
 }
 
 func (x *Function) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T", x))
+	return marshalObjectWrapper(x)
 }
 
 func (x *Function) IType() iType {
@@ -497,4 +508,12 @@ func (x *Process) Encode() ([]byte, error) {
 
 func (x *Process) IType() iType {
 	return i_PROCESS_OBJ
+}
+
+func (x *StringFunction) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *StringFunction) IType() iType {
+	return i_FUNCTION_OBJ
 }

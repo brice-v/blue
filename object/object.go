@@ -253,6 +253,21 @@ func (e *Error) Help() string {
 	return createHelpStringForObject("Error", "is the object that represents an error raised during runtime execution", e)
 }
 
+// Just used for encoding/decoding functions
+type StringFunction struct {
+	Value string
+}
+
+func (f *StringFunction) Type() Type { return FUNCTION_OBJ }
+
+func (f *StringFunction) Inspect() string {
+	return f.Value
+}
+
+func (f *StringFunction) Help() string {
+	return ""
+}
+
 // Function is the function object struct
 type Function struct {
 	Parameters []*ast.Identifier   // Parameters is a slice of identifiers

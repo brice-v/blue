@@ -549,3 +549,54 @@ func createFilterBuiltin(e *Evaluator) *object.Builtin {
 	}
 	return filterBuiltin
 }
+
+var loadBuiltin *object.Builtin = nil
+
+func createLoadBuiltin(e *Evaluator) *object.Builtin {
+	if loadBuiltin == nil {
+		loadBuiltin = &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("load", len(args), 1, "")
+				}
+				if args[0].Type() != object.BYTES_OBJ {
+					return newPositionalTypeError("load", 1, object.BYTES_OBJ, args[0].Type())
+				}
+				obj, err := object.Decode(args[0].(*object.Bytes).Value)
+				if err != nil {
+					return newError("`load` error: %s", err.Error())
+				}
+				switch o := obj.(type) {
+				case *object.Boolean:
+					return nativeToBooleanObject(o.Value)
+				case *object.Null:
+					return NULL
+				case *object.StringFunction:
+					l := lexer.New(o.Value, "load")
+					p := parser.New(l)
+					prog := p.ParseProgram()
+					if len(p.Errors()) != 0 {
+						return newError("`load` error: failed to decode function %s", o.Value)
+					}
+					obj := e.Eval(prog)
+					if isError(obj) {
+						return newError("`load` error: %s", obj.(*object.Error).Message)
+					}
+					if o, ok := obj.(*object.Function); ok {
+						return o
+					}
+					return newError("`load` error: failed to decode function %s", o.Value)
+				default:
+					return obj
+				}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`load` returns the object decoded from bytes",
+				signature:   "load(arg: bytes) -> any",
+				errors:      "InvalidArgCount,PositionalTypeError,CustomError",
+				example:     "load('82001904d2'.to_bytes(is_hex=true)) => 1234",
+			}.String(),
+		}
+	}
+	return loadBuiltin
+}

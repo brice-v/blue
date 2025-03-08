@@ -2152,33 +2152,6 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "save(1234) => '82001904d2'",
 		}.String(),
 	},
-	"load": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("load", len(args), 1, "")
-			}
-			if args[0].Type() != object.BYTES_OBJ {
-				return newPositionalTypeError("load", 1, object.BYTES_OBJ, args[0].Type())
-			}
-			obj, err := object.Decode(args[0].(*object.Bytes).Value)
-			if err != nil {
-				return newError("`load` error: %s", err.Error())
-			}
-			if o, ok := obj.(*object.Boolean); ok {
-				return nativeToBooleanObject(o.Value)
-			}
-			if _, ok := obj.(*object.Null); ok {
-				return NULL
-			}
-			return obj
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`load` returns the object decoded from bytes",
-			signature:   "load(arg: bytes) -> any",
-			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
-			example:     "load('82001904d2'.to_bytes(is_hex=true)) => 1234",
-		}.String(),
-	},
 })
 
 func GetBuiltins(e *Evaluator) BuiltinMapType {
@@ -2190,6 +2163,7 @@ func GetBuiltins(e *Evaluator) BuiltinMapType {
 	b.Put("any", createAnyBuiltin(e))
 	b.Put("map", createMapBuiltin(e))
 	b.Put("filter", createFilterBuiltin(e))
+	b.Put("load", createLoadBuiltin(e))
 	return b
 }
 

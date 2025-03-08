@@ -205,3 +205,24 @@ println("original = #{original}, loaded = #{loaded}, type(original) = #{type(ori
 assert(type(original) == Type.MAP);
 assert(type(original) == type(loaded));
 assert(original == loaded);
+
+original = fun() { println("Hello World") };
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.FUN);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = fun(a, b, c=1234) { {a: b, c: {1,2}, 'd': "helloworld", 0x123: 1234n} };
+val expected_return = {1: 2, 1234: {1,2}, 'd': "helloworld", 0x123: 1234n};
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.FUN);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+assert(original(1, 2) == expected_return);
+assert(loaded(1, 2) == expected_return);
