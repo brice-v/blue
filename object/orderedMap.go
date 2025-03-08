@@ -10,6 +10,10 @@ func NewPairsMap() OrderedMap2[HashKey, MapPair] {
 	return *NewOrderedMap[HashKey, MapPair]()
 }
 
+func NewPairsMapWithSize(size int) OrderedMap2[HashKey, MapPair] {
+	return *NewOrderedMapWithSize[HashKey, MapPair](size)
+}
+
 // Constructor
 func NewOrderedMap[K comparable, V any]() *OrderedMap2[K, V] {
 	return &OrderedMap2[K, V]{

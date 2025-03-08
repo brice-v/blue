@@ -187,3 +187,21 @@ println("original = #{original}, loaded = #{loaded}, type(original) = #{type(ori
 assert(type(original) == Type.LIST);
 assert(type(original) == type(loaded));
 assert(original == loaded);
+
+original = {x: 99 for x in 1..10 if x % 2 == 0};
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.MAP);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = {x: {99:"Hello"} for x in 1..10 if x % 2 == 0};
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.MAP);
+assert(type(original) == type(loaded));
+assert(original == loaded);

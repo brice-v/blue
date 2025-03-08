@@ -162,6 +162,36 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			elems.Set(hashKey, SetPair{Value: obj, Present: struct{}{}})
 		}
 		return &Set{Elements: elems}, nil
+	case i_MAP_OBJ:
+		var ows []ObjectWrapper
+		diag("IN MAP", data)
+		err := cbor.Unmarshal(data, &ows)
+		if err != nil {
+			return nil, err
+		}
+		// /2 because length is keys+values
+		pairs := NewPairsMapWithSize(len(ows) / 2)
+		for i := 0; i < len(ows); i += 2 {
+			kow := ows[i]
+			vow := ows[i+1]
+			diag("IN MAP KOW", kow.Data)
+			diag("IN MAP VOW", vow.Data)
+			kobj, err := decodeFromType(kow.Type, kow.Data)
+			if err != nil {
+				return nil, err
+			}
+			vobj, err := decodeFromType(vow.Type, vow.Data)
+			if err != nil {
+				return nil, err
+			}
+			hashKey := HashObject(kobj)
+			hk := HashKey{
+				Type:  kobj.Type(),
+				Value: hashKey,
+			}
+			pairs.Set(hk, MapPair{Key: kobj, Value: vobj})
+		}
+		return &Map{Pairs: pairs}, nil
 	default:
 		return nil, fmt.Errorf("decodeFromType: handle %d", t)
 	}
@@ -218,6 +248,25 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 				return EmptyOW, err
 			}
 			ows[i] = ow
+		}
+		data, err = cbor.Marshal(ows)
+	case i_MAP_OBJ:
+		pairs := obj.(*Map).Pairs
+		// *2 to store keys and values
+		// When decoding, value comes after key
+		ows := make([]ObjectWrapper, 0, pairs.Len()*2)
+		for _, key := range pairs.Keys {
+			v, _ := pairs.Get(key)
+			kow, err := marshalObject(v.Key)
+			if err != nil {
+				return EmptyOW, err
+			}
+			vow, err := marshalObject(v.Value)
+			if err != nil {
+				return EmptyOW, err
+			}
+			ows = append(ows, kow)
+			ows = append(ows, vow)
 		}
 		data, err = cbor.Marshal(ows)
 	default:
@@ -361,7 +410,7 @@ func (x *List) IType() iType {
 }
 
 func (x *Map) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T", x))
+	return marshalObjectWrapper(x)
 }
 
 func (x *Map) IType() iType {
