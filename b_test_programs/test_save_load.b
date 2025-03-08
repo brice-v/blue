@@ -81,8 +81,8 @@ assert(type(original) == Type.STRING);
 assert(type(original) == type(loaded));
 assert(original == loaded);
 
-original = [1, 1234n, 1234.124, 1234.1234n, true, false, null, 0x1234, "HELLO WORLD"];
-val expected_types = [Type.INT, Type.BIGINT, Type.FLOAT, Type.BIGFLOAT, Type.BOOL, Type.BOOL, Type.NULL, Type.UINT, Type.STRING];
+original = [1, 1234n, 1234.124, 1234.1234n, true, false, null, 0x1234, "HELLO WORLD", r/hellow/, "Hello World!".to_bytes()];
+val expected_types = [Type.INT, Type.BIGINT, Type.FLOAT, Type.BIGFLOAT, Type.BOOL, Type.BOOL, Type.NULL, Type.UINT, Type.STRING, Type.REGEX, Type.BYTES];
 
 saved = original.save();
 loaded = saved.load();
@@ -123,5 +123,31 @@ saved = original.save();
 loaded = saved.load();
 println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.BYTES);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = {1, 1234n, 1234.124, 1234.1234n, true, false, null, 0x1234, "HELLO WORLD", r/hellow/, "Hello World!".to_bytes()};
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.SET);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+assert(len(original) == len(loaded));
+assert(len(expected_types) == len(loaded));
+for var i = 0; i < expected_types.len(); i += 1 {
+    println("type(original[i]) = #{type(original[i])}, expected_types[i] = #{expected_types[i]}")
+    assert(type(original[i]) == expected_types[i]);
+    assert(type(loaded[i]) == expected_types[i]);
+}
+
+original = {x for x in 1..10 if x % 2 == 0};
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.SET);
 assert(type(original) == type(loaded));
 assert(original == loaded);

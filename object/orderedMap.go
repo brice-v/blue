@@ -18,6 +18,13 @@ func NewOrderedMap[K comparable, V any]() *OrderedMap2[K, V] {
 	}
 }
 
+func NewOrderedMapWithSize[K comparable, V any](size int) *OrderedMap2[K, V] {
+	return &OrderedMap2[K, V]{
+		store: make(map[K]V, size),
+		Keys:  make([]K, 0, size),
+	}
+}
+
 // Get will return the value associated with the key.
 // If the key doesn't exist, the second return value will be false.
 func (o *OrderedMap2[K, V]) Get(key K) (V, bool) {

@@ -55,23 +55,6 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			return nil, err
 		}
 		return x, nil
-	case i_LIST_OBJ:
-		var cbws []ObjectWrapper
-		diag("IN LIST", data)
-		err := cbor.Unmarshal(data, &cbws)
-		if err != nil {
-			return nil, err
-		}
-		elems := make([]Object, len(cbws))
-		for i, e := range cbws {
-			diag("IN LOOP", e.Data)
-			obj, err := decodeFromType(e.Type, e.Data)
-			if err != nil {
-				return nil, err
-			}
-			elems[i] = obj
-		}
-		return &List{Elements: elems}, nil
 	case i_BIG_INTEGER_OBJ:
 		var x *BigInteger
 		diag("BIGINT", data)
@@ -144,6 +127,41 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			return nil, err
 		}
 		return &Bytes{Value: bs}, nil
+	case i_LIST_OBJ:
+		var ows []ObjectWrapper
+		diag("IN LIST", data)
+		err := cbor.Unmarshal(data, &ows)
+		if err != nil {
+			return nil, err
+		}
+		elems := make([]Object, len(ows))
+		for i, e := range ows {
+			diag("IN LOOP", e.Data)
+			obj, err := decodeFromType(e.Type, e.Data)
+			if err != nil {
+				return nil, err
+			}
+			elems[i] = obj
+		}
+		return &List{Elements: elems}, nil
+	case i_SET_OBJ:
+		var ows []ObjectWrapper
+		diag("IN SET", data)
+		err := cbor.Unmarshal(data, &ows)
+		if err != nil {
+			return nil, err
+		}
+		elems := NewSetElementsWithSize(len(ows))
+		for _, e := range ows {
+			diag("IN SET LOOP", e.Data)
+			obj, err := decodeFromType(e.Type, e.Data)
+			if err != nil {
+				return nil, err
+			}
+			hashKey := HashObject(obj)
+			elems.Set(hashKey, SetPair{Value: obj, Present: struct{}{}})
+		}
+		return &Set{Elements: elems}, nil
 	default:
 		return nil, fmt.Errorf("decodeFromType: handle %d", t)
 	}
@@ -168,7 +186,18 @@ func Decode(data []byte) (Object, error) {
 }
 
 func marshalObject(obj Object) (ObjectWrapper, error) {
-	data, err := cbor.Marshal(obj)
+	var data []byte
+	var err error
+	switch obj.IType() {
+	case i_REGEX_OBJ:
+		s := obj.(*Regex).Value.String()
+		data, err = cbor.Marshal(s)
+	case i_BYTES_OBJ:
+		bs := obj.(*Bytes).Value
+		data, err = cbor.Marshal(bs)
+	default:
+		data, err = cbor.Marshal(obj)
+	}
 	if err != nil {
 		return ObjectWrapper{}, err
 	}
@@ -275,15 +304,7 @@ func (x *Stringo) IType() iType {
 }
 
 func (x *Bytes) Encode() ([]byte, error) {
-	data, err := cbor.Marshal(x.Value)
-	if err != nil {
-		return nil, err
-	}
-	ow := ObjectWrapper{
-		Type: x.IType(),
-		Data: data,
-	}
-	return cbor.Marshal(ow)
+	return marshalObjectWrapper(x)
 }
 
 func (x *Bytes) IType() iType {
@@ -299,16 +320,7 @@ func (x *GoObj[T]) IType() iType {
 }
 
 func (x *Regex) Encode() ([]byte, error) {
-	res := x.Value.String()
-	data, err := cbor.Marshal(res)
-	if err != nil {
-		return nil, err
-	}
-	ow := ObjectWrapper{
-		Type: x.IType(),
-		Data: data,
-	}
-	return cbor.Marshal(ow)
+	return marshalObjectWrapper(x)
 }
 
 func (x *Regex) IType() iType {
@@ -318,11 +330,11 @@ func (x *Regex) IType() iType {
 func (x *List) Encode() ([]byte, error) {
 	ows := make([]ObjectWrapper, len(x.Elements))
 	for i, e := range x.Elements {
-		cw, err := marshalObject(e)
+		ow, err := marshalObject(e)
 		if err != nil {
 			return nil, err
 		}
-		ows[i] = cw
+		ows[i] = ow
 	}
 	data, err := cbor.Marshal(ows)
 	if err != nil {
@@ -348,7 +360,24 @@ func (x *Map) IType() iType {
 }
 
 func (x *Set) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T", x))
+	ows := make([]ObjectWrapper, x.Elements.Len())
+	for i, key := range x.Elements.Keys {
+		v, _ := x.Elements.Get(key)
+		ow, err := marshalObject(v.Value)
+		if err != nil {
+			return nil, err
+		}
+		ows[i] = ow
+	}
+	data, err := cbor.Marshal(ows)
+	if err != nil {
+		return nil, err
+	}
+	o := ObjectWrapper{
+		Type: x.IType(),
+		Data: data,
+	}
+	return cbor.Marshal(o)
 }
 
 func (x *Set) IType() iType {

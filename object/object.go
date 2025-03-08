@@ -553,6 +553,10 @@ func NewSetElements() *OrderedMap2[uint64, SetPair] {
 	return NewOrderedMap[uint64, SetPair]()
 }
 
+func NewSetElementsWithSize(size int) *OrderedMap2[uint64, SetPair] {
+	return NewOrderedMapWithSize[uint64, SetPair](size)
+}
+
 // Type returns the Set object type
 func (s *Set) Type() Type { return SET_OBJ }
 
