@@ -789,6 +789,9 @@ func HashObject(obj Object) uint64 {
 		h.Write(bs)
 	case GO_OBJ:
 		h.Write([]byte(obj.Inspect()))
+	case REGEX_OBJ:
+		s := []byte(obj.(*Regex).Value.String())
+		h.Write([]byte(s))
 	default:
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)

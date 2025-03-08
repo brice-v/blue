@@ -98,3 +98,30 @@ for var i = 0; i < expected_types.len(); i += 1 {
     assert(type(original[i]) == expected_types[i]);
     assert(type(loaded[i]) == expected_types[i]);
 }
+
+original = [x for x in 1..10 if x % 2 == 0];
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.LIST);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = r/hellow/;
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.REGEX);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = "Hello World!".to_bytes();
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.BYTES);
+assert(type(original) == type(loaded));
+assert(original == loaded);
