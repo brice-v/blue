@@ -185,6 +185,8 @@ func Decode(data []byte) (Object, error) {
 	return decodeFromType(a.Type, a.Data)
 }
 
+var EmptyOW = ObjectWrapper{}
+
 func marshalObject(obj Object) (ObjectWrapper, error) {
 	var data []byte
 	var err error
@@ -195,11 +197,34 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 	case i_BYTES_OBJ:
 		bs := obj.(*Bytes).Value
 		data, err = cbor.Marshal(bs)
+	case i_LIST_OBJ:
+		elems := obj.(*List).Elements
+		ows := make([]ObjectWrapper, len(elems))
+		for i, e := range elems {
+			ow, err := marshalObject(e)
+			if err != nil {
+				return EmptyOW, err
+			}
+			ows[i] = ow
+		}
+		data, err = cbor.Marshal(ows)
+	case i_SET_OBJ:
+		elems := obj.(*Set).Elements
+		ows := make([]ObjectWrapper, elems.Len())
+		for i, key := range elems.Keys {
+			v, _ := elems.Get(key)
+			ow, err := marshalObject(v.Value)
+			if err != nil {
+				return EmptyOW, err
+			}
+			ows[i] = ow
+		}
+		data, err = cbor.Marshal(ows)
 	default:
 		data, err = cbor.Marshal(obj)
 	}
 	if err != nil {
-		return ObjectWrapper{}, err
+		return EmptyOW, err
 	}
 	return ObjectWrapper{
 		Type: obj.IType(),
@@ -328,23 +353,7 @@ func (x *Regex) IType() iType {
 }
 
 func (x *List) Encode() ([]byte, error) {
-	ows := make([]ObjectWrapper, len(x.Elements))
-	for i, e := range x.Elements {
-		ow, err := marshalObject(e)
-		if err != nil {
-			return nil, err
-		}
-		ows[i] = ow
-	}
-	data, err := cbor.Marshal(ows)
-	if err != nil {
-		return nil, err
-	}
-	o := ObjectWrapper{
-		Type: x.IType(),
-		Data: data,
-	}
-	return cbor.Marshal(o)
+	return marshalObjectWrapper(x)
 }
 
 func (x *List) IType() iType {
@@ -360,24 +369,7 @@ func (x *Map) IType() iType {
 }
 
 func (x *Set) Encode() ([]byte, error) {
-	ows := make([]ObjectWrapper, x.Elements.Len())
-	for i, key := range x.Elements.Keys {
-		v, _ := x.Elements.Get(key)
-		ow, err := marshalObject(v.Value)
-		if err != nil {
-			return nil, err
-		}
-		ows[i] = ow
-	}
-	data, err := cbor.Marshal(ows)
-	if err != nil {
-		return nil, err
-	}
-	o := ObjectWrapper{
-		Type: x.IType(),
-		Data: data,
-	}
-	return cbor.Marshal(o)
+	return marshalObjectWrapper(x)
 }
 
 func (x *Set) IType() iType {

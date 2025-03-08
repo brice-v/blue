@@ -151,3 +151,39 @@ println("original = #{original}, loaded = #{loaded}, type(original) = #{type(ori
 assert(type(original) == Type.SET);
 assert(type(original) == type(loaded));
 assert(original == loaded);
+
+original = [[1], [1234n, 1234.124], [1234.1234n, true, false], [null], 0x1234, "HELLO WORLD", [r/hellow/, "Hello World!".to_bytes()]];
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.LIST);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = {{1}, {1234n, 1234.124}, {1234.1234n, true, false}, {null}, 0x1234, "HELLO WORLD", {r/hellow/, "Hello World!".to_bytes()}};
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.SET);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = {{{1}}, 1234, {1234, {1234n, 1234.124}}, {1234, {1}, {1234.1234n, {true}, false}}, {null}, 0x1234, "HELLO WORLD", {r/hellow/, "Hello World!".to_bytes()}};
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.SET);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = [[[1]], 1234, [1234, [1234n, 1234.124]], [1234, [1], [1234.1234n, [true], false]], [null], 0x1234, "HELLO WORLD", [r/hellow/, "Hello World!".to_bytes()]];
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.LIST);
+assert(type(original) == type(loaded));
+assert(original == loaded);
