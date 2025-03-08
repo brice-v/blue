@@ -3,7 +3,7 @@ var original = 1234;
 
 var saved = original.save();
 var loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.INT);
 assert(type(original) == type(loaded));
 assert(original == loaded);
@@ -12,7 +12,7 @@ original = 1212424141214212412441214241234n;
 
 saved = original.save();
 loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.BIGINT);
 assert(type(original) == type(loaded));
 assert(original == loaded);
@@ -21,7 +21,7 @@ original = 1234n;
 
 saved = original.save();
 loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.BIGINT);
 assert(type(original) == type(loaded));
 assert(original == loaded);
@@ -31,7 +31,7 @@ original = 1234.1234;
 
 saved = original.save();
 loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.FLOAT);
 assert(type(original) == type(loaded));
 assert(original == loaded);
@@ -40,7 +40,7 @@ original = 1234.1234n;
 
 saved = original.save();
 loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.BIGFLOAT);
 assert(type(original) == type(loaded));
 assert(original == loaded);
@@ -49,7 +49,7 @@ original = 0x1;
 
 saved = original.save();
 loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.UINT);
 assert(type(original) == type(loaded));
 assert(original == loaded);
@@ -58,7 +58,7 @@ original = false;
 
 saved = original.save();
 loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.BOOL);
 assert(type(original) == type(loaded));
 assert(original == loaded);
@@ -67,7 +67,34 @@ original = null;
 
 saved = original.save();
 loaded = saved.load();
-println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, saved = #{crypto.encode(saved)}");
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
 assert(type(original) == Type.NULL);
 assert(type(original) == type(loaded));
 assert(original == loaded);
+
+original = "HEllo World!";
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.STRING);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+original = [1, 1234n, 1234.124, 1234.1234n, true, false, null, 0x1234, "HELLO WORLD"];
+val expected_types = [Type.INT, Type.BIGINT, Type.FLOAT, Type.BIGFLOAT, Type.BOOL, Type.BOOL, Type.NULL, Type.UINT, Type.STRING];
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+assert(type(original) == Type.LIST);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+assert(len(original) == len(loaded));
+assert(len(expected_types) == len(loaded));
+for var i = 0; i < expected_types.len(); i += 1 {
+    println("type(original[i]) = #{type(original[i])}, expected_types[i] = #{expected_types[i]}")
+    assert(type(original[i]) == expected_types[i]);
+    assert(type(loaded[i]) == expected_types[i]);
+}

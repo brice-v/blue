@@ -2176,7 +2176,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			explanation: "`load` returns the object decoded from bytes",
 			signature:   "load(arg: bytes) -> any",
 			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
-			example:     "load('82001904d2'.to_bytes()) => 1234",
+			example:     "load('82001904d2'.to_bytes(is_hex=true)) => 1234",
 		}.String(),
 	},
 })

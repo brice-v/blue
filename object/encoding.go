@@ -1,6 +1,7 @@
 package object
 
 import (
+	"fmt"
 	"log"
 	"math/big"
 
@@ -44,6 +45,11 @@ type Decoder interface {
 	Decode(data []byte) (Object, error)
 }
 
+type CBORWrapper struct {
+	Type iType           `cbor:"type"`
+	Data cbor.RawMessage `cbor:"data"`
+}
+
 type ObjectWrapper struct {
 	_     struct{} `cbor:",toarray"`
 	Type  iType
@@ -78,25 +84,143 @@ var lookup = map[iType]func(a any) Object{
 	i_NULL_OBJ: func(a any) Object {
 		return &Null{}
 	},
+	// i_LIST_OBJ: func(a any) Object {
+	// 	bs := a.([]byte)
+
+	// },
+}
+
+func decodeFromType(t iType, data []byte) (Object, error) {
+	switch t {
+	case i_INTEGER_OBJ:
+		var x *Integer
+		diag("INTEGER", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here4 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	case i_LIST_OBJ:
+		var cbws []*CBORWrapper
+		diag("IN LIST", data)
+		err := cbor.Unmarshal(data, &cbws)
+		log.Printf("data here -- %+#v", data)
+		if err != nil {
+			log.Printf("err here3 = %s", err.Error())
+			return nil, err
+		}
+		elems := make([]Object, len(cbws))
+		for i, e := range cbws {
+			log.Printf("data here ----- %+#v", data)
+			diag("IN LOOP", e.Data)
+			// obj, err := Decode(e.Data)
+			obj, err := decodeFromType(e.Type, e.Data)
+			if err != nil {
+				log.Printf("err here2 = %s, data = %+#v", err.Error(), data)
+				return nil, err
+			}
+			elems[i] = obj
+		}
+		return &List{Elements: elems}, nil
+	case i_BIG_INTEGER_OBJ:
+		var x *BigInteger
+		diag("BIGINT", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here7 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	case i_FLOAT_OBJ:
+		var x *Float
+		diag("FLOAT", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here8 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	case i_BIG_FLOAT_OBJ:
+		var x *BigFloat
+		diag("BIGFLOAT", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here9 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	case i_BOOLEAN_OBJ:
+		var x *Boolean
+		diag("BOOL", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here10 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	case i_UINTEGER_OBJ:
+		var x *UInteger
+		diag("UINTEGER", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here11 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	case i_NULL_OBJ:
+		var x *Null
+		diag("NULL", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here12 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	case i_STRING_OBJ:
+		var x *Stringo
+		diag("STR", data)
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			log.Printf("err here12 = %s data = %+#v", err.Error(), data)
+			return nil, err
+		}
+		return x, nil
+	}
+	panic("TODO")
+}
+
+func diag(prefix string, data []byte) {
+	if s, err := cbor.Diagnose(data); err == nil {
+		log.Printf("%s Diagnose %s", prefix, s)
+	} else {
+		log.Printf("%s Dianose error %s", prefix, err.Error())
+	}
 }
 
 func Decode(data []byte) (Object, error) {
-	var a [2]any
-	if s, err := cbor.Diagnose(data); err == nil {
-		log.Printf("Diagnose %s", s)
-	} else {
-		log.Printf("Dianose error %s", err.Error())
-	}
+	var a CBORWrapper
+	diag("DECODE", data)
+	log.Printf("DATA HERE = %#+v", data)
 	err := cbor.Unmarshal(data, &a)
-	key := iType(a[0].(uint64))
+	log.Printf("type = %d", a.Type)
+	// if o, ok := a.(map[interface{}]interface{}); ok {
+	// 	for k, v := range o {
+	// 		log.Printf("k = %+#v, (%T), v = %+#v (%T)", k, k, v, v)
+	// 	}
+	// }
+	// key := iType(a[0].(uint64))
 	if err != nil {
+		log.Printf("err here1 = %s", err.Error())
 		return nil, err
 	}
-	for x := range a {
-		log.Printf("x = %+#v, t = %T", x, x)
-	}
-	log.Printf("%T, %+#v", a, a)
-	return lookup[key](a[1]), nil
+	return decodeFromType(a.Type, a.Data)
+	// return &Null{}, nil
+	// for x := range a {
+	// 	log.Printf("x = %+#v, t = %T", x, x)
+	// }
+	// log.Printf("%T, %+#v", a, a)
+	// return lookup[key](a[1]), nil
 }
 
 func ow(obj Object, value any) ObjectWrapper {
@@ -106,8 +230,28 @@ func ow(obj Object, value any) ObjectWrapper {
 	}
 }
 
+var emptyCborWrapper = CBORWrapper{}
+
+func cborWrapper(obj Object) (CBORWrapper, error) {
+	data, err := cbor.Marshal(obj)
+	if err != nil {
+		log.Printf("err here = %s", err.Error())
+		return emptyCborWrapper, err
+	}
+	return CBORWrapper{
+		Type: obj.IType(),
+		Data: data,
+	}, nil
+}
+
 func (x *Integer) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
+	// return cbor.Marshal(ow(x, x.Value))
+	// return nil, fmt.Errorf("TODO")
 }
 
 func (x *Integer) IType() iType {
@@ -115,7 +259,13 @@ func (x *Integer) IType() iType {
 }
 
 func (x *BigInteger) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value.String()))
+	// return cbor.Marshal(ow(x, x.Value.String()))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x *BigInteger) IType() iType {
@@ -123,7 +273,13 @@ func (x *BigInteger) IType() iType {
 }
 
 func (x *Boolean) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	// return cbor.Marshal(ow(x, x.Value))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x *Boolean) IType() iType {
@@ -131,7 +287,13 @@ func (x *Boolean) IType() iType {
 }
 
 func (x *Null) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, nil))
+	// return cbor.Marshal(ow(x, nil))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x *Null) IType() iType {
@@ -139,7 +301,13 @@ func (x *Null) IType() iType {
 }
 
 func (x *UInteger) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	// return cbor.Marshal(ow(x, x.Value))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x *UInteger) IType() iType {
@@ -147,7 +315,13 @@ func (x *UInteger) IType() iType {
 }
 
 func (x *Float) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	// return cbor.Marshal(ow(x, x.Value))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x *Float) IType() iType {
@@ -155,7 +329,13 @@ func (x *Float) IType() iType {
 }
 
 func (x BigFloat) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value.String()))
+	// return cbor.Marshal(ow(x, x.Value.String()))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x BigFloat) IType() iType {
@@ -163,7 +343,8 @@ func (x BigFloat) IType() iType {
 }
 
 func (x *ReturnValue) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	// return cbor.Marshal(ow(x, x.Value))
+	return nil, fmt.Errorf("TODO")
 }
 
 func (x *ReturnValue) IType() iType {
@@ -171,7 +352,8 @@ func (x *ReturnValue) IType() iType {
 }
 
 func (x *Error) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Message))
+	// return cbor.Marshal(ow(x, x.Message))
+	return nil, fmt.Errorf("TODO")
 }
 
 func (x *Error) IType() iType {
@@ -195,7 +377,13 @@ func (x *Process) IType() iType {
 }
 
 func (x *Stringo) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	// return cbor.Marshal(ow(x, x.Value))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x *Stringo) IType() iType {
@@ -203,7 +391,13 @@ func (x *Stringo) IType() iType {
 }
 
 func (x *Bytes) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	// return cbor.Marshal(ow(x, x.Value))
+	// return nil, fmt.Errorf("TODO")
+	cw, err := cborWrapper(x)
+	if err != nil {
+		return nil, err
+	}
+	return cbor.Marshal(cw)
 }
 
 func (x *Bytes) IType() iType {
@@ -219,7 +413,8 @@ func (x *GoObj[T]) IType() iType {
 }
 
 func (x *Regex) Encode() ([]byte, error) {
-	return cbor.Marshal(ow(x, x.Value))
+	// return cbor.Marshal(ow(x, x.Value))
+	return nil, fmt.Errorf("TODO")
 }
 
 func (x *Regex) IType() iType {
@@ -244,9 +439,41 @@ func (x *BuiltinObj) IType() iType {
 }
 
 func (x *List) Encode() ([]byte, error) {
+	// var buf bytes.Buffer
+	// for _, e := range x.Elements {
+	// 	bs, err := e.Encode()
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("list encode error: %w", err)
+	// 	}
+	// 	_, err = buf.Write(bs)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("list encode error: %w", err)
+	// 	}
+	// }
 	// TODO: Should be smarter about that?
 	// TODO: Should call encode on each element?
-	return cbor.Marshal(ow(x, x.Elements))
+	// return cbor.Marshal(ow(x, x.Elements))
+	cws := make([]CBORWrapper, len(x.Elements))
+	for i, e := range x.Elements {
+		cw, err := cborWrapper(e)
+		if err != nil {
+			log.Printf("err here5 = %s", err.Error())
+			return nil, err
+		}
+		cws[i] = cw
+	}
+	data, err := cbor.Marshal(cws)
+	if err != nil {
+		log.Printf("err6 here = %s", err.Error())
+		return nil, err
+	}
+	cw := CBORWrapper{
+		Type: x.IType(),
+		Data: data,
+	}
+	return cbor.Marshal(cw)
+	// return nil, fmt.Errorf("TODO")
+	// return cbor.Marshal(ow(x, buf.Bytes()))
 }
 
 func (x *List) IType() iType {
