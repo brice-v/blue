@@ -187,8 +187,16 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 	return nil
 }
 
+// var goObjDecoders = map[string]any{}
+
 func NewGoObj[T any](obj T) *object.GoObj[T] {
-	return &object.GoObj[T]{Value: obj, Id: GoObjId.Add(1)}
+	gob := &object.GoObj[T]{Value: obj, Id: GoObjId.Add(1)}
+	// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
+	// t := fmt.Sprintf("%T", gob)
+	// if _, ok := goObjDecoders[t]; !ok {
+	// 	goObjDecoders[t] = gob.Decoder
+	// }
+	return gob
 }
 
 // Used to catch interrupt to shutdown server

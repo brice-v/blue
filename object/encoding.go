@@ -1,8 +1,9 @@
 package object
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
-	"log"
 	"regexp"
 
 	"github.com/fxamacker/cbor/v2"
@@ -200,17 +201,38 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			return nil, err
 		}
 		return &StringFunction{Value: x}, nil
+	case i_GO_OBJ:
+		var ows []ObjectWrapper
+		diag("GOOBJ", data)
+		err := cbor.Unmarshal(data, &ows)
+		if err != nil {
+			return nil, err
+		}
+		elems := make([]Object, len(ows))
+		for i, e := range ows {
+			diag("IN LOOP", e.Data)
+			obj, err := decodeFromType(e.Type, e.Data)
+			if err != nil {
+				return nil, err
+			}
+			elems[i] = obj
+		}
+		return &GoObjectGob{
+			T:     elems[0].(*Stringo).Value,
+			Value: elems[1].(*Bytes).Value,
+		}, nil
 	default:
 		return nil, fmt.Errorf("decodeFromType: handle %d", t)
 	}
 }
 
 func diag(prefix string, data []byte) {
-	if s, err := cbor.Diagnose(data); err == nil {
-		log.Printf("%s Diagnose %s", prefix, s)
-	} else {
-		log.Printf("%s Dianose error %s", prefix, err.Error())
-	}
+	// Note: Uncomment the lines below for some debugging info
+	// if s, err := cbor.Diagnose(data); err == nil {
+	// 	log.Printf("%s Diagnose %s", prefix, s)
+	// } else {
+	// 	log.Printf("%s Dianose error %s", prefix, err.Error())
+	// }
 }
 
 func Decode(data []byte) (Object, error) {
@@ -280,6 +302,31 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 	case i_FUNCTION_OBJ:
 		s := obj.(*Function).Inspect()
 		data, err = cbor.Marshal(s)
+	case i_GO_OBJ:
+		// Note: this is unused due to the complexity of handling serializing all go object types
+		// It may be re-enabled later for a subset of supported go object types
+		var buf bytes.Buffer
+		err := gob.NewEncoder(&buf).Encode(obj)
+		if err != nil {
+			return EmptyOW, err
+		}
+		// First ObjectWrapper will be type in Stringo object
+		// 2nd will be ObjectWrapper with gob encoded Bytes object
+		ows := make([]ObjectWrapper, 2)
+		tow, err := marshalObject(&Stringo{Value: fmt.Sprintf("%T", obj)})
+		if err != nil {
+			return EmptyOW, err
+		}
+		gow, err := marshalObject(&Bytes{Value: buf.Bytes()})
+		if err != nil {
+			return EmptyOW, err
+		}
+		ows[0] = tow
+		ows[1] = gow
+		data, err = cbor.Marshal(ows)
+		if err != nil {
+			return EmptyOW, err
+		}
 	default:
 		data, err = cbor.Marshal(obj)
 	}
@@ -356,22 +403,6 @@ func (x BigFloat) IType() iType {
 	return i_BIG_FLOAT_OBJ
 }
 
-func (x *ReturnValue) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T?", x))
-}
-
-func (x *ReturnValue) IType() iType {
-	return i_RETURN_VALUE_OBJ
-}
-
-func (x *Error) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T?", x))
-}
-
-func (x *Error) IType() iType {
-	return i_ERROR_OBJ
-}
-
 func (x *Function) Encode() ([]byte, error) {
 	return marshalObjectWrapper(x)
 }
@@ -394,14 +425,6 @@ func (x *Bytes) Encode() ([]byte, error) {
 
 func (x *Bytes) IType() iType {
 	return i_BYTES_OBJ
-}
-
-func (x *GoObj[T]) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T", x))
-}
-
-func (x *GoObj[T]) IType() iType {
-	return i_GO_OBJ
 }
 
 func (x *Regex) Encode() ([]byte, error) {
@@ -437,30 +460,31 @@ func (x *Set) IType() iType {
 }
 
 func (x *Module) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T", x))
+	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
 }
 
 func (x *Module) IType() iType {
 	return i_MODULE_OBJ
 }
 
-func (x *BreakStatement) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T", x))
+func (x *GoObj[T]) Encode() ([]byte, error) {
+	// return marshalObjectWrapper(x)
+	return nil, fmt.Errorf("%T is not supported for encoding", x)
 }
 
-func (x *BreakStatement) IType() iType {
-	return i_BREAK_OBJ
-}
-
-func (x *ContinueStatement) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("encode handle %T", x))
-}
-
-func (x *ContinueStatement) IType() iType {
-	return i_CONTINUE_OBJ
+func (x *GoObj[T]) IType() iType {
+	return i_GO_OBJ
 }
 
 // The Objects Below cannot be encoded but are included to satisfy the Object interface
+
+func (x *Error) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *Error) IType() iType {
+	return i_ERROR_OBJ
+}
 
 func (x *ListCompLiteral) Encode() ([]byte, error) {
 	panic(fmt.Sprintf("%T cannot be encoded", x))
@@ -516,4 +540,36 @@ func (x *StringFunction) Encode() ([]byte, error) {
 
 func (x *StringFunction) IType() iType {
 	return i_FUNCTION_OBJ
+}
+
+func (x *ReturnValue) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *ReturnValue) IType() iType {
+	return i_RETURN_VALUE_OBJ
+}
+
+func (x *GoObjectGob) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *GoObjectGob) IType() iType {
+	return i_GO_OBJ
+}
+
+func (x *BreakStatement) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *BreakStatement) IType() iType {
+	return i_BREAK_OBJ
+}
+
+func (x *ContinueStatement) Encode() ([]byte, error) {
+	panic(fmt.Sprintf("%T cannot be encoded", x))
+}
+
+func (x *ContinueStatement) IType() iType {
+	return i_CONTINUE_OBJ
 }

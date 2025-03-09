@@ -376,6 +376,32 @@ func (g *GoObj[T]) Help() string {
 	return createHelpStringForObject("GoObj", "is the object that represents an arbitrary go object", g)
 }
 
+// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
+// func (g *GoObj[T]) Decoder(data []byte) (any, error) {
+// 	var goObj GoObj[T]
+// 	err := gob.NewDecoder(bytes.NewReader(data)).Decode(&goObj)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return goObj, nil
+// }
+
+// Just used for encoding/decoding go objects
+type GoObjectGob struct {
+	T     string
+	Value []byte
+}
+
+func (g *GoObjectGob) Type() Type { return FUNCTION_OBJ }
+
+func (g *GoObjectGob) Inspect() string {
+	return fmt.Sprintf("GoObjectGob{Type: %s, Value: %v}", g.T, g.Value)
+}
+
+func (g *GoObjectGob) Help() string {
+	return ""
+}
+
 // Regex is the string oject struct which contains a string value
 type Regex struct {
 	Value *regexp.Regexp

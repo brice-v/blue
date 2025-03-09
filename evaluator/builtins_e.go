@@ -586,6 +586,25 @@ func createLoadBuiltin(e *Evaluator) *object.Builtin {
 						return o
 					}
 					return newError("`load` error: failed to decode function %s", o.Value)
+				case *object.GoObjectGob:
+					// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
+					// log.Printf("GO OBJECT = %#+v", o)
+					// decoder := goObjDecoders[o.T].(func([]byte) (any, error))
+					// log.Printf("%T", decoder)
+					// a, err := decoder(o.Value)
+					// if err != nil {
+					// 	return newError("`load` error: %s", err)
+					// }
+					// log.Printf("t = %T, a = %+#v", a, a)
+					// switch o := a.(type) {
+					// case object.GoObj[color.RGBA]:
+					// 	return &o
+					// case *object.GoObj[*os.File]:
+					// 	return o
+					// default:
+					// 	return newError("`load` error: %T is not handled", a)
+					// }
+					return newError("`load` error: Go Object %T not enabled for decoding", o)
 				default:
 					return obj
 				}

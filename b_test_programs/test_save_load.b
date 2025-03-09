@@ -226,3 +226,39 @@ assert(type(original) == type(loaded));
 assert(original == loaded);
 assert(original(1, 2) == expected_return);
 assert(loaded(1, 2) == expected_return);
+
+###
+import gg
+original = gg.color.light_gray;
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+#assert(type(original) == Type.GO_OBJ);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+
+# With the existing code this wouldnt work due to all members being private
+original = FSTDOUT;
+
+saved = original.save();
+loaded = saved.load();
+println("original = #{original}, loaded = #{loaded}, type(original) = #{type(original)}, type(loaded) = #{type(loaded)} saved = #{crypto.encode(saved)}");
+#assert(type(original) == Type.GO_OBJ);
+assert(type(original) == type(loaded));
+assert(original == loaded);
+###
+
+import math
+
+original = math;
+
+try {
+    saved = original.save();
+    assert(false);
+} catch (e) {
+    println(e);
+    assert(e == "EvaluatorError: `save` error: MODULE_OBJ is not supported for encoding")
+}
+
+assert(true);
