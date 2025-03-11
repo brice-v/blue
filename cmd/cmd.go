@@ -259,8 +259,9 @@ func handleDocCommand(argc int, arguments []string) {
 	fmt.Print(getDocStringFor(name))
 }
 
-func handlePsCommand(argc int, arguments []string) {
-	// Have to trim off 'blue ps' for cobra as well
+// TODO: Need to handle better when the binary is packed with upx
+func handlePsCommand(_ int, arguments []string) {
+	// Have to trim off 'blue ps' for cobra inside gops.Gops_main
 	for i := 0; i < len(os.Args); i++ {
 		if strings.Contains(os.Args[i], "blue") && os.Args[i+1] == "ps" {
 			os.Args = os.Args[i+1:]

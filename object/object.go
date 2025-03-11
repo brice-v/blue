@@ -311,10 +311,13 @@ func (f *Function) Help() string {
 
 type Process struct {
 	Ch chan Object
+	Id uint64
+
+	NodeName string
 }
 
 func (p *Process) Inspect() string {
-	return "process.Inspect()"
+	return fmt.Sprintf("#{name: %q, id: %d}", p.NodeName, p.Id)
 }
 
 func (p *Process) Type() Type {
@@ -837,6 +840,8 @@ func HashObject(obj Object) uint64 {
 	case REGEX_OBJ:
 		s := []byte(obj.(*Regex).Value.String())
 		h.Write([]byte(s))
+	case PROCESS_OBJ:
+		h.Write([]byte(obj.Inspect()))
 	default:
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)

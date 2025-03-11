@@ -9,8 +9,26 @@ import (
 )
 
 var pidCount = atomic.Uint64{}
-var ProcessMap = &ConcurrentMap[uint64, *object.Process]{
-	kv: make(map[uint64]*object.Process),
+
+type ProcessKey struct {
+	NodeName string
+	Id       uint64
+}
+
+func (pk ProcessKey) Less(other ProcessKey) bool {
+	return pk.Id < other.Id && pk.NodeName < other.NodeName
+}
+
+func (pk ProcessKey) Equal(other ProcessKey) bool {
+	return pk.Id == other.Id && pk.NodeName == other.NodeName
+}
+
+func pk(name string, id uint64) ProcessKey {
+	return ProcessKey{name, id}
+}
+
+var ProcessMap = &ConcurrentMap[ProcessKey, *object.Process]{
+	kv: make(map[ProcessKey]*object.Process),
 }
 
 var subscriberCount = atomic.Uint64{}

@@ -7,7 +7,7 @@ import "fmt"
 // is created (and it allows the functions defined for them to work)
 func CreateBasicMapObject(objType string, objValue uint64) *Map {
 	m := &Map{
-		Pairs: NewPairsMap(),
+		Pairs: NewPairsMapWithSize(1),
 	}
 	typeKeyStr := &Stringo{Value: "t"}
 	typeValueStr := &Stringo{Value: objType}
@@ -34,7 +34,7 @@ func CreateBasicMapObject(objType string, objValue uint64) *Map {
 
 func CreateBasicMapObjectForGoObj[T any](objType string, goObj *GoObj[T]) *Map {
 	m := &Map{
-		Pairs: NewPairsMap(),
+		Pairs: NewPairsMapWithSize(1),
 	}
 	typeKeyStr := &Stringo{Value: "t"}
 	typeValueStr := &Stringo{Value: objType}
@@ -60,7 +60,7 @@ func CreateBasicMapObjectForGoObj[T any](objType string, goObj *GoObj[T]) *Map {
 
 func CreateMapObjectForGoMap(input OrderedMap2[string, Object]) *Map {
 	m := &Map{
-		Pairs: NewPairsMap(),
+		Pairs: NewPairsMapWithSize(len(input.Keys)),
 	}
 
 	for _, k := range input.Keys {

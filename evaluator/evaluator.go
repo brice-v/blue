@@ -53,6 +53,8 @@ type Evaluator struct {
 
 	// PID is the process ID of this evaluator
 	PID uint64
+	// NodeName is the name of this node
+	NodeName string
 
 	// EvalBasePath is the base directory from which the current file is being run
 	EvalBasePath string
@@ -108,10 +110,15 @@ const (
 var NewEvaluatorLock = &sync.Mutex{}
 
 func New() *Evaluator {
+	return NewNode("", "")
+}
+
+func NewNode(nodeName, address string) *Evaluator {
 	e := &Evaluator{
 		env: object.NewEnvironmentWithoutCore(),
 
-		PID: pidCount.Load(),
+		PID:      pidCount.Load(),
+		NodeName: nodeName,
 
 		EvalBasePath: cEvalBasePath,
 		CurrentFile:  cCurrentFile,
@@ -145,10 +152,16 @@ func New() *Evaluator {
 	e.BuiltinObjs = []BuiltinObjMapType{builtinobjs}
 	e.env.SetCore(e.AddCoreLibToEnv())
 	// Create an empty process so we can recv without spawning
-	process := &object.Process{
-		Ch: make(chan object.Object, 1),
+	if _, ok := ProcessMap.Get(pk(nodeName, e.PID)); !ok {
+		process := &object.Process{
+			// TODO: Eventually update to non-buffered and update send and recv as needed
+			Ch: make(chan object.Object, 1),
+			Id: e.PID,
+
+			NodeName: nodeName,
+		}
+		ProcessMap.Put(pk(process.NodeName, e.PID), process)
 	}
-	ProcessMap.Put(e.PID, process)
 
 	return e
 }
@@ -851,16 +864,20 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 		}
 	}
 	fun := arg0.(*object.Function)
-	process := &object.Process{
-		Ch: make(chan object.Object, 1),
-	}
 	pid := pidCount.Add(1)
-	ProcessMap.Put(pid, process)
-	go spawnFunction(pid, fun, arg1)
-	return object.CreateBasicMapObject("pid", pid)
+	process := &object.Process{
+		Id: pid,
+		// TODO: Eventually update to non-buffered and update send and recv as needed
+		Ch: make(chan object.Object, 1),
+
+		NodeName: e.NodeName,
+	}
+	ProcessMap.Put(pk(e.NodeName, pid), process)
+	go spawnFunction(pid, e.NodeName, fun, arg1)
+	return process
 }
 
-func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
+func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 object.Object) {
 	newE := New()
 	newE.PID = pid
 	elems := arg1.(*object.List).Elements
@@ -877,10 +894,10 @@ func spawnFunction(pid uint64, fun *object.Function, arg1 object.Object) {
 		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, buf.String())
 	}
 	// Delete from concurrent map and close channel (not 100% sure its necessary)
-	if process, ok := ProcessMap.Get(pid); ok {
+	if process, ok := ProcessMap.Get(pk(nodeName, pid)); ok {
 		close(process.Ch)
 	}
-	ProcessMap.Remove(pid)
+	ProcessMap.Remove(pk(nodeName, pid))
 }
 
 func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object {
@@ -915,7 +932,10 @@ func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object
 }
 
 func (e *Evaluator) evalSelfExpression(_ *ast.SelfExpression) object.Object {
-	return object.CreateBasicMapObject("pid", e.PID)
+	if p, ok := ProcessMap.Get(pk(e.NodeName, e.PID)); ok {
+		return p
+	}
+	return newError("`self` error: process not found")
 }
 
 func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object {
@@ -2155,8 +2175,25 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 		return e.evalModuleIndexExpression(left, indx)
 	case left.Type() == object.STRING_OBJ:
 		return e.evalStringIndexExpression(left, indx)
+	case left.Type() == object.PROCESS_OBJ && indx.Type() == object.STRING_OBJ:
+		return e.evalProcessIndexExpression(left, indx)
 	default:
-		return newError("index operator not supported: %s", left.Type())
+		return newError("index operator not supported: %s.%s", left.Type(), indx.Type())
+	}
+}
+
+func (e *Evaluator) evalProcessIndexExpression(left, indx object.Object) object.Object {
+	p := left.(*object.Process)
+	s := indx.(*object.Stringo).Value
+	switch s {
+	case "id":
+		return &object.UInteger{Value: p.Id}
+	case "name":
+		return &object.Stringo{Value: p.NodeName}
+	// TODO: Can we handle recv and send directly here?
+	// look at example self().recv() - also see if we can short circuit calls that go to core.b for _send and _recv if so
+	default:
+		return newError("%s.%s %q not supported", left.Type(), indx.Type(), s)
 	}
 }
 

@@ -978,10 +978,11 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("is_alive", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("is_alive", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.PROCESS_OBJ {
+				return newPositionalTypeError("is_alive", 1, object.PROCESS_OBJ, args[0].Type())
 			}
-			_, isAlive := ProcessMap.Get(args[0].(*object.UInteger).Value)
+			p := args[0].(*object.Process)
+			_, isAlive := ProcessMap.Get(pk(p.NodeName, p.Id))
 			if isAlive {
 				return TRUE
 			}
@@ -1074,13 +1075,16 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 1 {
 				return newInvalidArgCountError("recv", len(args), 1, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("recv", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.PROCESS_OBJ {
+				return newPositionalTypeError("recv", 1, object.PROCESS_OBJ, args[0].Type())
 			}
-			pid := args[0].(*object.UInteger).Value
-			process, ok := ProcessMap.Get(pid)
+			p := args[0].(*object.Process)
+			process, ok := ProcessMap.Get(pk(p.NodeName, p.Id))
 			if !ok {
-				return newError("`recv` failed, pid=%d not found", pid)
+				return newError("`recv` failed, name=%q, pid=%d not found", p.NodeName, p.Id)
+			}
+			if process.Ch == nil {
+				return newError("`recv` error: process chanel is nil. Note: This is a bug, %s", process.Inspect())
 			}
 			val := <-process.Ch
 			return val
@@ -1097,13 +1101,16 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) != 2 {
 				return newInvalidArgCountError("send", len(args), 2, "")
 			}
-			if args[0].Type() != object.UINTEGER_OBJ {
-				return newPositionalTypeError("send", 1, object.UINTEGER_OBJ, args[0].Type())
+			if args[0].Type() != object.PROCESS_OBJ {
+				return newPositionalTypeError("send", 1, object.PROCESS_OBJ, args[0].Type())
 			}
-			pid := args[0].(*object.UInteger).Value
-			process, ok := ProcessMap.Get(pid)
+			p := args[0].(*object.Process)
+			process, ok := ProcessMap.Get(pk(p.NodeName, p.Id))
 			if !ok {
-				return newError("`send` failed, pid=%d not found", pid)
+				return newError("`send` failed, name=%q, pid=%d not found", p.NodeName, p.Id)
+			}
+			if process.Ch == nil {
+				return newError("`send` error: process chanel is nil. Note: This is a bug, %s", process.Inspect())
 			}
 			process.Ch <- args[1]
 			return NULL
@@ -1321,24 +1328,21 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 		Fun: func(args ...object.Object) object.Object {
 			// This function will avoid returning errors
 			// but that means random inputs will technically be allowed
-			pidsToWaitFor := []uint64{}
+			processesToWaitFor := []*object.Process{}
 			for _, arg := range args {
-				if pids, ok := getListOfPids(arg); ok {
-					pidsToWaitFor = append(pidsToWaitFor, pids...)
+				if processes, ok := getListOfProcesses(arg); ok {
+					processesToWaitFor = append(processesToWaitFor, processes...)
 					continue
 				}
-				if arg.Type() == object.MAP_OBJ {
-					t, v, ok := getBasicObject(arg)
-					if !ok || t != "pid" {
-						continue
-					}
-					pidsToWaitFor = append(pidsToWaitFor, v)
+				if arg.Type() == object.PROCESS_OBJ {
+					v := arg.(*object.Process)
+					processesToWaitFor = append(processesToWaitFor, v)
 				}
 			}
 			for {
 				allDone := false
-				for _, pid := range pidsToWaitFor {
-					_, ok := ProcessMap.Get(pid)
+				for _, p := range processesToWaitFor {
+					_, ok := ProcessMap.Get(pk(p.NodeName, p.Id))
 					allDone = allDone || ok
 				}
 				// They should all be false for us to exit
@@ -2276,20 +2280,18 @@ func getBasicObjectForGoObj[T any](arg object.Object) (string, T, bool) {
 	return t, v, true
 }
 
-func getListOfPids(arg object.Object) ([]uint64, bool) {
+func getListOfProcesses(arg object.Object) ([]*object.Process, bool) {
 	if arg.Type() != object.LIST_OBJ {
 		return nil, false
 	}
-	pids := []uint64{}
-	for _, e := range arg.(*object.List).Elements {
-		if e.Type() != object.MAP_OBJ {
+	elems := arg.(*object.List).Elements
+	processes := make([]*object.Process, 0, len(elems))
+	for i, e := range elems {
+		if e.Type() != object.PROCESS_OBJ {
 			return nil, false
 		}
-		t, v, ok := getBasicObject(e)
-		if !ok || t != "pid" {
-			return nil, false
-		}
-		pids = append(pids, v)
+		v := e.(*object.Process)
+		processes[i] = v
 	}
-	return pids, true
+	return processes, true
 }

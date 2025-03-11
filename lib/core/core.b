@@ -16,14 +16,15 @@ val Type = {
     GO_OBJ: 'GO_OBJ',
     REGEX: 'REGEX',
     NULL: 'NULL',
+    PROCESS: 'PROCESS',
 };
 
 fun send(obj, value) {
     ##core:ignore
+    if type(obj) == Type.PROCESS {
+        return _send(obj, value);
+    }
     match obj {
-        {t: "pid", v: _} => {
-            _send(obj.v, value)
-        },
         {t: "ws", v: _} => {
             import http
             http.ws_send(obj.v, value)
@@ -40,10 +41,10 @@ fun send(obj, value) {
 
 fun recv(obj) {
     ##core:ignore
+    if type(obj) == Type.PROCESS {
+        return _recv(obj);
+    }
     match obj {
-        {t: "pid", v: _} => {
-            _recv(obj.v)
-        },
         {t: "ws", v: _} => {
             import http
             http.ws_recv(obj.v)
