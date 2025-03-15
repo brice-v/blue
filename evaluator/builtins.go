@@ -982,7 +982,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("is_alive", 1, object.PROCESS_OBJ, args[0].Type())
 			}
 			p := args[0].(*object.Process)
-			_, isAlive := ProcessMap.Get(pk(p.NodeName, p.Id))
+			_, isAlive := ProcessMap.Load(pk(p.NodeName, p.Id))
 			if isAlive {
 				return TRUE
 			}
@@ -1079,14 +1079,18 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("recv", 1, object.PROCESS_OBJ, args[0].Type())
 			}
 			p := args[0].(*object.Process)
-			process, ok := ProcessMap.Get(pk(p.NodeName, p.Id))
+			processA, ok := ProcessMap.Load(pk(p.NodeName, p.Id))
 			if !ok {
 				return newError("`recv` failed, name=%q, pid=%d not found", p.NodeName, p.Id)
 			}
+			process := processA.(*object.Process)
 			if process.Ch == nil {
 				return newError("`recv` error: process chanel is nil. Note: This is a bug, %s", process.Inspect())
 			}
 			val := <-process.Ch
+			if val == nil {
+				return newError("`recv` error: process channel was closed")
+			}
 			return val
 		},
 		HelpStr: helpStrArgs{
@@ -1105,10 +1109,11 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("send", 1, object.PROCESS_OBJ, args[0].Type())
 			}
 			p := args[0].(*object.Process)
-			process, ok := ProcessMap.Get(pk(p.NodeName, p.Id))
+			processA, ok := ProcessMap.Load(pk(p.NodeName, p.Id))
 			if !ok {
 				return newError("`send` failed, name=%q, pid=%d not found", p.NodeName, p.Id)
 			}
+			process := processA.(*object.Process)
 			if process.Ch == nil {
 				return newError("`send` error: process chanel is nil. Note: This is a bug, %s", process.Inspect())
 			}
@@ -1342,7 +1347,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			for {
 				allDone := false
 				for _, p := range processesToWaitFor {
-					_, ok := ProcessMap.Get(pk(p.NodeName, p.Id))
+					_, ok := ProcessMap.Load(pk(p.NodeName, p.Id))
 					allDone = allDone || ok
 				}
 				// They should all be false for us to exit
@@ -2286,12 +2291,12 @@ func getListOfProcesses(arg object.Object) ([]*object.Process, bool) {
 	}
 	elems := arg.(*object.List).Elements
 	processes := make([]*object.Process, 0, len(elems))
-	for i, e := range elems {
+	for _, e := range elems {
 		if e.Type() != object.PROCESS_OBJ {
 			return nil, false
 		}
 		v := e.(*object.Process)
-		processes[i] = v
+		processes = append(processes, v)
 	}
 	return processes, true
 }

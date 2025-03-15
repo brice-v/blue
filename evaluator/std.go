@@ -72,10 +72,10 @@ import (
 
 // StdModFileAndBuiltins keeps the file and builtins together for each std lib module
 type StdModFileAndBuiltins struct {
-	File     string              // File is the actual code used for the module
-	Builtins BuiltinMapType      // Builtins is the map of functions to be used by the module
-	Env      *object.Environment // Env is the environment to pull the lib functions/variables from
-	HelpStr  string              // HelpStr is the help string for the std lib program
+	File     string               // File is the actual code used for the module
+	Builtins BuiltinMapType       // Builtins is the map of functions to be used by the module
+	Env      *object.Environment2 // Env is the environment to pull the lib functions/variables from
+	HelpStr  string               // HelpStr is the help string for the std lib program
 }
 
 var _std_mods = map[string]StdModFileAndBuiltins{
@@ -154,8 +154,8 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		}
 		NewEvaluatorLock.Lock()
 		fb.Env = newE.env.Clone()
-		pubFunHelpStr := fb.Env.GetPublicFunctionHelpString()
-		fb.HelpStr = CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)
+		// pubFunHelpStr := fb.Env.GetPublicFunctionHelpString()
+		// fb.HelpStr = CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)
 		NewEvaluatorLock.Unlock()
 	}
 

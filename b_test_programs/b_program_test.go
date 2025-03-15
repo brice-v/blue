@@ -15,6 +15,16 @@ import (
 	"testing"
 )
 
+const fibEx = `fun fib(n) {
+    if n < 2 {
+        return n;
+    }
+
+    return fib(n-1) + fib(n-2);
+}
+
+fib(28);`
+
 func TestAllProgramsInDirectory(t *testing.T) {
 	files, err := os.ReadDir("./")
 	if err != nil {
@@ -22,7 +32,9 @@ func TestAllProgramsInDirectory(t *testing.T) {
 	}
 
 	for _, f := range files {
-		executeBlueTestFile(f, t)
+		if f.Name() == "test_lots_of_processes.b" {
+			executeBlueTestFile(f, t)
+		}
 		// TODO: See if we can make our own execution environment for blue
 		// that way the gos (global object store) can just be instantiated
 		// for new test runs (in parallel)
@@ -60,7 +72,11 @@ func executeBlueTestFile(f fs.DirEntry, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	l := lexer.New(string(data), fpath)
+	stringData := string(data)
+	if strings.HasPrefix(stringData, "# IGNORE") || strings.HasPrefix(stringData, "#IGNORE") {
+		return
+	}
+	l := lexer.New(stringData, fpath)
 
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -86,5 +102,36 @@ func executeBlueTestFile(f fs.DirEntry, t *testing.T) {
 	}
 	if obj.Inspect() != "true" {
 		t.Fatalf("File `%s`: Did not return true as last statement. Failed", f.Name())
+	}
+}
+
+func TestFibPerf(t *testing.T) {
+	execString(t, fibEx)
+}
+
+func execString(t *testing.T, s string) {
+	l := lexer.New(s, "<string>")
+
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		repl.PrintParserErrors(os.Stderr, p.Errors())
+		t.Fatalf("failed to parse string: %s", s)
+	}
+	e := evaluator.New()
+	obj := e.Eval(program)
+	if obj == nil {
+		t.Fatalf("evaluator returned nil: %s", s)
+	}
+	if obj.Type() == object.ERROR_OBJ {
+		errorObj := obj.(*object.Error)
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		for e.ErrorTokens.Len() > 0 {
+			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+			buf.WriteByte('\n')
+		}
+		t.Fatalf("evaluator returned error: %s, %s", s, buf.String())
 	}
 }

@@ -5,6 +5,7 @@ package evaluator
 import (
 	"blue/evaluator/pubsub"
 	"blue/object"
+	"sync"
 	"sync/atomic"
 )
 
@@ -27,9 +28,7 @@ func pk(name string, id uint64) ProcessKey {
 	return ProcessKey{name, id}
 }
 
-var ProcessMap = &ConcurrentMap[ProcessKey, *object.Process]{
-	kv: make(map[ProcessKey]*object.Process),
-}
+var ProcessMap = sync.Map{}
 
 var subscriberCount = atomic.Uint64{}
 var PubSubBroker = pubsub.NewBroker()

@@ -48,17 +48,28 @@ func StartEvalRepl() {
 	user, err := user.Current()
 	if err != nil {
 		fmt.Println("Unable to get current username, proceeding with none")
-		startEvalRepl(os.Stdin, os.Stdout, "")
+		startEvalRepl(os.Stdin, os.Stdout, "", "", "")
 		os.Exit(0)
 	}
-	startEvalRepl(os.Stdin, os.Stdout, user.Username)
+	startEvalRepl(os.Stdin, os.Stdout, user.Username, "", "")
+	os.Exit(0)
+}
+
+func StartEvalReplWithNodeName(nodeName, address string) {
+	user, err := user.Current()
+	if err != nil {
+		fmt.Println("Unable to get current username, proceeding with none")
+		startEvalRepl(os.Stdin, os.Stdout, "", nodeName, address)
+		os.Exit(0)
+	}
+	startEvalRepl(os.Stdin, os.Stdout, user.Username, nodeName, address)
 	os.Exit(0)
 }
 
 // startEvalRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startEvalRepl(in io.Reader, out io.Writer, username string) {
-	e := evaluator.New()
+func startEvalRepl(in io.Reader, out io.Writer, username, nodeName, address string) {
+	e := evaluator.NewNode(nodeName, address)
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", consts.VERSION, username)
 	rl, err := readline.New(PROMPT)
 	if err != nil {

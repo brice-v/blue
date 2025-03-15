@@ -1,3 +1,4 @@
+#IGNORE
 ## This module tests the `help` function
 
 

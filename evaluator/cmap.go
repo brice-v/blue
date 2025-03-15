@@ -27,8 +27,8 @@ func (cm *ConcurrentMap[K, V]) Put(k K, v V) {
 }
 
 func (cm *ConcurrentMap[K, V]) Get(k K) (V, bool) {
-	cm.lock.Lock()
-	defer cm.lock.Unlock()
+	cm.lock.RLock()
+	defer cm.lock.RUnlock()
 	value, ok := cm.kv[k]
 	return value, ok
 }

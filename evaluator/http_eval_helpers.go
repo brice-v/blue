@@ -71,9 +71,9 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 			}
 			method := strings.ToUpper(args[3].(*object.Stringo).Value)
 			pattern := args[1].(*object.Stringo).Value
-			fn := args[2].(*object.Function)
+			fun := args[2].(*object.Function)
 			goFiberFunc := func(c *fiber.Ctx) error {
-				return processHandlerFn(e, fn, c, method)
+				return processHandlerFn(e, fun, c, method)
 			}
 			if isUse {
 				if method != "" {
@@ -275,7 +275,7 @@ func prepareAndApplyHttpHandleFn(e *Evaluator, fn *object.Function, c *fiber.Ctx
 		return false, nil, errors
 	}
 	fnArgs, immutableArgs := getAndSetHttpParams(fn, c)
-	return true, e.applyFunctionFast(fn, fnArgs, make(map[string]object.Object), immutableArgs), []string{}
+	return true, e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs), []string{}
 }
 
 func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Function, c *fiber.Ctx) (bool, []string) {
@@ -299,7 +299,7 @@ func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Functio
 					}
 					// Now we know its a list of strings so we can set the variables accordingly for the fn
 					s := elem.(*object.Stringo).Value
-					fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+					fn.Scope.Set(s, &object.Stringo{Value: c.Query(s)})
 				}
 			} else if isCookies {
 				// Handle cookies
@@ -317,7 +317,7 @@ func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Functio
 					}
 					// Now we know its a list of strings so we can set the variables accordingly for the fn
 					s := elem.(*object.Stringo).Value
-					fn.Env.Set(s, &object.Stringo{Value: c.Cookies(s)})
+					fn.Scope.Set(s, &object.Stringo{Value: c.Cookies(s)})
 				}
 			} else if fn.Parameters[k].Value == varName {
 				// Handle post_values, put_values, patch_values (in body)
@@ -345,9 +345,9 @@ func getAndSetDefaultHttpParams(e *Evaluator, varName string, fn *object.Functio
 					}
 					s := elem.(*object.Stringo).Value
 					if v, ok := returnMap[s]; ok {
-						fn.Env.Set(s, v)
+						fn.Scope.Set(s, v)
 					} else {
-						fn.Env.Set(s, &object.Stringo{Value: c.FormValue(s)})
+						fn.Scope.Set(s, &object.Stringo{Value: c.FormValue(s)})
 					}
 					// Now we know its a list of strings so we can set the variables accordingly for the fn
 				}
@@ -574,7 +574,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 								}
 								// Now we know its a list of strings so we can set the variables accordingly for the fn
 								s := elem.(*object.Stringo).Value
-								fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
+								fn.Scope.Set(s, &object.Stringo{Value: c.Query(s)})
 							}
 						} else if isCookies {
 							// Handle cookies
@@ -596,7 +596,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 								}
 								// Now we know its a list of strings so we can set the variables accordingly for the fn
 								s := elem.(*object.Stringo).Value
-								fn.Env.Set(s, &object.Stringo{Value: c.Cookies(s)})
+								fn.Scope.Set(s, &object.Stringo{Value: c.Cookies(s)})
 							}
 						}
 					}
@@ -611,7 +611,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 					}
 					immutableArgs[i] = true
 				}
-				returnObj = e.applyFunctionFast(fn, fnArgs, make(map[string]object.Object), immutableArgs)
+				returnObj = e.applyFunction(fn, fnArgs, make(map[string]object.Object), immutableArgs)
 				if isError(returnObj) {
 					var buf bytes.Buffer
 					buf.WriteString(returnObj.(*object.Error).Message)

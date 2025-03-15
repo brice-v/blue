@@ -49,7 +49,7 @@ var (
 )
 
 type Evaluator struct {
-	env *object.Environment
+	env *object.Environment2
 
 	// PID is the process ID of this evaluator
 	PID uint64
@@ -115,7 +115,7 @@ func New() *Evaluator {
 
 func NewNode(nodeName, address string) *Evaluator {
 	e := &Evaluator{
-		env: object.NewEnvironmentWithoutCore(),
+		env: object.NewEnvironment2(),
 
 		PID:      pidCount.Load(),
 		NodeName: nodeName,
@@ -152,16 +152,17 @@ func NewNode(nodeName, address string) *Evaluator {
 	e.BuiltinObjs = []BuiltinObjMapType{builtinobjs}
 	e.env.SetCore(e.AddCoreLibToEnv())
 	// Create an empty process so we can recv without spawning
-	if _, ok := ProcessMap.Get(pk(nodeName, e.PID)); !ok {
-		process := &object.Process{
-			// TODO: Eventually update to non-buffered and update send and recv as needed
-			Ch: make(chan object.Object, 1),
-			Id: e.PID,
+	process := &object.Process{
+		// TODO: Eventually update to non-buffered and update send and recv as needed
+		Ch: make(chan object.Object, 1),
+		Id: e.PID,
 
-			NodeName: nodeName,
-		}
-		ProcessMap.Put(pk(process.NodeName, e.PID), process)
+		NodeName: nodeName,
 	}
+	ProcessMap.LoadOrStore(pk(nodeName, e.PID), process)
+	// if address != "" {
+	// 	processmanager.Start(address)
+	// }
 
 	return e
 }
@@ -363,7 +364,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			defaultParams = append(defaultParams, obj)
 		}
 		// Note: Clone is really slow
-		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env.Clone()}
+		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Scope: e.env.ClonePriorScopeIntoNewScope()}
 	case *ast.FunctionStatement:
 		params := node.Parameters
 		body := node.Body
@@ -380,8 +381,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			}
 			defaultParams = append(defaultParams, obj)
 		}
-		// TODO: Should Clone here too? (breaks recursion if we do)
-		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env}
+		// Note: Clone is really slow
+		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Scope: e.env.CloneAllIntoNewScope()}
 		funObj.HelpStr = createHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
 		e.env.Set(node.Name.Value, funObj)
 	case *ast.CallExpression:
@@ -768,11 +769,11 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		return NULL
 	}
 	// Set HelpStr from program HelpStrToks
-	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
+	// pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
 	mod := &object.Module{
-		Name:    modName,
-		Env:     newE.env,
-		HelpStr: CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr),
+		Name: modName,
+		Env:  newE.env,
+		// HelpStr: CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr),
 	}
 	if node.Alias != nil {
 		e.env.Set(node.Alias.Value, mod)
@@ -872,8 +873,9 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 
 		NodeName: e.NodeName,
 	}
-	ProcessMap.Put(pk(e.NodeName, pid), process)
-	go spawnFunction(pid, e.NodeName, fun, arg1)
+	ProcessMap.Store(pk(e.NodeName, pid), process)
+	fn := fun.Copy()
+	go spawnFunction(pid, e.NodeName, fn, arg1)
 	return process
 }
 
@@ -881,7 +883,7 @@ func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 objec
 	newE := New()
 	newE.PID = pid
 	elems := arg1.(*object.List).Elements
-	newObj := newE.applyFunctionFast(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
+	newObj := newE.applyFunction(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
 	if isError(newObj) {
 		err := newObj.(*object.Error)
 		var buf bytes.Buffer
@@ -894,10 +896,9 @@ func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 objec
 		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, buf.String())
 	}
 	// Delete from concurrent map and close channel (not 100% sure its necessary)
-	if process, ok := ProcessMap.Get(pk(nodeName, pid)); ok {
-		close(process.Ch)
+	if process, ok := ProcessMap.LoadAndDelete(pk(nodeName, pid)); ok {
+		close(process.(*object.Process).Ch)
 	}
-	ProcessMap.Remove(pk(nodeName, pid))
 }
 
 func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object {
@@ -932,8 +933,8 @@ func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object
 }
 
 func (e *Evaluator) evalSelfExpression(_ *ast.SelfExpression) object.Object {
-	if p, ok := ProcessMap.Get(pk(e.NodeName, e.PID)); ok {
-		return p
+	if p, ok := ProcessMap.Load(pk(e.NodeName, e.PID)); ok {
+		return p.(*object.Process)
 	}
 	return newError("`self` error: process not found")
 }
@@ -3538,7 +3539,7 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 			for funAndArgs.Len() > 0 {
 				funAndArg := funAndArgs.Pop()
 				// Note: Return values are ignored for defer functions
-				e.applyFunctionFast(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
 			}
 			delete(e.deferFuns, e.scopeNestLevel)
 		}
@@ -3584,7 +3585,7 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 			for funAndArgs.Len() > 0 {
 				funAndArg := funAndArgs.Pop()
 				// Note: Return values are ignored for defer functions
-				e.applyFunctionFast(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
 			}
 			delete(e.deferFuns, e.scopeNestLevel)
 		}

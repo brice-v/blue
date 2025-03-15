@@ -11,9 +11,9 @@ import (
 	"os"
 )
 
-var coreEnv *object.Environment = nil
+var coreEnv *object.Environment2 = nil
 
-func (e *Evaluator) AddCoreLibToEnv() *object.Environment {
+func (e *Evaluator) AddCoreLibToEnv() *object.Environment2 {
 	if coreEnv == nil {
 		l := lexer.New(lib.CoreFile, consts.CORE_FILE_PATH)
 		p := parser.New(l)

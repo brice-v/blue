@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cmd.RunAgentIfEnabled()
+	// cmd.RunAgentIfEnabled()
 	cmd.Run(os.Args...)
 	os.Exit(0)
 }

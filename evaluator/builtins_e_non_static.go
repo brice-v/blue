@@ -34,7 +34,7 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 				s := args[0].(*object.Stringo).Value
 				fn := args[1].(*object.Function)
 				button := widget.NewButton(s, func() {
-					obj := e.applyFunctionFast(fn, []object.Object{}, make(map[string]object.Object), []bool{})
+					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
 					if isError(obj) {
 						err := obj.(*object.Error)
 						var buf bytes.Buffer
@@ -81,7 +81,7 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 					return newError("`checkbox` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 				}
 				checkBox := widget.NewCheck(lbl, func(value bool) {
-					obj := e.applyFunctionFast(fn, []object.Object{nativeToBooleanObject(value)}, make(map[string]object.Object), []bool{true})
+					obj := e.applyFunction(fn, []object.Object{nativeToBooleanObject(value)}, make(map[string]object.Object), []bool{true})
 					if isError(obj) {
 						err := obj.(*object.Error)
 						var buf bytes.Buffer
@@ -135,7 +135,7 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 					return newError("`radio_group` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 				}
 				radio := widget.NewRadioGroup(options, func(value string) {
-					obj := e.applyFunctionFast(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
+					obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
 					if isError(obj) {
 						err := obj.(*object.Error)
 						var buf bytes.Buffer
@@ -189,7 +189,7 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 					return newError("`option_select` error: handler needs 1 argument. got=%d", len(fn.Parameters))
 				}
 				option := widget.NewSelect(options, func(value string) {
-					obj := e.applyFunctionFast(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
+					obj := e.applyFunction(fn, []object.Object{&object.Stringo{Value: value}}, make(map[string]object.Object), []bool{true})
 					if isError(obj) {
 						err := obj.(*object.Error)
 						var buf bytes.Buffer
@@ -261,7 +261,7 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 				form := &widget.Form{
 					Items: formItems,
 					OnSubmit: func() {
-						obj := e.applyFunctionFast(fn, []object.Object{}, make(map[string]object.Object), []bool{})
+						obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
 						if isError(obj) {
 							err := obj.(*object.Error)
 							var buf bytes.Buffer
@@ -309,7 +309,7 @@ func createUIToolbarAction(e *Evaluator) *object.Builtin {
 				}
 				fn := args[1].(*object.Function)
 				return NewGoObj[widget.ToolbarItem](widget.NewToolbarAction(r.Value, func() {
-					obj := e.applyFunctionFast(fn, []object.Object{}, make(map[string]object.Object), []bool{})
+					obj := e.applyFunction(fn, []object.Object{}, make(map[string]object.Object), []bool{})
 					if isError(obj) {
 						err := obj.(*object.Error)
 						var buf bytes.Buffer
