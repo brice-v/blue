@@ -2191,8 +2191,43 @@ func (e *Evaluator) evalProcessIndexExpression(left, indx object.Object) object.
 		return &object.UInteger{Value: p.Id}
 	case "name":
 		return &object.Stringo{Value: p.NodeName}
-	// TODO: Can we handle recv and send directly here?
-	// look at example self().recv() - also see if we can short circuit calls that go to core.b for _send and _recv if so
+	case "send":
+		proc := p
+		return &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("send", len(args), 1, "")
+				}
+				proc.Ch <- args[0]
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`send` will take the given value and send it to the process",
+				signature:   "send(pid: PROCESS, val: any) -> null",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "send(#{name: '', id: 1}, 'hello') => null",
+			}.String(),
+		}
+	case "recv":
+		proc := p
+		return &object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("recv", len(args), 0, "")
+				}
+				val := <-proc.Ch
+				if val == nil {
+					return newError("`recv` error: process channel was closed")
+				}
+				return val
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`recv` waits for a value on the given process and returns it",
+				signature:   "recv(pid: PROCESS) -> any",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "recv(#{name: '', id: 1}) => 'something'",
+			}.String(),
+		}
 	default:
 		return newError("%s.%s %q not supported", left.Type(), indx.Type(), s)
 	}

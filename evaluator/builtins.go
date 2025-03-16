@@ -1070,63 +1070,6 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "cd('/home/user') => null",
 		}.String(),
 	},
-	"_recv": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("recv", len(args), 1, "")
-			}
-			if args[0].Type() != object.PROCESS_OBJ {
-				return newPositionalTypeError("recv", 1, object.PROCESS_OBJ, args[0].Type())
-			}
-			p := args[0].(*object.Process)
-			processA, ok := ProcessMap.Load(pk(p.NodeName, p.Id))
-			if !ok {
-				return newError("`recv` failed, name=%q, pid=%d not found", p.NodeName, p.Id)
-			}
-			process := processA.(*object.Process)
-			if process.Ch == nil {
-				return newError("`recv` error: process chanel is nil. Note: This is a bug, %s", process.Inspect())
-			}
-			val := <-process.Ch
-			if val == nil {
-				return newError("`recv` error: process channel was closed")
-			}
-			return val
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`_recv` waits for a value on the given UINTEGER (process) and returns it",
-			signature:   "_recv(pid: uint) -> any",
-			errors:      "InvalidArgCount,PositionalType,PidNotFound",
-			example:     "_recv(0x0) => 'something'",
-		}.String(),
-	},
-	"_send": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("send", len(args), 2, "")
-			}
-			if args[0].Type() != object.PROCESS_OBJ {
-				return newPositionalTypeError("send", 1, object.PROCESS_OBJ, args[0].Type())
-			}
-			p := args[0].(*object.Process)
-			processA, ok := ProcessMap.Load(pk(p.NodeName, p.Id))
-			if !ok {
-				return newError("`send` failed, name=%q, pid=%d not found", p.NodeName, p.Id)
-			}
-			process := processA.(*object.Process)
-			if process.Ch == nil {
-				return newError("`send` error: process chanel is nil. Note: This is a bug, %s", process.Inspect())
-			}
-			process.Ch <- args[1]
-			return NULL
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`_send` will take the given value and send it to the UINTEGER (process)",
-			signature:   "_send(pid: uint, val: any) -> null",
-			errors:      "InvalidArgCount,PositionalType,PidNotFound",
-			example:     "_send(0x0, 'hello') => null",
-		}.String(),
-	},
 	"_to_bytes": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {

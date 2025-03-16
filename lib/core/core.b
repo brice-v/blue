@@ -21,9 +21,6 @@ val Type = {
 
 fun send(obj, value) {
     ##core:ignore
-    if type(obj) == Type.PROCESS {
-        return _send(obj, value);
-    }
     match obj {
         {t: "ws", v: _} => {
             import http
@@ -41,9 +38,6 @@ fun send(obj, value) {
 
 fun recv(obj) {
     ##core:ignore
-    if type(obj) == Type.PROCESS {
-        return _recv(obj);
-    }
     match obj {
         {t: "ws", v: _} => {
             import http
