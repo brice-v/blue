@@ -254,7 +254,8 @@ import math
 original = math;
 
 try {
-    saved = original.save();
+    # TODO: Update error for trying to do dot call with module on left
+    saved = save(original);
     assert(false);
 } catch (e) {
     println(e);

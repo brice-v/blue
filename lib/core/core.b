@@ -405,6 +405,7 @@ fun __go_metrics(flat=false) {
     return __total_metrics;
 }
 
+### TODO: Needs to be fixed
 val runtime = {
     go_metrics: __go_metrics,
     gc: _gc,
@@ -428,3 +429,4 @@ val runtime = {
         set_mem_limit: _set_mem_limit,
     },
 };
+###

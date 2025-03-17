@@ -9,3 +9,4 @@ blue.exe
 release-build/*
 ignored/*
 *.png
+*.prof

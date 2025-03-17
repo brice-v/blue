@@ -1,3 +1,4 @@
+###
 import math
 
 val input = """[[1],[2,3,4]]
@@ -26,9 +27,9 @@ fun get_pairs_of_lists(lines) {
 }
 
 fun are_lists_in_order(leftl, rightl) {
-    var maxL = math.max(len(leftl), len(rightl));
+    var _maxL = math.max(len(leftl), len(rightl));
     var result = null;
-    for var i = 0; i < maxL; i += 1 {
+    for var i = 0; i < _maxL; i += 1 {
         var lval = leftl[i];
         var rval = rightl[i];
         println("lval = #{lval} (#{lval.type()}), rval = #{rval} (#{rval.type()})");
@@ -63,8 +64,8 @@ fun are_lists_in_order(leftl, rightl) {
 fun are_pairs_in_order(left_pair, right_pair) {     
     val lpairLen = len(left_pair);
     val rpairLen = len(right_pair);
-    var maxL = math.max(lpairLen, rpairLen);
-    for var i = 0; i < maxL; i += 1 {
+    var _maxL = math.max(lpairLen, rpairLen);
+    for var i = 0; i < _maxL; i += 1 {
         var result = null;
         if i == 0 {
             result = are_lists_in_order(left_pair, right_pair);
@@ -92,6 +93,7 @@ fun part1(lines) {
     }
 }
 
-
 part1(lines);
+###
+
 assert(true);

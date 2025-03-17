@@ -32,9 +32,7 @@ func TestAllProgramsInDirectory(t *testing.T) {
 	}
 
 	for _, f := range files {
-		if f.Name() == "test_lots_of_processes.b" {
-			executeBlueTestFile(f, t)
-		}
+		executeBlueTestFile(f, t)
 		// TODO: See if we can make our own execution environment for blue
 		// that way the gos (global object store) can just be instantiated
 		// for new test runs (in parallel)

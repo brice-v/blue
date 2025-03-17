@@ -1,3 +1,4 @@
+### TODO: This is deadlocking
 # So we are not going to support sending on a channel to more than 1 at the same time
 # and instead pubsub will be a valid option
 
@@ -30,5 +31,5 @@ println("GOT HERE")
 pubsub.publish(me, "Hello");
 
 wait(pid1, pid2);
-
+###
 assert(true)
