@@ -3,15 +3,11 @@ package cmd
 import (
 	"blue/consts"
 	"blue/repl"
-	"blue/ws_vendor/gops"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
-
-	"github.com/google/gops/agent"
 
 	"github.com/gookit/color"
 )
@@ -36,8 +32,6 @@ The commands are:
             functions in the given filepath or module
             note: the file/module will be evaluated to gather
             all functions - so any side effects may take place
-    ps      list the 'blue' (and other gops agent) listeners
-            which have commands that can be run
     play    starts a server and opens the browser to execute
             blue code
     help    prints this help message
@@ -48,9 +42,6 @@ an evaluator repl. (If given a file, the file will be
 evaluated)
 
 Environment Variables:
-DISABLE_AGENT_LISTENER      set to true to disable gops listener from
-                            running this makes the 'ps' command non
-                            functional
 DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
                             http route path printing and message
 BLUE_INSTALL_PATH           set to the path where the blue src is
@@ -95,8 +86,6 @@ func Run(args ...string) {
 	// 	handleNodeCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
-	case "ps":
-		handlePsCommand(argc, arguments)
 	case "play":
 		handlePlayCommand(argc, arguments)
 	default:
@@ -111,17 +100,6 @@ func Run(args ...string) {
 			evalFile(command, noExec)
 		} else {
 			printUsage()
-		}
-	}
-}
-
-// RunAgentIfEnabled will run the gops agent listener if DISABLE_AGENT_LISTENER is set to false, or ”
-func RunAgentIfEnabled() {
-	isDisabled := os.Getenv(consts.DISABLE_AGENT_LISTENER)
-	ok, err := strconv.ParseBool(isDisabled)
-	if isDisabled == "" || (err == nil && !ok) {
-		if err := agent.Listen(agent.Options{}); err != nil {
-			consts.ErrorPrinter("`ps` listener error: %s", err.Error())
 		}
 	}
 }
@@ -289,19 +267,4 @@ func handleDocCommand(argc int, arguments []string) {
 	}
 	name := arguments[1]
 	fmt.Print(getDocStringFor(name))
-}
-
-// TODO: Need to handle better when the binary is packed with upx
-func handlePsCommand(_ int, arguments []string) {
-	// Have to trim off 'blue ps' for cobra inside gops.Gops_main
-	for i := 0; i < len(os.Args); i++ {
-		if strings.Contains(os.Args[i], "blue") && os.Args[i+1] == "ps" {
-			os.Args = os.Args[i+1:]
-			break
-		}
-	}
-	err := gops.Gops_main(arguments[1:]) // trim off 'ps' and pass to Gops_main
-	if err != nil {
-		os.Exit(1)
-	}
 }

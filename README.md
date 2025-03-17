@@ -159,8 +159,6 @@ The commands are:
             functions in the given filepath or module
             note: the file/module will be evaluated to gather
             all functions - so any side effects may take place
-    ps      list the 'blue' (and other gops agent) listeners
-            which have commands that can be run
     play    starts a server and opens the browser to execute
             blue code
     help    prints this help message
@@ -171,9 +169,6 @@ an evaluator repl. (If given a file, the file will be
 evaluated)
 
 Environment Variables:
-DISABLE_AGENT_LISTENER      set to true to disable gops listener from
-                            running this makes the 'ps' command non
-                            functional
 DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
                             http route path printing and message
 BLUE_INSTALL_PATH           set to the path where the blue src is

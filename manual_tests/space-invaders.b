@@ -115,13 +115,14 @@ fun fire_bullet() {
 fun update_enemy_heights_and_speeds() {
     G.enemy_top += 1;
     update_enemy_speed();
-    for var j = 0; j < 3; j += 1 {
-        for (var i = 0; i < 5; i += 1) {
-            var enemy = G.enemies[j][i];
-            if !enemy {
+    # NOTE: after updated env code, all these vars got redefined
+    for var _j = 0; _j < 3; _j += 1 {
+        for (var _i = 0; _i < 5; _i += 1) {
+            var _enemy = G.enemies[_j][_i];
+            if !_enemy {
                 continue;
             }
-            enemy.y += int(ENEMY_HEIGHT/2);
+            _enemy.y += int(ENEMY_HEIGHT/2);
         }
     }
 }

@@ -179,6 +179,7 @@ func main() {
 
 COMPLETED TASKS:
 
+- [x] Removed gops dep, didnt work with upx packed executable - eventually we can make this accessible via runtime and nodes
 - [x] FEAT: if NULL < INTEGER (should shortcut in if statement (and others) if null check is first and fails)
 - [x] support deleting at index for other collections?
     - Done
