@@ -347,6 +347,12 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			return val
 		}
 		return e.evalVariableStatement(false, node.IsMapDestructor, node.IsListDestructor, val, node.Names, node.KeyValueNames, node.Token)
+	case *ast.ForStatement:
+		obj := e.evalForStatement(node)
+		if isError(obj) {
+			e.ErrorTokens.Push(node.Token)
+		}
+		return obj
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
@@ -493,12 +499,6 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		return obj
 	case *ast.AssignmentExpression:
 		obj := e.evalAssignmentExpression(node)
-		if isError(obj) {
-			e.ErrorTokens.Push(node.Token)
-		}
-		return obj
-	case *ast.ForExpression:
-		obj := e.evalForExpression(node)
 		if isError(obj) {
 			e.ErrorTokens.Push(node.Token)
 		}
@@ -784,10 +784,10 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 }
 
 func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Object {
-	evald := e.Eval(node.TryBlock)
+	evald := e.evalBlockStatement(node.TryBlock)
 	if isError(evald) {
 		e.env.Set(node.CatchIdentifier.Value, &object.Stringo{Value: evald.Inspect()})
-		evaldCatch := e.Eval(node.CatchBlock)
+		evaldCatch := e.evalBlockStatement(node.CatchBlock)
 		// Need to remove the catch identifier after evaluating the catch block
 		e.env.RemoveIdentifier(node.CatchIdentifier.Value)
 		if node.FinallyBlock != nil {
@@ -956,7 +956,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 	for i := 0; i < conditionLen; i++ {
 		if node.Conditions[i].String() == "_" {
 			// Default case should always run (even if its before others)
-			return e.Eval(node.Consequences[i])
+			return e.evalBlockStatement(node.Consequences[i])
 		}
 		// Run through each condtion and if it evaluates to "true" then return the evaluated consequence
 		condVal := e.Eval(node.Conditions[i])
@@ -964,7 +964,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 		if condVal.Type() == object.MAP_OBJ && optVal != nil && optVal.Type() == object.MAP_OBJ {
 			// Do our shape matching on it
 			if doCondAndMatchExpEqual(condVal, optVal) {
-				return e.Eval(node.Consequences[i])
+				return e.evalBlockStatement(node.Consequences[i])
 			}
 		}
 		if optVal == nil {
@@ -973,15 +973,15 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 				return evald
 			}
 			if evald == TRUE {
-				return e.Eval(node.Consequences[i])
+				return e.evalBlockStatement(node.Consequences[i])
 			}
 			continue
 		}
 		if object.HashObject(condVal) == object.HashObject(optVal) {
-			return e.Eval(node.Consequences[i])
+			return e.evalBlockStatement(node.Consequences[i])
 		}
 		if condVal == IGNORE {
-			return e.Eval(node.Consequences[i])
+			return e.evalBlockStatement(node.Consequences[i])
 		}
 	}
 	// Shouldnt reach here ideally
@@ -1390,7 +1390,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 	return newError("Expected List, Map, Set, or String on right hand side. got=%s", evaluatedRight.Type())
 }
 
-func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
+func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 	var evalBlock object.Object
 	defer func() {
 		// Cleanup any temporary for variables
@@ -1476,7 +1476,7 @@ func (e *Evaluator) evalForExpression(node *ast.ForExpression) object.Object {
 		}
 		firstRun = false
 		e.oneElementForIn = false
-		evalBlock = e.Eval(node.Consequence)
+		evalBlock = e.evalBlockStatement(node.Consequence)
 		if evalBlock == nil {
 			e.doneWithFor[e.scopeNestLevel] = struct{}{}
 			return NULL
@@ -2502,11 +2502,11 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 			return condition
 		}
 		if isTruthy(condition) {
-			return e.Eval(ie.Consequences[i])
+			return e.evalBlockStatement(ie.Consequences[i])
 		}
 	}
 	if ie.Alternative != nil {
-		return e.Eval(ie.Alternative)
+		return e.evalBlockStatement(ie.Alternative)
 	} else {
 		return NULL
 	}

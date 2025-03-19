@@ -281,7 +281,7 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		// functions because spawnExpression will set the PID initially
 		scope := extendFunctionEnv(function, args, defaultArgs, immutableArgs)
 		e.env.PushExistingScope(scope)
-		evaluated := e.Eval(function.Body)
+		evaluated := e.evalBlockStatement(function.Body)
 		e.env.PopScope()
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:

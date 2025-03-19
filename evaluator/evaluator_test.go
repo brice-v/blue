@@ -632,7 +632,7 @@ func TestMapIndexExpressions(t *testing.T) {
 	}
 }
 
-func TestForExpression(t *testing.T) {
+func TestForStatement(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected interface{}
@@ -648,6 +648,10 @@ func TestForExpression(t *testing.T) {
 		{
 			`var i = 0; for (true) { for (x in 1..10) { if (i > 30) { break; error("UNREACHABLE"); i += 100; } i += 1; }; i += 1; if (i < 100) { continue; error("UNREACHABLE"); } else { i += 2000; break; error("UNREACHABLE"); i += 300; } }; i`,
 			2100,
+		},
+		{
+			`var x = 0; for (var j = 0; j < 10; j += 1) { val y = 2; x += y*j; }; x`,
+			90,
 		},
 	}
 	for _, tt := range tests {

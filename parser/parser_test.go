@@ -1638,7 +1638,7 @@ func TestParsingMemberAccessExpression(t *testing.T) {
 	}
 }
 
-func TestForExpression(t *testing.T) {
+func TestForStatement(t *testing.T) {
 	input := `for (x < y) { var z = x + y; };`
 
 	l := lexer.New(input, "<internal: test>")
@@ -1650,27 +1650,22 @@ func TestForExpression(t *testing.T) {
 		t.Fatalf("program.Statements does not contain %d statements. got=%d", 1, len(program.Statements))
 	}
 
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	stmt, ok := program.Statements[0].(*ast.ForStatement)
 	if !ok {
-		t.Fatalf("program.Statements[0] is not *ast.ExpressionStatement. got=%T", program.Statements[0])
+		t.Fatalf("program.Statements[0] is not *ast.ForStatement. got=%T", program.Statements[0])
 	}
 
-	exp, ok := stmt.Expression.(*ast.ForExpression)
-	if !ok {
-		t.Fatalf("stmt.Expression is not *ast.ForExpression. got=%T", stmt.Expression)
-	}
-
-	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
+	if !testInfixExpression(t, stmt.Condition, "x", "<", "y") {
 		return
 	}
 
-	if len(exp.Consequence.Statements) != 1 {
-		t.Fatalf("exp.Consequence.Statements does not contain %d statements. got=%d", 1, len(exp.Consequence.Statements))
+	if len(stmt.Consequence.Statements) != 1 {
+		t.Fatalf("stmt.Consequence.Statements does not contain %d statements. got=%d", 1, len(stmt.Consequence.Statements))
 	}
 
-	cons, ok := exp.Consequence.Statements[0].(*ast.VarStatement)
+	cons, ok := stmt.Consequence.Statements[0].(*ast.VarStatement)
 	if !ok {
-		t.Fatalf("exp.Consequence.Statements[0] is not *ast.VarStatement. got=%T", exp.Consequence.Statements[0])
+		t.Fatalf("stmt.Consequence.Statements[0] is not *ast.VarStatement. got=%T", stmt.Consequence.Statements[0])
 	}
 
 	if !testVarStatement(t, cons, "z") {

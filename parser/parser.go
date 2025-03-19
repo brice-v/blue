@@ -148,7 +148,6 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BACKTICK, p.parseExecStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseListLiteral)
 	p.registerPrefix(token.LBRACE, p.parseMapOrSetLiteral)
-	p.registerPrefix(token.FOR, p.parseForExpression)
 	p.registerPrefix(token.MATCH, p.parseMatchExpression)
 	p.registerPrefix(token.NULL_KW, p.parseNullKeyword)
 	p.registerPrefix(token.EVAL, p.parseEvalExpression)
@@ -310,6 +309,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseValStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.FOR:
+		return p.parseForStatement()
 	case token.FROM:
 		return p.parseFromStatement()
 	case token.IMPORT:
@@ -1293,9 +1294,9 @@ func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 	}
 }
 
-// parseForExpression parses a for expression and returns the for expressions ast node
-func (p *Parser) parseForExpression() ast.Expression {
-	exp := &ast.ForExpression{
+// parseForStatement parses a for expression and returns the for expressions ast node
+func (p *Parser) parseForStatement() ast.Statement {
+	exp := &ast.ForStatement{
 		Token:   p.curToken,
 		UsesVar: false,
 	}
@@ -1341,6 +1342,9 @@ func (p *Parser) parseForExpression() ast.Expression {
 		return nil
 	}
 	exp.Consequence = p.parseBlockStatement()
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
 	return exp
 }
 

@@ -267,43 +267,6 @@ func (ie *IndexExpression) String() string {
 	return out.String()
 }
 
-// ForExpression is the for loop ast node
-type ForExpression struct {
-	Token       token.Token     // token == for
-	Condition   Expression      // Condition is the condition to test whether the loop should continue
-	Consequence *BlockStatement // Consequence contains a block of statements that happen if the condition is true
-	// for (var i = 0; i < 10; i += 1)
-	UsesVar     bool          // UsesVar if the for expression condition starts with 'var'
-	Initializer *VarStatement // initializer to be used for the for expression (var x = 0)
-	PostExp     Expression    // PostExp expression to run after the loop
-}
-
-// expressionNode satisfies the expression interface
-func (fe *ForExpression) expressionNode() {}
-
-// TokenLiteral returns the for token
-func (fe *ForExpression) TokenLiteral() string { return fe.Token.Literal }
-
-// String returns the string representation of the for expression ast node
-func (fe *ForExpression) String() string {
-	var out bytes.Buffer
-
-	out.WriteString("for (")
-	if !fe.UsesVar {
-		out.WriteString(fe.Condition.String())
-	} else {
-		out.WriteString(fe.Initializer.String())
-		out.WriteString("; ")
-		out.WriteString(fe.Condition.String())
-		out.WriteString("; ")
-		out.WriteString(fe.PostExp.String())
-	}
-	out.WriteString(") { ")
-	out.WriteString(fe.Consequence.ExpressionString())
-	out.WriteString(" } ")
-	return out.String()
-}
-
 // AssignmentExpression is the type that supports rebinding variables
 type AssignmentExpression struct {
 	Token token.Token // Token is the assignment token being used
