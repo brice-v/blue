@@ -8,7 +8,7 @@ import (
 )
 
 // versionNumber is the current version #
-const versionNumber = "0.2.2"
+const versionNumber = "0.2.3"
 
 // versionFn is the function that returns the formatted version number of the blang repl and language
 func versionFn() string {
