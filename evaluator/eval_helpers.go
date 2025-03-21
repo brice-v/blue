@@ -276,13 +276,17 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		if err != nil {
 			return err
 		}
+		// TODO: Improve this so we dont ever need a new call (see if we can use applyFunctionFast for all scenarios)
+		newE := New()
 		// Always use our current evaluator PID for the function
 		// this allows the self() function to return properly inside evaluated
 		// functions because spawnExpression will set the PID initially
-		scope := extendFunctionEnv(function, args, defaultArgs, immutableArgs)
-		e.env.PushExistingScope(scope)
-		evaluated := e.evalBlockStatement(function.Body)
-		e.env.PopScope()
+		newE.PID = e.PID
+		newE.env = extendFunctionEnv(function, args, defaultArgs, immutableArgs)
+		evaluated := newE.Eval(function.Body)
+		for newE.ErrorTokens.Len() != 0 {
+			e.ErrorTokens.s.PushBack(newE.ErrorTokens.Pop())
+		}
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
 		return function.Fun(args...)
@@ -296,48 +300,47 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 	}
 }
 
-// func (e *Evaluator) applyFunctionFast(fun object.Object, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) object.Object {
-// 	if _, ok := fun.(*object.Builtin); ok {
-// 		return e.applyFunction(fun, args, defaultArgs, immutableArgs)
-// 	}
-// 	if _, ok := fun.(*object.Function); !ok {
-// 		return e.applyFunction(fun, args, defaultArgs, immutableArgs)
-// 	}
-// 	argElem := e.UFCSArg.Pop()
-// 	// Note: This is just to keep the UFCS stack size consistent for both
-// 	_ = e.UFCSArgIsImmutable.Pop()
-// 	firstArgUFCSIsMod := false
-// 	if argElem != nil {
-// 		log.Printf("argElem = %s", (*argElem).Inspect())
-// 		argElemType := (*argElem).Type()
-// 		firstArgUFCSIsMod = argElemType == object.MODULE_OBJ
-// 		// prepend the argument to pass in to the front
-// 		args = append([]object.Object{*argElem}, args...)
-// 	}
-// 	function := fun.(*object.Function)
-// 	err := checkFunctionArgsAreValid(function, args, defaultArgs, firstArgUFCSIsMod)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	scope := extendFunctionEnv(function, args, defaultArgs, immutableArgs)
-// 	e.env.PushExistingScope(scope)
-// 	evaluated := e.Eval(function.Body)
-// 	e.env.PopScope()
-// 	return unwrapReturnValue(evaluated)
-// }
+func (e *Evaluator) applyFunctionFast(fun object.Object, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) object.Object {
+	if _, ok := fun.(*object.Builtin); ok {
+		return e.applyFunction(fun, args, defaultArgs, immutableArgs)
+	}
+	if _, ok := fun.(*object.Function); !ok {
+		return e.applyFunction(fun, args, defaultArgs, immutableArgs)
+	}
+	argElem := e.UFCSArg.Pop()
+	// Note: This is just to keep the UFCS stack size consistent for both
+	_ = e.UFCSArgIsImmutable.Pop()
+	firstArgUFCSIsMod := false
+	if argElem != nil {
+		argElemType := (*argElem).Type()
+		firstArgUFCSIsMod = argElemType == object.MODULE_OBJ
+		// prepend the argument to pass in to the front
+		args = append([]object.Object{*argElem}, args...)
+	}
+	function := fun.(*object.Function)
+	err := checkFunctionArgsAreValid(function, args, defaultArgs, firstArgUFCSIsMod)
+	if err != nil {
+		return err
+	}
+	envCopy := e.env
+	e.env = extendFunctionEnv(function, args, defaultArgs, immutableArgs)
+	evaluated := e.Eval(function.Body)
+	e.env = envCopy
+	return unwrapReturnValue(evaluated)
+}
 
-func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) *object.Scope {
-	scope := fun.Scope
+func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) *object.Environment {
+	env := object.NewEnclosedEnvironment(fun.Env)
 	// If the arguments slice is the same length as the parameter list, then we have them all
 	// so set them as normal
 	if len(args) == len(fun.Parameters) {
 		for paramIndx, param := range fun.Parameters {
-			scope.Set(param.Value, args[paramIndx])
+			env.Set(param.Value, args[paramIndx])
 			if immutableArgs[paramIndx] {
-				scope.ImmutableSet(param.Value)
+				env.ImmutableSet(param.Value)
 			}
 		}
-		setDefaultCallExpressionParameters(defaultArgs, scope)
+		setDefaultCallExpressionParameters(defaultArgs, env)
 	} else if len(args) < len(fun.Parameters) {
 		// loop and while less than the total parameters set e.environment variables accordingly
 		argsIndx := 0
@@ -351,10 +354,10 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			_, defaultArgGiven := defaultArgs[param.Value]
 			if fun.DefaultParameters[paramIndx] == nil {
 				if argsIndx < len(args) {
-					scope.Set(param.Value, args[argsIndx])
+					env.Set(param.Value, args[argsIndx])
 					// Avoid setting it to be immutable if the function has a default parameter
 					if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-						scope.ImmutableSet(param.Value)
+						env.ImmutableSet(param.Value)
 					}
 					argsIndx++
 					continue
@@ -362,7 +365,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			} else if countDefaultParams+len(args) == len(fun.Parameters) && !defaultArgGiven {
 				// If the Count of the defaultParams+args given equals the length of the fun.Parameters
 				// then we want to pass in the arg where the fun.DefaultParameter is nil for that indx
-				scope.Set(param.Value, fun.DefaultParameters[paramIndx])
+				env.Set(param.Value, fun.DefaultParameters[paramIndx])
 				continue
 			} else {
 				// If there is a default param for every arg then we add in
@@ -374,10 +377,10 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					// It needs to be not present as a default arg - otherwise
 					// that value will be used
 					if argsIndx < len(args) {
-						scope.Set(param.Value, args[argsIndx])
+						env.Set(param.Value, args[argsIndx])
 						// Avoid setting it to be immutable if the function has a default parameter
 						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							scope.ImmutableSet(param.Value)
+							env.ImmutableSet(param.Value)
 						}
 						argsIndx++
 						continue
@@ -385,10 +388,10 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 				} else if !defaultArgGiven && countDefaultParams < len(args) {
 					if argsIndx < len(args) {
 						// This is so if we have an extra arg to set we set it over the default param which happens right below
-						scope.Set(param.Value, args[argsIndx])
+						env.Set(param.Value, args[argsIndx])
 						// Avoid setting it to be immutable if the function has a default parameter
 						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							scope.ImmutableSet(param.Value)
+							env.ImmutableSet(param.Value)
 						}
 						argsIndx++
 						continue
@@ -397,18 +400,18 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			}
 			// Saw that this set [] as the ident to a value but I think it was using an incorrect arg - regardless this should work
 			identStr := param.String()
-			scope.Set(identStr, fun.DefaultParameters[paramIndx])
+			env.Set(identStr, fun.DefaultParameters[paramIndx])
 		}
-		setDefaultCallExpressionParameters(defaultArgs, scope)
+		setDefaultCallExpressionParameters(defaultArgs, env)
 	}
-	return scope
+	return env
 }
 
-func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, scope *object.Scope) {
+func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, env *object.Environment) {
 	for k, v := range defaultArgs {
-		_, ok := scope.Get(k)
+		_, ok := env.Get(k)
 		if ok {
-			scope.Set(k, v)
+			env.Set(k, v)
 		}
 	}
 }
@@ -1106,7 +1109,7 @@ func (e *Evaluator) GetStdModPublicFunctionHelpString(modName string) string {
 	return modObj.Help() + "\n"
 }
 
-// func (e *Evaluator) GetPublicFunctionHelpString() string {
-// 	// passthrough for use by `doc` command
-// 	return e.env.GetPublicFunctionHelpString()
-// }
+func (e *Evaluator) GetPublicFunctionHelpString() string {
+	// passthrough for use by `doc` command
+	return e.env.GetPublicFunctionHelpString()
+}

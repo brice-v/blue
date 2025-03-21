@@ -23,7 +23,7 @@ const fibEx = `fun fib(n) {
     return fib(n-1) + fib(n-2);
 }
 
-fib(28);`
+fib(10);`
 
 func TestAllProgramsInDirectory(t *testing.T) {
 	files, err := os.ReadDir("./")

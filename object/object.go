@@ -272,23 +272,11 @@ func (f *StringFunction) Help() string {
 type Function struct {
 	Parameters []*ast.Identifier   // Parameters is a slice of identifiers
 	Body       *ast.BlockStatement // Body is a block statement node
-	Scope      *Scope              // Scope stores the function's scope
+	Env        *Environment        // Env stores the function's environment
 
 	DefaultParameters []Object // DefaultParameters holds the expression of the default parameter, if it exists otherwise nil
 
 	HelpStr string
-}
-
-func (f *Function) Copy() *Function {
-	scope := f.Scope.Clone()
-	return &Function{
-		Parameters: f.Parameters,
-		Body:       f.Body,
-		Scope:      scope,
-
-		DefaultParameters: f.DefaultParameters,
-		HelpStr:           f.HelpStr,
-	}
 }
 
 // Type returns the function objects type
@@ -671,7 +659,7 @@ func (scl *SetCompLiteral) Help() string {
 // Module is the type that represents imported values
 type Module struct {
 	Name string
-	Env  *Environment2
+	Env  *Environment
 
 	HelpStr string
 }

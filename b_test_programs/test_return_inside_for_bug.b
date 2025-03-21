@@ -1,4 +1,3 @@
-###
 import math
 
 val input = """[[1],[2,3,4]]
@@ -94,6 +93,5 @@ fun part1(lines) {
 }
 
 part1(lines);
-###
 
 assert(true);

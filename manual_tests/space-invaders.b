@@ -152,7 +152,7 @@ fun move_enemies() {
     }
 }
 
-###fun check_enemy_pos() {
+fun check_enemy_pos() {
     var enemy_x_poss = [];
     for ([i, row] in G.enemies) {
         for ([j, enemy] in row) {
@@ -162,7 +162,7 @@ fun move_enemies() {
         }
     }
     println("x pos = #{enemy_x_poss}");
-}###
+}
 
 fun check_lost() {
     for ([i, row] in G.enemies) {

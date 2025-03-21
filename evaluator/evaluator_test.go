@@ -665,6 +665,16 @@ func TestForStatement(t *testing.T) {
 	}
 }
 
+func TestStdFun(t *testing.T) {
+	input := `import crypto
+
+val to_encode = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
+val hex_to_encode = crypto.decode(to_encode, as_bytes=true);
+`
+	evaluated := testEval(input)
+	_ = evaluated
+}
+
 // Helper functions
 
 func testNullObject(t *testing.T, obj object.Object) bool {

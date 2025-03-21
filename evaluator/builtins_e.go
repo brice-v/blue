@@ -189,7 +189,7 @@ func getSortedListHelper(e *Evaluator, args ...object.Object) object.Object {
 			return false
 		}
 		for k := 0; k < len(funs); k++ {
-			biObj := e.applyFunction(funs[k], []object.Object{aib}, make(map[string]object.Object), []bool{false})
+			biObj := e.applyFunctionFast(funs[k], []object.Object{aib}, make(map[string]object.Object), []bool{false})
 			if isError(biObj) {
 				simpleKeyErrorPrint(e, biObj)
 				return false
@@ -198,7 +198,7 @@ func getSortedListHelper(e *Evaluator, args ...object.Object) object.Object {
 				fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT\n", consts.EVAL_ERROR_PREFIX)
 				return false
 			}
-			bjObj := e.applyFunction(funs[k], []object.Object{ajb}, make(map[string]object.Object), []bool{false})
+			bjObj := e.applyFunctionFast(funs[k], []object.Object{ajb}, make(map[string]object.Object), []bool{false})
 			if isError(bjObj) {
 				simpleKeyErrorPrint(e, bjObj)
 				return false
@@ -359,7 +359,7 @@ func createAllBuiltin(e *Evaluator) *object.Builtin {
 						return newError("`all` error: function must have 1 parameter")
 					}
 					for _, elem := range l.Elements {
-						obj := e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 						if isError(obj) {
 							errMsg := obj.(*object.Error).Message
 							return newError("`all` error: %s", errMsg)
@@ -372,7 +372,7 @@ func createAllBuiltin(e *Evaluator) *object.Builtin {
 				} else {
 					fn := args[1].(*object.Builtin)
 					for _, elem := range l.Elements {
-						obj := e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 						if isError(obj) {
 							errMsg := obj.(*object.Error).Message
 							return newError("`all` error: %s", errMsg)
@@ -419,7 +419,7 @@ func createAnyBuiltin(e *Evaluator) *object.Builtin {
 						return newError("`any` error: function must have 1 parameter")
 					}
 					for _, elem := range l.Elements {
-						obj := e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 						if isError(obj) {
 							errMsg := obj.(*object.Error).Message
 							return newError("`any` error: %s", errMsg)
@@ -432,7 +432,7 @@ func createAnyBuiltin(e *Evaluator) *object.Builtin {
 				} else {
 					fn := args[1].(*object.Builtin)
 					for _, elem := range l.Elements {
-						obj := e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj := e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 						if isError(obj) {
 							errMsg := obj.(*object.Error).Message
 							return newError("`any` error: %s", errMsg)
@@ -478,10 +478,10 @@ func createMapBuiltin(e *Evaluator) *object.Builtin {
 					var obj object.Object
 					if !isBuiltin {
 						fn := args[1].(*object.Function)
-						obj = e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj = e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 					} else {
 						fn := args[1].(*object.Builtin)
-						obj = e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj = e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 					}
 					if isError(obj) {
 						errMsg := obj.(*object.Error).Message
@@ -524,10 +524,10 @@ func createFilterBuiltin(e *Evaluator) *object.Builtin {
 					var obj object.Object
 					if !isBuiltin {
 						fn := args[1].(*object.Function)
-						obj = e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj = e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 					} else {
 						fn := args[1].(*object.Builtin)
-						obj = e.applyFunction(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
+						obj = e.applyFunctionFast(fn, []object.Object{elem}, map[string]object.Object{}, []bool{false})
 					}
 					if isError(obj) {
 						errMsg := obj.(*object.Error).Message

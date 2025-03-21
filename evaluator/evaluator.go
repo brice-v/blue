@@ -49,7 +49,7 @@ var (
 )
 
 type Evaluator struct {
-	env *object.Environment2
+	env *object.Environment
 
 	// PID is the process ID of this evaluator
 	PID uint64
@@ -115,7 +115,7 @@ func New() *Evaluator {
 
 func NewNode(nodeName, address string) *Evaluator {
 	e := &Evaluator{
-		env: object.NewEnvironment2(),
+		env: object.NewEnvironmentWithoutCore(),
 
 		PID:      pidCount.Load(),
 		NodeName: nodeName,
@@ -370,7 +370,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			defaultParams = append(defaultParams, obj)
 		}
 		// Note: Clone is really slow
-		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Scope: e.env.ClonePriorScopeIntoNewScope()}
+		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env.Clone()}
 	case *ast.FunctionStatement:
 		params := node.Parameters
 		body := node.Body
@@ -388,7 +388,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			defaultParams = append(defaultParams, obj)
 		}
 		// Note: Clone is really slow
-		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Scope: e.env.CloneAllIntoNewScope()}
+		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env}
 		funObj.HelpStr = createHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
 		e.env.Set(node.Name.Value, funObj)
 	case *ast.CallExpression:
@@ -769,11 +769,11 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		return NULL
 	}
 	// Set HelpStr from program HelpStrToks
-	// pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
+	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
 	mod := &object.Module{
-		Name: modName,
-		Env:  newE.env,
-		// HelpStr: CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr),
+		Name:    modName,
+		Env:     newE.env,
+		HelpStr: CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr),
 	}
 	if node.Alias != nil {
 		e.env.Set(node.Alias.Value, mod)
@@ -874,8 +874,7 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 		NodeName: e.NodeName,
 	}
 	ProcessMap.Store(pk(e.NodeName, pid), process)
-	fn := fun.Copy()
-	go spawnFunction(pid, e.NodeName, fn, arg1)
+	go spawnFunction(pid, e.NodeName, fun, arg1)
 	return process
 }
 
@@ -883,7 +882,7 @@ func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 objec
 	newE := New()
 	newE.PID = pid
 	elems := arg1.(*object.List).Elements
-	newObj := newE.applyFunction(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
+	newObj := newE.applyFunctionFast(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
 	if isError(newObj) {
 		err := newObj.(*object.Error)
 		var buf bytes.Buffer
@@ -3574,7 +3573,7 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 			for funAndArgs.Len() > 0 {
 				funAndArg := funAndArgs.Pop()
 				// Note: Return values are ignored for defer functions
-				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+				e.applyFunctionFast(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
 			}
 			delete(e.deferFuns, e.scopeNestLevel)
 		}
@@ -3620,7 +3619,7 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 			for funAndArgs.Len() > 0 {
 				funAndArg := funAndArgs.Pop()
 				// Note: Return values are ignored for defer functions
-				e.applyFunction(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
+				e.applyFunctionFast(funAndArg.Fun, funAndArg.Args, make(map[string]object.Object), []bool{})
 			}
 			delete(e.deferFuns, e.scopeNestLevel)
 		}

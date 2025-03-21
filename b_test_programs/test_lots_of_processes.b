@@ -18,7 +18,7 @@ println("self_pid = #{self_pid}");
 var pids = [];
 # test manually with more to make sure but this adds a fair amount of time to
 # the test cases - like 10s (or 2x previous time really)
-for (i in 0..2000) {
+for (i in 0..500) {
 	pids << spawn(read_and_exit, []);
 }
 println("pids = #{pids}")

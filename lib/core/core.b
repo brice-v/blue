@@ -88,17 +88,7 @@ fun write(obj, value) {
 
 fun reduce(list, f, acc=null) {
     ##core:ignore
-    ###
-    if (acc == null) {
-        if (list.len() == 0) {
-            return [];
-        }
-        acc = list[0];
-    }
-    ###
-    #println("acc=#{acc} before loop");
     for (e in list) {
-        #println("e=#{e}, acc=#{acc}");
         acc = f(acc,e)
     }
     return acc;
@@ -405,7 +395,6 @@ fun __go_metrics(flat=false) {
     return __total_metrics;
 }
 
-### TODO: Needs to be fixed
 val runtime = {
     go_metrics: __go_metrics,
     gc: _gc,
@@ -429,4 +418,3 @@ val runtime = {
         set_mem_limit: _set_mem_limit,
     },
 };
-###
