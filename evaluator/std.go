@@ -175,11 +175,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		return NULL
 	} else if shouldImportAll {
 		// Here we want to import everything from the module
-		for k, v := range fb.Env.GetAll() {
-			if !strings.HasPrefix(k, "_") {
-				e.env.Set(k, v)
-			}
-		}
+		fb.Env.SetAllPublicOnEnv(e.env)
 		return NULL
 	}
 

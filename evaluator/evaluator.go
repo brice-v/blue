@@ -761,11 +761,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		return NULL
 	} else if node.ImportAll {
 		// Here we want to import everything from the module
-		for k, v := range newE.env.GetAll() {
-			if !strings.HasPrefix(k, "_") {
-				e.env.Set(k, v)
-			}
-		}
+		newE.env.SetAllPublicOnEnv(e.env)
 		return NULL
 	}
 	// Set HelpStr from program HelpStrToks

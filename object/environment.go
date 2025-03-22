@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/gookit/color"
@@ -20,38 +21,26 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 
 // NewEnvironment returns a new environment
 func NewEnvironmentWithoutCore() *Environment {
-	s := &ConcurrentMap[string, Object]{
-		kv: make(map[string]Object),
-	}
-	is := &ConcurrentMap[string, struct{}]{
-		kv: make(map[string]struct{}),
-	}
 	pfhs := &OrderedMap2[string, string]{
 		store: make(map[string]string),
 		Keys:  []string{},
 	}
-	return &Environment{store: s, immutableStore: is, publicFunctionHelpStore: pfhs}
+	return &Environment{store: sync.Map{}, immutableStore: sync.Map{}, publicFunctionHelpStore: pfhs}
 }
 
 // NewEnvironment returns a new environment
 func NewEnvironment(coreEnv *Environment) *Environment {
-	s := &ConcurrentMap[string, Object]{
-		kv: make(map[string]Object),
-	}
-	is := &ConcurrentMap[string, struct{}]{
-		kv: make(map[string]struct{}),
-	}
 	pfhs := &OrderedMap2[string, string]{
 		store: make(map[string]string),
 		Keys:  []string{},
 	}
-	return &Environment{store: s, immutableStore: is, publicFunctionHelpStore: pfhs, coreEnv: coreEnv}
+	return &Environment{store: sync.Map{}, immutableStore: sync.Map{}, publicFunctionHelpStore: pfhs, coreEnv: coreEnv}
 }
 
 // Environment is a map of strings to `Object`s
 type Environment struct {
-	store          *ConcurrentMap[string, Object]
-	immutableStore *ConcurrentMap[string, struct{}]
+	store          sync.Map
+	immutableStore sync.Map
 
 	publicFunctionHelpStore *OrderedMap2[string, string]
 
@@ -67,20 +56,24 @@ func (e *Environment) SetCore(coreEnv *Environment) {
 // it will not write to the outer env, but it will read from it
 func (e *Environment) Clone() *Environment {
 	newEnv := NewEnvironment(e.coreEnv)
-	for k, v := range e.store.kv {
-		newEnv.store.Put(k, v)
-	}
-	for k, v := range e.immutableStore.kv {
-		newEnv.immutableStore.Put(k, v)
-	}
+	e.store.Range(func(key, value any) bool {
+		newEnv.store.Store(key, value)
+		return true
+	})
+	e.immutableStore.Range(func(key, value any) bool {
+		newEnv.immutableStore.Store(key, value)
+		return true
+	})
 	outer := e.outer
 	for outer != nil {
-		for k, v := range outer.store.kv {
-			newEnv.store.Put(k, v)
-		}
-		for k, v := range outer.immutableStore.kv {
-			newEnv.immutableStore.Put(k, v)
-		}
+		outer.store.Range(func(key, value any) bool {
+			newEnv.store.Store(key, value)
+			return true
+		})
+		outer.immutableStore.Range(func(key, value any) bool {
+			newEnv.immutableStore.Store(key, value)
+			return true
+		})
 		outer = outer.outer
 	}
 	for _, k := range e.publicFunctionHelpStore.Keys {
@@ -90,6 +83,7 @@ func (e *Environment) Clone() *Environment {
 	return newEnv
 }
 
+// Rewrite Func with sync.Map implementation
 // func (e *Environment) String() string {
 // 	var out bytes.Buffer
 // 	out.WriteString("Environment{\n\tstore:\n")
@@ -106,19 +100,27 @@ func (e *Environment) Clone() *Environment {
 
 // Get returns the object from the environment store
 func (e *Environment) Get(name string) (Object, bool) {
-	obj, ok := e.store.Get(name)
+	obj, ok := e.store.Load(name)
 	if !ok && e.coreEnv != nil {
 		obj, ok = e.coreEnv.Get(name)
 		if !ok && e.outer != nil {
 			obj, ok = e.outer.Get(name)
 		}
 	}
-	return obj, ok
+	if obj == nil {
+		return nil, ok
+	}
+	return obj.(Object), ok
 }
 
-func (e *Environment) GetAll() map[string]Object {
-	// TODO: do we need to get all from outer as well?
-	return e.store.GetAll()
+func (e *Environment) SetAllPublicOnEnv(newEnv *Environment) {
+	e.store.Range(func(key, value any) bool {
+		ks := key.(string)
+		if !strings.HasPrefix(ks, "_") {
+			newEnv.store.Store(key, value)
+		}
+		return true
+	})
 }
 
 func (e *Environment) getFunctionHelpString(origHelp, prefix string) string {
@@ -160,13 +162,13 @@ func (e *Environment) SetFunctionHelpStr(name, newHelpStr string) {
 
 // Set puts a new object into the environment
 func (e *Environment) Set(name string, val Object) Object {
-	e.store.Put(name, val)
+	e.store.Store(name, val)
 	e.setHelpInPublicFunctionHelpStore(name, val)
 	return val
 }
 
 func (e *Environment) SetFunStatementAndHelp(name string, val *Function) Object {
-	e.store.Put(name, val)
+	e.store.Store(name, val)
 	e.setHelpInPublicFunctionHelpStore(name, val)
 	return val
 }
@@ -191,12 +193,12 @@ func (e *Environment) setHelpInPublicFunctionHelpStore(name string, val Object) 
 
 // ImmutableSet puts the name of the identifier in a map and sets it as true
 func (e *Environment) ImmutableSet(name string) {
-	e.immutableStore.Put(name, struct{}{})
+	e.immutableStore.Store(name, struct{}{})
 }
 
 // IsImmutable checks if the give identifier name is in the immutable map
 func (e *Environment) IsImmutable(name string) bool {
-	_, ok := e.immutableStore.Get(name)
+	_, ok := e.immutableStore.Load(name)
 	if !ok && e.outer != nil {
 		ok = e.outer.IsImmutable(name)
 		return ok
@@ -207,8 +209,8 @@ func (e *Environment) IsImmutable(name string) bool {
 // RemoveIdentifier removes a key from the environment
 // this is used in for loops to remove temporary variables
 func (e *Environment) RemoveIdentifier(name string) {
-	e.store.Remove(name)
-	e.immutableStore.Remove(name)
+	e.store.Delete(name)
+	e.immutableStore.Delete(name)
 	e.publicFunctionHelpStore.Delete(name)
 }
 
