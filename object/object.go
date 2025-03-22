@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -703,6 +704,25 @@ func (cs *ContinueStatement) Inspect() string {
 
 func (cs *ContinueStatement) Help() string {
 	return createHelpStringForObject("Continue", "is the object that stops the current execution and moves to the next iteration in the loop's scope", cs)
+}
+
+func NewBlueStruct(names []string, values []Object) (reflect.Value, error) {
+	if len(names) != len(values) {
+		return reflect.Value{}, fmt.Errorf("failed to create struct: names and values do not have equal lengths")
+	}
+	fields := make([]reflect.StructField, len(names))
+	for i, name := range names {
+		x := reflect.StructField{
+			Name: name,
+			Type: reflect.TypeOf(values[i]),
+		}
+		fields[i] = x
+	}
+	s := reflect.New(reflect.StructOf(fields)).Elem()
+	for i, name := range names {
+		s.FieldByName(name).Set(reflect.ValueOf(values[i]))
+	}
+	return s, nil
 }
 
 // ------------------------------- HashKey Stuff --------------------------------

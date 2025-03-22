@@ -45,3 +45,36 @@ func TestFunctionString(t *testing.T) {
 		t.Fatalf("function with default parameters inspect did not match expected. got=%q, want=%q", f.Inspect(), expectedInspect)
 	}
 }
+
+func TestBlueStruct(t *testing.T) {
+	names := []string{"A", "B"}
+	values := []Object{&Integer{Value: 123}, &Stringo{Value: "Hello World"}}
+	s, err := NewBlueStruct(names, values)
+	if err != nil {
+		t.Fatalf("Failed to create Blue Struct: %s", err.Error())
+	}
+	v := s.FieldByName("A")
+	obj, ok := v.Interface().(Object)
+	if !ok {
+		t.Fatalf("field value in struct was not an object")
+	}
+	i, ok := obj.(*Integer)
+	if !ok {
+		t.Fatalf("field value for name `A` was not an Integer. got=%T", obj)
+	}
+	if i.Value != 123 {
+		t.Errorf("Integer Value was not 123, got=%d", i.Value)
+	}
+	v1 := s.FieldByName("B")
+	obj1, ok := v1.Interface().(Object)
+	if !ok {
+		t.Fatalf("field value in struct was not an object")
+	}
+	s1, ok := obj1.(*Stringo)
+	if !ok {
+		t.Fatalf("field value for name `B` was not a String. got=%T", obj)
+	}
+	if s1.Value != "Hello World" {
+		t.Errorf("Integer Value was not 123, got=%d", i.Value)
+	}
+}
