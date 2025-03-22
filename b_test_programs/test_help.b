@@ -32,7 +32,7 @@ assert(true);
 ENV['NO_COLOR'] = "true";
 import config
 val config_help = help(config);
-println("`"+config_help+"`");
+println("```"+config_help+"```");
 val expected_config_help = """MODULE `config`: config will allow the user to import a file based configuration
 to be used in programs.
 

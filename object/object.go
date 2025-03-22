@@ -52,56 +52,56 @@ var _highwayhash_key = [32]byte{
 
 const (
 	// INTEGER_OBJ is the integer object type string
-	INTEGER_OBJ = "INTEGER"
+	INTEGER_OBJ Type = "INTEGER"
 	// BIG_INTEGER_OBJ is the big integer object type string
-	BIG_INTEGER_OBJ = "BIG_INTEGER"
+	BIG_INTEGER_OBJ Type = "BIG_INTEGER"
 	// BOOLEAN_OBJ is the boolean object type string
-	BOOLEAN_OBJ = "BOOLEAN"
+	BOOLEAN_OBJ Type = "BOOLEAN"
 	// NULL_OBJ is the null object type string
-	NULL_OBJ = "NULL"
+	NULL_OBJ Type = "NULL"
 	// UINTEGER_OBJ is the uint object type string
-	UINTEGER_OBJ = "UINTEGER"
+	UINTEGER_OBJ Type = "UINTEGER"
 	// FLOAT_OBJ is the float object type string
-	FLOAT_OBJ = "FLOAT"
+	FLOAT_OBJ Type = "FLOAT"
 	// BIG_FLOAT_OBJ is the big float object type string
-	BIG_FLOAT_OBJ = "BIG_FLOAT"
+	BIG_FLOAT_OBJ Type = "BIG_FLOAT"
 	// RETURN_VALUE_OBJ is the return object type string
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
+	RETURN_VALUE_OBJ Type = "RETURN_VALUE"
 	// ERROR_OBJ is the error object type string
-	ERROR_OBJ = "ERROR"
+	ERROR_OBJ Type = "ERROR"
 	// FUNCTION_OBJ is the function object type string
-	FUNCTION_OBJ = "FUNCTION"
+	FUNCTION_OBJ Type = "FUNCTION"
 	// STRING_OBJ is the string object type string
-	STRING_OBJ = "STRING"
+	STRING_OBJ Type = "STRING"
 	// BYTES_OBJ is the bytes object type string
-	BYTES_OBJ = "BYTES"
+	BYTES_OBJ Type = "BYTES"
 	// GO_OBJ is the go object type string
-	GO_OBJ = "GO_OBJ"
+	GO_OBJ Type = "GO_OBJ"
 	// REGEX_OBJ is the Regex object type string
-	REGEX_OBJ = "REGEX"
+	REGEX_OBJ Type = "REGEX"
 	// BUILTIN_OBJ is the builtin function object type string
-	BUILTIN_OBJ = "BUILTIN"
+	BUILTIN_OBJ Type = "BUILTIN"
 	// LIST_OBJ is the list object type string
-	LIST_OBJ = "LIST"
+	LIST_OBJ Type = "LIST"
 	// MAP_OBJ is the map object type string
-	MAP_OBJ = "MAP"
+	MAP_OBJ Type = "MAP"
 	// SET_OBJ is the set object type
-	SET_OBJ = "SET"
+	SET_OBJ Type = "SET"
 	// LIST_COMP_OBJ is the list comprehension literal type string
-	LIST_COMP_OBJ = "LIST_COMP_OBJ"
+	LIST_COMP_OBJ Type = "LIST_COMP_OBJ"
 	// MAP_COMP_OBJ is the map comprehension literal type string
-	MAP_COMP_OBJ = "MAP_COMP_OBJ"
+	MAP_COMP_OBJ Type = "MAP_COMP_OBJ"
 	// SET_COMP_OBJ is the set comprehension literal type string
-	SET_COMP_OBJ = "SET_COMP_OBJ"
+	SET_COMP_OBJ Type = "SET_COMP_OBJ"
 	// MODULE_OBJ is the object type for an imported module
-	MODULE_OBJ = "MODULE_OBJ"
+	MODULE_OBJ Type = "MODULE_OBJ"
 	// PROCESS_OBJ is the process type for a process
-	PROCESS_OBJ = "PROCESS"
+	PROCESS_OBJ Type = "PROCESS"
 
 	// BREAK_OBJ is the break statement type
-	BREAK_OBJ = "BREAK_OBJ"
+	BREAK_OBJ Type = "BREAK_OBJ"
 	// CONTINUE_OBJ is the continue statement type
-	CONTINUE_OBJ = "CONTINUE_OBJ"
+	CONTINUE_OBJ Type = "CONTINUE_OBJ"
 )
 
 // Type is the object type represented as a string

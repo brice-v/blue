@@ -161,11 +161,21 @@ func (e *Environment) SetFunctionHelpStr(name, newHelpStr string) {
 // Set puts a new object into the environment
 func (e *Environment) Set(name string, val Object) Object {
 	e.store.Put(name, val)
+	e.setHelpInPublicFunctionHelpStore(name, val)
+	return val
+}
+
+func (e *Environment) SetFunStatementAndHelp(name string, val *Function) Object {
+	e.store.Put(name, val)
+	e.setHelpInPublicFunctionHelpStore(name, val)
+	return val
+}
+
+func (e *Environment) setHelpInPublicFunctionHelpStore(name string, val Object) {
 	// We do store nil values so those can be skipped entirely for pfhs
-	if val != nil && (val.Type() == "FUNCTION" && !strings.HasPrefix(name, "_")) {
-		coreIgnored := strings.HasPrefix(val.Help(), "core:ignore")
-		if !coreIgnored {
-			ogHelp := val.Help()
+	if val != nil && val.Type() == FUNCTION_OBJ && !strings.HasPrefix(name, "_") {
+		ogHelp := val.Help()
+		if !strings.HasPrefix(ogHelp, "core:ignore") {
 			if strings.HasPrefix(ogHelp, "core:") {
 				coreHelpStr := e.getFunctionHelpString(ogHelp, "core:")
 				e.SetFunctionHelpStr(name, coreHelpStr)
@@ -177,7 +187,6 @@ func (e *Environment) Set(name string, val Object) Object {
 			}
 		}
 	}
-	return val
 }
 
 // ImmutableSet puts the name of the identifier in a map and sets it as true

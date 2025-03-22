@@ -60,11 +60,11 @@ func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
-func newPositionalTypeError(funName string, pos int, expectedType string, currentType object.Type) *object.Error {
+func newPositionalTypeError(funName string, pos int, expectedType object.Type, currentType object.Type) *object.Error {
 	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%s", funName, pos, expectedType, currentType)
 }
 
-func newPositionalTypeErrorForGoObj(funName string, pos int, expectedType string, currentObj any) *object.Error {
+func newPositionalTypeErrorForGoObj(funName string, pos int, expectedType object.Type, currentObj any) *object.Error {
 	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%T", funName, pos, expectedType, currentObj)
 }
 
@@ -418,6 +418,9 @@ func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, en
 
 func createHelpStringFromBodyTokens(functionName string, funObj *object.Function, helpStrTokens []string) string {
 	explanation := ""
+	if len(helpStrTokens) > 0 && helpStrTokens[0] == "core:ignore" {
+		return ""
+	}
 	if len(helpStrTokens) == 1 {
 		explanation = helpStrTokens[0]
 	} else if len(helpStrTokens) == 0 {
@@ -425,7 +428,8 @@ func createHelpStringFromBodyTokens(functionName string, funObj *object.Function
 	} else {
 		explanation = strings.Join(helpStrTokens, "\n")
 	}
-	return fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, funObj.Type(), functionName, funObj.Inspect())
+	helpStr := fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, funObj.Type(), functionName, funObj.Inspect())
+	return helpStr
 }
 
 func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, pubFunHelpStr string) string {
