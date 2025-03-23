@@ -1892,142 +1892,20 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			if ok := object.IsHashable(key); ok {
 				hk := object.HashObject(key)
 				hashed := object.HashKey{Type: key.Type(), Value: hk}
-				switch node.Token.Literal {
-				case "=":
+				operator := node.Token.Literal
+				if operator == "=" {
 					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: value})
-				case "+=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("+", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "-=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("-", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "*=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("*", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "/=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("/", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "//=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("//", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "**=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("**", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "&=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("&", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "|=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("|", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "~=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("~", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "<<=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("<<", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case ">>=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression(">>", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "%=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("&", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				case "^=":
-					orig, ok := mapObj.Pairs.Get(hashed)
-					if !ok {
-						return newError("map key `%s` does not exist", key.Inspect())
-					}
-					evaluated := e.evalInfixExpression("^", orig.Value, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
-				default:
-					return newError("unknown assignment operator: MAP INDEX %s", node.Token.Literal)
+					return NULL
 				}
+				origMapPair, ok := mapObj.Pairs.Get(hashed)
+				if !ok {
+					return newError("map key `%s` does not exist", key.Inspect())
+				}
+				evaluated := e.evalMultiCharAssignmentInfixExpression(operator, object.MAP_OBJ, origMapPair.Value, value)
+				if isError(evaluated) {
+					return evaluated
+				}
+				mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: evaluated})
 			} else {
 				return newError("cannot index map with %T", key)
 			}
@@ -2059,6 +1937,37 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			} else {
 				return newError("cannot index string with %#v", index)
 			}
+		} else if bs, ok := leftObj.(*object.BlueStruct); ok {
+			fieldNameObj := e.Eval(ie.Index)
+			if isError(fieldNameObj) {
+				return fieldNameObj
+			}
+			if fieldNameObj.Type() != object.STRING_OBJ {
+				// This should never occur
+				return newError("index type for assignment to BLUE_STRUCT must be STRING. got=%s", fieldNameObj.Type())
+			}
+			fieldName := fieldNameObj.(*object.Stringo).Value
+			operator := node.Token.Literal
+			if operator == "=" {
+				err := bs.Set(fieldName, value)
+				if err != nil {
+					return newError(err.Error())
+				}
+				return NULL
+			}
+			orig := bs.Get(fieldName)
+			if orig == nil {
+				return newError("field name `%s` not found on blue struct: %s", fieldName, bs.Inspect())
+			}
+			evaluated := e.evalMultiCharAssignmentInfixExpression(operator, object.BLUE_STRUCT_OBJ, orig, value)
+			if isError(evaluated) {
+				return evaluated
+			}
+			err := bs.Set(fieldName, evaluated)
+			if err != nil {
+				return newError(err.Error())
+			}
+			return NULL
 		} else {
 			return newError("object type %T does not support item assignment", leftObj)
 		}
@@ -2067,6 +1976,41 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 	}
 
 	return NULL
+}
+
+func (e *Evaluator) evalMultiCharAssignmentInfixExpression(operator string, t object.Type, left, right object.Object) object.Object {
+	var evaluated object.Object
+	switch operator {
+	case "+=":
+		evaluated = e.evalInfixExpression("+", left, right)
+	case "-=":
+		evaluated = e.evalInfixExpression("-", left, right)
+	case "*=":
+		evaluated = e.evalInfixExpression("*", left, right)
+	case "/=":
+		evaluated = e.evalInfixExpression("/", left, right)
+	case "//=":
+		evaluated = e.evalInfixExpression("//", left, right)
+	case "**=":
+		evaluated = e.evalInfixExpression("**", left, right)
+	case "&=":
+		evaluated = e.evalInfixExpression("&", left, right)
+	case "|=":
+		evaluated = e.evalInfixExpression("|", left, right)
+	case "~=":
+		evaluated = e.evalInfixExpression("~", left, right)
+	case "<<=":
+		evaluated = e.evalInfixExpression("<<", left, right)
+	case ">>=":
+		evaluated = e.evalInfixExpression(">>", left, right)
+	case "%=":
+		evaluated = e.evalInfixExpression("%", left, right)
+	case "^=":
+		evaluated = e.evalInfixExpression("^", left, right)
+	default:
+		return newError("unknown assignment operator: %s INDEX %s", t, operator)
+	}
+	return evaluated
 }
 
 func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object.Object) object.Object {
@@ -2185,9 +2129,21 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 		return e.evalStringIndexExpression(left, indx)
 	case left.Type() == object.PROCESS_OBJ && indx.Type() == object.STRING_OBJ:
 		return e.evalProcessIndexExpression(left, indx)
+	case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
+		return e.evalBlueStructIndexExpression(left, indx)
 	default:
 		return newError("index operator not supported: %s.%s", left.Type(), indx.Type())
 	}
+}
+
+func (e *Evaluator) evalBlueStructIndexExpression(left, indx object.Object) object.Object {
+	bs := left.(*object.BlueStruct)
+	fieldName := indx.(*object.Stringo).Value
+	obj := bs.Get(fieldName)
+	if obj == nil {
+		return newError("field name `%s` does not exist on blue struct", fieldName)
+	}
+	return obj
 }
 
 func (e *Evaluator) evalProcessIndexExpression(left, indx object.Object) object.Object {

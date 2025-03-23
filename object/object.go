@@ -841,6 +841,26 @@ func (m *Map) hashMap() uint64 {
 	return h.Sum64()
 }
 
+// hashStruct hashes the entire struct to be used for checking equality
+func (bs *BlueStruct) hashStruct() uint64 {
+	h, err := highwayhash.New64(_highwayhash_key[:])
+	if err != nil {
+		panic("highwayhash init error " + err.Error())
+	}
+	for _, k := range bs.OriginalFields {
+		v := bs.Get(k)
+		if v == nil {
+			panic("bug: value of a blue struct should never be nil here")
+		}
+		// Just using xor as a way to get a unique uint64 with the value hash
+		hashedKeyObj := HashObject(v)
+		b := new8ByteBuf()
+		binary.BigEndian.PutUint64(b, hashedKeyObj)
+		h.Write(b)
+	}
+	return h.Sum64()
+}
+
 // HashObject is a generic function to hash any of the hashable object types
 // It is very likely I wont keep it like this because it will probably break things
 // but for now this naive implementation should do
@@ -897,20 +917,19 @@ func HashObject(obj Object) uint64 {
 		mapObj := obj.(*Map)
 		binary.BigEndian.PutUint64(b, mapObj.hashMap())
 		h.Write(b)
+	case BLUE_STRUCT_OBJ:
+		b := new8ByteBuf()
+		blueStructObj := obj.(*BlueStruct)
+		binary.BigEndian.PutUint64(b, blueStructObj.hashStruct())
+		h.Write(b)
 	case BYTES_OBJ:
 		h.Write(obj.(*Bytes).Value)
 	case BIG_FLOAT_OBJ:
-		bs, err := obj.(*BigFloat).Value.GobEncode()
-		if err != nil {
-			panic("big float hash failed " + err.Error())
-		}
-		h.Write(bs)
+		s := []byte(obj.(*BigFloat).Value.String())
+		h.Write([]byte(s))
 	case BIG_INTEGER_OBJ:
-		bs, err := obj.(*BigInteger).Value.GobEncode()
-		if err != nil {
-			panic("big int hash failed " + err.Error())
-		}
-		h.Write(bs)
+		s := []byte(obj.(*BigInteger).Value.String())
+		h.Write([]byte(s))
 	case GO_OBJ:
 		h.Write([]byte(obj.Inspect()))
 	case REGEX_OBJ:
