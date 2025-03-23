@@ -2,12 +2,11 @@ package evaluator
 
 import (
 	"blue/object"
+	"blue/util"
 	"regexp"
 	"strings"
 
 	"github.com/huandu/xstrings"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 func createStringList(input []string) []object.Object {
@@ -488,8 +487,8 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("to_title", 1, object.STRING_OBJ, args[0].Type())
 			}
 			s := args[0].(*object.Stringo).Value
-			caser := cases.Title(language.Und)
-			return &object.Stringo{Value: caser.String(s)}
+			titleS := util.ToTitleCase(s)
+			return &object.Stringo{Value: titleS}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`to_title` returns a STRING title cased",

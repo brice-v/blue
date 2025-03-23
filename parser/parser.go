@@ -4,14 +4,13 @@ import (
 	"blue/ast"
 	"blue/lexer"
 	"blue/token"
+	"blue/util"
 	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
 
 	"github.com/shopspring/decimal"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 const (
@@ -1260,16 +1259,17 @@ func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 func (p *Parser) parseStructLiteral() ast.Expression {
 	firstTok := p.curToken
 	exp := &ast.StructLiteral{Token: firstTok}
-	exp.Fields = make(map[*ast.Identifier]ast.Expression)
-	exp.FieldsIndex = make(map[int]*ast.Identifier)
+	exp.Fields = []string{}
+	exp.OriginalFields = []string{}
+	exp.Values = []ast.Expression{}
 
 	setTitleKeys := make(map[string]struct{})
-	i := 0
 	for !p.peekTokenIs(token.RBRACE) {
 		// get into the map
 		p.nextToken()
 		key := p.parseIdentifier().(*ast.Identifier)
-		if !p.expectIdentIsUniqueTitle(key, setTitleKeys) {
+		titleS, ok := p.isIdentUniqueTitle(key, setTitleKeys)
+		if !ok {
 			return nil
 		}
 		if !p.expectIdentIsValid(key) {
@@ -1283,9 +1283,9 @@ func (p *Parser) parseStructLiteral() ast.Expression {
 		p.nextToken()
 		value := p.parseExpression(LOWEST)
 
-		exp.Fields[key] = value
-		exp.FieldsIndex[i] = key
-		i++
+		exp.Fields = append(exp.Fields, titleS)
+		exp.OriginalFields = append(exp.OriginalFields, key.Value)
+		exp.Values = append(exp.Values, value)
 
 		if !p.peekTokenIs(token.RBRACE) && !p.expectPeekIs(token.COMMA) {
 			return nil
@@ -1880,19 +1880,18 @@ func (p *Parser) expectPeekIs(t token.Type) bool {
 	return false
 }
 
-func (p *Parser) expectIdentIsUniqueTitle(key *ast.Identifier, setTitleKeys map[string]struct{}) bool {
-	caser := cases.Title(language.Und)
-	titleS := caser.String(key.Value)
+func (p *Parser) isIdentUniqueTitle(key *ast.Identifier, setTitleKeys map[string]struct{}) (string, bool) {
+	titleS := util.ToTitleCase(key.Value)
 	if _, ok := setTitleKeys[titleS]; ok {
 		errorLine := lexer.GetErrorLineMessage(key.Token)
 		msg := fmt.Sprintf("struct literal keys must be unique among title cases, current identifer %s, identifier that matched %s\n%s",
 			key.Value, titleS, errorLine)
 		p.errors = append(p.errors, msg)
-		return false
+		return "", false
 	} else {
 		setTitleKeys[titleS] = struct{}{}
 	}
-	return true
+	return titleS, true
 }
 
 func (p *Parser) expectIdentIsValid(key *ast.Identifier) bool {

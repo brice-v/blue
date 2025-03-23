@@ -3,6 +3,7 @@ package ast
 import (
 	"blue/token"
 	"bytes"
+	"fmt"
 	"math/big"
 	"sort"
 	"strings"
@@ -368,9 +369,10 @@ func (scl *SetCompLiteral) String() string {
 }
 
 type StructLiteral struct {
-	Token       token.Token                // Token == @{
-	Fields      map[*Identifier]Expression // Fields is a map of identifiers to expressions
-	FieldsIndex map[int]*Identifier        // Insertion Index -> identifier
+	Token          token.Token  // Token == @{
+	OriginalFields []string     // OriginalFields is a slice of strings (originally represented by identifiers) as they were without title case
+	Fields         []string     // Fields is a slice of strings (originally represented by identifiers) with title case
+	Values         []Expression // Values is a slice of expressions
 }
 
 // expressionNode satisfies the expression interface
@@ -383,16 +385,12 @@ func (sl *StructLiteral) TokenLiteral() string { return sl.Token.Literal }
 func (sl *StructLiteral) String() string {
 	var out bytes.Buffer
 
-	indices := []int{}
-	for k := range sl.FieldsIndex {
-		indices = append(indices, k)
-	}
-	sort.Ints(indices)
-	pairs := []string{}
-	for _, i := range indices {
-		k := sl.FieldsIndex[i]
-		v := sl.Fields[k]
-		pairs = append(pairs, k.String()+": "+v.String())
+	pairs := make([]string, len(sl.Fields))
+	for i := 0; i < len(sl.Fields); i++ {
+		k := sl.Fields[i]
+		k1 := sl.OriginalFields[i]
+		v := sl.Values[i]
+		pairs = append(pairs, fmt.Sprintf("%s (%s): %s", k, k1, v.String()))
 	}
 
 	out.WriteString("@{")

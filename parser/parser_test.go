@@ -1599,8 +1599,9 @@ func TestParsingStructLiteralsIdentifierKeys(t *testing.T) {
 		"three": 3,
 	}
 
-	for key, value := range myStruct.Fields {
-		expectedValue := expected[key.Value]
+	for i := 0; i < len(myStruct.Fields); i++ {
+		expectedValue := expected[myStruct.OriginalFields[i]]
+		value := myStruct.Values[i]
 
 		testIntegerLiteral(t, value, expectedValue)
 	}

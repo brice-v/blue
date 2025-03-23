@@ -47,34 +47,55 @@ func TestFunctionString(t *testing.T) {
 }
 
 func TestBlueStruct(t *testing.T) {
+	originalNames := []string{"a", "b"}
 	names := []string{"A", "B"}
 	values := []Object{&Integer{Value: 123}, &Stringo{Value: "Hello World"}}
-	s, err := NewBlueStruct(names, values)
+	s, err := NewBlueStruct(originalNames, names, values)
 	if err != nil {
 		t.Fatalf("Failed to create Blue Struct: %s", err.Error())
 	}
-	v := s.FieldByName("A")
-	obj, ok := v.Interface().(Object)
+	sl, ok := s.(*BlueStruct)
 	if !ok {
-		t.Fatalf("field value in struct was not an object")
+		t.Fatalf("sl was not a *BlueStruct. got=%T", s)
 	}
-	i, ok := obj.(*Integer)
+	v := sl.Get("a")
+	i, ok := v.(*Integer)
 	if !ok {
-		t.Fatalf("field value for name `A` was not an Integer. got=%T", obj)
+		t.Fatalf("field value for name `a` was not an Integer. got=%T", v)
 	}
 	if i.Value != 123 {
 		t.Errorf("Integer Value was not 123, got=%d", i.Value)
 	}
-	v1 := s.FieldByName("B")
-	obj1, ok := v1.Interface().(Object)
+	v1 := sl.Get("b")
+	s1, ok := v1.(*Stringo)
 	if !ok {
-		t.Fatalf("field value in struct was not an object")
-	}
-	s1, ok := obj1.(*Stringo)
-	if !ok {
-		t.Fatalf("field value for name `B` was not a String. got=%T", obj)
+		t.Fatalf("field value for name `b` was not a String. got=%T", v1)
 	}
 	if s1.Value != "Hello World" {
-		t.Errorf("Integer Value was not 123, got=%d", i.Value)
+		t.Errorf("String Value was not \"Hello World\", got=%s", s1.Value)
+	}
+	err = sl.Set("a", &Stringo{Value: "abc"})
+	if err != nil && err.Error() != "failed to set on struct literal: existing value type = INTEGER, new value type = STRING" {
+		t.Fatalf("should receive set error got = %s", err.Error())
+	}
+	v2 := sl.Get("a")
+	s2, ok := v2.(*Integer)
+	if !ok {
+		t.Fatalf("field value for name `a` was not a Integer. got=%T", v2)
+	}
+	if s2.Value != 123 {
+		t.Errorf("Integer Value was not 123, got=%d", s2.Value)
+	}
+	err = sl.Set("b", &Stringo{Value: "abc"})
+	if err != nil {
+		t.Fatalf("set should succeed here for `b` but got error: %s", err.Error())
+	}
+	v3 := sl.Get("b")
+	s3, ok := v3.(*Stringo)
+	if !ok {
+		t.Fatalf("field value for name `b` was not a String. got=%T", v3)
+	}
+	if s3.Value != "abc" {
+		t.Errorf("String Value was not abc, got=%s", s3.Value)
 	}
 }

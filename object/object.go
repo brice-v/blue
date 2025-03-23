@@ -98,6 +98,8 @@ const (
 	MODULE_OBJ Type = "MODULE_OBJ"
 	// PROCESS_OBJ is the process type for a process
 	PROCESS_OBJ Type = "PROCESS"
+	// BLUE_STRUCT_OBJ is the struct object type
+	BLUE_STRUCT_OBJ Type = "BLUE_STRUCT"
 
 	// BREAK_OBJ is the break statement type
 	BREAK_OBJ Type = "BREAK_OBJ"
@@ -706,23 +708,77 @@ func (cs *ContinueStatement) Help() string {
 	return createHelpStringForObject("Continue", "is the object that stops the current execution and moves to the next iteration in the loop's scope", cs)
 }
 
-func NewBlueStruct(names []string, values []Object) (reflect.Value, error) {
+// BlueStruct is the struct object type struct
+type BlueStruct struct {
+	OriginalFields       []string
+	OriginalFieldToIndex map[string]int
+	Value                reflect.Value
+}
+
+// Type returns the map object type
+func (bs *BlueStruct) Type() Type { return BLUE_STRUCT_OBJ }
+
+// Inspect returns the stringified version of the map
+func (bs *BlueStruct) Inspect() string {
+	var out bytes.Buffer
+
+	pairs := make([]string, 0, len(bs.OriginalFields))
+	for i := range bs.OriginalFields {
+		value := bs.Value.Field(i).Interface().(Object)
+		pairs = append(pairs, fmt.Sprintf("%s: %s", bs.OriginalFields[i], value.Inspect()))
+	}
+
+	out.WriteString("@{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+
+	return out.String()
+}
+
+func (bs *BlueStruct) Help() string {
+	return createHelpStringForObject("BlueStruct", "is the object that represents a struct where keys are identifier strings and values are arbitary objects", bs)
+}
+
+func (bs *BlueStruct) Get(name string) Object {
+	if index, ok := bs.OriginalFieldToIndex[name]; ok {
+		return bs.Value.Field(index).Interface().(Object)
+	}
+	return nil // Make sure to handle this error
+	// return bs.Value.FieldByName(key).Interface().(Object)
+}
+
+func (bs *BlueStruct) Set(name string, val Object) error {
+	if existingValue := bs.Get(name); existingValue != nil && existingValue.Type() != val.Type() {
+		return fmt.Errorf("failed to set on struct literal: existing value type = %s, new value type = %s", existingValue.Type(), val.Type())
+	}
+	if index, ok := bs.OriginalFieldToIndex[name]; ok {
+		bs.Value.Field(index).Set(reflect.ValueOf(val))
+		return nil
+	}
+	// key := util.ToTitleCase(name)
+	// bs.Value.FieldByName(key).Set(reflect.ValueOf(val))
+	return fmt.Errorf("failed to set on struct literal: %s=%s", name, val.Inspect())
+}
+
+func NewBlueStruct(originalFields, names []string, values []Object) (Object, error) {
 	if len(names) != len(values) {
-		return reflect.Value{}, fmt.Errorf("failed to create struct: names and values do not have equal lengths")
+		return nil, fmt.Errorf("failed to create struct: names and values do not have equal lengths")
 	}
 	fields := make([]reflect.StructField, len(names))
+	originalFieldToIndex := make(map[string]int, len(names))
 	for i, name := range names {
 		x := reflect.StructField{
 			Name: name,
 			Type: reflect.TypeOf(values[i]),
 		}
 		fields[i] = x
+		originalFieldToIndex[originalFields[i]] = i
 	}
 	s := reflect.New(reflect.StructOf(fields)).Elem()
-	for i, name := range names {
-		s.FieldByName(name).Set(reflect.ValueOf(values[i]))
+	for i := range names {
+		s.Field(i).Set(reflect.ValueOf(values[i]))
 	}
-	return s, nil
+	return &BlueStruct{OriginalFieldToIndex: originalFieldToIndex, OriginalFields: originalFields, Value: s}, nil
 }
 
 // ------------------------------- HashKey Stuff --------------------------------

@@ -209,6 +209,18 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		return &object.Float{Value: node.Value}
 	case *ast.BigFloatLiteral:
 		return &object.BigFloat{Value: node.Value}
+	case *ast.StructLiteral:
+		exps := e.evalExpressions(node.Values)
+		if len(exps) == 1 && isError(exps[0]) {
+			e.ErrorTokens.Push(node.Token)
+			return exps[0]
+		}
+		sl, err := object.NewBlueStruct(node.OriginalFields, node.Fields, exps)
+		if err != nil {
+			e.ErrorTokens.Push(node.Token)
+			return newError(err.Error())
+		}
+		return sl
 	case *ast.Boolean:
 		return nativeToBooleanObject(node.Value)
 	case *ast.PrefixExpression:

@@ -31,6 +31,7 @@ const (
 	i_LIST_OBJ
 	i_MAP_OBJ
 	i_SET_OBJ
+	i_BLUE_STRUCT_OBJ
 	i_LIST_COMP_OBJ
 	i_MAP_COMP_OBJ
 	i_SET_COMP_OBJ
@@ -457,6 +458,16 @@ func (x *Set) Encode() ([]byte, error) {
 
 func (x *Set) IType() iType {
 	return i_SET_OBJ
+}
+
+func (x *BlueStruct) Encode() ([]byte, error) {
+	// return marshalObjectWrapper(x)
+	// TODO: Can probably support this
+	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+}
+
+func (x *BlueStruct) IType() iType {
+	return i_BLUE_STRUCT_OBJ
 }
 
 func (x *Module) Encode() ([]byte, error) {
