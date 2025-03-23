@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/shopspring/decimal"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -148,6 +150,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BACKTICK, p.parseExecStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseListLiteral)
 	p.registerPrefix(token.LBRACE, p.parseMapOrSetLiteral)
+	p.registerPrefix(token.ATLBRACKET, p.parseStructLiteral)
 	p.registerPrefix(token.MATCH, p.parseMatchExpression)
 	p.registerPrefix(token.NULL_KW, p.parseNullKeyword)
 	p.registerPrefix(token.EVAL, p.parseEvalExpression)
@@ -1209,7 +1212,7 @@ func (p *Parser) parseSetLiteral(firstTok token.Token, firstExp ast.Expression) 
 	return exp
 }
 
-// parseMapLiteral parses a map and returns an ast expression node
+// parseMapOrSetLiteral parses a map and returns an ast expression node
 func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 	firstTok := p.curToken
 	exp := &ast.MapLiteral{Token: firstTok}
@@ -1240,6 +1243,48 @@ func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 
 		exp.Pairs[key] = value
 		exp.PairsIndex[i] = key
+		i++
+
+		if !p.peekTokenIs(token.RBRACE) && !p.expectPeekIs(token.COMMA) {
+			return nil
+		}
+	}
+
+	if !p.expectPeekIs(token.RBRACE) {
+		return nil
+	}
+
+	return exp
+}
+
+func (p *Parser) parseStructLiteral() ast.Expression {
+	firstTok := p.curToken
+	exp := &ast.StructLiteral{Token: firstTok}
+	exp.Fields = make(map[*ast.Identifier]ast.Expression)
+	exp.FieldsIndex = make(map[int]*ast.Identifier)
+
+	setTitleKeys := make(map[string]struct{})
+	i := 0
+	for !p.peekTokenIs(token.RBRACE) {
+		// get into the map
+		p.nextToken()
+		key := p.parseIdentifier().(*ast.Identifier)
+		if !p.expectIdentIsUniqueTitle(key, setTitleKeys) {
+			return nil
+		}
+		if !p.expectIdentIsValid(key) {
+			return nil
+		}
+
+		if !p.expectPeekIs(token.COLON) {
+			return nil
+		}
+		// get into the next exp
+		p.nextToken()
+		value := p.parseExpression(LOWEST)
+
+		exp.Fields[key] = value
+		exp.FieldsIndex[i] = key
 		i++
 
 		if !p.peekTokenIs(token.RBRACE) && !p.expectPeekIs(token.COMMA) {
@@ -1833,6 +1878,36 @@ func (p *Parser) expectPeekIs(t token.Type) bool {
 	// create a peek error
 	p.peekError(t)
 	return false
+}
+
+func (p *Parser) expectIdentIsUniqueTitle(key *ast.Identifier, setTitleKeys map[string]struct{}) bool {
+	caser := cases.Title(language.Und)
+	titleS := caser.String(key.Value)
+	if _, ok := setTitleKeys[titleS]; ok {
+		errorLine := lexer.GetErrorLineMessage(key.Token)
+		msg := fmt.Sprintf("struct literal keys must be unique among title cases, current identifer %s, identifier that matched %s\n%s",
+			key.Value, titleS, errorLine)
+		p.errors = append(p.errors, msg)
+		return false
+	} else {
+		setTitleKeys[titleS] = struct{}{}
+	}
+	return true
+}
+
+func (p *Parser) expectIdentIsValid(key *ast.Identifier) bool {
+	if strings.ContainsAny(key.Value, "!?") {
+		errorLine := lexer.GetErrorLineMessage(key.Token)
+		msg := fmt.Sprintf("struct literal keys must not have any `!?` characters, current identifier %s\n%s", key.Value, errorLine)
+		p.errors = append(p.errors, msg)
+		return false
+	} else if strings.HasPrefix(key.Value, "_") {
+		errorLine := lexer.GetErrorLineMessage(key.Token)
+		msg := fmt.Sprintf("struct literal keys must not start with `_`, current identifier %s\n%s", key.Value, errorLine)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+	return true
 }
 
 func (p *Parser) peekTokenIsAssignmentToken() bool {

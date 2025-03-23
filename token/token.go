@@ -24,239 +24,242 @@ func (t Token) DisplayForErrorLine() string {
 
 const (
 	// ILLEGAL is the string rep. of an illegal tok.
-	ILLEGAL = "ILLEGAL"
+	ILLEGAL Type = "ILLEGAL"
 	// EOF is the string rep. of end of file
-	EOF = "EOF"
+	EOF Type = "EOF"
 
 	// MULTLINE_COMMENT is the string rep. of a multiline comment token
-	MULTLINE_COMMENT = "###"
+	MULTLINE_COMMENT Type = "###"
 	// DOCSTRING_COMMENT is the string rep. of a doc comment token
-	DOCSTRING_COMMENT = "##"
+	DOCSTRING_COMMENT Type = "##"
 
 	// Identifiers and literals
 
 	// IDENT is the string rep. of an identifier
-	IDENT = "IDENT"
+	IDENT Type = "IDENT"
 	// INT is the string rep. of an integer tok.
-	INT = "INT"
+	INT Type = "INT"
 	// FLOAT is the string rep. of a float tok.
-	FLOAT = "FLOAT"
+	FLOAT Type = "FLOAT"
 	// HEX is the string rep. of a hex tok.
-	HEX = "HEX"
+	HEX Type = "HEX"
 	// OCTAL is the string rep. of an octal tok.
-	OCTAL = "OCTAL"
+	OCTAL Type = "OCTAL"
 	// BINARY is the string rep. of a binary tok.
-	BINARY = "BINARY"
+	BINARY Type = "BINARY"
 	// UINT is the string rep. of a uinteger tok.
-	UINT = "UINT"
+	UINT Type = "UINT"
 	// BIGINT is the string rep. of a big int tok.
-	BIGINT = "BIGINT"
+	BIGINT Type = "BIGINT"
 	// BIGFLOAT is the string rep. of a big float tok.
-	BIGFLOAT = "BIGFLOAT"
+	BIGFLOAT Type = "BIGFLOAT"
 	// STRING_DOUBLE_QUOTE is the string rep. of a string literal tok. with "
-	STRING_DOUBLE_QUOTE = "STRING_DOUBLE_QUOTE"
+	STRING_DOUBLE_QUOTE Type = "STRING_DOUBLE_QUOTE"
 	// STRING_SINGLE_QUOTE is the string rep. of a string literal tok. with '
-	STRING_SINGLE_QUOTE = "STRING_SINGLE_QUOTE"
+	STRING_SINGLE_QUOTE Type = "STRING_SINGLE_QUOTE"
 
 	// Operators
 
 	// ASSIGN is the string rep. of an assignment tok.
-	ASSIGN = "="
+	ASSIGN Type = "="
 	// PERCENTEQ is the string rep. of the modulo equal tok.
-	PERCENTEQ = "%="
+	PERCENTEQ Type = "%="
 	// LTEQ is the string rep. of the less than equal tok.
-	LTEQ = "<="
+	LTEQ Type = "<="
 	// GTEQ is the string rep. of the greater than equal tok.
-	GTEQ = ">="
+	GTEQ Type = ">="
 	// RARROW is the string rep. of the right arrow tok.
-	RARROW = "=>"
+	RARROW Type = "=>"
 
 	// RAW_STRING is the string rep. of the raw string token
-	RAW_STRING = `"""`
+	RAW_STRING Type = `"""`
 	// STRINGINTERP is the string interpolation token
-	STRINGINTERP = "#{"
+	STRINGINTERP Type = "#{"
 
 	// REGEX is the string rep. of the regex literal start token
-	REGEX = "r/"
+	REGEX Type = "r/"
 
 	// NOTE: ANDEQ, OREQ, BINNOTEQ, and XOREQ might also be used for sets and other data types eventually
 
 	// ANDANDEQ is the string rep. of the boolean and equal tok.
-	ANDANDEQ = "&&="
+	ANDANDEQ Type = "&&="
 	// OROREQ is the string rep. of the boolean or equal tok.
-	OROREQ = "||="
+	OROREQ Type = "||="
 	// ANDEQ is the string rep. of the binary and equal tok.
-	ANDEQ = "&="
+	ANDEQ Type = "&="
 	// OREQ is the string rep. of the binary or equal tok.
-	OREQ = "|="
+	OREQ Type = "|="
 	// BINNOTEQ is the string rep. of the binary not equal tok.
-	BINNOTEQ = "~="
+	BINNOTEQ Type = "~="
 	// XOREQ is the string rep. of the binary xor equal tok.
-	XOREQ = "^="
+	XOREQ Type = "^="
 
 	// MULEQ is the string rep. of the mulitply equal tok.
-	MULEQ = "*="
+	MULEQ Type = "*="
 	// PLUSEQ is the string rep. of the plus equal tok.
-	PLUSEQ = "+="
+	PLUSEQ Type = "+="
 	// MINUSEQ is the string rep. of the minus equal tok.
-	MINUSEQ = "-="
+	MINUSEQ Type = "-="
 	// DIVEQ is the string rep. of the div equal token.
-	DIVEQ = "/="
+	DIVEQ Type = "/="
 
 	// PLUS is the string rep. of a plus tok.
-	PLUS = "+"
+	PLUS Type = "+"
 
 	// BANG is the string rep. of a ! tok.
-	BANG = "!"
+	BANG Type = "!"
 	// STAR is the string rep. of a * tok.
-	STAR = "*"
+	STAR Type = "*"
 	// FSLASH is the string rep. of a forward slash tok.
-	FSLASH = "/"
+	FSLASH Type = "/"
 	// MINUS is the string rep. of a minus tok.
-	MINUS = "-"
+	MINUS Type = "-"
 
 	// TILDE is the string rep. of a bitwise not tok.
 	// this may not be used, but good for the lexer to know
-	TILDE = "~"
+	TILDE Type = "~"
 
 	// AMPERSAND is the string rep. of an ampersand tok.
-	AMPERSAND = "&"
+	AMPERSAND Type = "&"
 	// HAT is the string rep. of a hat tok.
-	HAT = "^"
+	HAT Type = "^"
 	// HASH is the string rep. of a number sign tok.
-	HASH = "#"
+	HASH Type = "#"
 	// PERCENT is the string rep. of a percent tok.
-	PERCENT = "%"
+	PERCENT Type = "%"
 	// DOT is the string rep. of a period tok.
-	DOT = "."
+	DOT Type = "."
 
 	// LT is the string rep. of a less than tok.
-	LT = "<"
+	LT Type = "<"
 	// GT is the string rep. of a greater than tok.
-	GT = ">"
+	GT Type = ">"
 
 	// EQ is the string rep. of an equal tok.
-	EQ = "=="
+	EQ Type = "=="
 	// NEQ is the string rep. of a not equal tok.
-	NEQ = "!="
+	NEQ Type = "!="
 
 	// POW is the string rep. of a power tok. ie. (2 ** 3 == 8)
-	POW = "**"
+	POW Type = "**"
 	// RANGE is the string rep. of a range tok.
-	RANGE = ".."
+	RANGE Type = ".."
 	// FDIV is the string rep. of a floor division tok.
-	FDIV = "//"
+	FDIV Type = "//"
 	// RSHIFT is the string rep. of a right shift tok.
-	RSHIFT = ">>"
+	RSHIFT Type = ">>"
 	// LSHIFT is the string rep. of a left shift tok.
-	LSHIFT = "<<"
+	LSHIFT Type = "<<"
+
+	// ATLBRACKET is the string rep. of the @{ token used for struct literals
+	ATLBRACKET Type = "@{"
 
 	// Delimeters
 
 	// COMMA is the string rep. of a comma tok.
-	COMMA = ","
+	COMMA Type = ","
 	// SEMICOLON is the string rep. of a comma tok.
-	SEMICOLON = ";"
+	SEMICOLON Type = ";"
 	// COLON is the string rep. of a colon tok.
-	COLON = ":"
+	COLON Type = ":"
 
 	// BACKTICK is the string rep. of a backtick tok.
-	BACKTICK = "`"
+	BACKTICK Type = "`"
 
 	// LPAREN is the string rep. of a left paren. tok.
-	LPAREN = "("
+	LPAREN Type = "("
 	// RPAREN is the string rep. of a right paren. tok.
-	RPAREN = ")"
+	RPAREN Type = ")"
 	// LBRACE is the string rep. of a left brace tok.
-	LBRACE = "{"
+	LBRACE Type = "{"
 	// RBRACE is the string rep. of a right brace tok.
-	RBRACE = "}"
+	RBRACE Type = "}"
 	// LBRACKET is the string rep. of a left bracket tok.
-	LBRACKET = "["
+	LBRACKET Type = "["
 	// RBRACKET is the string rep. of a right bracket tok.
-	RBRACKET = "]"
+	RBRACKET Type = "]"
 	// PIPE is the string rep. of the pipe tok.
-	PIPE = "|"
+	PIPE Type = "|"
 
 	// POWEQ is the string rep. of the pow equal tok.
-	POWEQ = "**="
+	POWEQ Type = "**="
 	// ELLIPSE is the string rep. of the ellises tok.
-	ELLIPSE = "..."
+	ELLIPSE Type = "..."
 	// FDIVEQ is the string rep. of the floor div equal tok.
-	FDIVEQ = "//="
+	FDIVEQ Type = "//="
 	// RSHIFTEQ is the string rep. of the right shift equal tok.
-	RSHIFTEQ = ">>="
+	RSHIFTEQ Type = ">>="
 	// LSHIFTEQ is the string rep. of the left shift equal tok.
-	LSHIFTEQ = "<<="
+	LSHIFTEQ Type = "<<="
 	// NONINCRANGE is the string rep. of the non inclusive range token
-	NONINCRANGE = "..<"
+	NONINCRANGE Type = "..<"
 
 	// Keywords
 
 	// FUNCTION is the string rep. of a function tok.
-	FUNCTION = "FUNCTION"
+	FUNCTION Type = "FUNCTION"
 	// VAR is the string rep. of a var tok.
-	VAR = "VAR"
+	VAR Type = "VAR"
 	// VAL is the string rep. of a val tok.
-	VAL = "VAL"
+	VAL Type = "VAL"
 	// TRUE is the string rep. of the `true` tok.
-	TRUE = "TRUE"
+	TRUE Type = "TRUE"
 	// FALSE is the string rep. of the `false` tok.
-	FALSE = "FALSE"
+	FALSE Type = "FALSE"
 	// IF is the string rep. of the `if` tok.
-	IF = "IF"
+	IF Type = "IF"
 	// ELSE is the string rep. of the `else` tok.
-	ELSE = "ELSE"
+	ELSE Type = "ELSE"
 	// RETURN is the string rep of the `return` tok.
-	RETURN = "RETURN"
+	RETURN Type = "RETURN"
 	// FOR is the string rep. of the `for` tok.
-	FOR = "FOR"
+	FOR Type = "FOR"
 	// IN is the string rep. of the `in` tok.
-	IN = "IN"
+	IN Type = "IN"
 	// NOTIN is the string rep. of the `notin` tok.
-	NOTIN = "NOTIN"
+	NOTIN Type = "NOTIN"
 	// AND is the string rep. of the `and` tok.
-	AND = "AND"
+	AND Type = "AND"
 	// OR is the string rep. of the `or` tok.
-	OR = "OR"
+	OR Type = "OR"
 	// NOT is the string rep. of the `not` tok.
-	NOT = "NOT"
+	NOT Type = "NOT"
 	// CONST is the string rep. of the `const` tok.
-	CONST = "CONST"
+	CONST Type = "CONST"
 	// MATCH is the string rep. of the `match` tok.
-	MATCH = "MATCH"
+	MATCH Type = "MATCH"
 	// NULL_KW is the string rep. of the `null` tok
-	NULL_KW = "NULL_KW"
+	NULL_KW Type = "NULL_KW"
 
 	// IMPORT is the string rep. of the import tok
-	IMPORT = "IMPORT"
+	IMPORT Type = "IMPORT"
 	// IMPORT_PATH is the string rep. of the import path tok
-	IMPORT_PATH = "IMPORT_PATH"
+	IMPORT_PATH Type = "IMPORT_PATH"
 	// FROM is the string rep. of the from import tok
-	FROM = "FROM"
+	FROM Type = "FROM"
 	// AS is the string rep. of the as tok
-	AS = "AS"
+	AS Type = "AS"
 
 	// TRY is the string rep. of the 'try' keyword token
-	TRY = "TRY"
+	TRY Type = "TRY"
 	// CATCH is the string rep. of the 'catch' keyword token
-	CATCH = "CATCH"
+	CATCH Type = "CATCH"
 	// FINALLY is the string rep. of the 'finally' keyword token
-	FINALLY = "FINALLY"
+	FINALLY Type = "FINALLY"
 
 	// EVAL is the string rep. of the 'eval' keyword token
-	EVAL = "EVAL"
+	EVAL Type = "EVAL"
 	// SPAWN is the string rep. of the 'spawn' keyword token
-	SPAWN = "SPAWN"
+	SPAWN Type = "SPAWN"
 	// DEFER is the string rep. of the 'defer' keyword token
-	DEFER = "DEFER"
+	DEFER Type = "DEFER"
 	// SELF is the string rep. of the 'self' keyword token
-	SELF = "SELF"
+	SELF Type = "SELF"
 
 	// BREAK is the string rep. of the 'break' keyword token
-	BREAK = "BREAK"
+	BREAK Type = "BREAK"
 	// CONTINUE is the string rep. of the 'continue' keyword token
-	CONTINUE = "CONTINUE"
+	CONTINUE Type = "CONTINUE"
 )
 
 var keywords = map[string]Type{

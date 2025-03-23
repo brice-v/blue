@@ -342,6 +342,7 @@ func TestNextTokenMulti1(t *testing.T) {
 	>>=
 	<<=
 	..<
+	@{
 	`
 
 	tests := []struct {
@@ -354,6 +355,7 @@ func TestNextTokenMulti1(t *testing.T) {
 		{token.RSHIFTEQ, ">>="},
 		{token.LSHIFTEQ, "<<="},
 		{token.NONINCRANGE, "..<"},
+		{token.ATLBRACKET, "@{"},
 		{token.EOF, ""},
 	}
 

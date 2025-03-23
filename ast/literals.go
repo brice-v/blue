@@ -366,3 +366,38 @@ func (scl *SetCompLiteral) TokenLiteral() string {
 func (scl *SetCompLiteral) String() string {
 	return scl.NonEvaluatedProgram
 }
+
+type StructLiteral struct {
+	Token       token.Token                // Token == @{
+	Fields      map[*Identifier]Expression // Fields is a map of identifiers to expressions
+	FieldsIndex map[int]*Identifier        // Insertion Index -> identifier
+}
+
+// expressionNode satisfies the expression interface
+func (sl *StructLiteral) expressionNode() {}
+
+// TokenLiteral returns the { token as a string
+func (sl *StructLiteral) TokenLiteral() string { return sl.Token.Literal }
+
+// String returns the string representation of the map literal ast node
+func (sl *StructLiteral) String() string {
+	var out bytes.Buffer
+
+	indices := []int{}
+	for k := range sl.FieldsIndex {
+		indices = append(indices, k)
+	}
+	sort.Ints(indices)
+	pairs := []string{}
+	for _, i := range indices {
+		k := sl.FieldsIndex[i]
+		v := sl.Fields[k]
+		pairs = append(pairs, k.String()+": "+v.String())
+	}
+
+	out.WriteString("@{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+
+	return out.String()
+}

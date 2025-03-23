@@ -600,6 +600,12 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = l.newToken(token.TILDE, l.ch)
 		}
+	case '@':
+		if l.peekChar() == '{' {
+			tok = l.makeTwoCharToken(token.ATLBRACKET)
+		} else {
+			tok = l.newToken(token.ILLEGAL, l.ch)
+		}
 	case '`':
 		tok.Filepath = l.fname
 		tok.LineNumber = l.lineNo
