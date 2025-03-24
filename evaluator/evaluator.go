@@ -1624,12 +1624,12 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return newError("cannot index list with %#v", index)
 			}
 			operator := node.Token.Literal
+			if int(idx.Value) >= len(list.Elements) || idx.Value < 0 {
+				return newError("index out of bounds: %d", idx.Value)
+			}
 			if operator == "=" {
 				list.Elements[idx.Value] = value
 				return NULL
-			}
-			if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-				return newError("index out of bounds: %d", idx.Value)
 			}
 			orig := list.Elements[idx.Value]
 			evaluated := e.evalMultiCharAssignmentInfixExpression(operator, object.LIST_OBJ, orig, value)
