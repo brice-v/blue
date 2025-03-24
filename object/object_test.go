@@ -47,10 +47,9 @@ func TestFunctionString(t *testing.T) {
 }
 
 func TestBlueStruct(t *testing.T) {
-	originalNames := []string{"a", "b"}
-	names := []string{"A", "B"}
+	names := []string{"a", "b"}
 	values := []Object{&Integer{Value: 123}, &Stringo{Value: "Hello World"}}
-	s, err := NewBlueStruct(originalNames, names, values)
+	s, err := NewBlueStruct(names, values)
 	if err != nil {
 		t.Fatalf("Failed to create Blue Struct: %s", err.Error())
 	}

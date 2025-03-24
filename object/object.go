@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -710,9 +709,8 @@ func (cs *ContinueStatement) Help() string {
 
 // BlueStruct is the struct object type struct
 type BlueStruct struct {
-	OriginalFields       []string
-	OriginalFieldToIndex map[string]int
-	Value                reflect.Value
+	Fields []string
+	Values []Object
 }
 
 // Type returns the map object type
@@ -722,10 +720,10 @@ func (bs *BlueStruct) Type() Type { return BLUE_STRUCT_OBJ }
 func (bs *BlueStruct) Inspect() string {
 	var out bytes.Buffer
 
-	pairs := make([]string, 0, len(bs.OriginalFields))
-	for i := range bs.OriginalFields {
-		value := bs.Value.Field(i).Interface().(Object)
-		pairs = append(pairs, fmt.Sprintf("%s: %s", bs.OriginalFields[i], value.Inspect()))
+	pairs := make([]string, 0, len(bs.Fields))
+	for i := range bs.Fields {
+		value := bs.Values[i]
+		pairs = append(pairs, fmt.Sprintf("%s: %s", bs.Fields[i], value.Inspect()))
 	}
 
 	out.WriteString("@{")
@@ -740,45 +738,33 @@ func (bs *BlueStruct) Help() string {
 }
 
 func (bs *BlueStruct) Get(name string) Object {
-	if index, ok := bs.OriginalFieldToIndex[name]; ok {
-		return bs.Value.Field(index).Interface().(Object)
+	for index, n := range bs.Fields {
+		if n == name {
+			return bs.Values[index]
+		}
 	}
 	return nil // Make sure to handle this error
-	// return bs.Value.FieldByName(key).Interface().(Object)
 }
 
 func (bs *BlueStruct) Set(name string, val Object) error {
-	if existingValue := bs.Get(name); existingValue != nil && existingValue.Type() != val.Type() {
-		return fmt.Errorf("failed to set on struct literal: existing value type = %s, new value type = %s", existingValue.Type(), val.Type())
+	for index, n := range bs.Fields {
+		if n == name {
+			existingValue := bs.Values[index]
+			if existingValue != nil && existingValue.Type() != val.Type() {
+				return fmt.Errorf("failed to set on struct literal: existing value type = %s, new value type = %s", existingValue.Type(), val.Type())
+			}
+			bs.Values[index] = val
+			return nil
+		}
 	}
-	if index, ok := bs.OriginalFieldToIndex[name]; ok {
-		bs.Value.Field(index).Set(reflect.ValueOf(val))
-		return nil
-	}
-	// key := util.ToTitleCase(name)
-	// bs.Value.FieldByName(key).Set(reflect.ValueOf(val))
 	return fmt.Errorf("failed to set on struct literal: %s=%s", name, val.Inspect())
 }
 
-func NewBlueStruct(originalFields, names []string, values []Object) (Object, error) {
+func NewBlueStruct(names []string, values []Object) (Object, error) {
 	if len(names) != len(values) {
 		return nil, fmt.Errorf("failed to create struct: names and values do not have equal lengths")
 	}
-	fields := make([]reflect.StructField, len(names))
-	originalFieldToIndex := make(map[string]int, len(names))
-	for i, name := range names {
-		x := reflect.StructField{
-			Name: name,
-			Type: reflect.TypeOf(values[i]),
-		}
-		fields[i] = x
-		originalFieldToIndex[originalFields[i]] = i
-	}
-	s := reflect.New(reflect.StructOf(fields)).Elem()
-	for i := range names {
-		s.Field(i).Set(reflect.ValueOf(values[i]))
-	}
-	return &BlueStruct{OriginalFieldToIndex: originalFieldToIndex, OriginalFields: originalFields, Value: s}, nil
+	return &BlueStruct{Fields: names, Values: values}, nil
 }
 
 // ------------------------------- HashKey Stuff --------------------------------
@@ -847,7 +833,7 @@ func (bs *BlueStruct) hashStruct() uint64 {
 	if err != nil {
 		panic("highwayhash init error " + err.Error())
 	}
-	for _, k := range bs.OriginalFields {
+	for _, k := range bs.Fields {
 		v := bs.Get(k)
 		if v == nil {
 			panic("bug: value of a blue struct should never be nil here")

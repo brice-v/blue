@@ -4,7 +4,6 @@ import (
 	"blue/ast"
 	"blue/lexer"
 	"blue/token"
-	"blue/util"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -1260,19 +1259,14 @@ func (p *Parser) parseStructLiteral() ast.Expression {
 	firstTok := p.curToken
 	exp := &ast.StructLiteral{Token: firstTok}
 	exp.Fields = []string{}
-	exp.OriginalFields = []string{}
 	exp.Values = []ast.Expression{}
 
-	setTitleKeys := make(map[string]struct{})
+	keys := make(map[string]struct{})
 	for !p.peekTokenIs(token.RBRACE) {
 		// get into the map
 		p.nextToken()
 		key := p.parseIdentifier().(*ast.Identifier)
-		titleS, ok := p.isIdentUniqueTitle(key, setTitleKeys)
-		if !ok {
-			return nil
-		}
-		if !p.expectIdentIsValid(key) {
+		if !p.expectIdentIsUnique(key, keys) {
 			return nil
 		}
 
@@ -1283,8 +1277,7 @@ func (p *Parser) parseStructLiteral() ast.Expression {
 		p.nextToken()
 		value := p.parseExpression(LOWEST)
 
-		exp.Fields = append(exp.Fields, titleS)
-		exp.OriginalFields = append(exp.OriginalFields, key.Value)
+		exp.Fields = append(exp.Fields, key.Value)
 		exp.Values = append(exp.Values, value)
 
 		if !p.peekTokenIs(token.RBRACE) && !p.expectPeekIs(token.COMMA) {
@@ -1880,31 +1873,15 @@ func (p *Parser) expectPeekIs(t token.Type) bool {
 	return false
 }
 
-func (p *Parser) isIdentUniqueTitle(key *ast.Identifier, setTitleKeys map[string]struct{}) (string, bool) {
-	titleS := util.ToTitleCase(key.Value)
-	if _, ok := setTitleKeys[titleS]; ok {
+func (p *Parser) expectIdentIsUnique(key *ast.Identifier, keys map[string]struct{}) bool {
+	if _, ok := keys[key.Value]; ok {
 		errorLine := lexer.GetErrorLineMessage(key.Token)
-		msg := fmt.Sprintf("struct literal keys must be unique among title cases, current identifer %s, identifier that matched %s\n%s",
-			key.Value, titleS, errorLine)
+		msg := fmt.Sprintf("struct literal keys must be unique, current identifer %s\n%s",
+			key.Value, errorLine)
 		p.errors = append(p.errors, msg)
-		return "", false
+		return false
 	} else {
-		setTitleKeys[titleS] = struct{}{}
-	}
-	return titleS, true
-}
-
-func (p *Parser) expectIdentIsValid(key *ast.Identifier) bool {
-	if strings.ContainsAny(key.Value, "!?") {
-		errorLine := lexer.GetErrorLineMessage(key.Token)
-		msg := fmt.Sprintf("struct literal keys must not have any `!?` characters, current identifier %s\n%s", key.Value, errorLine)
-		p.errors = append(p.errors, msg)
-		return false
-	} else if strings.HasPrefix(key.Value, "_") {
-		errorLine := lexer.GetErrorLineMessage(key.Token)
-		msg := fmt.Sprintf("struct literal keys must not start with `_`, current identifier %s\n%s", key.Value, errorLine)
-		p.errors = append(p.errors, msg)
-		return false
+		keys[key.Value] = struct{}{}
 	}
 	return true
 }

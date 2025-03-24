@@ -210,12 +210,12 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	case *ast.BigFloatLiteral:
 		return &object.BigFloat{Value: node.Value}
 	case *ast.StructLiteral:
-		exps := e.evalExpressions(node.Values)
-		if len(exps) == 1 && isError(exps[0]) {
+		values := e.evalExpressions(node.Values)
+		if len(values) == 1 && isError(values[0]) {
 			e.ErrorTokens.Push(node.Token)
-			return exps[0]
+			return values[0]
 		}
-		sl, err := object.NewBlueStruct(node.OriginalFields, node.Fields, exps)
+		sl, err := object.NewBlueStruct(node.Fields, values)
 		if err != nil {
 			e.ErrorTokens.Push(node.Token)
 			return newError(err.Error())
@@ -494,9 +494,12 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				return obj
 			}
 		}
-		val := e.tryCreateValidDotCall(left, indx, node.Left)
-		if val != nil {
-			return val
+		// Skip this call to optimize when calling with struct or process
+		if left.Type() != object.BLUE_STRUCT_OBJ && left.Type() != object.PROCESS_OBJ {
+			val := e.tryCreateValidDotCall(left, indx, node.Left)
+			if val != nil {
+				return val
+			}
 		}
 		obj := e.evalIndexExpression(left, indx)
 		if isError(obj) {
@@ -1537,6 +1540,27 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 	return evalBlock
 }
 
+func getRootObjectIdentifier(leftString string) string {
+	var rootObjIdent string
+	var found bool
+
+	// Iterate through the string to find the first occurrence of '[' or '.'
+	for i, char := range leftString {
+		if char == '[' || char == '.' {
+			rootObjIdent = leftString[:i]
+			found = true
+			break
+		}
+	}
+
+	// If neither '[' nor '.' was found, take the whole string
+	if !found {
+		rootObjIdent = leftString
+	}
+
+	return rootObjIdent
+}
+
 func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) object.Object {
 	left := e.Eval(node.Left)
 	if isError(left) {
@@ -1549,12 +1573,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		// Check the left most item in the index expression to see if it contains
 		// an identifier that is immutable
 		removeLeftParens := strings.ReplaceAll(ie.Left.String(), "(", "")
-		var rootObjIdent string
-		if strings.Contains("[", removeLeftParens) {
-			rootObjIdent = strings.Split(removeLeftParens, "[")[0]
-		} else {
-			rootObjIdent = strings.Split(removeLeftParens, ".")[0]
-		}
+		rootObjIdent := getRootObjectIdentifier(removeLeftParens)
 		if ok := e.env.IsImmutable(rootObjIdent); ok {
 			return newError("'%s' is immutable", rootObjIdent)
 		}
@@ -1570,162 +1589,20 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		if e.env.IsImmutable(ident.Value) {
 			return newError("'%s' is immutable", ident.Value)
 		}
-		switch node.Token.Literal {
-		case "=":
+		operator := node.Token.Literal
+		if operator == "=" {
 			e.env.Set(ident.Value, value)
-		case "+=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("+", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "-=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("-", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "*=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("*", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "/=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("/", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "//=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("//", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "**=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("**", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "&=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("&", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "|=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("|", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "&&=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("&&", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "||=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("||", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "~=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("~", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "<<=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("<<", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case ">>=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression(">>", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "%=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("%", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		case "^=":
-			orig, ok := e.env.Get(ident.Value)
-			if !ok {
-				return newError("identifier '%s' does not exist", ident.String())
-			}
-			evaluated := e.evalInfixExpression("^", orig, value)
-			if isError(evaluated) {
-				return evaluated
-			}
-			e.env.Set(ident.Value, evaluated)
-		default:
-			return newError("assignment operator not supported `%s`", node.Token.Literal)
+			return NULL
 		}
+		orig, ok := e.env.Get(ident.Value)
+		if !ok {
+			return newError("identifier '%s' does not exist", ident.String())
+		}
+		evaluated := e.evalMultiCharAssignmentInfixExpression(operator, "IDENT", orig, value)
+		if isError(evaluated) {
+			return evaluated
+		}
+		e.env.Set(ident.Value, evaluated)
 	} else if ie, ok := node.Left.(*ast.IndexExpression); ok {
 		// Handle Assignment to Builtin Obj
 		if v, ok := ie.Left.(*ast.Identifier); ok {
@@ -1742,147 +1619,24 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			if isError(index) {
 				return index
 			}
-
-			if idx, ok := index.(*object.Integer); ok {
-				switch node.Token.Literal {
-				case "=":
-					list.Elements[idx.Value] = value
-				case "+=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("+", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "-=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("-", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "*=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("*", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "/=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("/", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "//=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("//", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "**=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("**", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "&=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("&", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "|=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("|", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "~=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("~", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "<<=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("<<", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case ">>=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression(">>", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "%=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("&", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				case "^=":
-					if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
-						return newError("index out of bounds: %d", idx.Value)
-					}
-					orig := list.Elements[idx.Value]
-					evaluated := e.evalInfixExpression("^", orig, value)
-					if isError(evaluated) {
-						return evaluated
-					}
-					list.Elements[idx.Value] = evaluated
-				default:
-					return newError("unknown assignment operator: MAP INDEX %s", node.Token.Literal)
-				}
-			} else {
+			idx, ok := index.(*object.Integer)
+			if !ok {
 				return newError("cannot index list with %#v", index)
 			}
+			operator := node.Token.Literal
+			if operator == "=" {
+				list.Elements[idx.Value] = value
+				return NULL
+			}
+			if int(idx.Value) > len(list.Elements) || idx.Value < 0 {
+				return newError("index out of bounds: %d", idx.Value)
+			}
+			orig := list.Elements[idx.Value]
+			evaluated := e.evalMultiCharAssignmentInfixExpression(operator, object.LIST_OBJ, orig, value)
+			if isError(evaluated) {
+				return evaluated
+			}
+			list.Elements[idx.Value] = evaluated
 		} else if mapObj, ok := leftObj.(*object.Map); ok {
 			key := e.Eval(ie.Index)
 			if isError(key) {
@@ -1938,15 +1692,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return newError("cannot index string with %#v", index)
 			}
 		} else if bs, ok := leftObj.(*object.BlueStruct); ok {
-			fieldNameObj := e.Eval(ie.Index)
-			if isError(fieldNameObj) {
-				return fieldNameObj
-			}
-			if fieldNameObj.Type() != object.STRING_OBJ {
-				// This should never occur
-				return newError("index type for assignment to BLUE_STRUCT must be STRING. got=%s", fieldNameObj.Type())
-			}
-			fieldName := fieldNameObj.(*object.Stringo).Value
+			fieldName := ie.Index.(*ast.StringLiteral).Value
 			operator := node.Token.Literal
 			if operator == "=" {
 				err := bs.Set(fieldName, value)
@@ -2007,8 +1753,12 @@ func (e *Evaluator) evalMultiCharAssignmentInfixExpression(operator string, t ob
 		evaluated = e.evalInfixExpression("%", left, right)
 	case "^=":
 		evaluated = e.evalInfixExpression("^", left, right)
+	case "&&=":
+		evaluated = e.evalInfixExpression("&&", left, right)
+	case "||=":
+		evaluated = e.evalInfixExpression("||", left, right)
 	default:
-		return newError("unknown assignment operator: %s INDEX %s", t, operator)
+		return newError("assignment operator unsupported: %s %s", t, operator)
 	}
 	return evaluated
 }

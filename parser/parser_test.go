@@ -1600,15 +1600,15 @@ func TestParsingStructLiteralsIdentifierKeys(t *testing.T) {
 	}
 
 	for i := 0; i < len(myStruct.Fields); i++ {
-		expectedValue := expected[myStruct.OriginalFields[i]]
+		expectedValue := expected[myStruct.Fields[i]]
 		value := myStruct.Values[i]
 
 		testIntegerLiteral(t, value, expectedValue)
 	}
 }
 
-func TestParsingStructLiteralsIdentifierKeysWithTitleKeyError(t *testing.T) {
-	input := "@{one: 1, two: 2, three: 3, One: 5}"
+func TestParsingStructLiteralsIdentifierKeysWithDuplicateKeyError(t *testing.T) {
+	input := "@{one: 1, two: 2, three: 3, one: 5}"
 
 	l := lexer.New(input, "<internal: test>")
 	p := New(l)
@@ -1616,55 +1616,7 @@ func TestParsingStructLiteralsIdentifierKeysWithTitleKeyError(t *testing.T) {
 	if len(p.Errors()) == 0 {
 		t.Fatalf("Expected at least one program parser error. got=%d", len(p.Errors()))
 	}
-	expected := "struct literal keys must be unique among title cases, current identifer One, identifier that matched One\nFilepath: \"<internal: test>\", LineNumber: 0, PositionInLine: 29"
-	error1 := p.Errors()[0]
-	if expected != error1 {
-		t.Fatalf("parser error message did not match expected.\ngot=%s\nwant=%s", error1, expected)
-	}
-}
-
-func TestParsingStructLiteralsIdentifierKeysWithSpecialCharError(t *testing.T) {
-	input := "@{one!: 1, two?: 2, three: 3}"
-
-	l := lexer.New(input, "<internal: test>")
-	p := New(l)
-	_ = p.ParseProgram()
-	if len(p.Errors()) == 0 {
-		t.Fatalf("Expected at least one program parser error. got=%d", len(p.Errors()))
-	}
-	expected := "struct literal keys must not have any `!?` characters, current identifier one!\nFilepath: \"<internal: test>\", LineNumber: 0, PositionInLine: 3"
-	error1 := p.Errors()[0]
-	if expected != error1 {
-		t.Fatalf("parser error message did not match expected.\ngot=%s\nwant=%s", error1, expected)
-	}
-}
-
-func TestParsingStructLiteralsIdentifierKeysWithSpecialCharError1(t *testing.T) {
-	input := "@{one: 1, two?: 2, three: 3}"
-
-	l := lexer.New(input, "<internal: test>")
-	p := New(l)
-	_ = p.ParseProgram()
-	if len(p.Errors()) == 0 {
-		t.Fatalf("Expected at least one program parser error. got=%d", len(p.Errors()))
-	}
-	expected := "struct literal keys must not have any `!?` characters, current identifier two?\nFilepath: \"<internal: test>\", LineNumber: 0, PositionInLine: 11"
-	error1 := p.Errors()[0]
-	if expected != error1 {
-		t.Fatalf("parser error message did not match expected.\ngot=%s\nwant=%s", error1, expected)
-	}
-}
-
-func TestParsingStructLiteralsIdentifierKeysWithSpecialCharError2(t *testing.T) {
-	input := "@{one: 1, two: 2, _three: 3}"
-
-	l := lexer.New(input, "<internal: test>")
-	p := New(l)
-	_ = p.ParseProgram()
-	if len(p.Errors()) == 0 {
-		t.Fatalf("Expected at least one program parser error. got=%d", len(p.Errors()))
-	}
-	expected := "struct literal keys must not start with `_`, current identifier _three\nFilepath: \"<internal: test>\", LineNumber: 0, PositionInLine: 19"
+	expected := "struct literal keys must be unique, current identifer one\nFilepath: \"<internal: test>\", LineNumber: 0, PositionInLine: 29"
 	error1 := p.Errors()[0]
 	if expected != error1 {
 		t.Fatalf("parser error message did not match expected.\ngot=%s\nwant=%s", error1, expected)

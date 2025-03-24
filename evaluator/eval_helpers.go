@@ -157,9 +157,6 @@ func (e *Evaluator) tryCreateValidDotCall(left, indx object.Object, leftNode ast
 	if indx.Type() != object.STRING_OBJ {
 		return nil
 	}
-	if _, isProcess := left.(*object.Process); isProcess {
-		return nil
-	}
 	builtin, isBuiltin := e.getBuiltinForDotCall(indx.Inspect())
 	envVar, isInEnv := e.env.Get(indx.Inspect())
 	if !isBuiltin && !isInEnv {

@@ -10,3 +10,4 @@ release-build/*
 ignored/*
 *.png
 *.prof
+*.pprof

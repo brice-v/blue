@@ -369,10 +369,9 @@ func (scl *SetCompLiteral) String() string {
 }
 
 type StructLiteral struct {
-	Token          token.Token  // Token == @{
-	OriginalFields []string     // OriginalFields is a slice of strings (originally represented by identifiers) as they were without title case
-	Fields         []string     // Fields is a slice of strings (originally represented by identifiers) with title case
-	Values         []Expression // Values is a slice of expressions
+	Token  token.Token  // Token == @{
+	Fields []string     // Fields is a slice of strings (originally represented by identifiers)
+	Values []Expression // Values is a slice of expressions
 }
 
 // expressionNode satisfies the expression interface
@@ -388,9 +387,8 @@ func (sl *StructLiteral) String() string {
 	pairs := make([]string, len(sl.Fields))
 	for i := 0; i < len(sl.Fields); i++ {
 		k := sl.Fields[i]
-		k1 := sl.OriginalFields[i]
 		v := sl.Values[i]
-		pairs = append(pairs, fmt.Sprintf("%s (%s): %s", k, k1, v.String()))
+		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v.String()))
 	}
 
 	out.WriteString("@{")
