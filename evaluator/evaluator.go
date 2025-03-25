@@ -1562,11 +1562,6 @@ func getRootObjectIdentifier(leftString string) string {
 }
 
 func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) object.Object {
-	left := e.Eval(node.Left)
-	if isError(left) {
-		return left
-	}
-
 	// If the left side contains an index expression where the identifier is immutable
 	// then return an error saying so
 	if ie, ok := node.Left.(*ast.IndexExpression); ok {
@@ -1586,6 +1581,10 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 
 	// If its a simple identifier allow reassigning like so
 	if ident, ok := node.Left.(*ast.Identifier); ok {
+		orig := e.evalIdentifier(ident)
+		if isError(orig) {
+			return orig
+		}
 		if e.env.IsImmutable(ident.Value) {
 			return newError("'%s' is immutable", ident.Value)
 		}
@@ -1593,10 +1592,6 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		if operator == "=" {
 			e.env.Set(ident.Value, value)
 			return NULL
-		}
-		orig, ok := e.env.Get(ident.Value)
-		if !ok {
-			return newError("identifier '%s' does not exist", ident.String())
 		}
 		evaluated := e.evalMultiCharAssignmentInfixExpression(operator, "IDENT", orig, value)
 		if isError(evaluated) {
@@ -1624,8 +1619,13 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return newError("cannot index list with %#v", index)
 			}
 			operator := node.Token.Literal
-			if int(idx.Value) >= len(list.Elements) || idx.Value < 0 {
+			indexInt := int(idx.Value)
+			listLen := len(list.Elements)
+			if indexInt > listLen || indexInt < 0 {
 				return newError("index out of bounds: %d", idx.Value)
+			}
+			if indexInt == listLen {
+				list.Elements = append(list.Elements, NULL)
 			}
 			if operator == "=" {
 				list.Elements[idx.Value] = value
@@ -1692,18 +1692,22 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return newError("cannot index string with %#v", index)
 			}
 		} else if bs, ok := leftObj.(*object.BlueStruct); ok {
-			fieldName := ie.Index.(*ast.StringLiteral).Value
+			indexField, ok := ie.Index.(*ast.StringLiteral)
+			if !ok {
+				return newError("index operator not supported: BLUE_STRUCT.%s", ie.Index.String())
+			}
+			fieldName := indexField.Value
 			operator := node.Token.Literal
+			orig := bs.Get(fieldName)
+			if orig == nil {
+				return newError("field name `%s` not found on blue struct: %s", fieldName, bs.Inspect())
+			}
 			if operator == "=" {
 				err := bs.Set(fieldName, value)
 				if err != nil {
 					return newError(err.Error())
 				}
 				return NULL
-			}
-			orig := bs.Get(fieldName)
-			if orig == nil {
-				return newError("field name `%s` not found on blue struct: %s", fieldName, bs.Inspect())
 			}
 			evaluated := e.evalMultiCharAssignmentInfixExpression(operator, object.BLUE_STRUCT_OBJ, orig, value)
 			if isError(evaluated) {
@@ -1718,7 +1722,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			return newError("object type %T does not support item assignment", leftObj)
 		}
 	} else {
-		return newError("expected identifier or index expression got=%T", left)
+		return newError("expected identifier or index expression got=%T", node.Left)
 	}
 
 	return NULL
@@ -2186,6 +2190,7 @@ func (e *Evaluator) evalExpressions(exps []ast.Expression) []object.Object {
 }
 
 func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
+	// TODO: Return if its immutable here as well
 	if val, ok := e.env.Get(node.Value); ok {
 		return val
 	}

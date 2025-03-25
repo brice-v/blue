@@ -1,3 +1,5 @@
+#IGNORE
+# Dont think I want to support this
 # This tests that we are populating the remaining areas of the list with null (that arent assigned)
 var x = [];
 
