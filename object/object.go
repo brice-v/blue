@@ -4,51 +4,15 @@ import (
 	"blue/ast"
 	"blue/consts"
 	"bytes"
-	"encoding/binary"
 	"fmt"
+	"hash/maphash"
 	"math"
 	"math/big"
 	"regexp"
 	"strings"
 
-	"github.com/minio/highwayhash"
 	"github.com/shopspring/decimal"
 )
-
-var _highwayhash_key = [32]byte{
-	0x10,
-	0x20,
-	0x30,
-	0x40,
-	0x50,
-	0x60,
-	0x70,
-	0x80,
-	0x10,
-	0x20,
-	0x30,
-	0x40,
-	0x50,
-	0x60,
-	0x70,
-	0x80,
-	0x11,
-	0x21,
-	0x31,
-	0x41,
-	0x51,
-	0x61,
-	0x71,
-	0x81,
-	0x11,
-	0x21,
-	0x31,
-	0x41,
-	0x51,
-	0x61,
-	0x71,
-	0x81,
-}
 
 const (
 	// INTEGER_OBJ is the integer object type string
@@ -775,95 +739,66 @@ type HashKey struct {
 	Value uint64 // Value is the value of the "hash" key
 }
 
-func new8ByteBuf() []byte {
-	return make([]byte, 8)
+var _seed = maphash.MakeSeed()
+
+func newHasher() *maphash.Hash {
+	h := &maphash.Hash{}
+	h.SetSeed(_seed)
+	return h
 }
 
 // hashList implements hashing for list objects
 func (l *List) hashList() uint64 {
-	h, err := highwayhash.New64(_highwayhash_key[:])
-	if err != nil {
-		panic("highwayhash init error " + err.Error())
-	}
+	hasher := newHasher()
 	for _, obj := range l.Elements {
 		hashedObj := HashObject(obj)
-		b := new8ByteBuf()
-		binary.BigEndian.PutUint64(b, hashedObj)
-		h.Write(b)
+		maphash.WriteComparable(hasher, hashedObj)
 	}
-	return h.Sum64()
+	return hasher.Sum64()
 }
 
 // hashSet implements hashing for set objects
 func (s *Set) hashSet() uint64 {
-	h, err := highwayhash.New64(_highwayhash_key[:])
-	if err != nil {
-		panic("highwayhash init error " + err.Error())
-	}
+	hasher := newHasher()
 	for _, k := range s.Elements.Keys {
-		v, _ := s.Elements.Get(k)
-		hashedObj := HashObject(v.Value)
-		b := new8ByteBuf()
-		binary.BigEndian.PutUint64(b, hashedObj)
-		h.Write(b)
+		maphash.WriteComparable(hasher, k)
 	}
-	return h.Sum64()
+	return hasher.Sum64()
 }
 
 // hashMap hashes the entire map to be used for checking equality
 func (m *Map) hashMap() uint64 {
-	h, err := highwayhash.New64(_highwayhash_key[:])
-	if err != nil {
-		panic("highwayhash init error " + err.Error())
-	}
+	hasher := newHasher()
 	for _, k := range m.Pairs.Keys {
 		v, _ := m.Pairs.Get(k)
 		// Just using xor as a way to get a unique uint64 with the value hash
 		hashedKeyObj := k.Value ^ HashObject(v.Value)
-		b := new8ByteBuf()
-		binary.BigEndian.PutUint64(b, hashedKeyObj)
-		h.Write(b)
+		maphash.WriteComparable(hasher, hashedKeyObj)
 	}
-	return h.Sum64()
+	return hasher.Sum64()
 }
 
 // hashStruct hashes the entire struct to be used for checking equality
 func (bs *BlueStruct) hashStruct() uint64 {
-	h, err := highwayhash.New64(_highwayhash_key[:])
-	if err != nil {
-		panic("highwayhash init error " + err.Error())
+	hasher := newHasher()
+	for i, k := range bs.Fields {
+		hasher.WriteString(k)
+		maphash.WriteComparable(hasher, HashObject(bs.Values[i]))
 	}
-	for _, k := range bs.Fields {
-		v := bs.Get(k)
-		if v == nil {
-			panic("bug: value of a blue struct should never be nil here")
-		}
-		// Just using xor as a way to get a unique uint64 with the value hash
-		hashedKeyObj := HashObject(v)
-		b := new8ByteBuf()
-		binary.BigEndian.PutUint64(b, hashedKeyObj)
-		h.Write(b)
-	}
-	return h.Sum64()
+	return hasher.Sum64()
 }
 
 // HashObject is a generic function to hash any of the hashable object types
 // It is very likely I wont keep it like this because it will probably break things
 // but for now this naive implementation should do
+// TODO: Update to be generic
 func HashObject(obj Object) uint64 {
-	h, err := highwayhash.New64(_highwayhash_key[:])
-	if err != nil {
-		panic("highwayhash init error " + err.Error())
-	}
+	hasher := newHasher()
 	switch obj.Type() {
 	case INTEGER_OBJ:
-		b := new8ByteBuf()
-		binary.PutVarint(b, obj.(*Integer).Value)
-		h.Write(b)
+		maphash.WriteComparable(hasher, obj.(*Integer).Value)
 	case UINTEGER_OBJ:
-		b := new8ByteBuf()
-		binary.PutUvarint(b, obj.(*UInteger).Value)
-		h.Write(b)
+		maphash.WriteComparable(hasher, obj.(*UInteger).Value)
 	case BOOLEAN_OBJ:
 		if obj.(*Boolean).Value {
 			// Use 1 for true
@@ -874,60 +809,41 @@ func HashObject(obj Object) uint64 {
 		// Use 2 for null
 		return 2
 	case FLOAT_OBJ:
-		b := new8ByteBuf()
-		binary.PutUvarint(b, uint64(obj.(*Float).Value))
-		h.Write(b)
+		maphash.WriteComparable(hasher, uint64(obj.(*Float).Value))
 	case STRING_OBJ:
-		s := []byte(obj.(*Stringo).Value)
-		h.Write([]byte(s))
+		hasher.WriteString(obj.(*Stringo).Value)
 	case FUNCTION_OBJ:
 		// Note: This is a naive way of determining if two functions are identical
 		// come back and fix this or make it smarter if possible
-		funObj := obj.(*Function).Inspect()
-		h.Write([]byte(funObj))
+		hasher.WriteString(obj.(*Function).Inspect())
 	case ERROR_OBJ:
 		// Although i dont think this should happen, lets give it a hash anyways
-		h.Write([]byte(obj.(*Error).Message))
+		hasher.WriteString(obj.(*Error).Message)
 	case LIST_OBJ:
-		b := new8ByteBuf()
-		listObj := obj.(*List)
-		binary.BigEndian.PutUint64(b, listObj.hashList())
-		h.Write(b)
+		maphash.WriteComparable(hasher, obj.(*List).hashList())
 	case SET_OBJ:
-		b := new8ByteBuf()
-		setObj := obj.(*Set)
-		binary.BigEndian.PutUint64(b, setObj.hashSet())
-		h.Write(b)
+		maphash.WriteComparable(hasher, obj.(*Set).hashSet())
 	case MAP_OBJ:
-		b := new8ByteBuf()
-		mapObj := obj.(*Map)
-		binary.BigEndian.PutUint64(b, mapObj.hashMap())
-		h.Write(b)
+		maphash.WriteComparable(hasher, obj.(*Map).hashMap())
 	case BLUE_STRUCT_OBJ:
-		b := new8ByteBuf()
-		blueStructObj := obj.(*BlueStruct)
-		binary.BigEndian.PutUint64(b, blueStructObj.hashStruct())
-		h.Write(b)
+		maphash.WriteComparable(hasher, obj.(*BlueStruct).hashStruct())
 	case BYTES_OBJ:
-		h.Write(obj.(*Bytes).Value)
+		hasher.Write(obj.(*Bytes).Value)
 	case BIG_FLOAT_OBJ:
-		s := []byte(obj.(*BigFloat).Value.String())
-		h.Write([]byte(s))
+		hasher.WriteString(obj.(*BigFloat).Value.String())
 	case BIG_INTEGER_OBJ:
-		s := []byte(obj.(*BigInteger).Value.String())
-		h.Write([]byte(s))
+		hasher.WriteString(obj.(*BigInteger).Value.String())
 	case GO_OBJ:
-		h.Write([]byte(obj.Inspect()))
+		hasher.WriteString(obj.Inspect())
 	case REGEX_OBJ:
-		s := []byte(obj.(*Regex).Value.String())
-		h.Write([]byte(s))
+		hasher.WriteString(obj.(*Regex).Value.String())
 	case PROCESS_OBJ:
-		h.Write([]byte(obj.Inspect()))
+		hasher.WriteString(obj.Inspect())
 	default:
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)
 	}
-	return h.Sum64()
+	return hasher.Sum64()
 }
 
 func IsHashable(obj Object) bool {

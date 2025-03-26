@@ -1,8 +1,6 @@
 module blue
 
-go 1.21
-
-toolchain go1.21.6
+go 1.24
 
 require (
 	fyne.io/fyne/v2 v2.4.3
@@ -23,7 +21,6 @@ require (
 	github.com/huandu/go-clone v1.7.2
 	github.com/huandu/xstrings v1.4.0
 	github.com/microcosm-cc/bluemonday v1.0.26
-	github.com/minio/highwayhash v1.0.3
 	github.com/otiai10/copy v1.14.0
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/shirou/gopsutil/v3 v3.24.1

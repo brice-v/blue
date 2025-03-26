@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
+    - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
 - [ ] FEAT: Implement proper scopes so variable shadowing can work
     - assigning to global variable failed eg. var ll = [3,2,1]; fun () { ll = ll.sort(); } => ll still [3,2,1]
     - when assigning to a variable, we are not allocating new?

@@ -93,6 +93,8 @@ type Evaluator struct {
 
 	// deferFuns is the map of scopeNestLevel function to execute at scope block cleanup
 	deferFuns map[int]*util.Stack[*FunAndArgs]
+
+	inComprehensionLiteral bool
 }
 
 type FunAndArgs struct {
@@ -143,6 +145,8 @@ func NewNode(nodeName, address string) *Evaluator {
 		evalingNodeCond: make(map[int]struct{}),
 
 		deferFuns: make(map[int]*util.Stack[*FunAndArgs]),
+
+		inComprehensionLiteral: false,
 	}
 
 	e.Builtins = []BuiltinMapType{
@@ -218,7 +222,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		sl, err := object.NewBlueStruct(node.Fields, values)
 		if err != nil {
 			e.ErrorTokens.Push(node.Token)
-			return newError(err.Error())
+			return newError("%s", err.Error())
 		}
 		return sl
 	case *ast.Boolean:
@@ -519,22 +523,28 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		}
 		return obj
 	case *ast.ListCompLiteral:
+		e.inComprehensionLiteral = true
 		obj := e.evalListCompLiteral(node)
 		if isError(obj) {
 			e.ErrorTokens.Push(node.Token)
 		}
+		e.inComprehensionLiteral = false
 		return obj
 	case *ast.MapCompLiteral:
+		e.inComprehensionLiteral = true
 		obj := e.evalMapCompLiteral(node)
 		if isError(obj) {
 			e.ErrorTokens.Push(node.Token)
 		}
+		e.inComprehensionLiteral = false
 		return obj
 	case *ast.SetCompLiteral:
+		e.inComprehensionLiteral = true
 		obj := e.evalSetCompLiteral(node)
 		if isError(obj) {
 			e.ErrorTokens.Push(node.Token)
 		}
+		e.inComprehensionLiteral = false
 		return obj
 	case *ast.MatchExpression:
 		obj := e.evalMatchExpression(node)
@@ -1504,21 +1514,35 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 			break
 		}
 		if node.UsesVar {
-			result := e.Eval(node.PostExp)
-			if isError(result) {
-				return result
+			canFastCalc, orig, increment, condResult := canFastCalcNodeCondAndPostExp(e, node.Condition, node.PostExp)
+			if !canFastCalc {
+				result := e.Eval(node.PostExp)
+				if isError(result) {
+					return result
+				}
+			} else {
+				orig.Value += increment
 			}
-			// Check the eval cond at the end of our post exp in case we need to exit
-			e.evalingNodeCond[e.nestLevel] = struct{}{}
-			evalCond := e.Eval(node.Condition)
-			delete(e.evalingNodeCond, e.nestLevel)
-			if isError(evalCond) {
-				return evalCond
+			var ok bool
+			if canFastCalc && condResult != -1 {
+				if condResult == 0 {
+					ok = true
+				} else if condResult == 1 {
+					ok = false
+				}
+			} else {
+				// Check the eval cond at the end of our post exp in case we need to exit
+				e.evalingNodeCond[e.nestLevel] = struct{}{}
+				evalCond := e.Eval(node.Condition)
+				delete(e.evalingNodeCond, e.nestLevel)
+				if isError(evalCond) {
+					return evalCond
+				}
+				if evalCond.Type() != object.BOOLEAN_OBJ {
+					return newError("for expression condition expects BOOLEAN. got=%s", evalCond.Type())
+				}
+				ok = evalCond.(*object.Boolean).Value
 			}
-			if evalCond.Type() != object.BOOLEAN_OBJ {
-				return newError("for expression condition expects BOOLEAN. got=%s", evalCond.Type())
-			}
-			ok := evalCond.(*object.Boolean).Value
 			if !ok {
 				e.doneWithFor[e.scopeNestLevel] = struct{}{}
 				return NULL
@@ -1538,6 +1562,124 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 	}
 	e.doneWithFor[e.scopeNestLevel] = struct{}{}
 	return evalBlock
+}
+
+func canFastCalcNodeCondAndPostExp(e *Evaluator, cond, postExp ast.Expression) (bool, *object.Integer, int64, int) {
+	if e.inComprehensionLiteral {
+		return false, nil, 0, -1
+	}
+	aExp, isAExp := postExp.(*ast.AssignmentExpression)
+	if !isAExp {
+		return false, nil, 0, -1
+	}
+	li, isLi := aExp.Left.(*ast.Identifier)
+	if !isLi {
+		return false, nil, 0, -1
+	}
+	il, isIl := aExp.Value.(*ast.IntegerLiteral)
+	if !isIl {
+		return false, nil, 0, -1
+	}
+	op := aExp.Token.Literal
+	if op != "+=" {
+		// Support other ones later on
+		return false, nil, 0, -1
+	}
+	infix, isInfix := cond.(*ast.InfixExpression)
+	if !isInfix {
+		return false, nil, 0, -1
+	}
+	condInfixOp := infix.Operator
+	if condInfixOp != "<" && condInfixOp != ">" && condInfixOp != ">=" && condInfixOp != "<=" {
+		return false, nil, 0, -1
+	}
+
+	existingObj := e.evalIdentifier(li)
+	if isError(existingObj) {
+		return false, nil, 0, -1
+	}
+	existingI, isInteger := existingObj.(*object.Integer)
+	if !isInteger {
+		return false, nil, 0, -1
+	}
+
+	condResult := -1 // -1 will mean ignore, 0 will be true, 1 will be false
+	// if leftIdent, leftIsIdent := infix.Left.(*ast.Identifier); leftIsIdent && leftIdent.Value == li.Value {
+	// 	if rightIl, rightIsIl := infix.Right.(*ast.IntegerLiteral); rightIsIl {
+	// 		switch condInfixOp {
+	// 		case "<":
+	// 			x := int(existingI.Value) < int(rightIl.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		case ">":
+	// 			x := int(existingI.Value) > int(rightIl.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		case "<=":
+	// 			x := int(existingI.Value) <= int(rightIl.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		case ">=":
+	// 			x := int(existingI.Value) >= int(rightIl.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// if rightIdent, rightIsIdent := infix.Right.(*ast.Identifier); rightIsIdent && rightIdent.Value == li.Value {
+	// 	if leftIl, leftIsIl := infix.Left.(*ast.IntegerLiteral); leftIsIl {
+	// 		switch condInfixOp {
+	// 		case "<":
+	// 			x := int(leftIl.Value) < int(existingI.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		case ">":
+	// 			x := int(leftIl.Value) > int(existingI.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		case "<=":
+	// 			x := int(leftIl.Value) <= int(existingI.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		case ">=":
+	// 			x := int(leftIl.Value) >= int(existingI.Value)
+	// 			if x {
+	// 				condResult = 0
+	// 			} else {
+	// 				condResult = 1
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	return true, existingI, il.Value, condResult
+
+	// 	2025/03/25 22:13:04 cond (*ast.InfixExpression) = (a < 5)
+	// 2025/03/25 22:13:04 postExp (*ast.AssignmentExpression) = a += 1
+	// log.Printf("cond (%T) = %s", cond, cond.String())
+	// log.Printf("postExp (%T) = %s", postExp, postExp.String())
+	// return false
 }
 
 func getRootObjectIdentifier(leftString string) string {
@@ -1574,11 +1716,6 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		}
 	}
 
-	value := e.Eval(node.Value)
-	if isError(value) {
-		return value
-	}
-
 	// If its a simple identifier allow reassigning like so
 	if ident, ok := node.Left.(*ast.Identifier); ok {
 		orig := e.evalIdentifier(ident)
@@ -1590,8 +1727,27 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		}
 		operator := node.Token.Literal
 		if operator == "=" {
+			value := e.Eval(node.Value)
+			if isError(value) {
+				return value
+			}
 			e.env.Set(ident.Value, value)
 			return NULL
+		} else if operator == "+=" {
+			// TODO: If I want to use this, I likely will need to optimize directly in evalForStatement
+			// This is a fast pass optimization - can be likely be updated to support others as well
+			// When we have a literal on the right hand side and original is something we can deal with
+			// This avoids call to set which is _super_ helpful
+			// if oi, ok := orig.(*object.Integer); ok {
+			// 	if il, ok1 := node.Value.(*ast.IntegerLiteral); ok1 {
+			// 		oi.Value = oi.Value + il.Value
+			// 		return NULL
+			// 	}
+			// }
+		}
+		value := e.Eval(node.Value)
+		if isError(value) {
+			return value
 		}
 		evaluated := e.evalMultiCharAssignmentInfixExpression(operator, "IDENT", orig, value)
 		if isError(evaluated) {
@@ -1599,6 +1755,10 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		}
 		e.env.Set(ident.Value, evaluated)
 	} else if ie, ok := node.Left.(*ast.IndexExpression); ok {
+		value := e.Eval(node.Value)
+		if isError(value) {
+			return value
+		}
 		// Handle Assignment to Builtin Obj
 		if v, ok := ie.Left.(*ast.Identifier); ok {
 			if _, ok = builtinobjs[v.Value]; ok {
@@ -1705,7 +1865,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			if operator == "=" {
 				err := bs.Set(fieldName, value)
 				if err != nil {
-					return newError(err.Error())
+					return newError("%s", err.Error())
 				}
 				return NULL
 			}
@@ -1715,7 +1875,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			}
 			err := bs.Set(fieldName, evaluated)
 			if err != nil {
-				return newError(err.Error())
+				return newError("%s", err.Error())
 			}
 			return NULL
 		} else {

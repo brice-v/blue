@@ -316,9 +316,6 @@ github.com/mattn/go-runewidth
 ## explicit; go 1.21
 github.com/microcosm-cc/bluemonday
 github.com/microcosm-cc/bluemonday/css
-# github.com/minio/highwayhash v1.0.3
-## explicit; go 1.15
-github.com/minio/highwayhash
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
@@ -533,7 +530,6 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.28.0
 ## explicit; go 1.18
-golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
