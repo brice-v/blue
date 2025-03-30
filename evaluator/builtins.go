@@ -4,6 +4,7 @@ import (
 	"blue/consts"
 	"blue/evaluator/pubsub"
 	"blue/object"
+	"blue/processmanager"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -2104,18 +2105,20 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "save(1234) => '82001904d2'",
 		}.String(),
 	},
-	// "node_connect": {
-	// 	Fun: func(args ...object.Object) object.Object {
-	// 		if len(args) != 1 {
-	// 			return NULL
-	// 		}
-	// 		if args[0].Type() != object.STRING_OBJ {
-	// 			return NULL
-	// 		}
-	// 		s := args[0].(*object.Stringo).Value
-	// 		processmanager.SendCommand(processmanager.ConnectorCommand{Command: processmanager.AddConnection, V})
-	// 	},
-	// },
+	"node_connect": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return NULL
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return NULL
+			}
+			// s := args[0].(*object.Stringo).Value
+			processmanager.StartDialer()
+			return NULL
+		},
+		HelpStr: "TODO",
+	},
 })
 
 func GetBuiltins(e *Evaluator) BuiltinMapType {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/gookit/color"
@@ -82,8 +83,8 @@ func Run(args ...string) {
 	case "eval":
 	case "-e":
 		handleEvalCommand(argc, arguments)
-	// case "node":
-	// 	handleNodeCommand(argc, arguments)
+	case "node":
+		handleNodeCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
 	case "play":
@@ -230,35 +231,35 @@ func handleEvalCommand(argc int, arguments []string) {
 	}
 }
 
-// func printNodeErrorUsageAndExit() {
-// 	consts.ErrorPrinter("`node` incorrect usage: example: `node --name \"n1@localhost\"`\n" +
-// 		"                                 (name here requires identifier and address separated with @)")
-// 	os.Exit(1)
-// }
+func printNodeErrorUsageAndExit() {
+	consts.ErrorPrinter("`node` incorrect usage: example: `node --name \"n1@localhost\"`\n" +
+		"                                 (name here requires identifier and address separated with @)")
+	os.Exit(1)
+}
 
-// func handleNodeCommand(argc int, arguments []string) {
-// 	// Example Command:
-// 	// blue node --name "n1@localhost"
-// 	// argc = 3, arguments = ["node","--name","\"n1@localhost\""]
-// 	// TODO: Eventually handle `--no-exec` flag
-// 	// TODO: Eventually handle file as well (for now just handling repl)
-// 	if (argc != 3 || !slices.Contains(arguments, "--name")) || (argc == 3 && arguments[1] != "--name") {
-// 		printNodeErrorUsageAndExit()
-// 	}
-// 	// I don't think quotes should make it through
-// 	name := strings.ReplaceAll(arguments[2], `"`, "")
-// 	fmt.Printf("argc = %d, argv = %#+v\n", argc, arguments)
-// 	fmt.Printf("name = %s\n", name)
-// 	nodeNameAndAddress := strings.Split(name, "@")
-// 	fmt.Printf("%v\n", nodeNameAndAddress)
-// 	if len(nodeNameAndAddress) != 2 {
-// 		printNodeErrorUsageAndExit()
-// 	}
-// 	if len(nodeNameAndAddress[0]) == 0 || len(nodeNameAndAddress[1]) == 0 {
-// 		printNodeErrorUsageAndExit()
-// 	}
-// 	repl.StartEvalReplWithNodeName(nodeNameAndAddress[0], nodeNameAndAddress[1])
-// }
+func handleNodeCommand(argc int, arguments []string) {
+	// Example Command:
+	// blue node --name "n1@localhost"
+	// argc = 3, arguments = ["node","--name","\"n1@localhost\""]
+	// TODO: Eventually handle `--no-exec` flag
+	// TODO: Eventually handle file as well (for now just handling repl)
+	if (argc != 3 || !slices.Contains(arguments, "--name")) || (argc == 3 && arguments[1] != "--name") {
+		printNodeErrorUsageAndExit()
+	}
+	// I don't think quotes should make it through
+	name := strings.ReplaceAll(arguments[2], `"`, "")
+	fmt.Printf("argc = %d, argv = %#+v\n", argc, arguments)
+	fmt.Printf("name = %s\n", name)
+	nodeNameAndAddress := strings.Split(name, "@")
+	fmt.Printf("%v\n", nodeNameAndAddress)
+	if len(nodeNameAndAddress) != 2 {
+		printNodeErrorUsageAndExit()
+	}
+	if len(nodeNameAndAddress[0]) == 0 || len(nodeNameAndAddress[1]) == 0 {
+		printNodeErrorUsageAndExit()
+	}
+	repl.StartEvalReplWithNodeName(nodeNameAndAddress[0], nodeNameAndAddress[1])
+}
 
 func handleDocCommand(argc int, arguments []string) {
 	if argc != 2 {

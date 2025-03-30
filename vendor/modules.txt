@@ -76,6 +76,9 @@ github.com/clbanning/mxj/v2
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/dolthub/maphash v0.1.0
+## explicit; go 1.18
+github.com/dolthub/maphash
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize
@@ -295,14 +298,24 @@ github.com/jsummers/gobmp
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
-# github.com/klauspost/compress v1.16.5
-## explicit; go 1.18
+# github.com/klauspost/compress v1.17.5
+## explicit; go 1.19
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
+# github.com/klauspost/cpuid/v2 v2.2.8
+## explicit; go 1.15
+github.com/klauspost/cpuid/v2
+# github.com/klauspost/reedsolomon v1.12.4
+## explicit; go 1.21
+github.com/klauspost/reedsolomon
 # github.com/lufia/plan9stats v0.0.0-20230326075908-cb1d2100619a
 ## explicit; go 1.16
 github.com/lufia/plan9stats
+# github.com/lxzan/gws v1.8.8
+## explicit; go 1.18
+github.com/lxzan/gws
+github.com/lxzan/gws/internal
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
@@ -395,6 +408,12 @@ github.com/tdewolff/parse/v2/buffer
 github.com/tdewolff/parse/v2/css
 github.com/tdewolff/parse/v2/html
 github.com/tdewolff/parse/v2/strconv
+# github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161
+## explicit
+github.com/templexxx/cpufeat
+# github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b
+## explicit
+github.com/templexxx/xor
 # github.com/tetratelabs/wazero v1.6.0
 ## explicit; go 1.19
 github.com/tetratelabs/wazero
@@ -459,6 +478,9 @@ github.com/tevino/abool
 # github.com/tinylib/msgp v1.1.8
 ## explicit; go 1.15
 github.com/tinylib/msgp/msgp
+# github.com/tjfoc/gmsm v1.4.1
+## explicit; go 1.14
+github.com/tjfoc/gmsm/sm4
 # github.com/tklauser/go-sysconf v0.3.12
 ## explicit; go 1.13
 github.com/tklauser/go-sysconf
@@ -483,6 +505,11 @@ github.com/x448/float16
 # github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
 ## explicit; go 1.19
 github.com/xo/terminfo
+# github.com/xtaci/kcp-go v5.4.20+incompatible
+## explicit
+github.com/xtaci/kcp-go
+# github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37
+## explicit; go 1.13
 # github.com/yuin/goldmark v1.5.5
 ## explicit; go 1.18
 github.com/yuin/goldmark
@@ -499,8 +526,15 @@ github.com/yusufpapurcu/wmi
 ## explicit; go 1.20
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
+golang.org/x/crypto/cast5
+golang.org/x/crypto/internal/alias
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/salsa20
+golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
+golang.org/x/crypto/tea
+golang.org/x/crypto/twofish
+golang.org/x/crypto/xtea
 # golang.org/x/image v0.18.0
 ## explicit; go 1.18
 golang.org/x/image/ccitt
@@ -519,10 +553,15 @@ golang.org/x/mobile/exp/f32
 golang.org/x/mod/semver
 # golang.org/x/net v0.33.0
 ## explicit; go 1.18
+golang.org/x/net/bpf
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
+golang.org/x/net/internal/iana
+golang.org/x/net/internal/socket
 golang.org/x/net/internal/socks
+golang.org/x/net/ipv4
+golang.org/x/net/ipv6
 golang.org/x/net/proxy
 # golang.org/x/sync v0.10.0
 ## explicit; go 1.18

@@ -5,6 +5,7 @@ import (
 	"blue/evaluator"
 	"blue/lexer"
 	"blue/parser"
+	"blue/processmanager"
 	"blue/token"
 	"bytes"
 	"fmt"
@@ -62,6 +63,7 @@ func StartEvalReplWithNodeName(nodeName, address string) {
 		startEvalRepl(os.Stdin, os.Stdout, "", nodeName, address)
 		os.Exit(0)
 	}
+	go processmanager.StartListener()
 	startEvalRepl(os.Stdin, os.Stdout, user.Username, nodeName, address)
 	os.Exit(0)
 }
