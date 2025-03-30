@@ -57,7 +57,7 @@ func TestBlueStruct(t *testing.T) {
 	if !ok {
 		t.Fatalf("sl was not a *BlueStruct. got=%T", s)
 	}
-	v := sl.Get("a")
+	v, _ := sl.Get("a")
 	i, ok := v.(*Integer)
 	if !ok {
 		t.Fatalf("field value for name `a` was not an Integer. got=%T", v)
@@ -65,7 +65,7 @@ func TestBlueStruct(t *testing.T) {
 	if i.Value != 123 {
 		t.Errorf("Integer Value was not 123, got=%d", i.Value)
 	}
-	v1 := sl.Get("b")
+	v1, _ := sl.Get("b")
 	s1, ok := v1.(*Stringo)
 	if !ok {
 		t.Fatalf("field value for name `b` was not a String. got=%T", v1)
@@ -73,11 +73,11 @@ func TestBlueStruct(t *testing.T) {
 	if s1.Value != "Hello World" {
 		t.Errorf("String Value was not \"Hello World\", got=%s", s1.Value)
 	}
-	err = sl.Set("a", &Stringo{Value: "abc"})
+	err = sl.SetWithFieldName("a", &Stringo{Value: "abc"})
 	if err != nil && err.Error() != "failed to set on struct literal: existing value type = INTEGER, new value type = STRING" {
 		t.Fatalf("should receive set error got = %s", err.Error())
 	}
-	v2 := sl.Get("a")
+	v2, _ := sl.Get("a")
 	s2, ok := v2.(*Integer)
 	if !ok {
 		t.Fatalf("field value for name `a` was not a Integer. got=%T", v2)
@@ -85,11 +85,11 @@ func TestBlueStruct(t *testing.T) {
 	if s2.Value != 123 {
 		t.Errorf("Integer Value was not 123, got=%d", s2.Value)
 	}
-	err = sl.Set("b", &Stringo{Value: "abc"})
+	err = sl.SetWithFieldName("b", &Stringo{Value: "abc"})
 	if err != nil {
 		t.Fatalf("set should succeed here for `b` but got error: %s", err.Error())
 	}
-	v3 := sl.Get("b")
+	v3, _ := sl.Get("b")
 	s3, ok := v3.(*Stringo)
 	if !ok {
 		t.Fatalf("field value for name `b` was not a String. got=%T", v3)

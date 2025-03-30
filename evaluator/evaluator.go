@@ -1458,7 +1458,6 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 		}
 	}()
 	for {
-		e.evalingNodeCond[e.nestLevel] = struct{}{}
 		if node.UsesVar && !initalizerRan {
 			val := e.Eval(node.Initializer.Value)
 			if isError(val) {
@@ -1475,8 +1474,13 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 			}
 			initalizerRan = true
 		}
+		if !node.UsesVar {
+			e.evalingNodeCond[e.nestLevel] = struct{}{}
+		}
 		evalCond := e.Eval(node.Condition)
-		delete(e.evalingNodeCond, e.nestLevel)
+		if !node.UsesVar {
+			delete(e.evalingNodeCond, e.nestLevel)
+		}
 		if isError(evalCond) {
 			return evalCond
 		}
@@ -1532,9 +1536,7 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 				}
 			} else {
 				// Check the eval cond at the end of our post exp in case we need to exit
-				e.evalingNodeCond[e.nestLevel] = struct{}{}
 				evalCond := e.Eval(node.Condition)
-				delete(e.evalingNodeCond, e.nestLevel)
 				if isError(evalCond) {
 					return evalCond
 				}
@@ -1846,12 +1848,12 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			}
 			fieldName := indexField.Value
 			operator := node.Token.Literal
-			orig := bs.Get(fieldName)
+			orig, origIndex := bs.Get(fieldName)
 			if orig == nil {
 				return newError("field name `%s` not found on blue struct: %s", fieldName, bs.Inspect())
 			}
 			if operator == "=" {
-				err := bs.Set(fieldName, value)
+				err := bs.Set(origIndex, value)
 				if err != nil {
 					return newError("%s", err.Error())
 				}
@@ -1861,7 +1863,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			if isError(evaluated) {
 				return evaluated
 			}
-			err := bs.Set(fieldName, evaluated)
+			err := bs.Set(origIndex, evaluated)
 			if err != nil {
 				return newError("%s", err.Error())
 			}
@@ -2041,7 +2043,7 @@ func (e *Evaluator) evalIndexExpression(left, indx object.Object) object.Object 
 func (e *Evaluator) evalBlueStructIndexExpression(left, indx object.Object) object.Object {
 	bs := left.(*object.BlueStruct)
 	fieldName := indx.(*object.Stringo).Value
-	obj := bs.Get(fieldName)
+	obj, _ := bs.Get(fieldName)
 	if obj == nil {
 		return newError("field name `%s` does not exist on blue struct", fieldName)
 	}

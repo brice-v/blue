@@ -1,3 +1,5 @@
+import time
+val start = time.now();
 var x = @{abc: 0}
 
 for var j = 0; j < 10_000_000; j += 1 {
@@ -5,3 +7,4 @@ for var j = 0; j < 10_000_000; j += 1 {
 }
 
 println(x);
+println(time.now() - start);

@@ -701,16 +701,26 @@ func (bs *BlueStruct) Help() string {
 	return createHelpStringForObject("BlueStruct", "is the object that represents a struct where keys are identifier strings and values are arbitary objects", bs)
 }
 
-func (bs *BlueStruct) Get(name string) Object {
+func (bs *BlueStruct) Get(name string) (Object, int) {
 	for index, n := range bs.Fields {
 		if n == name {
-			return bs.Values[index]
+			return bs.Values[index], index
 		}
 	}
-	return nil // Make sure to handle this error
+	return nil, -1
 }
 
-func (bs *BlueStruct) Set(name string, val Object) error {
+func (bs *BlueStruct) Set(index int, val Object) error {
+	existingValue := bs.Values[index]
+	if existingValue != nil && existingValue.Type() != val.Type() {
+		return fmt.Errorf("failed to set on struct literal: existing value type = %s, new value type = %s", existingValue.Type(), val.Type())
+	}
+	bs.Values[index] = val
+	return nil
+}
+
+// SetWithFieldName should just be used for testing
+func (bs *BlueStruct) SetWithFieldName(name string, val Object) error {
 	for index, n := range bs.Fields {
 		if n == name {
 			existingValue := bs.Values[index]

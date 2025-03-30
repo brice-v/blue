@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-	"sync"
 	"unicode/utf8"
 
 	"github.com/gookit/color"
+	"github.com/puzpuzpuz/xsync/v3"
 )
 
 // NewEnclosedEnvironment supports adding an environment to an exisiting
@@ -25,7 +25,7 @@ func NewEnvironmentWithoutCore() *Environment {
 		store: make(map[string]string),
 		Keys:  []string{},
 	}
-	return &Environment{store: sync.Map{}, immutableStore: sync.Map{}, publicFunctionHelpStore: pfhs}
+	return &Environment{store: xsync.NewMapOf[string, Object](), immutableStore: xsync.NewMapOf[string, struct{}](), publicFunctionHelpStore: pfhs}
 }
 
 // NewEnvironment returns a new environment
@@ -34,13 +34,13 @@ func NewEnvironment(coreEnv *Environment) *Environment {
 		store: make(map[string]string),
 		Keys:  []string{},
 	}
-	return &Environment{store: sync.Map{}, immutableStore: sync.Map{}, publicFunctionHelpStore: pfhs, coreEnv: coreEnv}
+	return &Environment{store: xsync.NewMapOf[string, Object](), immutableStore: xsync.NewMapOf[string, struct{}](), publicFunctionHelpStore: pfhs, coreEnv: coreEnv}
 }
 
 // Environment is a map of strings to `Object`s
 type Environment struct {
-	store          sync.Map
-	immutableStore sync.Map
+	store          *xsync.MapOf[string, Object]
+	immutableStore *xsync.MapOf[string, struct{}]
 
 	publicFunctionHelpStore *OrderedMap2[string, string]
 
@@ -56,21 +56,21 @@ func (e *Environment) SetCore(coreEnv *Environment) {
 // it will not write to the outer env, but it will read from it
 func (e *Environment) Clone() *Environment {
 	newEnv := NewEnvironment(e.coreEnv)
-	e.store.Range(func(key, value any) bool {
+	e.store.Range(func(key string, value Object) bool {
 		newEnv.store.Store(key, value)
 		return true
 	})
-	e.immutableStore.Range(func(key, value any) bool {
+	e.immutableStore.Range(func(key string, value struct{}) bool {
 		newEnv.immutableStore.Store(key, value)
 		return true
 	})
 	outer := e.outer
 	for outer != nil {
-		outer.store.Range(func(key, value any) bool {
+		outer.store.Range(func(key string, value Object) bool {
 			newEnv.store.Store(key, value)
 			return true
 		})
-		outer.immutableStore.Range(func(key, value any) bool {
+		outer.immutableStore.Range(func(key string, value struct{}) bool {
 			newEnv.immutableStore.Store(key, value)
 			return true
 		})
@@ -110,13 +110,12 @@ func (e *Environment) Get(name string) (Object, bool) {
 	if obj == nil {
 		return nil, ok
 	}
-	return obj.(Object), ok
+	return obj, ok
 }
 
 func (e *Environment) SetAllPublicOnEnv(newEnv *Environment) {
-	e.store.Range(func(key, value any) bool {
-		ks := key.(string)
-		if !strings.HasPrefix(ks, "_") {
+	e.store.Range(func(key string, value Object) bool {
+		if !strings.HasPrefix(key, "_") {
 			newEnv.store.Store(key, value)
 		}
 		return true

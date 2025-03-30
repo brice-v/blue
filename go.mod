@@ -23,6 +23,7 @@ require (
 	github.com/lxzan/gws v1.8.8
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/otiai10/copy v1.14.0
+	github.com/puzpuzpuz/xsync/v3 v3.5.1
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/shirou/gopsutil/v3 v3.24.1
 	github.com/shopspring/decimal v1.3.1
