@@ -1682,40 +1682,25 @@ func canFastCalcNodeCondAndPostExp(e *Evaluator, cond, postExp ast.Expression) (
 	// return false
 }
 
-func getRootObjectIdentifier(leftString string) string {
-	var rootObjIdent string
-	var found bool
-
-	// Iterate through the string to find the first occurrence of '[' or '.'
-	for i, char := range leftString {
-		if char == '[' || char == '.' {
-			rootObjIdent = leftString[:i]
-			found = true
-			break
+// isRootIndexObjectImmutable checks if the left side contains an index expression
+// within a loop and if the root of it is an ident, return whether that ident
+// is immutable and the ident
+func (e *Evaluator) isRootIndexObjectImmutable(ie *ast.IndexExpression) (*ast.Identifier, bool) {
+	var left ast.Expression = ie.Left
+	for {
+		if leftIndex, isIndexExp := left.(*ast.IndexExpression); isIndexExp {
+			left = leftIndex.Left
+			continue
 		}
+		if ident, isIdent := left.(*ast.Identifier); isIdent {
+			return ident, e.env.IsImmutable(ident.Value)
+		}
+		break
 	}
-
-	// If neither '[' nor '.' was found, take the whole string
-	if !found {
-		rootObjIdent = leftString
-	}
-
-	return rootObjIdent
+	return nil, false
 }
 
 func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) object.Object {
-	// If the left side contains an index expression where the identifier is immutable
-	// then return an error saying so
-	if ie, ok := node.Left.(*ast.IndexExpression); ok {
-		// Check the left most item in the index expression to see if it contains
-		// an identifier that is immutable
-		removeLeftParens := strings.ReplaceAll(ie.Left.String(), "(", "")
-		rootObjIdent := getRootObjectIdentifier(removeLeftParens)
-		if ok := e.env.IsImmutable(rootObjIdent); ok {
-			return newError("'%s' is immutable", rootObjIdent)
-		}
-	}
-
 	// If its a simple identifier allow reassigning like so
 	if ident, ok := node.Left.(*ast.Identifier); ok {
 		orig := e.evalIdentifier(ident)
@@ -1755,6 +1740,9 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		}
 		e.env.Set(ident.Value, evaluated)
 	} else if ie, ok := node.Left.(*ast.IndexExpression); ok {
+		if rootIdent, ok := e.isRootIndexObjectImmutable(ie); ok {
+			return newError("'%s' is immutable", rootIdent)
+		}
 		value := e.Eval(node.Value)
 		if isError(value) {
 			return value

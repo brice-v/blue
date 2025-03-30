@@ -2,6 +2,7 @@ val x = {hello: 'world'};
 
 try {
     x.name = 'b';
+    assert(false, "UNREACHABLE");
 } catch (e) {
     assert(e == "EvaluatorError: 'x' is immutable");
 }
