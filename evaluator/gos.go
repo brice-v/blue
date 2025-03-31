@@ -5,8 +5,9 @@ package evaluator
 import (
 	"blue/evaluator/pubsub"
 	"blue/object"
-	"sync"
 	"sync/atomic"
+
+	"github.com/puzpuzpuz/xsync/v3"
 )
 
 var pidCount = atomic.Uint64{}
@@ -28,13 +29,11 @@ func pk(name string, id uint64) ProcessKey {
 	return ProcessKey{name, id}
 }
 
-var ProcessMap = sync.Map{}
+var ProcessMap = xsync.NewMapOf[ProcessKey, *object.Process]()
 
 var subscriberCount = atomic.Uint64{}
 var PubSubBroker = pubsub.NewBroker()
 
-var KVMap = &ConcurrentMap[string, *object.Map]{
-	kv: make(map[string]*object.Map),
-}
+var KVMap = xsync.NewMapOf[string, *object.Map]()
 
 var GoObjId = atomic.Uint64{}

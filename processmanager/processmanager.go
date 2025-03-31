@@ -1,11 +1,16 @@
 package processmanager
 
 import (
+	"blue/object"
 	"log"
+	"net"
 
 	"github.com/lxzan/gws"
+	"github.com/puzpuzpuz/xsync/v3"
 	kcp "github.com/xtaci/kcp-go"
 )
+
+var NodeNameToConnection = xsync.NewMapOf[string, net.Conn]()
 
 // After Node Connect, assume dialer started
 
@@ -19,7 +24,7 @@ func StartListener() {
 		log.Println(err.Error())
 		return
 	}
-	app := gws.NewServer(&gws.BuiltinEventHandler{}, nil)
+	app := gws.NewServer(&ListenerEventHandler{}, nil)
 	app.RunListener(listener)
 }
 
@@ -33,30 +38,36 @@ func (leh ListenerEventHandler) OnPing(socket *gws.Conn, payload []byte) { _ = s
 
 func (leh ListenerEventHandler) OnPong(socket *gws.Conn, payload []byte) {}
 
-func (leh ListenerEventHandler) OnMessage(socket *gws.Conn, message *gws.Message) {}
+func (leh ListenerEventHandler) OnMessage(socket *gws.Conn, message *gws.Message) {
+	if message.Data == nil {
+		socket.WriteClose(1000, nil)
+	}
+	bs := message.Data.Bytes()
+	object.Decode(bs)
+}
 
-func StartDialer() {
+func StartNodeConnection(addr string) error {
 	conn, err := kcp.Dial("127.0.0.1:6666")
 	if err != nil {
-		log.Println(err.Error())
-		return
+		return err
 	}
 	app, _, err := gws.NewClientFromConn(&gws.BuiltinEventHandler{}, nil, conn)
 	if err != nil {
-		log.Println(err.Error())
-		return
+		return err
 	}
-	app.ReadLoop()
+	go handleNodeDialerWrites(app)
+	return nil
 }
 
-type DialerEventHandler struct{}
+var ProcessManagerDialerChan = make(chan []byte)
 
-func (deh DialerEventHandler) OnOpen(socket *gws.Conn) {}
-
-func (deh DialerEventHandler) OnClose(socket *gws.Conn, err error) {}
-
-func (deh DialerEventHandler) OnPing(socket *gws.Conn, payload []byte) { _ = socket.WritePong(nil) }
-
-func (deh DialerEventHandler) OnPong(socket *gws.Conn, payload []byte) {}
-
-func (deh DialerEventHandler) OnMessage(socket *gws.Conn, message *gws.Message) {}
+func handleNodeDialerWrites(app *gws.Conn) {
+	for {
+		if ProcessManagerDialerChan == nil {
+			break
+		}
+		bs := <-ProcessManagerDialerChan
+		app.WriteMessage(gws.OpcodeBinary, bs)
+	}
+	app.WriteClose(1000, nil)
+}

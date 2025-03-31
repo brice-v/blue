@@ -917,7 +917,7 @@ func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 objec
 	}
 	// Delete from concurrent map and close channel (not 100% sure its necessary)
 	if process, ok := ProcessMap.LoadAndDelete(pk(nodeName, pid)); ok {
-		close(process.(*object.Process).Ch)
+		close(process.Ch)
 	}
 }
 
@@ -954,7 +954,7 @@ func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object
 
 func (e *Evaluator) evalSelfExpression(_ *ast.SelfExpression) object.Object {
 	if p, ok := ProcessMap.Load(pk(e.NodeName, e.PID)); ok {
-		return p.(*object.Process)
+		return p
 	}
 	return newError("`self` error: process not found")
 }

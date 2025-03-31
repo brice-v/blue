@@ -1522,7 +1522,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			topic := args[0].(*object.Stringo).Value
 			var m *object.Map
-			m, ok := KVMap.Get(topic)
+			m, ok := KVMap.Load(topic)
 			if !ok {
 				m = &object.Map{
 					Pairs: object.NewPairsMap(),
@@ -1534,7 +1534,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				Key:   args[1],
 				Value: args[2],
 			})
-			KVMap.Put(topic, m)
+			KVMap.Store(topic, m)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
@@ -1554,7 +1554,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			topic := args[0].(*object.Stringo).Value
 			var m *object.Map
-			m, ok := KVMap.Get(topic)
+			m, ok := KVMap.Load(topic)
 			if !ok {
 				// Return NULL if the topic doesn't have a map that exists
 				return NULL
@@ -1586,12 +1586,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			topic := args[0].(*object.Stringo).Value
 			if len(args) == 1 {
 				// If its 1 we want to delete a topic, and the associated map
-				KVMap.Remove(topic)
+				KVMap.Delete(topic)
 				return NULL
 			} else {
 				// If its 2 we want to delete a key from a map on a topic
 				var m *object.Map
-				m, ok := KVMap.Get(topic)
+				m, ok := KVMap.Load(topic)
 				if !ok {
 					// Return NULL if the topic doesn't have a map that exists
 					// theres nothing to delete in this case
@@ -1600,7 +1600,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				hashedKey := object.HashObject(args[1])
 				hk := object.HashKey{Type: args[1].Type(), Value: hashedKey}
 				m.Pairs.Delete(hk)
-				KVMap.Put(topic, m)
+				KVMap.Store(topic, m)
 				return NULL
 			}
 		},
@@ -2105,19 +2105,88 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			example:     "save(1234) => '82001904d2'",
 		}.String(),
 	},
-	"node_connect": {
+	"__hash": {
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
-				return NULL
+				return newInvalidArgCountError("__hash", len(args), 1, "")
+			}
+			return &object.UInteger{Value: object.HashObject(args[0])}
+		},
+		HelpStr: "__hash returns the internal hash of an object",
+	},
+	"_node_connect": {
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("node_connect", len(args), 1, "")
 			}
 			if args[0].Type() != object.STRING_OBJ {
-				return NULL
+				return newPositionalTypeError("node_connect", 1, object.STRING_OBJ, args[0].Type())
 			}
-			// s := args[0].(*object.Stringo).Value
-			processmanager.StartDialer()
+			s := args[0].(*object.Stringo).Value
+			err := processmanager.StartNodeConnection(s)
+			if err != nil {
+				return newError("`node_connect` error: %s", err.Error())
+			}
+			// Need to put the node name and conn into a map (so it can be used by node spawn and node send)
 			return NULL
 		},
-		HelpStr: "TODO",
+		HelpStr: helpStrArgs{
+			explanation: "`node_connect` connects to a blue node running at the given node name and address (in the format nodeName@address)",
+			signature:   "node_connect(name: str) -> null",
+			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
+			example:     "node_connect('n1@localhost:6767') => null",
+		}.String(),
+	},
+	"_node_spawn": {
+		Fun: func(args ...object.Object) object.Object {
+			// We do want to add this to current evaluator scopes process map
+			// we ALSO want it to be added to the process map on the connected node
+			if len(args) != 3 {
+				return newInvalidArgCountError("node_spawn", len(args), 3, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("node_spawn", 1, object.STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.FUNCTION_OBJ {
+				return newPositionalTypeError("node_spawn", 2, object.FUNCTION_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("node_spawn", 3, object.LIST_OBJ, args[2].Type())
+			}
+			nodeName := args[0].(*object.Stringo).Value
+			conn, ok := processmanager.NodeNameToConnection.Load(nodeName)
+			if !ok {
+				return newError("`node_spawn` error: failed to find node '%s', be sure to connect to the node first", nodeName)
+			}
+			_ = conn
+			// For the first read and write, we are exchanging what the size of the payload will be
+			// on response we expect the pid OR an error as a string
+			// initial delimeter will be \r\n or \r or \n
+			// on that machine, the payload size is read, a new pid is loaded (with channel but no fun yet)
+			// then on that machine, (after writing the pid back to this function here), we block on read by reading the # of bytes (creating a buffer for them)
+
+			// with that done, this function can just return the pid
+			// the other machine will now populate the function on the pid, and actually call the goroutine spawn for it
+			// send and recv to be handled later on
+			// conn.Write()
+			// conn.Read()
+			fun := args[1].(*object.Function)
+			funArgs := args[2].(*object.List)
+			l := &object.List{Elements: []object.Object{fun, funArgs}}
+			encodedList, err := l.Encode()
+			if err != nil {
+				return newError("`node_spawn` error: failed to encode: %s", err.Error())
+			}
+			// Dont know if ill need this once migrating back to just tcp connections
+			processmanager.ProcessManagerDialerChan <- encodedList
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`node_spawn` spawns a function on the given node name",
+			signature:   "node_spawn(name: str, fn: fun, args: list[any]) -> process",
+			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
+			example:     "node_spawn('n1', fun() { println('hello') }, []) => #{name: 'n1', pid: 1} => 'hello'",
+		}.String(),
 	},
 })
 
