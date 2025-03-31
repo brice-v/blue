@@ -148,7 +148,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BACKTICK, p.parseExecStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseListLiteral)
 	p.registerPrefix(token.LBRACE, p.parseMapOrSetLiteral)
-	p.registerPrefix(token.ATLBRACKET, p.parseStructLiteral)
+	p.registerPrefix(token.ATLBRACE, p.parseStructLiteral)
 	p.registerPrefix(token.MATCH, p.parseMatchExpression)
 	p.registerPrefix(token.NULL_KW, p.parseNullKeyword)
 	p.registerPrefix(token.EVAL, p.parseEvalExpression)

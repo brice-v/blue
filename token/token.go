@@ -151,8 +151,8 @@ const (
 	// LSHIFT is the string rep. of a left shift tok.
 	LSHIFT Type = "<<"
 
-	// ATLBRACKET is the string rep. of the @{ token used for struct literals
-	ATLBRACKET Type = "@{"
+	// ATLBRACE is the string rep. of the @{ token used for struct literals
+	ATLBRACE Type = "@{"
 
 	// Delimeters
 

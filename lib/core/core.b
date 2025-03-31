@@ -17,6 +17,7 @@ val Type = {
     REGEX: 'REGEX',
     NULL: 'NULL',
     PROCESS: 'PROCESS',
+    STRUCT: 'BLUE_STRUCT_OBJ',
 };
 
 fun send(obj, value) {

@@ -602,7 +602,7 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case '@':
 		if l.peekChar() == '{' {
-			tok = l.makeTwoCharToken(token.ATLBRACKET)
+			tok = l.makeTwoCharToken(token.ATLBRACE)
 		} else {
 			tok = l.newToken(token.ILLEGAL, l.ch)
 		}

@@ -385,7 +385,7 @@ func (sl *StructLiteral) String() string {
 	var out bytes.Buffer
 
 	pairs := make([]string, len(sl.Fields))
-	for i := 0; i < len(sl.Fields); i++ {
+	for i := range sl.Fields {
 		k := sl.Fields[i]
 		v := sl.Values[i]
 		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v.String()))

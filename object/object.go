@@ -677,10 +677,10 @@ type BlueStruct struct {
 	Values []Object
 }
 
-// Type returns the map object type
+// Type returns the blue struct object type
 func (bs *BlueStruct) Type() Type { return BLUE_STRUCT_OBJ }
 
-// Inspect returns the stringified version of the map
+// Inspect returns the stringified version of the blue struct
 func (bs *BlueStruct) Inspect() string {
 	var out bytes.Buffer
 
@@ -698,7 +698,7 @@ func (bs *BlueStruct) Inspect() string {
 }
 
 func (bs *BlueStruct) Help() string {
-	return createHelpStringForObject("BlueStruct", "is the object that represents a struct where keys are identifier strings and values are arbitary objects", bs)
+	return createHelpStringForObject("BlueStruct", "is the object that represents a struct where keys are identifier strings and values are arbitary objects and the size or types cannot change", bs)
 }
 
 func (bs *BlueStruct) Get(name string) (Object, int) {

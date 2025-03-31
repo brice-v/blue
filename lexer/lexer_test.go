@@ -355,7 +355,7 @@ func TestNextTokenMulti1(t *testing.T) {
 		{token.RSHIFTEQ, ">>="},
 		{token.LSHIFTEQ, "<<="},
 		{token.NONINCRANGE, "..<"},
-		{token.ATLBRACKET, "@{"},
+		{token.ATLBRACE, "@{"},
 		{token.EOF, ""},
 	}
 
