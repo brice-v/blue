@@ -2154,11 +2154,10 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("node_spawn", 3, object.LIST_OBJ, args[2].Type())
 			}
 			nodeName := args[0].(*object.Stringo).Value
-			conn, ok := processmanager.NodeNameToConnection.Load(nodeName)
+			cnc, ok := processmanager.NodeNameToConnection.Load(nodeName)
 			if !ok {
 				return newError("`node_spawn` error: failed to find node '%s', be sure to connect to the node first", nodeName)
 			}
-			_ = conn
 			// For the first read and write, we are exchanging what the size of the payload will be
 			// on response we expect the pid OR an error as a string
 			// initial delimeter will be \r\n or \r or \n
@@ -2168,8 +2167,6 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			// with that done, this function can just return the pid
 			// the other machine will now populate the function on the pid, and actually call the goroutine spawn for it
 			// send and recv to be handled later on
-			// conn.Write()
-			// conn.Read()
 			fun := args[1].(*object.Function)
 			funArgs := args[2].(*object.List)
 			l := &object.List{Elements: []object.Object{fun, funArgs}}
@@ -2177,8 +2174,18 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`node_spawn` error: failed to encode: %s", err.Error())
 			}
-			// Dont know if ill need this once migrating back to just tcp connections
-			processmanager.ProcessManagerDialerChan <- encodedList
+			if cnc.WriteCh == nil {
+				return newError("`node_spawn` error: connection channel closed")
+			}
+			pl := processmanager.Payload{
+				InitialPacket: []byte(fmt.Sprintf("s%d\r", len(encodedList))),
+				FullPacket:    encodedList,
+			}
+			// Send the payload, which will be written on the connection
+			cnc.WriteCh <- pl
+			// Then wait to hear back from spawn which we can decode and handle via 'o'
+			pidPl := <-cnc.WriteCh
+			_ = pidPl
 			return NULL
 		},
 		HelpStr: helpStrArgs{

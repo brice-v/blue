@@ -818,7 +818,9 @@ func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Ob
 				return obj
 			}
 		}
-		e.ErrorTokens.RemoveAllEntries()
+		// TODO: Make try blocks point to the right place on errors
+		// e.ErrorTokens.RemoveAllEntries()
+		// Removing this does show where it happens in try and catch block but I'd like to put a ^ on catch ident as well
 		if evaldCatch == nil {
 			// Set to Null so we continue in for loop if its empty
 			evaldCatch = NULL
@@ -1722,6 +1724,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			return NULL
 		} else if operator == "+=" {
 			// TODO: If I want to use this, I likely will need to optimize directly in evalForStatement
+
 			// This is a fast pass optimization - can be likely be updated to support others as well
 			// When we have a literal on the right hand side and original is something we can deal with
 			// This avoids call to set which is _super_ helpful
