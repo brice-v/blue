@@ -4,7 +4,6 @@ import (
 	"blue/consts"
 	"blue/evaluator/pubsub"
 	"blue/object"
-	"blue/processmanager"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -2113,87 +2112,6 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			return &object.UInteger{Value: object.HashObject(args[0])}
 		},
 		HelpStr: "__hash returns the internal hash of an object",
-	},
-	"_node_connect": {
-		Fun: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("node_connect", len(args), 1, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("node_connect", 1, object.STRING_OBJ, args[0].Type())
-			}
-			s := args[0].(*object.Stringo).Value
-			err := processmanager.StartNodeConnection(s)
-			if err != nil {
-				return newError("`node_connect` error: %s", err.Error())
-			}
-			// Need to put the node name and conn into a map (so it can be used by node spawn and node send)
-			return NULL
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`node_connect` connects to a blue node running at the given node name and address (in the format nodeName@address)",
-			signature:   "node_connect(name: str) -> null",
-			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
-			example:     "node_connect('n1@localhost:6767') => null",
-		}.String(),
-	},
-	"_node_spawn": {
-		Fun: func(args ...object.Object) object.Object {
-			// We do want to add this to current evaluator scopes process map
-			// we ALSO want it to be added to the process map on the connected node
-			if len(args) != 3 {
-				return newInvalidArgCountError("node_spawn", len(args), 3, "")
-			}
-			if args[0].Type() != object.STRING_OBJ {
-				return newPositionalTypeError("node_spawn", 1, object.STRING_OBJ, args[0].Type())
-			}
-			if args[1].Type() != object.FUNCTION_OBJ {
-				return newPositionalTypeError("node_spawn", 2, object.FUNCTION_OBJ, args[1].Type())
-			}
-			if args[2].Type() != object.LIST_OBJ {
-				return newPositionalTypeError("node_spawn", 3, object.LIST_OBJ, args[2].Type())
-			}
-			nodeName := args[0].(*object.Stringo).Value
-			cnc, ok := processmanager.NodeNameToConnection.Load(nodeName)
-			if !ok {
-				return newError("`node_spawn` error: failed to find node '%s', be sure to connect to the node first", nodeName)
-			}
-			// For the first read and write, we are exchanging what the size of the payload will be
-			// on response we expect the pid OR an error as a string
-			// initial delimeter will be \r\n or \r or \n
-			// on that machine, the payload size is read, a new pid is loaded (with channel but no fun yet)
-			// then on that machine, (after writing the pid back to this function here), we block on read by reading the # of bytes (creating a buffer for them)
-
-			// with that done, this function can just return the pid
-			// the other machine will now populate the function on the pid, and actually call the goroutine spawn for it
-			// send and recv to be handled later on
-			fun := args[1].(*object.Function)
-			funArgs := args[2].(*object.List)
-			l := &object.List{Elements: []object.Object{fun, funArgs}}
-			encodedList, err := l.Encode()
-			if err != nil {
-				return newError("`node_spawn` error: failed to encode: %s", err.Error())
-			}
-			if cnc.WriteCh == nil {
-				return newError("`node_spawn` error: connection channel closed")
-			}
-			pl := processmanager.Payload{
-				InitialPacket: []byte(fmt.Sprintf("s%d\r", len(encodedList))),
-				FullPacket:    encodedList,
-			}
-			// Send the payload, which will be written on the connection
-			cnc.WriteCh <- pl
-			// Then wait to hear back from spawn which we can decode and handle via 'o'
-			pidPl := <-cnc.WriteCh
-			_ = pidPl
-			return NULL
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`node_spawn` spawns a function on the given node name",
-			signature:   "node_spawn(name: str, fn: fun, args: list[any]) -> process",
-			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
-			example:     "node_spawn('n1', fun() { println('hello') }, []) => #{name: 'n1', pid: 1} => 'hello'",
-		}.String(),
 	},
 })
 

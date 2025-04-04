@@ -5,7 +5,6 @@ import (
 	"blue/evaluator"
 	"blue/lexer"
 	"blue/parser"
-	"blue/processmanager"
 	"blue/token"
 	"bytes"
 	"fmt"
@@ -53,18 +52,6 @@ func StartEvalRepl() {
 		os.Exit(0)
 	}
 	startEvalRepl(os.Stdin, os.Stdout, user.Username, "", "")
-	os.Exit(0)
-}
-
-func StartEvalReplWithNodeName(nodeName, address string) {
-	user, err := user.Current()
-	if err != nil {
-		fmt.Println("Unable to get current username, proceeding with none")
-		startEvalRepl(os.Stdin, os.Stdout, "", nodeName, address)
-		os.Exit(0)
-	}
-	go processmanager.StartListener()
-	startEvalRepl(os.Stdin, os.Stdout, user.Username, nodeName, address)
 	os.Exit(0)
 }
 

@@ -164,9 +164,6 @@ func NewNode(nodeName, address string) *Evaluator {
 		NodeName: nodeName,
 	}
 	ProcessMap.LoadOrStore(pk(nodeName, e.PID), process)
-	// if address != "" {
-	// 	processmanager.Start(address)
-	// }
 
 	return e
 }

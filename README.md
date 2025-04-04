@@ -159,8 +159,6 @@ The commands are:
             functions in the given filepath or module
             note: the file/module will be evaluated to gather
             all functions - so any side effects may take place
-    play    starts a server and opens the browser to execute
-            blue code
     help    prints this help message
     version prints the current version
 
