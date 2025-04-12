@@ -1,5 +1,6 @@
 TODO:
 
+- Tmp
 - [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
     - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
 - [ ] FEAT: Implement proper scopes so variable shadowing can work
