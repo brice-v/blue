@@ -25,7 +25,11 @@ func NewEnvironmentWithoutCore() *Environment {
 		store: make(map[string]string),
 		Keys:  []string{},
 	}
-	return &Environment{store: xsync.NewMapOf[string, Object](), immutableStore: xsync.NewMapOf[string, struct{}](), publicFunctionHelpStore: pfhs}
+	return &Environment{
+		store: xsync.NewMapOf[string, ObjectRef](),
+		// immutableStore:          xsync.NewMapOf[string, struct{}](),
+		publicFunctionHelpStore: pfhs,
+	}
 }
 
 // NewEnvironment returns a new environment
@@ -34,13 +38,29 @@ func NewEnvironment(coreEnv *Environment) *Environment {
 		store: make(map[string]string),
 		Keys:  []string{},
 	}
-	return &Environment{store: xsync.NewMapOf[string, Object](), immutableStore: xsync.NewMapOf[string, struct{}](), publicFunctionHelpStore: pfhs, coreEnv: coreEnv}
+	return &Environment{
+		store: xsync.NewMapOf[string, ObjectRef](),
+		// immutableStore:          xsync.NewMapOf[string, struct{}](),
+		publicFunctionHelpStore: pfhs,
+		coreEnv:                 coreEnv,
+	}
 }
+
+type ObjectRef struct {
+	Ref         Object
+	isImmutable bool
+}
+
+func (or ObjectRef) IsImmutable() bool {
+	return or.isImmutable
+}
+
+var emptyObjectRef = ObjectRef{Ref: nil, isImmutable: false}
 
 // Environment is a map of strings to `Object`s
 type Environment struct {
-	store          *xsync.MapOf[string, Object]
-	immutableStore *xsync.MapOf[string, struct{}]
+	store *xsync.MapOf[string, ObjectRef]
+	// immutableStore *xsync.MapOf[string, struct{}]
 
 	publicFunctionHelpStore *OrderedMap2[string, string]
 
@@ -56,24 +76,24 @@ func (e *Environment) SetCore(coreEnv *Environment) {
 // it will not write to the outer env, but it will read from it
 func (e *Environment) Clone() *Environment {
 	newEnv := NewEnvironment(e.coreEnv)
-	e.store.Range(func(key string, value Object) bool {
+	e.store.Range(func(key string, value ObjectRef) bool {
 		newEnv.store.Store(key, value)
 		return true
 	})
-	e.immutableStore.Range(func(key string, value struct{}) bool {
-		newEnv.immutableStore.Store(key, value)
-		return true
-	})
+	// e.immutableStore.Range(func(key string, value struct{}) bool {
+	// 	newEnv.immutableStore.Store(key, value)
+	// 	return true
+	// })
 	outer := e.outer
 	for outer != nil {
-		outer.store.Range(func(key string, value Object) bool {
+		outer.store.Range(func(key string, value ObjectRef) bool {
 			newEnv.store.Store(key, value)
 			return true
 		})
-		outer.immutableStore.Range(func(key string, value struct{}) bool {
-			newEnv.immutableStore.Store(key, value)
-			return true
-		})
+		// outer.immutableStore.Range(func(key string, value struct{}) bool {
+		// 	newEnv.immutableStore.Store(key, value)
+		// 	return true
+		// })
 		outer = outer.outer
 	}
 	for _, k := range e.publicFunctionHelpStore.Keys {
@@ -100,21 +120,29 @@ func (e *Environment) Clone() *Environment {
 
 // Get returns the object from the environment store
 func (e *Environment) Get(name string) (Object, bool) {
+	obj, ok := e.GetRef(name)
+	if !ok {
+		return emptyObjectRef.Ref, ok
+	}
+	return obj.Ref, ok
+}
+
+func (e *Environment) GetRef(name string) (ObjectRef, bool) {
 	obj, ok := e.store.Load(name)
 	if !ok && e.coreEnv != nil {
-		obj, ok = e.coreEnv.Get(name)
+		obj, ok = e.coreEnv.GetRef(name)
 		if !ok && e.outer != nil {
-			obj, ok = e.outer.Get(name)
+			obj, ok = e.outer.GetRef(name)
 		}
 	}
-	if obj == nil {
-		return nil, ok
+	if obj.Ref == nil {
+		return emptyObjectRef, ok
 	}
 	return obj, ok
 }
 
 func (e *Environment) SetAllPublicOnEnv(newEnv *Environment) {
-	e.store.Range(func(key string, value Object) bool {
+	e.store.Range(func(key string, value ObjectRef) bool {
 		if !strings.HasPrefix(key, "_") {
 			newEnv.store.Store(key, value)
 		}
@@ -161,13 +189,21 @@ func (e *Environment) SetFunctionHelpStr(name, newHelpStr string) {
 
 // Set puts a new object into the environment
 func (e *Environment) Set(name string, val Object) Object {
-	e.store.Store(name, val)
+	return e.SetObj(name, val, false)
+}
+
+func (e *Environment) SetObj(name string, val Object, isImmutable bool) Object {
+	e.store.Store(name, ObjectRef{Ref: val, isImmutable: isImmutable})
 	e.setHelpInPublicFunctionHelpStore(name, val)
 	return val
 }
 
+func (e *Environment) SetImmutable(name string, val Object) Object {
+	return e.SetObj(name, val, true)
+}
+
 func (e *Environment) SetFunStatementAndHelp(name string, val *Function) Object {
-	e.store.Store(name, val)
+	e.store.Store(name, ObjectRef{Ref: val, isImmutable: false})
 	e.setHelpInPublicFunctionHelpStore(name, val)
 	return val
 }
@@ -190,26 +226,19 @@ func (e *Environment) setHelpInPublicFunctionHelpStore(name string, val Object) 
 	}
 }
 
-// ImmutableSet puts the name of the identifier in a map and sets it as true
-func (e *Environment) ImmutableSet(name string) {
-	e.immutableStore.Store(name, struct{}{})
-}
-
 // IsImmutable checks if the give identifier name is in the immutable map
 func (e *Environment) IsImmutable(name string) bool {
-	_, ok := e.immutableStore.Load(name)
-	if !ok && e.outer != nil {
-		ok = e.outer.IsImmutable(name)
+	obj, ok := e.GetRef(name)
+	if !ok {
 		return ok
 	}
-	return ok
+	return obj.isImmutable
 }
 
 // RemoveIdentifier removes a key from the environment
 // this is used in for loops to remove temporary variables
 func (e *Environment) RemoveIdentifier(name string) {
 	e.store.Delete(name)
-	e.immutableStore.Delete(name)
 	e.publicFunctionHelpStore.Delete(name)
 }
 

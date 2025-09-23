@@ -333,9 +333,10 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 	// so set them as normal
 	if len(args) == len(fun.Parameters) {
 		for paramIndx, param := range fun.Parameters {
-			env.Set(param.Value, args[paramIndx])
 			if immutableArgs[paramIndx] {
-				env.ImmutableSet(param.Value)
+				env.SetImmutable(param.Value, args[paramIndx])
+			} else {
+				env.Set(param.Value, args[paramIndx])
 			}
 		}
 		setDefaultCallExpressionParameters(defaultArgs, env)
@@ -352,10 +353,11 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			_, defaultArgGiven := defaultArgs[param.Value]
 			if fun.DefaultParameters[paramIndx] == nil {
 				if argsIndx < len(args) {
-					env.Set(param.Value, args[argsIndx])
 					// Avoid setting it to be immutable if the function has a default parameter
 					if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-						env.ImmutableSet(param.Value)
+						env.SetImmutable(param.Value, args[argsIndx])
+					} else {
+						env.Set(param.Value, args[argsIndx])
 					}
 					argsIndx++
 					continue
@@ -375,10 +377,11 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					// It needs to be not present as a default arg - otherwise
 					// that value will be used
 					if argsIndx < len(args) {
-						env.Set(param.Value, args[argsIndx])
 						// Avoid setting it to be immutable if the function has a default parameter
 						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							env.ImmutableSet(param.Value)
+							env.SetImmutable(param.Value, args[argsIndx])
+						} else {
+							env.Set(param.Value, args[argsIndx])
 						}
 						argsIndx++
 						continue
@@ -386,10 +389,11 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 				} else if !defaultArgGiven && countDefaultParams < len(args) {
 					if argsIndx < len(args) {
 						// This is so if we have an extra arg to set we set it over the default param which happens right below
-						env.Set(param.Value, args[argsIndx])
 						// Avoid setting it to be immutable if the function has a default parameter
 						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							env.ImmutableSet(param.Value)
+							env.SetImmutable(param.Value, args[argsIndx])
+						} else {
+							env.Set(param.Value, args[argsIndx])
 						}
 						argsIndx++
 						continue

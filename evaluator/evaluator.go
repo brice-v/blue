@@ -169,8 +169,7 @@ func NewNode(nodeName, address string) *Evaluator {
 }
 
 func (e *Evaluator) ReplEnvAdd(varName string, o object.Object) {
-	e.env.Set(varName, o)
-	e.env.ImmutableSet(varName)
+	e.env.SetImmutable(varName, o)
 }
 
 // Eval takes an ast node and returns an object
@@ -635,33 +634,30 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 		return false
 	}
 	for i, name := range names {
-		if ok := e.env.IsImmutable(name.Value); ok {
+		objRef, ok := e.env.GetRef(name.Value)
+		if ok && objRef.IsImmutable() {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined as immutable, cannot reassign", name.Value)
-		}
-		if _, ok := e.env.Get(name.Value); ok {
+		} else if ok && !objRef.IsImmutable() {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined", name.Value)
 		}
 		if _, ok := e.isInScopeBlock[e.scopeNestLevel]; ok {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
 		}
-		if isVal {
-			e.env.ImmutableSet(name.Value)
-		}
 		if isListDestructor {
 			l := val.(*object.List).Elements
 			if i > len(l) {
 				return newError("List destructor has too many identifiers for list. len=%d", len(l))
 			}
-			e.env.Set(name.Value, l[i])
+			e.env.SetObj(name.Value, l[i], isVal)
 		} else if isMapDestructor {
 			m := val.(*object.Map)
 			if !ifNameInMapSetEnv(m.Pairs, name.Value) {
 				return newError("Map destructor key name '%s' was not found in map", name.Value)
 			}
 		} else {
-			e.env.Set(name.Value, val)
+			e.env.SetObj(name.Value, val, isVal)
 		}
 	}
 
@@ -682,19 +678,16 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			Type:  kVal.Type(),
 			Value: object.HashObject(kVal),
 		}
-		if ok := e.env.IsImmutable(name.Value); ok {
+		obj, ok := e.env.GetRef(name.Value)
+		if ok && obj.IsImmutable() {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined as immutable, cannot reassign", name.Value)
-		}
-		if _, ok := e.env.Get(name.Value); ok {
+		} else if ok && !obj.IsImmutable() {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined", name.Value)
 		}
 		if _, ok := e.isInScopeBlock[e.scopeNestLevel]; ok {
 			e.scopeVars[e.scopeNestLevel] = append(e.scopeVars[e.scopeNestLevel], name.Value)
-		}
-		if isVal {
-			e.env.ImmutableSet(name.Value)
 		}
 		if isListDestructor {
 			return newError("List Destructor should not be reached when in the Map Destructor KeyValueNames")
@@ -704,9 +697,9 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			if !ok {
 				return newError("Key Expression `%s` Not Found in Map", kVal.Inspect())
 			}
-			e.env.Set(name.Value, mp.Value)
+			e.env.SetObj(name.Value, mp.Value, isVal)
 		} else {
-			e.env.Set(name.Value, val)
+			e.env.SetObj(name.Value, val, isVal)
 		}
 	}
 
@@ -1704,11 +1697,12 @@ func (e *Evaluator) isRootIndexObjectImmutable(ie *ast.IndexExpression) (*ast.Id
 func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) object.Object {
 	// If its a simple identifier allow reassigning like so
 	if ident, ok := node.Left.(*ast.Identifier); ok {
-		orig := e.evalIdentifier(ident)
+		objRef := e.evalIdentifierAsRef(ident)
+		orig := objRef.Ref
 		if isError(orig) {
 			return orig
 		}
-		if e.env.IsImmutable(ident.Value) {
+		if objRef.IsImmutable() {
 			return newError("'%s' is immutable", ident.Value)
 		}
 		operator := node.Token.Literal
@@ -2361,6 +2355,28 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 	}
 
 	return newError("identifier not found: %s", node.Value)
+}
+
+func (e *Evaluator) evalIdentifierAsRef(node *ast.Identifier) object.ObjectRef {
+	if val, ok := e.env.GetRef(node.Value); ok {
+		return val
+	}
+	for _, b := range e.Builtins {
+		if builtin, ok := b.Get(node.Value); ok {
+			return object.ObjectRef{Ref: builtin}
+		}
+	}
+	for _, b := range e.BuiltinObjs {
+		if builtin, ok := b[node.Value]; ok {
+			return object.ObjectRef{Ref: builtin.Obj}
+		}
+	}
+
+	if node.Value == "FILE" {
+		return object.ObjectRef{Ref: &object.Stringo{Value: e.CurrentFile}}
+	}
+
+	return object.ObjectRef{Ref: newError("identifier not found: %s", node.Value)}
 }
 
 func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
