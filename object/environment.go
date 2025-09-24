@@ -26,8 +26,7 @@ func NewEnvironmentWithoutCore() *Environment {
 		Keys:  []string{},
 	}
 	return &Environment{
-		store: xsync.NewMapOf[string, ObjectRef](),
-		// immutableStore:          xsync.NewMapOf[string, struct{}](),
+		store:                   xsync.NewMapOf[string, ObjectRef](),
 		publicFunctionHelpStore: pfhs,
 	}
 }
@@ -39,8 +38,7 @@ func NewEnvironment(coreEnv *Environment) *Environment {
 		Keys:  []string{},
 	}
 	return &Environment{
-		store: xsync.NewMapOf[string, ObjectRef](),
-		// immutableStore:          xsync.NewMapOf[string, struct{}](),
+		store:                   xsync.NewMapOf[string, ObjectRef](),
 		publicFunctionHelpStore: pfhs,
 		coreEnv:                 coreEnv,
 	}
@@ -80,20 +78,12 @@ func (e *Environment) Clone() *Environment {
 		newEnv.store.Store(key, value)
 		return true
 	})
-	// e.immutableStore.Range(func(key string, value struct{}) bool {
-	// 	newEnv.immutableStore.Store(key, value)
-	// 	return true
-	// })
 	outer := e.outer
 	for outer != nil {
 		outer.store.Range(func(key string, value ObjectRef) bool {
 			newEnv.store.Store(key, value)
 			return true
 		})
-		// outer.immutableStore.Range(func(key string, value struct{}) bool {
-		// 	newEnv.immutableStore.Store(key, value)
-		// 	return true
-		// })
 		outer = outer.outer
 	}
 	for _, k := range e.publicFunctionHelpStore.Keys {
@@ -103,17 +93,13 @@ func (e *Environment) Clone() *Environment {
 	return newEnv
 }
 
-// Rewrite Func with sync.Map implementation
 // func (e *Environment) String() string {
 // 	var out bytes.Buffer
 // 	out.WriteString("Environment{\n\tstore:\n")
-// 	for s, elem := range e.store.kv {
-// 		out.WriteString(fmt.Sprintf("\t\t%q -> %s\n", s, elem.Type()))
-// 	}
-// 	out.WriteString("\n\timmuatebleStore:\n")
-// 	for s := range e.immutableStore.kv {
-// 		out.WriteString(fmt.Sprintf("\t\t%qs\n", s))
-// 	}
+// 	e.store.Range(func(key string, value ObjectRef) bool {
+// 		out.WriteString(fmt.Sprintf("\t\t%q -> %s\n", key, value.Ref.Type()))
+// 		return true
+// 	})
 // 	out.WriteString("}")
 // 	return out.String()
 // }
@@ -144,7 +130,7 @@ func (e *Environment) GetRef(name string) (ObjectRef, bool) {
 func (e *Environment) SetAllPublicOnEnv(newEnv *Environment) {
 	e.store.Range(func(key string, value ObjectRef) bool {
 		if !strings.HasPrefix(key, "_") {
-			newEnv.store.Store(key, value)
+			newEnv.SetObj(key, value.Ref, value.isImmutable)
 		}
 		return true
 	})
