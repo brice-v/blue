@@ -43,16 +43,6 @@ Supported formats are JSON, INI, TOML, YAML, and PROPERTIES
 type(config) = 'MODULE_OBJ'
 
 PUBLIC FUNCTIONS:
-load_file   | `load_file` takes a filepath and returns a MAP of the configuration
-               
-               load_file(filepath: str) -> map[str:str]
-               `load_file` returns the object version of the parsed config file (yaml, ini, toml, properties, json)
-                   Signature:  load_file(fpath: str) -> str(json)
-                   Error(s):   InvalidArgCount,PositionalType,CustomError
-                   Example(s): load_file(fpath) => {}
-               
-                   type = 'BUILTIN'
-                   inspect = 'builtin function'
 dump_config | `dump_config` takes a MAP config and writes it to the given filepath in the set format
                
                dump_config(map_to_config: map[str:str], filepath: str, format: 'JSON'|'YAML'|'INI'|'TOML'|'PROPERTIES'='JSON') -> null
@@ -60,6 +50,16 @@ dump_config | `dump_config` takes a MAP config and writes it to the given filepa
                    Signature:  dump_config(c: str(json), fpath: str, format: str('JSON'|'TOML'|'YAML'|'INI'|'PROPERTIES')='JSON') -> null
                    Error(s):   InvalidArgCount,PositionalType,CustomError
                    Example(s): dump_config(c, 'test.json') => null
+               
+                   type = 'BUILTIN'
+                   inspect = 'builtin function'
+load_file   | `load_file` takes a filepath and returns a MAP of the configuration
+               
+               load_file(filepath: str) -> map[str:str]
+               `load_file` returns the object version of the parsed config file (yaml, ini, toml, properties, json)
+                   Signature:  load_file(fpath: str) -> str(json)
+                   Error(s):   InvalidArgCount,PositionalType,CustomError
+                   Example(s): load_file(fpath) => {}
                
                    type = 'BUILTIN'
                    inspect = 'builtin function'""".replace("\r", "");

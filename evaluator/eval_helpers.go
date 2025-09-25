@@ -1117,5 +1117,5 @@ func (e *Evaluator) GetStdModPublicFunctionHelpString(modName string) string {
 
 func (e *Evaluator) GetPublicFunctionHelpString() string {
 	// passthrough for use by `doc` command
-	return e.env.GetPublicFunctionHelpString()
+	return e.env.GetOrderedPublicFunctionHelpString()
 }

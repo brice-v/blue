@@ -780,7 +780,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		return NULL
 	}
 	// Set HelpStr from program HelpStrToks
-	pubFunHelpStr := newE.env.GetPublicFunctionHelpString()
+	pubFunHelpStr := newE.env.GetOrderedPublicFunctionHelpString()
 	mod := &object.Module{
 		Name:    modName,
 		Env:     newE.env,
@@ -2357,26 +2357,26 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 	return newError("identifier not found: %s", node.Value)
 }
 
-func (e *Evaluator) evalIdentifierAsRef(node *ast.Identifier) object.ObjectRef {
+func (e *Evaluator) evalIdentifierAsRef(node *ast.Identifier) *object.ObjectRef {
 	if val, ok := e.env.GetRef(node.Value); ok {
 		return val
 	}
 	for _, b := range e.Builtins {
 		if builtin, ok := b.Get(node.Value); ok {
-			return object.ObjectRef{Ref: builtin}
+			return &object.ObjectRef{Ref: builtin}
 		}
 	}
 	for _, b := range e.BuiltinObjs {
 		if builtin, ok := b[node.Value]; ok {
-			return object.ObjectRef{Ref: builtin.Obj}
+			return &object.ObjectRef{Ref: builtin.Obj}
 		}
 	}
 
 	if node.Value == "FILE" {
-		return object.ObjectRef{Ref: &object.Stringo{Value: e.CurrentFile}}
+		return &object.ObjectRef{Ref: &object.Stringo{Value: e.CurrentFile}}
 	}
 
-	return object.ObjectRef{Ref: newError("identifier not found: %s", node.Value)}
+	return &object.ObjectRef{Ref: newError("identifier not found: %s", node.Value)}
 }
 
 func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {

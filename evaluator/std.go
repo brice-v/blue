@@ -155,7 +155,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		NewEvaluatorLock.Lock()
 		fb.Env = newE.env.Clone()
 		// TODO: See if we can cache this somehow
-		pubFunHelpStr := fb.Env.GetPublicFunctionHelpString()
+		pubFunHelpStr := fb.Env.GetOrderedPublicFunctionHelpString()
 		fb.HelpStr = CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)
 		NewEvaluatorLock.Unlock()
 	}

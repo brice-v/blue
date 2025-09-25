@@ -4,6 +4,7 @@ import (
 	"blue/consts"
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -21,45 +22,30 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 
 // NewEnvironment returns a new environment
 func NewEnvironmentWithoutCore() *Environment {
-	pfhs := &OrderedMap2[string, string]{
-		store: make(map[string]string),
-		Keys:  []string{},
-	}
-	return &Environment{
-		store:                   xsync.NewMapOf[string, ObjectRef](),
-		publicFunctionHelpStore: pfhs,
-	}
+	return &Environment{store: xsync.NewMapOf[string, *ObjectRef]()}
 }
 
 // NewEnvironment returns a new environment
 func NewEnvironment(coreEnv *Environment) *Environment {
-	pfhs := &OrderedMap2[string, string]{
-		store: make(map[string]string),
-		Keys:  []string{},
-	}
 	return &Environment{
-		store:                   xsync.NewMapOf[string, ObjectRef](),
-		publicFunctionHelpStore: pfhs,
-		coreEnv:                 coreEnv,
+		store:   xsync.NewMapOf[string, *ObjectRef](),
+		coreEnv: coreEnv,
 	}
 }
 
 type ObjectRef struct {
 	Ref         Object
 	isImmutable bool
+	HelpStr     string
 }
 
-func (or ObjectRef) IsImmutable() bool {
+func (or *ObjectRef) IsImmutable() bool {
 	return or.isImmutable
 }
 
-var emptyObjectRef = ObjectRef{Ref: nil, isImmutable: false}
-
 // Environment is a map of strings to `Object`s
 type Environment struct {
-	store *xsync.MapOf[string, ObjectRef]
-
-	publicFunctionHelpStore *OrderedMap2[string, string]
+	store *xsync.MapOf[string, *ObjectRef]
 
 	outer   *Environment
 	coreEnv *Environment
@@ -73,21 +59,17 @@ func (e *Environment) SetCore(coreEnv *Environment) {
 // it will not write to the outer env, but it will read from it
 func (e *Environment) Clone() *Environment {
 	newEnv := NewEnvironment(e.coreEnv)
-	e.store.Range(func(key string, value ObjectRef) bool {
+	e.store.Range(func(key string, value *ObjectRef) bool {
 		newEnv.store.Store(key, value)
 		return true
 	})
 	outer := e.outer
 	for outer != nil {
-		outer.store.Range(func(key string, value ObjectRef) bool {
+		outer.store.Range(func(key string, value *ObjectRef) bool {
 			newEnv.store.Store(key, value)
 			return true
 		})
 		outer = outer.outer
-	}
-	for _, k := range e.publicFunctionHelpStore.Keys {
-		v, _ := e.publicFunctionHelpStore.Get(k)
-		newEnv.publicFunctionHelpStore.Set(k, v)
 	}
 	return newEnv
 }
@@ -107,12 +89,12 @@ func (e *Environment) Clone() *Environment {
 func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.GetRef(name)
 	if !ok {
-		return emptyObjectRef.Ref, ok
+		return nil, ok
 	}
 	return obj.Ref, ok
 }
 
-func (e *Environment) GetRef(name string) (ObjectRef, bool) {
+func (e *Environment) GetRef(name string) (*ObjectRef, bool) {
 	obj, ok := e.store.Load(name)
 	if !ok && e.coreEnv != nil {
 		obj, ok = e.coreEnv.GetRef(name)
@@ -120,14 +102,14 @@ func (e *Environment) GetRef(name string) (ObjectRef, bool) {
 			obj, ok = e.outer.GetRef(name)
 		}
 	}
-	if obj.Ref == nil {
-		return emptyObjectRef, ok
+	if obj == nil {
+		return nil, ok
 	}
 	return obj, ok
 }
 
 func (e *Environment) SetAllPublicOnEnv(newEnv *Environment) {
-	e.store.Range(func(key string, value ObjectRef) bool {
+	e.store.Range(func(key string, value *ObjectRef) bool {
 		if !strings.HasPrefix(key, "_") {
 			newEnv.SetObj(key, value.Ref, value.isImmutable)
 		}
@@ -163,23 +145,14 @@ func (e *Environment) getFunctionHelpString(origHelp, prefix string) string {
 	return out.String()
 }
 
-func (e *Environment) SetFunctionHelpStr(name, newHelpStr string) {
-	if val, ok := e.Get(name); ok {
-		if fun, ok := val.(*Function); ok {
-			fun.HelpStr = newHelpStr
-			e.Set(name, fun)
-		}
-	}
-}
-
 // Set puts a new object into the environment
 func (e *Environment) Set(name string, val Object) Object {
 	return e.SetObj(name, val, false)
 }
 
 func (e *Environment) SetObj(name string, val Object, isImmutable bool) Object {
-	e.store.Store(name, ObjectRef{Ref: val, isImmutable: isImmutable})
-	e.setHelpInPublicFunctionHelpStore(name, val)
+	helpStr := e.getHelpInPublicFunctionHelpStore(name, val)
+	e.store.Store(name, &ObjectRef{Ref: val, isImmutable: isImmutable, HelpStr: helpStr})
 	return val
 }
 
@@ -188,27 +161,28 @@ func (e *Environment) SetImmutable(name string, val Object) Object {
 }
 
 func (e *Environment) SetFunStatementAndHelp(name string, val *Function) Object {
-	e.store.Store(name, ObjectRef{Ref: val, isImmutable: false})
-	e.setHelpInPublicFunctionHelpStore(name, val)
+	helpStr := e.getHelpInPublicFunctionHelpStore(name, val)
+	e.store.Store(name, &ObjectRef{Ref: val, isImmutable: false, HelpStr: helpStr})
 	return val
 }
 
-func (e *Environment) setHelpInPublicFunctionHelpStore(name string, val Object) {
+func (e *Environment) getHelpInPublicFunctionHelpStore(name string, val Object) string {
 	// We do store nil values so those can be skipped entirely for pfhs
+	var help string
 	if val != nil && val.Type() == FUNCTION_OBJ && !strings.HasPrefix(name, "_") {
 		ogHelp := val.Help()
 		if !strings.HasPrefix(ogHelp, "core:ignore") {
 			if strings.HasPrefix(ogHelp, "core:") {
-				coreHelpStr := e.getFunctionHelpString(ogHelp, "core:")
-				e.SetFunctionHelpStr(name, coreHelpStr)
+				help = e.getFunctionHelpString(ogHelp, "core:")
 			} else if strings.HasPrefix(ogHelp, "std:") {
-				stdHelpStr := e.getFunctionHelpString(ogHelp, "std:")
-				e.SetFunctionHelpStr(name, stdHelpStr)
+				help = e.getFunctionHelpString(ogHelp, "std:")
 			} else {
-				e.publicFunctionHelpStore.Set(name, ogHelp)
+				help = ogHelp
 			}
+			val.(*Function).HelpStr = help
 		}
 	}
+	return help
 }
 
 // IsImmutable checks if the give identifier name is in the immutable map
@@ -224,47 +198,57 @@ func (e *Environment) IsImmutable(name string) bool {
 // this is used in for loops to remove temporary variables
 func (e *Environment) RemoveIdentifier(name string) {
 	e.store.Delete(name)
-	e.publicFunctionHelpStore.Delete(name)
 }
 
-func (e *Environment) GetPublicFunctionHelpString() string {
-	var out bytes.Buffer
+func (e *Environment) getLengthOfLargestStringAndOrderedKeys() (int, []string) {
 	lengthOfLargestString := 0
-	for _, k := range e.publicFunctionHelpStore.Keys {
-		l := utf8.RuneCountInString(k)
-		if l > lengthOfLargestString {
-			lengthOfLargestString = l
+	keys := []string{}
+	e.store.Range(func(key string, value *ObjectRef) bool {
+		if value != nil && value.HelpStr != "" {
+			keys = append(keys, key)
+			l := utf8.RuneCountInString(key)
+			if l > lengthOfLargestString {
+				lengthOfLargestString = l
+			}
 		}
-	}
+		return true
+	})
 	lengthOfLargestString++
-	for _, k := range e.publicFunctionHelpStore.Keys {
-		if v, ok := e.publicFunctionHelpStore.Get(k); ok {
-			vSplit := strings.Split(v, "\ntype(")[0]
-			// remove the trailing \n
-			vSplit = vSplit[:len(vSplit)-1]
-			vSplitFurther := strings.Split(vSplit, "\n")
-			for i, partStr := range vSplitFurther {
-				if i == 0 {
-					initialPadLen := lengthOfLargestString - utf8.RuneCountInString(k)
-					initialPad := strings.Repeat(" ", initialPadLen)
-					consts.DisableColorIfNoColorEnvVarSet()
-					green := color.FgGreen.Render
-					bold := color.Bold.Render
-					out.WriteString(fmt.Sprintf("\n%s%s| %s", bold(green(k)), initialPad, partStr))
-				} else {
-					pad := strings.Repeat(" ", lengthOfLargestString+2)
-					nl := "\n"
-					if i == len(vSplitFurther)-1 {
-						nl = ""
-					}
-					prefixNl := ""
-					if i == 1 {
-						prefixNl = "\n"
-					} else {
-						prefixNl = ""
-					}
-					out.WriteString(fmt.Sprintf("%s%s %s%s", prefixNl, pad, partStr, nl))
+	slices.Sort(keys)
+	return lengthOfLargestString, keys
+}
+
+func (e *Environment) GetOrderedPublicFunctionHelpString() string {
+	var out bytes.Buffer
+	lengthOfLargestString, orderedKeys := e.getLengthOfLargestStringAndOrderedKeys()
+	for _, k := range orderedKeys {
+		value, _ := e.store.Load(k)
+		v := value.HelpStr
+		vSplit := strings.Split(v, "\ntype(")[0]
+		// remove the trailing \n
+		vSplit = vSplit[:len(vSplit)-1]
+		vSplitFurther := strings.Split(vSplit, "\n")
+		for i, partStr := range vSplitFurther {
+			if i == 0 {
+				initialPadLen := lengthOfLargestString - utf8.RuneCountInString(k)
+				initialPad := strings.Repeat(" ", initialPadLen)
+				consts.DisableColorIfNoColorEnvVarSet()
+				green := color.FgGreen.Render
+				bold := color.Bold.Render
+				out.WriteString(fmt.Sprintf("\n%s%s| %s", bold(green(k)), initialPad, partStr))
+			} else {
+				pad := strings.Repeat(" ", lengthOfLargestString+2)
+				nl := "\n"
+				if i == len(vSplitFurther)-1 {
+					nl = ""
 				}
+				prefixNl := ""
+				if i == 1 {
+					prefixNl = "\n"
+				} else {
+					prefixNl = ""
+				}
+				out.WriteString(fmt.Sprintf("%s%s %s%s", prefixNl, pad, partStr, nl))
 			}
 		}
 	}
