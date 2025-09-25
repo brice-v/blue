@@ -58,7 +58,6 @@ var emptyObjectRef = ObjectRef{Ref: nil, isImmutable: false}
 // Environment is a map of strings to `Object`s
 type Environment struct {
 	store *xsync.MapOf[string, ObjectRef]
-	// immutableStore *xsync.MapOf[string, struct{}]
 
 	publicFunctionHelpStore *OrderedMap2[string, string]
 
