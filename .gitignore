@@ -11,3 +11,4 @@ ignored/*
 *.png
 *.prof
 *.pprof
+*-blue*
