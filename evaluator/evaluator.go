@@ -49,7 +49,7 @@ var (
 )
 
 type Evaluator struct {
-	env *object.Environment
+	env *object.Environment2
 
 	// PID is the process ID of this evaluator
 	PID uint64
@@ -117,7 +117,7 @@ func New() *Evaluator {
 
 func NewNode(nodeName, address string) *Evaluator {
 	e := &Evaluator{
-		env: object.NewEnvironmentWithoutCore(),
+		env: object.NewEnvironmentWithoutCore2(),
 
 		PID:      pidCount.Load(),
 		NodeName: nodeName,
@@ -382,7 +382,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			defaultParams = append(defaultParams, obj)
 		}
 		// Note: Clone is really slow
-		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env.Clone()}
+		return &object.Function{Parameters: params, Body: body, DefaultParameters: defaultParams, Env: e.env.CloneToFrame()}
 	case *ast.FunctionStatement:
 		params := node.Parameters
 		body := node.Body
@@ -400,7 +400,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			defaultParams = append(defaultParams, obj)
 		}
 		// Note: Clone is really slow
-		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env}
+		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env.GetLatestFrame()}
 		funObj.HelpStr = createHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
 		e.env.SetFunStatementAndHelp(node.Name.Value, funObj)
 	case *ast.CallExpression:

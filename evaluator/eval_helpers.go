@@ -274,17 +274,10 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		if err != nil {
 			return err
 		}
-		// TODO: Improve this so we dont ever need a new call (see if we can use applyFunctionFast for all scenarios)
-		newE := New()
-		// Always use our current evaluator PID for the function
-		// this allows the self() function to return properly inside evaluated
-		// functions because spawnExpression will set the PID initially
-		newE.PID = e.PID
-		newE.env = extendFunctionEnv(function, args, defaultArgs, immutableArgs)
-		evaluated := newE.Eval(function.Body)
-		for newE.ErrorTokens.Len() != 0 {
-			e.ErrorTokens.s.PushBack(newE.ErrorTokens.Pop())
-		}
+		e.env.PushFrame(function.Env)
+		e.extendFunctionEnv(function, args, defaultArgs, immutableArgs)
+		evaluated := e.Eval(function.Body)
+		e.env.PopFrame()
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
 		return function.Fun(args...)
@@ -320,26 +313,21 @@ func (e *Evaluator) applyFunctionFast(fun object.Object, args []object.Object, d
 	if err != nil {
 		return err
 	}
-	envCopy := e.env
-	e.env = extendFunctionEnv(function, args, defaultArgs, immutableArgs)
+	e.env.PushFrame(function.Env)
+	e.extendFunctionEnv(function, args, defaultArgs, immutableArgs)
 	evaluated := e.Eval(function.Body)
-	e.env = envCopy
+	e.env.PopFrame()
 	return unwrapReturnValue(evaluated)
 }
 
-func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) *object.Environment {
-	env := object.NewEnclosedEnvironment(fun.Env)
+func (e *Evaluator) extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs map[string]object.Object, immutableArgs []bool) {
 	// If the arguments slice is the same length as the parameter list, then we have them all
 	// so set them as normal
 	if len(args) == len(fun.Parameters) {
 		for paramIndx, param := range fun.Parameters {
-			if immutableArgs[paramIndx] {
-				env.SetImmutable(param.Value, args[paramIndx])
-			} else {
-				env.Set(param.Value, args[paramIndx])
-			}
+			e.env.SetObj(param.Value, args[paramIndx], immutableArgs[paramIndx])
 		}
-		setDefaultCallExpressionParameters(defaultArgs, env)
+		e.setDefaultCallExpressionParameters(defaultArgs)
 	} else if len(args) < len(fun.Parameters) {
 		// loop and while less than the total parameters set e.environment variables accordingly
 		argsIndx := 0
@@ -354,18 +342,14 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			if fun.DefaultParameters[paramIndx] == nil {
 				if argsIndx < len(args) {
 					// Avoid setting it to be immutable if the function has a default parameter
-					if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-						env.SetImmutable(param.Value, args[argsIndx])
-					} else {
-						env.Set(param.Value, args[argsIndx])
-					}
+					e.env.SetObj(param.Value, args[argsIndx], fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx])
 					argsIndx++
 					continue
 				}
 			} else if countDefaultParams+len(args) == len(fun.Parameters) && !defaultArgGiven {
 				// If the Count of the defaultParams+args given equals the length of the fun.Parameters
 				// then we want to pass in the arg where the fun.DefaultParameter is nil for that indx
-				env.Set(param.Value, fun.DefaultParameters[paramIndx])
+				e.env.Set(param.Value, fun.DefaultParameters[paramIndx])
 				continue
 			} else {
 				// If there is a default param for every arg then we add in
@@ -378,11 +362,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					// that value will be used
 					if argsIndx < len(args) {
 						// Avoid setting it to be immutable if the function has a default parameter
-						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							env.SetImmutable(param.Value, args[argsIndx])
-						} else {
-							env.Set(param.Value, args[argsIndx])
-						}
+						e.env.SetObj(param.Value, args[argsIndx], fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx])
 						argsIndx++
 						continue
 					}
@@ -390,11 +370,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					if argsIndx < len(args) {
 						// This is so if we have an extra arg to set we set it over the default param which happens right below
 						// Avoid setting it to be immutable if the function has a default parameter
-						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							env.SetImmutable(param.Value, args[argsIndx])
-						} else {
-							env.Set(param.Value, args[argsIndx])
-						}
+						e.env.SetObj(param.Value, args[argsIndx], fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx])
 						argsIndx++
 						continue
 					}
@@ -402,18 +378,17 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			}
 			// Saw that this set [] as the ident to a value but I think it was using an incorrect arg - regardless this should work
 			identStr := param.String()
-			env.Set(identStr, fun.DefaultParameters[paramIndx])
+			e.env.Set(identStr, fun.DefaultParameters[paramIndx])
 		}
-		setDefaultCallExpressionParameters(defaultArgs, env)
+		e.setDefaultCallExpressionParameters(defaultArgs)
 	}
-	return env
 }
 
-func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, env *object.Environment) {
+func (e *Evaluator) setDefaultCallExpressionParameters(defaultArgs map[string]object.Object) {
 	for k, v := range defaultArgs {
-		_, ok := env.Get(k)
+		_, ok := e.env.Get(k)
 		if ok {
-			env.Set(k, v)
+			e.env.Set(k, v)
 		}
 	}
 }

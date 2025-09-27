@@ -238,7 +238,7 @@ func (f *StringFunction) Help() string {
 type Function struct {
 	Parameters []*ast.Identifier   // Parameters is a slice of identifiers
 	Body       *ast.BlockStatement // Body is a block statement node
-	Env        *Environment        // Env stores the function's environment
+	Env        *Frame              // Env stores the function's environment
 
 	DefaultParameters []Object // DefaultParameters holds the expression of the default parameter, if it exists otherwise nil
 
@@ -625,7 +625,7 @@ func (scl *SetCompLiteral) Help() string {
 // Module is the type that represents imported values
 type Module struct {
 	Name string
-	Env  *Environment
+	Env  *Environment2
 
 	HelpStr string
 }
