@@ -1130,7 +1130,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.cleanupTmpVar[ident.Value] = e.nestLevel
 			e.cleanupTmpVarIter[ident.Value] = len(list)
 		}()
-		_, ok := e.env.Get(ident.Value)
+		ref, ok := e.env.GetRef(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1138,7 +1138,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.iterCount[e.nestLevel]++
 			return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 		}
-		e.env.Set(ident.Value, list[e.iterCount[e.nestLevel]])
+		ref.Ref = list[e.iterCount[e.nestLevel]]
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
@@ -1160,7 +1160,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			listObj := []object.Object{pair.Key, pair.Value}
 			pairObjs[i] = &object.List{Elements: listObj}
 		}
-		_, ok := e.env.Get(ident.Value)
+		ref, ok := e.env.GetRef(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1168,7 +1168,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.iterCount[e.nestLevel]++
 			return nativeToBooleanObject(len(pairObjs) != e.iterCount[e.nestLevel])
 		}
-		e.env.Set(ident.Value, pairObjs[e.iterCount[e.nestLevel]])
+		ref.Ref = pairObjs[e.iterCount[e.nestLevel]]
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(mapPairs.Len() != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.STRING_OBJ {
@@ -1189,7 +1189,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		for i, ch := range chars {
 			stringObjs[i] = &object.Stringo{Value: string(ch)}
 		}
-		_, ok := e.env.Get(ident.Value)
+		ref, ok := e.env.GetRef(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1197,7 +1197,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.iterCount[e.nestLevel]++
 			return nativeToBooleanObject(len(chars) != e.iterCount[e.nestLevel])
 		}
-		e.env.Set(ident.Value, stringObjs[e.iterCount[e.nestLevel]])
+		ref.Ref = stringObjs[e.iterCount[e.nestLevel]]
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(len(stringObjs) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.SET_OBJ {
@@ -1214,7 +1214,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 			e.cleanupTmpVar[ident.Value] = e.nestLevel
 			e.cleanupTmpVarIter[ident.Value] = set.Len()
 		}()
-		_, ok := e.env.Get(ident.Value)
+		ref, ok := e.env.GetRef(ident.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1238,7 +1238,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 				}
 			}
 		}
-		e.env.Set(ident.Value, val)
+		ref.Ref = val
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(set.Len() != e.iterCount[e.nestLevel])
 	}
@@ -1275,7 +1275,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.cleanupTmpVar[identRight.Value] = e.nestLevel
 			e.cleanupTmpVarIter[identRight.Value] = len(list)
 		}()
-		_, ok := e.env.Get(identRight.Value)
+		ref, ok := e.env.GetRef(identRight.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1285,7 +1285,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
-		e.env.Set(identRight.Value, list[e.iterCount[e.nestLevel]])
+		ref.Ref = list[e.iterCount[e.nestLevel]]
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(len(list) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
@@ -1308,7 +1308,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			listObj := []object.Object{pair.Key, pair.Value}
 			pairObjs[i] = &object.List{Elements: listObj}
 		}
-		_, ok := e.env.Get(identRight.Value)
+		ref, ok := e.env.GetRef(identRight.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1318,7 +1318,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			return nativeToBooleanObject(len(pairObjs) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(identLeft.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[0])
-		e.env.Set(identRight.Value, pairObjs[e.iterCount[e.nestLevel]].Elements[1])
+		ref.Ref = pairObjs[e.iterCount[e.nestLevel]].Elements[1]
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(mapPairs.Len() != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.STRING_OBJ {
@@ -1341,7 +1341,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		for i, ch := range chars {
 			stringObjs[i] = &object.Stringo{Value: string(ch)}
 		}
-		_, ok := e.env.Get(identRight.Value)
+		ref, ok := e.env.GetRef(identRight.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1351,7 +1351,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			return nativeToBooleanObject(len(chars) != e.iterCount[e.nestLevel])
 		}
 		e.env.Set(identLeft.Value, &object.Integer{Value: int64(e.iterCount[e.nestLevel])})
-		e.env.Set(identRight.Value, stringObjs[e.iterCount[e.nestLevel]])
+		ref.Ref = stringObjs[e.iterCount[e.nestLevel]]
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(len(stringObjs) != e.iterCount[e.nestLevel])
 	} else if evaluatedRight.Type() == object.SET_OBJ {
@@ -1369,7 +1369,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 			e.cleanupTmpVar[identRight.Value] = e.nestLevel
 			e.cleanupTmpVarIter[identRight.Value] = set.Len()
 		}()
-		_, ok := e.env.Get(identRight.Value)
+		ref, ok := e.env.GetRef(identRight.Value)
 		if !ok {
 			e.iterCount = append(e.iterCount, 0)
 			e.nestLevel++
@@ -1395,7 +1395,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 				}
 			}
 		}
-		e.env.Set(identRight.Value, val)
+		ref.Ref = val
 		e.iterCount[e.nestLevel]++
 		return nativeToBooleanObject(set.Len() != e.iterCount[e.nestLevel])
 	}
