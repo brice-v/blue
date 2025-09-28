@@ -156,10 +156,6 @@ func (e *Environment) SetObj(name string, val Object, isImmutable bool) Object {
 	return val
 }
 
-func (e *Environment) SetImmutable(name string, val Object) Object {
-	return e.SetObj(name, val, true)
-}
-
 func (e *Environment) SetFunStatementAndHelp(name string, val *Function) Object {
 	helpStr := e.getHelpInPublicFunctionHelpStore(name, val)
 	e.store.Store(name, &ObjectRef{Ref: val, isImmutable: false, HelpStr: helpStr})

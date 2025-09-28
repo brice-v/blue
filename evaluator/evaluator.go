@@ -169,7 +169,7 @@ func NewNode(nodeName, address string) *Evaluator {
 }
 
 func (e *Evaluator) ReplEnvAdd(varName string, o object.Object) {
-	e.env.SetImmutable(varName, o)
+	e.env.SetObj(varName, o, true)
 }
 
 // Eval takes an ast node and returns an object

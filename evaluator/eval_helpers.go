@@ -333,11 +333,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 	// so set them as normal
 	if len(args) == len(fun.Parameters) {
 		for paramIndx, param := range fun.Parameters {
-			if immutableArgs[paramIndx] {
-				env.SetImmutable(param.Value, args[paramIndx])
-			} else {
-				env.Set(param.Value, args[paramIndx])
-			}
+			env.SetObj(param.Value, args[paramIndx], immutableArgs[paramIndx])
 		}
 		setDefaultCallExpressionParameters(defaultArgs, env)
 	} else if len(args) < len(fun.Parameters) {
@@ -354,11 +350,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 			if fun.DefaultParameters[paramIndx] == nil {
 				if argsIndx < len(args) {
 					// Avoid setting it to be immutable if the function has a default parameter
-					if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-						env.SetImmutable(param.Value, args[argsIndx])
-					} else {
-						env.Set(param.Value, args[argsIndx])
-					}
+					env.SetObj(param.Value, args[argsIndx], fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx])
 					argsIndx++
 					continue
 				}
@@ -378,11 +370,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					// that value will be used
 					if argsIndx < len(args) {
 						// Avoid setting it to be immutable if the function has a default parameter
-						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							env.SetImmutable(param.Value, args[argsIndx])
-						} else {
-							env.Set(param.Value, args[argsIndx])
-						}
+						env.SetObj(param.Value, args[argsIndx], fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx])
 						argsIndx++
 						continue
 					}
@@ -390,11 +378,7 @@ func extendFunctionEnv(fun *object.Function, args []object.Object, defaultArgs m
 					if argsIndx < len(args) {
 						// This is so if we have an extra arg to set we set it over the default param which happens right below
 						// Avoid setting it to be immutable if the function has a default parameter
-						if fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx] {
-							env.SetImmutable(param.Value, args[argsIndx])
-						} else {
-							env.Set(param.Value, args[argsIndx])
-						}
+						env.SetObj(param.Value, args[argsIndx], fun.DefaultParameters[argsIndx] == nil && immutableArgs[argsIndx])
 						argsIndx++
 						continue
 					}
