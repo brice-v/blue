@@ -88,6 +88,22 @@ type Integer struct {
 	Value int64 // Value is the internal rep. of an integer, it is stored as an int64
 }
 
+var (
+	// TRUE is the true object which should be the same everywhere
+	TRUE = &Boolean{Value: true}
+	// FALSE is the false object which should be the same everywhere
+	FALSE = &Boolean{Value: false}
+	// NULL is the null object which should be the same everywhere
+	NULL = &Null{}
+	// IGNORE is the object which is used to ignore variables when necessary
+	IGNORE = &Null{}
+
+	// BREAK is the break object to be used the same everywhere
+	BREAK = &BreakStatement{}
+	// CONTINUE is the continue object to be used the same everywhere
+	CONTINUE = &ContinueStatement{}
+)
+
 // Inspect returns the string value of the integer object
 func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
 

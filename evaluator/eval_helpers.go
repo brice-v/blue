@@ -35,11 +35,11 @@ func unwrapReturnValue(obj object.Object) object.Object {
 // for now everything that is not null or false returns true
 func isTruthy(obj object.Object) bool {
 	switch obj {
-	case NULL:
+	case object.NULL:
 		return false
-	case TRUE:
+	case object.TRUE:
 		return true
-	case FALSE:
+	case object.FALSE:
 		return false
 	default:
 		if obj.Type() == object.MAP_OBJ {
@@ -114,7 +114,7 @@ func ExecStringCommand(str string) object.Object {
 		return newError("unable to exec the string `%s`. Error: %s", str, err)
 	}
 	if len(output) == 0 {
-		return NULL
+		return object.NULL
 	}
 	return &object.Stringo{Value: string(output[:])}
 }
@@ -138,9 +138,9 @@ func twoListsEqual(leftList, rightList *object.List) bool {
 
 func nativeToBooleanObject(input bool) *object.Boolean {
 	if input {
-		return TRUE
+		return object.TRUE
 	}
-	return FALSE
+	return object.FALSE
 }
 
 func (e *Evaluator) getBuiltinForDotCall(key string) (*object.Builtin, bool) {
@@ -290,7 +290,7 @@ func (e *Evaluator) applyFunction(fun object.Object, args []object.Object, defau
 		return function.Fun(args...)
 	default:
 		msg := fmt.Sprintf("not a function %s", function.Type())
-		if function.Type() == NULL.Type() && e.maybeNullMapFnCall.Peek() != "" {
+		if function.Type() == object.NULL.Type() && e.maybeNullMapFnCall.Peek() != "" {
 			extraMsg := e.maybeNullMapFnCall.Pop()
 			msg = fmt.Sprintf("%s, %s", msg, extraMsg)
 		}
@@ -461,7 +461,7 @@ func doCondAndMatchExpEqual(condVal, matchVal object.Object) bool {
 		if !ok {
 			return false
 		}
-		if condValue.Value == IGNORE {
+		if condValue.Value == object.IGNORE {
 			continue
 		}
 		val, ok := matchValPairs.Get(condKey)
@@ -701,7 +701,7 @@ func decodeInterfaceToObject(value interface{}) object.Object {
 		consts.ErrorPrinter("decodeInterfaceToObject: HANDLE TYPE = %T\n", x)
 		os.Exit(1)
 	}
-	return NULL
+	return object.NULL
 }
 
 func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Object, error) {
@@ -883,7 +883,7 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 		x := nativeToBooleanObject(obj)
 		return x, nil
 	case nil:
-		return NULL, nil
+		return object.NULL, nil
 	case []interface{}:
 		l := &object.List{Elements: make([]object.Object, len(obj))}
 		for i, e := range obj {

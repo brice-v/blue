@@ -94,7 +94,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				return &object.List{Elements: createStringList(strList)}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`split` returns a LIST of STRINGs based on a STRING separator",
@@ -190,7 +190,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				str := strings.Trim(arg0.Value, arg1.Value)
 				return &object.Stringo{Value: str}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`strip` will return a STRING with the given cutset STRING removed",
@@ -224,7 +224,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				str := strings.TrimLeft(arg0.Value, arg1.Value)
 				return &object.Stringo{Value: str}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`lstrip` returns a STRING with the given character stripped from the left side",
@@ -258,7 +258,7 @@ var stringbuiltins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				str := strings.TrimRight(arg0.Value, arg1.Value)
 				return &object.Stringo{Value: str}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`rstrip` returns a STRING with the given character stripped from the right side",

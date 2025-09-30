@@ -32,22 +32,6 @@ var Files embed.FS
 // NoExec is a global to prevent execution of shell commands on the system
 var NoExec = false
 
-var (
-	// TRUE is the true object which should be the same everywhere
-	TRUE = &object.Boolean{Value: true}
-	// FALSE is the false object which should be the same everywhere
-	FALSE = &object.Boolean{Value: false}
-	// NULL is the null object which should be the same everywhere
-	NULL = &object.Null{}
-	// IGNORE is the object which is used to ignore variables when necessary
-	IGNORE = &object.Null{}
-
-	// BREAK is the break object to be used the same everywhere
-	BREAK = &object.BreakStatement{}
-	// CONTINUE is the continue object to be used the same everywhere
-	CONTINUE = &object.ContinueStatement{}
-)
-
 type Evaluator struct {
 	env *object.Environment
 
@@ -178,9 +162,9 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	case *ast.Program:
 		return e.evalProgram(node)
 	case *ast.BreakStatement:
-		return BREAK
+		return object.BREAK
 	case *ast.ContinueStatement:
-		return CONTINUE
+		return object.CONTINUE
 	case *ast.ExpressionStatement:
 		obj := e.Eval(node.Expression)
 		if isError(obj) {
@@ -249,8 +233,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			return left
 		}
 		// Implement Shortcuts for Truthiness in Infix Expressions
-		if ((node.Operator == "&&" || node.Operator == "and") && left == FALSE) ||
-			((node.Operator == "||" || node.Operator == "or") && left == TRUE) {
+		if ((node.Operator == "&&" || node.Operator == "and") && left == object.FALSE) ||
+			((node.Operator == "||" || node.Operator == "or") && left == object.TRUE) {
 			return left
 		}
 		right := e.Eval(node.Right)
@@ -270,7 +254,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				}
 				l := left.(*object.List)
 				l.Elements = append(l.Elements, right)
-				return NULL
+				return object.NULL
 			case right.Type() == object.LIST_OBJ && operator == ">>":
 				if ident, ok := node.Right.(*ast.Identifier); ok {
 					if e.env.IsImmutable(ident.Value) {
@@ -279,7 +263,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				}
 				l := right.(*object.List)
 				l.Elements = append([]object.Object{left}, l.Elements...)
-				return NULL
+				return object.NULL
 			case left.Type() == object.SET_OBJ && operator == "<<":
 				if ident, ok := node.Left.(*ast.Identifier); ok {
 					if e.env.IsImmutable(ident.Value) {
@@ -290,10 +274,10 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				key := object.HashObject(right)
 				if _, ok := s.Elements.Get(key); ok {
 					// If obj exists do nothing
-					return NULL
+					return object.NULL
 				}
 				s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
-				return NULL
+				return object.NULL
 			case right.Type() == object.SET_OBJ && operator == ">>":
 				if ident, ok := node.Right.(*ast.Identifier); ok {
 					if e.env.IsImmutable(ident.Value) {
@@ -304,10 +288,10 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				key := object.HashObject(left)
 				if _, ok := s.Elements.Get(key); ok {
 					// If obj exists do nothing
-					return NULL
+					return object.NULL
 				}
 				s.Elements.Set(key, object.SetPair{Value: left, Present: struct{}{}})
-				return NULL
+				return object.NULL
 			}
 		}
 		obj := e.evalInfixExpression(node.Operator, left, right)
@@ -489,7 +473,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 			// IF we set a variable this way (as in x.println = 'something')
 			// we cant call like so 'x.println()'
 			if !ok {
-				// If it didnt return null - we are probably using a builtin function
+				// If it didnt return object.null - we are probably using a builtin function
 				// name as a key
 				return obj
 			}
@@ -549,7 +533,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		}
 		return obj
 	case *ast.Null:
-		return NULL
+		return object.NULL
 	case *ast.SetLiteral:
 		obj := e.evalSetLiteral(node)
 		if isError(obj) {
@@ -602,8 +586,8 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 	// Remove any 'errors' if we reach this because no error must've been encountered
 	e.ErrorTokens.RemoveAllEntries()
 	// In the event that there are only statements, I think this is where we end up
-	// so we return NULL because there is nothing to return otherwise
-	return NULL
+	// so we return object.NULL because there is nothing to return otherwise
+	return object.NULL
 }
 
 func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestructor bool,
@@ -704,7 +688,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 	}
 
 	e.ErrorTokens.RemoveAllEntries()
-	return NULL
+	return object.NULL
 }
 
 func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object {
@@ -773,11 +757,11 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 			e.env.Set(ident.Value, o)
 		}
 		// return early if we specifically import some objects
-		return NULL
+		return object.NULL
 	} else if node.ImportAll {
 		// Here we want to import everything from the module
 		newE.env.SetAllPublicOnEnv(e.env)
-		return NULL
+		return object.NULL
 	}
 	// Set HelpStr from program HelpStrToks
 	pubFunHelpStr := newE.env.GetOrderedPublicFunctionHelpString()
@@ -791,7 +775,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	} else {
 		e.env.Set(modName, mod)
 	}
-	return NULL
+	return object.NULL
 }
 
 func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Object {
@@ -813,7 +797,7 @@ func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Ob
 		// Removing this does show where it happens in try and catch block but I'd like to put a ^ on catch ident as well
 		if evaldCatch == nil {
 			// Set to Null so we continue in for loop if its empty
-			evaldCatch = NULL
+			evaldCatch = object.NULL
 		}
 		return evaldCatch
 	}
@@ -941,7 +925,7 @@ func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object
 		e.deferFuns[e.scopeNestLevel] = util.NewStack[*FunAndArgs]()
 	}
 	e.deferFuns[e.scopeNestLevel].Push(&FunAndArgs{Fun: fun, Args: arg1.(*object.List).Elements})
-	return NULL
+	return object.NULL
 }
 
 func (e *Evaluator) evalSelfExpression(_ *ast.SelfExpression) object.Object {
@@ -964,7 +948,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 			return optVal
 		}
 	}
-	e.env.Set("_", NULL)
+	e.env.Set("_", object.NULL)
 	for i := 0; i < conditionLen; i++ {
 		if node.Conditions[i].String() == "_" {
 			// Default case should always run (even if its before others)
@@ -984,7 +968,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 			if isError(evald) {
 				return evald
 			}
-			if evald == TRUE {
+			if evald == object.TRUE {
 				return e.evalBlockStatement(node.Consequences[i])
 			}
 			continue
@@ -992,12 +976,12 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 		if object.HashObject(condVal) == object.HashObject(optVal) {
 			return e.evalBlockStatement(node.Consequences[i])
 		}
-		if condVal == IGNORE {
+		if condVal == object.IGNORE {
 			return e.evalBlockStatement(node.Consequences[i])
 		}
 	}
 	// Shouldnt reach here ideally
-	return NULL
+	return object.NULL
 }
 
 func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object {
@@ -1121,7 +1105,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
 		if len(list) == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if len(list) == 1 {
 			e.oneElementForIn = true
@@ -1145,7 +1129,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		// This is where we handle if its a Map
 		mapPairs := evaluatedRight.(*object.Map).Pairs
 		if mapPairs.Len() == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if mapPairs.Len() == 1 {
 			e.oneElementForIn = true
@@ -1176,7 +1160,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		strVal := evaluatedRight.(*object.Stringo).Value
 		chars := []rune(strVal)
 		if len(chars) == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if len(chars) == 1 {
 			e.oneElementForIn = true
@@ -1204,7 +1188,7 @@ func (e *Evaluator) evalInExpressionWithIdentOnLeft(right ast.Expression, ident 
 		// This is where we handle if its a set
 		set := evaluatedRight.(*object.Set).Elements
 		if set.Len() == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if set.Len() == 1 {
 			e.oneElementForIn = true
@@ -1264,7 +1248,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		// This is where we handle if its a list
 		list := evaluatedRight.(*object.List).Elements
 		if len(list) == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if len(list) == 1 {
 			e.oneElementForIn = true
@@ -1291,7 +1275,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 	} else if evaluatedRight.Type() == object.MAP_OBJ {
 		mapPairs := evaluatedRight.(*object.Map).Pairs
 		if mapPairs.Len() == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if mapPairs.Len() == 1 {
 			e.oneElementForIn = true
@@ -1326,7 +1310,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		strVal := evaluatedRight.(*object.Stringo).Value
 		chars := []byte(strVal)
 		if len(chars) == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if len(chars) == 1 {
 			e.oneElementForIn = true
@@ -1358,7 +1342,7 @@ func (e *Evaluator) evalInExpressionWithListOnLeft(right ast.Expression, listWit
 		// This is where we handle if its a set
 		set := evaluatedRight.(*object.Set).Elements
 		if set.Len() == 0 {
-			return FALSE
+			return object.FALSE
 		}
 		if set.Len() == 1 {
 			e.oneElementForIn = true
@@ -1488,14 +1472,14 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 			// see test_for_scope_still_broken.b from d3p2 of aoc2023, specifically for (for x in ...) when nested heavily
 			// the for var x = 0; ... loops seemed to avoid this issue due to a different way of setting e.doneWithFor
 			e.doneWithFor[e.scopeNestLevel+1] = struct{}{}
-			return NULL
+			return object.NULL
 		}
 		firstRun = false
 		e.oneElementForIn = false
 		evalBlock = e.evalBlockStatement(node.Consequence)
 		if evalBlock == nil {
 			e.doneWithFor[e.scopeNestLevel] = struct{}{}
-			return NULL
+			return object.NULL
 		}
 		if isError(evalBlock) {
 			return evalBlock
@@ -1505,8 +1489,8 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 			e.doneWithFor[e.scopeNestLevel] = struct{}{}
 			return rv
 		}
-		if evalBlock == BREAK {
-			evalBlock = NULL
+		if evalBlock == object.BREAK {
+			evalBlock = object.NULL
 			break
 		}
 		if node.UsesVar {
@@ -1539,14 +1523,14 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 			}
 			if !ok {
 				e.doneWithFor[e.scopeNestLevel] = struct{}{}
-				return NULL
+				return object.NULL
 			}
 		}
-		if evalBlock == CONTINUE && ok {
-			evalBlock = NULL
+		if evalBlock == object.CONTINUE && ok {
+			evalBlock = object.NULL
 			continue
-		} else if evalBlock == CONTINUE && !ok {
-			evalBlock = NULL
+		} else if evalBlock == object.CONTINUE && !ok {
+			evalBlock = object.NULL
 			break
 		}
 		// Still evaluate on the last run then break if its false
@@ -1712,7 +1696,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return value
 			}
 			e.env.Set(ident.Value, value)
-			return NULL
+			return object.NULL
 		} else if operator == "+=" {
 			// TODO: If I want to use this, I likely will need to optimize directly in evalForStatement
 
@@ -1722,7 +1706,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			// if oi, ok := orig.(*object.Integer); ok {
 			// 	if il, ok1 := node.Value.(*ast.IntegerLiteral); ok1 {
 			// 		oi.Value = oi.Value + il.Value
-			// 		return NULL
+			// 		return object.NULL
 			// 	}
 			// }
 		}
@@ -1769,11 +1753,11 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				return newError("index out of bounds: %d", idx.Value)
 			}
 			if indexInt == listLen {
-				list.Elements = append(list.Elements, NULL)
+				list.Elements = append(list.Elements, object.NULL)
 			}
 			if operator == "=" {
 				list.Elements[idx.Value] = value
-				return NULL
+				return object.NULL
 			}
 			orig := list.Elements[idx.Value]
 			evaluated := e.evalMultiCharAssignmentInfixExpression(operator, object.LIST_OBJ, orig, value)
@@ -1793,7 +1777,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				operator := node.Token.Literal
 				if operator == "=" {
 					mapObj.Pairs.Set(hashed, object.MapPair{Key: key, Value: value})
-					return NULL
+					return object.NULL
 				}
 				origMapPair, ok := mapObj.Pairs.Get(hashed)
 				if !ok {
@@ -1851,7 +1835,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 				if err != nil {
 					return newError("%s", err.Error())
 				}
-				return NULL
+				return object.NULL
 			}
 			evaluated := e.evalMultiCharAssignmentInfixExpression(operator, object.BLUE_STRUCT_OBJ, orig, value)
 			if isError(evaluated) {
@@ -1861,7 +1845,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			if err != nil {
 				return newError("%s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		} else {
 			return newError("object type %T does not support item assignment", leftObj)
 		}
@@ -1869,7 +1853,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		return newError("expected identifier or index expression got=%T", node.Left)
 	}
 
-	return NULL
+	return object.NULL
 }
 
 func (e *Evaluator) evalMultiCharAssignmentInfixExpression(operator string, t object.Type, left, right object.Object) object.Object {
@@ -1924,7 +1908,7 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 			return newError("Builtin Obj Index needs to be a String. got=%T", ie.Index)
 		}
 		key = indexStr.Value
-		if value.Type() != object.STRING_OBJ && value != NULL {
+		if value.Type() != object.STRING_OBJ && value != object.NULL {
 			return newError("Builtin Obj Assignment value need to be string or null. got=%s", value.Type())
 		}
 	} else {
@@ -1936,7 +1920,7 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 	}
 	switch ident.Value {
 	case "ENV":
-		if value == NULL {
+		if value == object.NULL {
 			// unset the var
 			err := os.Unsetenv(key)
 			if err != nil {
@@ -1951,7 +1935,7 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 			}
 		}
 		builtinobjs["ENV"].Obj = populateENVObj()
-		return NULL
+		return object.NULL
 	case "ARGV":
 		v, ok := value.(*object.Stringo)
 		if !ok {
@@ -2060,7 +2044,7 @@ func (e *Evaluator) evalProcessIndexExpression(left, indx object.Object) object.
 					return newInvalidArgCountError("send", len(args), 1, "")
 				}
 				proc.Ch <- args[0]
-				return NULL
+				return object.NULL
 			},
 			HelpStr: helpStrArgs{
 				explanation: "`send` will take the given value and send it to the process",
@@ -2120,7 +2104,7 @@ func (e *Evaluator) evalMapIndexExpression(mapObject, indx object.Object) (objec
 
 	pair, ok := mapObj.Pairs.Get(key)
 	if !ok {
-		return NULL, true
+		return object.NULL, true
 	}
 
 	return pair.Value, false
@@ -2136,11 +2120,11 @@ func (e *Evaluator) evalSetIndexExpression(set, indx object.Object) object.Objec
 		stringVal := indx.(*object.Stringo).Value
 		envVal, ok := e.env.Get(stringVal)
 		if !ok {
-			return NULL
+			return object.NULL
 		}
 		intVal, ok := envVal.(*object.Integer)
 		if !ok {
-			return NULL
+			return object.NULL
 		}
 		idx = intVal.Value
 	case object.LIST_OBJ:
@@ -2178,7 +2162,7 @@ func (e *Evaluator) evalSetIndexExpression(set, indx object.Object) object.Objec
 		}
 		i++
 	}
-	return NULL
+	return object.NULL
 }
 
 func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Object {
@@ -2191,11 +2175,11 @@ func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Obj
 		stringVal := indx.(*object.Stringo).Value
 		envVal, ok := e.env.Get(stringVal)
 		if !ok {
-			return NULL
+			return object.NULL
 		}
 		intVal, ok := envVal.(*object.Integer)
 		if !ok {
-			return NULL
+			return object.NULL
 		}
 		idx = intVal.Value
 	case object.LIST_OBJ:
@@ -2214,7 +2198,7 @@ func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Obj
 		}
 		for _, index := range indexes {
 			for index > int64(len(listObj.Elements)-1) {
-				listObj.Elements = append(listObj.Elements, NULL)
+				listObj.Elements = append(listObj.Elements, object.NULL)
 			}
 		}
 		max := int64(len(listObj.Elements) - 1)
@@ -2229,14 +2213,14 @@ func (e *Evaluator) evalListIndexExpression(list, indx object.Object) object.Obj
 		}
 		return newList
 	default:
-		return NULL
+		return object.NULL
 	}
 	// Support setting arbitrary index with value for list
 	if listObj.Elements == nil {
 		listObj.Elements = []object.Object{}
 	}
 	for idx > int64(len(listObj.Elements)-1) {
-		listObj.Elements = append(listObj.Elements, NULL)
+		listObj.Elements = append(listObj.Elements, object.NULL)
 	}
 	max := int64(len(listObj.Elements) - 1)
 	if idx < 0 || idx > max {
@@ -2255,11 +2239,11 @@ func (e *Evaluator) evalStringIndexExpression(str, indx object.Object) object.Ob
 		stringVal := indx.(*object.Stringo).Value
 		envVal, ok := e.env.Get(stringVal)
 		if !ok {
-			return NULL
+			return object.NULL
 		}
 		intVal, ok := envVal.(*object.Integer)
 		if !ok {
-			return NULL
+			return object.NULL
 		}
 		idx = intVal.Value
 	case object.LIST_OBJ:
@@ -2285,7 +2269,7 @@ func (e *Evaluator) evalStringIndexExpression(str, indx object.Object) object.Ob
 		}
 		return &object.Stringo{Value: string(newStr)}
 	default:
-		return NULL
+		return object.NULL
 	}
 	max := int64(runeLen(strObj.Value) - 1)
 	if idx < 0 || idx > max {
@@ -2392,7 +2376,7 @@ func (e *Evaluator) evalIfExpression(ie *ast.IfExpression) object.Object {
 	if ie.Alternative != nil {
 		return e.evalBlockStatement(ie.Alternative)
 	} else {
-		return NULL
+		return object.NULL
 	}
 }
 
@@ -2568,7 +2552,7 @@ func (e *Evaluator) evalDefaultInfixExpression(operator string, left, right obje
 		}
 		return nativeToBooleanObject(leftBool.Value && rightBool.Value)
 	case operator == "or" || operator == "||":
-		if left == NULL {
+		if left == object.NULL {
 			// Null coalescing operator returns right side if left is null
 			return right
 		}
@@ -2601,49 +2585,49 @@ func (e *Evaluator) evalInOrNotinInfixExpression(operator string, left, right ob
 		if operator == "in" {
 			for _, e := range rt.Elements {
 				if leftHash == object.HashObject(e) {
-					return TRUE
+					return object.TRUE
 				}
 			}
-			return FALSE
+			return object.FALSE
 		} else if operator == "notin" {
 			for _, e := range rt.Elements {
 				if leftHash == object.HashObject(e) {
-					return FALSE
+					return object.FALSE
 				}
 			}
-			return TRUE
+			return object.TRUE
 		}
 	case *object.Set:
 		if operator == "in" {
 			for _, k := range rt.Elements.Keys {
 				if leftHash == k {
-					return TRUE
+					return object.TRUE
 				}
 			}
-			return FALSE
+			return object.FALSE
 		} else if operator == "notin" {
 			for _, k := range rt.Elements.Keys {
 				if leftHash == k {
-					return FALSE
+					return object.FALSE
 				}
 			}
-			return TRUE
+			return object.TRUE
 		}
 	case *object.Map:
 		if operator == "in" {
 			for _, k := range rt.Pairs.Keys {
 				if leftHash == k.Value {
-					return TRUE
+					return object.TRUE
 				}
 			}
-			return FALSE
+			return object.FALSE
 		} else if operator == "notin" {
 			for _, k := range rt.Pairs.Keys {
 				if leftHash == k.Value {
-					return FALSE
+					return object.FALSE
 				}
 			}
-			return TRUE
+			return object.TRUE
 		}
 	}
 	return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
@@ -2798,18 +2782,18 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 		// left is superset of right
 		for _, k := range rightE.Keys {
 			if _, ok := leftE.Get(k); !ok {
-				return FALSE
+				return object.FALSE
 			}
 		}
-		return TRUE
+		return object.TRUE
 	case "<=":
 		// right is a superset of left
 		for _, k := range leftE.Keys {
 			if _, ok := rightE.Get(k); !ok {
-				return FALSE
+				return object.FALSE
 			}
 		}
-		return TRUE
+		return object.TRUE
 	case "-":
 		// difference
 		for _, k := range leftElems.Keys {
@@ -2827,18 +2811,18 @@ func (e *Evaluator) evalSetInfixExpression(operator string, left, right object.O
 		for _, k := range leftElems.Keys {
 			_, ok := rightElems.Get(k)
 			if !ok {
-				return FALSE
+				return object.FALSE
 			}
 		}
-		return TRUE
+		return object.TRUE
 	case "!=":
 		for _, k := range leftElems.Keys {
 			_, ok := rightElems.Get(k)
 			if !ok {
-				return TRUE
+				return object.TRUE
 			}
 		}
-		return FALSE
+		return object.FALSE
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -3201,7 +3185,7 @@ func (e *Evaluator) evalRshiftPostfixExpression(left object.Object) object.Objec
 		l := left.(*object.List)
 		listLen := len(l.Elements)
 		if listLen == 0 {
-			return NULL
+			return object.NULL
 		}
 		e := l.Elements[listLen-1]
 		if listLen == 1 {
@@ -3419,14 +3403,14 @@ func (e *Evaluator) evalNotOperatorExpression(right object.Object) object.Object
 	// here we are defining what happend on an object when the not operator is used on it
 	// to check if a list is empty we would need to put something to check it here
 	switch right {
-	case TRUE:
-		return FALSE
-	case FALSE:
-		return TRUE
-	case NULL:
-		return TRUE
+	case object.TRUE:
+		return object.FALSE
+	case object.FALSE:
+		return object.TRUE
+	case object.NULL:
+		return object.TRUE
 	default:
-		return FALSE
+		return object.FALSE
 	}
 }
 
@@ -3436,7 +3420,7 @@ func (e *Evaluator) evalLshiftPrefixOperatorExpression(right object.Object) obje
 		l := right.(*object.List)
 		listLen := len(l.Elements)
 		if listLen == 0 {
-			return NULL
+			return object.NULL
 		}
 		e := l.Elements[0]
 		if listLen == 1 {
@@ -3480,7 +3464,7 @@ func (e *Evaluator) evalProgram(program *ast.Program) object.Object {
 }
 
 func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object {
-	var result object.Object = NULL
+	var result object.Object = object.NULL
 
 	e.scopeNestLevel++
 	e.isInScopeBlock[e.scopeNestLevel] = struct{}{}
@@ -3519,11 +3503,11 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
 				return result
 			}
-			if result == BREAK {
-				return BREAK
+			if result == object.BREAK {
+				return object.BREAK
 			}
-			if result == CONTINUE {
-				return CONTINUE
+			if result == object.CONTINUE {
+				return object.CONTINUE
 			}
 		}
 	}

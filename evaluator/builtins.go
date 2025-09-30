@@ -165,7 +165,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				s := args[0].(*object.Set)
 				s.Elements.Delete(hk.Value)
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`del` deletes a key from a MAP or index from a LIST",
@@ -281,7 +281,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			l := args[0].(*object.List)
 			if len(l.Elements) == 0 {
-				return NULL
+				return object.NULL
 			}
 			elem := l.Elements[len(l.Elements)-1]
 			l.Elements = l.Elements[:len(l.Elements)-1]
@@ -331,7 +331,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			l := args[0].(*object.List)
 			if len(l.Elements) == 0 {
-				return NULL
+				return object.NULL
 			}
 			elem := l.Elements[0]
 			if len(l.Elements) == 1 {
@@ -420,7 +420,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					fmt.Println(arg.Inspect())
 				}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`println` returns NULL and prints each of args on a new line",
@@ -451,7 +451,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					fmt.Print(arg.Inspect())
 				}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`print` returns NULL and prints each of args",
@@ -633,7 +633,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("error writing file `%s`: %s", fname, err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`_write` writes a STRING or BYTES to a given FILE",
@@ -918,7 +918,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			if len(args) == 1 {
 				if b.Value {
-					return TRUE
+					return object.TRUE
 				} else {
 					return newError("`assert` failed")
 				}
@@ -931,7 +931,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`assert` second argument was not STRING. got=%T", args[1])
 			}
 			if b.Value {
-				return TRUE
+				return object.TRUE
 			}
 			return newError("`assert` failed: %s", msg.Value)
 		},
@@ -984,9 +984,9 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			p := args[0].(*object.Process)
 			_, isAlive := ProcessMap.Load(pk(p.NodeName, p.Id))
 			if isAlive {
-				return TRUE
+				return object.TRUE
 			}
-			return FALSE
+			return object.FALSE
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_alive` returns a BOOLEAN if the given UINTEGER pid is alive",
@@ -1000,14 +1000,14 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) == 0 {
 				os.Exit(0)
 				// Unreachable
-				return NULL
+				return object.NULL
 			} else if len(args) == 1 {
 				if args[0].Type() != object.INTEGER_OBJ {
 					return newError("argument passed to `exit` must be INTEGER. got=%s", args[0].Type())
 				}
 				os.Exit(int(args[0].(*object.Integer).Value))
 				// Unreachable
-				return NULL
+				return object.NULL
 			} else {
 				return newInvalidArgCountError("exit", len(args), 0, "or 1")
 			}
@@ -1061,7 +1061,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`cd` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`cd` returns NULL and changes the current working directory to the given path",
@@ -1117,12 +1117,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			fpath := args[0].(*object.Stringo).Value
 			info, err := os.Stat(fpath)
 			if os.IsNotExist(err) {
-				return FALSE
+				return object.FALSE
 			}
 			if info.IsDir() {
-				return FALSE
+				return object.FALSE
 			}
-			return TRUE
+			return object.TRUE
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_file` returns TRUE if the given STRING path is a file",
@@ -1142,12 +1142,12 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			fpath := args[0].(*object.Stringo).Value
 			info, err := os.Stat(fpath)
 			if err != nil {
-				return FALSE
+				return object.FALSE
 			}
 			if info.IsDir() {
-				return TRUE
+				return object.TRUE
 			}
-			return FALSE
+			return object.FALSE
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_dir` returns TRUE if the given STRING path is a directory",
@@ -1200,13 +1200,13 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err != nil {
 					return newError("`rm` error: %s", err.Error())
 				}
-				return NULL
+				return object.NULL
 			}
 			err = os.Remove(s)
 			if err != nil {
 				return newError("`rm` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`rm` removes the given STRING file or directory path",
@@ -1295,7 +1295,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				}
 				// They should all be false for us to exit
 				if !allDone {
-					return NULL
+					return object.NULL
 				}
 				// 10us sleep between round of checks?
 				time.Sleep(10 * time.Microsecond)
@@ -1319,7 +1319,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			topic := args[0].(*object.Stringo).Value
 			PubSubBroker.Publish(topic, args[1])
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`publish` will publish an OBJECT on a topic STRING to all subscribers of the topic",
@@ -1340,7 +1340,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			if len(args) == 1 {
 				PubSubBroker.BroadcastToAllTopics(args[0])
-				return NULL
+				return object.NULL
 			}
 			l := args[1].(*object.List).Elements
 			topics := make([]string, len(l))
@@ -1351,7 +1351,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				topics[i] = e.(*object.Stringo).Value
 			}
 			PubSubBroker.Broadcast(args[0], topics)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`broadcast` will broadcast an OBJECT to all subscribers of the pubsub broker",
@@ -1381,7 +1381,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			topic := args[1].(*object.Stringo).Value
 			sub.AddTopic(topic)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`add_topic` will add a topic STRING to a subscriber object",
@@ -1411,7 +1411,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			topic := args[1].(*object.Stringo).Value
 			sub.RemoveTopic(topic)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`remove_topic` will remove a topic STRING from a subscriber object",
@@ -1459,7 +1459,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			// Remove should also destruct the subscriber
 			PubSubBroker.RemoveSubscriber(sub)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`unsubscribe` will remove a subscriber object from the pubsub broker",
@@ -1534,7 +1534,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				Value: args[2],
 			})
 			KVMap.Store(topic, m)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`kv_put` puts a value into the kv for a specific topic and key",
@@ -1555,15 +1555,15 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			var m *object.Map
 			m, ok := KVMap.Load(topic)
 			if !ok {
-				// Return NULL if the topic doesn't have a map that exists
-				return NULL
+				// Return object.NULL if the topic doesn't have a map that exists
+				return object.NULL
 			}
 			hashedKey := object.HashObject(args[1])
 			hk := object.HashKey{Type: args[1].Type(), Value: hashedKey}
 			val, ok := m.Pairs.Get(hk)
 			if !ok {
-				// Return NULL if the key doesnt exist on the map at the topic
-				return NULL
+				// Return object.NULL if the key doesnt exist on the map at the topic
+				return object.NULL
 			}
 			return val.Value
 		},
@@ -1586,21 +1586,21 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if len(args) == 1 {
 				// If its 1 we want to delete a topic, and the associated map
 				KVMap.Delete(topic)
-				return NULL
+				return object.NULL
 			} else {
 				// If its 2 we want to delete a key from a map on a topic
 				var m *object.Map
 				m, ok := KVMap.Load(topic)
 				if !ok {
-					// Return NULL if the topic doesn't have a map that exists
+					// Return object.NULL if the topic doesn't have a map that exists
 					// theres nothing to delete in this case
-					return NULL
+					return object.NULL
 				}
 				hashedKey := object.HashObject(args[1])
 				hk := object.HashKey{Type: args[1].Type(), Value: hashedKey}
 				m.Pairs.Delete(hk)
 				KVMap.Store(topic, m)
-				return NULL
+				return object.NULL
 			}
 		},
 		HelpStr: helpStrArgs{
@@ -1715,7 +1715,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("gc", len(args), 0, "")
 			}
 			runtime.GC()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`gc` calls the golang garbage collector",
@@ -1916,7 +1916,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("free_os_mem", len(args), 0, "")
 			}
 			debug.FreeOSMemory()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`free_os_mem` runs gc and returns memory to the os (this happens in background task regardless)",
@@ -1931,7 +1931,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("print_stack_trace", len(args), 0, "")
 			}
 			debug.PrintStack()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`print_stack_trace` prints the current stack trace to stderr",

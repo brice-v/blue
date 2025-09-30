@@ -323,7 +323,7 @@ func createSortedBuiltin(e *Evaluator) *object.Builtin {
 					return l
 				}
 				args[0].(*object.List).Elements = l.Elements
-				return NULL
+				return object.NULL
 			},
 			HelpStr: helpStrArgs{
 				explanation: "`sorted` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int). This function Mutates the underlying List",
@@ -570,7 +570,7 @@ func createLoadBuiltin(e *Evaluator) *object.Builtin {
 				case *object.Boolean:
 					return nativeToBooleanObject(o.Value)
 				case *object.Null:
-					return NULL
+					return object.NULL
 				case *object.StringFunction:
 					l := lexer.New(o.Value, "load")
 					p := parser.New(l)

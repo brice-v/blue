@@ -172,11 +172,11 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 			e.env.Set(ident.Value, o)
 		}
 		// return early if we specifically import some objects
-		return NULL
+		return object.NULL
 	} else if shouldImportAll {
 		// Here we want to import everything from the module
 		fb.Env.SetAllPublicOnEnv(e.env)
-		return NULL
+		return object.NULL
 	}
 
 	mod := &object.Module{Name: name, Env: fb.Env, HelpStr: fb.HelpStr}
@@ -301,7 +301,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			defer f.Close()
 
 			io.Copy(f, resp.Body)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`download` copys the file at the URL to the given file path. if the fpath is empty, then the URL is used to determine the name",
@@ -378,7 +378,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`serve` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`serve` starts the http server listener at the given address/port with the embedded lib web files included if set to true",
@@ -393,7 +393,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("shutdown_server", len(args), 0, "")
 			}
 			interruptCh <- os.Interrupt
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`shutdown_server` shuts down the given http server cleanly. it does not need to happen in the same process",
@@ -443,7 +443,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					Browse: shouldBrowse,
 				})
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`static` serves the given directory as static files for the http server",
@@ -476,7 +476,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`ws_send` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ws_send` sends the given value on the websocket connection, if the value is a string the websocket message type is TextMessage, otherwise if bytes BinaryMessage",
@@ -569,7 +569,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`ws_send` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ws_client_send` sends the given value on the websocket client connection, if the value is a string the websocket message type is TextMessage, otherwise if bytes BinaryMessage",
@@ -641,7 +641,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					return !shouldShow
 				},
 			}))
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`handle_monitor` creates a monitor handler on the given http server at the given path a boolean that determines when it should show",
@@ -783,7 +783,7 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`open_browser` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`open_browser` will open the user's default browser with the given URL",
@@ -808,7 +808,7 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("INTEGER argument to `sleep` must be > 0, got=%d", i)
 			}
 			time.Sleep(time.Duration(i) * time.Millisecond)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`sleep` will sleep and block for the given INTEGER by milliseconds",
@@ -1018,7 +1018,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return &object.Stringo{Value: err.Error()}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`db_ping` pings the connection to the DB to verify connectivity. if no error, null is returned",
@@ -1043,7 +1043,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`db_close` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`db_close` closes the connection to the DB",
@@ -1209,7 +1209,7 @@ var _db_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				for idx, e := range cols {
 					obj := object.CreateObjectFromDbInterface(e)
 					if obj == nil {
-						obj = NULL
+						obj = object.NULL
 					}
 					if !isNamedCols {
 						rowList.Elements[idx] = obj
@@ -2407,7 +2407,7 @@ var _config_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`dump_config` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`dump_config` takes the config map and writes it to a file in the given format",
@@ -2522,7 +2522,7 @@ var _crypto_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("bcrypt error: %s", err.Error())
 			}
-			return TRUE
+			return object.TRUE
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`compare_hash_and_password` returns a true if the given hashed password matches the given password",
@@ -2947,7 +2947,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			default:
 				return newError("`net_close` expects type of 'net/tcp', 'net/udp', or 'net'")
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`net_close` closes the given connection/listener",
@@ -3105,7 +3105,7 @@ var _net_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if n != len(bs) {
 				return newError("`net_write` error: did not write the entire length got=%d, want=%d", n, len(bs))
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`net_write` writes the string/bytes on the given connection in full or to the end_byte (default null)",
@@ -4211,7 +4211,7 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			if err != nil {
 				return newError("`wasm_close` error: %s", err.Error())
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`wasm_close` closes the wasm module and disposes of the resource, currently if an error occurs a string is returned with the error",

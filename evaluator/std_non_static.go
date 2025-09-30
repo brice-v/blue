@@ -57,7 +57,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			height := int32(args[1].(*object.Integer).Value)
 			title := args[2].(*object.Stringo).Value
 			rl.InitWindow(width, height, title)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`init_window` initalizes the gg graphics window with the given width, height, and title",
@@ -72,7 +72,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("close_window", len(args), 0, "")
 			}
 			rl.CloseWindow()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`close_window` closes the gg graphics window",
@@ -129,7 +129,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("begin_drawing", len(args), 0, "")
 			}
 			rl.BeginDrawing()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`begin_drawing` sets up the drawing canvas to start drawing",
@@ -144,7 +144,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("end_drawing", len(args), 0, "")
 			}
 			rl.EndDrawing()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`end_drawing` ends canvas drawing and swaps buffers (double buffering)",
@@ -166,7 +166,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("clear_background", 1, "rl.Color", args[0])
 			}
 			rl.ClearBackground(goObj.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`clear_background` sets the background color to the given color",
@@ -302,7 +302,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			posY := int32(args[2].(*object.Integer).Value)
 			fontSize := int32(args[3].(*object.Integer).Value)
 			rl.DrawText(text, posX, posY, fontSize, goObj.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`draw_text` draws text on the canvas with the given text at (x,y) with font_size, and color",
@@ -339,7 +339,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			posX := int32(args[1].(*object.Integer).Value)
 			posY := int32(args[2].(*object.Integer).Value)
 			rl.DrawTexture(tex.Value, posX, posY, tint.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`draw_texture` draws the 2d texture on the canvas at (x,y) with given tint tint",
@@ -393,7 +393,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("draw_texture_pro", 6, "rl.Color", args[5])
 			}
 			rl.DrawTexturePro(tex.Value, srcRect.Value, dstRect.Value, origin.Value, rotation, tint.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`draw_texture_pro` draws a part of the 2d texture on the canvas with the given source_rec, dest_rec, origin, rotation, and tint",
@@ -431,7 +431,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Color", args[4])
 			}
 			rl.DrawRectangle(posx, posy, width, height, color.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`draw_rectangle` draws a rectangle at the given position with width and height",
@@ -450,7 +450,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			fps := int32(args[0].(*object.Integer).Value)
 			rl.SetTargetFPS(fps)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`set_target_fps` sets the target fps to the given integer",
@@ -469,7 +469,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			}
 			key := int32(args[0].(*object.Integer).Value)
 			rl.SetExitKey(key)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`set_exit_key` sets the exit key to the given key (integer)",
@@ -772,7 +772,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("begin_mode2d", 1, "rl.Camera2D", args[0])
 			}
 			rl.BeginMode2D(cam.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`begin_mode2d` initializes 2d with a custom 2d camera",
@@ -787,7 +787,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("end_mode2d", len(args), 0, "")
 			}
 			rl.EndMode2D()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`end_mode2d` ends 2d camera mode",
@@ -853,7 +853,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("begin_mode3d", 1, "rl.Camera3D", args[0])
 			}
 			rl.BeginMode3D(cam.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`begin_mode3d` begins 3d camera mode with the custom camera",
@@ -868,7 +868,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("end_mode3d", len(args), 0, "")
 			}
 			rl.EndMode3D()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`end_mode3d` ends 3d camera mode",
@@ -883,7 +883,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("init_audio_device", len(args), 0, "")
 			}
 			rl.InitAudioDevice()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`init_audio_device` initalizes the audio device and context",
@@ -898,7 +898,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newInvalidArgCountError("close_audio_device", len(args), 0, "")
 			}
 			rl.CloseAudioDevice()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`close_audio_device` closes the audio device and context",
@@ -951,7 +951,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("update_music", 1, "rl.Music", args[0])
 			}
 			rl.UpdateMusicStream(music.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`update_music` updates the buffer for music streaming from the given music object",
@@ -973,7 +973,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("play_music", 1, "rl.Music", args[0])
 			}
 			rl.PlayMusicStream(music.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`play_music` starts playing the music from the given music object",
@@ -995,7 +995,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("stop_music", 1, "rl.Music", args[0])
 			}
 			rl.StopMusicStream(music.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`stop_music` stops playing the music from the given music object",
@@ -1017,7 +1017,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("resume_music", 1, "rl.Music", args[0])
 			}
 			rl.ResumeMusicStream(music.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`resume_music` resumes playing the paused music from the given music object",
@@ -1039,7 +1039,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("pause_music", 1, "rl.Music", args[0])
 			}
 			rl.PauseMusicStream(music.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`pause_music` pauses the music from the given music object",
@@ -1093,7 +1093,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("play_sound", 1, "rl.Sound", args[0])
 			}
 			rl.PlaySound(sound.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`play_sound` starts playing the sound from the given sound object",
@@ -1115,7 +1115,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("stop_sound", 1, "rl.Sound", args[0])
 			}
 			rl.StopSound(sound.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`stop_sound` stops playing the sound from the given sound object",
@@ -1137,7 +1137,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("resume_sound", 1, "rl.Sound", args[0])
 			}
 			rl.ResumeSound(sound.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`resume_sound` resumes playing the paused sound from the given sound object",
@@ -1159,7 +1159,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeErrorForGoObj("pause_sound", 1, "rl.Sound", args[0])
 			}
 			rl.PauseSound(sound.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`pause_sound` pauses the sound from the given sound object",
@@ -1187,7 +1187,7 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 					}
 				}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`unload` unloads the given objects from the gg object",
@@ -1204,13 +1204,13 @@ func unloadFromRaylib(arg object.Object, pos int) object.Object {
 	}
 	if tex, ok := arg.(*object.GoObj[rl.Texture2D]); ok {
 		rl.UnloadTexture(tex.Value)
-		return NULL
+		return object.NULL
 	} else if music, ok := arg.(*object.GoObj[rl.Music]); ok {
 		rl.UnloadMusicStream(music.Value)
-		return NULL
+		return object.NULL
 	} else if sound, ok := arg.(*object.GoObj[rl.Sound]); ok {
 		rl.UnloadSound(sound.Value)
-		return NULL
+		return object.NULL
 	}
 	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of [rl.Texture2D, rl.Music, rl.Sound]")
 }
@@ -1266,7 +1266,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			w.Resize(fyne.Size{Width: float32(width), Height: float32(height)})
 			w.SetContent(content.Value)
 			w.ShowAndRun()
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`window` runs the window function on the given app to display the ui with the given content",
@@ -1334,7 +1334,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			switch x := progressBar.Value.(type) {
 			case *widget.ProgressBar:
 				x.SetValue(value)
-				return NULL
+				return object.NULL
 			default:
 				return newError("`progress_bar_set_value` error: type mismatch. got=%T", x)
 			}
@@ -1579,7 +1579,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			switch x := entry.Value.(type) {
 			case *widget.Entry:
 				x.SetText(value)
-				return NULL
+				return object.NULL
 			default:
 				return newError("`entry_set_text` error: entry id did not match entry. got=%T", x)
 			}
@@ -1621,7 +1621,7 @@ var _ui_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newError("`append_form` error: id used for form is not form. got=%T", x)
 			}
 			form.Append(args[1].(*object.Stringo).Value, w.Value)
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`append_form` appends a label with the given string and a corresponding widget to the given form",

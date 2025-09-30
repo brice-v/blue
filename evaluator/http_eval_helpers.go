@@ -98,7 +98,7 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 					app.Value.Delete(pattern, goFiberFunc)
 				}
 			}
-			return NULL
+			return object.NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`handle` puts a handler on the server for a given pattern and method, `handle_use` also can use this function if no method is provided",
@@ -387,7 +387,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 				cookieArgs = append(cookieArgs, cookie)
 			}
 			c.ClearCookie(cookieArgs...)
-			return NULL
+			return object.NULL
 		},
 	})
 	mapObj.Set("set_cookie", &object.Builtin{
@@ -416,7 +416,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 				}
 				c.Cookie(cookie)
 			}
-			return NULL
+			return object.NULL
 		},
 	})
 	mapObj.Set("get_cookie", &object.Builtin{
@@ -450,7 +450,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 				return newError("`set_local` error: %s", err.Error())
 			}
 			c.Locals(a, b)
-			return NULL
+			return object.NULL
 		},
 	})
 	mapObj.Set("get_local", &object.Builtin{
@@ -548,7 +548,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 				return fiber.ErrUpgradeRequired
 			})
 
-			var returnObj object.Object = NULL
+			var returnObj object.Object = object.NULL
 			wsHandler := websocket.New(func(c *websocket.Conn) {
 				for k, v := range fn.DefaultParameters {
 					isQueryParams := v != nil && fn.Parameters[k].Value == "query_params"
@@ -624,7 +624,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 						fmt.Printf("%s`handle_ws` error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
 				} else {
-					if returnObj == NULL {
+					if returnObj == object.NULL {
 						// Dont need to log if its null - probably no error then
 						return
 					}

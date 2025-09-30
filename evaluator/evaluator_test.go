@@ -550,8 +550,8 @@ func TestMapLiterals(t *testing.T) {
 		{Type: object.STRING_OBJ, Value: object.HashObject(&object.Stringo{Value: "three"})}: 3,
 		{Type: object.INTEGER_OBJ, Value: object.HashObject(&object.Integer{Value: 4})}:      4,
 
-		{Type: object.BOOLEAN_OBJ, Value: object.HashObject(TRUE)}:  5,
-		{Type: object.BOOLEAN_OBJ, Value: object.HashObject(FALSE)}: 6,
+		{Type: object.BOOLEAN_OBJ, Value: object.HashObject(object.TRUE)}:  5,
+		{Type: object.BOOLEAN_OBJ, Value: object.HashObject(object.FALSE)}: 6,
 	}
 
 	if result.Pairs.Len() != len(expected) {
@@ -678,7 +678,7 @@ val hex_to_encode = crypto.decode(to_encode, as_bytes=true);
 // Helper functions
 
 func testNullObject(t *testing.T, obj object.Object) bool {
-	if obj != NULL {
+	if obj != object.NULL {
 		t.Errorf("object is not NULL. got=%T (%+v)", obj, obj)
 		return false
 	}
