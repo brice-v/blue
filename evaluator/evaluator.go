@@ -8,6 +8,7 @@ import (
 	"blue/parser"
 	"blue/token"
 	"blue/util"
+	"blue/utils"
 	"bytes"
 	"embed"
 	"fmt"
@@ -3203,42 +3204,9 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
 
-	checkOverflow := func(leftVal, rightVal int64) bool {
-		result := leftVal + rightVal
-		return result-leftVal != rightVal
-	}
-	checkUnderflow := func(leftVal, rightVal int64) bool {
-		result := leftVal - rightVal
-		return result+rightVal != leftVal
-	}
-
-	checkOverflowMul := func(leftVal, rightVal int64) bool {
-		if leftVal == 0 || rightVal == 0 || leftVal == 1 || rightVal == 1 {
-			return false
-		}
-		if leftVal == math.MinInt64 || rightVal == math.MinInt64 {
-			return true
-		}
-		result := leftVal * rightVal
-		return result/rightVal != leftVal
-	}
-
-	checkOverflowPow := func(leftVal, rightVal int64) bool {
-		if leftVal == 0 || rightVal == 0 || leftVal == 1 || rightVal == 1 {
-			return false
-		}
-		if leftVal == math.MinInt64 || rightVal == math.MinInt64 {
-			return true
-		}
-		if rightVal > 63 && leftVal > 1 {
-			return true
-		}
-		return false
-	}
-
 	switch operator {
 	case "+":
-		overflowed := checkOverflow(leftVal, rightVal)
+		overflowed := utils.CheckOverflow(leftVal, rightVal)
 		if overflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)
@@ -3247,7 +3215,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		}
 		return &object.Integer{Value: leftVal + rightVal}
 	case "-":
-		underflowed := checkUnderflow(leftVal, rightVal)
+		underflowed := utils.CheckUnderflow(leftVal, rightVal)
 		if underflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)
@@ -3264,7 +3232,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		}
 		return &object.Integer{Value: leftVal / rightVal}
 	case "*":
-		overflowed := checkOverflowMul(leftVal, rightVal)
+		overflowed := utils.CheckOverflowMul(leftVal, rightVal)
 		if overflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)
@@ -3273,7 +3241,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		}
 		return &object.Integer{Value: leftVal * rightVal}
 	case "**":
-		overflowed := checkOverflowPow(leftVal, rightVal)
+		overflowed := utils.CheckOverflowPow(leftVal, rightVal)
 		if overflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)

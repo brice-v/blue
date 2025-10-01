@@ -56,7 +56,7 @@ func isTruthy(obj object.Object) bool {
 }
 
 // newError is the wrapper function to add an error to the evaluator
-func newError(format string, a ...interface{}) *object.Error {
+func newError(format string, a ...any) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
