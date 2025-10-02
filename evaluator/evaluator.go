@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -2583,14 +2584,15 @@ func (e *Evaluator) evalInOrNotinInfixExpression(operator string, left, right ob
 	leftHash := object.HashObject(left)
 	switch rt := right.(type) {
 	case *object.List:
-		if operator == "in" {
+		switch operator {
+		case "in":
 			for _, e := range rt.Elements {
 				if leftHash == object.HashObject(e) {
 					return object.TRUE
 				}
 			}
 			return object.FALSE
-		} else if operator == "notin" {
+		case "notin":
 			for _, e := range rt.Elements {
 				if leftHash == object.HashObject(e) {
 					return object.FALSE
@@ -2599,30 +2601,28 @@ func (e *Evaluator) evalInOrNotinInfixExpression(operator string, left, right ob
 			return object.TRUE
 		}
 	case *object.Set:
-		if operator == "in" {
-			for _, k := range rt.Elements.Keys {
-				if leftHash == k {
-					return object.TRUE
-				}
+		switch operator {
+		case "in":
+			if slices.Contains(rt.Elements.Keys, leftHash) {
+				return object.TRUE
 			}
 			return object.FALSE
-		} else if operator == "notin" {
-			for _, k := range rt.Elements.Keys {
-				if leftHash == k {
-					return object.FALSE
-				}
+		case "notin":
+			if slices.Contains(rt.Elements.Keys, leftHash) {
+				return object.FALSE
 			}
 			return object.TRUE
 		}
 	case *object.Map:
-		if operator == "in" {
+		switch operator {
+		case "in":
 			for _, k := range rt.Pairs.Keys {
 				if leftHash == k.Value {
 					return object.TRUE
 				}
 			}
 			return object.FALSE
-		} else if operator == "notin" {
+		case "notin":
 			for _, k := range rt.Pairs.Keys {
 				if leftHash == k.Value {
 					return object.FALSE
