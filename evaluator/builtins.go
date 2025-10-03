@@ -463,7 +463,8 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"input": {
 		Fun: func(args ...object.Object) object.Object {
 			argLen := len(args)
-			if argLen == 0 {
+			switch argLen {
+			case 0:
 				// read input with no prompt
 				scanner := bufio.NewScanner(os.Stdin)
 				if ok := scanner.Scan(); ok {
@@ -472,7 +473,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				if err := scanner.Err(); err != nil {
 					return newError("`input` error reading standard input: %s", err.Error())
 				}
-			} else if argLen == 1 {
+			case 1:
 				// read input with prompt
 				if args[0].Type() != object.STRING_OBJ {
 					return newPositionalTypeError("input", 1, object.STRING_OBJ, args[0].Type())

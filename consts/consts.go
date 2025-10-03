@@ -37,6 +37,7 @@ func versionFn() string {
 }
 
 const PARSER_ERROR_PREFIX = "ParserError: "
+const COMPILER_ERROR_PREFIX = "CompilerError: "
 const PROCESS_ERROR_PREFIX = "ProcessError: "
 const EVAL_ERROR_PREFIX = "EvaluatorError: "
 

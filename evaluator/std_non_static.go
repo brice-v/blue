@@ -24,11 +24,12 @@ func init() {
 }
 
 func setupBuiltinsWithEvaluator(name string, newE *Evaluator) {
-	if name == "http" {
+	switch name {
+	case "http":
 		_http_builtin_map.Put("_handle", createHttpHandleBuiltin(newE, false))
 		_http_builtin_map.Put("_handle_use", createHttpHandleBuiltin(newE, true))
 		_http_builtin_map.Put("_handle_ws", createHttpHandleWSBuiltin(newE))
-	} else if name == "ui" {
+	case "ui":
 		_ui_builtin_map.Put("_button", createUIButtonBuiltin(newE))
 		_ui_builtin_map.Put("_check_box", createUICheckBoxBuiltin(newE))
 		_ui_builtin_map.Put("_radio_group", createUIRadioBuiltin(newE))

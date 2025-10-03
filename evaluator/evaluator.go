@@ -1507,9 +1507,10 @@ func (e *Evaluator) evalForStatement(node *ast.ForStatement) object.Object {
 			}
 			var ok bool
 			if canFastCalc && condResult != -1 {
-				if condResult == 0 {
+				switch condResult {
+				case 0:
 					ok = true
-				} else if condResult == 1 {
+				case 1:
 					ok = false
 				}
 			} else {
@@ -1692,14 +1693,15 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 			return newError("'%s' is immutable", ident.Value)
 		}
 		operator := node.Token.Literal
-		if operator == "=" {
+		switch operator {
+		case "=":
 			value := e.Eval(node.Value)
 			if isError(value) {
 				return value
 			}
 			e.env.Set(ident.Value, value)
 			return object.NULL
-		} else if operator == "+=" {
+		case "+=":
 			// TODO: If I want to use this, I likely will need to optimize directly in evalForStatement
 
 			// This is a fast pass optimization - can be likely be updated to support others as well
@@ -2657,7 +2659,7 @@ func (e *Evaluator) evalBytesInfixExpression(operator string, left, right object
 			return newError("length of left and right bytes must match to perform bitwise AND operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs))
 		}
 		buf := make([]byte, len(leftBs))
-		for i := 0; i < len(leftBs); i++ {
+		for i := range leftBs {
 			buf[i] = leftBs[i] & rightBs[i]
 		}
 		return &object.Bytes{Value: buf}
@@ -2666,7 +2668,7 @@ func (e *Evaluator) evalBytesInfixExpression(operator string, left, right object
 			return newError("length of left and right bytes must match to perform bitwise OR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs))
 		}
 		buf := make([]byte, len(leftBs))
-		for i := 0; i < len(leftBs); i++ {
+		for i := range leftBs {
 			buf[i] = leftBs[i] | rightBs[i]
 		}
 		return &object.Bytes{Value: buf}
@@ -2675,7 +2677,7 @@ func (e *Evaluator) evalBytesInfixExpression(operator string, left, right object
 			return newError("length of left and right bytes must match to perform bitwise XOR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs))
 		}
 		buf := make([]byte, len(leftBs))
-		for i := 0; i < len(leftBs); i++ {
+		for i := range leftBs {
 			buf[i] = leftBs[i] ^ rightBs[i]
 		}
 		return &object.Bytes{Value: buf}

@@ -625,13 +625,14 @@ func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []object
 	buf.WriteRune('[')
 	for i, e := range elements {
 		elemType := e.Type()
-		if elemType == object.LIST_OBJ {
+		switch elemType {
+		case object.LIST_OBJ:
 			elements1 := e.(*object.List).Elements
 			buf = generateJsonStringFromValidListElements(buf, elements1)
-		} else if elemType == object.MAP_OBJ {
+		case object.MAP_OBJ:
 			pairs := e.(*object.Map).Pairs
 			buf = generateJsonStringFromValidMapObjPairs(buf, pairs)
-		} else {
+		default:
 			buf = generateJsonStringFromOtherValidTypes(buf, e)
 		}
 		if i < len(elements)-1 {
@@ -650,13 +651,14 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.Order
 		mp, _ := pairs.Get(hk)
 		buf.WriteString(fmt.Sprintf("%q:", mp.Key.Inspect()))
 		valueType := mp.Value.Type()
-		if valueType == object.MAP_OBJ {
+		switch valueType {
+		case object.MAP_OBJ:
 			pairs1 := mp.Value.(*object.Map).Pairs
 			buf = generateJsonStringFromValidMapObjPairs(buf, pairs1)
-		} else if valueType == object.LIST_OBJ {
+		case object.LIST_OBJ:
 			elements := mp.Value.(*object.List).Elements
 			buf = generateJsonStringFromValidListElements(buf, elements)
-		} else {
+		default:
 			buf = generateJsonStringFromOtherValidTypes(buf, mp.Value)
 		}
 		if i < length-1 {

@@ -481,10 +481,11 @@ func getAndSetHttpParams(fn *object.Function, c *fiber.Ctx) ([]object.Object, []
 	immutableArgs := make([]bool, len(fnArgs))
 	for i, v := range fn.Parameters {
 		if v != nil {
-			if v.Value == "headers" {
+			switch v.Value {
+			case "headers":
 				// Handle headers
 				fnArgs[i] = getReqHeaderMapObj(c)
-			} else if v.Value == "request" {
+			case "request":
 				req := c.Request()
 				mapObj := object.NewOrderedMap[string, object.Object]()
 				mapObj.Set("method", &object.Stringo{Value: c.Method()})
@@ -500,9 +501,9 @@ func getAndSetHttpParams(fn *object.Function, c *fiber.Ctx) ([]object.Object, []
 				mapObj.Set("is_from_local", nativeToBooleanObject(c.IsFromLocal()))
 				mapObj.Set("is_secure", nativeToBooleanObject(c.Secure()))
 				fnArgs[i] = object.CreateMapObjectForGoMap(*mapObj)
-			} else if v.Value == "ctx" || v.Value == "context" {
+			case "ctx", "context":
 				fnArgs[i] = getCtxFunctionMapObj(c)
-			} else {
+			default:
 				fnArgs[i] = &object.Stringo{Value: c.Params(v.Value)}
 			}
 			immutableArgs[i] = true

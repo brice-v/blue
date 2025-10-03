@@ -60,6 +60,33 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
+	case *ast.PrefixExpression:
+		err := c.Compile(node.Right)
+		if err != nil {
+			return err
+		}
+		switch node.Operator {
+		case "!", "not":
+			c.emit(code.OpNot)
+		case "-":
+			c.emit(code.OpNeg)
+		case "~":
+			c.emit(code.OpTilde)
+		case "<<":
+			c.emit(code.OpLshiftPre)
+		default:
+			return fmt.Errorf("unknown operator %s", node.Operator)
+		}
+	case *ast.PostfixExpression:
+		err := c.Compile(node.Left)
+		if err != nil {
+			return err
+		}
+		if node.Operator == ">>" {
+			c.emit(code.OpRshiftPost)
+		} else {
+			return fmt.Errorf("unknown operator %s", node.Operator)
+		}
 	case *ast.IntegerLiteral:
 		literal := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(literal))
@@ -96,8 +123,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if len(node.InterpolationValues) == 0 {
 			literal := &object.Stringo{Value: node.Value}
 			c.emit(code.OpConstant, c.addConstant(literal))
+		} else {
+			panic("TODO: Implement string with interpolation")
 		}
-		panic("TODO: Implement string with interpolation")
 	// obj := e.evalStringWithInterpolation(node)
 	// if isError(obj) {
 	// 	e.ErrorTokens.Push(node.Token)
@@ -113,14 +141,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpNull)
 	}
 	return nil
-}
-
-func nativeToBooleanObject(ok bool) object.Object {
-	if ok {
-		return object.TRUE
-	} else {
-		return object.FALSE
-	}
 }
 
 func (c *Compiler) Bytecode() *Bytecode {

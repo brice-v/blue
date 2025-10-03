@@ -1,11 +1,13 @@
 package repl
 
 import (
+	"blue/compiler"
 	"blue/consts"
 	"blue/evaluator"
 	"blue/lexer"
 	"blue/parser"
 	"blue/token"
+	"blue/vm"
 	"bytes"
 	"fmt"
 	"io"
@@ -52,6 +54,18 @@ func StartEvalRepl() {
 		os.Exit(0)
 	}
 	startEvalRepl(os.Stdin, os.Stdout, user.Username, "", "")
+	os.Exit(0)
+}
+
+// StartVmRepl start the read Vm print loop for the parser
+func StartVmRepl() {
+	user, err := user.Current()
+	if err != nil {
+		fmt.Println("Unable to get current username, proceeding with none")
+		startVmRepl(os.Stdin, os.Stdout, "", "", "")
+		os.Exit(0)
+	}
+	startVmRepl(os.Stdin, os.Stdout, user.Username, "", "")
 	os.Exit(0)
 }
 
@@ -111,6 +125,77 @@ func startEvalRepl(in io.Reader, out io.Writer, username, nodeName, address stri
 			io.WriteString(out, replVar)
 			io.WriteString(out, " => ")
 			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
+		filebuf.WriteString(line)
+		filebuf.WriteByte('\n')
+	}
+}
+
+// startEvalRepl is the entry point of the repl with an io.Reader as
+// an input and io.Writer as an output
+func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string) {
+	header := fmt.Sprintf("blue | v%s | REPL | MODE: VM | User: %s", consts.VERSION, username)
+	rl, err := readline.New(PROMPT)
+	if err != nil {
+		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
+		os.Exit(1)
+	}
+	consts.InfoPrinter(header + "\n")
+	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
+	var filebuf bytes.Buffer
+	replVarIndx := 1
+	for {
+		line, err := rl.Readline()
+		if err != nil {
+			if err.Error() == "Interrupt" || err.Error() == "EOF" {
+				println(err.Error())
+				os.Exit(0)
+			}
+			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s", err.Error())
+			os.Exit(1)
+			break
+		}
+
+		// if strings.HasPrefix(line, ".") {
+		// 	if strings.HasPrefix(line, ".exit") {
+		// 		io.WriteString(out, "\n")
+		// 		break
+		// 	}
+		// 	err := handleDotCommand(line, out, &filebuf, e)
+		// 	if err != nil {
+		// 		io.WriteString(out, "repl command error: ")
+		// 		io.WriteString(out, err.Error())
+		// 		io.WriteString(out, "\n")
+		// 	}
+		// 	continue
+		// }
+
+		l := lexer.New(line, "<repl>")
+		p := parser.New(l)
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			PrintParserErrors(out, p.Errors())
+			continue
+		}
+		compiled := compiler.New()
+		err = compiled.Compile(program)
+		if err != nil {
+			consts.ErrorPrinter(consts.COMPILER_ERROR_PREFIX + err.Error())
+			continue
+		}
+		v := vm.New(compiled.Bytecode())
+		err = v.Run()
+		if err == nil {
+			replVar := fmt.Sprintf("_%d", replVarIndx)
+			// e.ReplEnvAdd(replVar, evaluated)
+			replVarIndx++
+			io.WriteString(out, replVar)
+			io.WriteString(out, " => ")
+			io.WriteString(out, v.LastPoppedStackElem().Inspect())
+			io.WriteString(out, "\n")
+		} else {
+			io.WriteString(out, err.Error())
 			io.WriteString(out, "\n")
 		}
 		filebuf.WriteString(line)

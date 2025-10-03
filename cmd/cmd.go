@@ -80,6 +80,8 @@ func Run(args ...string) {
 	case "eval":
 	case "-e":
 		handleEvalCommand(argc, arguments)
+	case "vm":
+		handleVmCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
 	default:
@@ -222,6 +224,10 @@ func handleEvalCommand(argc int, arguments []string) {
 		consts.ErrorPrinter("unexpected `eval` arguments. got=%+v\n", arguments)
 		os.Exit(1)
 	}
+}
+
+func handleVmCommand(argc int, arguments []string) {
+	repl.StartVmRepl()
 }
 
 func printNodeErrorUsageAndExit() {

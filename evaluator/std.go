@@ -840,7 +840,7 @@ var _time_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("parse", 1, object.STRING_OBJ, args[0].Type())
 			}
 			s := args[0].(*object.Stringo).Value
-			return &object.Integer{Value: carbon.Parse(s).ToStdTime().UnixMilli()}
+			return &object.Integer{Value: carbon.Parse(s).StdTime().UnixMilli()}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`parse` returns the parsed timestamp a unix timestamp in milliseconds as an INTEGER",
