@@ -8,15 +8,26 @@ import (
 	"regexp"
 )
 
+type EmittedInstruction struct {
+	Opcode   code.Opcode
+	Position int
+}
+
 type Compiler struct {
 	instructions code.Instructions
 	constants    []object.Object
+
+	lastInstruction     EmittedInstruction
+	previousInstruction EmittedInstruction
 }
 
 func New() *Compiler {
 	return &Compiler{
 		instructions: code.Instructions{},
 		constants:    []object.Object{},
+
+		lastInstruction:     EmittedInstruction{},
+		previousInstruction: EmittedInstruction{},
 	}
 }
 
@@ -139,6 +150,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 	case *ast.Null:
 		c.emit(code.OpNull)
+	case *ast.IfExpression:
+		err := c.compileIfExpression(node)
+		if err != nil {
+			return err
+		}
+	case *ast.BlockStatement:
+		for _, s := range node.Statements {
+			err := c.Compile(s)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -158,6 +181,7 @@ func (c *Compiler) addConstant(obj object.Object) int {
 func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	ins := code.Make(op, operands...)
 	pos := c.addInstruction(ins)
+	c.setLastInstruction(op, pos)
 	return pos
 }
 
@@ -165,6 +189,34 @@ func (c *Compiler) addInstruction(ins []byte) int {
 	posNewInstruction := len(c.instructions)
 	c.instructions = append(c.instructions, ins...)
 	return posNewInstruction
+}
+
+func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
+	previous := c.lastInstruction
+	last := EmittedInstruction{Opcode: op, Position: pos}
+	c.previousInstruction = previous
+	c.lastInstruction = last
+}
+
+func (c *Compiler) lastInstructionIs(op code.Opcode) bool {
+	return c.lastInstruction.Opcode == op
+}
+
+func (c *Compiler) removeLastPop() {
+	c.instructions = c.instructions[:c.lastInstruction.Position]
+	c.lastInstruction = c.previousInstruction
+}
+
+func (c *Compiler) replaceInstruction(pos int, newInstruction []byte) {
+	for i := range newInstruction {
+		c.instructions[pos+i] = newInstruction[i]
+	}
+}
+
+func (c *Compiler) changeOperand(opPos int, operand int) {
+	op := code.Opcode(c.instructions[opPos])
+	newInstruction := code.Make(op, operand)
+	c.replaceInstruction(opPos, newInstruction)
 }
 
 type Bytecode struct {
@@ -220,6 +272,46 @@ func (c *Compiler) compileInfixExpression(operator string) error {
 		c.emit(code.OpGreaterThan)
 	default:
 		return fmt.Errorf("unsupported operator: %s", operator)
+	}
+	return nil
+}
+
+func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
+	allEndingJumpPos := []int{}
+	for i := range node.Conditions {
+		err := c.Compile(node.Conditions[i])
+		if err != nil {
+			return err
+		}
+		// Emit an `OpJumpNotTruthy` with a bogus value
+		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
+		err = c.Compile(node.Consequences[i])
+		if err != nil {
+			return err
+		}
+		if c.lastInstructionIs(code.OpPop) {
+			c.removeLastPop()
+		}
+		// Emit an `OpJump` with a bogus value
+		jumpPos := c.emit(code.OpJump, 9999)
+		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
+		afterConsequencePos := len(c.instructions)
+		c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+	}
+	if node.Alternative == nil {
+		c.emit(code.OpNull)
+	} else {
+		err := c.Compile(node.Alternative)
+		if err != nil {
+			return err
+		}
+		if c.lastInstructionIs(code.OpPop) {
+			c.removeLastPop()
+		}
+	}
+	afterAlternativePos := len(c.instructions)
+	for _, jumpPos := range allEndingJumpPos {
+		c.changeOperand(jumpPos, afterAlternativePos)
 	}
 	return nil
 }

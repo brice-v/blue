@@ -85,7 +85,18 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpJump:
+			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip = pos - 1
+		case code.OpJumpNotTruthy:
+			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+			condition := vm.pop()
+			if !isTruthy(condition) {
+				ip = pos - 1
+			}
 		}
+
 	}
 	return nil
 }
@@ -124,14 +135,22 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 
 func (vm *VM) executeNotOperation() error {
 	operand := vm.pop()
-	switch operand {
-	case object.TRUE:
+	isTrue := isTruthy(operand)
+	if isTrue {
 		return vm.push(object.FALSE)
-	case object.FALSE:
+	} else {
 		return vm.push(object.TRUE)
-	default:
-		return vm.push(object.FALSE)
 	}
+	// switch operand {
+	// case object.TRUE:
+	// 	return vm.push(object.FALSE)
+	// case object.FALSE:
+	// 	return vm.push(object.TRUE)
+	// case object.NULL:
+	// 	return vm.push(object.TRUE)
+	// default:
+	// 	return vm.push(object.FALSE)
+	// }
 }
 
 func (vm *VM) executeNegOperation() error {

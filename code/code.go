@@ -73,6 +73,8 @@ const (
 	OpTilde
 	OpLshiftPre
 	OpRshiftPost
+	OpJumpNotTruthy
+	OpJump
 )
 
 type Definition struct {
@@ -113,6 +115,8 @@ var definitions = map[Opcode]*Definition{
 	OpTilde:              {"OpTilde", []int{}},
 	OpLshiftPre:          {"OpLshiftPre", []int{}},
 	OpRshiftPost:         {"OpRshiftPost", []int{}},
+	OpJumpNotTruthy:      {"OpJumpNotTruthy", []int{2}},
+	OpJump:               {"OpJump", []int{2}},
 }
 
 func Lookup(op byte) (*Definition, error) {

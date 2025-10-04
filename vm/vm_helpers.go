@@ -63,3 +63,26 @@ func nativeToBooleanObject(b bool) *object.Boolean {
 	}
 	return object.FALSE
 }
+
+// for now everything that is not null or false returns true
+func isTruthy(obj object.Object) bool {
+	switch obj {
+	case object.NULL:
+		return false
+	case object.TRUE:
+		return true
+	case object.FALSE:
+		return false
+	default:
+		if obj.Type() == object.MAP_OBJ {
+			return len(obj.(*object.Map).Pairs.Keys) > 0
+		}
+		if obj.Type() == object.LIST_OBJ {
+			return len(obj.(*object.List).Elements) > 0
+		}
+		if obj.Type() == object.SET_OBJ {
+			return len(obj.(*object.Set).Elements.Keys) > 0
+		}
+		return true
+	}
+}
