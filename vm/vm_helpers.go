@@ -86,3 +86,12 @@ func isTruthy(obj object.Object) bool {
 		return true
 	}
 }
+
+// isError is the helper function to determine if an object is an error
+func isError(obj object.Object) bool {
+	if obj != nil {
+		_, isError := obj.(*object.Error)
+		return isError
+	}
+	return false
+}

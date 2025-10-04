@@ -5,6 +5,7 @@ import (
 	"blue/consts"
 	"blue/evaluator"
 	"blue/lexer"
+	"blue/object"
 	"blue/parser"
 	"blue/token"
 	"blue/vm"
@@ -141,6 +142,10 @@ func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string
 		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
 		os.Exit(1)
 	}
+
+	constants := []object.Object{}
+	globals := make([]object.Object, vm.GlobalsSize)
+	symbolTable := compiler.NewSymbolTable()
 	consts.InfoPrinter(header + "\n")
 	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
@@ -178,13 +183,15 @@ func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string
 			PrintParserErrors(out, p.Errors())
 			continue
 		}
-		compiled := compiler.New()
+		compiled := compiler.NewWithState(symbolTable, constants)
 		err = compiled.Compile(program)
 		if err != nil {
 			consts.ErrorPrinter(consts.COMPILER_ERROR_PREFIX + err.Error())
 			continue
 		}
-		v := vm.New(compiled.Bytecode())
+		bc := compiled.Bytecode()
+		constants = bc.Constants
+		v := vm.NewWithGlobalsStore(bc, globals)
 		err = v.Run()
 		if err == nil {
 			replVar := fmt.Sprintf("_%d", replVarIndx)

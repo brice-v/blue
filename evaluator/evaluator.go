@@ -597,27 +597,10 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 	names []*ast.Identifier,
 	keyValueNames map[ast.Expression]*ast.Identifier,
 	tok token.Token) object.Object {
-	if isListDestructor {
-		if val.Type() != object.LIST_OBJ {
-			return newError("List Destructor must be used with list value. got=%s", val.Type())
-		}
-	} else if isMapDestructor {
-		if val.Type() != object.MAP_OBJ {
-			return newError("Map Destructor must be used with map value. got=%s", val.Type())
-		}
-	}
-	ifNameInMapSetEnv := func(m object.OrderedMap2[object.HashKey, object.MapPair], name string) bool {
-		for _, k := range m.Keys {
-			mp, _ := m.Get(k)
-			if mp.Key.Type() == object.STRING_OBJ {
-				s := mp.Key.(*object.Stringo).Value
-				if name == s {
-					e.env.Set(name, mp.Value)
-					return true
-				}
-			}
-		}
-		return false
+	if isListDestructor && val.Type() != object.LIST_OBJ {
+		return newError("List Destructor must be used with list value. got=%s", val.Type())
+	} else if isMapDestructor && val.Type() != object.MAP_OBJ {
+		return newError("Map Destructor must be used with map value. got=%s", val.Type())
 	}
 	for i, name := range names {
 		objRef, ok := e.env.GetRef(name.Value)
@@ -639,7 +622,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			e.env.SetObj(name.Value, l[i], isVal)
 		} else if isMapDestructor {
 			m := val.(*object.Map)
-			if !ifNameInMapSetEnv(m.Pairs, name.Value) {
+			if !utils.IfNameInMapSetEnv(e.env, m.Pairs, name.Value) {
 				return newError("Map destructor key name '%s' was not found in map", name.Value)
 			}
 		} else {

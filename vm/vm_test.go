@@ -65,6 +65,44 @@ func testExpectedObject(t *testing.T, expected any, actual object.Object) {
 		if err != nil {
 			t.Errorf("testBooleanObject failed: %s", err)
 		}
+	case []int:
+		array, ok := actual.(*object.List)
+		if !ok {
+			t.Errorf("object not List: %T (%+v)", actual, actual)
+			return
+		}
+		if len(array.Elements) != len(expected) {
+			t.Errorf("wrong num of elements. want=%d, got=%d", len(expected), len(array.Elements))
+			return
+		}
+		for i, expectedElem := range expected {
+			err := testIntegerObject(int64(expectedElem), array.Elements[i])
+			if err != nil {
+				t.Errorf("testIntegerObject failed: %s", err)
+			}
+		}
+	case object.OrderedMap2[object.HashKey, object.MapPair]:
+		m, ok := actual.(*object.Map)
+		if !ok {
+			t.Errorf("object is not map. got=%T (%+v)", actual, actual)
+			return
+		}
+		if m.Pairs.Len() != expected.Len() {
+			t.Errorf("hash has wrong number of Pairs. want=%d, got=%d", expected.Len(), m.Pairs.Len())
+			return
+		}
+		for _, k := range expected.Keys {
+			expectedKey := k
+			expectedValue, _ := expected.Get(k)
+			pair, ok := m.Pairs.Get(expectedKey)
+			if !ok {
+				t.Errorf("no pair for given key in Pairs")
+			}
+			err := testIntegerObject(expectedValue.Value.(*object.Integer).Value, pair.Value)
+			if err != nil {
+				t.Errorf("testIntegerObject failed: %s", err)
+			}
+		}
 	}
 }
 
@@ -134,6 +172,70 @@ func TestConditionals(t *testing.T) {
 		{"if (1 > 2) { 10 } else { 20 }", 20},
 		{"if (not true) { 1 } else if (3>5) { 2 } else if (8>4) { 3 } else { 4 }", 3},
 		{"if ((if (false) { 10 })) { 10 } else { 20 }", 20},
+	}
+	runVmTests(t, tests)
+}
+
+func TestGlobalLetStatements(t *testing.T) {
+	tests := []vmTestCase{
+		{"var one = 1; one", 1},
+		{"var one = 1; var two = 2; one + two", 3},
+		{"var one = 1; var two = one + one; one + two", 3},
+		{"val one = 1; one", 1},
+		{"val one = 1; val two = 2; one + two", 3},
+		{"val one = 1; val two = one + one; one + two", 3},
+	}
+	runVmTests(t, tests)
+}
+
+func TestListLiterals(t *testing.T) {
+	tests := []vmTestCase{
+		{"[]", []int{}},
+		{"[1, 2, 3]", []int{1, 2, 3}},
+		{"[1 + 2, 3 * 4, 5 + 6]", []int{3, 12, 11}},
+	}
+	runVmTests(t, tests)
+}
+
+func TestMapLiterals(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			"{}", object.NewPairsMap(),
+		},
+		{
+			"{1: 2, 2: 3}",
+			createMapPairsWithKeysAndValues([]int64{1, 2}, []int64{2, 3}),
+		},
+	}
+	runVmTests(t, tests)
+}
+
+func createMapPairsWithKeysAndValues(keys, values []int64) object.OrderedMap2[object.HashKey, object.MapPair] {
+	if len(keys) != len(values) {
+		panic("bad testcase")
+	}
+	pairs := object.NewPairsMapWithSize(len(keys))
+	for i := range len(keys) {
+		keyObj := &object.Integer{Value: keys[i]}
+		hk := object.HashKey{Type: object.INTEGER_OBJ, Value: object.HashObject(keyObj)}
+		mp := object.MapPair{Key: keyObj, Value: &object.Integer{Value: values[i]}}
+		pairs.Set(hk, mp)
+	}
+	return pairs
+}
+
+func todoTestIndexExpressions(t *testing.T) {
+	tests := []vmTestCase{
+		{"[1, 2, 3][1]", 2},
+		{"[1, 2, 3][0 + 2]", 3},
+		{"[[1, 1, 1]][0][0]", 1},
+		{"[][0]", object.NULL},
+		{"[1, 2, 3][99]", object.NULL},
+		{"[1][-1]", object.NULL},
+		{"{1: 1, 2: 2}[1]", 1},
+		{"{1: 1, 2: 2}[2]", 2},
+		{"{1: 1}[0]", object.NULL},
+		{"{}[0]", object.NULL},
 	}
 	runVmTests(t, tests)
 }

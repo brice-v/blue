@@ -5,7 +5,9 @@ import (
 	"blue/code"
 	"blue/object"
 	"fmt"
+	"log"
 	"regexp"
+	"sort"
 )
 
 type EmittedInstruction struct {
@@ -19,6 +21,8 @@ type Compiler struct {
 
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
+
+	symbolTable *SymbolTable
 }
 
 func New() *Compiler {
@@ -28,7 +32,16 @@ func New() *Compiler {
 
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+
+		symbolTable: NewSymbolTable(),
 	}
+}
+
+func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
+	compiler := New()
+	compiler.symbolTable = s
+	compiler.constants = constants
+	return compiler
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
@@ -142,6 +155,41 @@ func (c *Compiler) Compile(node ast.Node) error {
 	// 	e.ErrorTokens.Push(node.Token)
 	// }
 	// return obj
+	case *ast.ListLiteral:
+		for _, exp := range node.Elements {
+			err := c.Compile(exp)
+			if err != nil {
+				return err
+			}
+		}
+		c.emit(code.OpList, len(node.Elements))
+	case *ast.SetLiteral:
+		for _, exp := range node.Elements {
+			err := c.Compile(exp)
+			if err != nil {
+				return err
+			}
+		}
+		c.emit(code.OpSet, len(node.Elements))
+	case *ast.MapLiteral:
+		indices := make([]int, len(node.PairsIndex))
+		for k := range node.PairsIndex {
+			indices = append(indices, k)
+		}
+		sort.Ints(indices)
+		for _, i := range indices {
+			keyNode := node.PairsIndex[i]
+			err := c.Compile(keyNode)
+			if err != nil {
+				return err
+			}
+			valueNode := node.Pairs[keyNode]
+			err = c.Compile(valueNode)
+			if err != nil {
+				return err
+			}
+		}
+		c.emit(code.OpMap, len(node.Pairs)*2)
 	case *ast.Boolean:
 		if node.Value {
 			c.emit(code.OpTrue)
@@ -162,6 +210,50 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return err
 			}
 		}
+	case *ast.VarStatement:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+		if node.IsListDestructor || node.IsMapDestructor {
+			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
+		}
+		if len(node.Names) > 1 {
+			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
+		}
+		symbol := c.symbolTable.Define(node.Names[0].Value, false)
+		c.emit(code.OpSetGlobal, symbol.Index)
+	case *ast.ValStatement:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+		if node.IsListDestructor || node.IsMapDestructor {
+			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
+		}
+		if len(node.Names) > 1 {
+			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
+		}
+		symbol := c.symbolTable.Define(node.Names[0].Value, true)
+		c.emit(code.OpSetGlobal, symbol.Index)
+	case *ast.Identifier:
+		symbol, ok := c.symbolTable.Resolve(node.Value)
+		if !ok {
+			return fmt.Errorf("undefined variable %s", node.Value)
+		}
+		c.emit(code.OpGetGlobal, symbol.Index)
+	case *ast.IndexExpression:
+		err := c.Compile(node.Left)
+		if err != nil {
+			return err
+		}
+		err = c.Compile(node.Index)
+		if err != nil {
+			return err
+		}
+		c.emit(code.OpIndex)
+	default:
+		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
 	return nil
 }

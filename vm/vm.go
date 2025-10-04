@@ -9,12 +9,15 @@ import (
 )
 
 const StackSize = 2048
+const GlobalsSize = 65536
 
 type VM struct {
 	constants    []object.Object
 	instructions code.Instructions
 	stack        []object.Object
 	sp           int // Always points to the next value. Top of stack is stack[sp-1]
+
+	globals []object.Object
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
@@ -23,7 +26,15 @@ func New(bytecode *compiler.Bytecode) *VM {
 		constants:    bytecode.Constants,
 		stack:        make([]object.Object, StackSize),
 		sp:           0,
+
+		globals: make([]object.Object, GlobalsSize),
 	}
+}
+
+func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
+	vm := New(bytecode)
+	vm.globals = s
+	return vm
 }
 
 func (vm *VM) StackTop() object.Object {
@@ -94,6 +105,41 @@ func (vm *VM) Run() error {
 			condition := vm.pop()
 			if !isTruthy(condition) {
 				ip = pos - 1
+			}
+		case code.OpSetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2
+			vm.globals[globalIndex] = vm.pop()
+		case code.OpGetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2
+			err := vm.push(vm.globals[globalIndex])
+			if err != nil {
+				return err
+			}
+		case code.OpList:
+			numElems := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+			list := vm.buildList(vm.sp-numElems, vm.sp)
+			vm.sp = vm.sp - numElems
+			err := vm.push(list)
+			if err != nil {
+				return err
+			}
+		case code.OpMap:
+			numPairs := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+			m := vm.buildMap(vm.sp-numPairs, vm.sp)
+			err := vm.push(m)
+			if err != nil {
+				return err
+			}
+		case code.OpIndex:
+			index := vm.pop()
+			left := vm.pop()
+			err := vm.executeIndexExpression(left, index)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -236,4 +282,81 @@ func (vm *VM) executeRshiftPostfixOperation() error {
 	default:
 		return vm.push(newError("unknown operator: %s >>", operand.Type()))
 	}
+}
+
+func (vm *VM) buildList(startIndex, endIndex int) object.Object {
+	elements := make([]object.Object, endIndex-startIndex)
+	for i := startIndex; i < endIndex; i++ {
+		elements[i-startIndex] = vm.stack[i]
+	}
+	return &object.List{Elements: elements}
+}
+
+func (vm *VM) buildSet(startIndex, endIndex int) object.Object {
+	setMap := object.NewSetElementsWithSize(endIndex - startIndex)
+	for i := startIndex; i < endIndex; i++ {
+		elem := vm.stack[i]
+		hashKey := object.HashObject(elem)
+		setMap.Set(hashKey, object.SetPair{Value: elem, Present: struct{}{}})
+	}
+	return &object.Set{Elements: setMap}
+}
+
+func (vm *VM) buildMap(startIndex, endIndex int) object.Object {
+	pairs := object.NewPairsMapWithSize((endIndex - startIndex) / 2)
+	for i := startIndex; i < endIndex; i += 2 {
+		key := vm.stack[i]
+		value := vm.stack[i+1]
+		if isError(key) {
+			return key
+		} else if isError(value) {
+			return value
+		}
+		// TODO: Missing some logic here from evaluator
+		if ok := object.IsHashable(key); !ok {
+			return newError("unusable as a map key: %s", key.Type())
+		}
+		hk := object.HashObject(key)
+		hashed := object.HashKey{Type: key.Type(), Value: hk}
+
+		pairs.Set(hashed, object.MapPair{Key: key, Value: value})
+	}
+	return &object.Map{Pairs: pairs}
+}
+
+func (vm *VM) executeIndexExpression(left, indx object.Object) error {
+	switch {
+	case left.Type() == object.LIST_OBJ:
+		return vm.executeListIndexExpression(left, indx)
+	case left.Type() == object.SET_OBJ:
+		return vm.executeSetIndexExpression(left, indx)
+	case left.Type() == object.MAP_OBJ:
+		return vm.executeMapIndexExpression(left, indx)
+	case left.Type() == object.STRING_OBJ:
+		return vm.executeStringIndexExpression(left, indx)
+	// case left.Type() == object.MODULE_OBJ:
+	// 	return e.evalModuleIndexExpression(left, indx)
+	// case left.Type() == object.PROCESS_OBJ && indx.Type() == object.STRING_OBJ:
+	// 	return e.evalProcessIndexExpression(left, indx)
+	// case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
+	// 	return e.evalBlueStructIndexExpression(left, indx)
+	default:
+		return vm.push(newError("index operator not supported: %s.%s", left.Type(), indx.Type()))
+	}
+}
+
+func (vm *VM) executeListIndexExpression(left, indx object.Object) error {
+	return nil
+}
+
+func (vm *VM) executeSetIndexExpression(left, indx object.Object) error {
+	return nil
+}
+
+func (vm *VM) executeMapIndexExpression(left, indx object.Object) error {
+	return nil
+}
+
+func (vm *VM) executeStringIndexExpression(left, indx object.Object) error {
+	return nil
 }

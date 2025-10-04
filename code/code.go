@@ -75,6 +75,12 @@ const (
 	OpRshiftPost
 	OpJumpNotTruthy
 	OpJump
+	OpSetGlobal
+	OpGetGlobal
+	OpList
+	OpMap
+	OpSet
+	OpIndex
 )
 
 type Definition struct {
@@ -117,6 +123,12 @@ var definitions = map[Opcode]*Definition{
 	OpRshiftPost:         {"OpRshiftPost", []int{}},
 	OpJumpNotTruthy:      {"OpJumpNotTruthy", []int{2}},
 	OpJump:               {"OpJump", []int{2}},
+	OpSetGlobal:          {"OpSetGlobal", []int{2}},
+	OpGetGlobal:          {"OpGetGlobal", []int{2}},
+	OpList:               {"OpList", []int{2}},
+	OpMap:                {"OpMap", []int{2}},
+	OpSet:                {"OpSet", []int{2}},
+	OpIndex:              {"OpIndex", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

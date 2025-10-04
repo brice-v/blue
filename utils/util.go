@@ -1,6 +1,9 @@
 package utils
 
-import "math"
+import (
+	"blue/object"
+	"math"
+)
 
 func CheckOverflow(leftVal, rightVal int64) bool {
 	result := leftVal + rightVal
@@ -32,6 +35,20 @@ func CheckOverflowPow(leftVal, rightVal int64) bool {
 	}
 	if rightVal > 63 && leftVal > 1 {
 		return true
+	}
+	return false
+}
+
+func IfNameInMapSetEnv(env *object.Environment, m object.OrderedMap2[object.HashKey, object.MapPair], name string) bool {
+	for _, k := range m.Keys {
+		mp, _ := m.Get(k)
+		if mp.Key.Type() == object.STRING_OBJ {
+			s := mp.Key.(*object.Stringo).Value
+			if name == s {
+				env.Set(name, mp.Value)
+				return true
+			}
+		}
 	}
 	return false
 }
