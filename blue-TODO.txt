@@ -121,6 +121,12 @@ TODO:
 LATER ON:
 
 - [push to 2 repos at once](https://stackoverflow.com/questions/5620525/git-pushing-to-two-repos-in-one-command)
+```
+brice@brice-laptop:~/wss/blue$ git remote add both git@github.com:brice-v/blue.git
+brice@brice-laptop:~/wss/blue$ git remote set-url --add --push both git@github.com:brice-v/blue.git
+brice@brice-laptop:~/wss/blue$ git remote set-url --add --push both git@git.bricev.xyz:brice/blue.git
+brice@brice-laptop:~/wss/blue$ git push both
+```
 - `go clean -testcache && go test ./...`
 - `go test -cpuprofile cpu.prof -memprofile mem.prof .` (. is the directory)
 - `go tool pprof -http localhost:9999 cpu.prof` (or mem.prof)
