@@ -40,6 +40,8 @@ const (
 
 	i_BREAK_OBJ
 	i_CONTINUE_OBJ
+
+	i_COMPILED_FUNCTION_OBJ
 )
 
 type ObjectWrapper struct {
@@ -485,6 +487,16 @@ func (x *GoObj[T]) Encode() ([]byte, error) {
 
 func (x *GoObj[T]) IType() iType {
 	return i_GO_OBJ
+}
+
+func (x *CompiledFunction) Encode() ([]byte, error) {
+	// return marshalObjectWrapper(x)
+	// TODO: Can probably support this
+	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+}
+
+func (x *CompiledFunction) IType() iType {
+	return i_COMPILED_FUNCTION_OBJ
 }
 
 // The Objects Below cannot be encoded but are included to satisfy the Object interface

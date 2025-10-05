@@ -2,6 +2,7 @@ package object
 
 import (
 	"blue/ast"
+	"blue/code"
 	"blue/consts"
 	"bytes"
 	"fmt"
@@ -68,6 +69,11 @@ const (
 	BREAK_OBJ Type = "BREAK_OBJ"
 	// CONTINUE_OBJ is the continue statement type
 	CONTINUE_OBJ Type = "CONTINUE_OBJ"
+
+	// FOR VM
+
+	// COMPILED_FUNCTION_OBJ is the compiled function object for the VM
+	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
 )
 
 // Type is the object type represented as a string
@@ -755,6 +761,23 @@ func NewBlueStruct(names []string, values []Object) (Object, error) {
 		return nil, fmt.Errorf("failed to create struct: names and values do not have equal lengths")
 	}
 	return &BlueStruct{Fields: names, Values: values}, nil
+}
+
+// CompiledFunction is the compiled function object struct
+type CompiledFunction struct {
+	Instructions code.Instructions
+}
+
+// Type returns the function objects type
+func (cf *CompiledFunction) Type() Type { return COMPILED_FUNCTION_OBJ }
+
+// Inspect returns the string representation of the function
+func (cf *CompiledFunction) Inspect() string {
+	return fmt.Sprintf("CompiledFunction[%p]", cf)
+}
+
+func (cf *CompiledFunction) Help() string {
+	return ""
 }
 
 // ------------------------------- HashKey Stuff --------------------------------
