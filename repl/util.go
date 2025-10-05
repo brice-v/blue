@@ -18,9 +18,10 @@ func handleDotCommand(line string, out io.Writer, fileBuf *bytes.Buffer, e *eval
 		handleHelpCommand(out)
 	}
 	cmd := cmdAndArg[0]
-	if cmd == ".save" {
+	switch cmd {
+	case ".save":
 		return handleSaveCommand(out, fileBuf, cmdAndArg[1])
-	} else if cmd == ".load" {
+	case ".load":
 		return handleLoadCommand(out, fileBuf, cmdAndArg[1], e)
 	}
 	return nil

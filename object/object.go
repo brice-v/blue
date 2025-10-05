@@ -766,6 +766,7 @@ func NewBlueStruct(names []string, values []Object) (Object, error) {
 // CompiledFunction is the compiled function object struct
 type CompiledFunction struct {
 	Instructions code.Instructions
+	NumLocals    int
 }
 
 // Type returns the function objects type

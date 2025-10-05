@@ -41,7 +41,7 @@ func (vm *VM) popFrame() *Frame {
 
 func New(bytecode *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
-	mainFrame := NewFrame(mainFn)
+	mainFrame := NewFrame(mainFn, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
 	return &VM{
@@ -137,11 +137,11 @@ func (vm *VM) Run() error {
 			if !isTruthy(condition) {
 				vm.currentFrame().ip = pos - 1
 			}
-		case code.OpSetGlobal:
+		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2
 			vm.globals[globalIndex] = vm.pop()
-		case code.OpGetGlobal:
+		case code.OpGetGlobal, code.OpGetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2
 			err := vm.push(vm.globals[globalIndex])
@@ -186,20 +186,34 @@ func (vm *VM) Run() error {
 			if !ok {
 				return fmt.Errorf("calling non-function")
 			}
-			frame := NewFrame(fun)
+			frame := NewFrame(fun, vm.sp)
 			vm.pushFrame(frame)
+			vm.sp = frame.bp + fun.NumLocals
 		case code.OpReturnValue:
 			returnValue := vm.pop()
-			vm.popFrame()
-			vm.pop()
+			frame := vm.popFrame()
+			vm.sp = frame.bp - 1
 			err := vm.push(returnValue)
 			if err != nil {
 				return err
 			}
 		case code.OpReturn:
-			vm.popFrame()
-			vm.pop()
+			frame := vm.popFrame()
+			vm.sp = frame.bp - 1
 			err := vm.push(object.NULL)
+			if err != nil {
+				return err
+			}
+		case code.OpSetLocal, code.OpSetLocalImm:
+			localIndex := code.ReadUint8(ins[ip+1:])
+			vm.currentFrame().ip += 1
+			frame := vm.currentFrame()
+			vm.stack[frame.bp+int(localIndex)] = vm.pop()
+		case code.OpGetLocal, code.OpGetLocalImm:
+			localIndex := code.ReadUint8(ins[ip+1:])
+			vm.currentFrame().ip += 1
+			frame := vm.currentFrame()
+			err := vm.push(vm.stack[frame.bp+int(localIndex)])
 			if err != nil {
 				return err
 			}

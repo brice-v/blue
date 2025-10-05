@@ -604,10 +604,10 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 	}
 	for i, name := range names {
 		objRef, ok := e.env.GetRef(name.Value)
-		if ok && objRef.IsImmutable() {
+		if ok && objRef.IsImmutable {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined as immutable, cannot reassign", name.Value)
-		} else if ok && !objRef.IsImmutable() {
+		} else if ok && !objRef.IsImmutable {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined", name.Value)
 		}
@@ -648,10 +648,10 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			Value: object.HashObject(kVal),
 		}
 		obj, ok := e.env.GetRef(name.Value)
-		if ok && obj.IsImmutable() {
+		if ok && obj.IsImmutable {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined as immutable, cannot reassign", name.Value)
-		} else if ok && !obj.IsImmutable() {
+		} else if ok && !obj.IsImmutable {
 			e.ErrorTokens.Push(tok)
 			return newError("'%s' is already defined", name.Value)
 		}
@@ -1672,7 +1672,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		if isError(orig) {
 			return orig
 		}
-		if objRef.IsImmutable() {
+		if objRef.IsImmutable {
 			return newError("'%s' is immutable", ident.Value)
 		}
 		operator := node.Token.Literal

@@ -35,12 +35,8 @@ func NewEnvironment(coreEnv *Environment) *Environment {
 
 type ObjectRef struct {
 	Ref         Object
-	isImmutable bool
+	IsImmutable bool
 	HelpStr     string
-}
-
-func (or *ObjectRef) IsImmutable() bool {
-	return or.isImmutable
 }
 
 // Environment is a map of strings to `Object`s
@@ -111,7 +107,7 @@ func (e *Environment) GetRef(name string) (*ObjectRef, bool) {
 func (e *Environment) SetAllPublicOnEnv(newEnv *Environment) {
 	e.store.Range(func(key string, value *ObjectRef) bool {
 		if !strings.HasPrefix(key, "_") {
-			newEnv.SetObj(key, value.Ref, value.isImmutable)
+			newEnv.SetObj(key, value.Ref, value.IsImmutable)
 		}
 		return true
 	})
@@ -152,13 +148,14 @@ func (e *Environment) Set(name string, val Object) Object {
 
 func (e *Environment) SetObj(name string, val Object, isImmutable bool) Object {
 	helpStr := e.getHelpInPublicFunctionHelpStore(name, val)
-	e.store.Store(name, &ObjectRef{Ref: val, isImmutable: isImmutable, HelpStr: helpStr})
+	objRef := &ObjectRef{Ref: val, HelpStr: helpStr, IsImmutable: isImmutable}
+	e.store.Store(name, objRef)
 	return val
 }
 
 func (e *Environment) SetFunStatementAndHelp(name string, val *Function) Object {
 	helpStr := e.getHelpInPublicFunctionHelpStore(name, val)
-	e.store.Store(name, &ObjectRef{Ref: val, isImmutable: false, HelpStr: helpStr})
+	e.store.Store(name, &ObjectRef{Ref: val, HelpStr: helpStr})
 	return val
 }
 
@@ -187,7 +184,7 @@ func (e *Environment) IsImmutable(name string) bool {
 	if !ok {
 		return ok
 	}
-	return obj.isImmutable
+	return obj.IsImmutable
 }
 
 // RemoveIdentifier removes a key from the environment

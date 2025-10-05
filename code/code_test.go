@@ -13,6 +13,7 @@ func TestMake(t *testing.T) {
 		{OpFalse, []int{}, []byte{byte(OpFalse)}},
 		{OpNull, []int{}, []byte{byte(OpNull)}},
 		{OpAdd, []int{}, []byte{byte(OpAdd)}},
+		{OpGetLocal, []int{255}, []byte{byte(OpGetLocal), 255}},
 	}
 	for _, tt := range tests {
 		instruction := Make(tt.op, tt.operands...)
@@ -53,6 +54,7 @@ func TestReadOperands(t *testing.T) {
 		bytesRead int
 	}{
 		{OpConstant, []int{65535}, 2},
+		{OpGetLocal, []int{255}, 1},
 	}
 	for _, tt := range tests {
 		instruction := Make(tt.op, tt.operands...)
