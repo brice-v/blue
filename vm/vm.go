@@ -353,19 +353,3 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 		return vm.push(newError("index operator not supported: %s.%s", left.Type(), indx.Type()))
 	}
 }
-
-func (vm *VM) executeListIndexExpression(left, indx object.Object) error {
-	return nil
-}
-
-func (vm *VM) executeSetIndexExpression(left, indx object.Object) error {
-	return nil
-}
-
-func (vm *VM) executeMapIndexExpression(left, indx object.Object) error {
-	return nil
-}
-
-func (vm *VM) executeStringIndexExpression(left, indx object.Object) error {
-	return nil
-}

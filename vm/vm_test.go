@@ -224,7 +224,7 @@ func createMapPairsWithKeysAndValues(keys, values []int64) object.OrderedMap2[ob
 	return pairs
 }
 
-func todoTestIndexExpressions(t *testing.T) {
+func TestIndexExpressions(t *testing.T) {
 	tests := []vmTestCase{
 		{"[1, 2, 3][1]", 2},
 		{"[1, 2, 3][0 + 2]", 3},
