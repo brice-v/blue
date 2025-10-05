@@ -140,7 +140,7 @@ var definitions = map[Opcode]*Definition{
 	OpMap:                {"OpMap", []int{2}},
 	OpSet:                {"OpSet", []int{2}},
 	OpIndex:              {"OpIndex", []int{}},
-	OpCall:               {"OpCall", []int{}},
+	OpCall:               {"OpCall", []int{1}},
 	OpReturnValue:        {"OpReturnValue", []int{}},
 	OpReturn:             {"OpReturn", []int{}},
 	OpSetLocal:           {"OpSetLocal", []int{1}},

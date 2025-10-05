@@ -182,13 +182,12 @@ func (vm *VM) Run() error {
 				return err
 			}
 		case code.OpCall:
-			fun, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
-			if !ok {
-				return fmt.Errorf("calling non-function")
+			numArgs := code.ReadUint8(ins[ip+1:])
+			vm.currentFrame().ip++
+			err := vm.callFunction(int(numArgs))
+			if err != nil {
+				return err
 			}
-			frame := NewFrame(fun, vm.sp)
-			vm.pushFrame(frame)
-			vm.sp = frame.bp + fun.NumLocals
 		case code.OpReturnValue:
 			returnValue := vm.pop()
 			frame := vm.popFrame()
@@ -419,4 +418,18 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 	default:
 		return vm.push(newError("index operator not supported: %s.%s", left.Type(), indx.Type()))
 	}
+}
+
+func (vm *VM) callFunction(numArgs int) error {
+	fun, ok := vm.stack[vm.sp-1-numArgs].(*object.CompiledFunction)
+	if !ok {
+		return fmt.Errorf("calling non-function")
+	}
+	if numArgs != fun.NumParameters {
+		return fmt.Errorf("wrong number of arguments: want=%d, got=%d", fun.NumParameters, numArgs)
+	}
+	frame := NewFrame(fun, vm.sp-numArgs)
+	vm.pushFrame(frame)
+	vm.sp = frame.bp + fun.NumLocals
+	return nil
 }
