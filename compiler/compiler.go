@@ -391,6 +391,28 @@ func (c *Compiler) Compile(node ast.Node) error {
 		instructions := c.leaveScope()
 		compiledFun := &object.CompiledFunction{Instructions: instructions, NumLocals: numLocals}
 		c.emit(code.OpConstant, c.addConstant(compiledFun))
+	case *ast.FunctionStatement:
+		c.enterScope()
+		err := c.Compile(node.Body)
+		if err != nil {
+			return err
+		}
+		if c.lastInstructionIs(code.OpPop) {
+			c.replaceLastPopWithReturn()
+		}
+		if !c.lastInstructionIs(code.OpReturnValue) {
+			c.emit(code.OpReturn)
+		}
+		numLocals := c.symbolTable.numDefinitions
+		instructions := c.leaveScope()
+		compiledFun := &object.CompiledFunction{Instructions: instructions, NumLocals: numLocals}
+		c.emit(code.OpConstant, c.addConstant(compiledFun))
+		symbol := c.symbolTable.Define(node.Name.Value, true)
+		if symbol.Scope == GlobalScope {
+			c.emit(code.OpSetGlobalImm, symbol.Index)
+		} else {
+			c.emit(code.OpSetLocalImm, symbol.Index)
+		}
 	case *ast.ReturnStatement:
 		err := c.Compile(node.ReturnValue)
 		if err != nil {
