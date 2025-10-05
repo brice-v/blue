@@ -134,6 +134,15 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpSet:
+			numElems := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+			set := vm.buildSet(vm.sp-numElems, vm.sp)
+			vm.sp = vm.sp - numElems
+			err := vm.push(set)
+			if err != nil {
+				return err
+			}
 		case code.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
