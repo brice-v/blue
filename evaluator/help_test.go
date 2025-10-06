@@ -3,7 +3,7 @@ package evaluator
 import "testing"
 
 func TestAllBuiltinsHaveHelpString(t *testing.T) {
-	for k, v := range builtins.kv {
+	for k, v := range builtins.Kv {
 		if v.HelpStr == "" {
 			t.Fatalf("builtin `%s` does not have help string", k)
 		}
@@ -11,7 +11,7 @@ func TestAllBuiltinsHaveHelpString(t *testing.T) {
 }
 
 func TestAllStringBuiltinsHaveHelpString(t *testing.T) {
-	for k, v := range stringbuiltins.kv {
+	for k, v := range stringbuiltins.Kv {
 		if v.HelpStr == "" {
 			t.Fatalf("string builtin `%s` does not have help string", k)
 		}
@@ -21,7 +21,7 @@ func TestAllStringBuiltinsHaveHelpString(t *testing.T) {
 func TestAllStdFunctionsHaveHelpString(t *testing.T) {
 	for k, v := range _std_mods {
 		// k is the module name
-		for kk, vv := range v.Builtins.kv {
+		for kk, vv := range v.Builtins.Kv {
 			// kk is the builtin name
 			// vv is builtin function object
 			if vv.HelpStr == "" {
