@@ -176,7 +176,7 @@ func TestConditionals(t *testing.T) {
 	runVmTests(t, tests)
 }
 
-func TestGlobalLetStatements(t *testing.T) {
+func TestGlobalVarStatements(t *testing.T) {
 	tests := []vmTestCase{
 		{"var one = 1; one", 1},
 		{"var one = 1; var two = 2; one + two", 3},
@@ -372,6 +372,17 @@ func TestCallingFunctionsWithBindings(t *testing.T) {
 			`,
 			expected: 97,
 		},
+		{
+			input: `fun fib(n) {
+				if n < 2 {
+					return n;
+				}
+
+				return fib(n-1) + fib(n-2);
+			}
+			fib(28);`,
+			expected: 317811,
+		},
 	}
 	runVmTests(t, tests)
 }
@@ -395,8 +406,8 @@ func TestCallingFunctionsWithArgumentsAndBindings(t *testing.T) {
 		{
 			input: `
 			var sum = fun(a, b) {
-			var c = a + b;
-			c;
+				var c = a + b;
+				c;
 			};
 			sum(1, 2);
 			`,
@@ -405,8 +416,8 @@ func TestCallingFunctionsWithArgumentsAndBindings(t *testing.T) {
 		{
 			input: `
 			var sum = fun(a, b) {
-			var c = a + b;
-			c;
+				var c = a + b;
+				c;
 			};
 			sum(1, 2) + sum(3, 4);`,
 			expected: 10,
@@ -414,11 +425,11 @@ func TestCallingFunctionsWithArgumentsAndBindings(t *testing.T) {
 		{
 			input: `
 			var sum = fun(a, b) {
-			var c = a + b;
-			c;
+				var c = a + b;
+				c;
 			};
 			var outer = fun() {
-			sum(1, 2) + sum(3, 4);
+				sum(1, 2) + sum(3, 4);
 			};
 			outer();
 			`,
@@ -459,4 +470,20 @@ func TestCallingFunctionsWithWrongArguments(t *testing.T) {
 			t.Fatalf("wrong VM error: want=%q, got=%q", tt.expected, err)
 		}
 	}
+}
+
+func TestClosures(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			var newClosure = fun(a) {
+				fun() { a; };
+			};
+			var closure = newClosure(99);
+			closure();
+			`,
+			expected: 99,
+		},
+	}
+	runVmTests(t, tests)
 }

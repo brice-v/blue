@@ -88,12 +88,20 @@ func Run(args ...string) {
 		if isFile(command) {
 			// Eval the file
 			noExec := false
+			useVm := false
 			for _, arg := range arguments {
 				if arg == "--no-exec" {
 					noExec = true
 				}
+				if arg == "--vm" {
+					useVm = true
+				}
 			}
-			evalFile(command, noExec)
+			if useVm {
+				vmFile(command, noExec)
+			} else {
+				evalFile(command, noExec)
+			}
 		} else {
 			printUsage()
 		}

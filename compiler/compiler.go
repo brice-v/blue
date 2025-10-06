@@ -352,19 +352,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if !ok {
 			return fmt.Errorf("undefined variable %s", node.Value)
 		}
-		if symbol.Scope == GlobalScope {
-			if symbol.Immutable {
-				c.emit(code.OpGetGlobalImm, symbol.Index)
-			} else {
-				c.emit(code.OpGetGlobal, symbol.Index)
-			}
-		} else {
-			if symbol.Immutable {
-				c.emit(code.OpGetLocalImm, symbol.Index)
-			} else {
-				c.emit(code.OpGetLocal, symbol.Index)
-			}
-		}
+		c.loadSymbol(symbol)
 	case *ast.IndexExpression:
 		err := c.Compile(node.Left)
 		if err != nil {
@@ -390,15 +378,21 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if !c.lastInstructionIs(code.OpReturnValue) {
 			c.emit(code.OpReturn)
 		}
+		freeSymbols := c.symbolTable.FreeSymbols
 		numLocals := c.symbolTable.numDefinitions
 		instructions := c.leaveScope()
+		for _, s := range freeSymbols {
+			c.loadSymbol(s)
+		}
 		compiledFun := &object.CompiledFunction{
 			Instructions:  instructions,
 			NumLocals:     numLocals,
 			NumParameters: len(node.Parameters),
 		}
-		c.emit(code.OpConstant, c.addConstant(compiledFun))
+		funIndex := c.addConstant(compiledFun)
+		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 	case *ast.FunctionStatement:
+		symbol := c.symbolTable.Define(node.Name.Value, true)
 		c.enterScope()
 		for _, p := range node.Parameters {
 			c.symbolTable.Define(p.Value, false)
@@ -413,15 +407,19 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if !c.lastInstructionIs(code.OpReturnValue) {
 			c.emit(code.OpReturn)
 		}
+		freeSymbols := c.symbolTable.FreeSymbols
 		numLocals := c.symbolTable.numDefinitions
 		instructions := c.leaveScope()
+		for _, s := range freeSymbols {
+			c.loadSymbol(s)
+		}
 		compiledFun := &object.CompiledFunction{
 			Instructions:  instructions,
 			NumLocals:     numLocals,
 			NumParameters: len(node.Parameters),
 		}
-		c.emit(code.OpConstant, c.addConstant(compiledFun))
-		symbol := c.symbolTable.Define(node.Name.Value, true)
+		funIndex := c.addConstant(compiledFun)
+		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 		if symbol.Scope == GlobalScope {
 			c.emit(code.OpSetGlobalImm, symbol.Index)
 		} else {
@@ -541,4 +539,30 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		c.changeOperand(jumpPos, afterAlternativePos)
 	}
 	return nil
+}
+
+func (c *Compiler) loadSymbol(s Symbol) {
+	if s.Immutable {
+		switch s.Scope {
+		case GlobalScope:
+			c.emit(code.OpGetGlobalImm, s.Index)
+		case LocalScope:
+			c.emit(code.OpGetLocalImm, s.Index)
+		case BuiltinScope:
+			// c.emit(code.OpGetBuiltin, s.Index)
+		case FreeScope:
+			c.emit(code.OpGetFreeImm, s.Index)
+		}
+	} else {
+		switch s.Scope {
+		case GlobalScope:
+			c.emit(code.OpGetGlobal, s.Index)
+		case LocalScope:
+			c.emit(code.OpGetLocal, s.Index)
+		case BuiltinScope:
+			// c.emit(code.OpGetBuiltin, s.Index)
+		case FreeScope:
+			c.emit(code.OpGetFree, s.Index)
+		}
+	}
 }

@@ -74,6 +74,8 @@ const (
 
 	// COMPILED_FUNCTION_OBJ is the compiled function object for the VM
 	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
+	// CLOSURE_OBJ is the closure function object for the VM
+	CLOSURE_OBJ = "CLOSURE_OBJ"
 )
 
 // Type is the object type represented as a string
@@ -779,6 +781,24 @@ func (cf *CompiledFunction) Inspect() string {
 }
 
 func (cf *CompiledFunction) Help() string {
+	return ""
+}
+
+// Closure is the compiled function object struct
+type Closure struct {
+	Fun  *CompiledFunction
+	Free []Object
+}
+
+// Type returns the function objects type
+func (cf *Closure) Type() Type { return CLOSURE_OBJ }
+
+// Inspect returns the string representation of the function
+func (cf *Closure) Inspect() string {
+	return fmt.Sprintf("Closure[%p]", cf)
+}
+
+func (cf *Closure) Help() string {
 	return ""
 }
 

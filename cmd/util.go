@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"blue/compiler"
 	"blue/consts"
 	"blue/evaluator"
 	"blue/lexer"
@@ -8,6 +9,7 @@ import (
 	"blue/parser"
 	"blue/repl"
 	"blue/token"
+	"blue/vm"
 	"bytes"
 	"fmt"
 	"io"
@@ -123,6 +125,64 @@ func evalFile(fpath string, noExec bool) {
 	// if evaluated != nil {
 	// 	os.Stdout.WriteString(evaluated.Inspect() + "\n")
 	// }
+}
+
+func vmFile(fpath string, noExec bool) {
+	data, err := os.ReadFile(fpath)
+	if err != nil {
+		consts.ErrorPrinter("`vm` error trying to read file `%s`. error: %s\n", fpath, err.Error())
+		os.Exit(1)
+	}
+
+	l := lexer.New(string(data), fpath)
+
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		repl.PrintParserErrors(out, p.Errors())
+		os.Exit(1)
+	}
+	constants := []object.Object{}
+	globals := make([]object.Object, vm.GlobalsSize)
+	symbolTable := compiler.NewSymbolTable()
+	compiled := compiler.NewWithState(symbolTable, constants)
+	err = compiled.Compile(program)
+	if err != nil {
+		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
+		os.Exit(1)
+	}
+	bc := compiled.Bytecode()
+	v := vm.NewWithGlobalsStore(bc, globals)
+	err = v.Run()
+	if err != nil {
+		consts.ErrorPrinter("`%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
+		os.Exit(1)
+	}
+	val := v.LastPoppedStackElem()
+	if val.Type() == object.ERROR_OBJ {
+		errorObj := val.(*object.Error)
+		var buf bytes.Buffer
+		buf.WriteString(errorObj.Message)
+		buf.WriteByte('\n')
+		// for e.ErrorTokens.Len() > 0 {
+		// 	buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
+		// 	buf.WriteByte('\n')
+		// }
+		msg := fmt.Sprintf("%s%s", consts.VM_ERROR_PREFIX, buf.String())
+		splitMsg := strings.Split(msg, "\n")
+		for i, s := range splitMsg {
+			if i == 0 {
+				consts.ErrorPrinter(s + "\n")
+				continue
+			}
+			delimeter := ""
+			if i != len(splitMsg)-1 {
+				delimeter = "\n"
+			}
+			fmt.Fprintf(out, "%s%s", s, delimeter)
+		}
+		os.Exit(1)
+	}
 }
 
 // evalString evaluates the given string
