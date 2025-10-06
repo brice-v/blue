@@ -1,6 +1,8 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // CreateBasicMapObject creates an object that looks like {'t': objType, 'v': objValue}
 // This is currently being used for `spawn` and `db.open()` so that a unique return value
@@ -101,4 +103,24 @@ func createHelpStringForObject(name, desc string, obj Object) string {
 
 func IsCollectionType(t Type) bool {
 	return t == LIST_OBJ || t == SET_OBJ || t == MAP_OBJ
+}
+
+// newError is the wrapper function to add an error to the evaluator
+func newError(format string, a ...any) *Error {
+	return &Error{Message: fmt.Sprintf(format, a...)}
+}
+
+func newPositionalTypeError(funName string, pos int, expectedType Type, currentType Type) *Error {
+	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%s", funName, pos, expectedType, currentType)
+}
+
+func newPositionalTypeErrorForGoObj(funName string, pos int, expectedType Type, currentObj any) *Error {
+	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%T", funName, pos, expectedType, currentObj)
+}
+
+func newInvalidArgCountError(funName string, got, want int, otherCount string) *Error {
+	if otherCount == "" {
+		return newError("InvalidArgCountError: `%s` wrong number of args. got=%d, want=%d", funName, got, want)
+	}
+	return newError("InvalidArgCountError: `%s` wrong number of args. got=%d, want=%d %s", funName, got, want, otherCount)
 }

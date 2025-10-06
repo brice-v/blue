@@ -103,6 +103,15 @@ func testExpectedObject(t *testing.T, expected any, actual object.Object) {
 				t.Errorf("testIntegerObject failed: %s", err)
 			}
 		}
+	case *object.Error:
+		errObj, ok := actual.(*object.Error)
+		if !ok {
+			t.Errorf("object is not Error: %T (%+v)", actual, actual)
+			return
+		}
+		if errObj.Message != expected.Message {
+			t.Errorf("wrong error message. expected=%q, got=%q", expected.Message, errObj.Message)
+		}
 	}
 }
 
@@ -483,6 +492,34 @@ func TestClosures(t *testing.T) {
 			closure();
 			`,
 			expected: 99,
+		},
+	}
+	runVmTests(t, tests)
+}
+
+func TestBuiltinFunctions(t *testing.T) {
+	tests := []vmTestCase{
+		{`len("")`, 0},
+		{`len("four")`, 4},
+		{`len("hello world")`, 11},
+		{
+			`len(1)`,
+			&object.Error{
+				Message: "PositionalTypeError: `len` expects argument 1 to be STRING, LIST, MAP, SET, or BYTES. got=INTEGER",
+			},
+		},
+		{`len("one", "two")`,
+			&object.Error{
+				Message: "InvalidArgCountError: `len` wrong number of args. got=2, want=1",
+			},
+		},
+		{`len([1, 2, 3])`, 3},
+		{`len([])`, 0},
+		{`print("hello", "world!")`, object.NULL},
+		{`push([], 1)`, 1},
+		{`push(1, 1)`, &object.Error{
+			Message: "PositionalTypeError: `push` expects argument 1 to be LIST. got=INTEGER",
+		},
 		},
 	}
 	runVmTests(t, tests)

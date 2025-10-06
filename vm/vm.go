@@ -233,6 +233,14 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpGetBuiltin:
+			builtinIndex := code.ReadUint8(ins[ip+1:])
+			vm.currentFrame().ip += 1
+			definition := object.Builtins[builtinIndex]
+			err := vm.push(definition.Builtin)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -441,8 +449,8 @@ func (vm *VM) executeCall(numArgs int) error {
 	switch callee := callee.(type) {
 	case *object.Closure:
 		return vm.callClosure(callee, numArgs)
-	// case *object.Builtin:
-	// 	return vm.callBuiltin(callee, numArgs)
+	case *object.Builtin:
+		return vm.callBuiltin(callee, numArgs)
 	default:
 		return fmt.Errorf("calling non-closure and non-builtin %T", callee)
 	}
@@ -471,4 +479,11 @@ func (vm *VM) pushClosure(constIndex, numFree int) error {
 	vm.sp = vm.sp - numFree
 	closure := &object.Closure{Fun: function, Free: free}
 	return vm.push(closure)
+}
+
+func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
+	args := vm.stack[vm.sp-numArgs : vm.sp]
+	result := builtin.Fun(args...)
+	vm.sp = vm.sp - numArgs - 1
+	return vm.push(result)
 }

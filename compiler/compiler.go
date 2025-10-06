@@ -31,6 +31,10 @@ type CompilationScope struct {
 }
 
 func New() *Compiler {
+	symbolTable := NewSymbolTable()
+	for i, v := range object.Builtins {
+		symbolTable.DefineBuiltin(i, v.Name)
+	}
 	mainScope := CompilationScope{
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
@@ -38,7 +42,7 @@ func New() *Compiler {
 	}
 	return &Compiler{
 		constants:   []object.Object{},
-		symbolTable: NewSymbolTable(),
+		symbolTable: symbolTable,
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
 	}
@@ -549,7 +553,7 @@ func (c *Compiler) loadSymbol(s Symbol) {
 		case LocalScope:
 			c.emit(code.OpGetLocalImm, s.Index)
 		case BuiltinScope:
-			// c.emit(code.OpGetBuiltin, s.Index)
+			c.emit(code.OpGetBuiltin, s.Index)
 		case FreeScope:
 			c.emit(code.OpGetFreeImm, s.Index)
 		}
@@ -560,7 +564,7 @@ func (c *Compiler) loadSymbol(s Symbol) {
 		case LocalScope:
 			c.emit(code.OpGetLocal, s.Index)
 		case BuiltinScope:
-			// c.emit(code.OpGetBuiltin, s.Index)
+			c.emit(code.OpGetBuiltin, s.Index)
 		case FreeScope:
 			c.emit(code.OpGetFree, s.Index)
 		}
