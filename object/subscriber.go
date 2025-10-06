@@ -1,7 +1,6 @@
-package pubsub
+package object
 
 import (
-	"blue/object"
 	"sync"
 )
 
@@ -53,14 +52,14 @@ func (s *Subscriber) Signal(msg *Message) {
 	}
 }
 
-func (s *Subscriber) PollMessage() object.Object {
+func (s *Subscriber) PollMessage() Object {
 	// Listens to the message channel, prints once received.
 	for {
 		if msg, ok := <-s.messages; ok {
-			mapObj := object.NewOrderedMap[string, object.Object]()
-			mapObj.Set("topic", &object.Stringo{Value: msg.getTopic()})
+			mapObj := NewOrderedMap[string, Object]()
+			mapObj.Set("topic", &Stringo{Value: msg.getTopic()})
 			mapObj.Set("msg", msg.getMessage())
-			return object.CreateMapObjectForGoMap(*mapObj)
+			return CreateMapObjectForGoMap(*mapObj)
 		}
 	}
 }

@@ -92,7 +92,7 @@ func evalFile(fpath string, noExec bool) {
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
-	evaluator.NoExec = noExec
+	object.NoExec = noExec
 	e := evaluator.New()
 	e.CurrentFile = filepath.Clean(fpath)
 	e.EvalBasePath = filepath.Dir(fpath)
@@ -195,7 +195,7 @@ func evalString(strToEval string, noExec bool) {
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
-	evaluator.NoExec = noExec
+	object.NoExec = noExec
 	e := evaluator.New()
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {

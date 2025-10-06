@@ -12,8 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -85,7 +83,7 @@ func isError(obj object.Object) bool {
 }
 
 func ExecStringCommand(str string) object.Object {
-	if NoExec {
+	if object.NoExec {
 		return newError("cannot execute string command `%s`. NoExec set to true.", str)
 	}
 	splitStr := strings.Split(str, " ")
@@ -849,21 +847,6 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 	}
 }
 
-// TODO: Eventually allow MAPs to be more variable
-func anyBlueObjectToGoObject(blueObject object.Object) (interface{}, error) {
-	if blueObject == nil {
-		return nil, fmt.Errorf("blueObjectToGoObject: blueObject must not be nil")
-	}
-	switch blueObject.Type() {
-	case object.STRING_OBJ, object.INTEGER_OBJ, object.FLOAT_OBJ, object.NULL_OBJ, object.BOOLEAN_OBJ, object.MAP_OBJ, object.LIST_OBJ, object.SET_OBJ:
-		return blueObjectToGoObject(blueObject)
-	case object.UINTEGER_OBJ:
-		return blueObject.(*object.UInteger).Value, nil
-	default:
-		return nil, fmt.Errorf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
-	}
-}
-
 // goObjectToBlueObject will only work for simple go types
 func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 	switch obj := goObject.(type) {
@@ -986,79 +969,6 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 	default:
 		return nil, fmt.Errorf("goObjectToBlueObject: TODO: Type currently unsupported: (%T)", obj)
 	}
-}
-
-func getBlueObjectFromResp(resp *http.Response) object.Object {
-	_body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	defer resp.Body.Close()
-	body := &object.Stringo{Value: string(_body)}
-	contentLength := &object.Integer{Value: resp.ContentLength}
-	headersToMapObj := func(header http.Header) object.Object {
-		mapObj := object.NewOrderedMap[string, object.Object]()
-		for k, v := range header {
-			list := &object.List{Elements: make([]object.Object, len(v))}
-			for i, e := range v {
-				list.Elements[i] = &object.Stringo{Value: e}
-			}
-			mapObj.Set(k, list)
-		}
-		return object.CreateMapObjectForGoMap(*mapObj)
-	}
-	headers := headersToMapObj(resp.Header)
-	proto := &object.Stringo{Value: resp.Proto}
-	requestToMapObj := func(req *http.Request) object.Object {
-		mapObj := object.NewOrderedMap[string, object.Object]()
-		mapObj.Set("method", &object.Stringo{Value: req.Method})
-		mapObj.Set("proto", &object.Stringo{Value: req.Proto})
-		mapObj.Set("url", &object.Stringo{Value: req.URL.String()})
-		return object.CreateMapObjectForGoMap(*mapObj)
-	}
-	request := requestToMapObj(resp.Request)
-	rawStatus := &object.Stringo{Value: resp.Status}
-	status := &object.Integer{Value: int64(resp.StatusCode)}
-
-	trailer := headersToMapObj(resp.Trailer)
-	transferEncoding := &object.List{Elements: make([]object.Object, len(resp.TransferEncoding))}
-	for i, v := range resp.TransferEncoding {
-		transferEncoding.Elements[i] = &object.Stringo{Value: v}
-	}
-	uncompressed := nativeToBooleanObject(resp.Uncompressed)
-	_cookies := resp.Cookies()
-	cookieToMapObj := func(c *http.Cookie) object.Object {
-		mapObj := object.NewOrderedMap[string, object.Object]()
-		mapObj.Set("name", &object.Stringo{Value: c.Name})
-		mapObj.Set("value", &object.Stringo{Value: c.Value})
-		mapObj.Set("path", &object.Stringo{Value: c.Path})
-		mapObj.Set("domain", &object.Stringo{Value: c.Domain})
-		mapObj.Set("expires", &object.Integer{Value: c.Expires.Unix()})
-		mapObj.Set("http_only", nativeToBooleanObject(c.HttpOnly))
-		mapObj.Set("secure", nativeToBooleanObject(c.Secure))
-		mapObj.Set("samesite", &object.Integer{Value: int64(c.SameSite)})
-		mapObj.Set("raw", &object.Stringo{Value: c.String()})
-		return object.CreateMapObjectForGoMap(*mapObj)
-	}
-	cookies := &object.List{Elements: make([]object.Object, len(_cookies))}
-	for i, c := range _cookies {
-		cookies.Elements[i] = cookieToMapObj(c)
-	}
-
-	returnMap := object.NewOrderedMap[string, object.Object]()
-	returnMap.Set("status", status)
-	returnMap.Set("body", body)
-	returnMap.Set("content_len", contentLength)
-	returnMap.Set("headers", headers)
-	returnMap.Set("proto", proto)
-	returnMap.Set("request", request)
-	returnMap.Set("raw_status", rawStatus)
-	returnMap.Set("trailer", trailer)
-	returnMap.Set("transfer_encoding", transferEncoding)
-	returnMap.Set("uncompressed", uncompressed)
-	returnMap.Set("cookies", cookies)
-
-	return object.CreateMapObjectForGoMap(*returnMap)
 }
 
 // Helper for `doc` command

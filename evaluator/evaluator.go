@@ -10,7 +10,6 @@ import (
 	"blue/util"
 	"blue/utils"
 	"bytes"
-	"embed"
 	"fmt"
 	"io"
 	"math"
@@ -25,14 +24,6 @@ import (
 
 	"github.com/shopspring/decimal"
 )
-
-// IsEmbed is a global variable to be used to determine whether the code is on the os
-// or if it has been embedded
-var IsEmbed = false
-var Files embed.FS
-
-// NoExec is a global to prevent execution of shell commands on the system
-var NoExec = false
 
 type Evaluator struct {
 	env *object.Environment
@@ -105,7 +96,7 @@ func NewNode(nodeName, address string) *Evaluator {
 	e := &Evaluator{
 		env: object.NewEnvironmentWithoutCore(),
 
-		PID:      pidCount.Load(),
+		PID:      object.PidCount.Load(),
 		NodeName: nodeName,
 
 		EvalBasePath: cEvalBasePath,
@@ -149,7 +140,7 @@ func NewNode(nodeName, address string) *Evaluator {
 
 		NodeName: nodeName,
 	}
-	ProcessMap.LoadOrStore(pk(nodeName, e.PID), process)
+	object.ProcessMap.LoadOrStore(object.Pk(nodeName, e.PID), process)
 
 	return e
 }
@@ -684,7 +675,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	fpath := e.createFilePathFromImportPath(name)
 	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
 	var inputStr string
-	if !IsEmbed {
+	if !object.IsEmbed {
 		file, err := filepath.Abs(fpath)
 		if err != nil {
 			return newError("Failed to import '%s'. Could not get absolute filepath.", name)
@@ -700,7 +691,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 		}
 		inputStr = string(fileData)
 	} else {
-		fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + fpath)
+		fileData, err := object.Files.ReadFile(consts.EMBED_FILES_PREFIX + fpath)
 		if err != nil {
 			return newError("Failed to import '%s'. Could not read the file at path '%s'.", name, fpath)
 		}
@@ -847,7 +838,7 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 		}
 	}
 	fun := arg0.(*object.Function)
-	pid := pidCount.Add(1)
+	pid := object.PidCount.Add(1)
 	process := &object.Process{
 		Id: pid,
 		// TODO: Eventually update to non-buffered and update send and recv as needed
@@ -855,7 +846,7 @@ func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object
 
 		NodeName: e.NodeName,
 	}
-	ProcessMap.Store(pk(e.NodeName, pid), process)
+	object.ProcessMap.Store(object.Pk(e.NodeName, pid), process)
 	go spawnFunction(pid, e.NodeName, fun, arg1)
 	return process
 }
@@ -877,7 +868,7 @@ func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 objec
 		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, buf.String())
 	}
 	// Delete from concurrent map and close channel (not 100% sure its necessary)
-	if process, ok := ProcessMap.LoadAndDelete(pk(nodeName, pid)); ok {
+	if process, ok := object.ProcessMap.LoadAndDelete(object.Pk(nodeName, pid)); ok {
 		close(process.Ch)
 	}
 }
@@ -914,7 +905,7 @@ func (e *Evaluator) evalDeferExpression(node *ast.DeferExpression) object.Object
 }
 
 func (e *Evaluator) evalSelfExpression(_ *ast.SelfExpression) object.Object {
-	if p, ok := ProcessMap.Load(pk(e.NodeName, e.PID)); ok {
+	if p, ok := object.ProcessMap.Load(object.Pk(e.NodeName, e.PID)); ok {
 		return p
 	}
 	return newError("`self` error: process not found")

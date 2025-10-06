@@ -560,12 +560,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_texture", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
-			if IsEmbed {
+			if object.IsEmbed {
 				s := fname
 				if strings.HasPrefix(s, "./") {
 					s = strings.TrimLeft(s, "./")
 				}
-				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				fileData, err := object.Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
 					ext := filepath.Ext(s)
 					img := rl.LoadImageFromMemory(ext, fileData, int32(len(fileData)))
@@ -917,12 +917,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_music", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
-			if IsEmbed {
+			if object.IsEmbed {
 				s := fname
 				if strings.HasPrefix(s, "./") {
 					s = strings.TrimLeft(s, "./")
 				}
-				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				fileData, err := object.Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
 					ext := filepath.Ext(s)
 					music := rl.LoadMusicStreamFromMemory(ext, fileData, int32(len(fileData)))
@@ -1058,12 +1058,12 @@ var _gg_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 				return newPositionalTypeError("load_sound", 1, object.STRING_OBJ, args[0].Type())
 			}
 			fname := args[0].(*object.Stringo).Value
-			if IsEmbed {
+			if object.IsEmbed {
 				s := fname
 				if strings.HasPrefix(s, "./") {
 					s = strings.TrimLeft(s, "./")
 				}
-				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				fileData, err := object.Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
 					ext := filepath.Ext(s)
 					wav := rl.LoadWaveFromMemory(ext, fileData, int32(len(fileData)))

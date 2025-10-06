@@ -1,13 +1,11 @@
-package pubsub
-
-import "blue/object"
+package object
 
 type Message struct {
 	topic string
-	body  object.Object
+	body  Object
 }
 
-func NewMessage(topic string, msg object.Object) *Message {
+func NewMessage(topic string, msg Object) *Message {
 	// Returns the message object
 	return &Message{
 		topic: topic,
@@ -20,7 +18,7 @@ func (m *Message) getTopic() string {
 	return m.topic
 }
 
-func (m *Message) getMessage() object.Object {
+func (m *Message) getMessage() Object {
 	// returns the message body.
 	return m.body
 }

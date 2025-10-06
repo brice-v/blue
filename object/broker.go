@@ -1,7 +1,6 @@
-package pubsub
+package object
 
 import (
-	"blue/object"
 	"sync"
 )
 
@@ -55,7 +54,7 @@ func (b *Broker) RemoveSubscriber(s *Subscriber) {
 	s.destruct()
 }
 
-func (b *Broker) Broadcast(msg object.Object, topics []string) {
+func (b *Broker) Broadcast(msg Object, topics []string) {
 	// broadcast message to all topics mentioned
 	for _, topic := range topics {
 		for _, s := range b.topics[topic] {
@@ -67,7 +66,7 @@ func (b *Broker) Broadcast(msg object.Object, topics []string) {
 	}
 }
 
-func (b *Broker) BroadcastToAllTopics(msg object.Object) {
+func (b *Broker) BroadcastToAllTopics(msg Object) {
 	// broadcast message to all topics mentioned
 	for topic := range b.topics {
 		for _, s := range b.topics[topic] {
@@ -100,7 +99,7 @@ func (b *Broker) Unsubscribe(s *Subscriber, topic string) {
 	s.RemoveTopic(topic)
 }
 
-func (b *Broker) Publish(topic string, msg object.Object) {
+func (b *Broker) Publish(topic string, msg Object) {
 	// publish the message to given topic.
 	b.mut.RLock()
 	defer b.mut.RUnlock()

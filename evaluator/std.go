@@ -187,7 +187,7 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 // var goObjDecoders = map[string]any{}
 
 func NewGoObj[T any](obj T) *object.GoObj[T] {
-	gob := &object.GoObj[T]{Value: obj, Id: GoObjId.Add(1)}
+	gob := &object.GoObj[T]{Value: obj, Id: object.GoObjId.Add(1)}
 	// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
 	// t := fmt.Sprintf("%T", gob)
 	// if _, ok := goObjDecoders[t]; !ok {
@@ -426,11 +426,11 @@ var _http_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			prefix := args[1].(*object.Stringo).Value
 			fpath := args[2].(*object.Stringo).Value
 			shouldBrowse := args[3].(*object.Boolean).Value
-			if IsEmbed {
+			if object.IsEmbed {
 				if strings.HasPrefix(fpath, "./") {
 					fpath = strings.TrimLeft(fpath, "./")
 				}
-				sub, err := fs.Sub(Files, consts.EMBED_FILES_PREFIX+fpath)
+				sub, err := fs.Sub(object.Files, consts.EMBED_FILES_PREFIX+fpath)
 				if err != nil {
 					return newError("`static` error: %s", err.Error())
 				}
@@ -4011,12 +4011,12 @@ var _wasm_builtin_map = NewBuiltinObjMap(BuiltinMapTypeInternal{
 			timeoutDuration := time.Duration(args[11].(*object.Integer).Value)
 
 			var bs []byte
-			if IsEmbed {
+			if object.IsEmbed {
 				s := wasmCodePath
 				if strings.HasPrefix(s, "./") {
 					s = strings.TrimLeft(s, "./")
 				}
-				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
+				fileData, err := object.Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
 					// Fallback option for reading when in embedded context
 					fileData, err := os.ReadFile(wasmCodePath)
