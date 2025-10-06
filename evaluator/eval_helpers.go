@@ -668,7 +668,7 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.Order
 	return buf
 }
 
-func decodeInterfaceToObject(value interface{}) object.Object {
+func decodeInterfaceToObject(value any) object.Object {
 	switch x := value.(type) {
 	case int64:
 		return &object.Integer{Value: x}
@@ -678,19 +678,19 @@ func decodeInterfaceToObject(value interface{}) object.Object {
 		return &object.Stringo{Value: x}
 	case bool:
 		return nativeToBooleanObject(x)
-	case []interface{}:
+	case []any:
 		list := &object.List{Elements: make([]object.Object, len(x))}
 		for i, e := range x {
 			list.Elements[i] = decodeInterfaceToObject(e)
 		}
 		return list
-	case map[string]interface{}:
+	case map[string]any:
 		mapObj := object.NewOrderedMap[string, object.Object]()
 		for k, v := range x {
 			mapObj.Set(k, decodeInterfaceToObject(v))
 		}
 		return object.CreateMapObjectForGoMap(*mapObj)
-	case *object.OrderedMap2[string, interface{}]:
+	case *object.OrderedMap2[string, any]:
 		mapObj := object.NewOrderedMap[string, object.Object]()
 		for _, k := range x.Keys {
 			v, _ := x.Get(k)
@@ -706,7 +706,7 @@ func decodeInterfaceToObject(value interface{}) object.Object {
 
 func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Object, error) {
 	returnMap := make(map[string]object.Object)
-	var v map[string]interface{}
+	var v map[string]any
 	if strings.Contains(contentType, "xml") {
 		xmld := xml.NewDecoder(body)
 		err := xmld.Decode(&v)
@@ -721,7 +721,7 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 					break
 				}
 				if v == nil {
-					v = make(map[string]interface{})
+					v = make(map[string]any)
 				}
 				for k1, v1 := range mv {
 					v[k1] = v1
@@ -743,7 +743,7 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 	return returnMap, nil
 }
 
-func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
+func blueObjectToGoObject(blueObject object.Object) (any, error) {
 	if blueObject == nil {
 		return nil, fmt.Errorf("blueObjectToGoObject: blueObject must not be nil")
 	}
@@ -773,7 +773,7 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 			return nil, fmt.Errorf("blueObjectToGoObject: Map must only have STRING, INTEGER, or FLOAT keys")
 		}
 		if allStrings {
-			pairs := object.NewOrderedMap[string, interface{}]()
+			pairs := object.NewOrderedMap[string, any]()
 			for _, k := range m.Pairs.Keys {
 				mp, _ := m.Pairs.Get(k)
 				if mp.Value.Type() == object.MAP_OBJ {
@@ -787,7 +787,7 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 			}
 			return pairs, nil
 		} else if allInts {
-			pairs := object.NewOrderedMap[int64, interface{}]()
+			pairs := object.NewOrderedMap[int64, any]()
 			for _, k := range m.Pairs.Keys {
 				mp, _ := m.Pairs.Get(k)
 				if mp.Value.Type() == object.MAP_OBJ {
@@ -802,7 +802,7 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 			return pairs, nil
 		} else {
 			// Floats
-			pairs := object.NewOrderedMap[float64, interface{}]()
+			pairs := object.NewOrderedMap[float64, any]()
 			for _, k := range m.Pairs.Keys {
 				mp, _ := m.Pairs.Get(k)
 				if mp.Value.Type() == object.MAP_OBJ {
@@ -818,7 +818,7 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 		}
 	case object.LIST_OBJ:
 		l := blueObject.(*object.List).Elements
-		elements := make([]interface{}, len(l))
+		elements := make([]any, len(l))
 		for i, e := range l {
 			if e.Type() == object.LIST_OBJ {
 				return nil, fmt.Errorf("blueObjectToGoObject: List of lists unsupported")
@@ -848,7 +848,7 @@ func blueObjectToGoObject(blueObject object.Object) (interface{}, error) {
 }
 
 // goObjectToBlueObject will only work for simple go types
-func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
+func goObjectToBlueObject(goObject any) (object.Object, error) {
 	switch obj := goObject.(type) {
 	case string:
 		return &object.Stringo{Value: obj}, nil
@@ -869,7 +869,7 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 		return x, nil
 	case nil:
 		return object.NULL, nil
-	case []interface{}:
+	case []any:
 		l := &object.List{Elements: make([]object.Object, len(obj))}
 		for i, e := range obj {
 			val, err := goObjectToBlueObject(e)
@@ -879,7 +879,7 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 			l.Elements[i] = val
 		}
 		return l, nil
-	case map[string]interface{}:
+	case map[string]any:
 		m := &object.Map{Pairs: object.NewPairsMap()}
 		for k, v := range obj {
 			key := &object.Stringo{Value: k}
@@ -898,7 +898,7 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 			})
 		}
 		return m, nil
-	case *object.OrderedMap2[string, interface{}]:
+	case *object.OrderedMap2[string, any]:
 		m := &object.Map{Pairs: object.NewPairsMap()}
 		for _, k := range obj.Keys {
 			v, _ := obj.Get(k)
@@ -917,7 +917,7 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 			})
 		}
 		return m, nil
-	case *object.OrderedMap2[int64, interface{}]:
+	case *object.OrderedMap2[int64, any]:
 		m := &object.Map{Pairs: object.NewPairsMap()}
 		for _, k := range obj.Keys {
 			v, _ := obj.Get(k)
@@ -936,7 +936,7 @@ func goObjectToBlueObject(goObject interface{}) (object.Object, error) {
 			})
 		}
 		return m, nil
-	case *object.OrderedMap2[float64, interface{}]:
+	case *object.OrderedMap2[float64, any]:
 		m := &object.Map{Pairs: object.NewPairsMap()}
 		for _, k := range obj.Keys {
 			v, _ := obj.Get(k)

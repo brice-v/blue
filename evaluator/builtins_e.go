@@ -166,7 +166,7 @@ func getSortedListHelper(e *Evaluator, args ...object.Object) object.Object {
 		}
 	}
 	// Using custom comparator
-	anys := make([]interface{}, len(l.Elements))
+	anys := make([]any, len(l.Elements))
 	for i, e := range l.Elements {
 		obj, err := blueObjectToGoObject(e)
 		if err != nil {

@@ -574,7 +574,7 @@ type SetPair struct {
 }
 
 type SetPairGo struct {
-	Value   interface{}
+	Value   any
 	Present struct{}
 }
 
