@@ -145,6 +145,9 @@ func vmFile(fpath string, noExec bool) {
 	constants := []object.Object{}
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
+	for i, v := range object.Builtins {
+		symbolTable.DefineBuiltin(i, v.Name)
+	}
 	compiled := compiler.NewWithState(symbolTable, constants)
 	err = compiled.Compile(program)
 	if err != nil {

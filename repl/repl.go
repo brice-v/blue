@@ -146,6 +146,9 @@ func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string
 	constants := []object.Object{}
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
+	for i, v := range object.Builtins {
+		symbolTable.DefineBuiltin(i, v.Name)
+	}
 	consts.InfoPrinter(header + "\n")
 	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
