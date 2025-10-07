@@ -148,13 +148,14 @@ func vmFile(fpath string, noExec bool) {
 	for i, v := range object.Builtins {
 		symbolTable.DefineBuiltin(i, v.Name)
 	}
-	compiled := compiler.NewWithState(symbolTable, constants)
-	err = compiled.Compile(program)
+	c := compiler.NewWithState(symbolTable, constants)
+	err = c.Compile(program)
 	if err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
+		c.PrintStackTrace()
 		os.Exit(1)
 	}
-	bc := compiled.Bytecode()
+	bc := c.Bytecode()
 	v := vm.NewWithGlobalsStore(bc, globals)
 	err = v.Run()
 	if err != nil {

@@ -186,13 +186,14 @@ func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string
 			PrintParserErrors(out, p.Errors())
 			continue
 		}
-		compiled := compiler.NewWithState(symbolTable, constants)
-		err = compiled.Compile(program)
+		c := compiler.NewWithState(symbolTable, constants)
+		err = c.Compile(program)
 		if err != nil {
 			consts.ErrorPrinter(consts.COMPILER_ERROR_PREFIX + err.Error())
+			c.PrintStackTrace()
 			continue
 		}
-		bc := compiled.Bytecode()
+		bc := c.Bytecode()
 		constants = bc.Constants
 		v := vm.NewWithGlobalsStore(bc, globals)
 		err = v.Run()

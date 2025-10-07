@@ -3,7 +3,9 @@ package compiler
 import (
 	"blue/ast"
 	"blue/code"
+	"blue/lexer"
 	"blue/object"
+	"blue/token"
 	"fmt"
 	"log"
 	"regexp"
@@ -22,6 +24,8 @@ type Compiler struct {
 
 	scopes     []CompilationScope
 	scopeIndex int
+
+	ErrorTrace []string
 }
 
 type CompilationScope struct {
@@ -45,6 +49,7 @@ func New() *Compiler {
 		symbolTable: symbolTable,
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
+		ErrorTrace:  []string{},
 	}
 }
 
@@ -151,6 +156,21 @@ func (c *Compiler) leaveScope() code.Instructions {
 	return instructions
 }
 
+func (c *Compiler) addNodeToErrorTrace(err error, tok token.Token) error {
+	c.ErrorTrace = append(c.ErrorTrace, fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+	return err
+}
+
+func (c *Compiler) PrintStackTrace() {
+	prevS := ""
+	for _, s := range c.ErrorTrace {
+		if s != prevS {
+			fmt.Print(s)
+		}
+		prevS = s
+	}
+}
+
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
@@ -159,42 +179,43 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if err != nil {
 				return err
 			}
+			clear(c.ErrorTrace)
 		}
 	case *ast.ExpressionStatement:
 		err := c.Compile(node.Expression)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		c.emit(code.OpPop)
 	case *ast.InfixExpression:
 		if node.Operator == "<" || node.Operator == "<=" {
 			err := c.Compile(node.Right)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 			err = c.Compile(node.Left)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 			c.compileInfixExpression(node.Operator)
 			return nil
 		}
 		err := c.Compile(node.Left)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		err = c.Compile(node.Right)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		err = c.compileInfixExpression(node.Operator)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.PrefixExpression:
 		err := c.Compile(node.Right)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		switch node.Operator {
 		case "!", "not":
@@ -211,7 +232,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.PostfixExpression:
 		err := c.Compile(node.Left)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if node.Operator == ">>" {
 			c.emit(code.OpRshiftPost)
@@ -257,7 +278,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			for i, interp := range node.InterpolationValues {
 				err := c.Compile(interp)
 				if err != nil {
-					return err
+					return c.addNodeToErrorTrace(err, node.Token)
 				}
 				s := node.OriginalInterpolationString[i]
 				c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: s}))
@@ -273,7 +294,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		for _, exp := range node.Elements {
 			err := c.Compile(exp)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
 		c.emit(code.OpList, len(node.Elements))
@@ -281,7 +302,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		for _, exp := range node.Elements {
 			err := c.Compile(exp)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
 		c.emit(code.OpSet, len(node.Elements))
@@ -295,12 +316,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 			keyNode := node.PairsIndex[i]
 			err := c.Compile(keyNode)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 			valueNode := node.Pairs[keyNode]
 			err = c.Compile(valueNode)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
 		c.emit(code.OpMap, len(node.Pairs)*2)
@@ -315,19 +336,19 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.IfExpression:
 		err := c.compileIfExpression(node)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.BlockStatement:
 		for _, s := range node.Statements {
 			err := c.Compile(s)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
 	case *ast.VarStatement:
 		err := c.Compile(node.Value)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if node.IsListDestructor || node.IsMapDestructor {
 			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
@@ -344,7 +365,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.ValStatement:
 		err := c.Compile(node.Value)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if node.IsListDestructor || node.IsMapDestructor {
 			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
@@ -361,17 +382,17 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.Identifier:
 		symbol, ok := c.symbolTable.Resolve(node.Value)
 		if !ok {
-			return fmt.Errorf("undefined variable %s", node.Value)
+			return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
 		}
 		c.loadSymbol(symbol)
 	case *ast.IndexExpression:
 		err := c.Compile(node.Left)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		err = c.Compile(node.Index)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		c.emit(code.OpIndex)
 	case *ast.FunctionLiteral:
@@ -381,7 +402,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		err := c.Compile(node.Body)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if c.lastInstructionIs(code.OpPop) {
 			c.replaceLastPopWithReturn()
@@ -410,7 +431,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		err := c.Compile(node.Body)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if c.lastInstructionIs(code.OpPop) {
 			c.replaceLastPopWithReturn()
@@ -439,18 +460,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.ReturnStatement:
 		err := c.Compile(node.ReturnValue)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		c.emit(code.OpReturnValue)
 	case *ast.CallExpression:
 		err := c.Compile(node.Function)
 		if err != nil {
-			return err
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		for _, arg := range node.Arguments {
 			err := c.Compile(arg)
 			if err != nil {
-				return err
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
 		c.emit(code.OpCall, len(node.Arguments))
