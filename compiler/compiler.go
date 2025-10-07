@@ -245,17 +245,24 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.RegexLiteral:
 		r, err := regexp.Compile(node.Token.Literal)
 		if err != nil {
-			panic("TODO: How are errors returned")
-			// return newError("failed to create regex literal %q", node.TokenLiteral())
+			return fmt.Errorf("failed to create regex literal %q", node.TokenLiteral())
 		}
 		literal := &object.Regex{Value: r}
 		c.emit(code.OpConstant, c.addConstant(literal))
 	case *ast.StringLiteral:
-		if len(node.InterpolationValues) == 0 {
-			literal := &object.Stringo{Value: node.Value}
-			c.emit(code.OpConstant, c.addConstant(literal))
-		} else {
-			panic("TODO: Implement string with interpolation")
+		literal := &object.Stringo{Value: node.Value}
+		origStrIndex := c.addConstant(literal)
+		c.emit(code.OpConstant, origStrIndex)
+		if len(node.InterpolationValues) != 0 {
+			for i, interp := range node.InterpolationValues {
+				err := c.Compile(interp)
+				if err != nil {
+					return err
+				}
+				s := node.OriginalInterpolationString[i]
+				c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: s}))
+			}
+			c.emit(code.OpStringInterp, origStrIndex, len(node.InterpolationValues)*2)
 		}
 	// obj := e.evalStringWithInterpolation(node)
 	// if isError(obj) {

@@ -96,6 +96,7 @@ const (
 	OpGetFree
 	OpGetFreeImm
 	OpGetBuiltin
+	OpStringInterp
 )
 
 type Definition struct {
@@ -157,6 +158,7 @@ var definitions = map[Opcode]*Definition{
 	OpGetFree:            {"OpGetFree", []int{1}},
 	OpGetFreeImm:         {"OpGetFreeImm", []int{1}},
 	OpGetBuiltin:         {"OpGetBuiltin", []int{1}},
+	OpStringInterp:       {"OpStringInterp", []int{2, 1}},
 }
 
 func Lookup(op byte) (*Definition, error) {

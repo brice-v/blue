@@ -6,6 +6,7 @@ import (
 	"blue/object"
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 const (
@@ -162,6 +163,7 @@ func (vm *VM) Run() error {
 			numPairs := int(code.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
 			m := vm.buildMap(vm.sp-numPairs, vm.sp)
+			vm.sp = vm.sp - numPairs
 			err := vm.push(m)
 			if err != nil {
 				return err
@@ -238,6 +240,16 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 1
 			definition := object.Builtins[builtinIndex]
 			err := vm.push(definition.Builtin)
+			if err != nil {
+				return err
+			}
+		case code.OpStringInterp:
+			stringIndex := code.ReadUint16(ins[ip+1:])
+			numPairs := int(code.ReadUint8(ins[ip+3:]))
+			vm.currentFrame().ip += 3
+			s := vm.buildStringWithInterp(vm.sp-numPairs, vm.sp, int(stringIndex))
+			vm.sp = vm.sp - numPairs - 1
+			err := vm.push(s)
 			if err != nil {
 				return err
 			}
@@ -421,6 +433,21 @@ func (vm *VM) buildMap(startIndex, endIndex int) object.Object {
 		pairs.Set(hashed, object.MapPair{Key: key, Value: value})
 	}
 	return &object.Map{Pairs: pairs}
+}
+
+func (vm *VM) buildStringWithInterp(startIndex, endIndex, stringIndex int) object.Object {
+	str := vm.constants[stringIndex]
+	s, ok := str.(*object.Stringo)
+	if !ok {
+		return newError("string interpolation failed with non-string `%s`", str.Inspect())
+	}
+	newStr := s.Value
+	for i := startIndex; i < endIndex; i += 2 {
+		exp := vm.stack[i]
+		orig := vm.stack[i+1]
+		newStr = strings.Replace(newStr, orig.Inspect(), exp.Inspect(), 1)
+	}
+	return &object.Stringo{Value: newStr}
 }
 
 func (vm *VM) executeIndexExpression(left, indx object.Object) error {
