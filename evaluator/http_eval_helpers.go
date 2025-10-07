@@ -17,11 +17,11 @@ import (
 	"golang.org/x/net/html"
 )
 
-func getErrorTokenTraceAsJson(e *Evaluator) interface{} {
+func getErrorTokenTraceAsJson(e *Evaluator) any {
 	return getErrorTokenTraceAsJsonWithError(e, "")
 }
 
-func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) interface{} {
+func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) any {
 	var disableHttpServerDebug bool
 	disableHttpServerDebugStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
 	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
@@ -109,11 +109,11 @@ func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 	}
 }
 
-func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m *object.OrderedMap2[string, interface{}]) {
+func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m *object.OrderedMap2[string, any]) {
 	isAction, action, m = false, "", nil
 	mObj, err := blueObjectToGoObject(respObj)
 	if err == nil {
-		if mm, ok := mObj.(*object.OrderedMap2[string, interface{}]); ok {
+		if mm, ok := mObj.(*object.OrderedMap2[string, any]); ok {
 			if kt, ok := mm.Get("t"); ok {
 				if kts, ok := kt.(string); ok {
 					if strings.Contains(kts, "http/") {
