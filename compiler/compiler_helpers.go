@@ -65,7 +65,6 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		if err != nil {
 			return err
 		}
-		c.enterScope()
 		// Emit an `OpJumpNotTruthy` with a bogus value
 		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
 		err = c.Compile(node.Consequences[i])
@@ -75,7 +74,6 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
-		c.leaveScope()
 		// Emit an `OpJump` with a bogus value
 		jumpPos := c.emit(code.OpJump, 9999)
 		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
