@@ -89,16 +89,21 @@ func Run(args ...string) {
 			// Eval the file
 			noExec := false
 			useVm := false
+			c := false
 			for _, arg := range arguments {
 				if arg == "--no-exec" {
 					noExec = true
 				}
-				if arg == "--vm" {
+				switch arg {
+				case "--vm":
 					useVm = true
+				case "--c":
+					useVm = true
+					c = true
 				}
 			}
 			if useVm {
-				vmFile(command, noExec)
+				vmFile(command, noExec, c)
 			} else {
 				evalFile(command, noExec)
 			}

@@ -26,6 +26,8 @@ type Compiler struct {
 	scopeIndex int
 
 	ErrorTrace []string
+
+	pushedArg bool
 }
 
 type CompilationScope struct {
@@ -50,6 +52,7 @@ func New() *Compiler {
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
 		ErrorTrace:  []string{},
+		pushedArg:   false,
 	}
 }
 
@@ -314,7 +317,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 		sort.Ints(indices)
 		for _, i := range indices {
 			keyNode := node.PairsIndex[i]
-			err := c.Compile(keyNode)
+			keyNode1 := keyNode
+			// Support keys in map without requiring quotes
+			ident, ok := keyNode.(*ast.Identifier)
+			if ok {
+				_, ok1 := c.symbolTable.Resolve(ident.Value)
+				if !ok1 {
+					keyNode1 = &ast.StringLiteral{Value: ident.Value}
+				}
+			}
+			err := c.Compile(keyNode1)
 			if err != nil {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
@@ -386,15 +398,26 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.loadSymbol(symbol)
 	case *ast.IndexExpression:
+		// Support uniform function call syntax "".println()
+		str, ok := node.Index.(*ast.StringLiteral)
+		if ok {
+			s, ok1 := c.symbolTable.Resolve(str.Value)
+			if ok1 {
+				c.pushedArg = true
+				c.loadSymbol(s)
+			}
+		}
 		err := c.Compile(node.Left)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
-		err = c.Compile(node.Index)
-		if err != nil {
-			return c.addNodeToErrorTrace(err, node.Token)
+		if !c.pushedArg {
+			err = c.Compile(node.Index)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+			c.emit(code.OpIndex)
 		}
-		c.emit(code.OpIndex)
 	case *ast.FunctionLiteral:
 		c.enterScope()
 		for _, p := range node.Parameters {
@@ -474,127 +497,15 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
-		c.emit(code.OpCall, len(node.Arguments))
+		// If we updated arg based on ufcs need to increment argument len
+		argLen := len(node.Arguments)
+		if c.pushedArg {
+			argLen++
+			c.pushedArg = false
+		}
+		c.emit(code.OpCall, argLen)
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
 	return nil
-}
-
-func (c *Compiler) compileInfixExpression(operator string) error {
-	switch operator {
-	case "+":
-		c.emit(code.OpAdd)
-	case "-":
-		c.emit(code.OpMinus)
-	case "*":
-		c.emit(code.OpStar)
-	case "**":
-		c.emit(code.OpPow)
-	case "/":
-		c.emit(code.OpDiv)
-	case "//":
-		c.emit(code.OpFlDiv)
-	case "%":
-		c.emit(code.OpPercent)
-	case "^":
-		c.emit(code.OpCarat)
-	case "&":
-		c.emit(code.OpAmpersand)
-	case "|":
-		c.emit(code.OpPipe)
-	case "in":
-		c.emit(code.OpIn)
-	case "notin":
-		c.emit(code.OpNotin)
-	case "..":
-		c.emit(code.OpRange)
-	case "..<":
-		c.emit(code.OpNonIncRange)
-	case ">>":
-		c.emit(code.OpRshift)
-	case "<<":
-		c.emit(code.OpLshift)
-	case "==":
-		c.emit(code.OpEqual)
-	case "!=":
-		c.emit(code.OpNotEqual)
-	case "||", "or":
-		c.emit(code.OpOr)
-	case "&&", "and":
-		c.emit(code.OpAnd)
-	case ">=", "<=":
-		c.emit(code.OpGreaterThanOrEqual)
-	case ">", "<":
-		c.emit(code.OpGreaterThan)
-	default:
-		return fmt.Errorf("unsupported operator: %s", operator)
-	}
-	return nil
-}
-
-func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
-	allEndingJumpPos := []int{}
-	for i := range node.Conditions {
-		err := c.Compile(node.Conditions[i])
-		if err != nil {
-			return err
-		}
-		// Emit an `OpJumpNotTruthy` with a bogus value
-		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
-		err = c.Compile(node.Consequences[i])
-		if err != nil {
-			return err
-		}
-		if c.lastInstructionIs(code.OpPop) {
-			c.removeLastPop()
-		}
-		// Emit an `OpJump` with a bogus value
-		jumpPos := c.emit(code.OpJump, 9999)
-		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
-		afterConsequencePos := len(c.currentInstructions())
-		c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
-	}
-	if node.Alternative == nil {
-		c.emit(code.OpNull)
-	} else {
-		err := c.Compile(node.Alternative)
-		if err != nil {
-			return err
-		}
-		if c.lastInstructionIs(code.OpPop) {
-			c.removeLastPop()
-		}
-	}
-	afterAlternativePos := len(c.currentInstructions())
-	for _, jumpPos := range allEndingJumpPos {
-		c.changeOperand(jumpPos, afterAlternativePos)
-	}
-	return nil
-}
-
-func (c *Compiler) loadSymbol(s Symbol) {
-	if s.Immutable {
-		switch s.Scope {
-		case GlobalScope:
-			c.emit(code.OpGetGlobalImm, s.Index)
-		case LocalScope:
-			c.emit(code.OpGetLocalImm, s.Index)
-		case BuiltinScope:
-			c.emit(code.OpGetBuiltin, s.Index)
-		case FreeScope:
-			c.emit(code.OpGetFreeImm, s.Index)
-		}
-	} else {
-		switch s.Scope {
-		case GlobalScope:
-			c.emit(code.OpGetGlobal, s.Index)
-		case LocalScope:
-			c.emit(code.OpGetLocal, s.Index)
-		case BuiltinScope:
-			c.emit(code.OpGetBuiltin, s.Index)
-		case FreeScope:
-			c.emit(code.OpGetFree, s.Index)
-		}
-	}
 }

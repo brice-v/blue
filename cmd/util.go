@@ -127,7 +127,7 @@ func evalFile(fpath string, noExec bool) {
 	// }
 }
 
-func vmFile(fpath string, noExec bool) {
+func vmFile(fpath string, noExec bool, compile bool) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
 		consts.ErrorPrinter("`vm` error trying to read file `%s`. error: %s\n", fpath, err.Error())
@@ -154,6 +154,10 @@ func vmFile(fpath string, noExec bool) {
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
 		c.PrintStackTrace()
 		os.Exit(1)
+	}
+	if compile {
+		fmt.Print(c.Bytecode().Instructions.String())
+		os.Exit(0)
 	}
 	bc := c.Bytecode()
 	v := vm.NewWithGlobalsStore(bc, globals)
