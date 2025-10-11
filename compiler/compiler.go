@@ -113,6 +113,10 @@ func (c *Compiler) lastInstructionIs(op code.Opcode) bool {
 }
 
 func (c *Compiler) removeLastPop() {
+	c.removeLastInstruction()
+}
+
+func (c *Compiler) removeLastInstruction() {
 	last := c.scopes[c.scopeIndex].lastInstruction
 	previous := c.scopes[c.scopeIndex].previousInstruction
 	old := c.currentInstructions()
@@ -288,11 +292,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 			c.emit(code.OpStringInterp, origStrIndex, len(node.InterpolationValues)*2)
 		}
-	// obj := e.evalStringWithInterpolation(node)
-	// if isError(obj) {
-	// 	e.ErrorTokens.Push(node.Token)
-	// }
-	// return obj
 	case *ast.ListLiteral:
 		for _, exp := range node.Elements {
 			err := c.Compile(exp)
@@ -390,6 +389,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpSetGlobalImm, symbol.Index)
 		} else {
 			c.emit(code.OpSetLocalImm, symbol.Index)
+		}
+	case *ast.AssignmentExpression:
+		err := c.compileAssignmentExpression(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.Identifier:
 		symbol, ok := c.symbolTable.Resolve(node.Value)

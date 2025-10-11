@@ -123,3 +123,122 @@ func (c *Compiler) loadSymbol(s Symbol) {
 		}
 	}
 }
+
+func (c *Compiler) compileAssignmentExpression(node *ast.AssignmentExpression) error {
+	if ident, ok := node.Left.(*ast.Identifier); ok {
+		return c.compileAssignmentWithIdent(ident, node.Token.Literal, node.Value)
+	} else if indexExp, ok := node.Left.(*ast.IndexExpression); ok {
+		return c.compileAssignmentWithIndex(indexExp, node.Token.Literal, node.Value)
+	}
+	return fmt.Errorf("left side type not supported for assignment expression: %T", node.Left)
+}
+
+func (c *Compiler) compileAssignmentWithIdent(ident *ast.Identifier, operator string, v ast.Expression) error {
+	sym, ok := c.symbolTable.Resolve(ident.Value)
+	if !ok {
+		return fmt.Errorf("identifier not found: %s", ident.Value)
+	}
+	if sym.Immutable {
+		return fmt.Errorf("'%s' is immutable", ident.Value)
+	}
+	// Always compile right hand side value first
+	err := c.Compile(v)
+	if err != nil {
+		return err
+	}
+	// If its not assignment then compile as if this is an infix expression
+	if operator != "=" {
+		// Compile "get" for the variable being assigned to
+		c.loadSymbol(sym)
+		op, ok := assignmentToInfixOperator[operator]
+		if !ok {
+			return fmt.Errorf("invalid assignment operator: %s", operator)
+		}
+		err := c.compileInfixExpression(op)
+		if err != nil {
+			return err
+		}
+	}
+	if sym.Scope == GlobalScope {
+		c.emit(code.OpSetGlobal, sym.Index)
+	} else {
+		c.emit(code.OpSetLocal, sym.Index)
+	}
+	c.emit(code.OpNull)
+	return nil
+}
+
+var assignmentToInfixOperator = map[string]string{
+	"+=":  "+",
+	"-=":  "-",
+	"*=":  "*",
+	"/=":  "/",
+	"//=": "//",
+	"**=": "**",
+	"&=":  "&",
+	"|=":  "|",
+	"~=":  "~",
+	"<<=": "<<",
+	">>=": ">>",
+	"%=":  "%",
+	"^=":  "^",
+	"&&=": "&&",
+	"||=": "||",
+}
+
+func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operator string, v ast.Expression) error {
+	rootIdent, ok := getRootIdent(index)
+	if !ok {
+		return fmt.Errorf("could not find identifier for assignmenet")
+	}
+	sym, ok := c.symbolTable.Resolve(rootIdent.Value)
+	if !ok {
+		return fmt.Errorf("identifier not found: %s", rootIdent.Value)
+	}
+	if sym.Immutable {
+		return fmt.Errorf("'%s' is immutable", rootIdent.Value)
+	}
+	err := c.Compile(v)
+	if err != nil {
+		return err
+	}
+	if operator != "=" {
+		err = c.Compile(index)
+		if err != nil {
+			return err
+		}
+		op, ok := assignmentToInfixOperator[operator]
+		if !ok {
+			return fmt.Errorf("invalid assignment operator: %s", operator)
+		}
+		c.compileInfixExpression(op)
+	}
+	err = c.Compile(index)
+	if err != nil {
+		return err
+	}
+	if c.lastInstructionIs(code.OpIndex) {
+		c.removeLastInstruction()
+	}
+	c.emit(code.OpIndexSet)
+	return nil
+}
+
+func getRootIdent(node *ast.IndexExpression) (*ast.Identifier, bool) {
+	left := node.Left
+	for {
+		if ident, ok := left.(*ast.Identifier); ok {
+			left = ident
+			break
+		} else if indx, ok := left.(*ast.IndexExpression); ok {
+			left = indx.Left
+		} else {
+			return nil, false
+		}
+	}
+	ident, ok := left.(*ast.Identifier)
+	if !ok {
+		return nil, false
+	}
+	return ident, ok
+}

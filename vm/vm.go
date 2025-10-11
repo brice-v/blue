@@ -253,6 +253,15 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpIndexSet:
+			index := vm.pop()
+			left := vm.pop()
+			right := vm.pop()
+			err := vm.executeIndexSetOperator(left, index, right)
+			if err != nil {
+				return err
+			}
+			vm.push(object.NULL)
 		}
 	}
 	return nil
