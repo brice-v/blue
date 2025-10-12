@@ -164,7 +164,7 @@ func vmFile(fpath string, noExec bool, compile bool) {
 	v := vm.NewWithGlobalsStore(bc, globals)
 	err = v.Run()
 	if err != nil {
-		consts.ErrorPrinter("`%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
+		consts.ErrorPrinter("%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
 		os.Exit(1)
 	}
 	val := v.LastPoppedStackElem()
