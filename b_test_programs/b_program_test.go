@@ -161,7 +161,7 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 		t.Errorf("File `%s`: compiler returned error %s", f.Name(), err.Error())
 		return
 	}
-	v := vm.New(c.Bytecode())
+	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()
 	if err != nil {
 		t.Errorf("File `%s`: vm returned error %s", f.Name(), err.Error())

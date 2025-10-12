@@ -23,7 +23,8 @@ type VarStatement struct {
 func (vars *VarStatement) statementNode() {}
 
 // TokenLiteral returns VAR
-func (vars *VarStatement) TokenLiteral() string { return vars.Token.Literal }
+func (vars *VarStatement) TokenLiteral() string    { return vars.Token.Literal }
+func (vars *VarStatement) TokenToken() token.Token { return vars.Token }
 
 // String returns the VarStatement node as a string
 func (vars *VarStatement) String() string {
@@ -88,7 +89,8 @@ type ValStatement struct {
 func (vals *ValStatement) statementNode() {}
 
 // TokenLiteral returns VAL
-func (vals *ValStatement) TokenLiteral() string { return vals.Token.Literal }
+func (vals *ValStatement) TokenLiteral() string    { return vals.Token.Literal }
+func (vals *ValStatement) TokenToken() token.Token { return vals.Token }
 
 // String returns the ValStatement node as a string
 func (vals *ValStatement) String() string {
@@ -152,7 +154,8 @@ type FunctionStatement struct {
 func (fs *FunctionStatement) statementNode() {}
 
 // TokenLiteral is the function statements token literal ie. `fun`
-func (fs *FunctionStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *FunctionStatement) TokenLiteral() string    { return fs.Token.Literal }
+func (fs *FunctionStatement) TokenToken() token.Token { return fs.Token }
 
 // String returns a stringified version of the function statement ast node
 func (fs *FunctionStatement) String() string {
@@ -184,7 +187,8 @@ type ReturnStatement struct {
 func (rs *ReturnStatement) statementNode() {}
 
 // TokenLiteral returns RETURN
-func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
+func (rs *ReturnStatement) TokenLiteral() string    { return rs.Token.Literal }
+func (rs *ReturnStatement) TokenToken() token.Token { return rs.Token }
 
 // String returns the ReturnStatement node as a string
 func (rs *ReturnStatement) String() string {
@@ -213,7 +217,8 @@ type TryCatchStatement struct {
 func (tcs *TryCatchStatement) statementNode() {}
 
 // TokenLiteral is the try-catch statements token literal ie. `try`
-func (tcs *TryCatchStatement) TokenLiteral() string { return tcs.Token.Literal }
+func (tcs *TryCatchStatement) TokenLiteral() string    { return tcs.Token.Literal }
+func (tcs *TryCatchStatement) TokenToken() token.Token { return tcs.Token }
 
 // String returns a stringified version of the try-catch statement ast node
 func (tcs *TryCatchStatement) String() string {
@@ -245,7 +250,8 @@ type ExpressionStatement struct {
 func (es *ExpressionStatement) statementNode() {}
 
 // TokenLiteral returns the first token of the expression
-func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
+func (es *ExpressionStatement) TokenLiteral() string    { return es.Token.Literal }
+func (es *ExpressionStatement) TokenToken() token.Token { return es.Token }
 
 // String will return the string version of the expression statement
 func (es *ExpressionStatement) String() string {
@@ -266,7 +272,8 @@ type BlockStatement struct {
 func (bs *BlockStatement) statementNode() {}
 
 // TokenLiteral returns the { token
-func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
+func (bs *BlockStatement) TokenLiteral() string    { return bs.Token.Literal }
+func (bs *BlockStatement) TokenToken() token.Token { return bs.Token }
 
 // String returns the string representation of the block statement
 func (bs *BlockStatement) String() string {
@@ -309,7 +316,8 @@ type ImportStatement struct {
 func (is *ImportStatement) statementNode() {}
 
 // TokenLiteral returns the import token as a string
-func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *ImportStatement) TokenLiteral() string    { return is.Token.Literal }
+func (is *ImportStatement) TokenToken() token.Token { return is.Token }
 
 // String returns the string representation of the map literal ast node
 func (is *ImportStatement) String() string {
@@ -338,7 +346,8 @@ type BreakStatement struct {
 func (bks *BreakStatement) statementNode() {}
 
 // TokenLiteral returns the break token as a string
-func (bks *BreakStatement) TokenLiteral() string { return bks.Token.Literal }
+func (bks *BreakStatement) TokenLiteral() string    { return bks.Token.Literal }
+func (bks *BreakStatement) TokenToken() token.Token { return bks.Token }
 
 // String returns the string representation of the break literal ast node
 func (bks *BreakStatement) String() string {
@@ -353,7 +362,8 @@ type ContinueStatement struct {
 func (cs *ContinueStatement) statementNode() {}
 
 // TokenLiteral returns the continue token as a string
-func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ContinueStatement) TokenLiteral() string    { return cs.Token.Literal }
+func (cs *ContinueStatement) TokenToken() token.Token { return cs.Token }
 
 // String returns the string representation of the continue literal ast node
 func (cs *ContinueStatement) String() string {
@@ -375,7 +385,8 @@ type ForStatement struct {
 func (fe *ForStatement) statementNode() {}
 
 // TokenLiteral returns the for token
-func (fe *ForStatement) TokenLiteral() string { return fe.Token.Literal }
+func (fe *ForStatement) TokenLiteral() string    { return fe.Token.Literal }
+func (fe *ForStatement) TokenToken() token.Token { return fe.Token }
 
 // String returns the string representation of the for expression ast node
 func (fe *ForStatement) String() string {

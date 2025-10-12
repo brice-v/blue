@@ -4,8 +4,10 @@ import (
 	"blue/code"
 	"blue/compiler"
 	"blue/object"
+	"blue/token"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 )
 
@@ -24,6 +26,9 @@ type VM struct {
 
 	frames      []*Frame
 	framesIndex int
+
+	tokenMap            map[int][]token.Token
+	TokensForErrorTrace []token.Token
 }
 
 func (vm *VM) currentFrame() *Frame {
@@ -40,7 +45,7 @@ func (vm *VM) popFrame() *Frame {
 	return vm.frames[vm.framesIndex]
 }
 
-func New(bytecode *compiler.Bytecode) *VM {
+func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
 	mainClosure := &object.Closure{Fun: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
@@ -55,11 +60,14 @@ func New(bytecode *compiler.Bytecode) *VM {
 
 		frames:      frames,
 		framesIndex: 1,
+
+		tokenMap:            tokenMap,
+		TokensForErrorTrace: nil,
 	}
 }
 
-func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
-	vm := New(bytecode)
+func NewWithGlobalsStore(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token, s []object.Object) *VM {
+	vm := New(bytecode, tokenMap)
 	vm.globals = s
 	return vm
 }
@@ -269,6 +277,26 @@ func (vm *VM) Run() error {
 
 func (vm *VM) push(o object.Object) error {
 	if isError(o) {
+		if vm.tokenMap != nil {
+			keys := []int{}
+			for k := range vm.tokenMap {
+				keys = append(keys, k)
+			}
+			slices.Sort(keys)
+			currentPos := vm.currentFrame().ip
+			indexToUse := -1
+			for i := len(keys) - 1; i >= 0; i-- {
+				if keys[i] > currentPos {
+					continue
+				}
+				indexToUse = keys[i]
+				break
+			}
+			toksForErrorTrace, ok := vm.tokenMap[indexToUse]
+			if ok {
+				vm.TokensForErrorTrace = toksForErrorTrace
+			}
+		}
 		return fmt.Errorf("%s", o.(*object.Error).Message)
 	}
 	if vm.sp >= StackSize {

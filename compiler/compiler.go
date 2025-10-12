@@ -28,6 +28,9 @@ type Compiler struct {
 	ErrorTrace []string
 
 	pushedArg bool
+
+	currentPos int
+	Tokens     map[int][]token.Token
 }
 
 type CompilationScope struct {
@@ -53,6 +56,8 @@ func New() *Compiler {
 		scopeIndex:  0,
 		ErrorTrace:  []string{},
 		pushedArg:   false,
+		currentPos:  0,
+		Tokens:      map[int][]token.Token{},
 	}
 }
 
@@ -179,9 +184,13 @@ func (c *Compiler) PrintStackTrace() {
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
+	if _, ok := node.(*ast.Program); !ok {
+		c.Tokens[c.currentPos] = append(c.Tokens[c.currentPos], node.TokenToken())
+	}
 	switch node := node.(type) {
 	case *ast.Program:
 		for _, s := range node.Statements {
+			c.currentPos = len(c.currentInstructions())
 			err := c.Compile(s)
 			if err != nil {
 				return err

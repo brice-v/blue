@@ -16,7 +16,8 @@ type Identifier struct {
 func (i *Identifier) expressionNode() {}
 
 // TokenLiteral returns IDENT
-func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+func (i *Identifier) TokenLiteral() string    { return i.Token.Literal }
+func (i *Identifier) TokenToken() token.Token { return i.Token }
 
 // String returns the string value of the identifier
 func (i *Identifier) String() string { return i.Value }
@@ -29,9 +30,8 @@ type Null struct {
 func (n *Null) expressionNode() {}
 
 // TokenLiteral returns the string token literal
-func (n *Null) TokenLiteral() string {
-	return n.Token.Literal
-}
+func (n *Null) TokenLiteral() string    { return n.Token.Literal }
+func (n *Null) TokenToken() token.Token { return n.Token }
 
 func (n *Null) String() string { return "null" }
 
@@ -45,7 +45,8 @@ type Boolean struct {
 func (b *Boolean) expressionNode() {}
 
 // TokenLiteral returns true or false
-func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
+func (b *Boolean) TokenLiteral() string    { return b.Token.Literal }
+func (b *Boolean) TokenToken() token.Token { return b.Token }
 
 // String returns true or false as a string
 func (b *Boolean) String() string { return b.Token.Literal }
@@ -61,7 +62,8 @@ type PrefixExpression struct {
 func (pe *PrefixExpression) expressionNode() {}
 
 // TokenLiteral returns the prefix expressions token
-func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
+func (pe *PrefixExpression) TokenLiteral() string    { return pe.Token.Literal }
+func (pe *PrefixExpression) TokenToken() token.Token { return pe.Token }
 
 // String returns the string representation of the prefix expression ast node
 func (pe *PrefixExpression) String() string {
@@ -86,7 +88,8 @@ type PostfixExpression struct {
 func (pe *PostfixExpression) expressionNode() {}
 
 // TokenLiteral returns the prefix expressions token
-func (pe *PostfixExpression) TokenLiteral() string { return pe.Token.Literal }
+func (pe *PostfixExpression) TokenLiteral() string    { return pe.Token.Literal }
+func (pe *PostfixExpression) TokenToken() token.Token { return pe.Token }
 
 // String returns the string representation of the prefix expression ast node
 func (pe *PostfixExpression) String() string {
@@ -112,7 +115,8 @@ type InfixExpression struct {
 func (ie *InfixExpression) expressionNode() {}
 
 // TokenLiteral returns the infix expressions token
-func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *InfixExpression) TokenLiteral() string    { return ie.Token.Literal }
+func (ie *InfixExpression) TokenToken() token.Token { return ie.Token }
 
 // String returns the string representation of the infix expression ast node
 func (ie *InfixExpression) String() string {
@@ -141,7 +145,8 @@ type IfExpression struct {
 func (ie *IfExpression) expressionNode() {}
 
 // TokenLiteral returns the string IF token
-func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *IfExpression) TokenLiteral() string    { return ie.Token.Literal }
+func (ie *IfExpression) TokenToken() token.Token { return ie.Token }
 
 // String returns the string representation of the if expression
 func (ie *IfExpression) String() string {
@@ -179,7 +184,8 @@ type MatchExpression struct {
 func (me *MatchExpression) expressionNode() {}
 
 // TokenLiteral returns the match literal token
-func (me *MatchExpression) TokenLiteral() string { return me.Token.Literal }
+func (me *MatchExpression) TokenLiteral() string    { return me.Token.Literal }
+func (me *MatchExpression) TokenToken() token.Token { return me.Token }
 
 // String returns the stringified version of the match statment
 func (me *MatchExpression) String() string {
@@ -212,7 +218,8 @@ type CallExpression struct {
 func (ce *CallExpression) expressionNode() {}
 
 // TokenLiteral returns the ( token
-func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
+func (ce *CallExpression) TokenLiteral() string    { return ce.Token.Literal }
+func (ce *CallExpression) TokenToken() token.Token { return ce.Token }
 
 // String returns the string representation of the call expression
 func (ce *CallExpression) String() string {
@@ -241,7 +248,8 @@ type IndexExpression struct {
 func (ie *IndexExpression) expressionNode() {}
 
 // TokenLiteral returns the [ token
-func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *IndexExpression) TokenLiteral() string    { return ie.Token.Literal }
+func (ie *IndexExpression) TokenToken() token.Token { return ie.Token }
 
 // String returns a string representation of an index call expression
 func (ie *IndexExpression) String() string {
@@ -278,7 +286,8 @@ type AssignmentExpression struct {
 func (ae *AssignmentExpression) expressionNode() {}
 
 // TokenLiteral prints the literal value of the token associated with this node
-func (ae *AssignmentExpression) TokenLiteral() string { return ae.Token.Literal }
+func (ae *AssignmentExpression) TokenLiteral() string    { return ae.Token.Literal }
+func (ae *AssignmentExpression) TokenToken() token.Token { return ae.Token }
 
 // String returns a stringified version of the AST for debugging
 func (ae *AssignmentExpression) String() string {
@@ -303,7 +312,8 @@ type EvalExpression struct {
 func (ee *EvalExpression) expressionNode() {}
 
 // TokenLiteral returns the for token
-func (ee *EvalExpression) TokenLiteral() string { return ee.Token.Literal }
+func (ee *EvalExpression) TokenLiteral() string    { return ee.Token.Literal }
+func (ee *EvalExpression) TokenToken() token.Token { return ee.Token }
 
 // String returns the string representation of the for expression ast node
 func (ee *EvalExpression) String() string {
@@ -325,7 +335,8 @@ type SpawnExpression struct {
 func (se *SpawnExpression) expressionNode() {}
 
 // TokenLiteral returns the for token
-func (se *SpawnExpression) TokenLiteral() string { return se.Token.Literal }
+func (se *SpawnExpression) TokenLiteral() string    { return se.Token.Literal }
+func (se *SpawnExpression) TokenToken() token.Token { return se.Token }
 
 // String returns the string representation of the for expression ast node
 func (se *SpawnExpression) String() string {
@@ -352,7 +363,8 @@ type DeferExpression struct {
 func (de *DeferExpression) expressionNode() {}
 
 // TokenLiteral returns the for token
-func (de *DeferExpression) TokenLiteral() string { return de.Token.Literal }
+func (de *DeferExpression) TokenLiteral() string    { return de.Token.Literal }
+func (de *DeferExpression) TokenToken() token.Token { return de.Token }
 
 // String returns the string representation of the for expression ast node
 func (de *DeferExpression) String() string {
@@ -377,7 +389,8 @@ type SelfExpression struct {
 func (se *SelfExpression) expressionNode() {}
 
 // TokenLiteral returns the for token
-func (se *SelfExpression) TokenLiteral() string { return se.Token.Literal }
+func (se *SelfExpression) TokenLiteral() string    { return se.Token.Literal }
+func (se *SelfExpression) TokenToken() token.Token { return se.Token }
 
 // String returns the string representation of the for expression ast node
 func (se *SelfExpression) String() string {

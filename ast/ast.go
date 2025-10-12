@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"blue/token"
 	"bytes"
 )
 
@@ -9,6 +10,7 @@ import (
 type Node interface {
 	// TokenLiteral is used for debugging and testing
 	TokenLiteral() string
+	TokenToken() token.Token
 	// String
 	String() string // String will allow the printing of ast nodes
 }
@@ -30,6 +32,10 @@ type Expression interface {
 type Program struct {
 	Statements    []Statement
 	HelpStrTokens []string
+}
+
+func (p *Program) TokenToken() token.Token {
+	return token.Token{}
 }
 
 // TokenLiteral makes the Program struct a Node and becomes
