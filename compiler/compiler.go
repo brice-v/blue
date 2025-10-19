@@ -122,7 +122,7 @@ func (c *Compiler) lastInstructionIsSet() bool {
 		return false
 	}
 	currentOp := c.scopes[c.scopeIndex].lastInstruction.Opcode
-	return currentOp == code.OpSet || currentOp == code.OpSetGlobal || currentOp == code.OpSetGlobalImm || currentOp == code.OpSetLocal || currentOp == code.OpSetLocalImm
+	return currentOp == code.OpSetGlobal || currentOp == code.OpSetGlobalImm || currentOp == code.OpSetLocal || currentOp == code.OpSetLocalImm
 }
 
 func (c *Compiler) removeLastPop() {
@@ -385,9 +385,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
 		}
 		symbol := c.symbolTable.Define(node.Names[0].Value, false)
-		if symbol.Scope == GlobalScope {
+		switch symbol.Scope {
+		case GlobalScope:
 			c.emit(code.OpSetGlobal, symbol.Index)
-		} else {
+		case LocalScope:
 			c.emit(code.OpSetLocal, symbol.Index)
 		}
 	case *ast.ValStatement:
@@ -402,9 +403,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
 		}
 		symbol := c.symbolTable.Define(node.Names[0].Value, true)
-		if symbol.Scope == GlobalScope {
+		switch symbol.Scope {
+		case GlobalScope:
 			c.emit(code.OpSetGlobalImm, symbol.Index)
-		} else {
+		case LocalScope:
 			c.emit(code.OpSetLocalImm, symbol.Index)
 		}
 	case *ast.AssignmentExpression:
@@ -496,9 +498,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		funIndex := c.addConstant(compiledFun)
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
-		if symbol.Scope == GlobalScope {
+		switch symbol.Scope {
+		case GlobalScope:
 			c.emit(code.OpSetGlobalImm, symbol.Index)
-		} else {
+		case LocalScope:
 			c.emit(code.OpSetLocalImm, symbol.Index)
 		}
 	case *ast.ReturnStatement:
