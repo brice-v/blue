@@ -71,6 +71,9 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		if err != nil {
 			return err
 		}
+		if c.lastInstructionIsSet() {
+			c.emit(code.OpNull)
+		}
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
@@ -86,6 +89,9 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		err := c.Compile(node.Alternative)
 		if err != nil {
 			return err
+		}
+		if c.lastInstructionIsSet() {
+			c.emit(code.OpNull)
 		}
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
@@ -242,3 +248,21 @@ func getRootIdent(node *ast.IndexExpression) (*ast.Identifier, bool) {
 	}
 	return ident, ok
 }
+
+// func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
+// 	err := c.Compile(node.Condition)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// Emit an `OpJumpNotTruthy` with a bogus value
+// 	jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
+// 	err = c.Compile(node.Consequence)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if c.lastInstructionIs(code.OpPop) {
+// 		c.removeLastPop()
+// 	}
+// 	afterConsequencePos := len(c.currentInstructions())
+// 	c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+// }

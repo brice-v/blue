@@ -1,6 +1,7 @@
 package b_program_test
 
 import (
+	"blue/ast"
 	"blue/compiler"
 	"blue/evaluator"
 	"blue/lexer"
@@ -26,6 +27,14 @@ const fibEx = `fun fib(n) {
 }
 
 fib(10);`
+
+const vmScopes = `
+if true {
+	var a = 123;
+}
+a = 555;
+assert(a != 555);
+`
 
 func TestAllProgramsInDirectory(t *testing.T) {
 	files, err := os.ReadDir("./")
@@ -189,14 +198,7 @@ func TestFibPerf(t *testing.T) {
 }
 
 func execString(t *testing.T, s string) {
-	l := lexer.New(s, "<string>")
-
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(os.Stderr, p.Errors())
-		t.Fatalf("failed to parse string: %s", s)
-	}
+	program := parseString(t, s)
 	e := evaluator.New()
 	obj := e.Eval(program)
 	if obj == nil {
@@ -213,4 +215,38 @@ func execString(t *testing.T, s string) {
 		}
 		t.Fatalf("evaluator returned error: %s, %s", s, buf.String())
 	}
+}
+
+func testVmScopes(t *testing.T) {
+	vmString(t, vmScopes)
+}
+
+func vmString(t *testing.T, s string) {
+	program := parseString(t, s)
+	c := compiler.New()
+	err := c.Compile(program)
+	if err != nil {
+		t.Fatalf("compiler error: %s", err.Error())
+	}
+	v := vm.New(c.Bytecode(), c.Tokens)
+	err = v.Run()
+	if err != nil {
+		t.Fatalf("vm error: %s", err.Error())
+	}
+	obj := v.LastPoppedStackElem()
+	if obj.Type() == object.ERROR_OBJ {
+		t.Fatalf("vm returned error: %s, %s", s, obj.(*object.Error).Message)
+	}
+}
+
+func parseString(t *testing.T, s string) *ast.Program {
+	l := lexer.New(s, "<string>")
+
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		repl.PrintParserErrors(os.Stderr, p.Errors())
+		t.Fatalf("failed to parse string: %s", s)
+	}
+	return program
 }

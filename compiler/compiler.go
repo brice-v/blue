@@ -117,6 +117,14 @@ func (c *Compiler) lastInstructionIs(op code.Opcode) bool {
 	return c.scopes[c.scopeIndex].lastInstruction.Opcode == op
 }
 
+func (c *Compiler) lastInstructionIsSet() bool {
+	if len(c.currentInstructions()) == 0 {
+		return false
+	}
+	currentOp := c.scopes[c.scopeIndex].lastInstruction.Opcode
+	return currentOp == code.OpSet || currentOp == code.OpSetGlobal || currentOp == code.OpSetGlobalImm || currentOp == code.OpSetLocal || currentOp == code.OpSetLocalImm
+}
+
 func (c *Compiler) removeLastPop() {
 	c.removeLastInstruction()
 }
@@ -517,6 +525,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.pushedArg = false
 		}
 		c.emit(code.OpCall, argLen)
+	// case *ast.ForStatement:
+	// 	err := c.compileForStatement(node)
+	// 	if err != nil {
+	// 		return c.addNodeToErrorTrace(err, node.Token)
+	// 	}
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}

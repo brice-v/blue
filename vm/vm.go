@@ -519,6 +519,26 @@ func (vm *VM) executeCall(numArgs int) error {
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
+		if vm.tokenMap != nil {
+			keys := []int{}
+			for k := range vm.tokenMap {
+				keys = append(keys, k)
+			}
+			slices.Sort(keys)
+			currentPos := vm.currentFrame().ip
+			indexToUse := -1
+			for i := len(keys) - 1; i >= 0; i-- {
+				if keys[i] > currentPos {
+					continue
+				}
+				indexToUse = keys[i]
+				break
+			}
+			toksForErrorTrace, ok := vm.tokenMap[indexToUse]
+			if ok {
+				vm.TokensForErrorTrace = toksForErrorTrace
+			}
+		}
 		return fmt.Errorf("calling non-closure and non-builtin %T", callee)
 	}
 }
