@@ -107,7 +107,7 @@ func (vm *VM) Run() error {
 		case code.OpAdd, code.OpMinus, code.OpStar, code.OpPow, code.OpDiv,
 			code.OpFlDiv, code.OpPercent, code.OpCarat, code.OpAmpersand,
 			code.OpPipe, code.OpIn, code.OpNotin, code.OpRange, code.OpNonIncRange,
-			code.OpAnd, code.OpEqual, code.OpOr, code.OpGreaterThan, code.OpGreaterThanOrEqual:
+			code.OpAnd, code.OpEqual, code.OpNotEqual, code.OpOr, code.OpGreaterThan, code.OpGreaterThanOrEqual:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return err

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"blue/object"
+	"bytes"
 	"fmt"
 	"unicode/utf8"
 )
@@ -94,4 +95,14 @@ func isError(obj object.Object) bool {
 		return isError
 	}
 	return false
+}
+
+func (vm *VM) stackString() string {
+	var out bytes.Buffer
+	for i, o := range vm.stack {
+		if o != nil {
+			fmt.Fprintf(&out, "%d: %s\n", i, o.Inspect())
+		}
+	}
+	return out.String()
 }

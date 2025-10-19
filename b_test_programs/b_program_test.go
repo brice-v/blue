@@ -221,6 +221,12 @@ func testVmScopes(t *testing.T) {
 	vmString(t, vmScopes)
 }
 
+func TestVmNotEqualIssue(t *testing.T) {
+	s := `var abc = 1;
+	assert(abc != 5);`
+	vmString(t, s)
+}
+
 func vmString(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.New()
