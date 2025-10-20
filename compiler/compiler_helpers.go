@@ -67,16 +67,19 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		}
 		// Emit an `OpJumpNotTruthy` with a bogus value
 		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
+		c.InBlock = true
 		err = c.Compile(node.Consequences[i])
 		if err != nil {
 			return err
 		}
+		c.InBlock = false
 		if c.lastInstructionIsSet() {
 			c.emit(code.OpNull)
 		}
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
+		c.clearBlockSymbols()
 		// Emit an `OpJump` with a bogus value
 		jumpPos := c.emit(code.OpJump, 9999)
 		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
@@ -86,22 +89,32 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 	if node.Alternative == nil {
 		c.emit(code.OpNull)
 	} else {
+		c.InBlock = true
 		err := c.Compile(node.Alternative)
 		if err != nil {
 			return err
 		}
+		c.InBlock = false
 		if c.lastInstructionIsSet() {
 			c.emit(code.OpNull)
 		}
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
+		c.clearBlockSymbols()
 	}
 	afterAlternativePos := len(c.currentInstructions())
 	for _, jumpPos := range allEndingJumpPos {
 		c.changeOperand(jumpPos, afterAlternativePos)
 	}
 	return nil
+}
+
+func (c *Compiler) clearBlockSymbols() {
+	for _, sym := range c.symbolTable.BlockSymbols {
+		delete(c.symbolTable.store, sym.Name)
+	}
+	clear(c.symbolTable.BlockSymbols)
 }
 
 func (c *Compiler) loadSymbol(s Symbol) {

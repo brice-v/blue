@@ -1,5 +1,7 @@
 package compiler
 
+import "log"
+
 type SymbolScope string
 
 const (
@@ -20,6 +22,7 @@ type SymbolTable struct {
 	store          map[string]Symbol
 	numDefinitions int
 	FreeSymbols    []Symbol
+	BlockSymbols   []Symbol
 
 	Outer *SymbolTable
 }
@@ -27,7 +30,8 @@ type SymbolTable struct {
 func NewSymbolTable() *SymbolTable {
 	s := make(map[string]Symbol)
 	free := []Symbol{}
-	return &SymbolTable{store: s, FreeSymbols: free}
+	block := []Symbol{}
+	return &SymbolTable{store: s, FreeSymbols: free, BlockSymbols: block}
 }
 
 func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
@@ -36,12 +40,16 @@ func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 	return s
 }
 
-func (s *SymbolTable) Define(name string, isImmutable bool) Symbol {
+func (s *SymbolTable) Define(name string, isImmutable bool, inBlock bool) Symbol {
 	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: isImmutable}
 	if s.Outer == nil {
 		symbol.Scope = GlobalScope
 	} else {
 		symbol.Scope = LocalScope
+	}
+	log.Printf("in here name = %s, inBlock = %t", name, inBlock)
+	if inBlock {
+		s.BlockSymbols = append(s.BlockSymbols, symbol)
 	}
 	s.store[name] = symbol
 	s.numDefinitions++
