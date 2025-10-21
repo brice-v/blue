@@ -262,20 +262,38 @@ func getRootIdent(node *ast.IndexExpression) (*ast.Identifier, bool) {
 	return ident, ok
 }
 
-// func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
-// 	err := c.Compile(node.Condition)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	// Emit an `OpJumpNotTruthy` with a bogus value
-// 	jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
-// 	err = c.Compile(node.Consequence)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if c.lastInstructionIs(code.OpPop) {
-// 		c.removeLastPop()
-// 	}
-// 	afterConsequencePos := len(c.currentInstructions())
-// 	c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
-// }
+func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
+	c.InBlock = true
+	if node.UsesVar {
+		err := c.Compile(node.Initializer)
+		if err != nil {
+			return err
+		}
+	}
+	condPos := len(c.currentInstructions())
+	err := c.Compile(node.Condition)
+	if err != nil {
+		return err
+	}
+	// Emit an `OpJumpNotTruthy` with a bogus value
+	jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
+	err = c.Compile(node.Consequence)
+	if err != nil {
+		return err
+	}
+	if node.UsesVar {
+		err = c.Compile(node.PostExp)
+		if err != nil {
+			return err
+		}
+	}
+	if c.lastInstructionIs(code.OpPop) {
+		c.removeLastPop()
+	}
+	c.emit(code.OpJump, condPos)
+	afterConsequencePos := len(c.currentInstructions())
+	c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+	c.InBlock = false
+	c.clearBlockSymbols()
+	return nil
+}

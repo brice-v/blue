@@ -532,11 +532,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.pushedArg = false
 		}
 		c.emit(code.OpCall, argLen)
-	// case *ast.ForStatement:
-	// 	err := c.compileForStatement(node)
-	// 	if err != nil {
-	// 		return c.addNodeToErrorTrace(err, node.Token)
-	// 	}
+	case *ast.ForStatement:
+		err := c.compileForStatement(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
