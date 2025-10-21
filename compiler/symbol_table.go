@@ -1,7 +1,5 @@
 package compiler
 
-import "log"
-
 type SymbolScope string
 
 const (
@@ -47,7 +45,6 @@ func (s *SymbolTable) Define(name string, isImmutable bool, inBlock bool) Symbol
 	} else {
 		symbol.Scope = LocalScope
 	}
-	log.Printf("in here name = %s, inBlock = %t", name, inBlock)
 	if inBlock {
 		s.BlockSymbols = append(s.BlockSymbols, symbol)
 	}
