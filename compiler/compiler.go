@@ -185,10 +185,13 @@ func (c *Compiler) addNodeToErrorTrace(err error, tok token.Token) error {
 	return err
 }
 
+const ignoreStr = `Filepath: "", LineNumber: 0, PositionInLine: 0
+`
+
 func (c *Compiler) PrintStackTrace() {
 	prevS := ""
 	for _, s := range c.ErrorTrace {
-		if s != prevS {
+		if s != prevS && s != ignoreStr {
 			fmt.Print(s)
 		}
 		prevS = s
