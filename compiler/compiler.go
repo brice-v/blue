@@ -197,7 +197,10 @@ func (c *Compiler) PrintStackTrace() {
 
 func (c *Compiler) Compile(node ast.Node) error {
 	if _, ok := node.(*ast.Program); !ok {
-		c.Tokens[c.currentPos] = append(c.Tokens[c.currentPos], node.TokenToken())
+		t := node.TokenToken()
+		if t.LineNumber != 0 && t.PositionInLine != 0 && t.Filepath != "" {
+			c.Tokens[c.currentPos] = append(c.Tokens[c.currentPos], node.TokenToken())
+		}
 	}
 	switch node := node.(type) {
 	case *ast.Program:

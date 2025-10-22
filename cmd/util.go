@@ -309,8 +309,11 @@ func fmtInstruction(def *code.Definition, operands []int, constants []object.Obj
 		return def.Name
 	case 1:
 		lastPart := ""
-		if def.Name == "OpConstant" {
+		switch def.Name {
+		case "OpConstant":
 			lastPart = fmt.Sprintf(" (%s)", constants[operands[0]].Inspect())
+		case "OpGetBuiltin":
+			lastPart = fmt.Sprintf(" (%s)", object.Builtins[operands[0]].Name)
 		}
 		return fmt.Sprintf("%s %d%s", def.Name, operands[0], lastPart)
 	case 2:

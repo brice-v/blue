@@ -379,6 +379,8 @@ type ForStatement struct {
 	UsesVar     bool          // UsesVar if the for expression condition starts with 'var'
 	Initializer *VarStatement // initializer to be used for the for expression (var x = 0)
 	PostExp     Expression    // PostExp expression to run after the loop
+
+	IterableSetters []Expression
 }
 
 // statementNode satisfies the statement interface

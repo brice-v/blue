@@ -269,6 +269,22 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		ok, sym, right := c.isIdentOnLeftInIterableOnRight(node.Condition)
+		if ok {
+			err := c.compileIdentInIterableFor(sym, node, right)
+			if err != nil {
+				return err
+			}
+		} else {
+			ok, sym1, sym2, right := c.isListIdentsOnLeftInIterableOnRight(node.Condition)
+			if ok {
+				err := c.compileListIdentsInIterableFor(sym1, sym2, node, right)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	condPos := len(c.currentInstructions())
 	err := c.Compile(node.Condition)
@@ -277,11 +293,17 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	}
 	// Emit an `OpJumpNotTruthy` with a bogus value
 	jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
+	for _, setter := range node.IterableSetters {
+		err := c.Compile(setter)
+		if err != nil {
+			return err
+		}
+	}
 	err = c.Compile(node.Consequence)
 	if err != nil {
 		return err
 	}
-	if node.UsesVar {
+	if node.PostExp != nil {
 		err = c.Compile(node.PostExp)
 		if err != nil {
 			return err

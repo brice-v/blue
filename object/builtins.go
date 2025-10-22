@@ -48,6 +48,87 @@ var Builtins = []struct {
 	Builtin *Builtin
 }{
 	{
+		Name: "_get_",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) < 2 || len(args) > 3 {
+					return newInvalidArgCountError("_get_", len(args), 2, "or 3")
+				}
+				arg0Type := args[0].Type()
+				if arg0Type != STRING_OBJ && arg0Type != LIST_OBJ && arg0Type != SET_OBJ && arg0Type != MAP_OBJ {
+					return newPositionalTypeError("_get_", 1, "STR or MAP or LIST or SET", arg0Type)
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("_get_", 2, INTEGER_OBJ, args[1].Type())
+				}
+				iterableIndex := args[1].(*Integer).Value
+				withIndex := false
+				if len(args) == 3 {
+					if args[2].Type() != BOOLEAN_OBJ {
+						return newPositionalTypeError("_get_", 3, BOOLEAN_OBJ, args[2].Type())
+					}
+					withIndex = args[2].(*Boolean).Value
+				}
+				switch arg0Type {
+				case STRING_OBJ:
+					s := args[0].(*Stringo).Value
+					if iterableIndex > int64(utf8.RuneCountInString(s)) || iterableIndex < 0 {
+						return newError("`_get_` index %d out of bounds", iterableIndex)
+					}
+					rs := []rune(s)
+					indexed := &Stringo{Value: string(rs[iterableIndex])}
+					if withIndex {
+						return &List{Elements: []Object{args[1], indexed}}
+					} else {
+						return indexed
+					}
+				case LIST_OBJ:
+					l := args[0].(*List).Elements
+					if iterableIndex > int64(len(l)) || iterableIndex < 0 {
+						return newError("`_get_` index %d out of bounds", iterableIndex)
+					}
+					indexed := l[iterableIndex]
+					if withIndex {
+						return &List{Elements: []Object{args[1], indexed}}
+					} else {
+						return indexed
+					}
+				case SET_OBJ:
+					s := args[0].(*Set).Elements
+					if iterableIndex > int64(s.Len()) || iterableIndex < 0 {
+						return newError("`_get_` index %d out of bounds", iterableIndex)
+					}
+					indexedKey := s.Keys[iterableIndex]
+					indexed, _ := s.Get(indexedKey)
+					if withIndex {
+						return &List{Elements: []Object{args[1], indexed.Value}}
+					} else {
+						return indexed.Value
+					}
+				case MAP_OBJ:
+					m := args[0].(*Map).Pairs
+					if iterableIndex > int64(m.Len()) || iterableIndex < 0 {
+						return newError("`_get_` index %d out of bounds", iterableIndex)
+					}
+					indexedKey := m.Keys[iterableIndex]
+					indexed, _ := m.Get(indexedKey)
+					if withIndex {
+						return &List{Elements: []Object{indexed.Key, indexed.Value}}
+					} else {
+						return indexed.Value
+					}
+				}
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`_get_` returns the item at the index specified for the given iterable",
+				signature:   "_get_(arg: list|str|map|set, index: int, with_index: bool=false) -> any",
+				errors:      "None",
+				example:     "_get([1,2,3], 2) => 3",
+			}.String(),
+		},
+	},
+	{
 		Name: "println",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
