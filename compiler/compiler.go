@@ -195,11 +195,20 @@ func (c *Compiler) PrintStackTrace() {
 	}
 }
 
+func existsInTokens(t token.Token, toks []token.Token) bool {
+	for _, tok := range toks {
+		if tok.LineNumber == t.LineNumber && tok.PositionInLine == t.PositionInLine {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Compiler) Compile(node ast.Node) error {
 	if _, ok := node.(*ast.Program); !ok {
 		t := node.TokenToken()
-		if t.LineNumber != 0 && t.PositionInLine != 0 && t.Filepath != "" {
-			c.Tokens[c.currentPos] = append(c.Tokens[c.currentPos], node.TokenToken())
+		if t.LineNumber != 0 && t.PositionInLine != 0 && t.Filepath != "" && !existsInTokens(t, c.Tokens[c.currentPos]) {
+			c.Tokens[c.currentPos] = append(c.Tokens[c.currentPos], t)
 		}
 	}
 	switch node := node.(type) {
