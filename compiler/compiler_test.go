@@ -864,11 +864,11 @@ func TestBuiltins(t *testing.T) {
 			`,
 			expectedConstants: []any{1},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpGetBuiltin, 7),
+				code.Make(code.OpGetBuiltin, 8),
 				code.Make(code.OpList, 0),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
-				code.Make(code.OpGetBuiltin, 10),
+				code.Make(code.OpGetBuiltin, 11),
 				code.Make(code.OpList, 0),
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpCall, 2),
@@ -879,7 +879,7 @@ func TestBuiltins(t *testing.T) {
 			input: `fun() { len([]) }`,
 			expectedConstants: []any{
 				[]code.Instructions{
-					code.Make(code.OpGetBuiltin, 7),
+					code.Make(code.OpGetBuiltin, 8),
 					code.Make(code.OpList, 0),
 					code.Make(code.OpCall, 1),
 					code.Make(code.OpReturnValue),
