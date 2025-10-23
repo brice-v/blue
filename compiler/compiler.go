@@ -32,7 +32,7 @@ type Compiler struct {
 	currentPos int
 	Tokens     map[int][]token.Token
 
-	InBlock bool
+	BlockNestLevel int
 }
 
 type CompilationScope struct {
@@ -61,7 +61,7 @@ func New() *Compiler {
 		currentPos:  0,
 		Tokens:      map[int][]token.Token{},
 
-		InBlock: false,
+		BlockNestLevel: -1,
 	}
 }
 
@@ -403,7 +403,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if len(node.Names) > 1 {
 			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
 		}
-		symbol := c.symbolTable.Define(node.Names[0].Value, false, c.InBlock)
+		symbol := c.symbolTable.Define(node.Names[0].Value, false, c.BlockNestLevel)
 		switch symbol.Scope {
 		case GlobalScope:
 			c.emit(code.OpSetGlobal, symbol.Index)
@@ -421,7 +421,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if len(node.Names) > 1 {
 			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
 		}
-		symbol := c.symbolTable.Define(node.Names[0].Value, true, c.InBlock)
+		symbol := c.symbolTable.Define(node.Names[0].Value, true, c.BlockNestLevel)
 		switch symbol.Scope {
 		case GlobalScope:
 			c.emit(code.OpSetGlobalImm, symbol.Index)
@@ -463,7 +463,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.FunctionLiteral:
 		c.enterScope()
 		for _, p := range node.Parameters {
-			c.symbolTable.Define(p.Value, false, c.InBlock)
+			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
 		}
 		err := c.Compile(node.Body)
 		if err != nil {
@@ -489,10 +489,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		funIndex := c.addConstant(compiledFun)
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 	case *ast.FunctionStatement:
-		symbol := c.symbolTable.Define(node.Name.Value, true, c.InBlock)
+		symbol := c.symbolTable.Define(node.Name.Value, true, c.BlockNestLevel)
 		c.enterScope()
 		for _, p := range node.Parameters {
-			c.symbolTable.Define(p.Value, false, c.InBlock)
+			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
 		}
 		err := c.Compile(node.Body)
 		if err != nil {

@@ -20,7 +20,7 @@ type SymbolTable struct {
 	store          map[string]Symbol
 	numDefinitions int
 	FreeSymbols    []Symbol
-	BlockSymbols   []Symbol
+	BlockSymbols   [][]Symbol
 
 	Outer *SymbolTable
 }
@@ -28,7 +28,7 @@ type SymbolTable struct {
 func NewSymbolTable() *SymbolTable {
 	s := make(map[string]Symbol)
 	free := []Symbol{}
-	block := []Symbol{}
+	block := [][]Symbol{}
 	return &SymbolTable{store: s, FreeSymbols: free, BlockSymbols: block}
 }
 
@@ -38,15 +38,18 @@ func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 	return s
 }
 
-func (s *SymbolTable) Define(name string, isImmutable bool, inBlock bool) Symbol {
+func (s *SymbolTable) Define(name string, isImmutable bool, blockNestLevel int) Symbol {
 	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: isImmutable}
 	if s.Outer == nil {
 		symbol.Scope = GlobalScope
 	} else {
 		symbol.Scope = LocalScope
 	}
-	if inBlock {
-		s.BlockSymbols = append(s.BlockSymbols, symbol)
+	if blockNestLevel != -1 {
+		if len(s.BlockSymbols) <= blockNestLevel {
+			s.BlockSymbols = append(s.BlockSymbols, []Symbol{})
+		}
+		s.BlockSymbols[blockNestLevel] = append(s.BlockSymbols[blockNestLevel], symbol)
 	}
 	s.store[name] = symbol
 	s.numDefinitions++

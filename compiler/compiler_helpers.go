@@ -67,12 +67,11 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		}
 		// Emit an `OpJumpNotTruthy` with a bogus value
 		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
-		c.InBlock = true
+		c.BlockNestLevel++
 		err = c.Compile(node.Consequences[i])
 		if err != nil {
 			return err
 		}
-		c.InBlock = false
 		if c.lastInstructionIsSet() {
 			c.emit(code.OpNull)
 		}
@@ -89,12 +88,11 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 	if node.Alternative == nil {
 		c.emit(code.OpNull)
 	} else {
-		c.InBlock = true
+		c.BlockNestLevel++
 		err := c.Compile(node.Alternative)
 		if err != nil {
 			return err
 		}
-		c.InBlock = false
 		if c.lastInstructionIsSet() {
 			c.emit(code.OpNull)
 		}
@@ -111,10 +109,20 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 }
 
 func (c *Compiler) clearBlockSymbols() {
-	for _, sym := range c.symbolTable.BlockSymbols {
-		delete(c.symbolTable.store, sym.Name)
+	if c.BlockNestLevel == -1 {
+		return
 	}
-	clear(c.symbolTable.BlockSymbols)
+	if len(c.symbolTable.BlockSymbols) > c.BlockNestLevel {
+		for _, sym := range c.symbolTable.BlockSymbols[c.BlockNestLevel] {
+			delete(c.symbolTable.store, sym.Name)
+		}
+		if c.BlockNestLevel > 0 {
+			c.symbolTable.BlockSymbols = c.symbolTable.BlockSymbols[:c.BlockNestLevel]
+		}
+	} else {
+		clear(c.symbolTable.BlockSymbols)
+	}
+	c.BlockNestLevel--
 }
 
 func (c *Compiler) loadSymbol(s Symbol) {
@@ -263,7 +271,7 @@ func getRootIdent(node *ast.IndexExpression) (*ast.Identifier, bool) {
 }
 
 func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
-	c.InBlock = true
+	c.BlockNestLevel++
 	if node.UsesVar {
 		err := c.Compile(node.Initializer)
 		if err != nil {
@@ -315,7 +323,6 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	c.emit(code.OpJump, condPos)
 	afterConsequencePos := len(c.currentInstructions())
 	c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
-	c.InBlock = false
 	c.clearBlockSymbols()
 	return nil
 }
