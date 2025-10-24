@@ -272,6 +272,7 @@ func getRootIdent(node *ast.IndexExpression) (*ast.Identifier, bool) {
 
 func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	c.BlockNestLevel++
+	c.forIndex++
 	if node.UsesVar {
 		err := c.Compile(node.Initializer)
 		if err != nil {
@@ -311,7 +312,9 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	if err != nil {
 		return err
 	}
+	postExpPos := -1
 	if node.PostExp != nil {
+		postExpPos = len(c.currentInstructions())
 		err = c.Compile(node.PostExp)
 		if err != nil {
 			return err
@@ -323,6 +326,23 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	c.emit(code.OpJump, condPos)
 	afterConsequencePos := len(c.currentInstructions())
 	c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+	if breakPoss, ok := c.breakPos[c.forIndex]; ok {
+		for _, pos := range breakPoss {
+			c.changeOperand(pos, afterConsequencePos)
+		}
+	}
+	if contPoss, ok := c.contPos[c.forIndex]; ok {
+		for _, pos := range contPoss {
+			if node.PostExp != nil {
+				c.changeOperand(pos, postExpPos)
+			} else {
+				c.changeOperand(pos, condPos)
+			}
+		}
+	}
+	delete(c.breakPos, c.forIndex)
+	delete(c.contPos, c.forIndex)
+	c.forIndex--
 	c.clearBlockSymbols()
 	return nil
 }

@@ -33,6 +33,10 @@ type Compiler struct {
 	Tokens     map[int][]token.Token
 
 	BlockNestLevel int
+
+	forIndex int
+	breakPos map[int][]int
+	contPos  map[int][]int
 }
 
 type CompilationScope struct {
@@ -62,6 +66,9 @@ func New() *Compiler {
 		Tokens:      map[int][]token.Token{},
 
 		BlockNestLevel: -1,
+		forIndex:       0,
+		breakPos:       map[int][]int{},
+		contPos:        map[int][]int{},
 	}
 }
 
@@ -552,6 +559,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
+	case *ast.BreakStatement:
+		pos := c.emit(code.OpJump, 9999)
+		if c.breakPos[c.forIndex] == nil {
+			c.breakPos[c.forIndex] = []int{}
+		}
+		c.breakPos[c.forIndex] = append(c.breakPos[c.forIndex], pos)
+	case *ast.ContinueStatement:
+		pos := c.emit(code.OpJump, 9999)
+		if c.contPos[c.forIndex] == nil {
+			c.contPos[c.forIndex] = []int{}
+		}
+		c.contPos[c.forIndex] = append(c.contPos[c.forIndex], pos)
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
