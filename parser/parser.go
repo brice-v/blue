@@ -222,6 +222,12 @@ func (p *Parser) peekError(t token.Type) {
 	p.errors = append(p.errors, msg)
 }
 
+func (p *Parser) peekErrorTwo(t token.Type, t2 token.Type) {
+	errorLine := lexer.GetErrorLineMessage(p.peekToken)
+	msg := fmt.Sprintf("expected next token to be %s or %s, got %s instead\n%s", t, t2, p.peekToken.Type, errorLine)
+	p.errors = append(p.errors, msg)
+}
+
 func (p *Parser) peekError2(t token.Type) {
 	errorLine := lexer.GetErrorLineMessage(p.peekToken)
 	msg := fmt.Sprintf("expected next token to be not be %s, got %s\n%s", t, p.peekToken.Type, errorLine)
@@ -1446,6 +1452,10 @@ func (p *Parser) parseTryCatchBlock() *ast.TryCatchStatement {
 	var catchIdent *ast.Identifier
 	var catchBlock *ast.BlockStatement
 	var finallyBlock *ast.BlockStatement
+	if !p.peekTokenIs(token.CATCH) && !p.peekTokenIs(token.FINALLY) {
+		p.peekErrorTwo(token.CATCH, token.FINALLY)
+		return nil
+	}
 	if p.peekTokenIs(token.CATCH) {
 		p.nextToken()
 		if !p.expectPeekIs(token.LPAREN) {
