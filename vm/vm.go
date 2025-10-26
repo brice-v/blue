@@ -44,6 +44,9 @@ func (vm *VM) pushFrame(f *Frame) {
 }
 
 func (vm *VM) popFrame() *Frame {
+	if vm.framesIndex-1 == 0 {
+		return vm.frames[vm.framesIndex]
+	}
 	vm.framesIndex--
 	return vm.frames[vm.framesIndex]
 }
@@ -207,14 +210,18 @@ func (vm *VM) Run() error {
 		case code.OpReturnValue:
 			returnValue := vm.pop()
 			frame := vm.popFrame()
-			vm.sp = frame.bp - 1
+			if frame != nil {
+				vm.sp = frame.bp - 1
+			}
 			err := vm.push(returnValue)
 			if err != nil {
 				return err
 			}
 		case code.OpReturn:
 			frame := vm.popFrame()
-			vm.sp = frame.bp - 1
+			if frame != nil {
+				vm.sp = frame.bp - 1
+			}
 			err := vm.push(object.NULL)
 			if err != nil {
 				return err
