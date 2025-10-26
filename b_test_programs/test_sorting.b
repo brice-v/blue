@@ -33,7 +33,7 @@ try {
     mixed_list.sort();
     assert(false);
 } catch (e) {
-    assert(e == "EvaluatorError: `sort` error: all elements in list must be STRING, INTEGER, or FLOAT");
+    assert(e == "`sort` error: all elements in list must be STRING, INTEGER, or FLOAT");
 }
 
 

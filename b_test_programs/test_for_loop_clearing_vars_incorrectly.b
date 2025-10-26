@@ -12,7 +12,7 @@ for (i in 0..10) {
         assert(false, "UNREACHABLE");
     } catch (e) {
         println("GOT HERE e = #{e}");
-        assert(e != 'EvaluatorError: `assert` failed: UNREACHABLE');
+        assert(e != '`assert` failed: UNREACHABLE');
     }
     println("i (after for) = #{i}");
     assert(i != null, "This confirms i exists");
@@ -24,7 +24,7 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println("GOT HERE e = #{e}");
-    assert(e != 'EvaluatorError: `assert` failed: UNREACHABLE');
+    assert(e != '`assert` failed: UNREACHABLE');
 }
 
 true;

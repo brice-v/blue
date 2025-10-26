@@ -5,14 +5,14 @@ try {
     x.hello.a.c += 1
     assert(false, "UNREACHABLE");
 } catch (e) {
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e == "'x' is immutable");
 }
 
 try {
     x.hello.a.c = 3;
     assert(false, "UNREACHABLE");
 } catch (e) {
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e == "'x' is immutable");
 }
 
 
@@ -22,14 +22,14 @@ try {
     y.hello.a.c += 1
     assert(false, "UNREACHABLE");
 } catch (e) {
-    assert(e == "EvaluatorError: 'y' is immutable");
+    assert(e == "'y' is immutable");
 }
 
 try {
     y.hello.a.c = 3;
     assert(false, "UNREACHABLE");
 } catch (e) {
-    assert(e == "EvaluatorError: 'y' is immutable");
+    assert(e == "'y' is immutable");
 }
 
 assert(true);

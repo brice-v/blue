@@ -259,7 +259,7 @@ try {
     assert(false);
 } catch (e) {
     println(e);
-    assert(e == "EvaluatorError: `save` error: MODULE_OBJ is not supported for encoding")
+    assert(e == "`save` error: MODULE_OBJ is not supported for encoding")
 }
 
 assert(true);

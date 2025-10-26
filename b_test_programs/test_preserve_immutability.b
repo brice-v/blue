@@ -5,8 +5,8 @@ try {
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'x' is immutable");
 }
 
 try {
@@ -14,8 +14,8 @@ try {
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'x' is immutable");
 }
 
 try {
@@ -23,8 +23,8 @@ try {
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'x' is immutable");
 }
 
 try {
@@ -32,8 +32,8 @@ try {
     assert(false, "UNREACHABLE")
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'x' is immutable");
 }
 
 try {
@@ -41,8 +41,8 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'x' is immutable");
 }
 
 val y = "Hello World";
@@ -51,8 +51,8 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'y' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'y' is immutable");
 }
 
 var z = y;
@@ -65,8 +65,8 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'x' is immutable");
 }
 
 try {
@@ -74,8 +74,8 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'x' is immutable");
 }
 
 
@@ -89,8 +89,8 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'something' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'something' is immutable");
 }
 
 try {
@@ -98,8 +98,8 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e != "EvaluatorError: `assert` failed: UNREACHABLE");
-    assert(e == "EvaluatorError: 'something' is immutable");
+    assert(e != "`assert` failed: UNREACHABLE");
+    assert(e == "'something' is immutable");
 }
 
 var xyz = [1,2,3,4];

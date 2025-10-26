@@ -12,7 +12,7 @@ try {
     z.one = 99;
     assert(false, "UNREACHABLE");
 } catch (e) {
-    assert(e == "EvaluatorError: 'z' is immutable");
+    assert(e == "'z' is immutable");
 }
 # Test Errors on Set
 try {
@@ -20,21 +20,21 @@ try {
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e == "EvaluatorError: failed to set on struct literal: existing value type = INTEGER, new value type = STRING");
+    assert(e == "failed to set on struct literal: existing value type = INTEGER, new value type = STRING");
 }
 try {
     x.1 = 123;
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e == "EvaluatorError: index operator not supported: BLUE_STRUCT.1");
+    assert(e == "index operator not supported: BLUE_STRUCT.1");
 }
 try {
     x.abc = null;
     assert(false, "UNREACHABLE");
 } catch (e) {
     println(e);
-    assert(e == "EvaluatorError: field name `abc` not found on blue struct: @{one: 101, hello_world: abc}");
+    assert(e == "field name `abc` not found on blue struct: @{one: 101, hello_world: abc}");
 }
 
 assert(true);

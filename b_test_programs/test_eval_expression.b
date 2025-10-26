@@ -12,7 +12,7 @@ try {
     eval(1);
     error("`eval` should only be possible with strings");
 } catch (e) {
-    return e == "EvaluatorError: value after `eval` must be STRING. got INTEGER";
+    return e == "value after `eval` must be STRING. got INTEGER";
 }
 
 eval("println('Hello World!')");

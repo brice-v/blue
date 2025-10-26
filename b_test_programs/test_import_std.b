@@ -14,7 +14,7 @@ try {
     return false;
 } catch (e) {
     println("#{e}");
-    if (e != "EvaluatorError: argument to `get` must be string. got INTEGER") {
+    if (e != "argument to `get` must be string. got INTEGER") {
         println("#{e}");
     }
     true;

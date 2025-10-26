@@ -4,7 +4,7 @@ try {
     x.name = 'b';
     assert(false, "UNREACHABLE");
 } catch (e) {
-    assert(e == "EvaluatorError: 'x' is immutable");
+    assert(e == "'x' is immutable");
 }
 
 val msg = "x should be {hello: 'world'}, got #{x}";

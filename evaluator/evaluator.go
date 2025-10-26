@@ -757,7 +757,7 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 func (e *Evaluator) evalTryCatchStatement(node *ast.TryCatchStatement) object.Object {
 	evald := e.evalBlockStatement(node.TryBlock)
 	if isError(evald) {
-		e.env.Set(node.CatchIdentifier.Value, &object.Stringo{Value: evald.Inspect()})
+		e.env.Set(node.CatchIdentifier.Value, &object.Stringo{Value: evald.(*object.Error).Message})
 		evaldCatch := e.evalBlockStatement(node.CatchBlock)
 		// Need to remove the catch identifier after evaluating the catch block
 		e.env.RemoveIdentifier(node.CatchIdentifier.Value)

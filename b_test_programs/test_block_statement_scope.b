@@ -15,7 +15,7 @@ if (x == 123) {
         assert(x == 123);
         println(abc);
     } catch (e) {
-        assert(e == 'EvaluatorError: identifier not found: abc');
+        assert(e == 'identifier not found: abc');
     }
 }
 

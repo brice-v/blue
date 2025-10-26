@@ -11,7 +11,7 @@ for (l in lol) {
     try {
         l[0];
     } catch (e) {
-        assert(e != "EvaluatorError: identifier not found: l");
+        assert(e != "identifier not found: l");
     }
 }
 assert(true);
