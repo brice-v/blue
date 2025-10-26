@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -31,6 +32,31 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type BuiltinType string
+
+type NewBuiltinSliceType []struct {
+	Name    string
+	Builtin *Builtin
+}
+
+const (
+	BuiltinBaseType   BuiltinType = "BUILTIN"
+	BuiltinHttpType   BuiltinType = "HTTP"
+	BuiltinTimeType   BuiltinType = "TIME"
+	BuiltinSearchType BuiltinType = "SEARCH"
+	BuiltinDbType     BuiltinType = "DB"
+	BuiltinMathType   BuiltinType = "MATH"
+	BuiltinConfigType BuiltinType = "CONFIG"
+	BuiltinCryptoType BuiltinType = "CRYPTO"
+	BuiltinNetType    BuiltinType = "NET"
+	BuiltinColorType  BuiltinType = "COLOR"
+	BuiltinCsvType    BuiltinType = "CSV"
+	BuiltinPsutilType BuiltinType = "PSUTIL"
+	BuiltinWasmType   BuiltinType = "WASM"
+	BuiltinUiType     BuiltinType = "UI"
+	BuiltinGgType     BuiltinType = "GG"
+)
+
 type BuiltinMapType struct {
 	*ConcurrentMap[string, *Builtin]
 }
@@ -43,10 +69,7 @@ func NewBuiltinObjMap(input map[string]*Builtin) BuiltinMapType {
 
 type BuiltinMapTypeInternal map[string]*Builtin
 
-var Builtins = []struct {
-	Name    string
-	Builtin *Builtin
-}{
+var Builtins = NewBuiltinSliceType{
 	{
 		Name: "_get_",
 		Builtin: &Builtin{
@@ -3140,8 +3163,45 @@ func (hsa helpStrArgs) String() string {
 	return fmt.Sprintf("%s\n    Signature:  %s\n    Error(s):   %s\n    Example(s): %s\n", hsa.explanation, hsa.signature, hsa.errors, hsa.example)
 }
 
-func GetBuiltinByName(name string) *Builtin {
-	for _, def := range Builtins {
+func getBuiltinMap(bt BuiltinType) NewBuiltinSliceType {
+	switch bt {
+	case BuiltinBaseType:
+		return Builtins
+	case BuiltinHttpType:
+		return HttpBuiltins
+	case BuiltinTimeType:
+		return TimeBuiltins
+	case BuiltinSearchType:
+		return SearchBuiltins
+	case BuiltinDbType:
+		return DbBuiltins
+	case BuiltinMathType:
+		return MathBuiltins
+	case BuiltinConfigType:
+		return ConfigBuiltins
+	case BuiltinCryptoType:
+		return CryptoBuiltins
+	case BuiltinNetType:
+		return NetBuiltins
+	case BuiltinColorType:
+		return ColorBuiltins
+	case BuiltinCsvType:
+		return CsvBuiltins
+	case BuiltinPsutilType:
+		return PsutilBuiltins
+	case BuiltinWasmType:
+		return WazmBuiltins
+	case BuiltinUiType:
+		return UiBuiltins
+	case BuiltinGgType:
+		return GgBuiltins
+	}
+	log.Fatalf("Unsupported Builtin Type: %s", bt)
+	return nil
+}
+
+func GetBuiltinByName(bt BuiltinType, name string) *Builtin {
+	for _, def := range getBuiltinMap(bt) {
 		if def.Name == name {
 			return def.Builtin
 		}

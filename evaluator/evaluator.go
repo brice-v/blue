@@ -47,7 +47,7 @@ type Evaluator struct {
 	// Builtins is the list of builtin elements to look through based on the files imported
 	Builtins []BuiltinMapType
 	// BuiltinObjs is the list of builtin elements to look through based on the files imported
-	BuiltinObjs []BuiltinObjMapType
+	BuiltinObjs []object.BuiltinObjMapType
 
 	// ErrorTokens is the set 'stack' of tokens which can get the error with file:line:col
 	ErrorTokens        *TokenStackSet
@@ -130,7 +130,7 @@ func NewNode(nodeName, address string) *Evaluator {
 		GetBuiltins(e),
 		stringbuiltins,
 	}
-	e.BuiltinObjs = []BuiltinObjMapType{builtinobjs}
+	e.BuiltinObjs = []object.BuiltinObjMapType{object.Builtinobjs}
 	e.env.SetCore(e.AddCoreLibToEnv())
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
@@ -1707,7 +1707,7 @@ func (e *Evaluator) evalAssignmentExpression(node *ast.AssignmentExpression) obj
 		}
 		// Handle Assignment to Builtin Obj
 		if v, ok := ie.Left.(*ast.Identifier); ok {
-			if _, ok = builtinobjs[v.Value]; ok {
+			if _, ok = object.Builtinobjs[v.Value]; ok {
 				return e.evalAssignToBuiltinObj(ie, value)
 			}
 		}
@@ -1912,7 +1912,7 @@ func (e *Evaluator) evalAssignToBuiltinObj(ie *ast.IndexExpression, value object
 				return newError("failed to set ENV key='%s', value='%s'", key, v)
 			}
 		}
-		builtinobjs["ENV"].Obj = populateENVObj()
+		object.Builtinobjs["ENV"].Obj = object.PopulateENVObj()
 		return object.NULL
 	case "ARGV":
 		v, ok := value.(*object.Stringo)
