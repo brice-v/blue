@@ -98,6 +98,10 @@ const (
 	OpGetBuiltin
 	OpStringInterp
 	OpIndexSet
+	OpTry
+	OpCatch
+	OpFinally
+	OpFinallyEnd
 )
 
 type Definition struct {
@@ -161,6 +165,10 @@ var definitions = map[Opcode]*Definition{
 	OpGetBuiltin:         {"OpGetBuiltin", []int{1}},
 	OpStringInterp:       {"OpStringInterp", []int{2, 1}},
 	OpIndexSet:           {"OpIndexSet", []int{}},
+	OpTry:                {"OpTry", []int{}},
+	OpCatch:              {"OpCatch", []int{}},
+	OpFinally:            {"OpFinally", []int{}},
+	OpFinallyEnd:         {"OpFinallyEnd", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

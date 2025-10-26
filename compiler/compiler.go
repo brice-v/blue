@@ -571,6 +571,44 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.contPos[c.forIndex] = []int{}
 		}
 		c.contPos[c.forIndex] = append(c.contPos[c.forIndex], pos)
+	case *ast.TryCatchStatement:
+		c.BlockNestLevel++
+		c.emit(code.OpTry)
+		err := c.Compile(node.TryBlock)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.TryBlock.Token)
+		}
+		c.clearBlockSymbols()
+		if node.CatchBlock != nil {
+			c.BlockNestLevel++
+			c.emit(code.OpCatch)
+			symbol := c.symbolTable.Define(node.CatchIdentifier.Value, true, c.BlockNestLevel)
+			switch symbol.Scope {
+			case GlobalScope:
+				c.emit(code.OpSetGlobalImm, symbol.Index)
+			case LocalScope:
+				c.emit(code.OpSetLocalImm, symbol.Index)
+			}
+			err := c.Compile(node.CatchIdentifier)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.CatchBlock.Token)
+			}
+			err = c.Compile(node.CatchBlock)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.CatchBlock.Token)
+			}
+			c.clearBlockSymbols()
+		}
+		if node.FinallyBlock != nil {
+			c.BlockNestLevel++
+			c.emit(code.OpFinally)
+			err := c.Compile(node.FinallyBlock)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.FinallyBlock.Token)
+			}
+			c.clearBlockSymbols()
+			c.emit(code.OpFinallyEnd)
+		}
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}

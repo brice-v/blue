@@ -29,6 +29,9 @@ type VM struct {
 
 	tokenMap            map[int][]token.Token
 	TokensForErrorTrace []token.Token
+
+	inTry      bool
+	catchError string
 }
 
 func (vm *VM) currentFrame() *Frame {
@@ -63,6 +66,8 @@ func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
 
 		tokenMap:            tokenMap,
 		TokensForErrorTrace: nil,
+
+		inTry: false,
 	}
 }
 
@@ -270,6 +275,16 @@ func (vm *VM) Run() error {
 				return err
 			}
 			vm.push(object.NULL)
+		case code.OpTry:
+			vm.inTry = true
+		case code.OpCatch:
+			vm.inTry = true
+		case code.OpFinally:
+			// Do nothing
+		case code.OpFinallyEnd:
+			if vm.catchError != "" {
+				return fmt.Errorf("%s", vm.catchError)
+			}
 		}
 	}
 	return nil
@@ -292,10 +307,13 @@ func (vm *VM) push(o object.Object) error {
 				indexToUse = keys[i]
 				break
 			}
-			toksForErrorTrace, ok := vm.tokenMap[indexToUse]
-			if ok {
+			if toksForErrorTrace, ok := vm.tokenMap[indexToUse]; ok {
 				vm.TokensForErrorTrace = toksForErrorTrace
 			}
+		}
+		if vm.inTry {
+			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
+			return nil
 		}
 		return fmt.Errorf("%s", o.(*object.Error).Message)
 	}
@@ -315,6 +333,22 @@ func (vm *VM) pop() object.Object {
 
 func (vm *VM) LastPoppedStackElem() object.Object {
 	return vm.stack[vm.sp]
+}
+
+func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
+	vm.inTry = false
+	for i := vm.currentFrame().ip; i < len(vm.currentFrame().Instructions()); i++ {
+		op := code.Opcode(vm.currentFrame().Instructions()[i])
+		if op == code.OpCatch {
+			vm.push(&object.Stringo{Value: errorMessage})
+			vm.currentFrame().ip = i - 1
+			break
+		} else if op == code.OpFinally {
+			vm.catchError = errorMessage
+			vm.currentFrame().ip = i - 1
+			break
+		}
+	}
 }
 
 func (vm *VM) executeBinaryOperation(op code.Opcode) error {
