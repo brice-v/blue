@@ -323,7 +323,10 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 	leftType := left.Type()
 	rightType := right.Type()
 	if leftType == rightType {
-		return binaryOperationFunctions[leftType](vm, op, left, right)
+		if binFun, ok := binaryOperationFunctions[leftType]; ok {
+			return binFun(vm, op, left, right)
+		}
+		return vm.push(newError("unknown operator: %s %s %s", leftType, code.GetOpName(op), rightType))
 	} else if leftType != rightType {
 		return vm.executeBinaryOperationDifferentTypes(op, left, right, leftType, rightType)
 	}
