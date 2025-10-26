@@ -572,6 +572,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.contPos[c.forIndex] = append(c.contPos[c.forIndex], pos)
 	case *ast.TryCatchStatement:
+		c.currentPos = len(c.currentInstructions())
 		c.BlockNestLevel++
 		c.emit(code.OpTry)
 		err := c.Compile(node.TryBlock)
@@ -580,6 +581,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.clearBlockSymbols()
 		if node.CatchBlock != nil {
+			c.currentPos = len(c.currentInstructions())
 			c.BlockNestLevel++
 			c.emit(code.OpCatch)
 			symbol := c.symbolTable.Define(node.CatchIdentifier.Value, true, c.BlockNestLevel)
@@ -600,6 +602,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.clearBlockSymbols()
 		}
 		if node.FinallyBlock != nil {
+			c.currentPos = len(c.currentInstructions())
 			c.BlockNestLevel++
 			c.emit(code.OpFinally)
 			err := c.Compile(node.FinallyBlock)
