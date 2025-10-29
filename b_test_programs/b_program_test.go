@@ -156,6 +156,9 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 	if strings.HasPrefix(stringData, "# IGNORE") || strings.HasPrefix(stringData, "#IGNORE") {
 		return
 	}
+	if strings.HasPrefix(stringData, "#VM IGNORE") || strings.HasPrefix(stringData, "# VM IGNORE") {
+		return
+	}
 	l := lexer.New(stringData, fpath)
 
 	p := parser.New(l)
