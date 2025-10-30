@@ -13,3 +13,4 @@ ignored/*
 *.pprof
 *-blue*
 test.b
+abc.b

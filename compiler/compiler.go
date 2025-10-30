@@ -17,6 +17,8 @@ type EmittedInstruction struct {
 	Position int
 }
 
+const cCompilerBasePath = "."
+
 type Compiler struct {
 	constants []object.Object
 
@@ -37,6 +39,11 @@ type Compiler struct {
 	forIndex int
 	breakPos map[int][]int
 	contPos  map[int][]int
+
+	importNestLevel  int
+	modName          []string
+	CompilerBasePath string
+	ValidModuleNames []string // TODO: Maybe eventually use map[string]struct{}
 }
 
 type CompilationScope struct {
@@ -69,6 +76,10 @@ func New() *Compiler {
 		forIndex:       0,
 		breakPos:       map[int][]int{},
 		contPos:        map[int][]int{},
+
+		importNestLevel:  -1,
+		modName:          []string{},
+		CompilerBasePath: cCompilerBasePath,
 	}
 }
 
@@ -363,7 +374,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			// Support keys in map without requiring quotes
 			ident, ok := keyNode.(*ast.Identifier)
 			if ok {
-				_, ok1 := c.symbolTable.Resolve(ident.Value)
+				_, ok1 := c.symbolTable.Resolve(c.getName(ident.Value))
 				if !ok1 {
 					keyNode1 = &ast.StringLiteral{Value: ident.Value}
 				}
@@ -410,7 +421,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if len(node.Names) > 1 {
 			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
 		}
-		symbol := c.symbolTable.Define(node.Names[0].Value, false, c.BlockNestLevel)
+		symbol := c.symbolTable.Define(c.getName(node.Names[0].Value), false, c.BlockNestLevel)
 		switch symbol.Scope {
 		case GlobalScope:
 			c.emit(code.OpSetGlobal, symbol.Index)
@@ -428,7 +439,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if len(node.Names) > 1 {
 			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
 		}
-		symbol := c.symbolTable.Define(node.Names[0].Value, true, c.BlockNestLevel)
+		symbol := c.symbolTable.Define(c.getName(node.Names[0].Value), true, c.BlockNestLevel)
 		switch symbol.Scope {
 		case GlobalScope:
 			c.emit(code.OpSetGlobalImm, symbol.Index)
@@ -441,31 +452,19 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.Identifier:
-		symbol, ok := c.symbolTable.Resolve(node.Value)
+		symbol, ok := c.symbolTable.Resolve(c.getName(node.Value))
 		if !ok {
-			return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+			// Due to the way compiling works, if its a builtin we need to try again
+			symbol, ok = c.symbolTable.Resolve(node.Value)
+			if !ok {
+				return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+			}
 		}
 		c.loadSymbol(symbol)
 	case *ast.IndexExpression:
-		// Support uniform function call syntax "".println()
-		str, ok := node.Index.(*ast.StringLiteral)
-		if ok {
-			s, ok1 := c.symbolTable.Resolve(str.Value)
-			if ok1 {
-				c.pushedArg = true
-				c.loadSymbol(s)
-			}
-		}
-		err := c.Compile(node.Left)
+		err := c.compileIndexExpression(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
-		}
-		if !c.pushedArg {
-			err = c.Compile(node.Index)
-			if err != nil {
-				return c.addNodeToErrorTrace(err, node.Token)
-			}
-			c.emit(code.OpIndex)
 		}
 	case *ast.FunctionLiteral:
 		c.enterScope()
@@ -496,7 +495,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		funIndex := c.addConstant(compiledFun)
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 	case *ast.FunctionStatement:
-		symbol := c.symbolTable.Define(node.Name.Value, true, c.BlockNestLevel)
+		symbol := c.symbolTable.Define(c.getName(node.Name.Value), true, c.BlockNestLevel)
 		c.enterScope()
 		for _, p := range node.Parameters {
 			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
@@ -611,6 +610,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 			c.clearBlockSymbols()
 			c.emit(code.OpFinallyEnd)
+		}
+	case *ast.ImportStatement:
+		err := c.compileImportStatement(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)

@@ -3,7 +3,16 @@ package compiler
 import (
 	"blue/ast"
 	"blue/code"
+	"blue/consts"
+	"blue/lexer"
+	"blue/object"
+	"blue/parser"
+	"bytes"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func (c *Compiler) compileInfixExpression(operator string) error {
@@ -161,7 +170,7 @@ func (c *Compiler) compileAssignmentExpression(node *ast.AssignmentExpression) e
 }
 
 func (c *Compiler) compileAssignmentWithIdent(ident *ast.Identifier, operator string, v ast.Expression) error {
-	sym, ok := c.symbolTable.Resolve(ident.Value)
+	sym, ok := c.symbolTable.Resolve(c.getName(ident.Value))
 	if !ok {
 		return fmt.Errorf("identifier not found: %s", ident.Value)
 	}
@@ -218,7 +227,7 @@ func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operat
 	if !ok {
 		return fmt.Errorf("could not find identifier for assignmenet")
 	}
-	sym, ok := c.symbolTable.Resolve(rootIdent.Value)
+	sym, ok := c.symbolTable.Resolve(c.getName(rootIdent.Value))
 	if !ok {
 		return fmt.Errorf("identifier not found: %s", rootIdent.Value)
 	}
@@ -344,5 +353,146 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	delete(c.contPos, c.forIndex)
 	c.forIndex--
 	c.clearBlockSymbols()
+	return nil
+}
+
+func (c *Compiler) getName(name string) string {
+	if c.importNestLevel == -1 {
+		return name
+	}
+	return fmt.Sprintf("%s.%s", c.modName[c.importNestLevel], name)
+}
+
+func (c *Compiler) createFilePathFromImportPath(importPath string) string {
+	var fpath bytes.Buffer
+	if c.CompilerBasePath != "." {
+		fpath.WriteString(c.CompilerBasePath)
+		fpath.WriteString(string(os.PathSeparator))
+	}
+	importPath = strings.ReplaceAll(importPath, ".", string(os.PathSeparator))
+	fpath.WriteString(importPath)
+	fpath.WriteString(".b")
+	return fpath.String()
+}
+
+func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
+	name := node.Path.Value
+	// TODO: Handle adding std lib functions/variables
+	// if e.IsStd(name) {
+	// 	return e.AddStdLibToEnv(name, node.IdentsToImport, node.ImportAll)
+	// }
+	fpath := c.createFilePathFromImportPath(name)
+	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
+	var inputStr string
+	if !object.IsEmbed {
+		file, err := filepath.Abs(fpath)
+		if err != nil {
+			return fmt.Errorf("failed to import '%s'. Could not get absolute filepath", name)
+		}
+		ofile, err := os.Open(file)
+		if err != nil {
+			return fmt.Errorf("failed to import '%s'. Could not open file '%s' for reading", name, file)
+		}
+		defer ofile.Close()
+		fileData, err := io.ReadAll(ofile)
+		if err != nil {
+			return fmt.Errorf("failed to import '%s'. Could not read the file", name)
+		}
+		inputStr = string(fileData)
+	} else {
+		fileData, err := object.Files.ReadFile(consts.EMBED_FILES_PREFIX + fpath)
+		if err != nil {
+			return fmt.Errorf("failed to import '%s'. Could not read the file at path '%s'", name, fpath)
+		}
+		inputStr = string(fileData)
+	}
+
+	l := lexer.New(inputStr, fpath)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		for _, msg := range p.Errors() {
+			splitMsg := strings.Split(msg, "\n")
+			firstPart := fmt.Sprintf("%s%s\n", consts.PARSER_ERROR_PREFIX, splitMsg[0])
+			consts.ErrorPrinter(firstPart)
+			for i, s := range splitMsg {
+				if i == 0 {
+					continue
+				}
+				fmt.Println(s)
+			}
+		}
+		return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
+	}
+	if node.ImportAll {
+		// Import All acts as if everything is in the current file
+		return c.Compile(program)
+	}
+	if len(node.IdentsToImport) >= 1 {
+		for _, ident := range node.IdentsToImport {
+			if strings.HasPrefix(ident.Value, "_") {
+				return fmt.Errorf("imports must be public to import them. failed to import %s from %s", ident.Value, modName)
+			}
+		}
+		// TODO: Handle only importing these? Or only making them accessible during compiling
+	}
+	if node.Alias != nil {
+		modName = node.Alias.Value
+	}
+	c.importNestLevel++
+	c.modName = append(c.modName, modName)
+	err := c.Compile(program)
+	if err != nil {
+		return err
+	}
+	c.modName = c.modName[:c.importNestLevel]
+	c.importNestLevel--
+	c.ValidModuleNames = append(c.ValidModuleNames, modName)
+	// So the problem now is that index operator, needs to work based off available modules
+	// while compiling, if we encounter a identifier that is a module, we must pull it in
+	// TODO: Figure out help string later
+	literal := &object.Module{Name: modName, Env: nil, HelpStr: ""}
+	c.emit(code.OpConstant, c.addConstant(literal))
+	symbol := c.symbolTable.Define(modName, true, c.BlockNestLevel)
+	switch symbol.Scope {
+	case GlobalScope:
+		c.emit(code.OpSetGlobalImm, symbol.Index)
+	case LocalScope:
+		c.emit(code.OpSetLocalImm, symbol.Index)
+	}
+	return nil
+}
+
+func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
+	leftIdent, leftIsIdent := node.Left.(*ast.Identifier)
+	rightStr, rightIsStr := node.Index.(*ast.StringLiteral)
+	if leftIsIdent && rightIsStr {
+		// Check if left is a module and if together this can be resolved
+		sym, ok := c.symbolTable.Resolve(fmt.Sprintf("%s.%s", leftIdent.Value, rightStr.Value))
+		if ok {
+			c.loadSymbol(sym)
+			return nil
+		}
+	}
+	// Support uniform function call syntax "".println()
+	str, ok := node.Index.(*ast.StringLiteral)
+	if ok {
+		s, ok1 := c.symbolTable.Resolve(c.getName(str.Value))
+		if ok1 {
+			c.pushedArg = true
+			c.loadSymbol(s)
+		}
+	}
+	err := c.Compile(node.Left)
+	if err != nil {
+		return err
+	}
+	if !c.pushedArg {
+		err = c.Compile(node.Index)
+		if err != nil {
+			return err
+		}
+		c.emit(code.OpIndex)
+	}
 	return nil
 }
