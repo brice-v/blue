@@ -496,3 +496,54 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	}
 	return nil
 }
+
+func (c *Compiler) compileCompLiteral(t, nonEvaluatedProgram string) error {
+	symName := fmt.Sprintf("__internal__%d", c.listSetMapCompLiteralIndex)
+	s := strings.ReplaceAll(nonEvaluatedProgram, "__internal__", symName)
+	l := lexer.New(s, fmt.Sprintf("<internal: %s>", t))
+	p := parser.New(l)
+	rootNode := p.ParseProgram()
+	if len(rootNode.Statements) < 1 {
+		return fmt.Errorf("%s error:, not enough statements", t)
+	}
+	if len(p.Errors()) > 0 {
+		return fmt.Errorf("%s error: %s", t, strings.Join(p.Errors(), " | "))
+	}
+	err := c.Compile(rootNode)
+	if err != nil {
+		return err
+	}
+	sym, ok := c.symbolTable.Resolve(symName)
+	if !ok {
+		return fmt.Errorf("this should never occur, failed to resolve: %s", symName)
+	}
+	c.loadSymbol(sym)
+	return nil
+}
+
+func (c *Compiler) compileListCompLiteral(node *ast.ListCompLiteral) error {
+	err := c.compileCompLiteral("ListCompLiteral", node.NonEvaluatedProgram)
+	if err != nil {
+		return err
+	}
+	c.emit(code.OpListCompLiteral)
+	return nil
+}
+
+func (c *Compiler) compileSetCompLiteral(node *ast.SetCompLiteral) error {
+	err := c.compileCompLiteral("SetCompLiteral", node.NonEvaluatedProgram)
+	if err != nil {
+		return err
+	}
+	c.emit(code.OpSetCompLiteral)
+	return nil
+}
+
+func (c *Compiler) compileMapCompLiteral(node *ast.MapCompLiteral) error {
+	err := c.compileCompLiteral("MapCompLiteral", node.NonEvaluatedProgram)
+	if err != nil {
+		return err
+	}
+	c.emit(code.OpMapCompLiteral)
+	return nil
+}

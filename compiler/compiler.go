@@ -44,6 +44,8 @@ type Compiler struct {
 	modName          []string
 	CompilerBasePath string
 	ValidModuleNames []string // TODO: Maybe eventually use map[string]struct{}
+
+	listSetMapCompLiteralIndex int
 }
 
 type CompilationScope struct {
@@ -353,43 +355,51 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
-		c.emit(code.OpList, len(node.Elements))
+		// Note: this is needed for list comp literals to work properly
+		// a similar thing is done in evaluator
+		if !c.lastInstructionIs(code.OpListCompLiteral) {
+			c.emit(code.OpList, len(node.Elements))
+		}
 	case *ast.SetLiteral:
-		for _, exp := range node.Elements {
-			err := c.Compile(exp)
-			if err != nil {
-				return c.addNodeToErrorTrace(err, node.Token)
-			}
-		}
-		c.emit(code.OpSet, len(node.Elements))
-	case *ast.MapLiteral:
-		indices := make([]int, 0, len(node.PairsIndex))
-		for k := range node.PairsIndex {
-			indices = append(indices, k)
-		}
-		sort.Ints(indices)
-		for _, i := range indices {
-			keyNode := node.PairsIndex[i]
-			keyNode1 := keyNode
-			// Support keys in map without requiring quotes
-			ident, ok := keyNode.(*ast.Identifier)
-			if ok {
-				_, ok1 := c.symbolTable.Resolve(c.getName(ident.Value))
-				if !ok1 {
-					keyNode1 = &ast.StringLiteral{Value: ident.Value}
+		if !c.lastInstructionIs(code.OpSetCompLiteral) {
+			for _, exp := range node.Elements {
+				err := c.Compile(exp)
+				if err != nil {
+					return c.addNodeToErrorTrace(err, node.Token)
 				}
 			}
-			err := c.Compile(keyNode1)
-			if err != nil {
-				return c.addNodeToErrorTrace(err, node.Token)
-			}
-			valueNode := node.Pairs[keyNode]
-			err = c.Compile(valueNode)
-			if err != nil {
-				return c.addNodeToErrorTrace(err, node.Token)
-			}
+			c.emit(code.OpSet, len(node.Elements))
 		}
-		c.emit(code.OpMap, len(node.Pairs)*2)
+	case *ast.MapLiteral:
+		if !c.lastInstructionIs(code.OpMapCompLiteral) {
+			indices := make([]int, 0, len(node.PairsIndex))
+			for k := range node.PairsIndex {
+				indices = append(indices, k)
+			}
+			sort.Ints(indices)
+			for _, i := range indices {
+				keyNode := node.PairsIndex[i]
+				keyNode1 := keyNode
+				// Support keys in map without requiring quotes
+				ident, ok := keyNode.(*ast.Identifier)
+				if ok {
+					_, ok1 := c.symbolTable.Resolve(c.getName(ident.Value))
+					if !ok1 {
+						keyNode1 = &ast.StringLiteral{Value: ident.Value}
+					}
+				}
+				err := c.Compile(keyNode1)
+				if err != nil {
+					return c.addNodeToErrorTrace(err, node.Token)
+				}
+				valueNode := node.Pairs[keyNode]
+				err = c.Compile(valueNode)
+				if err != nil {
+					return c.addNodeToErrorTrace(err, node.Token)
+				}
+			}
+			c.emit(code.OpMap, len(node.Pairs)*2)
+		}
 	case *ast.Boolean:
 		if node.Value {
 			c.emit(code.OpTrue)
@@ -613,6 +623,21 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 	case *ast.ImportStatement:
 		err := c.compileImportStatement(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+	case *ast.ListCompLiteral:
+		err := c.compileListCompLiteral(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+	case *ast.SetCompLiteral:
+		err := c.compileSetCompLiteral(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+	case *ast.MapCompLiteral:
+		err := c.compileMapCompLiteral(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}

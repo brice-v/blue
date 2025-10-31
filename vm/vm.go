@@ -120,6 +120,22 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpLshift:
+			right := vm.pop()
+			left := vm.peek()
+			if left.Type() != object.LIST_OBJ && left.Type() != object.SET_OBJ {
+				return vm.push(newError("unknown operator: %s << %s", left.Type(), right.Type()))
+			}
+			if left.Type() == object.LIST_OBJ {
+				l := left.(*object.List)
+				l.Elements = append(l.Elements, right)
+			} else {
+				s := left.(*object.Set)
+				key := object.HashObject(right)
+				if _, ok := s.Elements.Get(key); !ok {
+					s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
+				}
+			}
 		case code.OpNot:
 			err := vm.executeNotOperation()
 			if err != nil {
@@ -292,6 +308,8 @@ func (vm *VM) Run() error {
 			if vm.catchError != "" {
 				return fmt.Errorf("%s", vm.catchError)
 			}
+		case code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
+			// Do nothing
 		}
 	}
 	return nil
@@ -336,6 +354,10 @@ func (vm *VM) pop() object.Object {
 	o := vm.stack[vm.sp-1]
 	vm.sp--
 	return o
+}
+
+func (vm *VM) peek() object.Object {
+	return vm.stack[vm.sp-1]
 }
 
 func (vm *VM) LastPoppedStackElem() object.Object {

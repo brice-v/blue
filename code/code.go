@@ -102,6 +102,9 @@ const (
 	OpCatch
 	OpFinally
 	OpFinallyEnd
+	OpListCompLiteral
+	OpSetCompLiteral
+	OpMapCompLiteral
 )
 
 type Definition struct {
@@ -169,6 +172,9 @@ var definitions = map[Opcode]*Definition{
 	OpCatch:              {"OpCatch", []int{}},
 	OpFinally:            {"OpFinally", []int{}},
 	OpFinallyEnd:         {"OpFinallyEnd", []int{}},
+	OpListCompLiteral:    {"OpListCompLiteral", []int{}},
+	OpSetCompLiteral:     {"OpSetCompLiteral", []int{}},
+	OpMapCompLiteral:     {"OpMapCompLiteral", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {
