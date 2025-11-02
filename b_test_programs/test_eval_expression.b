@@ -1,4 +1,4 @@
-
+#VM IGNORE
 val x = 1;
 val y = 1;
 

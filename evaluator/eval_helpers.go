@@ -13,8 +13,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -80,50 +78,6 @@ func isError(obj object.Object) bool {
 		return isError
 	}
 	return false
-}
-
-func ExecStringCommand(str string) object.Object {
-	if object.NoExec {
-		return newError("cannot execute string command `%s`. NoExec set to true.", str)
-	}
-	splitStr := strings.Split(str, " ")
-	if len(splitStr) == 0 {
-		return newError("unable to exec the string `%s`", str)
-	}
-	if len(splitStr) == 1 {
-		output, err := execCommand(splitStr[0]).Output()
-		if err != nil {
-			return newError("unable to exec the string `%s`. Error: %s", str, err)
-		}
-		return &object.Stringo{Value: string(output[:])}
-	}
-	cleanedStrings := []string{}
-	for _, v := range splitStr {
-		if v != "" {
-			cleanedStrings = append(cleanedStrings, v)
-			continue
-		}
-	}
-	first := cleanedStrings[0]
-	rest := cleanedStrings[1:]
-
-	output, err := execCommand(first, rest...).CombinedOutput()
-	if err != nil {
-		return newError("unable to exec the string `%s`. Error: %s", str, err)
-	}
-	if len(output) == 0 {
-		return object.NULL
-	}
-	return &object.Stringo{Value: string(output[:])}
-}
-
-func execCommand(arg0 string, args ...string) *exec.Cmd {
-	if runtime.GOOS == "windows" {
-		cmdArgs := append([]string{"cmd", "/c", arg0}, args...)
-		return exec.Command(cmdArgs[0], cmdArgs...)
-	} else {
-		return exec.Command(arg0, args...)
-	}
 }
 
 func twoListsEqual(leftList, rightList *object.List) bool {

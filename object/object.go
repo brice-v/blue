@@ -76,6 +76,8 @@ const (
 	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
 	// CLOSURE_OBJ is the closure function object for the VM
 	CLOSURE_OBJ = "CLOSURE_OBJ"
+	// EXEC_STRING is the string object type string
+	EXEC_STRING_OBJ = "EXEC_STRING"
 )
 
 // Type is the object type represented as a string
@@ -799,6 +801,20 @@ func (cf *Closure) Inspect() string {
 }
 
 func (cf *Closure) Help() string {
+	return ""
+}
+
+type ExecString struct {
+	Value string
+}
+
+// Type returns the string object type
+func (s *ExecString) Type() Type { return EXEC_STRING_OBJ }
+
+// Inspect returns the string value
+func (s *ExecString) Inspect() string { return s.Value }
+
+func (s *ExecString) Help() string {
 	return ""
 }
 

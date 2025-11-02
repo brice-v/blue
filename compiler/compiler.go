@@ -641,6 +641,21 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
+	case *ast.MatchExpression:
+		err := c.compileMatchExpression(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+	case *ast.EvalExpression:
+		err := fmt.Errorf("eval expression not supported by compiler")
+		return c.addNodeToErrorTrace(err, node.Token)
+	case *ast.ExecStringLiteral:
+		if node.Value == "" {
+			err := fmt.Errorf("exec string must not be empty")
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+		literal := &object.ExecString{Value: node.Value}
+		c.emit(code.OpExecString, c.addConstant(literal))
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}

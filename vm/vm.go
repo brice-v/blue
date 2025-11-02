@@ -310,6 +310,15 @@ func (vm *VM) Run() error {
 			}
 		case code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
 			// Do nothing
+		case code.OpExecString:
+			constIndex := code.ReadUint16(ins[ip+1:])
+			vm.currentFrame().ip += 2
+			execStr := vm.constants[constIndex]
+			str, ok := execStr.(*object.ExecString)
+			if !ok {
+				return fmt.Errorf("expected ExecString, got=%T", execStr)
+			}
+			vm.push(object.ExecStringCommand(str.Value))
 		}
 	}
 	return nil

@@ -547,3 +547,52 @@ func (c *Compiler) compileMapCompLiteral(node *ast.MapCompLiteral) error {
 	c.emit(code.OpMapCompLiteral)
 	return nil
 }
+
+func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
+	conditionLen := len(node.Conditions)
+	consequenceLen := len(node.Consequences)
+	if conditionLen != consequenceLen {
+		return fmt.Errorf("conditions length is not equal to consequences length in match expression")
+	}
+	if node.OptionalValue != nil {
+		return fmt.Errorf("handle compile of optional value: %s", node.OptionalValue.String())
+	}
+	allEndingJumpPos := []int{}
+	for i := range node.Conditions {
+		var err error
+		var jumpNotTruthyPos int
+		condIsDefault := node.Conditions[i].String() == "_"
+		if !condIsDefault {
+			err = c.Compile(node.Conditions[i])
+			if err != nil {
+				return err
+			}
+			// Emit an `OpJumpNotTruthy` with a bogus value
+			jumpNotTruthyPos = c.emit(code.OpJumpNotTruthy, 9999)
+		}
+		c.BlockNestLevel++
+		err = c.Compile(node.Consequences[i])
+		if err != nil {
+			return err
+		}
+		if c.lastInstructionIsSet() {
+			c.emit(code.OpNull)
+		}
+		if c.lastInstructionIs(code.OpPop) {
+			c.removeLastPop()
+		}
+		c.clearBlockSymbols()
+		// Emit an `OpJump` with a bogus value
+		jumpPos := c.emit(code.OpJump, 9999)
+		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
+		afterConsequencePos := len(c.currentInstructions())
+		if !condIsDefault {
+			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+		}
+	}
+	afterAlternativePos := len(c.currentInstructions())
+	for _, jumpPos := range allEndingJumpPos {
+		c.changeOperand(jumpPos, afterAlternativePos)
+	}
+	return nil
+}

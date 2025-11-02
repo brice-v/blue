@@ -925,7 +925,7 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 		}
 	}
 	e.env.Set("_", object.NULL)
-	for i := 0; i < conditionLen; i++ {
+	for i := range conditionLen {
 		if node.Conditions[i].String() == "_" {
 			// Default case should always run (even if its before others)
 			return e.evalBlockStatement(node.Consequences[i])
@@ -2258,7 +2258,7 @@ func (e *Evaluator) evalStringIndexExpression(str, indx object.Object) object.Ob
 
 func (e *Evaluator) evalExecStringLiteral(execStringNode *ast.ExecStringLiteral) object.Object {
 	str := execStringNode.Value
-	return ExecStringCommand(str)
+	return object.ExecStringCommand(str)
 }
 
 func (e *Evaluator) evalStringWithInterpolation(stringNode *ast.StringLiteral) object.Object {
