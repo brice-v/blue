@@ -1,5 +1,10 @@
 package compiler
 
+import (
+	"fmt"
+	"strings"
+)
+
 type SymbolScope string
 
 const (
@@ -14,6 +19,9 @@ type Symbol struct {
 	Scope     SymbolScope
 	Index     int
 	Immutable bool
+
+	// Only used for builtins at the moment
+	BuiltinModuleIndex int
 }
 
 type SymbolTable struct {
@@ -56,10 +64,14 @@ func (s *SymbolTable) Define(name string, isImmutable bool, blockNestLevel int) 
 	return symbol
 }
 
-func (s *SymbolTable) DefineBuiltin(index int, name string) Symbol {
-	symbol := Symbol{Name: name, Index: index, Scope: BuiltinScope}
+func (s *SymbolTable) DefineBuiltin(index int, name string, builtinModuleIndex int) Symbol {
+	symbol := Symbol{Name: name, Index: index, Scope: BuiltinScope, BuiltinModuleIndex: builtinModuleIndex}
 	s.store[name] = symbol
 	return symbol
+}
+
+func (s *SymbolTable) RemoveBuiltin(name string) {
+	delete(s.store, name)
 }
 
 func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
@@ -84,4 +96,21 @@ func (s *SymbolTable) defineFree(original Symbol) Symbol {
 	symbol.Scope = FreeScope
 	s.store[original.Name] = symbol
 	return symbol
+}
+
+func (s *SymbolTable) String() string {
+	var sb strings.Builder
+	for k, v := range s.store {
+		sb.WriteString(fmt.Sprintf("%s %#+v\n", k, v))
+	}
+	outer := s.Outer
+	if outer != nil {
+		for outer != nil {
+			for k, v := range outer.store {
+				sb.WriteString(fmt.Sprintf("%s %#+v\n", k, v))
+			}
+			outer = outer.Outer
+		}
+	}
+	return sb.String()
 }

@@ -244,7 +244,7 @@ func TestDefineResolveBuiltins(t *testing.T) {
 		{Name: "f", Scope: BuiltinScope, Index: 3},
 	}
 	for i, v := range expected {
-		global.DefineBuiltin(i, v.Name)
+		global.DefineBuiltin(i, v.Name, 0)
 	}
 	for _, table := range []*SymbolTable{global, firstLocal, secondLocal} {
 		for _, sym := range expected {

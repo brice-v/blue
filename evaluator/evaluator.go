@@ -670,6 +670,9 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object {
 	name := node.Path.Value
 	if e.IsStd(name) {
+		if node.Alias != nil {
+			return newError("alias for std module not supported")
+		}
 		return e.AddStdLibToEnv(name, node.IdentsToImport, node.ImportAll)
 	}
 	fpath := e.createFilePathFromImportPath(name)

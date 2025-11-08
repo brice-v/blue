@@ -56,8 +56,8 @@ type CompilationScope struct {
 
 func New() *Compiler {
 	symbolTable := NewSymbolTable()
-	for i, v := range object.Builtins {
-		symbolTable.DefineBuiltin(i, v.Name)
+	for i, v := range object.AllBuiltins[0].Builtins {
+		symbolTable.DefineBuiltin(i, v.Name, 0)
 	}
 	mainScope := CompilationScope{
 		instructions:        code.Instructions{},

@@ -3105,6 +3105,37 @@ var Builtins = NewBuiltinSliceType{
 	},
 }
 
+var AllBuiltins = []struct {
+	Name     string
+	Builtins NewBuiltinSliceType
+}{
+	{Name: "core", Builtins: Builtins},
+	{Name: "http", Builtins: HttpBuiltins},
+	{Name: "time", Builtins: TimeBuiltins},
+	{Name: "search", Builtins: SearchBuiltins},
+	{Name: "db", Builtins: DbBuiltins},
+	{Name: "math", Builtins: MathBuiltins},
+	{Name: "config", Builtins: ConfigBuiltins},
+	{Name: "crypto", Builtins: CryptoBuiltins},
+	{Name: "net", Builtins: NetBuiltins},
+	{Name: "color", Builtins: ColorBuiltins},
+	{Name: "csv", Builtins: CsvBuiltins},
+	{Name: "psutil", Builtins: PsutilBuiltins},
+	{Name: "wasm", Builtins: WazmBuiltins},
+	{Name: "crypto", Builtins: CryptoBuiltins},
+	{Name: "ui", Builtins: UiBuiltins},
+	{Name: "gg", Builtins: GgBuiltins},
+}
+
+func GetIndexAndBuiltinsOf(name string) (int, NewBuiltinSliceType) {
+	for i, builtins := range AllBuiltins {
+		if builtins.Name == name {
+			return i, builtins.Builtins
+		}
+	}
+	return -1, nil
+}
+
 func getBasicObjectForGoObj[T any](arg Object) (string, T, bool) {
 	var zero T
 	if arg == nil {

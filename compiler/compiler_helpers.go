@@ -142,7 +142,7 @@ func (c *Compiler) loadSymbol(s Symbol) {
 		case LocalScope:
 			c.emit(code.OpGetLocalImm, s.Index)
 		case BuiltinScope:
-			c.emit(code.OpGetBuiltin, s.Index)
+			c.emit(code.OpGetBuiltin, s.BuiltinModuleIndex, s.Index)
 		case FreeScope:
 			c.emit(code.OpGetFreeImm, s.Index)
 		}
@@ -153,7 +153,7 @@ func (c *Compiler) loadSymbol(s Symbol) {
 		case LocalScope:
 			c.emit(code.OpGetLocal, s.Index)
 		case BuiltinScope:
-			c.emit(code.OpGetBuiltin, s.Index)
+			c.emit(code.OpGetBuiltin, s.BuiltinModuleIndex, s.Index)
 		case FreeScope:
 			c.emit(code.OpGetFree, s.Index)
 		}
@@ -170,9 +170,16 @@ func (c *Compiler) compileAssignmentExpression(node *ast.AssignmentExpression) e
 }
 
 func (c *Compiler) compileAssignmentWithIdent(ident *ast.Identifier, operator string, v ast.Expression) error {
-	sym, ok := c.symbolTable.Resolve(c.getName(ident.Value))
+	// TODO: Look into why this is necessary (happens with for ident in iterable in imported file)
+	var sym Symbol
+	var ok bool
+	sym, ok = c.symbolTable.Resolve(c.getName(ident.Value))
 	if !ok {
-		return fmt.Errorf("identifier not found: %s", ident.Value)
+		// Try without qualifier to resolve local variables from imported files
+		sym, ok = c.symbolTable.Resolve(ident.Value)
+		if !ok {
+			return fmt.Errorf("identifier not found: %s", ident.Value)
+		}
 	}
 	if sym.Immutable {
 		return fmt.Errorf("'%s' is immutable", ident.Value)
@@ -377,10 +384,12 @@ func (c *Compiler) createFilePathFromImportPath(importPath string) string {
 
 func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	name := node.Path.Value
-	// TODO: Handle adding std lib functions/variables
-	// if e.IsStd(name) {
-	// 	return e.AddStdLibToEnv(name, node.IdentsToImport, node.ImportAll)
-	// }
+	if c.IsStd(name) {
+		if node.Alias != nil {
+			return fmt.Errorf("alias for std module not supported")
+		}
+		return c.CompileStdModule(name, node.IdentsToImport, node.ImportAll)
+	}
 	fpath := c.createFilePathFromImportPath(name)
 	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
 	var inputStr string
@@ -435,6 +444,8 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 			}
 		}
 		// TODO: Handle only importing these? Or only making them accessible during compiling
+		// TODO: Add test case trying to call method such as abc._hello() => this should ideally fail to compile
+		// when called from the file importing abc
 	}
 	if node.Alias != nil {
 		modName = node.Alias.Value
