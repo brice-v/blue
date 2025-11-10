@@ -54,7 +54,8 @@ func (s *SymbolTable) Define(name string, isImmutable bool, blockNestLevel int) 
 		symbol.Scope = LocalScope
 	}
 	if blockNestLevel != -1 {
-		if len(s.BlockSymbols) <= blockNestLevel {
+		numToAppend := blockNestLevel - len(s.BlockSymbols)
+		for i := 0; i <= numToAppend; i++ {
 			s.BlockSymbols = append(s.BlockSymbols, []Symbol{})
 		}
 		s.BlockSymbols[blockNestLevel] = append(s.BlockSymbols[blockNestLevel], symbol)
@@ -113,4 +114,18 @@ func (s *SymbolTable) String() string {
 		}
 	}
 	return sb.String()
+}
+
+func (s *SymbolTable) UpdateName(ogName, newName string) error {
+	orig, exists := s.store[ogName]
+	if !exists {
+		return fmt.Errorf("cant find name %s in symbol table", ogName)
+	}
+	_, newExistsAlready := s.store[newName]
+	if newExistsAlready {
+		return fmt.Errorf("name %s already exists in symbol table", newName)
+	}
+	delete(s.store, ogName)
+	s.store[newName] = orig
+	return nil
 }

@@ -3103,6 +3103,70 @@ var Builtins = NewBuiltinSliceType{
 			}.String(),
 		},
 	},
+	{
+		Name: "to_num",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
+	{
+		Name: "_sort",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
+	{
+		Name: "_sorted",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
+	{
+		Name: "all",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
+	{
+		Name: "any",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
+	{
+		Name: "map",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
+	{
+		Name: "filter",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
+	{
+		Name: "load",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return newError("unsupported")
+			},
+		},
+	},
 }
 
 var AllBuiltins = []struct {

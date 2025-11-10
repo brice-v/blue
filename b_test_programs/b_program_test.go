@@ -167,13 +167,19 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 		repl.PrintParserErrors(os.Stderr, p.Errors())
 		t.Fatalf("File `%s`: failed to parse", f.Name())
 	}
-	c := compiler.New()
+	constants := []object.Object{}
+	globals := make([]object.Object, vm.GlobalsSize)
+	symbolTable := compiler.NewSymbolTable()
+	for i, v := range object.AllBuiltins[0].Builtins {
+		symbolTable.DefineBuiltin(i, v.Name, 0)
+	}
+	c := compiler.NewWithStateAndCore(symbolTable, constants)
 	err = c.Compile(program)
 	if err != nil {
 		t.Errorf("File `%s`: compiler returned error %s", f.Name(), err.Error())
 		return
 	}
-	v := vm.New(c.Bytecode(), c.Tokens)
+	v := vm.NewWithGlobalsStore(c.Bytecode(), c.Tokens, globals)
 	err = v.Run()
 	if err != nil {
 		t.Errorf("File `%s`: vm returned error %s", f.Name(), err.Error())

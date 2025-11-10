@@ -46,6 +46,10 @@ type Compiler struct {
 	ValidModuleNames []string // TODO: Maybe eventually use map[string]struct{}
 
 	listSetMapCompLiteralIndex int
+
+	coreCompiled bool
+
+	inMatch bool
 }
 
 type CompilationScope struct {
@@ -90,6 +94,12 @@ func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
 	compiler.symbolTable = s
 	compiler.constants = constants
 	return compiler
+}
+
+func NewWithStateAndCore(s *SymbolTable, constants []object.Object) *Compiler {
+	c := NewWithState(s, constants)
+	c.compileCore()
+	return c
 }
 
 type Bytecode struct {
@@ -462,15 +472,19 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.Identifier:
-		symbol, ok := c.symbolTable.Resolve(c.getName(node.Value))
-		if !ok {
-			// Due to the way compiling works, if its a builtin we need to try again
-			symbol, ok = c.symbolTable.Resolve(node.Value)
+		if c.inMatch && node.Value == "_" {
+			c.emit(code.OpMatchAny)
+		} else {
+			symbol, ok := c.symbolTable.Resolve(c.getName(node.Value))
 			if !ok {
-				return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+				// Due to the way compiling works, if its a builtin we need to try again
+				symbol, ok = c.symbolTable.Resolve(node.Value)
+				if !ok {
+					return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+				}
 			}
+			c.loadSymbol(symbol)
 		}
-		c.loadSymbol(symbol)
 	case *ast.IndexExpression:
 		err := c.compileIndexExpression(node)
 		if err != nil {
@@ -647,8 +661,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.EvalExpression:
-		err := fmt.Errorf("eval expression not supported by compiler")
-		return c.addNodeToErrorTrace(err, node.Token)
+		literal := &object.Stringo{Value: node.StrToEval.String()}
+		c.emit(code.OpConstant, c.addConstant(literal))
+		c.emit(code.OpEval)
 	case *ast.ExecStringLiteral:
 		if node.Value == "" {
 			err := fmt.Errorf("exec string must not be empty")

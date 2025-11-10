@@ -106,6 +106,9 @@ const (
 	OpSetCompLiteral
 	OpMapCompLiteral
 	OpExecString
+	OpMatches
+	OpMatchAny
+	OpEval
 )
 
 type Definition struct {
@@ -177,6 +180,9 @@ var definitions = map[Opcode]*Definition{
 	OpSetCompLiteral:     {"OpSetCompLiteral", []int{}},
 	OpMapCompLiteral:     {"OpMapCompLiteral", []int{}},
 	OpExecString:         {"OpExecString", []int{2}},
+	OpMatches:            {"OpMatches", []int{}},
+	OpMatchAny:           {"OpMatchAny", []int{}},
+	OpEval:               {"OpEval", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

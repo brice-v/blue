@@ -622,4 +622,23 @@ var HttpBuiltins = NewBuiltinSliceType{
 			example:     "open_browser('http://localhost:3000/') => null -> open's browser (side effect)",
 		}.String(),
 	}},
+	// TODO: Figure out how to handle these
+	{Name: "_handle", Builtin: &Builtin{
+		Fun: func(args ...Object) Object {
+			return newError("not supported")
+		},
+		HelpStr: "",
+	}},
+	{Name: "_handle_use", Builtin: &Builtin{
+		Fun: func(args ...Object) Object {
+			return newError("not supported")
+		},
+		HelpStr: "",
+	}},
+	{Name: "_handle_ws", Builtin: &Builtin{
+		Fun: func(args ...Object) Object {
+			return newError("not supported")
+		},
+		HelpStr: "",
+	}},
 }

@@ -3,7 +3,9 @@ package vm
 import (
 	"blue/code"
 	"blue/compiler"
+	"blue/lexer"
 	"blue/object"
+	"blue/parser"
 	"blue/token"
 	"fmt"
 	"math/big"
@@ -320,6 +322,9 @@ func (vm *VM) Run() error {
 				return fmt.Errorf("expected ExecString, got=%T", execStr)
 			}
 			vm.push(object.ExecStringCommand(str.Value))
+		case code.OpEval:
+			strToEval := vm.pop()
+			vm.push(vmStr(strToEval.(*object.Stringo).Value))
 		}
 	}
 	return nil
@@ -649,4 +654,25 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 	result := builtin.Fun(args...)
 	vm.sp = vm.sp - numArgs - 1
 	return vm.push(result)
+}
+
+func vmStr(s string) object.Object {
+	l := lexer.New(s, "<internal: string>")
+	p := parser.New(l)
+	prog := p.ParseProgram()
+	pErrors := p.Errors()
+	if len(pErrors) != 0 {
+		return newError("failed to `eval` string, found '%d' parser errors", len(pErrors))
+	}
+	c := compiler.New()
+	err := c.Compile(prog)
+	if err != nil {
+		return newError("compiler error in `eval` string: %s", err.Error())
+	}
+	vm := New(c.Bytecode(), nil)
+	err = vm.Run()
+	if err != nil {
+		return newError("vm error in `eval` string: %s", err.Error())
+	}
+	return vm.LastPoppedStackElem()
 }

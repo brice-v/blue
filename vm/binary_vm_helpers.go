@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -527,6 +528,9 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
 	},
+	object.MAP_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+		return vm.executeDefaultBinaryOperation(op, left, right)
+	},
 	object.BYTES_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
 		leftBs := left.(*object.Bytes).Value
 		rightBs := right.(*object.Bytes).Value
@@ -558,6 +562,18 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 				buf[i] = leftBs[i] ^ rightBs[i]
 			}
 			return vm.push(&object.Bytes{Value: buf})
+		default:
+			return vm.executeDefaultBinaryOperation(op, left, right)
+		}
+	},
+	object.BOOLEAN_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+		leftB := left.(*object.Boolean).Value
+		rightB := right.(*object.Boolean).Value
+		switch op {
+		case code.OpAnd:
+			return vm.push(nativeToBooleanObject(leftB && rightB))
+		case code.OpOr:
+			return vm.push(nativeToBooleanObject(leftB || rightB))
 		default:
 			return vm.executeDefaultBinaryOperation(op, left, right)
 		}
@@ -602,8 +618,65 @@ func (vm *VM) executeBinaryOperationDifferentTypes(op code.Opcode, left, right o
 		left.Type() == object.UINTEGER_OBJ && right.Type() == object.STRING_OBJ {
 		return vm.executeBinaryStringAndIntOrUintOperation(op, left, right)
 	}
+	if (op == code.OpIn || op == code.OpNotin) && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ) {
+		return vm.executeInNotInOperation(op, left, right)
+	}
 	// TODO: More to handle here
 	return fmt.Errorf("handle %s %s %s", leftType, code.GetOpName(op), rightType)
+}
+
+func (vm *VM) executeInNotInOperation(op code.Opcode, left, right object.Object) error {
+	leftHash := object.HashObject(left)
+	switch rt := right.(type) {
+	case *object.List:
+		switch op {
+		case code.OpIn:
+			for _, e := range rt.Elements {
+				if leftHash == object.HashObject(e) {
+					return vm.push(object.TRUE)
+				}
+			}
+			return vm.push(object.FALSE)
+		case code.OpNotin:
+			for _, e := range rt.Elements {
+				if leftHash == object.HashObject(e) {
+					return vm.push(object.FALSE)
+				}
+			}
+			return vm.push(object.TRUE)
+		}
+	case *object.Set:
+		switch op {
+		case code.OpIn:
+			if slices.Contains(rt.Elements.Keys, leftHash) {
+				return vm.push(object.TRUE)
+			}
+			return vm.push(object.FALSE)
+		case code.OpNotin:
+			if slices.Contains(rt.Elements.Keys, leftHash) {
+				return vm.push(object.FALSE)
+			}
+			return vm.push(object.TRUE)
+		}
+	case *object.Map:
+		switch op {
+		case code.OpIn:
+			for _, k := range rt.Pairs.Keys {
+				if leftHash == k.Value {
+					return vm.push(object.TRUE)
+				}
+			}
+			return vm.push(object.FALSE)
+		case code.OpNotin:
+			for _, k := range rt.Pairs.Keys {
+				if leftHash == k.Value {
+					return vm.push(object.FALSE)
+				}
+			}
+			return vm.push(object.TRUE)
+		}
+	}
+	return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 }
 
 func (vm *VM) executeBinaryStringAndIntOrUintOperation(op code.Opcode, left, right object.Object) error {

@@ -83,13 +83,13 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		// Import All acts as if everything is in the current file
 		return c.Compile(fb.ParsedProgram)
 	}
-	if len(nodeIdentsToImport) >= 1 {
+	checkNodeIdentsToImport := len(nodeIdentsToImport) > 0
+	if checkNodeIdentsToImport {
 		for _, ident := range nodeIdentsToImport {
 			if strings.HasPrefix(ident.Value, "_") {
 				return fmt.Errorf("imports must be public to import them. failed to import %s from %s", ident.Value, name)
 			}
 		}
-		// TODO: Handle only importing these? Or only making them accessible during compiling
 		// TODO: Add test case trying to call method such as abc._hello() => this should ideally fail to compile
 		// when called from the file importing abc
 	}
@@ -98,6 +98,14 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	err := c.Compile(fb.ParsedProgram)
 	if err != nil {
 		return err
+	}
+	if checkNodeIdentsToImport {
+		for _, ident := range nodeIdentsToImport {
+			err := c.symbolTable.UpdateName(fmt.Sprintf("%s.%s", name, ident.Value), ident.Value)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	c.modName = c.modName[:c.importNestLevel]
 	c.importNestLevel--

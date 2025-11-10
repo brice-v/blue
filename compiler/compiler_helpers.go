@@ -437,13 +437,13 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 		// Import All acts as if everything is in the current file
 		return c.Compile(program)
 	}
-	if len(node.IdentsToImport) >= 1 {
+	checkNodeIdentsToImport := len(node.IdentsToImport) > 0
+	if checkNodeIdentsToImport {
 		for _, ident := range node.IdentsToImport {
 			if strings.HasPrefix(ident.Value, "_") {
 				return fmt.Errorf("imports must be public to import them. failed to import %s from %s", ident.Value, modName)
 			}
 		}
-		// TODO: Handle only importing these? Or only making them accessible during compiling
 		// TODO: Add test case trying to call method such as abc._hello() => this should ideally fail to compile
 		// when called from the file importing abc
 	}
@@ -455,6 +455,14 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	err := c.Compile(program)
 	if err != nil {
 		return err
+	}
+	if checkNodeIdentsToImport {
+		for _, ident := range node.IdentsToImport {
+			err := c.symbolTable.UpdateName(fmt.Sprintf("%s.%s", name, ident.Value), ident.Value)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	c.modName = c.modName[:c.importNestLevel]
 	c.importNestLevel--
@@ -565,19 +573,25 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 	if conditionLen != consequenceLen {
 		return fmt.Errorf("conditions length is not equal to consequences length in match expression")
 	}
-	if node.OptionalValue != nil {
-		return fmt.Errorf("handle compile of optional value: %s", node.OptionalValue.String())
-	}
 	allEndingJumpPos := []int{}
 	for i := range node.Conditions {
 		var err error
 		var jumpNotTruthyPos int
 		condIsDefault := node.Conditions[i].String() == "_"
 		if !condIsDefault {
+			c.inMatch = true
 			err = c.Compile(node.Conditions[i])
 			if err != nil {
 				return err
 			}
+			if node.OptionalValue != nil {
+				err = c.Compile(node.OptionalValue)
+				if err != nil {
+					return err
+				}
+				c.emit(code.OpMatches)
+			}
+			c.inMatch = false
 			// Emit an `OpJumpNotTruthy` with a bogus value
 			jumpNotTruthyPos = c.emit(code.OpJumpNotTruthy, 9999)
 		}

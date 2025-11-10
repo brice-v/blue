@@ -20,6 +20,54 @@ val Type = {
     STRUCT: 'BLUE_STRUCT_OBJ',
 };
 
+val __fetch = _fetch;
+fun fetch(resource, options=null, full_resp=true) {
+    ##core:this,__fetch
+    ## `fetch` allows the user to send GET, POST, PUT, PATCH, and DELETE
+    ## http methods to a various resource
+    ##
+    ## there are other specific methods that populate these
+    ## options appropriately. user-agent in header is always
+    ## set to one specific to blue.
+    ##
+    ## example option to send get request:
+    ##                 {method: 'GET', headers: {}, body: null}
+    ##
+    ## example option to send post request:
+    ## {method: 'POST', body: str, headers: {'content-type': mime_type}}
+    ##
+    ## fetch(resource: str, options: map[any:str]=null, full_resp: bool=true) -> any
+    if (options == null) {
+        options = {
+            method: 'GET',
+            headers: {},
+            body: null,
+        };
+    } else {
+        val t = options.type();
+        if (t != 'MAP') {
+            return error("`fetch` error:  options must be MAP. got=#{t}");
+        }
+        if (options.method == null) {
+            options.method = 'GET';
+        }
+        if (options.headers == null) {
+            options.headers = {};
+        } else {
+            val ht = type(options.headers);
+            if (ht != 'MAP') {
+                return error("`fetch` error:  options.headers must be MAP. got=#{ht}");
+            }
+        }
+        if (options.method == 'GET' or options.method == 'DELETE') {
+            if (options.body != null) {
+                return error("`fetch` error: options.body must be NULL for 'GET' or 'DELETE' methods");
+            }
+        }
+    }
+    __fetch(resource, options.method, options.headers, options.body, full_resp)
+}
+
 fun send(obj, value) {
     ##core:ignore
     match obj {
@@ -174,7 +222,7 @@ fun find_one(str_to_search, query, method="regex") {
 fun from_json(json_str) {
     ##core:ignore
     if (not is_valid_json(json_str)) {
-        return error("from_json error: invalid json_str #{json_str}, e=#{e}");
+        return error("from_json error: invalid json_str #{json_str}");
     }
     try {
         return eval(json_str);
@@ -233,54 +281,6 @@ val __rjust = _rjust;
 fun rjust(s, length, pad=" ") {
     ##core:__rjust
     __rjust(s, length, pad)
-}
-
-val __fetch = _fetch;
-fun fetch(resource, options=null, full_resp=true) {
-    ##core:this,__fetch
-    ## `fetch` allows the user to send GET, POST, PUT, PATCH, and DELETE
-    ## http methods to a various resource
-    ##
-    ## there are other specific methods that populate these
-    ## options appropriately. user-agent in header is always
-    ## set to one specific to blue.
-    ##
-    ## example option to send get request:
-    ##                 {method: 'GET', headers: {}, body: null}
-    ##
-    ## example option to send post request:
-    ## {method: 'POST', body: str, headers: {'content-type': mime_type}}
-    ##
-    ## fetch(resource: str, options: map[any:str]=null, full_resp: bool=true) -> any
-    if (options == null) {
-        options = {
-            method: 'GET',
-            headers: {},
-            body: null,
-        };
-    } else {
-        val t = options.type();
-        if (t != 'MAP') {
-            return error("`fetch` error:  options must be MAP. got=#{t}");
-        }
-        if (options.method == null) {
-            options.method = 'GET';
-        }
-        if (options.headers == null) {
-            options.headers = {};
-        } else {
-            val ht = type(options.headers);
-            if (ht != 'MAP') {
-                return error("`fetch` error:  options.headers must be MAP. got=#{ht}");
-            }
-        }
-        if (options.method == 'GET' or options.method == 'DELETE') {
-            if (options.body != null) {
-                return error("`fetch` error: options.body must be NULL for 'GET' or 'DELETE' methods");
-            }
-        }
-    }
-    __fetch(resource, options.method, options.headers, options.body, full_resp)
 }
 
 val __to_bytes = _to_bytes;
