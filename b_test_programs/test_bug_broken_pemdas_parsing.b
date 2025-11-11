@@ -1,3 +1,4 @@
+#VM IGNORE
 fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
     ##std:this,__rectangle
     ## `Rectangle` is an object constructor that represents the GO_OBJ for rectangles

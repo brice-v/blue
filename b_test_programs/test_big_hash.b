@@ -1,3 +1,4 @@
+#VM IGNORE
 for (i in 1..2) {
     var z = "def";
 }
