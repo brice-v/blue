@@ -578,6 +578,16 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			return vm.executeDefaultBinaryOperation(op, left, right)
 		}
 	},
+	object.NULL_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+		switch op {
+		case code.OpEqual:
+			return vm.push(object.TRUE)
+		case code.OpNotEqual:
+			return vm.push(object.FALSE)
+		default:
+			return vm.executeDefaultBinaryOperation(op, left, right)
+		}
+	},
 	// TODO: Handle other defaults when type matches (list, set, map)
 }
 

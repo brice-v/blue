@@ -1,3 +1,5 @@
+#VM IGNORE
+# VM cant compile this due to what would be an error in evaluator
 var x = 123;
 
 if (x == 123) {
