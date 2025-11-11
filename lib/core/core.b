@@ -338,7 +338,7 @@ val pubsub = {
 };
 
 val uuid = {
-    new: _new_uuid,
+    'new': _new_uuid,
 }
 
 

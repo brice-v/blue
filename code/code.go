@@ -106,7 +106,7 @@ const (
 	OpSetCompLiteral
 	OpMapCompLiteral
 	OpExecString
-	OpMatches
+	OpMatchValue
 	OpMatchAny
 	OpEval
 )
@@ -180,7 +180,7 @@ var definitions = map[Opcode]*Definition{
 	OpSetCompLiteral:     {"OpSetCompLiteral", []int{}},
 	OpMapCompLiteral:     {"OpMapCompLiteral", []int{}},
 	OpExecString:         {"OpExecString", []int{2}},
-	OpMatches:            {"OpMatches", []int{}},
+	OpMatchValue:         {"OpMatchValue", []int{}},
 	OpMatchAny:           {"OpMatchAny", []int{}},
 	OpEval:               {"OpEval", []int{}},
 }

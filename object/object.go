@@ -78,6 +78,8 @@ const (
 	CLOSURE_OBJ = "CLOSURE_OBJ"
 	// EXEC_STRING is the string object type string
 	EXEC_STRING_OBJ = "EXEC_STRING"
+	// IGNORE_OBJ is the IGNORE object type string
+	IGNORE_OBJ Type = "IGNORE"
 )
 
 // Type is the object type represented as a string
@@ -107,6 +109,8 @@ var (
 	NULL = &Null{}
 	// IGNORE is the object which is used to ignore variables when necessary
 	IGNORE = &Null{}
+	// VM_IGNORE is the object with is used to ignore things in match expressions
+	VM_IGNORE = &Ignore{}
 
 	// BREAK is the break object to be used the same everywhere
 	BREAK = &BreakStatement{}
@@ -166,6 +170,19 @@ func (n *Null) Inspect() string { return "null" }
 
 func (n *Null) Help() string {
 	return createHelpStringForObject("Null", "is the null object", n)
+}
+
+// Ignore is the Ignore object struct -> which is specifically used for matching
+type Ignore struct{}
+
+// Type is the object type of null
+func (n *Ignore) Type() Type { return IGNORE_OBJ }
+
+// Inspect returns the string value of ignore
+func (n *Ignore) Inspect() string { return "##IGNORE##" }
+
+func (n *Ignore) Help() string {
+	return "SHOULD NOT BE CALLED"
 }
 
 // UInteger is the hex, octal, bin object struct

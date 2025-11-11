@@ -325,6 +325,12 @@ func (vm *VM) Run() error {
 		case code.OpEval:
 			strToEval := vm.pop()
 			vm.push(vmStr(strToEval.(*object.Stringo).Value))
+		case code.OpMatchValue:
+			right := vm.pop()
+			left := vm.pop()
+			vm.push(nativeToBooleanObject(matches(left, right)))
+		case code.OpMatchAny:
+			vm.push(object.VM_IGNORE)
 		}
 	}
 	return nil

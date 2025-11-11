@@ -589,7 +589,7 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 				if err != nil {
 					return err
 				}
-				c.emit(code.OpMatches)
+				c.emit(code.OpMatchValue)
 			}
 			c.inMatch = false
 			// Emit an `OpJumpNotTruthy` with a bogus value
