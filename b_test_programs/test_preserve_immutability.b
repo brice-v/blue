@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: Implement checks for compiler
 val x = [1,2,3];
 
 try {

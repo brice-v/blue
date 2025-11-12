@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"blue/code"
 	"blue/object"
 	"bytes"
 	"fmt"
@@ -182,4 +183,8 @@ func matchPrimitive(left, right object.Object) bool {
 	default:
 		return false
 	}
+}
+
+func isBooleanOperator(op code.Opcode) bool {
+	return op == code.OpEqual || op == code.OpNotEqual || op == code.OpAnd || op == code.OpOr || op == code.OpNot
 }

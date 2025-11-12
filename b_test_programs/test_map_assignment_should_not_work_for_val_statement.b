@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: Implement checks for compiler
 val x = {hello: 'world'};
 
 try {

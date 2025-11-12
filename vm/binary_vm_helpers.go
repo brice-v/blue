@@ -5,7 +5,6 @@ import (
 	"blue/object"
 	"blue/utils"
 	"bytes"
-	"fmt"
 	"math"
 	"math/big"
 	"slices"
@@ -522,7 +521,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			newList = append(newList, leftElements...)
 			newList = append(newList, rightElements...)
 			return vm.push(&object.List{Elements: newList})
-		case code.OpEqual, code.OpNotEqual:
+		case code.OpEqual, code.OpNotEqual, code.OpIn, code.OpNotin:
 			return vm.executeDefaultBinaryOperation(op, left, right)
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
@@ -631,8 +630,45 @@ func (vm *VM) executeBinaryOperationDifferentTypes(op code.Opcode, left, right o
 	if (op == code.OpIn || op == code.OpNotin) && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ) {
 		return vm.executeInNotInOperation(op, left, right)
 	}
-	// TODO: More to handle here
-	return fmt.Errorf("handle %s %s %s", leftType, code.GetOpName(op), rightType)
+	if op == code.OpRshift && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ) {
+		// Push item on left into right (to front if list)
+		return vm.executeRshiftFromLeftToRight(left, right)
+	}
+	if left.Type() == object.LIST_OBJ && !isBooleanOperator(op) {
+		return vm.executeListBinaryOperation(op, left, right)
+	}
+	return vm.executeDefaultBinaryOperation(op, left, right)
+}
+
+func (vm *VM) executeListBinaryOperation(op code.Opcode, left, right object.Object) error {
+	if right.Type() == object.INTEGER_OBJ && op == code.OpStar {
+		listObj := left.(*object.List).Elements
+		intObj := right.(*object.Integer).Value
+		listLen := int64(len(listObj))
+		newSize := listLen * intObj
+		// this creates a new list with capacity of newSize but a length of 0 (we dont want it filling with nil)
+		newList := make([]object.Object, 0, newSize)
+		for i := 0; int64(i) < intObj; i++ {
+			newList = append(newList, listObj...)
+		}
+		return vm.push(&object.List{Elements: newList})
+	}
+	return vm.executeDefaultBinaryOperation(op, left, right)
+}
+
+func (vm *VM) executeRshiftFromLeftToRight(left, right object.Object) error {
+	if right.Type() == object.LIST_OBJ {
+		l := right.(*object.List)
+		l.Elements = append([]object.Object{left}, l.Elements...)
+	} else {
+		// SET
+		s := right.(*object.Set)
+		key := object.HashObject(left)
+		if _, ok := s.Elements.Get(key); !ok {
+			s.Elements.Set(key, object.SetPair{Value: left, Present: struct{}{}})
+		}
+	}
+	return vm.push(object.NULL)
 }
 
 func (vm *VM) executeInNotInOperation(op code.Opcode, left, right object.Object) error {
@@ -750,8 +786,7 @@ func (vm *VM) executeDefaultBinaryOperation(op code.Opcode, left, right object.O
 		}
 		return vm.push(nativeToBooleanObject(leftBool.Value || rightBool.Value))
 	case (op == code.OpIn || op == code.OpNotin) && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ):
-		// return e.evalInOrNotinInfixExpression(operator, left, right)
-		return fmt.Errorf("handle this here ----")
+		return vm.executeInNotInOperation(op, left, right)
 	case left.Type() != right.Type():
 		return vm.push(newError("type mismatch: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 	default:

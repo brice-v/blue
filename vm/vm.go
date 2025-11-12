@@ -117,7 +117,8 @@ func (vm *VM) Run() error {
 		case code.OpAdd, code.OpMinus, code.OpStar, code.OpPow, code.OpDiv,
 			code.OpFlDiv, code.OpPercent, code.OpCarat, code.OpAmpersand,
 			code.OpPipe, code.OpIn, code.OpNotin, code.OpRange, code.OpNonIncRange,
-			code.OpAnd, code.OpEqual, code.OpNotEqual, code.OpOr, code.OpGreaterThan, code.OpGreaterThanOrEqual:
+			code.OpAnd, code.OpEqual, code.OpNotEqual, code.OpOr, code.OpGreaterThan, code.OpGreaterThanOrEqual,
+			code.OpRshift:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return err
@@ -138,6 +139,7 @@ func (vm *VM) Run() error {
 					s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
 				}
 			}
+			vm.push(object.NULL)
 		case code.OpNot:
 			err := vm.executeNotOperation()
 			if err != nil {
@@ -305,13 +307,11 @@ func (vm *VM) Run() error {
 			vm.inTry = true
 		case code.OpCatch:
 			vm.inTry = true
-		case code.OpFinally:
-			// Do nothing
 		case code.OpFinallyEnd:
 			if vm.catchError != "" {
 				return fmt.Errorf("%s", vm.catchError)
 			}
-		case code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
+		case code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
 			// Do nothing
 		case code.OpExecString:
 			constIndex := code.ReadUint16(ins[ip+1:])
