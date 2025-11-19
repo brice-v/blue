@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"blue/ast"
 	"fmt"
 	"strings"
 )
@@ -22,6 +23,14 @@ type Symbol struct {
 
 	// Only used for builtins at the moment
 	BuiltinModuleIndex int
+
+	// For Functions (to allow consistent calling with default args)
+	Parameters           []*ast.Identifier
+	ParameterExpressions []ast.Expression
+}
+
+func (s Symbol) Equal(other Symbol) bool {
+	return s.Name == other.Name && s.Scope == other.Scope && s.Index == other.Index && s.Immutable == other.Immutable && s.BuiltinModuleIndex == other.BuiltinModuleIndex
 }
 
 type SymbolTable struct {
@@ -47,7 +56,15 @@ func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 }
 
 func (s *SymbolTable) Define(name string, isImmutable bool, blockNestLevel int) Symbol {
-	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: isImmutable}
+	return s.defineActual(name, isImmutable, blockNestLevel, nil, nil)
+}
+
+func (s *SymbolTable) DefineFun(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression) Symbol {
+	return s.defineActual(name, isImmutable, blockNestLevel, parameters, parameterExpressions)
+}
+
+func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression) Symbol {
+	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: isImmutable, Parameters: parameters, ParameterExpressions: parameterExpressions}
 	if s.Outer == nil {
 		symbol.Scope = GlobalScope
 	} else {

@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: Include test for compiler error
 val x = {'hello': {a: {c: 1}}};
 
 

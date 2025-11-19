@@ -498,21 +498,19 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	if ok {
 		s, ok1 := c.symbolTable.Resolve(c.getName(str.Value))
 		if ok1 {
-			c.pushedArg = true
 			c.loadSymbol(s)
+			return nil
 		}
 	}
 	err := c.Compile(node.Left)
 	if err != nil {
 		return err
 	}
-	if !c.pushedArg {
-		err = c.Compile(node.Index)
-		if err != nil {
-			return err
-		}
-		c.emit(code.OpIndex)
+	err = c.Compile(node.Index)
+	if err != nil {
+		return err
 	}
+	c.emit(code.OpIndex)
 	return nil
 }
 
@@ -620,4 +618,32 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 		c.changeOperand(jumpPos, afterAlternativePos)
 	}
 	return nil
+}
+
+func (c *Compiler) setupCallExpression(function ast.Expression) ([]*ast.Identifier, []ast.Expression, ast.Expression, bool, error) {
+	if funIdent, isIdent := function.(*ast.Identifier); isIdent {
+		return c.getParameters(funIdent.Value, nil)
+	}
+	if indexExpr, isIndexExpr := function.(*ast.IndexExpression); isIndexExpr {
+		str := indexExpr.Index.(*ast.StringLiteral).Value
+		return c.getParameters(str, indexExpr.Left)
+	}
+	return nil, nil, nil, false, nil
+}
+
+func (c *Compiler) getParameters(str string, pushedArg ast.Expression) ([]*ast.Identifier, []ast.Expression, ast.Expression, bool, error) {
+	sym, ok := c.symbolTable.Resolve(str)
+	if ok && sym.Scope == BuiltinScope {
+		return nil, nil, pushedArg, true, nil
+	}
+	if !ok {
+		sym, ok = c.symbolTable.Resolve(c.getName(str))
+		if ok && sym.Scope == BuiltinScope {
+			return nil, nil, pushedArg, true, nil
+		}
+		if !ok {
+			return nil, nil, pushedArg, false, nil
+		}
+	}
+	return sym.Parameters, sym.ParameterExpressions, pushedArg, false, nil
 }

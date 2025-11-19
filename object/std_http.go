@@ -143,7 +143,7 @@ var HttpBuiltins = NewBuiltinSliceType{
 	{Name: "_new_server", Builtin: &Builtin{
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
-				return newInvalidArgCountError("new_server", len(args), 0, "")
+				return newInvalidArgCountError("new_server", len(args), 1, "")
 			}
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("new_server", 1, STRING_OBJ, args[0].Type())
