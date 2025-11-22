@@ -331,6 +331,15 @@ func (vm *VM) Run() error {
 			vm.push(nativeToBooleanObject(matches(left, right)))
 		case code.OpMatchAny:
 			vm.push(object.VM_IGNORE)
+		case code.OpDefaultArgs:
+			numPairs := int(code.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			m := vm.buildDefaultArgs(vm.sp-numPairs, vm.sp)
+			vm.sp = vm.sp - numPairs
+			err := vm.push(m)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -562,6 +571,21 @@ func (vm *VM) buildMap(startIndex, endIndex int) object.Object {
 	return &object.Map{Pairs: pairs}
 }
 
+func (vm *VM) buildDefaultArgs(startIndex, endIndex int) object.Object {
+	m := make(map[string]object.Object)
+	for i := startIndex; i < endIndex; i += 2 {
+		key := vm.stack[i]
+		value := vm.stack[i+1]
+		if isError(key) {
+			return key
+		} else if isError(value) {
+			return value
+		}
+		m[key.(*object.Stringo).Value] = value
+	}
+	return &object.DefaultArgs{Value: m}
+}
+
 func (vm *VM) buildStringWithInterp(startIndex, endIndex, stringIndex int) object.Object {
 	str := vm.constants[stringIndex]
 	s, ok := str.(*object.Stringo)
@@ -631,13 +655,56 @@ func (vm *VM) executeCall(numArgs int) error {
 }
 
 func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
-	if numArgs != cl.Fun.NumParameters {
-		return fmt.Errorf("wrong number of arguments: want=%d, got=%d", cl.Fun.NumParameters, numArgs)
+	newArgCount, err := vm.interweaveArgsForCall(cl.Fun, numArgs)
+	if err != nil {
+		return err
 	}
-	frame := NewFrame(cl, vm.sp-numArgs)
+	frame := NewFrame(cl, vm.sp-newArgCount)
 	vm.pushFrame(frame)
 	vm.sp = frame.bp + cl.Fun.NumLocals
 	return nil
+}
+
+var _ignore_str = &object.Stringo{Value: "__IGNORE__"}
+
+func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (int, error) {
+	currentArgsOnStack := []object.Object{}
+	for range numArgs {
+		currentArgsOnStack = append([]object.Object{vm.pop()}, currentArgsOnStack...)
+	}
+	realNumArg := numArgs
+	var defaultArgs map[string]object.Object = nil
+	if len(currentArgsOnStack) != 0 {
+		lastArg := currentArgsOnStack[len(currentArgsOnStack)-1]
+		if da, ok := lastArg.(*object.DefaultArgs); ok {
+			defaultArgs = da.Value
+			realNumArg--
+		}
+	}
+	currentArgOnStackIndex := 0
+	args := make([]object.Object, cl.NumParameters)
+	for i := range cl.NumParameters {
+		if realNumArg == cl.NumParameters {
+			args[i] = currentArgsOnStack[currentArgOnStackIndex]
+			currentArgOnStackIndex++
+			continue
+		} else if defaultArgs != nil {
+			if defaultArg, ok := defaultArgs[cl.Parameters[i]]; ok {
+				args[i] = defaultArg
+				continue
+			}
+		}
+		if realNumArg+cl.NumDefaultParams == cl.NumParameters && cl.ParameterHasDefault[i] {
+			args[i] = _ignore_str
+		} else if realNumArg+cl.NumDefaultParams == cl.NumParameters && currentArgOnStackIndex < len(currentArgsOnStack) {
+			args[i] = currentArgsOnStack[currentArgOnStackIndex]
+			currentArgOnStackIndex++
+		}
+	}
+	for _, arg := range args {
+		vm.push(arg)
+	}
+	return len(args), nil
 }
 
 func (vm *VM) pushClosure(constIndex, numFree int) error {

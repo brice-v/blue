@@ -7,6 +7,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"blue/token"
 	"bytes"
 	"fmt"
 	"io"
@@ -499,18 +500,20 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 		s, ok1 := c.symbolTable.Resolve(c.getName(str.Value))
 		if ok1 {
 			c.loadSymbol(s)
-			return nil
+			c.pushedArg = true
 		}
 	}
 	err := c.Compile(node.Left)
 	if err != nil {
 		return err
 	}
-	err = c.Compile(node.Index)
-	if err != nil {
-		return err
+	if !c.pushedArg {
+		err = c.Compile(node.Index)
+		if err != nil {
+			return err
+		}
+		c.emit(code.OpIndex)
 	}
-	c.emit(code.OpIndex)
 	return nil
 }
 
@@ -620,30 +623,39 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 	return nil
 }
 
-func (c *Compiler) setupCallExpression(function ast.Expression) ([]*ast.Identifier, []ast.Expression, ast.Expression, bool, error) {
-	if funIdent, isIdent := function.(*ast.Identifier); isIdent {
-		return c.getParameters(funIdent.Value, nil)
+func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement) *object.CompiledFunction {
+	compiledFun := &object.CompiledFunction{
+		Parameters:          make([]string, len(parameters)),
+		ParameterHasDefault: make([]bool, len(parameters)),
+		NumParameters:       len(parameters),
 	}
-	if indexExpr, isIndexExpr := function.(*ast.IndexExpression); isIndexExpr {
-		str := indexExpr.Index.(*ast.StringLiteral).Value
-		return c.getParameters(str, indexExpr.Left)
-	}
-	return nil, nil, nil, false, nil
-}
+	defaultParams := 0
+	var statementsToPrepend []ast.Statement = nil
+	for i, param := range parameterExpressions {
+		compiledFun.Parameters[i] = parameters[i].Value
+		if param != nil {
+			defaultParams++
+			compiledFun.ParameterHasDefault[i] = true
+			compiledFun.NumDefaultParams++
+			paramIdent := parameters[i]
+			paramIsProvidedExpr := &ast.InfixExpression{Operator: "==", Left: paramIdent, Right: &ast.StringLiteral{Value: "__IGNORE__"}}
+			assignmentExpr := &ast.AssignmentExpression{Token: token.Token{Type: token.EQ, Literal: "="}, Left: paramIdent, Value: param}
+			ifExpr := &ast.IfExpression{
+				Conditions:   []ast.Expression{paramIsProvidedExpr},
+				Consequences: []*ast.BlockStatement{{Statements: []ast.Statement{&ast.ExpressionStatement{Expression: assignmentExpr}}}},
+			}
+			ifExprStatement := &ast.ExpressionStatement{Expression: ifExpr}
+			if statementsToPrepend == nil {
+				statementsToPrepend = []ast.Statement{}
+			}
+			statementsToPrepend = append([]ast.Statement{ifExprStatement}, statementsToPrepend...)
 
-func (c *Compiler) getParameters(str string, pushedArg ast.Expression) ([]*ast.Identifier, []ast.Expression, ast.Expression, bool, error) {
-	sym, ok := c.symbolTable.Resolve(str)
-	if ok && sym.Scope == BuiltinScope {
-		return nil, nil, pushedArg, true, nil
-	}
-	if !ok {
-		sym, ok = c.symbolTable.Resolve(c.getName(str))
-		if ok && sym.Scope == BuiltinScope {
-			return nil, nil, pushedArg, true, nil
-		}
-		if !ok {
-			return nil, nil, pushedArg, false, nil
+		} else {
+			compiledFun.ParameterHasDefault[i] = false
 		}
 	}
-	return sym.Parameters, sym.ParameterExpressions, pushedArg, false, nil
+	if statementsToPrepend != nil {
+		body.Statements = append(statementsToPrepend, body.Statements...)
+	}
+	return compiledFun
 }

@@ -29,6 +29,8 @@ type Compiler struct {
 
 	ErrorTrace []string
 
+	pushedArg bool
+
 	currentPos int
 	Tokens     map[int][]token.Token
 
@@ -48,6 +50,8 @@ type Compiler struct {
 	coreCompiled bool
 
 	inMatch bool
+
+	// listCompilationContext ListCompilationContext
 }
 
 type CompilationScope struct {
@@ -72,6 +76,7 @@ func New() *Compiler {
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
 		ErrorTrace:  []string{},
+		pushedArg:   false,
 		currentPos:  0,
 		Tokens:      map[int][]token.Token{},
 
@@ -83,6 +88,11 @@ func New() *Compiler {
 		importNestLevel:  -1,
 		modName:          []string{},
 		CompilerBasePath: cCompilerBasePath,
+		// listCompilationContext: ListCompilationContext{
+		// 	VariableName: "",
+		// 	NestingLevel: -1,
+		// 	Indices:      []int{},
+		// },
 	}
 }
 
@@ -428,10 +438,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 	case *ast.VarStatement:
+		// c.listCompilationContext.VariableName = c.getName(node.Names[0].Value)
 		err := c.Compile(node.Value)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
+		// c.listCompilationContext = ListCompilationContext{
+		// 	VariableName: "",
+		// 	NestingLevel: -1,
+		// 	Indices:      []int{},
+		// }
 		if node.IsListDestructor || node.IsMapDestructor {
 			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
 		}
@@ -502,6 +518,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		for _, p := range node.Parameters {
 			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
 		}
+		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body)
 		err := c.Compile(node.Body)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -518,19 +535,17 @@ func (c *Compiler) Compile(node ast.Node) error {
 		for _, s := range freeSymbols {
 			c.loadSymbol(s)
 		}
-		compiledFun := &object.CompiledFunction{
-			Instructions:  instructions,
-			NumLocals:     numLocals,
-			NumParameters: len(node.Parameters),
-		}
+		compiledFun.Instructions = instructions
+		compiledFun.NumLocals = numLocals
 		funIndex := c.addConstant(compiledFun)
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 	case *ast.FunctionStatement:
-		symbol := c.symbolTable.DefineFun(c.getName(node.Name.Value), true, c.BlockNestLevel, node.Parameters, node.ParameterExpressions)
+		symbol := c.symbolTable.Define(c.getName(node.Name.Value), true, c.BlockNestLevel)
 		c.enterScope()
 		for _, p := range node.Parameters {
 			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
 		}
+		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body)
 		err := c.Compile(node.Body)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -547,11 +562,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 		for _, s := range freeSymbols {
 			c.loadSymbol(s)
 		}
-		compiledFun := &object.CompiledFunction{
-			Instructions:  instructions,
-			NumLocals:     numLocals,
-			NumParameters: len(node.Parameters),
-		}
+		compiledFun.Instructions = instructions
+		compiledFun.NumLocals = numLocals
 		funIndex := c.addConstant(compiledFun)
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 		switch symbol.Scope {
@@ -567,47 +579,36 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.emit(code.OpReturnValue)
 	case *ast.CallExpression:
-		parameters, parameterExpressions, pushedArg, onlySetArgs, err := c.setupCallExpression(node.Function)
+		err := c.Compile(node.Function)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
-		err = c.Compile(node.Function)
-		if err != nil {
-			return c.addNodeToErrorTrace(err, node.Token)
+		for _, arg := range node.Arguments {
+			err := c.Compile(arg)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
 		}
-		argLen := 0
-		// If we updated arg based on ufcs need to increment argument len
-		if pushedArg != nil {
-			node.Arguments = append([]ast.Expression{pushedArg}, node.Arguments...)
-		}
-		if onlySetArgs || len(node.Arguments) == len(parameters) {
-			for _, arg := range node.Arguments {
-				err := c.Compile(arg)
+		if len(node.DefaultArguments) != 0 {
+			for k, v := range node.DefaultArguments {
+				err = c.Compile(&ast.StringLiteral{Value: k})
 				if err != nil {
-					return c.addNodeToErrorTrace(err, node.Token)
+					return c.addNodeToErrorTrace(err, v.TokenToken())
+				}
+				err = c.Compile(v)
+				if err != nil {
+					return c.addNodeToErrorTrace(err, v.TokenToken())
 				}
 			}
-			argLen = len(node.Arguments)
-		} else {
-			nodeArgIndex := 0
-			for i, param := range parameters {
-				var expression ast.Expression
-				if expr, isDefault := node.DefaultArguments[param.Value]; isDefault {
-					expression = expr
-				} else if parameterExpressions[i] != nil {
-					expression = parameterExpressions[i]
-				} else if nodeArgIndex < len(node.Arguments) {
-					expression = node.Arguments[nodeArgIndex]
-					nodeArgIndex++
-				} else {
-					continue
-				}
-				argLen++
-				err := c.Compile(expression)
-				if err != nil {
-					return c.addNodeToErrorTrace(err, node.Token)
-				}
-			}
+			c.emit(code.OpDefaultArgs, len(node.DefaultArguments)*2)
+		}
+		argLen := len(node.Arguments)
+		if c.pushedArg {
+			argLen++
+			c.pushedArg = false
+		}
+		if len(node.DefaultArguments) != 0 {
+			argLen++
 		}
 		c.emit(code.OpCall, argLen)
 	case *ast.ForStatement:

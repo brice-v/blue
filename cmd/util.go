@@ -309,15 +309,21 @@ func fmtInstruction(def *code.Definition, operands []int, constants []object.Obj
 		return def.Name
 	case 1:
 		lastPart := ""
-		switch def.Name {
-		case "OpConstant":
+		if def.Name == "OpConstant" {
 			lastPart = fmt.Sprintf(" (%s)", constants[operands[0]].Inspect())
-		case "OpGetBuiltin":
-			lastPart = fmt.Sprintf(" (%s)", object.Builtins[operands[0]].Name)
 		}
 		return fmt.Sprintf("%s %d%s", def.Name, operands[0], lastPart)
 	case 2:
-		return fmt.Sprintf("%s %d %d", def.Name, operands[0], operands[1])
+		lastPart := ""
+		switch def.Name {
+		case "OpGetBuiltin":
+			lastPart = fmt.Sprintf(" (%s)", object.AllBuiltins[operands[0]].Builtins[operands[1]].Name)
+		case "OpClosure":
+			cf := constants[operands[0]].(*object.CompiledFunction)
+			lastPart = fmt.Sprintf("\n\t%s", strings.ReplaceAll(bytecodeDebugString(cf.Instructions, constants), "\n", "\n\t"))
+			lastPart = strings.TrimSuffix(lastPart, "\n\t")
+		}
+		return fmt.Sprintf("%s %d %d%s", def.Name, operands[0], operands[1], lastPart)
 	}
 	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
 }

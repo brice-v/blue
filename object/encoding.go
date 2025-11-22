@@ -45,6 +45,7 @@ const (
 	i_CLOSURE_OBJ
 	i_EXEC_STRING_OBJ
 	i_IGNORE_OBJ
+	i_DEFAULT_ARGS_OBJ
 )
 
 type ObjectWrapper struct {
@@ -530,6 +531,16 @@ func (x *Ignore) Encode() ([]byte, error) {
 
 func (x *Ignore) IType() iType {
 	return i_IGNORE_OBJ
+}
+
+func (x *DefaultArgs) Encode() ([]byte, error) {
+	// return marshalObjectWrapper(x)
+	// TODO: Can probably support this
+	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+}
+
+func (x *DefaultArgs) IType() iType {
+	return i_DEFAULT_ARGS_OBJ
 }
 
 // The Objects Below cannot be encoded but are included to satisfy the Object interface

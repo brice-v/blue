@@ -80,6 +80,8 @@ const (
 	EXEC_STRING_OBJ = "EXEC_STRING"
 	// IGNORE_OBJ is the IGNORE object type string
 	IGNORE_OBJ Type = "IGNORE"
+	// DEFAULT_ARGS_OBJ is the default args object for use in vm functions
+	DEFAULT_ARGS_OBJ = "DEFAULT_ARGS_OBJ"
 )
 
 // Type is the object type represented as a string
@@ -182,6 +184,30 @@ func (n *Ignore) Type() Type { return IGNORE_OBJ }
 func (n *Ignore) Inspect() string { return "##IGNORE##" }
 
 func (n *Ignore) Help() string {
+	return "SHOULD NOT BE CALLED"
+}
+
+// DefaultArgs is the DefaultArgs object struct -> which is specifically used for matching
+type DefaultArgs struct {
+	Value map[string]Object
+}
+
+// Type is the object type of null
+func (n *DefaultArgs) Type() Type { return DEFAULT_ARGS_OBJ }
+
+// Inspect returns the string value of DefaultArgs
+func (n *DefaultArgs) Inspect() string {
+	var out bytes.Buffer
+	out.WriteString("DefaultArgs{")
+	for k, v := range n.Value {
+		fmt.Fprintf(&out, "%s=%s, ", k, v.Inspect())
+	}
+	s := out.String()
+	s = strings.TrimSuffix(s, ", ")
+	return s + "}"
+}
+
+func (n *DefaultArgs) Help() string {
 	return "SHOULD NOT BE CALLED"
 }
 
@@ -789,6 +815,10 @@ type CompiledFunction struct {
 	Instructions  code.Instructions
 	NumLocals     int
 	NumParameters int
+
+	Parameters          []string
+	ParameterHasDefault []bool
+	NumDefaultParams    int
 }
 
 // Type returns the function objects type
@@ -920,6 +950,8 @@ func HashObject(obj Object) uint64 {
 		// Note: This is a naive way of determining if two functions are identical
 		// come back and fix this or make it smarter if possible
 		hasher.WriteString(obj.(*Function).Inspect())
+	case CLOSURE_OBJ:
+		hasher.Write(obj.(*Closure).Fun.Instructions)
 	case ERROR_OBJ:
 		// Although i dont think this should happen, lets give it a hash anyways
 		hasher.WriteString(obj.(*Error).Message)
