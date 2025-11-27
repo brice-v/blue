@@ -623,6 +623,8 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 	return nil
 }
 
+var _ignore_str = &ast.StringLiteral{Value: "__IGNORE__"}
+
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement) *object.CompiledFunction {
 	compiledFun := &object.CompiledFunction{
 		Parameters:          make([]string, len(parameters)),
@@ -638,7 +640,7 @@ func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressi
 			compiledFun.ParameterHasDefault[i] = true
 			compiledFun.NumDefaultParams++
 			paramIdent := parameters[i]
-			paramIsProvidedExpr := &ast.InfixExpression{Operator: "==", Left: paramIdent, Right: &ast.StringLiteral{Value: "__IGNORE__"}}
+			paramIsProvidedExpr := &ast.InfixExpression{Operator: "==", Left: paramIdent, Right: _ignore_str}
 			assignmentExpr := &ast.AssignmentExpression{Token: token.Token{Type: token.EQ, Literal: "="}, Left: paramIdent, Value: param}
 			ifExpr := &ast.IfExpression{
 				Conditions:   []ast.Expression{paramIsProvidedExpr},

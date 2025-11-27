@@ -659,6 +659,7 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 	if err != nil {
 		return err
 	}
+
 	frame := NewFrame(cl, vm.sp-newArgCount)
 	vm.pushFrame(frame)
 	vm.sp = frame.bp + cl.Fun.NumLocals
@@ -668,9 +669,10 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 var _ignore_str = &object.Stringo{Value: "__IGNORE__"}
 
 func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (int, error) {
-	currentArgsOnStack := []object.Object{}
-	for range numArgs {
-		currentArgsOnStack = append([]object.Object{vm.pop()}, currentArgsOnStack...)
+	currentArgsOnStack := vm.stack[vm.sp-numArgs : vm.sp]
+	vm.sp -= numArgs
+	if len(currentArgsOnStack) > cl.NumParameters {
+		return 0, fmt.Errorf("wrong number of arguments: want=%d, got=%d", cl.NumParameters, numArgs)
 	}
 	realNumArg := numArgs
 	var defaultArgs map[string]object.Object = nil
@@ -682,29 +684,33 @@ func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (i
 		}
 	}
 	currentArgOnStackIndex := 0
-	args := make([]object.Object, cl.NumParameters)
+	args := make([]object.Object, 0, cl.NumParameters)
 	for i := range cl.NumParameters {
 		if realNumArg == cl.NumParameters {
-			args[i] = currentArgsOnStack[currentArgOnStackIndex]
+			args = append(args, currentArgsOnStack[currentArgOnStackIndex])
 			currentArgOnStackIndex++
 			continue
 		} else if defaultArgs != nil {
 			if defaultArg, ok := defaultArgs[cl.Parameters[i]]; ok {
-				args[i] = defaultArg
+				args = append(args, defaultArg)
 				continue
 			}
 		}
 		if realNumArg+cl.NumDefaultParams == cl.NumParameters && cl.ParameterHasDefault[i] {
-			args[i] = _ignore_str
+			args = append(args, _ignore_str)
 		} else if realNumArg+cl.NumDefaultParams == cl.NumParameters && currentArgOnStackIndex < len(currentArgsOnStack) {
-			args[i] = currentArgsOnStack[currentArgOnStackIndex]
+			args = append(args, currentArgsOnStack[currentArgOnStackIndex])
 			currentArgOnStackIndex++
 		}
+	}
+	argCountAfterWeave := len(args)
+	if argCountAfterWeave != cl.NumParameters {
+		return 0, fmt.Errorf("wrong number of arguments: want=%d, got=%d", cl.NumParameters, numArgs)
 	}
 	for _, arg := range args {
 		vm.push(arg)
 	}
-	return len(args), nil
+	return argCountAfterWeave, nil
 }
 
 func (vm *VM) pushClosure(constIndex, numFree int) error {

@@ -40,9 +40,9 @@ yy << fun(abc, thing=1, other=[], last) {
     println("abc = #{abc}, thing = #{thing}, other = #{other}, last = #{last}")
     "abc = #{abc}, thing = #{thing}, other = #{other}, last = #{last}"
 };
-zz << fun(abc, thing=1, other=[], last) {
-    println("abc = #{abc}, thing = #{thing}, other = #{other}, last = #{last}")
-    "abc = #{abc}, thing = #{thing}, other = #{other}, last = #{last}"
+zz << fun(aaa, thing=1, other=[], last) {
+    println("aaa = #{aaa}, thing = #{thing}, other = #{other}, last = #{last}")
+    "aaa = #{aaa}, thing = #{thing}, other = #{other}, last = #{last}"
 };
 
 
@@ -108,11 +108,11 @@ assert(yy[2](1, other=1, thing=2, "LAST") == "abc = 1, thing = 2, other = 1, las
 assert(yy[2]("HELLO", thing=3, "LAST") == "abc = HELLO, thing = 3, other = [], last = LAST")
 assert(yy[2]("HELLO", 2, null, "DONE") == "abc = HELLO, thing = 2, other = null, last = DONE")
 
-assert(zz[1](1, "LAST") == "abc = 1, thing = 1, other = [], last = LAST")
-assert(zz[1](1, thing='x', other=2, "LAST") == "abc = 1, thing = x, other = 2, last = LAST")
-assert(zz[1](1, other=1, thing=2, "LAST") == "abc = 1, thing = 2, other = 1, last = LAST")
-assert(zz[1]("HELLO", thing=3, "LAST") == "abc = HELLO, thing = 3, other = [], last = LAST")
-assert(zz[1]("HELLO", 2, null, "DONE") == "abc = HELLO, thing = 2, other = null, last = DONE")
+assert(zz[1](1, "LAST") == "aaa = 1, thing = 1, other = [], last = LAST")
+assert(zz[1](1, thing='x', other=2, "LAST") == "aaa = 1, thing = x, other = 2, last = LAST")
+assert(zz[1](1, other=1, thing=2, "LAST") == "aaa = 1, thing = 2, other = 1, last = LAST")
+assert(zz[1]("HELLO", thing=3, "LAST") == "aaa = HELLO, thing = 3, other = [], last = LAST")
+assert(zz[1]("HELLO", 2, null, "DONE") == "aaa = HELLO, thing = 2, other = null, last = DONE")
 
 assert(y(1, "LAST") == "abc = 1, thing = 1, other = [], last = LAST")
 assert(y(1, thing='x', other=2, "LAST") == "abc = 1, thing = x, other = 2, last = LAST")
