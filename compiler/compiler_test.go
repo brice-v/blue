@@ -38,24 +38,25 @@ func concatInstructions(s []code.Instructions) code.Instructions {
 }
 
 func testConstants(t *testing.T, expected []any, actual []object.Object) error {
-	if len(expected) != len(actual) {
+	if len(expected) != len(actual)-constOffset {
 		return fmt.Errorf("wrong number of constants. got=%d, want=%d", len(actual), len(expected))
 	}
 	for i, constant := range expected {
+		ii := i + constOffset
 		switch constant := constant.(type) {
 		case int:
-			err := testIntegerObject(int64(constant), actual[i])
+			err := testIntegerObject(int64(constant), actual[ii])
 			if err != nil {
-				return fmt.Errorf("constant %d - testIntegerObject failed: %s", i, err)
+				return fmt.Errorf("constant %d - testIntegerObject failed: %s", ii, err)
 			}
 		case []code.Instructions:
-			fun, ok := actual[i].(*object.CompiledFunction)
+			fun, ok := actual[ii].(*object.CompiledFunction)
 			if !ok {
-				return fmt.Errorf("constant %d - not a function: %T", i, actual[i])
+				return fmt.Errorf("constant %d - not a function: %T", ii, actual[ii])
 			}
 			err := testInstructions(constant, fun.Instructions)
 			if err != nil {
-				return fmt.Errorf("constant %d - testInstructions failed: %s", i, err)
+				return fmt.Errorf("constant %d - testInstructions failed: %s", ii, err)
 			}
 		}
 	}
@@ -79,14 +80,16 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+var constOffset = len(object.OBJECT_CONSTANTS)
+
 func TestIntegerArithmetic(t *testing.T) {
 	tests := []compilerTestCase{
 		{
 			input:             "1 + 2",
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpAdd),
 				code.Make(code.OpPop),
 			},
@@ -95,9 +98,9 @@ func TestIntegerArithmetic(t *testing.T) {
 			input:             "1; 2",
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				code.Make(code.OpPop),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpPop),
 			},
 		},
@@ -105,8 +108,8 @@ func TestIntegerArithmetic(t *testing.T) {
 			input:             "1 - 2",
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpMinus),
 				code.Make(code.OpPop),
 			},
@@ -114,8 +117,8 @@ func TestIntegerArithmetic(t *testing.T) {
 		{
 			input: "1 * 2", expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpStar),
 				code.Make(code.OpPop),
 			},
@@ -124,8 +127,8 @@ func TestIntegerArithmetic(t *testing.T) {
 			input:             "2 / 1",
 			expectedConstants: []any{2, 1},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpDiv),
 				code.Make(code.OpPop),
 			},
@@ -156,8 +159,8 @@ func TestBooleanExpressions(t *testing.T) {
 			input:             "1 > 2",
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpGreaterThan),
 				code.Make(code.OpPop),
 			},
@@ -166,8 +169,8 @@ func TestBooleanExpressions(t *testing.T) {
 			input:             "1 < 2",
 			expectedConstants: []any{2, 1},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpGreaterThan),
 				code.Make(code.OpPop),
 			},
@@ -176,8 +179,8 @@ func TestBooleanExpressions(t *testing.T) {
 			input:             "1 == 2",
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpEqual),
 				code.Make(code.OpPop),
 			},
@@ -186,8 +189,8 @@ func TestBooleanExpressions(t *testing.T) {
 			input:             "1 != 2",
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpNotEqual),
 				code.Make(code.OpPop),
 			},
@@ -250,7 +253,7 @@ func TestConditionals(t *testing.T) {
 				// 0001
 				code.Make(code.OpJumpNotTruthy, 10),
 				// 0004
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				// 0007
 				code.Make(code.OpJump, 11),
 				// 0010
@@ -258,7 +261,7 @@ func TestConditionals(t *testing.T) {
 				// 0011
 				code.Make(code.OpPop),
 				// 0012
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+1),
 				// 0015
 				code.Make(code.OpPop),
 			},
@@ -274,15 +277,15 @@ func TestConditionals(t *testing.T) {
 				// 0001
 				code.Make(code.OpJumpNotTruthy, 10),
 				// 0004
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				// 0007
 				code.Make(code.OpJump, 13),
 				// 0010
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+1),
 				// 0013
 				code.Make(code.OpPop),
 				// 0014
-				code.Make(code.OpConstant, 2),
+				code.Make(code.OpConstant, constOffset+2),
 				// 0017
 				code.Make(code.OpPop),
 			},
@@ -300,9 +303,9 @@ func TestGlobalVarStatements(t *testing.T) {
 			`,
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpSetGlobal, 1),
 			},
 		},
@@ -313,7 +316,7 @@ func TestGlobalVarStatements(t *testing.T) {
 			`,
 			expectedConstants: []any{1},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				code.Make(code.OpSetGlobal, 0), code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpPop),
 			},
@@ -326,7 +329,7 @@ func TestGlobalVarStatements(t *testing.T) {
 			`,
 			expectedConstants: []any{1},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpSetGlobal, 1),
@@ -352,12 +355,12 @@ func TestMapLiterals(t *testing.T) {
 			input:             "{1: 2, 3: 4, 5: 6}",
 			expectedConstants: []any{1, 2, 3, 4, 5, 6},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
-				code.Make(code.OpConstant, 2),
-				code.Make(code.OpConstant, 3),
-				code.Make(code.OpConstant, 4),
-				code.Make(code.OpConstant, 5),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
+				code.Make(code.OpConstant, constOffset+2),
+				code.Make(code.OpConstant, constOffset+3),
+				code.Make(code.OpConstant, constOffset+4),
+				code.Make(code.OpConstant, constOffset+5),
 				code.Make(code.OpMap, 6),
 				code.Make(code.OpPop),
 			},
@@ -366,13 +369,13 @@ func TestMapLiterals(t *testing.T) {
 			input:             "{1: 2 + 3, 4: 5 * 6}",
 			expectedConstants: []any{1, 2, 3, 4, 5, 6},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
-				code.Make(code.OpConstant, 2),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
+				code.Make(code.OpConstant, constOffset+2),
 				code.Make(code.OpAdd),
-				code.Make(code.OpConstant, 3),
-				code.Make(code.OpConstant, 4),
-				code.Make(code.OpConstant, 5),
+				code.Make(code.OpConstant, constOffset+3),
+				code.Make(code.OpConstant, constOffset+4),
+				code.Make(code.OpConstant, constOffset+5),
 				code.Make(code.OpStar),
 				code.Make(code.OpMap, 4),
 				code.Make(code.OpPop),
@@ -396,9 +399,9 @@ func TestListLiterals(t *testing.T) {
 			input:             "[1, 2, 3]",
 			expectedConstants: []any{1, 2, 3},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
-				code.Make(code.OpConstant, 2),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
+				code.Make(code.OpConstant, constOffset+2),
 				code.Make(code.OpList, 3),
 				code.Make(code.OpPop),
 			},
@@ -407,14 +410,14 @@ func TestListLiterals(t *testing.T) {
 			input:             "[1 + 2, 3 - 4, 5 * 6]",
 			expectedConstants: []any{1, 2, 3, 4, 5, 6},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpAdd),
-				code.Make(code.OpConstant, 2),
-				code.Make(code.OpConstant, 3),
+				code.Make(code.OpConstant, constOffset+2),
+				code.Make(code.OpConstant, constOffset+3),
 				code.Make(code.OpMinus),
-				code.Make(code.OpConstant, 4),
-				code.Make(code.OpConstant, 5),
+				code.Make(code.OpConstant, constOffset+4),
+				code.Make(code.OpConstant, constOffset+5),
 				code.Make(code.OpStar),
 				code.Make(code.OpList, 3),
 				code.Make(code.OpPop),
@@ -432,14 +435,14 @@ func TestFunctions(t *testing.T) {
 				5,
 				10,
 				[]code.Instructions{
-					code.Make(code.OpConstant, 0),
-					code.Make(code.OpConstant, 1),
+					code.Make(code.OpConstant, constOffset+0),
+					code.Make(code.OpConstant, constOffset+1),
 					code.Make(code.OpAdd),
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 2, 0),
+				code.Make(code.OpClosure, constOffset+2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -448,14 +451,14 @@ func TestFunctions(t *testing.T) {
 				5,
 				10,
 				[]code.Instructions{
-					code.Make(code.OpConstant, 0),
-					code.Make(code.OpConstant, 1),
+					code.Make(code.OpConstant, constOffset+0),
+					code.Make(code.OpConstant, constOffset+1),
 					code.Make(code.OpAdd),
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 2, 0),
+				code.Make(code.OpClosure, constOffset+2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -473,7 +476,7 @@ func TestFunctionsWithoutReturnValue(t *testing.T) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpClosure, constOffset+0, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -535,12 +538,12 @@ func TestFunctionCalls(t *testing.T) {
 			expectedConstants: []any{
 				24,
 				[]code.Instructions{
-					code.Make(code.OpConstant, 0), // The literal "24"
+					code.Make(code.OpConstant, constOffset+0), // The literal "24"
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpClosure, constOffset+1, 0),
 				code.Make(code.OpCall, 0),
 				code.Make(code.OpPop),
 			},
@@ -553,12 +556,12 @@ func TestFunctionCalls(t *testing.T) {
 			expectedConstants: []any{
 				24,
 				[]code.Instructions{
-					code.Make(code.OpConstant, 0), // The literal "24"
+					code.Make(code.OpConstant, constOffset+0), // The literal "24"
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpClosure, constOffset+1, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpCall, 0),
@@ -577,10 +580,10 @@ func TestFunctionCalls(t *testing.T) {
 				24,
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpClosure, constOffset+0, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 			},
@@ -599,12 +602,12 @@ func TestFunctionCalls(t *testing.T) {
 				26,
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpClosure, constOffset+0, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
-				code.Make(code.OpConstant, 1),
-				code.Make(code.OpConstant, 2),
-				code.Make(code.OpConstant, 3),
+				code.Make(code.OpConstant, constOffset+1),
+				code.Make(code.OpConstant, constOffset+2),
+				code.Make(code.OpConstant, constOffset+3),
 				code.Make(code.OpCall, 3),
 				code.Make(code.OpPop),
 			},
@@ -621,10 +624,10 @@ func TestFunctionCalls(t *testing.T) {
 				24,
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpClosure, constOffset+0, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 			},
@@ -648,12 +651,12 @@ func TestFunctionCalls(t *testing.T) {
 				26,
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpClosure, constOffset+0, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
-				code.Make(code.OpConstant, 1),
-				code.Make(code.OpConstant, 2),
-				code.Make(code.OpConstant, 3),
+				code.Make(code.OpConstant, constOffset+1),
+				code.Make(code.OpConstant, constOffset+2),
+				code.Make(code.OpConstant, constOffset+3),
 				code.Make(code.OpCall, 3),
 				code.Make(code.OpPop),
 			},
@@ -677,9 +680,9 @@ func TestVarStatementScopes(t *testing.T) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpClosure, constOffset+1, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -693,14 +696,14 @@ func TestVarStatementScopes(t *testing.T) {
 			expectedConstants: []any{
 				55,
 				[]code.Instructions{
-					code.Make(code.OpConstant, 0),
+					code.Make(code.OpConstant, constOffset+0),
 					code.Make(code.OpSetLocal, 0),
 					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpClosure, constOffset+1, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -716,9 +719,9 @@ func TestVarStatementScopes(t *testing.T) {
 				55,
 				77,
 				[]code.Instructions{
-					code.Make(code.OpConstant, 0),
+					code.Make(code.OpConstant, constOffset+0),
 					code.Make(code.OpSetLocal, 0),
-					code.Make(code.OpConstant, 1),
+					code.Make(code.OpConstant, constOffset+1),
 					code.Make(code.OpSetLocal, 1),
 					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpGetLocal, 1),
@@ -726,7 +729,7 @@ func TestVarStatementScopes(t *testing.T) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 2, 0),
+				code.Make(code.OpClosure, constOffset+2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -752,12 +755,12 @@ func TestClosures(t *testing.T) {
 					code.Make(code.OpReturnValue),
 				}, []code.Instructions{
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpClosure, 0, 1),
+					code.Make(code.OpClosure, constOffset+0, 1),
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpClosure, constOffset+1, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -783,17 +786,17 @@ func TestClosures(t *testing.T) {
 				[]code.Instructions{
 					code.Make(code.OpGetFree, 0),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpClosure, 0, 2),
+					code.Make(code.OpClosure, constOffset+0, 2),
 					code.Make(code.OpReturnValue),
 				},
 				[]code.Instructions{
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpClosure, 1, 1),
+					code.Make(code.OpClosure, constOffset+1, 1),
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 2, 0),
+				code.Make(code.OpClosure, constOffset+2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -817,7 +820,7 @@ func TestClosures(t *testing.T) {
 				77,
 				88,
 				[]code.Instructions{
-					code.Make(code.OpConstant, 3),
+					code.Make(code.OpConstant, constOffset+3),
 					code.Make(code.OpSetLocal, 0),
 					code.Make(code.OpGetGlobal, 0),
 					code.Make(code.OpGetFree, 0),
@@ -829,25 +832,25 @@ func TestClosures(t *testing.T) {
 					code.Make(code.OpReturnValue),
 				},
 				[]code.Instructions{
-					code.Make(code.OpConstant, 2),
+					code.Make(code.OpConstant, constOffset+2),
 					code.Make(code.OpSetLocal, 0),
 					code.Make(code.OpGetFree, 0),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpClosure, 4, 2),
+					code.Make(code.OpClosure, constOffset+4, 2),
 					code.Make(code.OpReturnValue),
 				},
 				[]code.Instructions{
-					code.Make(code.OpConstant, 1),
+					code.Make(code.OpConstant, constOffset+1),
 					code.Make(code.OpSetLocal, 0),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpClosure, 5, 1),
+					code.Make(code.OpClosure, constOffset+5, 1),
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpClosure, 6, 0),
+				code.Make(code.OpClosure, constOffset+6, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -870,7 +873,7 @@ func TestBuiltins(t *testing.T) {
 				code.Make(code.OpPop),
 				code.Make(code.OpGetBuiltin, 0, 11),
 				code.Make(code.OpList, 0),
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, constOffset+0),
 				code.Make(code.OpCall, 2),
 				code.Make(code.OpPop),
 			},
@@ -886,7 +889,7 @@ func TestBuiltins(t *testing.T) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpClosure, 0),
+				code.Make(code.OpClosure, constOffset+0),
 				code.Make(code.OpPop),
 			},
 		},
