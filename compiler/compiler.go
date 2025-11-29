@@ -71,7 +71,7 @@ func New() *Compiler {
 		previousInstruction: EmittedInstruction{},
 	}
 	return &Compiler{
-		constants:   []object.Object{},
+		constants:   object.OBJECT_CONSTANTS,
 		symbolTable: symbolTable,
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
@@ -126,6 +126,10 @@ func (c *Compiler) currentInstructions() code.Instructions {
 }
 
 func (c *Compiler) addConstant(obj object.Object) int {
+	if index := object.IsConstantObject(obj); index != -1 {
+		// return reserved index for constant object
+		return index
+	}
 	c.constants = append(c.constants, obj)
 	return len(c.constants) - 1
 }
@@ -351,7 +355,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 		literal := &object.Regex{Value: r}
 		c.emit(code.OpConstant, c.addConstant(literal))
 	case *ast.StringLiteral:
-		literal := &object.Stringo{Value: node.Value}
+		var literal *object.Stringo
+		if node.Value == object.USE_PARAM_STR {
+			literal = object.USE_PARAM_STR_OBJ
+		} else {
+			literal = &object.Stringo{Value: node.Value}
+		}
 		origStrIndex := c.addConstant(literal)
 		c.emit(code.OpConstant, origStrIndex)
 		if len(node.InterpolationValues) != 0 {

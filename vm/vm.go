@@ -666,8 +666,6 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 	return nil
 }
 
-var _ignore_str = &object.Stringo{Value: "__IGNORE__"}
-
 func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (int, error) {
 	currentArgsOnStack := vm.stack[vm.sp-numArgs : vm.sp]
 	vm.sp -= numArgs
@@ -697,7 +695,7 @@ func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (i
 			}
 		}
 		if realNumArg+cl.NumDefaultParams == cl.NumParameters && cl.ParameterHasDefault[i] {
-			args = append(args, _ignore_str)
+			args = append(args, object.USE_PARAM_STR_OBJ)
 		} else if realNumArg+cl.NumDefaultParams == cl.NumParameters && currentArgOnStackIndex < len(currentArgsOnStack) {
 			args = append(args, currentArgsOnStack[currentArgOnStackIndex])
 			currentArgOnStackIndex++

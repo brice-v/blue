@@ -623,7 +623,7 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 	return nil
 }
 
-var _ignore_str = &ast.StringLiteral{Value: "__IGNORE__"}
+var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement) *object.CompiledFunction {
 	compiledFun := &object.CompiledFunction{

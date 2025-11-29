@@ -118,7 +118,34 @@ var (
 	BREAK = &BreakStatement{}
 	// CONTINUE is the continue object to be used the same everywhere
 	CONTINUE = &ContinueStatement{}
+
+	// USE_PARAM_STR_OBJ is used for constant folding as its used by vm to setup functions with default params
+	USE_PARAM_STR_OBJ = &Stringo{Value: USE_PARAM_STR}
 )
+
+const USE_PARAM_STR = "___USE_PARAM___"
+
+// These are used for VM/Compiler constant folding
+var OBJECT_CONSTANTS = []Object{
+	TRUE,
+	FALSE,
+	NULL,
+	IGNORE,
+	VM_IGNORE,
+	BREAK,
+	CONTINUE,
+	USE_PARAM_STR_OBJ,
+}
+
+// Maybe replace with switch or map if this is really a problem
+func IsConstantObject(obj Object) int {
+	for i, o := range OBJECT_CONSTANTS {
+		if o == obj {
+			return i
+		}
+	}
+	return -1
+}
 
 // Inspect returns the string value of the integer object
 func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
