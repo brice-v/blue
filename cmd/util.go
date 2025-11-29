@@ -143,7 +143,7 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		repl.PrintParserErrors(out, p.Errors())
 		os.Exit(1)
 	}
-	constants := []object.Object{}
+	constants := object.NewObjectConstants()
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {

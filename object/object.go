@@ -126,15 +126,10 @@ var (
 const USE_PARAM_STR = "___USE_PARAM___"
 
 // These are used for VM/Compiler constant folding
-var OBJECT_CONSTANTS = []Object{
-	TRUE,
-	FALSE,
-	NULL,
-	IGNORE,
-	VM_IGNORE,
-	BREAK,
-	CONTINUE,
-	USE_PARAM_STR_OBJ,
+var OBJECT_CONSTANTS = NewObjectConstants()
+
+func NewObjectConstants() []Object {
+	return []Object{TRUE, FALSE, NULL, IGNORE, VM_IGNORE, BREAK, CONTINUE, USE_PARAM_STR_OBJ}
 }
 
 // Maybe replace with switch or map if this is really a problem
