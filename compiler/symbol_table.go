@@ -88,7 +88,7 @@ func (s *SymbolTable) DefineBuiltin(index int, name string, builtinModuleIndex i
 	return symbol
 }
 
-func (s *SymbolTable) RemoveBuiltin(name string) {
+func (s *SymbolTable) Remove(name string) {
 	delete(s.store, name)
 }
 

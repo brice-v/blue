@@ -167,7 +167,7 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 		repl.PrintParserErrors(os.Stderr, p.Errors())
 		t.Fatalf("File `%s`: failed to parse", f.Name())
 	}
-	constants := []object.Object{}
+	constants := object.NewObjectConstants()
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {

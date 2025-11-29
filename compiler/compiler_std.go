@@ -76,7 +76,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	}
 	defer func(builtinsToRemove object.NewBuiltinSliceType) {
 		for _, stdBuiltin := range builtinsToRemove {
-			c.symbolTable.RemoveBuiltin(stdBuiltin.Name)
+			c.symbolTable.Remove(stdBuiltin.Name)
 		}
 	}(fb.Builtins)
 	if shouldImportAll {

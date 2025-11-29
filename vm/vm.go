@@ -373,7 +373,7 @@ func (vm *VM) push(o object.Object) error {
 		return fmt.Errorf("%s", o.(*object.Error).Message)
 	}
 	if vm.sp >= StackSize {
-		return fmt.Errorf("stack overflow when trying to push %+#v", o.Inspect())
+		return fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o)
 	}
 	vm.stack[vm.sp] = o
 	vm.sp++
