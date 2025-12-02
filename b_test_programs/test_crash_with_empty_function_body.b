@@ -2,4 +2,4 @@ fun abc(_s) {
 
 }
 
-return abc("LFJ") == null;
+assert(abc("LFJ") == null);
