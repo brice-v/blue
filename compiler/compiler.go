@@ -588,38 +588,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.emit(code.OpReturnValue)
 	case *ast.CallExpression:
-		err := c.Compile(node.Function)
+		err := c.compileCallExpression(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
-		for _, arg := range node.Arguments {
-			err := c.Compile(arg)
-			if err != nil {
-				return c.addNodeToErrorTrace(err, node.Token)
-			}
-		}
-		if len(node.DefaultArguments) != 0 {
-			for k, v := range node.DefaultArguments {
-				err = c.Compile(&ast.StringLiteral{Value: k})
-				if err != nil {
-					return c.addNodeToErrorTrace(err, v.TokenToken())
-				}
-				err = c.Compile(v)
-				if err != nil {
-					return c.addNodeToErrorTrace(err, v.TokenToken())
-				}
-			}
-			c.emit(code.OpDefaultArgs, len(node.DefaultArguments)*2)
-		}
-		argLen := len(node.Arguments)
-		if c.pushedArg {
-			argLen++
-			c.pushedArg = false
-		}
-		if len(node.DefaultArguments) != 0 {
-			argLen++
-		}
-		c.emit(code.OpCall, argLen)
 	case *ast.ForStatement:
 		err := c.compileForStatement(node)
 		if err != nil {

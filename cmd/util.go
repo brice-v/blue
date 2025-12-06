@@ -157,7 +157,7 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		os.Exit(1)
 	}
 	if compile {
-		fmt.Print(bytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+		fmt.Print(BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 		os.Exit(0)
 	}
 	bc := c.Bytecode()
@@ -282,7 +282,7 @@ func getDocStringFor(name string) string {
 	return ""
 }
 
-func bytecodeDebugString(ins code.Instructions, constants []object.Object) string {
+func BytecodeDebugString(ins code.Instructions, constants []object.Object) string {
 	var out bytes.Buffer
 	i := 0
 	for i < len(ins) {
@@ -320,7 +320,7 @@ func fmtInstruction(def *code.Definition, operands []int, constants []object.Obj
 			lastPart = fmt.Sprintf(" (%s)", object.AllBuiltins[operands[0]].Builtins[operands[1]].Name)
 		case "OpClosure":
 			cf := constants[operands[0]].(*object.CompiledFunction)
-			lastPart = fmt.Sprintf("\n\t%s", strings.ReplaceAll(bytecodeDebugString(cf.Instructions, constants), "\n", "\n\t"))
+			lastPart = fmt.Sprintf("\n\t%s", strings.ReplaceAll(BytecodeDebugString(cf.Instructions, constants), "\n", "\n\t"))
 			lastPart = strings.TrimSuffix(lastPart, "\n\t")
 		}
 		return fmt.Sprintf("%s %d %d%s", def.Name, operands[0], operands[1], lastPart)

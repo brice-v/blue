@@ -504,19 +504,27 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	}
 	// Support uniform function call syntax "".println()
 	str, ok := node.Index.(*ast.StringLiteral)
+	skipLeftCompile := false
 	if ok {
+		if _, ok1 := node.Left.(*ast.CallExpression); ok1 {
+			// If the left of the index is a call expression, we want skip that compile as its already
+			// been done
+			skipLeftCompile = true
+		}
 		s, ok1 := c.symbolTable.Resolve(c.getName(str.Value))
 		if ok1 {
 			c.loadSymbol(s)
 			c.pushedArg = true
 		}
 	}
-	err := c.Compile(node.Left)
-	if err != nil {
-		return err
+	if !skipLeftCompile {
+		err := c.Compile(node.Left)
+		if err != nil {
+			return err
+		}
 	}
 	if !c.pushedArg {
-		err = c.Compile(node.Index)
+		err := c.Compile(node.Index)
 		if err != nil {
 			return err
 		}
@@ -668,4 +676,66 @@ func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressi
 		body.Statements = append(statementsToPrepend, body.Statements...)
 	}
 	return compiledFun
+}
+
+func (c *Compiler) compileCallAndSkip(node *ast.CallExpression) (bool, error) {
+	if ie, ok := node.Function.(*ast.IndexExpression); ok {
+		if ce, ok1 := ie.Left.(*ast.CallExpression); ok1 {
+			err := c.Compile(node.Function)
+			if err != nil {
+				return false, c.addNodeToErrorTrace(err, node.Function.TokenToken())
+			}
+			wasArgPushed := c.pushedArg
+			c.pushedArg = false
+			err = c.Compile(ce)
+			if err != nil {
+				return false, c.addNodeToErrorTrace(err, node.Function.TokenToken())
+			}
+			c.pushedArg = wasArgPushed
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (c *Compiler) compileCallExpression(node *ast.CallExpression) error {
+	skipFunctionCompile, err := c.compileCallAndSkip(node)
+	if err != nil {
+		return err
+	}
+	if !skipFunctionCompile {
+		err = c.Compile(node.Function)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+	}
+	for _, arg := range node.Arguments {
+		err := c.Compile(arg)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+	}
+	if len(node.DefaultArguments) != 0 {
+		for k, v := range node.DefaultArguments {
+			err = c.Compile(&ast.StringLiteral{Value: k})
+			if err != nil {
+				return c.addNodeToErrorTrace(err, v.TokenToken())
+			}
+			err = c.Compile(v)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, v.TokenToken())
+			}
+		}
+		c.emit(code.OpDefaultArgs, len(node.DefaultArguments)*2)
+	}
+	argLen := len(node.Arguments)
+	if c.pushedArg {
+		argLen++
+		c.pushedArg = false
+	}
+	if len(node.DefaultArguments) != 0 {
+		argLen++
+	}
+	c.emit(code.OpCall, argLen)
+	return nil
 }

@@ -2,6 +2,7 @@ package b_program_test
 
 import (
 	"blue/ast"
+	"blue/cmd"
 	"blue/compiler"
 	"blue/evaluator"
 	"blue/lexer"
@@ -10,6 +11,7 @@ import (
 	"blue/repl"
 	"blue/vm"
 	"bytes"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -236,6 +238,33 @@ func TestVmNotEqualIssue(t *testing.T) {
 	vmString(t, s)
 }
 
+func TestVmArgCountIssue(t *testing.T) {
+	s := `fun random_fun(a) {
+		return a;
+	}
+
+	fun other(a, b, c, d=true) {
+		"#{a}#{b}#{c}#{d}"
+	}
+
+	val result = random_fun('TEST').other('R','E');
+	assert(result == "TESTREtrue");`
+	vmString(t, s)
+}
+
+func TestVmArgCountIssue2(t *testing.T) {
+	s := `fun random_fun(a) {
+		return a;
+	}
+
+	fun other(a, b, c, d=true) {
+		"#{a}#{b}#{c}#{d}"
+	}
+
+	assert('test'.random_fun().other('R','E') == 'testREtrue');`
+	vmString(t, s)
+}
+
 func vmString(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.New()
@@ -243,6 +272,7 @@ func vmString(t *testing.T, s string) {
 	if err != nil {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
+	fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()
 	if err != nil {
