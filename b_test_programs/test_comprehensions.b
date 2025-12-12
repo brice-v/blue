@@ -40,32 +40,24 @@ var x = [x for (x in 1..4) if (x % 2 == 0)];
 println("x is #{x}");
 var expectedx = [2,4];
 
-if (x != expectedx) {
-    return false;
-} else {
-    return true;
-}
-
+println(x == expectedx);
+assert(x == expectedx);
 
 var y = {n: n*2 for (n in 1..4)};
 var expectedy = {1: 2, 2: 4, 3: 6, 4: 8};
 
-if (y != expectedy) {
-    return false;
-}
+println("y = #{y}, expectedy = #{expectedy}")
+assert(y == expectedy);
 
 var asdfasdf = 10;
-var newasdf = {n: n**2 for (n in 1..x) if (n % 2 == 0)};
+
+var newasdf = {n: n**2 for (n in 0..8) if (n % 2 == 0)};
 var expectednewasdf = {0: 0, 2: 4, 4: 16, 6: 36, 8: 64};
-if (newasdf != expectednewasdf) {
-    return false;
-}
+println("newasdf = #{newasdf}, expectednewasdf = #{expectednewasdf}");
+assert(newasdf == expectednewasdf)
 
 
 var setCompAbc = {aaaa for (aaaa in 1..10) if (aaaa % 2 == 0)};
-var expectedSetAbc = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-if (setCompAbc != expectedSetAbc) {
-    return false;
-}
-
-return true;
+var expectedSetAbc = {2, 4, 6, 8, 10};
+println("setCompAbc = #{setCompAbc}, expectedSetAbc = #{expectedSetAbc}");
+assert(setCompAbc == expectedSetAbc);

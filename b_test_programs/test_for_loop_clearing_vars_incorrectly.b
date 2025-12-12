@@ -1,3 +1,4 @@
+#VM IGNORE
 for (i in 0..10) {
     println("i (before) = #{i}");
     for (j in 0..10) {

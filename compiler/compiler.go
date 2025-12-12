@@ -29,8 +29,6 @@ type Compiler struct {
 
 	ErrorTrace []string
 
-	pushedArg bool
-
 	currentPos int
 	Tokens     map[int][]token.Token
 
@@ -58,6 +56,7 @@ type CompilationScope struct {
 	instructions        code.Instructions
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
+	pushedArg           bool
 }
 
 func New() *Compiler {
@@ -69,6 +68,7 @@ func New() *Compiler {
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		pushedArg:           false,
 	}
 	return &Compiler{
 		constants:   object.OBJECT_CONSTANTS,
@@ -76,9 +76,9 @@ func New() *Compiler {
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
 		ErrorTrace:  []string{},
-		pushedArg:   false,
-		currentPos:  0,
-		Tokens:      map[int][]token.Token{},
+
+		currentPos: 0,
+		Tokens:     map[int][]token.Token{},
 
 		BlockNestLevel: -1,
 		forIndex:       0,
@@ -207,6 +207,7 @@ func (c *Compiler) enterScope() {
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		pushedArg:           false,
 	}
 	c.scopes = append(c.scopes, scope)
 	c.scopeIndex++
@@ -690,4 +691,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
 	return nil
+}
+
+func (c *Compiler) setIsPushedArg(a bool) {
+	c.scopes[c.scopeIndex].pushedArg = a
+}
+
+func (c *Compiler) isPushedArg() bool {
+	return c.scopes[c.scopeIndex].pushedArg
 }

@@ -1,6 +1,6 @@
 for (i in 0..10) {
     try {
-        x = 1;
+        assert(false)
     } catch (e) {
         continue
     }
@@ -12,7 +12,7 @@ var y = 0;
 for (i in 0..10) {
     println("in here #{i}");
     try {
-        x = 1;
+        assert(false)
     } catch (e) {}
     y += i;
 }
@@ -21,7 +21,7 @@ assert(y == 55);
 
 for (i in 0..10) {
     try {
-        x = 1;
+        assert(false)
     } catch (e) {}
     finally {}
     y += i;

@@ -55,6 +55,17 @@ func newError(format string, a ...any) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
+func newPositionalTypeError(funName string, pos int, expectedType object.Type, currentType object.Type) *object.Error {
+	return newError("PositionalTypeError: `%s` expects argument %d to be %s. got=%s", funName, pos, expectedType, currentType)
+}
+
+func newInvalidArgCountError(funName string, got, want int, otherCount string) *object.Error {
+	if otherCount == "" {
+		return newError("InvalidArgCountError: `%s` wrong number of args. got=%d, want=%d", funName, got, want)
+	}
+	return newError("InvalidArgCountError: `%s` wrong number of args. got=%d, want=%d %s", funName, got, want, otherCount)
+}
+
 func runeLen(s string) int {
 	return utf8.RuneCountInString(s)
 }
@@ -187,4 +198,232 @@ func matchPrimitive(left, right object.Object) bool {
 
 func isBooleanOperator(op code.Opcode) bool {
 	return op == code.OpEqual || op == code.OpNotEqual || op == code.OpAnd || op == code.OpOr || op == code.OpNot
+}
+
+// goObjectToBlueObject will only work for simple go types
+func goObjectToBlueObject(goObject any) (object.Object, error) {
+	switch obj := goObject.(type) {
+	case string:
+		return &object.Stringo{Value: obj}, nil
+	case int:
+		return &object.Integer{Value: int64(obj)}, nil
+	case int64:
+		return &object.Integer{Value: obj}, nil
+	case uint:
+		return &object.UInteger{Value: uint64(obj)}, nil
+	case uint64:
+		return &object.UInteger{Value: obj}, nil
+	case float32:
+		return &object.Float{Value: float64(obj)}, nil
+	case float64:
+		return &object.Float{Value: obj}, nil
+	case bool:
+		x := nativeToBooleanObject(obj)
+		return x, nil
+	case nil:
+		return object.NULL, nil
+	case []any:
+		l := &object.List{Elements: make([]object.Object, len(obj))}
+		for i, e := range obj {
+			val, err := goObjectToBlueObject(e)
+			if err != nil {
+				return nil, err
+			}
+			l.Elements[i] = val
+		}
+		return l, nil
+	case map[string]any:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for k, v := range obj {
+			key := &object.Stringo{Value: k}
+			hashKey := object.HashObject(key)
+			hk := object.HashKey{
+				Type:  object.STRING_OBJ,
+				Value: hashKey,
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	case *object.OrderedMap2[string, any]:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			key := &object.Stringo{Value: k}
+			hk := object.HashKey{
+				Type:  object.STRING_OBJ,
+				Value: object.HashObject(key),
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	case *object.OrderedMap2[int64, any]:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			key := &object.Integer{Value: k}
+			hk := object.HashKey{
+				Type:  object.INTEGER_OBJ,
+				Value: object.HashObject(key),
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	case *object.OrderedMap2[float64, any]:
+		m := &object.Map{Pairs: object.NewPairsMap()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			key := &object.Float{Value: k}
+			hk := object.HashKey{
+				Type:  object.FLOAT_OBJ,
+				Value: object.HashObject(key),
+			}
+			val, err := goObjectToBlueObject(v)
+			if err != nil {
+				return nil, err
+			}
+			m.Pairs.Set(hk, object.MapPair{
+				Key:   key,
+				Value: val,
+			})
+		}
+		return m, nil
+	case *object.OrderedMap2[uint64, object.SetPairGo]:
+		set := &object.Set{Elements: object.NewOrderedMap[uint64, object.SetPair]()}
+		for _, k := range obj.Keys {
+			v, _ := obj.Get(k)
+			val, err := goObjectToBlueObject(v.Value)
+			if err != nil {
+				return nil, err
+			}
+			set.Elements.Set(k, object.SetPair{Value: val, Present: v.Present})
+		}
+		return set, nil
+	default:
+		return nil, fmt.Errorf("goObjectToBlueObject: TODO: Type currently unsupported: (%T)", obj)
+	}
+}
+
+func blueObjectToGoObject(blueObject object.Object) (any, error) {
+	if blueObject == nil {
+		return nil, fmt.Errorf("blueObjectToGoObject: blueObject must not be nil")
+	}
+	switch blueObject.Type() {
+	case object.STRING_OBJ:
+		return blueObject.(*object.Stringo).Value, nil
+	case object.INTEGER_OBJ:
+		return blueObject.(*object.Integer).Value, nil
+	case object.FLOAT_OBJ:
+		return blueObject.(*object.Float).Value, nil
+	case object.NULL_OBJ:
+		return nil, nil
+	case object.BOOLEAN_OBJ:
+		return blueObject.(*object.Boolean).Value, nil
+	case object.MAP_OBJ:
+		m := blueObject.(*object.Map)
+		allInts := true
+		allFloats := true
+		allStrings := true
+		for _, k := range m.Pairs.Keys {
+			mp, _ := m.Pairs.Get(k)
+			allInts = allInts && mp.Key.Type() == object.INTEGER_OBJ
+			allFloats = allFloats && mp.Key.Type() == object.FLOAT_OBJ
+			allStrings = allStrings && mp.Key.Type() == object.STRING_OBJ
+		}
+		if !allStrings && !allFloats && !allInts {
+			return nil, fmt.Errorf("blueObjectToGoObject: Map must only have STRING, INTEGER, or FLOAT keys")
+		}
+		if allStrings {
+			pairs := object.NewOrderedMap[string, any]()
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				if mp.Value.Type() == object.MAP_OBJ {
+					return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
+				}
+				val, err := blueObjectToGoObject(mp.Value)
+				if err != nil {
+					return nil, err
+				}
+				pairs.Set(mp.Key.(*object.Stringo).Value, val)
+			}
+			return pairs, nil
+		} else if allInts {
+			pairs := object.NewOrderedMap[int64, any]()
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				if mp.Value.Type() == object.MAP_OBJ {
+					return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
+				}
+				val, err := blueObjectToGoObject(mp.Value)
+				if err != nil {
+					return nil, err
+				}
+				pairs.Set(mp.Key.(*object.Integer).Value, val)
+			}
+			return pairs, nil
+		} else {
+			// Floats
+			pairs := object.NewOrderedMap[float64, any]()
+			for _, k := range m.Pairs.Keys {
+				mp, _ := m.Pairs.Get(k)
+				if mp.Value.Type() == object.MAP_OBJ {
+					return nil, fmt.Errorf("blueObjectToGoObject: Map must not have map values. got=%s", mp.Value.Type())
+				}
+				val, err := blueObjectToGoObject(mp.Value)
+				if err != nil {
+					return nil, err
+				}
+				pairs.Set(mp.Key.(*object.Float).Value, val)
+			}
+			return pairs, nil
+		}
+	case object.LIST_OBJ:
+		l := blueObject.(*object.List).Elements
+		elements := make([]any, len(l))
+		for i, e := range l {
+			if e.Type() == object.LIST_OBJ {
+				return nil, fmt.Errorf("blueObjectToGoObject: List of lists unsupported")
+			}
+			val, err := blueObjectToGoObject(e)
+			if err != nil {
+				return nil, err
+			}
+			elements[i] = val
+		}
+		return elements, nil
+	case object.SET_OBJ:
+		s := blueObject.(*object.Set)
+		set := object.NewOrderedMap[uint64, object.SetPairGo]()
+		for _, k := range s.Elements.Keys {
+			v, _ := s.Elements.Get(k)
+			val, err := blueObjectToGoObject(v.Value)
+			if err != nil {
+				return nil, err
+			}
+			set.Set(k, object.SetPairGo{Value: val, Present: struct{}{}})
+		}
+		return set, nil
+	default:
+		return nil, fmt.Errorf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
+	}
 }

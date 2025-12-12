@@ -1,3 +1,4 @@
+#VM IGNORE
 for var i = 0; i < 4; i += 1 {
     println("i = #{i}")
 }

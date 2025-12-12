@@ -3104,68 +3104,36 @@ var Builtins = NewBuiltinSliceType{
 		},
 	},
 	{
-		Name: "to_num",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "to_num",
+		Builtin: &Builtin{Fun: nil},
 	},
 	{
-		Name: "_sort",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "_sort",
+		Builtin: &Builtin{Fun: nil},
 	},
 	{
-		Name: "_sorted",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "_sorted",
+		Builtin: &Builtin{Fun: nil},
 	},
 	{
-		Name: "all",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "all",
+		Builtin: &Builtin{Fun: nil},
 	},
 	{
-		Name: "any",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "any",
+		Builtin: &Builtin{Fun: nil},
 	},
 	{
-		Name: "map",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "map",
+		Builtin: &Builtin{Fun: nil},
 	},
 	{
-		Name: "filter",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "filter",
+		Builtin: &Builtin{Fun: nil},
 	},
 	{
-		Name: "load",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return newError("unsupported")
-			},
-		},
+		Name:    "load",
+		Builtin: &Builtin{Fun: nil},
 	},
 }
 

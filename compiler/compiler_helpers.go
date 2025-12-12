@@ -503,18 +503,17 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 		}
 	}
 	// Support uniform function call syntax "".println()
-	str, ok := node.Index.(*ast.StringLiteral)
 	skipLeftCompile := false
-	if ok {
+	if rightIsStr {
 		if _, ok1 := node.Left.(*ast.CallExpression); ok1 {
 			// If the left of the index is a call expression, we want skip that compile as its already
 			// been done
 			skipLeftCompile = true
 		}
-		s, ok1 := c.symbolTable.Resolve(c.getName(str.Value))
+		s, ok1 := c.symbolTable.Resolve(c.getName(rightStr.Value))
 		if ok1 {
 			c.loadSymbol(s)
-			c.pushedArg = true
+			c.setIsPushedArg(true)
 		}
 	}
 	if !skipLeftCompile {
@@ -523,7 +522,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 			return err
 		}
 	}
-	if !c.pushedArg {
+	if !c.isPushedArg() {
 		err := c.Compile(node.Index)
 		if err != nil {
 			return err
@@ -685,13 +684,13 @@ func (c *Compiler) compileCallAndSkip(node *ast.CallExpression) (bool, error) {
 			if err != nil {
 				return false, c.addNodeToErrorTrace(err, node.Function.TokenToken())
 			}
-			wasArgPushed := c.pushedArg
-			c.pushedArg = false
+			wasArgPushed := c.isPushedArg()
+			c.setIsPushedArg(false)
 			err = c.Compile(ce)
 			if err != nil {
 				return false, c.addNodeToErrorTrace(err, node.Function.TokenToken())
 			}
-			c.pushedArg = wasArgPushed
+			c.setIsPushedArg(wasArgPushed)
 			return true, nil
 		}
 	}
@@ -729,9 +728,9 @@ func (c *Compiler) compileCallExpression(node *ast.CallExpression) error {
 		c.emit(code.OpDefaultArgs, len(node.DefaultArguments)*2)
 	}
 	argLen := len(node.Arguments)
-	if c.pushedArg {
+	if c.isPushedArg() {
 		argLen++
-		c.pushedArg = false
+		c.setIsPushedArg(false)
 	}
 	if len(node.DefaultArguments) != 0 {
 		argLen++

@@ -280,6 +280,10 @@ func (vm *VM) Run() error {
 			builtinIndex := code.ReadUint8(ins[ip+2:])
 			vm.currentFrame().ip += 2
 			definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
+			if definition.Builtin.Fun == nil {
+				// Lazy Evaluate Builtin that needs to use vm
+				definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
+			}
 			err := vm.push(definition.Builtin)
 			if err != nil {
 				return err
@@ -618,8 +622,19 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 	// case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
 	// 	return e.evalBlueStructIndexExpression(left, indx)
 	default:
-		return vm.push(newError("index operator not supported: %s.%s", left.Type(), indx.Type()))
+		return vm.push(newError("index operator not supported: %s.%s (%s.%s)", left.Type(), indx.Type(), left.Inspect(), indx.Inspect()))
 	}
+}
+
+// Set Frames[0] and Frames[1] to the same frame from callClosureFastFrame
+// so that when calling Run on blue function via applyFunctionFast we can
+// return the top of stack value internally and revert state
+func (vm *VM) executeCallFastFrame(numArgs int) error {
+	callee := vm.stack[vm.sp-1-numArgs]
+	if closure, ok := callee.(*object.Closure); ok {
+		return vm.callClosureFastFrame(closure, numArgs)
+	}
+	return vm.executeCall(numArgs)
 }
 
 func (vm *VM) executeCall(numArgs int) error {
@@ -652,6 +667,20 @@ func (vm *VM) executeCall(numArgs int) error {
 		}
 		return fmt.Errorf("calling non-closure and non-builtin %T", callee)
 	}
+}
+
+func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
+	newArgCount, err := vm.interweaveArgsForCall(cl.Fun, numArgs)
+	if err != nil {
+		return err
+	}
+
+	frame := NewFrame(cl, vm.sp-newArgCount)
+	// CurrentFrame looks at frameIndex-1
+	// vm.frames[vm.framesIndex] = frame
+	vm.frames[vm.framesIndex-1] = frame
+	vm.sp = frame.bp + cl.Fun.NumLocals
+	return nil
 }
 
 func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
