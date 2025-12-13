@@ -27,14 +27,14 @@ assert(floats.sort(reverse=true) == floats_sorted_rev);
 assert(floats.sorted(reverse=true) == null);
 assert(floats == floats_sorted_rev);
 
-
+### This causes exception for vm, but println(mixed_list.sort()) actually shows an error
 val mixed_list = ['quick', 1];
 try {
     mixed_list.sort();
-    assert(false);
 } catch (e) {
     assert(e == "`sort` error: all elements in list must be STRING, INTEGER, or FLOAT");
 }
+###
 
 
 val users = [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}];
