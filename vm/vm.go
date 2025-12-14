@@ -33,6 +33,7 @@ type VM struct {
 	TokensForErrorTrace []token.Token
 
 	inTry      bool
+	inCatch    bool
 	catchError string
 }
 
@@ -72,7 +73,8 @@ func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
 		tokenMap:            tokenMap,
 		TokensForErrorTrace: nil,
 
-		inTry: false,
+		inTry:   false,
+		inCatch: false,
 	}
 }
 
@@ -87,6 +89,14 @@ func (vm *VM) StackTop() object.Object {
 		return nil
 	}
 	return vm.stack[vm.sp-1]
+}
+
+func (vm *VM) PushAndReturnError(err error) error {
+	if vm.inTry {
+		vm.push(newError("%s", err.Error()))
+		return nil
+	}
+	return err
 }
 
 func (vm *VM) Run() error {
@@ -104,7 +114,10 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 2
 			err := vm.push(vm.constants[constIndex])
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpTrue:
 			vm.push(object.TRUE)
@@ -121,7 +134,10 @@ func (vm *VM) Run() error {
 			code.OpRshift:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpLshift:
 			right := vm.pop()
@@ -143,27 +159,42 @@ func (vm *VM) Run() error {
 		case code.OpNot:
 			err := vm.executeNotOperation()
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpNeg:
 			err := vm.executeNegOperation()
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpTilde:
 			err := vm.executeBitwiseNotOperation()
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpLshiftPre:
 			err := vm.executeLshiftPrefixOperation()
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpRshiftPost:
 			err := vm.executeRshiftPostfixOperation()
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpJump:
 			pos := int(code.ReadUint16(ins[ip+1:]))
@@ -184,7 +215,10 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 2
 			err := vm.push(vm.globals[globalIndex])
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpList:
 			numElems := int(code.ReadUint16(ins[ip+1:]))
@@ -193,7 +227,10 @@ func (vm *VM) Run() error {
 			vm.sp = vm.sp - numElems
 			err := vm.push(list)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpMap:
 			numPairs := int(code.ReadUint16(ins[ip+1:]))
@@ -202,7 +239,10 @@ func (vm *VM) Run() error {
 			vm.sp = vm.sp - numPairs
 			err := vm.push(m)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpSet:
 			numElems := int(code.ReadUint16(ins[ip+1:]))
@@ -211,21 +251,30 @@ func (vm *VM) Run() error {
 			vm.sp = vm.sp - numElems
 			err := vm.push(set)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
 			err := vm.executeIndexExpression(left, index)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpCall:
 			numArgs := code.ReadUint8(ins[ip+1:])
 			vm.currentFrame().ip += 1
 			err := vm.executeCall(int(numArgs))
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpReturnValue:
 			returnValue := vm.pop()
@@ -235,7 +284,10 @@ func (vm *VM) Run() error {
 			}
 			err := vm.push(returnValue)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpReturn:
 			frame := vm.popFrame()
@@ -244,7 +296,10 @@ func (vm *VM) Run() error {
 			}
 			err := vm.push(object.NULL)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpSetLocal, code.OpSetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])
@@ -257,7 +312,10 @@ func (vm *VM) Run() error {
 			frame := vm.currentFrame()
 			err := vm.push(vm.stack[frame.bp+int(localIndex)])
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpClosure:
 			constIndex := code.ReadUint16(ins[ip+1:])
@@ -265,7 +323,10 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 3
 			err := vm.pushClosure(int(constIndex), int(numFree))
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpGetFree, code.OpGetFreeImm:
 			freeIndex := code.ReadUint8(ins[ip+1:])
@@ -273,7 +334,10 @@ func (vm *VM) Run() error {
 			currentClosure := vm.currentFrame().cl
 			err := vm.push(currentClosure.Free[freeIndex])
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpGetBuiltin:
 			builtinModuleIndex := code.ReadUint8(ins[ip+1:])
@@ -286,7 +350,10 @@ func (vm *VM) Run() error {
 			}
 			err := vm.push(definition.Builtin)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpStringInterp:
 			stringIndex := code.ReadUint16(ins[ip+1:])
@@ -296,7 +363,10 @@ func (vm *VM) Run() error {
 			vm.sp = vm.sp - numPairs - 1
 			err := vm.push(s)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpIndexSet:
 			index := vm.pop()
@@ -304,13 +374,16 @@ func (vm *VM) Run() error {
 			right := vm.pop()
 			err := vm.executeIndexSetOperator(left, index, right)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 			vm.push(object.NULL)
 		case code.OpTry:
 			vm.inTry = true
 		case code.OpCatch:
-			vm.inTry = true
+			vm.inCatch = true
 		case code.OpFinallyEnd:
 			if vm.catchError != "" {
 				return fmt.Errorf("%s", vm.catchError)
@@ -342,7 +415,10 @@ func (vm *VM) Run() error {
 			vm.sp = vm.sp - numPairs
 			err := vm.push(m)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -370,7 +446,7 @@ func (vm *VM) push(o object.Object) error {
 				vm.TokensForErrorTrace = toksForErrorTrace
 			}
 		}
-		if vm.inTry {
+		if vm.inTry || vm.inCatch {
 			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
 			return nil
 		}
@@ -400,6 +476,8 @@ func (vm *VM) LastPoppedStackElem() object.Object {
 
 func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 	vm.inTry = false
+	wasInCatch := vm.inCatch && !vm.inTry
+	vm.inCatch = false
 	for i := vm.currentFrame().ip; i < len(vm.currentFrame().Instructions()); i++ {
 		op := code.Opcode(vm.currentFrame().Instructions()[i])
 		if op == code.OpCatch {
@@ -411,6 +489,9 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 			vm.currentFrame().ip = i - 1
 			break
 		}
+	}
+	if wasInCatch {
+		vm.push(newError("%s", errorMessage))
 	}
 }
 
@@ -677,7 +758,6 @@ func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
 
 	frame := NewFrame(cl, vm.sp-newArgCount)
 	// CurrentFrame looks at frameIndex-1
-	// vm.frames[vm.framesIndex] = frame
 	vm.frames[vm.framesIndex-1] = frame
 	vm.sp = frame.bp + cl.Fun.NumLocals
 	return nil

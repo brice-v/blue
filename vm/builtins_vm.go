@@ -665,15 +665,24 @@ func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Ob
 }
 
 func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
-	existingFrames := vm.frames
-	existingFrameIndex := vm.framesIndex
-	vm.frames = []*Frame{nil, nil}
-	vm.framesIndex = 1
-	vm.push(fun)
-	vm.push(arg)
-	vm.executeCallFastFrame(1)
-	vm.Run()
-	vm.frames = existingFrames
-	vm.framesIndex = existingFrameIndex
+	if _, isClosure := fun.(*object.Closure); isClosure {
+		existingFrames := vm.frames
+		existingFrameIndex := vm.framesIndex
+		vm.frames = []*Frame{nil, nil}
+		vm.framesIndex = 1
+		vm.push(fun)
+		vm.push(arg)
+		vm.executeCallFastFrame(1)
+		vm.Run()
+		vm.frames = existingFrames
+		vm.framesIndex = existingFrameIndex
+	} else if _, isBuiltin := fun.(*object.Builtin); isBuiltin {
+		vm.push(fun)
+		vm.push(arg)
+		vm.executeCall(1)
+	} else {
+		return newError("%T (%s) is not callable", fun, fun)
+	}
+
 	return vm.pop()
 }

@@ -48,8 +48,6 @@ type Compiler struct {
 	coreCompiled bool
 
 	inMatch bool
-
-	// listCompilationContext ListCompilationContext
 }
 
 type CompilationScope struct {
@@ -88,11 +86,6 @@ func New() *Compiler {
 		importNestLevel:  -1,
 		modName:          []string{},
 		CompilerBasePath: cCompilerBasePath,
-		// listCompilationContext: ListCompilationContext{
-		// 	VariableName: "",
-		// 	NestingLevel: -1,
-		// 	Indices:      []int{},
-		// },
 	}
 }
 
