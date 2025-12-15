@@ -1,11 +1,5 @@
 var weee = [0] * 3
-if (weee != [0, 0, 0]) {
-    return false;
-}
+assert(weee == [0, 0, 0])
 
 var abc = [0, 1, 2] + [ 3, 4, 5]
-if (abc != [0,1,2,3,4,5]) {
-    return false;
-}
-
-return true;
+assert(abc == [0,1,2,3,4,5])

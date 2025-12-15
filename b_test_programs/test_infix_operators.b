@@ -1,28 +1,12 @@
 var s = "abc"
 var expected = "abcabcabc"
 
-if (s * 3 != expected) {
-    return false;
-}
-
-if (3 * s != expected) {
-    return false;
-}
-
-if (0b11 * s != expected) {
-    return false;
-}
-
-if (s * 0b11 != expected) {
-    return false;
-}
-
+assert(s * 3 == expected)
+assert(3 * s == expected)
+assert(0b11 * s == expected)
+assert(s * 0b11 == expected)
 println(s * 3)
-
 
 var thislist = [0,1,2,3,4] + [0,1,2,3,4]
 expected = [0,1,2,3,4,0,1,2,3,4]
-if (thislist != expected) {
-    return false;
-}
-return true;
+assert(thislist == expected);

@@ -15,32 +15,30 @@ if ("some" in y) {
 }
 
 var abc = {name: "brice", key: "another"}
-if ("key" in abc) {
-    return true;
-}
+assert("key" in abc);
 var someother = [abc, 123, 0x100]
 if (abc notin someother) {
-    return false;
+    assert(false)
 }
 if (0x100 in someother) {
-    return true;
+    assert(true)
 } else {
-    return false;
+    assert(false)
 }
 
 
 val abc123 = {1,2,3,4,5};
 if (1 notin abc123) {
-    return false;
+    assert(false);
 }
 if (1 in abc123) {
-    return true;
+    assert(true)
 } else {
-    return false;
+    assert(false);
 }
 
 if (100 in abc123) {
-    return false;
+    assert(false);
 }
 
-return true;
+assert(true);
