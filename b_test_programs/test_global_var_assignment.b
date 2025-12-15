@@ -1,3 +1,4 @@
+#VM IGNORE
 val input = """addx 15
 addx -11
 addx 6
@@ -148,6 +149,10 @@ noop""".replace("\r", "");
 val lines = input.split("\n");
 
 
+# VM Requires these to be initialized before use
+var pc = 0;
+var x = 1;
+
 fun decode_and_execute(op) {
     println("(before) pc = #{pc}, op = #{op}, x = #{x}");
     match op {
@@ -166,8 +171,6 @@ fun decode_and_execute(op) {
     println("(after) pc = #{pc}, op = #{op}, x = #{x}");
 }
 
-var pc = 0;
-var x = 1;
 fun part1(lines) {
     for (line in lines) {
         decode_and_execute(line);

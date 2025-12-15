@@ -792,6 +792,13 @@ func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (i
 	}
 	currentArgOnStackIndex := 0
 	args := make([]object.Object, 0, cl.NumParameters)
+	potentialArgCount := realNumArg + cl.NumDefaultParams
+	potentialArgToSwap := struct {
+		paramIndex, argOnStackIndex int
+	}{
+		paramIndex:      -1,
+		argOnStackIndex: -1,
+	}
 	for i := range cl.NumParameters {
 		if realNumArg == cl.NumParameters {
 			args = append(args, currentArgsOnStack[currentArgOnStackIndex])
@@ -803,11 +810,25 @@ func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (i
 				continue
 			}
 		}
-		if realNumArg+cl.NumDefaultParams == cl.NumParameters && cl.ParameterHasDefault[i] {
+		useParamCond := (potentialArgCount == cl.NumParameters && cl.ParameterHasDefault[i]) ||
+			(potentialArgCount > cl.NumParameters && currentArgOnStackIndex == len(currentArgsOnStack) && cl.ParameterHasDefault[i])
+		if useParamCond {
 			args = append(args, object.USE_PARAM_STR_OBJ)
-		} else if realNumArg+cl.NumDefaultParams == cl.NumParameters && currentArgOnStackIndex < len(currentArgsOnStack) {
+		} else if potentialArgCount == cl.NumParameters && currentArgOnStackIndex < len(currentArgsOnStack) {
 			args = append(args, currentArgsOnStack[currentArgOnStackIndex])
 			currentArgOnStackIndex++
+		} else if potentialArgCount > cl.NumParameters && currentArgOnStackIndex < len(currentArgsOnStack) {
+			args = append(args, currentArgsOnStack[currentArgOnStackIndex])
+			currentArgOnStackIndex++
+			if cl.ParameterHasDefault[i] {
+				potentialArgToSwap.argOnStackIndex = currentArgOnStackIndex - 1
+				potentialArgToSwap.paramIndex = i
+			}
+		} else if realNumArg < cl.NumDefaultParams && potentialArgCount > cl.NumParameters && defaultArgs == nil && !cl.ParameterHasDefault[i] && potentialArgToSwap.argOnStackIndex != -1 {
+			// Append the arg from the prior position that had a default parameter (and this one doesnt)
+			args = append(args, currentArgsOnStack[potentialArgToSwap.argOnStackIndex])
+			// Replace the prior position with the USE_PARAM object so that it will be used
+			args[potentialArgToSwap.argOnStackIndex] = object.USE_PARAM_STR_OBJ
 		}
 	}
 	argCountAfterWeave := len(args)

@@ -12,16 +12,12 @@ val result = x.execute(
     insert into t values(42, 'Hello', 3.14159, null, ?), (314, 'World!', 0.09991234, 'asf', ?);
     """, [bytes_example, bytes_example]);
 println("execute result = #{result}");
-if (result != {last_insert_id: 2, rows_affected: 2}) {
-    assert(false)
-}
+assert(result == {last_insert_id: 2, rows_affected: 2})
 
 val result_query_no_named_cols = x.query("select * from t;");
 println("result_query_no_named_cols = #{result_query_no_named_cols}");
 val expected_result_query_no_named_cols = [[42, "Hello", 3.141590, null, bytes_example], [314, "World!", 0.099912, "asf", bytes_example]];
-if (result_query_no_named_cols != expected_result_query_no_named_cols) {
-    assert(false)
-}
+assert(result_query_no_named_cols == expected_result_query_no_named_cols);
 
 val result_query_with_query_params = x.query("select * from t where i = ?;", [42]);
 println("result_query_with_query_params = #{result_query_with_query_params}");
