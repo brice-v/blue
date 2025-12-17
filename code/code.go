@@ -100,6 +100,7 @@ const (
 	OpIndexSet
 	OpTry
 	OpCatch
+	OpCatchEnd
 	OpFinally
 	OpFinallyEnd
 	OpListCompLiteral
@@ -175,6 +176,7 @@ var definitions = map[Opcode]*Definition{
 	OpIndexSet:           {"OpIndexSet", []int{}},
 	OpTry:                {"OpTry", []int{}},
 	OpCatch:              {"OpCatch", []int{}},
+	OpCatchEnd:           {"OpCatchEnd", []int{}},
 	OpFinally:            {"OpFinally", []int{}},
 	OpFinallyEnd:         {"OpFinallyEnd", []int{}},
 	OpListCompLiteral:    {"OpListCompLiteral", []int{}},

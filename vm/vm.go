@@ -383,12 +383,16 @@ func (vm *VM) Run() error {
 		case code.OpTry:
 			vm.inTry = true
 		case code.OpCatch:
-			vm.inCatch = true
+			if vm.catchError == "" {
+				vm.gotoCatchEnd()
+			} else {
+				vm.inCatch = true
+			}
 		case code.OpFinallyEnd:
 			if vm.catchError != "" {
 				return fmt.Errorf("%s", vm.catchError)
 			}
-		case code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
+		case code.OpCatchEnd, code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
 			// Do nothing
 		case code.OpExecString:
 			constIndex := code.ReadUint16(ins[ip+1:])
@@ -492,6 +496,16 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 	}
 	if wasInCatch {
 		vm.push(newError("%s", errorMessage))
+	}
+}
+
+func (vm *VM) gotoCatchEnd() {
+	for i := vm.currentFrame().ip; i < len(vm.currentFrame().Instructions()); i++ {
+		op := code.Opcode(vm.currentFrame().Instructions()[i])
+		if op == code.OpCatchEnd {
+			vm.currentFrame().ip = i
+			break
+		}
 	}
 }
 

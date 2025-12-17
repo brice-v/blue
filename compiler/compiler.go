@@ -631,6 +631,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if err != nil {
 				return c.addNodeToErrorTrace(err, node.CatchBlock.Token)
 			}
+			c.emit(code.OpCatchEnd)
 			c.clearBlockSymbols()
 		}
 		if node.FinallyBlock != nil {

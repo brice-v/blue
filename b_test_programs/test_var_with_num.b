@@ -6,7 +6,7 @@ try {
     println(abcd123);
 } catch (e) {
     # Shouldnt reach this
-    return false;
+    assert(false);
 }
 
-return true;
+assert(true);
