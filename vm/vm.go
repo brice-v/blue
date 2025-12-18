@@ -112,6 +112,16 @@ func (vm *VM) Run() error {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2
+			// if int(constIndex) > len(vm.constants) {
+			// 	for i, c := range vm.constants {
+			// 		if c != nil {
+			// 			log.Printf("constant %d = %s", i, c.Inspect())
+			// 		}
+			// 	}
+			// 	log.Printf("current instructions = %s", vm.currentFrame().Instructions().String())
+			// 	log.Printf("constIndex = %d, len(vm.constants) = %d", constIndex, len(vm.constants))
+			// 	return fmt.Errorf("FATAL ERROR")
+			// }
 			err := vm.push(vm.constants[constIndex])
 			if err != nil {
 				err = vm.PushAndReturnError(err)

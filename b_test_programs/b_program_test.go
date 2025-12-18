@@ -2,7 +2,6 @@ package b_program_test
 
 import (
 	"blue/ast"
-	"blue/cmd"
 	"blue/compiler"
 	"blue/evaluator"
 	"blue/lexer"
@@ -11,7 +10,6 @@ import (
 	"blue/repl"
 	"blue/vm"
 	"bytes"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -137,13 +135,13 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 		t.Fatal(err)
 	}
 	// Note: Comment out this defered func to see what the panic trace is
-	defer func() {
-		// recover from panic if one occured. Set err to nil otherwise.
-		err := recover()
-		if err != nil {
-			t.Fatalf("PANIC in FILE %s Error: %+v", fpath, err)
-		}
-	}()
+	// defer func() {
+	// 	// recover from panic if one occured. Set err to nil otherwise.
+	// 	err := recover()
+	// 	if err != nil {
+	// 		t.Fatalf("PANIC in FILE %s Error: %+v", fpath, err)
+	// 	}
+	// }()
 	openFile, err := os.Open(fpath)
 	if err != nil {
 		t.Fatal(err)
@@ -169,18 +167,14 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 		repl.PrintParserErrors(os.Stderr, p.Errors())
 		t.Fatalf("File `%s`: failed to parse", f.Name())
 	}
-	constants := object.NewObjectConstants()
 	globals := make([]object.Object, vm.GlobalsSize)
-	symbolTable := compiler.NewSymbolTable()
-	for i, v := range object.AllBuiltins[0].Builtins {
-		symbolTable.DefineBuiltin(i, v.Name, 0)
-	}
-	c := compiler.NewWithStateAndCore(symbolTable, constants)
+	c := compiler.NewFromCore()
 	err = c.Compile(program)
 	if err != nil {
 		t.Errorf("File `%s`: compiler returned error %s", f.Name(), err.Error())
 		return
 	}
+	// log.Printf("CONSTANT SIZE = %d", len(c.Bytecode().Constants))
 	v := vm.NewWithGlobalsStore(c.Bytecode(), c.Tokens, globals)
 	err = v.Run()
 	if err != nil {
@@ -272,7 +266,7 @@ func vmString(t *testing.T, s string) {
 	if err != nil {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
-	fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+	// fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()
 	if err != nil {

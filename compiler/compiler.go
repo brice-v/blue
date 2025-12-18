@@ -6,6 +6,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/token"
+	"bytes"
 	"fmt"
 	"log"
 	"regexp"
@@ -20,7 +21,8 @@ type EmittedInstruction struct {
 const cCompilerBasePath = "."
 
 type Compiler struct {
-	constants []object.Object
+	constants     []object.Object
+	constantFolds map[uint64]int
 
 	symbolTable *SymbolTable
 
@@ -50,6 +52,32 @@ type Compiler struct {
 	inMatch bool
 }
 
+func (c *Compiler) DebugString() string {
+	var out bytes.Buffer
+	out.WriteString("Compiler{\n")
+	fmt.Fprintf(&out, "\tconstanstLen: %d\n", len(c.constants))
+	fmt.Fprintf(&out, "\tconstantFoldsLen: %d\n", len(c.constantFolds))
+	fmt.Fprintf(&out, "\tsymbolTable: \n|\n%s\n|\n", c.symbolTable.String())
+	fmt.Fprintf(&out, "\tscopes: %#+v\n", c.scopes)
+	fmt.Fprintf(&out, "\tscopeIndex: %d\n", c.scopeIndex)
+	fmt.Fprintf(&out, "\tErrorTrace: %#+v\n", c.ErrorTrace)
+	fmt.Fprintf(&out, "\tcurrentPos: %d\n", c.currentPos)
+	fmt.Fprintf(&out, "\tTokensLen: %d\n", len(c.Tokens))
+	fmt.Fprintf(&out, "\tBlockNestLevel: %d\n", c.BlockNestLevel)
+	fmt.Fprintf(&out, "\tforIndex: %d\n", c.forIndex)
+	fmt.Fprintf(&out, "\tbreakPos: %#+v\n", c.breakPos)
+	fmt.Fprintf(&out, "\tcontPos: %#+v\n", c.contPos)
+	fmt.Fprintf(&out, "\timportNestLevel: %d\n", c.importNestLevel)
+	fmt.Fprintf(&out, "\tmodName: %#+v\n", c.modName)
+	fmt.Fprintf(&out, "\tCompilerBasePath: %q\n", c.CompilerBasePath)
+	fmt.Fprintf(&out, "\tValidModulesNames: %#+v\n", c.ValidModuleNames)
+	fmt.Fprintf(&out, "\tlistSetMapCompLiteralIndex: %d\n", c.listSetMapCompLiteralIndex)
+	fmt.Fprintf(&out, "\tcoreCompiled: %t\n", c.coreCompiled)
+	fmt.Fprintf(&out, "\tinMatch: %t\n", c.inMatch)
+	out.WriteString("}")
+	return out.String()
+}
+
 type CompilationScope struct {
 	instructions        code.Instructions
 	lastInstruction     EmittedInstruction
@@ -69,11 +97,12 @@ func New() *Compiler {
 		pushedArg:           false,
 	}
 	return &Compiler{
-		constants:   object.OBJECT_CONSTANTS,
-		symbolTable: symbolTable,
-		scopes:      []CompilationScope{mainScope},
-		scopeIndex:  0,
-		ErrorTrace:  []string{},
+		constants:     object.OBJECT_CONSTANTS,
+		constantFolds: map[uint64]int{},
+		symbolTable:   symbolTable,
+		scopes:        []CompilationScope{mainScope},
+		scopeIndex:    0,
+		ErrorTrace:    []string{},
 
 		currentPos: 0,
 		Tokens:     map[int][]token.Token{},
@@ -102,6 +131,10 @@ func NewWithStateAndCore(s *SymbolTable, constants []object.Object) *Compiler {
 	return c
 }
 
+func NewFromCore() *Compiler {
+	return newFromCore()
+}
+
 type Bytecode struct {
 	Instructions code.Instructions
 	Constants    []object.Object
@@ -123,8 +156,26 @@ func (c *Compiler) addConstant(obj object.Object) int {
 		// return reserved index for constant object
 		return index
 	}
+	if index := c.isConstantFolded(obj); index != -1 {
+		return index
+	}
 	c.constants = append(c.constants, obj)
-	return len(c.constants) - 1
+	index := len(c.constants) - 1
+	c.addToConstantFolds(obj, index)
+	return index
+}
+
+func (c *Compiler) addToConstantFolds(obj object.Object, index int) {
+	ho := object.HashObject(obj)
+	c.constantFolds[ho] = index
+}
+
+func (c *Compiler) isConstantFolded(obj object.Object) int {
+	ho := object.HashObject(obj)
+	if index, ok := c.constantFolds[ho]; ok {
+		return index
+	}
+	return -1
 }
 
 func (c *Compiler) emit(op code.Opcode, operands ...int) int {

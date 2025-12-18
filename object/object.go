@@ -997,6 +997,10 @@ func HashObject(obj Object) uint64 {
 		hasher.WriteString(obj.(*Regex).Value.String())
 	case PROCESS_OBJ:
 		hasher.WriteString(obj.Inspect())
+	case COMPILED_FUNCTION_OBJ:
+		hasher.Write(obj.(*CompiledFunction).Instructions)
+	case MODULE_OBJ:
+		hasher.WriteString(obj.(*Module).Name)
 	default:
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)
