@@ -82,7 +82,8 @@ type CompilationScope struct {
 	instructions        code.Instructions
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
-	pushedArg           bool
+	pushedArg           []bool
+	pushedArgIndex      int
 }
 
 func New() *Compiler {
@@ -94,7 +95,8 @@ func New() *Compiler {
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
-		pushedArg:           false,
+		pushedArg:           []bool{false},
+		pushedArgIndex:      0,
 	}
 	return &Compiler{
 		constants:     object.OBJECT_CONSTANTS,
@@ -251,7 +253,8 @@ func (c *Compiler) enterScope() {
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
-		pushedArg:           false,
+		pushedArg:           []bool{false},
+		pushedArgIndex:      0,
 	}
 	c.scopes = append(c.scopes, scope)
 	c.scopeIndex++
@@ -572,7 +575,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		for _, p := range node.Parameters {
 			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
 		}
-		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body)
+		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
 		err := c.Compile(node.Body)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -599,7 +602,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		for _, p := range node.Parameters {
 			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
 		}
-		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body)
+		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
 		err := c.Compile(node.Body)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -739,9 +742,26 @@ func (c *Compiler) Compile(node ast.Node) error {
 }
 
 func (c *Compiler) setIsPushedArg(a bool) {
-	c.scopes[c.scopeIndex].pushedArg = a
+	if a {
+		c.scopes[c.scopeIndex].pushedArg = append(c.scopes[c.scopeIndex].pushedArg, a)
+		c.scopes[c.scopeIndex].pushedArgIndex++
+	} else {
+		index := c.scopes[c.scopeIndex].pushedArgIndex
+		c.scopes[c.scopeIndex].pushedArg[index] = a
+	}
 }
 
 func (c *Compiler) isPushedArg() bool {
-	return c.scopes[c.scopeIndex].pushedArg
+	index := c.scopes[c.scopeIndex].pushedArgIndex
+	return c.scopes[c.scopeIndex].pushedArg[index]
+}
+
+func (c *Compiler) popPushedArg() {
+	index := c.scopes[c.scopeIndex].pushedArgIndex
+	if index == 0 {
+		c.scopes[c.scopeIndex].pushedArg[index] = false
+	} else {
+		c.scopes[c.scopeIndex].pushedArg = c.scopes[c.scopeIndex].pushedArg[:index]
+		c.scopes[c.scopeIndex].pushedArgIndex--
+	}
 }

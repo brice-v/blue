@@ -841,6 +841,8 @@ type CompiledFunction struct {
 	Parameters          []string
 	ParameterHasDefault []bool
 	NumDefaultParams    int
+
+	DisplayString string
 }
 
 // Type returns the function objects type
@@ -848,7 +850,7 @@ func (cf *CompiledFunction) Type() Type { return COMPILED_FUNCTION_OBJ }
 
 // Inspect returns the string representation of the function
 func (cf *CompiledFunction) Inspect() string {
-	return fmt.Sprintf("CompiledFunction[%p]", cf)
+	return cf.DisplayString
 }
 
 func (cf *CompiledFunction) Help() string {
@@ -866,7 +868,7 @@ func (cf *Closure) Type() Type { return CLOSURE_OBJ }
 
 // Inspect returns the string representation of the function
 func (cf *Closure) Inspect() string {
-	return fmt.Sprintf("Closure[%p]", cf)
+	return cf.Fun.DisplayString
 }
 
 func (cf *Closure) Help() string {

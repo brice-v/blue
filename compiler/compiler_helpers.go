@@ -504,6 +504,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	}
 	// Support uniform function call syntax "".println()
 	skipLeftCompile := false
+	pushedArg := false
 	if rightIsStr {
 		if _, ok1 := node.Left.(*ast.CallExpression); ok1 {
 			// If the left of the index is a call expression, we want skip that compile as its already
@@ -514,6 +515,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 		if ok1 {
 			c.loadSymbol(s)
 			c.setIsPushedArg(true)
+			pushedArg = true
 		}
 	}
 	if !skipLeftCompile {
@@ -522,7 +524,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 			return err
 		}
 	}
-	if !c.isPushedArg() {
+	if !pushedArg {
 		err := c.Compile(node.Index)
 		if err != nil {
 			return err
@@ -640,11 +642,12 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 
 var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 
-func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement) *object.CompiledFunction {
+func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement, astStr string) *object.CompiledFunction {
 	compiledFun := &object.CompiledFunction{
 		Parameters:          make([]string, len(parameters)),
 		ParameterHasDefault: make([]bool, len(parameters)),
 		NumParameters:       len(parameters),
+		DisplayString:       astStr,
 	}
 	defaultParams := 0
 	var statementsToPrepend []ast.Statement = nil
@@ -730,7 +733,7 @@ func (c *Compiler) compileCallExpression(node *ast.CallExpression) error {
 	argLen := len(node.Arguments)
 	if c.isPushedArg() {
 		argLen++
-		c.setIsPushedArg(false)
+		c.popPushedArg()
 	}
 	if len(node.DefaultArguments) != 0 {
 		argLen++

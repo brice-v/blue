@@ -10,6 +10,7 @@ import (
 	"blue/repl"
 	"blue/vm"
 	"bytes"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -257,6 +258,36 @@ func TestVmArgCountIssue2(t *testing.T) {
 
 	assert('test'.random_fun().other('R','E') == 'testREtrue');`
 	vmString(t, s)
+}
+
+func TestBrokenLongCall(t *testing.T) {
+	s := `'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+	val line = "11A = (11B, XXX)"
+	val values = line.split(" = ")[1].split("");
+	assert("#{values}" == "[(, 1, 1, B, ,,  , X, X, X, )]")`
+	vmStringWithCore(t, s)
+
+}
+
+func vmStringWithCore(t *testing.T, s string) {
+	program := parseString(t, s)
+	c := compiler.NewFromCore()
+	err := c.Compile(program)
+	if err != nil {
+		t.Fatalf("compiler error: %s", err.Error())
+	}
+	// fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+	// ((((line.split)(" = ")[1]).replace)("[\(\),]", "").split)(" ")
+	fmt.Printf("PARSED: ```%s```\n", program.String())
+	v := vm.New(c.Bytecode(), c.Tokens)
+	err = v.Run()
+	if err != nil {
+		t.Fatalf("vm error: %s", err.Error())
+	}
+	obj := v.LastPoppedStackElem()
+	if obj.Type() == object.ERROR_OBJ {
+		t.Fatalf("vm returned error: %s, %s", s, obj.(*object.Error).Message)
+	}
 }
 
 func vmString(t *testing.T, s string) {
