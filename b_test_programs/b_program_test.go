@@ -2,6 +2,7 @@ package b_program_test
 
 import (
 	"blue/ast"
+	"blue/cmd"
 	"blue/compiler"
 	"blue/evaluator"
 	"blue/lexer"
@@ -57,7 +58,7 @@ func TestAllProgramsInDirectory(t *testing.T) {
 }
 
 // TODO: Enable later on once more is done
-func testAllProgramsInDirectoryWithVm(t *testing.T) {
+func TestAllProgramsInDirectoryWithVm(t *testing.T) {
 	files, err := os.ReadDir("./")
 	if err != nil {
 		t.Fatal(err)
@@ -269,6 +270,12 @@ func TestBrokenLongCall(t *testing.T) {
 
 }
 
+func TestBrokenReturnForAll(t *testing.T) {
+	s := `val y = {'a': 1, 'b': 1};
+	assert(y.values().all(|e| => e == 1));[]*null`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
@@ -276,8 +283,7 @@ func vmStringWithCore(t *testing.T, s string) {
 	if err != nil {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
-	// fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
-	// ((((line.split)(" = ")[1]).replace)("[\(\),]", "").split)(" ")
+	fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	fmt.Printf("PARSED: ```%s```\n", program.String())
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()

@@ -5,6 +5,7 @@ import (
 	"blue/object"
 	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"sort"
 	"strings"
@@ -362,6 +363,7 @@ func createAllBuiltin(vm *VM) *object.Builtin {
 						return newError("`all` error: function must have 1 parameter")
 					}
 					for _, elem := range l.Elements {
+						log.Printf("fn = %s", fn.Inspect())
 						obj := vm.applyFunctionFast(fn, elem)
 						if isError(obj) {
 							errMsg := obj.(*object.Error).Message
@@ -386,6 +388,7 @@ func createAllBuiltin(vm *VM) *object.Builtin {
 						allTrue = allTrue && obj.(*object.Boolean).Value
 					}
 				}
+				log.Printf("GETTING TO HERE AT ALL?????")
 				return nativeToBooleanObject(allTrue)
 			},
 			HelpStr: helpStrArgs{
@@ -665,7 +668,9 @@ func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Ob
 }
 
 func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
+	vm.currentFrame().ip++
 	if _, isClosure := fun.(*object.Closure); isClosure {
+		log.Printf("CURRENT IP ---BEFORE--- FAST FRAME = %d", vm.currentFrame().ip)
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
 		vm.frames = []*Frame{nil, nil}
@@ -676,6 +681,7 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		vm.Run()
 		vm.frames = existingFrames
 		vm.framesIndex = existingFrameIndex
+		log.Printf("CURRENT IP AFTER FAST FRAME = %d", vm.currentFrame().ip)
 	} else if _, isBuiltin := fun.(*object.Builtin); isBuiltin {
 		vm.push(fun)
 		vm.push(arg)
@@ -683,6 +689,5 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 	} else {
 		return newError("%T (%s) is not callable", fun, fun)
 	}
-
 	return vm.pop()
 }

@@ -8,6 +8,7 @@ import (
 	"blue/parser"
 	"blue/token"
 	"fmt"
+	"log"
 	"math/big"
 	"slices"
 	"strings"
@@ -104,6 +105,7 @@ func (vm *VM) Run() error {
 	var ins code.Instructions
 	var op code.Opcode
 	for vm.currentFrame().ip < len(vm.currentFrame().Instructions())-1 {
+		log.Printf("ip = %d, len = %d", vm.currentFrame().ip, len(vm.currentFrame().Instructions())-1)
 		vm.currentFrame().ip++
 		ip = vm.currentFrame().ip
 		ins = vm.currentFrame().Instructions()
@@ -292,6 +294,7 @@ func (vm *VM) Run() error {
 			if frame != nil {
 				vm.sp = frame.bp - 1
 			}
+			log.Printf("frame = %#+v", frame)
 			err := vm.push(returnValue)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -736,6 +739,7 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 // return the top of stack value internally and revert state
 func (vm *VM) executeCallFastFrame(numArgs int) error {
 	callee := vm.stack[vm.sp-1-numArgs]
+	log.Printf("CALLING FAST FRAME = %s", callee.Inspect())
 	if closure, ok := callee.(*object.Closure); ok {
 		return vm.callClosureFastFrame(closure, numArgs)
 	}
@@ -788,6 +792,7 @@ func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
 }
 
 func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
+	log.Printf("cl = %s", cl.Fun.DisplayString)
 	newArgCount, err := vm.interweaveArgsForCall(cl.Fun, numArgs)
 	if err != nil {
 		return err
