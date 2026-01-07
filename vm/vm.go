@@ -100,7 +100,7 @@ func (vm *VM) PushAndReturnError(err error) error {
 	return err
 }
 
-func (vm *VM) Run() error {
+func (vm *VM) RunAndReturn(returnValueFromRun bool) any {
 	var ip int
 	var ins code.Instructions
 	var op code.Opcode
@@ -110,6 +110,7 @@ func (vm *VM) Run() error {
 		ip = vm.currentFrame().ip
 		ins = vm.currentFrame().Instructions()
 		op = code.Opcode(ins[ip])
+		log.Printf("op = %s", code.GetOpName(op))
 		switch op {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
@@ -302,6 +303,9 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			if returnValueFromRun {
+				return returnValue
+			}
 		case code.OpReturn:
 			frame := vm.popFrame()
 			if frame != nil {
@@ -440,6 +444,14 @@ func (vm *VM) Run() error {
 		}
 	}
 	return nil
+}
+
+func (vm *VM) Run() error {
+	runResult := vm.RunAndReturn(false)
+	if runResult == nil {
+		return nil
+	}
+	return runResult.(error)
 }
 
 func (vm *VM) push(o object.Object) error {

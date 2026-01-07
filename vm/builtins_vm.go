@@ -668,20 +668,39 @@ func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Ob
 }
 
 func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
-	vm.currentFrame().ip++
+
 	if _, isClosure := fun.(*object.Closure); isClosure {
 		log.Printf("CURRENT IP ---BEFORE--- FAST FRAME = %d", vm.currentFrame().ip)
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
+		for _, f := range vm.frames {
+			if f != nil {
+				log.Printf("BEFORE f = %#+v", f.cl.Fun.DisplayString)
+				log.Printf("BEFORE f = %s", f.cl.Inspect())
+			}
+		}
 		vm.frames = []*Frame{nil, nil}
 		vm.framesIndex = 1
 		vm.push(fun)
 		vm.push(arg)
 		vm.executeCallFastFrame(1)
-		vm.Run()
+		runResult := vm.RunAndReturn(true)
+		if errr, isErr := runResult.(error); isErr {
+			return newError("%s", errr.Error())
+		} else if o, isO := runResult.(object.Object); isO {
+			log.Printf("o = %s", o)
+			vm.currentFrame().ip += 2
+		}
 		vm.frames = existingFrames
 		vm.framesIndex = existingFrameIndex
 		log.Printf("CURRENT IP AFTER FAST FRAME = %d", vm.currentFrame().ip)
+		for _, f := range vm.frames {
+			if f != nil {
+				log.Printf("f = %#+v", f.cl.Fun.DisplayString)
+				log.Printf("f = %s", f.cl.Inspect())
+			}
+		}
+		log.Printf("CURRENT FRAME = %#+v", vm.currentFrame())
 	} else if _, isBuiltin := fun.(*object.Builtin); isBuiltin {
 		vm.push(fun)
 		vm.push(arg)
