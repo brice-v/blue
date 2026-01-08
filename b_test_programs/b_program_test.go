@@ -266,7 +266,12 @@ func TestBrokenLongCall(t *testing.T) {
 	val values = line.split(" = ")[1].split("");
 	assert("#{values}" == "[(, 1, 1, B, ,,  , X, X, X, )]")`
 	vmStringWithCore(t, s)
+}
 
+func TestBrokenReturnForAll(t *testing.T) {
+	s := `val y = {'a': 1, 'b': 1};
+	assert(y.values().all(|e| => e == 1));`
+	vmStringWithCore(t, s)
 }
 
 func vmStringWithCore(t *testing.T, s string) {
@@ -277,7 +282,6 @@ func vmStringWithCore(t *testing.T, s string) {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
 	// fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
-	// ((((line.split)(" = ")[1]).replace)("[\(\),]", "").split)(" ")
 	fmt.Printf("PARSED: ```%s```\n", program.String())
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()

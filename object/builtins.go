@@ -1131,7 +1131,7 @@ var Builtins = NewBuiltinSliceType{
 				explanation: "`assert` returns an EvaluatorError if the given Condition is false, and it will print the optional STRING provided as an error message",
 				signature:   "assert(cond: bool, message='') -> true|EvaluatorError",
 				errors:      "InvalidArgCount,PositionalType,AssertError,CustomAssertError",
-				example:     "assert(true) => true\nassert(false, 'Message') => ERROR| EvaluatorError: `asser` failed: Message",
+				example:     "assert(true) => true\nassert(false, 'Message') => ERROR| EvaluatorError: `assert` failed: Message",
 			}.String(),
 		},
 	},
