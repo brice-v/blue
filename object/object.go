@@ -936,6 +936,15 @@ func (m *Map) hashMap() uint64 {
 	return hasher.Sum64()
 }
 
+func (da *DefaultArgs) hashDefaultArgs() uint64 {
+	hasher := newHasher()
+	for k, v := range da.Value {
+		hasher.WriteString(k)
+		maphash.WriteComparable(hasher, HashObject(v))
+	}
+	return hasher.Sum64()
+}
+
 // hashStruct hashes the entire struct to be used for checking equality
 func (bs *BlueStruct) hashStruct() uint64 {
 	hasher := newHasher()
@@ -970,6 +979,8 @@ func HashObject(obj Object) uint64 {
 		maphash.WriteComparable(hasher, uint64(obj.(*Float).Value))
 	case STRING_OBJ:
 		hasher.WriteString(obj.(*Stringo).Value)
+	case EXEC_STRING_OBJ:
+		hasher.WriteString(obj.(*ExecString).Value)
 	case FUNCTION_OBJ:
 		// Note: This is a naive way of determining if two functions are identical
 		// come back and fix this or make it smarter if possible
@@ -985,6 +996,8 @@ func HashObject(obj Object) uint64 {
 		maphash.WriteComparable(hasher, obj.(*Set).hashSet())
 	case MAP_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Map).hashMap())
+	case DEFAULT_ARGS_OBJ:
+		maphash.WriteComparable(hasher, obj.(*DefaultArgs).hashDefaultArgs())
 	case BLUE_STRUCT_OBJ:
 		maphash.WriteComparable(hasher, obj.(*BlueStruct).hashStruct())
 	case BYTES_OBJ:
