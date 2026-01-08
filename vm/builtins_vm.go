@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"blue/code"
 	"blue/consts"
 	"blue/object"
 	"bytes"
@@ -355,6 +356,10 @@ func createAllBuiltin(vm *VM) *object.Builtin {
 				if args[1].Type() != object.CLOSURE_OBJ && args[1].Type() != object.BUILTIN_OBJ {
 					return newPositionalTypeError("all", 2, object.CLOSURE_OBJ+" or BUILTIN", args[1].Type())
 				}
+				for i := vm.currentFrame().ip; i < len(vm.currentFrame().Instructions()); i++ {
+					op := code.Opcode(vm.currentFrame().Instructions()[i])
+					log.Printf("|||||-> op = %s", code.GetOpName(op))
+				}
 				l := args[0].(*object.List)
 				allTrue := true
 				if args[1].Type() == object.CLOSURE_OBJ {
@@ -668,11 +673,13 @@ func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Ob
 }
 
 func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
-
+	var returnValue object.Object
 	if _, isClosure := fun.(*object.Closure); isClosure {
-		log.Printf("CURRENT IP ---BEFORE--- FAST FRAME = %d", vm.currentFrame().ip)
+		log.Printf("CURRENT IP ---BEFORE--- FAST FRAME = %d (%s)", vm.currentFrame().ip, vm.currentFrame().cl.Inspect())
+		existingStackPointer := vm.sp
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
+		log.Printf("SP BEFORE = %d", vm.sp)
 		for _, f := range vm.frames {
 			if f != nil {
 				log.Printf("BEFORE f = %#+v", f.cl.Fun.DisplayString)
@@ -691,22 +698,30 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 			log.Printf("o = %s", o)
 			vm.currentFrame().ip += 2
 		}
+		log.Printf("SP AFTER = %d", vm.sp)
+		returnValue = vm.pop()
+		vm.sp = existingStackPointer
 		vm.frames = existingFrames
 		vm.framesIndex = existingFrameIndex
-		log.Printf("CURRENT IP AFTER FAST FRAME = %d", vm.currentFrame().ip)
-		for _, f := range vm.frames {
-			if f != nil {
-				log.Printf("f = %#+v", f.cl.Fun.DisplayString)
-				log.Printf("f = %s", f.cl.Inspect())
+		log.Printf("CURRENT IP AFTER FAST FRAME = %d (%s)", vm.currentFrame().ip, vm.currentFrame().cl.Inspect())
+		for i := vm.sp; i > 0; i-- {
+			o := vm.stack[i-1]
+			if o != nil {
+				log.Printf("stack[%d] = %s", i-1, o.Inspect())
 			}
+		}
+		for i := vm.currentFrame().ip; i < len(vm.currentFrame().Instructions()); i++ {
+			op := code.Opcode(vm.currentFrame().Instructions()[i])
+			log.Printf("	-> op = %s", code.GetOpName(op))
 		}
 		log.Printf("CURRENT FRAME = %#+v", vm.currentFrame())
 	} else if _, isBuiltin := fun.(*object.Builtin); isBuiltin {
 		vm.push(fun)
 		vm.push(arg)
 		vm.executeCall(1)
+		returnValue = vm.pop()
 	} else {
 		return newError("%T (%s) is not callable", fun, fun)
 	}
-	return vm.pop()
+	return returnValue
 }
