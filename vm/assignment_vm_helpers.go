@@ -3,10 +3,12 @@ package vm
 import (
 	"blue/object"
 	"fmt"
+	"log"
 	"strings"
 )
 
 func (vm *VM) executeIndexSetOperator(indexable object.Object, index object.Object, rightValue object.Object) error {
+	log.Printf("indexable = %s (%s)", indexable.Inspect(), indexable.Type())
 	if m, ok := indexable.(*object.Map); ok {
 		return vm.executeMapIndexSetOperator(m, index, rightValue)
 	} else if l, ok := indexable.(*object.List); ok {

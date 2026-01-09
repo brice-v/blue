@@ -8,6 +8,7 @@ import (
 	"blue/parser"
 	"blue/token"
 	"fmt"
+	"log"
 	"math/big"
 	"slices"
 	"strings"
@@ -382,6 +383,8 @@ func (vm *VM) Run() error {
 			index := vm.pop()
 			left := vm.pop()
 			right := vm.pop()
+			// TODO: Miscompilation, technically index here should actually be 'left'
+			log.Printf("left = %s, index = %s, right = %s", left.Inspect(), index.Inspect(), right.Inspect())
 			err := vm.executeIndexSetOperator(left, index, right)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
