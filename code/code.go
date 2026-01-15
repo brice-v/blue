@@ -111,6 +111,7 @@ const (
 	OpMatchAny
 	OpEval
 	OpDefaultArgs
+	OpCoreCompiled
 )
 
 type Definition struct {
@@ -187,6 +188,7 @@ var definitions = map[Opcode]*Definition{
 	OpMatchAny:           {"OpMatchAny", []int{}},
 	OpEval:               {"OpEval", []int{}},
 	OpDefaultArgs:        {"OpDefaultArgs", []int{2}},
+	OpCoreCompiled:       {"OpCoreCompiled", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"blue/code"
 	"blue/consts"
 	"blue/lexer"
 	"blue/lib"
@@ -55,6 +56,7 @@ func newFromCore() *Compiler {
 			consts.ErrorPrinter("Failed to compile core.b: %s\n", err.Error())
 			os.Exit(1)
 		}
+		c.emit(code.OpCoreCompiled)
 		// log.Printf("COMPILER: %s", c.DebugString())
 		_coreCompiler = c
 	}

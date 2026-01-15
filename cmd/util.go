@@ -157,7 +157,13 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		os.Exit(1)
 	}
 	if compile {
-		fmt.Print(BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+		offset := 0
+		for i, ins := range c.Bytecode().Instructions {
+			if ins == byte(code.OpCoreCompiled) {
+				offset = i
+			}
+		}
+		fmt.Print(BytecodeDebugString(c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
 		os.Exit(0)
 	}
 	bc := c.Bytecode()
