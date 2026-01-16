@@ -163,7 +163,7 @@ func vmFile(fpath string, noExec bool, compile bool) {
 				offset = i
 			}
 		}
-		fmt.Print(BytecodeDebugString(c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
+		fmt.Print(BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
 		os.Exit(0)
 	}
 	bc := c.Bytecode()
@@ -288,7 +288,7 @@ func getDocStringFor(name string) string {
 	return ""
 }
 
-func BytecodeDebugString(ins code.Instructions, constants []object.Object) string {
+func BytecodeDebugStringWithOffset(offset int, ins code.Instructions, constants []object.Object) string {
 	var out bytes.Buffer
 	i := 0
 	for i < len(ins) {
@@ -298,10 +298,14 @@ func BytecodeDebugString(ins code.Instructions, constants []object.Object) strin
 			continue
 		}
 		operands, read := code.ReadOperands(def, ins[i+1:])
-		fmt.Fprintf(&out, "%04d %s\n", i, fmtInstruction(def, operands, constants))
+		fmt.Fprintf(&out, "%04d %s\n", offset+i, fmtInstruction(def, operands, constants))
 		i += 1 + read
 	}
 	return out.String()
+}
+
+func BytecodeDebugString(ins code.Instructions, constants []object.Object) string {
+	return BytecodeDebugStringWithOffset(0, ins, constants)
 }
 
 func fmtInstruction(def *code.Definition, operands []int, constants []object.Object) string {

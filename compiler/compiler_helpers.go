@@ -496,8 +496,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	rightStr, rightIsStr := node.Index.(*ast.StringLiteral)
 	if leftIsIdent && rightIsStr {
 		// Check if left is a module and if together this can be resolved
-		sym, ok := c.symbolTable.Resolve(fmt.Sprintf("%s.%s", leftIdent.Value, rightStr.Value))
-		if ok {
+		if sym, ok := c.symbolTable.Resolve(fmt.Sprintf("%s.%s", leftIdent.Value, rightStr.Value)); ok {
 			c.loadSymbol(sym)
 			return nil
 		}
