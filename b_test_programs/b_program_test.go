@@ -274,6 +274,23 @@ func TestBrokenReturnForAll(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestVmFixForLoop(t *testing.T) {
+	s := `var input = """LR
+
+	11A = (11B, XXX)
+	11B = (XXX, 11Z)""".replace("\r", "");
+
+	val split_lines = input.split("\n");
+	var m = {};
+
+	for var i = 2; i < split_lines.len(); i += 1 {
+		'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+		val line = split_lines[i];
+		'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+	}`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
