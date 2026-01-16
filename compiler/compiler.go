@@ -82,8 +82,6 @@ type CompilationScope struct {
 	instructions        code.Instructions
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
-	pushedArg           []bool
-	pushedArgIndex      int
 }
 
 func New() *Compiler {
@@ -95,8 +93,6 @@ func New() *Compiler {
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
-		pushedArg:           []bool{false},
-		pushedArgIndex:      0,
 	}
 	return &Compiler{
 		constants:     object.OBJECT_CONSTANTS,
@@ -253,8 +249,6 @@ func (c *Compiler) enterScope() {
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
-		pushedArg:           []bool{false},
-		pushedArgIndex:      0,
 	}
 	c.scopes = append(c.scopes, scope)
 	c.scopeIndex++
@@ -739,29 +733,4 @@ func (c *Compiler) Compile(node ast.Node) error {
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
 	return nil
-}
-
-func (c *Compiler) setIsPushedArg(a bool) {
-	if a {
-		c.scopes[c.scopeIndex].pushedArg = append(c.scopes[c.scopeIndex].pushedArg, a)
-		c.scopes[c.scopeIndex].pushedArgIndex++
-	} else {
-		index := c.scopes[c.scopeIndex].pushedArgIndex
-		c.scopes[c.scopeIndex].pushedArg[index] = a
-	}
-}
-
-func (c *Compiler) isPushedArg() bool {
-	index := c.scopes[c.scopeIndex].pushedArgIndex
-	return c.scopes[c.scopeIndex].pushedArg[index]
-}
-
-func (c *Compiler) popPushedArg() {
-	index := c.scopes[c.scopeIndex].pushedArgIndex
-	if index == 0 {
-		c.scopes[c.scopeIndex].pushedArg[index] = false
-	} else {
-		c.scopes[c.scopeIndex].pushedArg = c.scopes[c.scopeIndex].pushedArg[:index]
-		c.scopes[c.scopeIndex].pushedArgIndex--
-	}
 }

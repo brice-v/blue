@@ -7,9 +7,10 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/token"
+	"blue/utils"
 	"fmt"
+	"log"
 	"math/big"
-	"slices"
 	"strings"
 )
 
@@ -39,6 +40,16 @@ type VM struct {
 
 func (vm *VM) currentFrame() *Frame {
 	return vm.frames[vm.framesIndex-1]
+}
+
+func (vm *VM) incrementOpCallArgCount() bool {
+	cf := vm.frames[vm.framesIndex-1]
+	nextPos := utils.GetNextOpCallPos(cf.cl.Fun.Instructions, cf.ip)
+	if nextPos != -1 {
+		cf.cl.Fun.Instructions[nextPos+1]++
+		return true
+	}
+	return false
 }
 
 func (vm *VM) pushFrame(f *Frame) {
@@ -269,11 +280,16 @@ func (vm *VM) Run() error {
 		case code.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
-			err := vm.executeIndexExpression(left, index)
-			if err != nil {
-				err = vm.PushAndReturnError(err)
+			if (index.Type() == object.CLOSURE_OBJ || index.Type() == object.BUILTIN_OBJ) && vm.incrementOpCallArgCount() {
+				vm.push(index)
+				vm.push(left)
+			} else {
+				err := vm.executeIndexExpression(left, index)
 				if err != nil {
-					return err
+					err = vm.PushAndReturnError(err)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		case code.OpCall:
@@ -437,6 +453,15 @@ func (vm *VM) Run() error {
 		}
 	}
 	return nil
+}
+
+func (vm *VM) printMiniStack(slots int) {
+	for i := range slots {
+		obj := vm.stack[i]
+		if obj != nil {
+			log.Printf("stack[%d] = %s (%T)\n", i, obj.Inspect(), obj)
+		}
+	}
 }
 
 func (vm *VM) push(o object.Object) error {

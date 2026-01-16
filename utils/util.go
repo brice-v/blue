@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"blue/code"
 	"blue/object"
+	"log"
 	"math"
 )
 
@@ -51,4 +53,20 @@ func IfNameInMapSetEnv(env *object.Environment, m object.OrderedMap2[object.Hash
 		}
 	}
 	return false
+}
+
+func GetNextOpCallPos(ins code.Instructions, ip int) int {
+	i := ip
+	for i < len(ins) {
+		def, err := code.Lookup(ins[i])
+		if err != nil {
+			log.Fatalf("UNREACHABLE - failed to lookup instruction")
+		}
+		if def.Name == "OpCall" {
+			return i
+		}
+		_, read := code.ReadOperands(def, ins[i+1:])
+		i += 1 + read
+	}
+	return -1
 }
