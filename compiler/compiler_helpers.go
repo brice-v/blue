@@ -635,10 +635,11 @@ var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement, astStr string) *object.CompiledFunction {
 	compiledFun := &object.CompiledFunction{
-		Parameters:          make([]string, len(parameters)),
-		ParameterHasDefault: make([]bool, len(parameters)),
-		NumParameters:       len(parameters),
-		DisplayString:       astStr,
+		Parameters:            make([]string, len(parameters)),
+		ParameterHasDefault:   make([]bool, len(parameters)),
+		NumParameters:         len(parameters),
+		DisplayString:         astStr,
+		PosAlreadyIncremented: make(map[int]struct{}),
 	}
 	defaultParams := 0
 	var statementsToPrepend []ast.Statement = nil

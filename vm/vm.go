@@ -47,7 +47,15 @@ func (vm *VM) incrementOpCallArgCount() bool {
 	cf := vm.frames[vm.framesIndex-1]
 	nextPos := utils.GetNextOpCallPos(cf.cl.Fun.Instructions, cf.ip)
 	if nextPos != -1 {
-		cf.cl.Fun.Instructions[nextPos+1]++
+		pos := nextPos + 1
+		// When this function is called in a loop such as
+		// split_lines.len(), then ensure we do not end up incrementing
+		// the same byte position more then once.
+		if _, ok := cf.cl.Fun.PosAlreadyIncremented[pos]; ok {
+			return true
+		}
+		cf.cl.Fun.PosAlreadyIncremented[pos] = struct{}{}
+		cf.cl.Fun.Instructions[pos]++
 		return true
 	}
 	return false
@@ -67,7 +75,7 @@ func (vm *VM) popFrame() *Frame {
 }
 
 func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
-	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
+	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions, PosAlreadyIncremented: make(map[int]struct{})}
 	mainClosure := &object.Closure{Fun: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
 	frames := make([]*Frame, MaxFrames)
@@ -124,16 +132,6 @@ func (vm *VM) Run() error {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2
-			// if int(constIndex) > len(vm.constants) {
-			// 	for i, c := range vm.constants {
-			// 		if c != nil {
-			// 			log.Printf("constant %d = %s", i, c.Inspect())
-			// 		}
-			// 	}
-			// 	log.Printf("current instructions = %s", vm.currentFrame().Instructions().String())
-			// 	log.Printf("constIndex = %d, len(vm.constants) = %d", constIndex, len(vm.constants))
-			// 	return fmt.Errorf("FATAL ERROR")
-			// }
 			err := vm.push(vm.constants[constIndex])
 			if err != nil {
 				err = vm.PushAndReturnError(err)

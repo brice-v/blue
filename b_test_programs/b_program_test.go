@@ -175,7 +175,6 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 		t.Errorf("File `%s`: compiler returned error %s", f.Name(), err.Error())
 		return
 	}
-	// log.Printf("CONSTANT SIZE = %d", len(c.Bytecode().Constants))
 	v := vm.NewWithGlobalsStore(c.Bytecode(), c.Tokens, globals)
 	err = v.Run()
 	if err != nil {
@@ -274,8 +273,7 @@ func TestBrokenReturnForAll(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
-// TODO: To be fixed
-func testVmFixForLoop(t *testing.T) {
+func TestVmFixForLoop(t *testing.T) {
 	s := `var input = """LR
 
 	11A = (11B, XXX)
@@ -285,9 +283,7 @@ func testVmFixForLoop(t *testing.T) {
 	var m = {};
 
 	for var i = 2; i < split_lines.len(); i += 1 {
-		'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 		val line = split_lines[i];
-		'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 	}`
 	vmStringWithCore(t, s)
 }

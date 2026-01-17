@@ -843,6 +843,8 @@ type CompiledFunction struct {
 	NumDefaultParams    int
 
 	DisplayString string
+
+	PosAlreadyIncremented map[int]struct{}
 }
 
 // Type returns the function objects type
