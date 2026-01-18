@@ -288,6 +288,19 @@ func TestVmFixForLoop(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenMapIndexing(t *testing.T) {
+	s := `fun hello() {
+		var this = {};
+		var starting_keys = ['11A', '22A'];
+		this['starting_keys'] = starting_keys;
+		return this;
+	}
+
+	var game = hello();
+	assert(game.starting_keys == ['11A','22A']);`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
