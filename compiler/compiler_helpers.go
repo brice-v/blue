@@ -504,9 +504,15 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	isDotCall := node.Token.Literal == "."
 	// Support uniform function call syntax "".println()
 	var symbolToIndex *Symbol = nil
-	if rightIsStr && isDotCall {
+	if rightIsStr {
 		if sym, ok := c.symbolTable.Resolve(c.getName(rightStr.Value)); ok {
-			symbolToIndex = &sym
+			// Allow enclosing function to use 'str' version of index var instead of
+			// what it would resolve to in parent/higher scope
+			// e.g. var m = {}; var a = 1; m['a'] = a; fun() { m.a + 1 }
+			// Here, m.a would refer to the map's version of 'a', and not the value 1.
+			if isDotCall && sym.Scope != FreeScope {
+				symbolToIndex = &sym
+			}
 		}
 	}
 

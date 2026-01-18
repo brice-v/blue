@@ -301,6 +301,22 @@ func TestBrokenMapIndexing(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenMapIndexing2(t *testing.T) {
+	s := `fun hello() {
+		var this = {};
+		var a = 2;
+		this['a'] = a;
+		this.next = fun() {
+			this.a + 1
+		}
+		return this;
+	}
+
+	var game = hello();
+	assert(game.next() == 3);`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
