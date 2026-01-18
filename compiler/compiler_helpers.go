@@ -501,9 +501,10 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 			return nil
 		}
 	}
+	isDotCall := node.Token.Literal == "."
 	// Support uniform function call syntax "".println()
 	var symbolToIndex *Symbol = nil
-	if rightIsStr {
+	if rightIsStr && isDotCall {
 		if sym, ok := c.symbolTable.Resolve(c.getName(rightStr.Value)); ok {
 			symbolToIndex = &sym
 		}
