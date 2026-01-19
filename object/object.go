@@ -978,7 +978,7 @@ func HashObject(obj Object) uint64 {
 		// Use 2 for null
 		return 2
 	case FLOAT_OBJ:
-		maphash.WriteComparable(hasher, uint64(obj.(*Float).Value))
+		maphash.WriteComparable(hasher, obj.(*Float).Value)
 	case STRING_OBJ:
 		hasher.WriteString(obj.(*Stringo).Value)
 	case EXEC_STRING_OBJ:

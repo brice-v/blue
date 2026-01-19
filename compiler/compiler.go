@@ -150,6 +150,11 @@ func (c *Compiler) currentInstructions() code.Instructions {
 }
 
 func (c *Compiler) addConstant(obj object.Object) int {
+	if f, isf := obj.(*object.Float); isf {
+		if f.Value == 0.5 {
+			log.Printf("FLOAT LITERAL = %f", f.Value)
+		}
+	}
 	if index := object.IsConstantObject(obj); index != -1 {
 		// return reserved index for constant object
 		return index
@@ -330,6 +335,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
+		log.Printf("node.Right = %s (%T), node.Left = %s (%T)", node.Right.String(), node.Right, node.Left.String(), node.Left)
 		err = c.Compile(node.Right)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -489,16 +495,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 	case *ast.VarStatement:
-		// c.listCompilationContext.VariableName = c.getName(node.Names[0].Value)
 		err := c.Compile(node.Value)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
-		// c.listCompilationContext = ListCompilationContext{
-		// 	VariableName: "",
-		// 	NestingLevel: -1,
-		// 	Indices:      []int{},
-		// }
 		if node.IsListDestructor || node.IsMapDestructor {
 			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
 		}

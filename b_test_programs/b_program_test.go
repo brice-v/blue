@@ -317,6 +317,15 @@ func TestBrokenMapIndexing2(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestIncorrectTypeInAdd(t *testing.T) {
+	s := `var x = 2 ** 100;
+	assert(x.type() == 'BIG_INTEGER');
+
+	var y = x + 0.5;
+	assert(y.type() == 'BIG_FLOAT');`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
