@@ -235,7 +235,10 @@ var DbBuiltins = NewBuiltinSliceType{
 				rowList := &List{
 					Elements: make([]Object, len(cols)),
 				}
-				rowMap := NewOrderedMap[string, Object]()
+				var rowMap *OrderedMap2[string, Object] = nil
+				if isNamedCols {
+					rowMap = NewOrderedMap[string, Object]()
+				}
 				for idx, e := range cols {
 					obj := CreateObjectFromDbInterface(e)
 					if obj == nil {

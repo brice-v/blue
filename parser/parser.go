@@ -5,6 +5,7 @@ import (
 	"blue/lexer"
 	"blue/token"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -595,25 +596,46 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	return lit
 }
 
+// ExactFloat64 uses decimal package to convert both numbers simultaneously to see if they
+// are equal when rounded by default
+func ExactFloat64(s string) (float64, bool, *decimal.Decimal) {
+	f, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
+	if err != nil {
+		return 0, false, nil
+	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return f, true, nil
+	}
+	fromPotentiallyRoundedFloat := decimal.NewFromFloat(f)
+	fromString, err := decimal.NewFromString(s)
+	if err != nil {
+		return 0, false, nil
+	}
+
+	if fromPotentiallyRoundedFloat.Equal(fromString) {
+		return f, true, nil
+	}
+	return 0, false, &fromString
+}
+
 // parseFloatLiteral will return the float literal ast node
 func (p *Parser) parseFloatLiteral() ast.Expression {
 	lit := &ast.FloatLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
-	value, err := strconv.ParseFloat(tokenLiteral, 64)
-	if err != nil || len(tokenLiteral) > len(fmt.Sprintf("%f", value)) {
-		bigValue, err := decimal.NewFromString(tokenLiteral)
-		if err == nil {
-			bigLit := &ast.BigFloatLiteral{Token: p.curToken}
-			bigLit.Value = bigValue
-			return bigLit
-		}
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as a float\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
-		return nil
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
+	exactF, ok, maybeDecimal := ExactFloat64(tokenLiteral)
+	if ok {
+		lit.Value = exactF
+		return lit
 	}
-	lit.Value = value
-	return lit
+	if maybeDecimal != nil {
+		bigLit := &ast.BigFloatLiteral{Token: p.curToken}
+		bigLit.Value = *maybeDecimal
+		return bigLit
+	}
+	errorLine := lexer.GetErrorLineMessage(p.curToken)
+	msg := fmt.Sprintf("could not parse %q as a float\n%s", p.curToken.Literal, errorLine)
+	p.errors = append(p.errors, msg)
+	return nil
 }
 
 // parseHexLiteral will return the Hex literal ast node

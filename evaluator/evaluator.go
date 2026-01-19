@@ -3320,6 +3320,14 @@ func (e *Evaluator) evalMinusPrefixOperatorExpression(right object.Object) objec
 		value := right.(*object.Float).Value
 		return &object.Float{Value: -value}
 	}
+	if right.Type() == object.BIG_FLOAT_OBJ {
+		value := right.(*object.BigFloat).Value
+		return &object.BigFloat{Value: value.Neg()}
+	}
+	if right.Type() == object.BIG_INTEGER_OBJ {
+		value := right.(*object.BigInteger).Value
+		return &object.BigInteger{Value: new(big.Int).Neg(value)}
+	}
 	if right.Type() != object.FLOAT_OBJ || right.Type() != object.INTEGER_OBJ {
 		return newError("unknown operator: -%s", right.Type())
 	}

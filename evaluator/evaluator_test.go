@@ -405,7 +405,7 @@ func TestStringExpression(t *testing.T) {
 		{`"Hello World!"`, "Hello World!"},
 		{`var x = 5 + 3; "Testing #{x}"`, "Testing 8"},
 		{`"Testing #{9 ** 3}"`, "Testing 729"},
-		{`"Testing #{  2 ** (3 + 5)}  #{2.0 + 3.0}"`, "Testing 256  5.000000"},
+		{`"Testing #{  2 ** (3 + 5)}  #{2.0 + 3.0}"`, "Testing 256  5"},
 		{`"Test #{}"`, "Test "},
 		{`var x = "Hey Another String" "Testing #{9 ** 3}" + " #{x}"`, "Testing 729 Hey Another String"},
 	}
@@ -748,7 +748,7 @@ func testUintObject(t *testing.T, obj object.Object, expected uint64) bool {
 func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
 	result, ok := obj.(*object.Float)
 	if !ok {
-		t.Errorf("obj is not *object.Float. got=%T", obj)
+		t.Errorf("obj is not *object.Float. got=%T (%#+v), expected=%f", obj, obj, expected)
 		return false
 	}
 	if result.Value != expected {

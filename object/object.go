@@ -10,6 +10,7 @@ import (
 	"math"
 	"math/big"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -258,7 +259,7 @@ type Float struct {
 func (f *Float) Type() Type { return FLOAT_OBJ }
 
 // Inspect returns the string value of the float
-func (f *Float) Inspect() string { return fmt.Sprintf("%f", f.Value) }
+func (f *Float) Inspect() string { return strconv.FormatFloat(f.Value, 'g', -1, 64) }
 
 func (f *Float) Help() string {
 	desc := fmt.Sprintf("is the object that represents numerical values %f to %f", math.SmallestNonzeroFloat64, math.MaxFloat64)
