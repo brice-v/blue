@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Potentially add .0 if float formatted as string would not have any decimal place
+    - This may be needed/useful later on
 - Tmp
 - [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
     - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
