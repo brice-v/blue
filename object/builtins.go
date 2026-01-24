@@ -1527,25 +1527,19 @@ var Builtins = NewBuiltinSliceType{
 				l := lexer.New(s, "<internal:json>")
 				p := parser.New(l)
 				program := p.ParseProgram()
+				// Should be no errors once float parsing supported
 				if len(p.Errors()) > 0 {
 					return newError("`from_json` error: failed to parse json string `%s`", s)
 				}
-				expressionToObject := func(expr ast.Expression) Object {
-					switch t := expr.(type) {
-					case *ast.IntegerLiteral:
-					case *ast.FloatLiteral:
-					default:
-						log.Printf("GOT TYPE: t = %#+v (%T)", t, t)
-					}
-					return NULL
+				// Should only be 1 statement
+				if len(program.Statements) > 1 {
+					return newError("`from_json` error: too many statements found")
 				}
-				for _, stmt := range program.Statements {
-					switch t := stmt.(type) {
-					case *ast.ExpressionStatement:
-						expressionToObject(t.Expression)
-					}
+				stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+				if !ok {
+					return newError("`from_json` error: unexpected statement type %T", program.Statements[0])
 				}
-				return nativeToBooleanObject(json.Valid([]byte(s)))
+				return ParseJson(stmt.Expression)
 			},
 			HelpStr: helpStrArgs{
 				explanation: "`from_json` checks if the json is valid and returns an object",

@@ -1,15 +1,18 @@
 package object
 
 import (
+	"blue/ast"
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 	"os/exec"
 	"runtime"
 	"runtime/metrics"
+	"sort"
 	"strings"
 )
 
@@ -594,4 +597,92 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs OrderedMap2[
 	}
 	buf.WriteRune('}')
 	return buf
+}
+
+func parseMapLiteral(node *ast.MapLiteral) Object {
+	pairs := NewPairsMap()
+
+	indices := []int{}
+	for k := range node.PairsIndex {
+		indices = append(indices, k)
+	}
+	sort.Ints(indices)
+	for _, i := range indices {
+		keyNode := node.PairsIndex[i]
+		valueNode := node.Pairs[keyNode]
+		// Should always be an *ast.StringLiteral
+		key := ParseJson(keyNode)
+		if isError(key) {
+			return key
+		}
+		// Should always be true
+		ok := IsHashable(key)
+		if !ok {
+			return newError("unusable as a map key: %s", key.Type())
+		}
+		hk := HashObject(key)
+		hashed := HashKey{Type: key.Type(), Value: hk}
+
+		value := ParseJson(valueNode)
+		if isError(value) {
+			return value
+		}
+
+		pairs.Set(hashed, MapPair{Key: key, Value: value})
+	}
+
+	return &Map{Pairs: pairs}
+}
+
+func parseListLiteral(node *ast.ListLiteral) Object {
+	result := make([]Object, len(node.Elements))
+	for i, e := range node.Elements {
+		result[i] = ParseJson(e)
+	}
+	return &List{Elements: result}
+}
+
+func ParseJson(expr ast.Expression) Object {
+	switch t := expr.(type) {
+	case *ast.IntegerLiteral:
+		return &Integer{Value: t.Value}
+	case *ast.FloatLiteral:
+		return &Float{Value: t.Value}
+	case *ast.BigIntegerLiteral:
+		return &BigInteger{Value: t.Value}
+	case *ast.BigFloatLiteral:
+		return &BigFloat{Value: t.Value}
+	case *ast.Boolean:
+		return nativeToBooleanObject(t.Value)
+	case *ast.Null:
+		return NULL
+	case *ast.StringLiteral:
+		return &Stringo{Value: t.Value}
+	case *ast.MapLiteral:
+		return parseMapLiteral(t)
+	case *ast.ListLiteral:
+		return parseListLiteral(t)
+	case *ast.PrefixExpression:
+		if t.TokenLiteral() != "-" {
+			panic("Unexpected Prefix Expression Token " + t.TokenLiteral())
+		}
+		right := ParseJson(t.Right)
+		switch rt := right.(type) {
+		case *Integer:
+			rt.Value = -rt.Value
+		case *Float:
+			rt.Value = -rt.Value
+		case *BigInteger:
+			bi := new(big.Int)
+			rt.Value = bi.Neg(rt.Value)
+		case *BigFloat:
+			rt.Value = rt.Value.Neg()
+		default:
+			panic("Unexpected Type for Prefix Expression " + right.Type())
+		}
+		return right
+	default:
+		log.Fatalf("ParseJson: UNHANDLED t = %#+v (%T)", t, t)
+	}
+	panic("UNREACHABLE")
 }
