@@ -219,18 +219,6 @@ fun find_one(str_to_search, query, method="regex") {
     }
 }
 
-fun from_json(json_str) {
-    ##core:ignore
-    if (not is_valid_json(json_str)) {
-        return error("from_json error: invalid json_str #{json_str}");
-    }
-    try {
-        return eval(json_str);
-    } catch (e) {
-        return error("from_json error: invalid json_str #{json_str}, e=#{e}");
-    }
-}
-
 fun close(obj) {
     ##core:ignore
     match obj {

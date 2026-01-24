@@ -1,7 +1,10 @@
 package object
 
 import (
+	"blue/ast"
 	"blue/consts"
+	"blue/lexer"
+	"blue/parser"
 	"blue/util"
 	"bufio"
 	"bytes"
@@ -1504,6 +1507,51 @@ var Builtins = NewBuiltinSliceType{
 				signature:   "is_valid_json(json: str) -> bool",
 				errors:      "InvalidArgCount,PositionalType",
 				example:     "is_valid_json('{}') => true",
+			}.String(),
+		},
+	},
+	{
+		Name: "from_json",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("from_json", len(args), 1, "")
+				}
+				if args[0].Type() != STRING_OBJ {
+					return newPositionalTypeError("from_json", 1, STRING_OBJ, args[0].Type())
+				}
+				s := args[0].(*Stringo).Value
+				if !json.Valid([]byte(s)) {
+					return newError("`from_json` error: invalid json")
+				}
+				l := lexer.New(s, "<internal:json>")
+				p := parser.New(l)
+				program := p.ParseProgram()
+				if len(p.Errors()) > 0 {
+					return newError("`from_json` error: failed to parse json string `%s`", s)
+				}
+				expressionToObject := func(expr ast.Expression) Object {
+					switch t := expr.(type) {
+					case *ast.IntegerLiteral:
+					case *ast.FloatLiteral:
+					default:
+						log.Printf("GOT TYPE: t = %#+v (%T)", t, t)
+					}
+					return NULL
+				}
+				for _, stmt := range program.Statements {
+					switch t := stmt.(type) {
+					case *ast.ExpressionStatement:
+						expressionToObject(t.Expression)
+					}
+				}
+				return nativeToBooleanObject(json.Valid([]byte(s)))
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`from_json` checks if the json is valid and returns an object",
+				signature:   "from_json(json: str) -> any",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "from_json('{}') => {}",
 			}.String(),
 		},
 	},
