@@ -600,7 +600,7 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs OrderedMap2[
 }
 
 func parseMapLiteral(node *ast.MapLiteral) Object {
-	pairs := NewPairsMap()
+	pairs := NewPairsMapWithSize(len(node.Pairs))
 
 	indices := []int{}
 	for k := range node.PairsIndex {
