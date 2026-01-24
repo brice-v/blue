@@ -29,7 +29,7 @@ val json_strs = [
   '{"matrix":[[1,2],[3,4]],"listOfObjs":[{"a":1},{"b":2}],"objWithArray":{"arr":[true,false]}}',
 
   # 10. Numbers in every valid form
-  #"[0, -0, 123, -456, 7.89, -0.12, 1e10, -2E-3, 3.14e+2]",
+  "[0, -0, 123, -456, 7.89, -0.12, 1e10, -2E-3, 3.14e+2]",
 
   # 11. Very large integer (beyond 53 bit safe range)   still legal JSON
   '{"bigInt":9223372036854775807}',

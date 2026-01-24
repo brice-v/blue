@@ -219,17 +219,27 @@ func (l *Lexer) readNumber() (token.Type, string) {
 		}
 	}
 	dotFlag := false
+	eFlag := false
 	for isDigit(l.ch) || (l.ch == '_' && isDigit(l.peekChar())) {
 		if l.peekChar() == '.' && !dotFlag && l.peekSecondChar() != '.' {
 			dotFlag = true
 			l.readChar()
 			l.readChar()
 		}
+		if (l.peekChar() == 'e' || l.peekChar() == 'E') && (l.peekSecondChar() == '+' || l.peekSecondChar() == '-' || isDigit(l.peekSecondChar())) {
+			eFlag = true
+			// skip e
+			l.readChar()
+			if l.peekChar() == '+' || l.peekChar() == '-' {
+				// skip + or -
+				l.readChar()
+			}
+		}
 		l.readChar()
 	}
 	isBigVal := l.ch == 'n' && (isWs(l.peekChar()) || !isLetter(l.peekChar()))
 	var tok token.Type
-	if dotFlag {
+	if dotFlag || eFlag {
 		if isBigVal {
 			l.readChar()
 			tok = token.BIGFLOAT

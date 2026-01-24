@@ -391,7 +391,40 @@ func TestFloatLiteralExpression(t *testing.T) {
 	if literal.Value != 5.01 {
 		t.Fatalf("literal.Value not %f. got %f", 5.01, literal.Value)
 	}
+}
 
+func TestFloatLiteralExpressionWithE(t *testing.T) {
+	inputs := []struct {
+		input    string
+		expected float64
+	}{
+		{"5.0_1;", 5.01},
+		{"2E-3", 2e-3},
+		{"3.14e+2", 3.14e+2},
+	}
+
+	for _, tc := range inputs {
+		l := lexer.New(tc.input, "<internal: test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program has wrong # of statements. got=%d, want=1", len(program.Statements))
+		}
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not an ast.ExpressionStatement. got=%T", program.Statements[0])
+		}
+
+		literal, ok := stmt.Expression.(*ast.FloatLiteral)
+		if !ok {
+			t.Fatalf("exp is not an *ast.FloatLiteral. got=%T", stmt.Expression)
+		}
+		if literal.Value != tc.expected {
+			t.Fatalf("literal.Value not %f. got %f", tc.expected, literal.Value)
+		}
+	}
 }
 
 func TestHexLiteralExpression(t *testing.T) {
