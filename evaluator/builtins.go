@@ -82,6 +82,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"ls": object.GetBuiltinByName(object.BuiltinBaseType, "ls"),
 	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
 	"is_valid_json": object.GetBuiltinByName(object.BuiltinBaseType, "is_valid_json"),
+	"from_json":     object.GetBuiltinByName(object.BuiltinBaseType, "from_json"),
 	"wait":          object.GetBuiltinByName(object.BuiltinBaseType, "wait"),
 	"_publish":      object.GetBuiltinByName(object.BuiltinBaseType, "_publish"),
 	"_broadcast":    object.GetBuiltinByName(object.BuiltinBaseType, "_broadcast"),
