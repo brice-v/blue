@@ -8,34 +8,69 @@ import (
 
 type BuiltinObjMapType map[string]*BuiltinObj
 
+const BuiltinobjsModuleIndex = 255
+
+var BuiltinobjsList = []struct {
+	Name    string
+	Builtin *BuiltinObj
+}{
+	{
+		Name:    "ENV",
+		Builtin: &BuiltinObj{Obj: PopulateENVObj()},
+	},
+	{
+		Name:    "ARGV",
+		Builtin: &BuiltinObj{Obj: populateARGVObj()},
+	},
+	{
+		Name:    "STDIN",
+		Builtin: &BuiltinObj{Obj: &Stringo{Value: os.Stdin.Name()}},
+	},
+	{
+		Name:    "STDERR",
+		Builtin: &BuiltinObj{Obj: &Stringo{Value: os.Stderr.Name()}},
+	},
+	{
+		Name:    "STDOUT",
+		Builtin: &BuiltinObj{Obj: &Stringo{Value: os.Stdout.Name()}},
+	},
+	{
+		Name:    "FSTDIN",
+		Builtin: &BuiltinObj{Obj: NewGoObj(os.Stdin)},
+	},
+	{
+		Name:    "FSTDERR",
+		Builtin: &BuiltinObj{Obj: NewGoObj(os.Stderr)},
+	},
+	{
+		Name:    "FSTDOUT",
+		Builtin: &BuiltinObj{Obj: NewGoObj(os.Stderr)},
+	},
+	{
+		Name:    "VERSION",
+		Builtin: &BuiltinObj{Obj: &Stringo{Value: consts.VERSION}},
+	},
+}
+
+func getBuiltinobjByName(name string) *BuiltinObj {
+	for _, bo := range BuiltinobjsList {
+		if bo.Name == name {
+			return bo.Builtin
+		}
+	}
+	panic("Unhandled builtinobj lookup for name " + name)
+}
+
 var Builtinobjs = BuiltinObjMapType{
-	"ENV": {
-		Obj: PopulateENVObj(),
-	},
-	"ARGV": {
-		Obj: populateARGVObj(),
-	},
-	"STDIN": {
-		Obj: &Stringo{Value: os.Stdin.Name()},
-	},
-	"STDERR": {
-		Obj: &Stringo{Value: os.Stderr.Name()},
-	},
-	"STDOUT": {
-		Obj: &Stringo{Value: os.Stdout.Name()},
-	},
-	"FSTDIN": {
-		Obj: NewGoObj(os.Stdin),
-	},
-	"FSTDERR": {
-		Obj: NewGoObj(os.Stderr),
-	},
-	"FSTDOUT": {
-		Obj: NewGoObj(os.Stderr),
-	},
-	"VERSION": {
-		Obj: &Stringo{Value: consts.VERSION},
-	},
+	"ENV":     getBuiltinobjByName("ENV"),
+	"ARGV":    getBuiltinobjByName("ARGV"),
+	"STDIN":   getBuiltinobjByName("STDIN"),
+	"STDERR":  getBuiltinobjByName("STDERR"),
+	"STDOUT":  getBuiltinobjByName("STDOUT"),
+	"FSTDIN":  getBuiltinobjByName("FSTDIN"),
+	"FSTDERR": getBuiltinobjByName("FSTDERR"),
+	"FSTDOUT": getBuiltinobjByName("FSTDOUT"),
+	"VERSION": getBuiltinobjByName("VERSION"),
 }
 
 func PopulateENVObj() *Map {

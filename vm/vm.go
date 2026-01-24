@@ -368,12 +368,18 @@ func (vm *VM) Run() error {
 			builtinModuleIndex := code.ReadUint8(ins[ip+1:])
 			builtinIndex := code.ReadUint8(ins[ip+2:])
 			vm.currentFrame().ip += 2
-			definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
-			if definition.Builtin.Fun == nil {
-				// Lazy Evaluate Builtin that needs to use vm
-				definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
+			var err error
+			if builtinModuleIndex == object.BuiltinobjsModuleIndex {
+				definition := object.BuiltinobjsList[builtinIndex]
+				err = vm.push(definition.Builtin.Obj)
+			} else {
+				definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
+				if definition.Builtin.Fun == nil {
+					// Lazy Evaluate Builtin that needs to use vm
+					definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
+				}
+				err = vm.push(definition.Builtin)
 			}
-			err := vm.push(definition.Builtin)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {

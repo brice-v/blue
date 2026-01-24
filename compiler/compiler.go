@@ -89,6 +89,9 @@ func New() *Compiler {
 	for i, v := range object.AllBuiltins[0].Builtins {
 		symbolTable.DefineBuiltin(i, v.Name, 0)
 	}
+	for i, v := range object.BuiltinobjsList {
+		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex)
+	}
 	mainScope := CompilationScope{
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},

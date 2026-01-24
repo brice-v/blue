@@ -149,6 +149,9 @@ func vmFile(fpath string, noExec bool, compile bool) {
 	for i, v := range object.AllBuiltins[0].Builtins {
 		symbolTable.DefineBuiltin(i, v.Name, 0)
 	}
+	for i, v := range object.BuiltinobjsList {
+		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex)
+	}
 	c := compiler.NewWithStateAndCore(symbolTable, constants)
 	err = c.Compile(program)
 	if err != nil {
