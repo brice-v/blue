@@ -371,7 +371,11 @@ func (vm *VM) Run() error {
 			var err error
 			if builtinModuleIndex == object.BuiltinobjsModuleIndex {
 				definition := object.BuiltinobjsList[builtinIndex]
-				err = vm.push(definition.Builtin.Obj)
+				obj := definition.Builtin.Obj
+				if definition.Name == "ENV" {
+					obj.(*object.Map).IsEnvBuiltin = true
+				}
+				err = vm.push(obj)
 			} else {
 				definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
 				if definition.Builtin.Fun == nil {

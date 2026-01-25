@@ -579,7 +579,8 @@ type MapPair struct {
 
 // Map is the map object type struct
 type Map struct {
-	Pairs OrderedMap2[HashKey, MapPair] // Pairs is the map of HashKey to other MapPair objects
+	Pairs        OrderedMap2[HashKey, MapPair] // Pairs is the map of HashKey to other MapPair objects
+	IsEnvBuiltin bool
 }
 
 // Type returns the map object type

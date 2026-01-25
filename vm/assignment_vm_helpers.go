@@ -3,6 +3,7 @@ package vm
 import (
 	"blue/object"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -18,8 +19,34 @@ func (vm *VM) executeIndexSetOperator(indexable object.Object, index object.Obje
 }
 
 func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx object.Object, rightValue object.Object) error {
-	if ok := object.IsHashable(indx); !ok {
-		return vm.push(newError("unusable as a map key: %s", indx.Type()))
+	if m.IsEnvBuiltin {
+		if indx.Type() != object.STRING_OBJ {
+			return vm.push(newError("ENV requires string key"))
+		}
+		if rightValue.Type() != object.STRING_OBJ && rightValue.Type() != object.NULL_OBJ {
+			return vm.push(newError("ENV requires string value or null"))
+		}
+		k := indx.(*object.Stringo).Value
+		if rightValue == object.NULL {
+			err := os.Unsetenv(k)
+			if err != nil {
+				return vm.push(newError("ENV unset error: %s", err.Error()))
+			}
+		} else {
+			v := rightValue.(*object.Stringo).Value
+			err := os.Setenv(k, v)
+			if err != nil {
+				return vm.push(newError("ENV set error: %s", err.Error()))
+			}
+		}
+		object.BuiltinobjsList[object.EnvBuiltinobjsListIndex].Builtin.Obj = object.PopulateENVObj()
+		if rightValue == object.NULL {
+			return nil
+		}
+	} else {
+		if ok := object.IsHashable(indx); !ok {
+			return vm.push(newError("unusable as a map key: %s", indx.Type()))
+		}
 	}
 	hashed := object.HashObject(indx)
 	key := object.HashKey{Type: indx.Type(), Value: hashed}

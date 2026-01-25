@@ -10,6 +10,8 @@ type BuiltinObjMapType map[string]*BuiltinObj
 
 const BuiltinobjsModuleIndex = 255
 
+const EnvBuiltinobjsListIndex = 0
+
 var BuiltinobjsList = []struct {
 	Name    string
 	Builtin *BuiltinObj
