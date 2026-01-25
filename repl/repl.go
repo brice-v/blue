@@ -149,6 +149,9 @@ func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string
 	for i, v := range object.AllBuiltins[0].Builtins {
 		symbolTable.DefineBuiltin(i, v.Name, 0)
 	}
+	for i, v := range object.BuiltinobjsList {
+		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex)
+	}
 	consts.InfoPrinter(header + "\n")
 	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
