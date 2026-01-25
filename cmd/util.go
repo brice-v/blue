@@ -330,7 +330,11 @@ func fmtInstruction(def *code.Definition, operands []int, constants []object.Obj
 		lastPart := ""
 		switch def.Name {
 		case "OpGetBuiltin":
-			lastPart = fmt.Sprintf(" (%s)", object.AllBuiltins[operands[0]].Builtins[operands[1]].Name)
+			if operands[0] == object.BuiltinobjsModuleIndex {
+				lastPart = fmt.Sprintf(" (%s)", object.BuiltinobjsList[operands[1]].Name)
+			} else {
+				lastPart = fmt.Sprintf(" (%s)", object.AllBuiltins[operands[0]].Builtins[operands[1]].Name)
+			}
 		case "OpClosure":
 			cf := constants[operands[0]].(*object.CompiledFunction)
 			lastPart = fmt.Sprintf("\n\t%s", strings.ReplaceAll(BytecodeDebugString(cf.Instructions, constants), "\n", "\n\t"))
