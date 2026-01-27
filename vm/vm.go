@@ -468,7 +468,7 @@ func (vm *VM) printMiniStack(slots int) {
 	for i := range slots {
 		obj := vm.stack[i]
 		if obj != nil {
-			log.Printf("stack[%d] = %s (%T)\n", i, obj.Inspect(), obj)
+			log.Printf("stack[%d] = %q (%T)\n", i, obj.Inspect(), obj)
 		}
 	}
 }
