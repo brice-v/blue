@@ -427,7 +427,10 @@ func (vm *VM) Run() error {
 			if vm.catchError != "" {
 				return fmt.Errorf("%s", vm.catchError)
 			}
-		case code.OpCatchEnd, code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
+		case code.OpCatchEnd:
+			// If we were in catch, set catch error back to empty
+			vm.catchError = ""
+		case code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
 			// Do nothing
 		case code.OpExecString:
 			constIndex := code.ReadUint16(ins[ip+1:])
@@ -526,30 +529,66 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 	vm.inTry = false
 	wasInCatch := vm.inCatch && !vm.inTry
 	vm.inCatch = false
-	for i := vm.currentFrame().ip; i < len(vm.currentFrame().Instructions()); i++ {
-		op := code.Opcode(vm.currentFrame().Instructions()[i])
-		if op == code.OpCatch {
-			vm.push(&object.Stringo{Value: errorMessage})
-			vm.currentFrame().ip = i - 1
-			break
-		} else if op == code.OpFinally {
-			vm.catchError = errorMessage
-			vm.currentFrame().ip = i - 1
+	for _, f := range vm.frames {
+		if f != nil {
+			log.Printf("FRAME: %p, vm.framesIndex = %d", f, vm.framesIndex)
+		}
+	}
+	frameIndex := vm.framesIndex - 1
+	for frame := vm.frames[frameIndex]; frameIndex >= 0; frame = vm.frames[frameIndex] {
+		log.Printf("frame = %#+v", frame)
+		if newip, ok := vm.isOpCatchOrFinallyFoundInFrame(frame, errorMessage); ok {
+			vm.framesIndex = frameIndex + 1
+			vm.currentFrame().ip = newip
 			break
 		}
+		if frameIndex-1 < 0 {
+			// TODO: Error out here?
+			break
+		}
+		frameIndex--
 	}
 	if wasInCatch {
 		vm.push(newError("%s", errorMessage))
 	}
 }
 
+func (vm *VM) isOpCatchOrFinallyFoundInFrame(frame *Frame, errorMessage string) (int, bool) {
+	ins := frame.Instructions()
+	for i := frame.ip - 1; i < len(ins); i++ {
+		def, err := code.Lookup(ins[i])
+		if err != nil {
+			continue
+		}
+		_, read := code.ReadOperands(def, ins[i+1:])
+		switch def.Name {
+		case "OpCatch":
+			vm.catchError = errorMessage
+			vm.push(&object.Stringo{Value: errorMessage})
+			return i - 1, true
+		case "OpFinally":
+			vm.catchError = errorMessage
+			return i - 1, true
+		}
+		i += read
+	}
+	return -1, false
+}
+
 func (vm *VM) gotoCatchEnd() {
-	for i := vm.currentFrame().ip; i < len(vm.currentFrame().Instructions()); i++ {
-		op := code.Opcode(vm.currentFrame().Instructions()[i])
-		if op == code.OpCatchEnd {
+	frame := vm.currentFrame()
+	ins := frame.Instructions()
+	for i := frame.ip - 1; i < len(ins); i++ {
+		def, err := code.Lookup(ins[i])
+		if err != nil {
+			continue
+		}
+		_, read := code.ReadOperands(def, ins[i+1:])
+		if def.Name == "OpCatchEnd" {
 			vm.currentFrame().ip = i
 			break
 		}
+		i += read
 	}
 }
 

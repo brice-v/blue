@@ -8,6 +8,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
+	"blue/utils"
 	"blue/vm"
 	"bytes"
 	"fmt"
@@ -326,6 +327,18 @@ func TestIncorrectTypeInAdd(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenVmConfig(t *testing.T) {
+	s := `import config
+	var path_prefix = "b_test_programs/";
+	try {
+		config.load_file("#{path_prefix}test.yml")
+	} catch (e) {
+		path_prefix = ""
+	}
+	config.load_file("#{path_prefix}test.yml");`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
@@ -333,7 +346,7 @@ func vmStringWithCore(t *testing.T, s string) {
 	if err != nil {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
-	// fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+	fmt.Print(utils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	fmt.Printf("PARSED: ```%s```\n", program.String())
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()

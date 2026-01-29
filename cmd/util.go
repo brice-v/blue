@@ -10,6 +10,7 @@ import (
 	"blue/parser"
 	"blue/repl"
 	"blue/token"
+	"blue/utils"
 	"blue/vm"
 	"bytes"
 	"fmt"
@@ -166,7 +167,7 @@ func vmFile(fpath string, noExec bool, compile bool) {
 				offset = i
 			}
 		}
-		fmt.Print(BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
+		fmt.Print(utils.BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
 		os.Exit(0)
 	}
 	bc := c.Bytecode()
@@ -289,58 +290,4 @@ func getDocStringFor(name string) string {
 		return evaluator.CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr) + "\n"
 	}
 	return ""
-}
-
-func BytecodeDebugStringWithOffset(offset int, ins code.Instructions, constants []object.Object) string {
-	var out bytes.Buffer
-	i := 0
-	for i < len(ins) {
-		def, err := code.Lookup(ins[i])
-		if err != nil {
-			fmt.Fprintf(&out, "ERROR: %s\n", err)
-			continue
-		}
-		operands, read := code.ReadOperands(def, ins[i+1:])
-		fmt.Fprintf(&out, "%04d %s\n", offset+i, fmtInstruction(def, operands, constants))
-		i += 1 + read
-	}
-	return out.String()
-}
-
-func BytecodeDebugString(ins code.Instructions, constants []object.Object) string {
-	return BytecodeDebugStringWithOffset(0, ins, constants)
-}
-
-func fmtInstruction(def *code.Definition, operands []int, constants []object.Object) string {
-	operandCount := len(def.OperandWidths)
-	if len(operands) != operandCount {
-		return fmt.Sprintf("ERROR: operand len %d does not match defined %d\n",
-			len(operands), operandCount)
-	}
-	switch operandCount {
-	case 0:
-		return def.Name
-	case 1:
-		lastPart := ""
-		if def.Name == "OpConstant" {
-			lastPart = fmt.Sprintf(" (%s)", constants[operands[0]].Inspect())
-		}
-		return fmt.Sprintf("%s %d%s", def.Name, operands[0], lastPart)
-	case 2:
-		lastPart := ""
-		switch def.Name {
-		case "OpGetBuiltin":
-			if operands[0] == object.BuiltinobjsModuleIndex {
-				lastPart = fmt.Sprintf(" (%s)", object.BuiltinobjsList[operands[1]].Name)
-			} else {
-				lastPart = fmt.Sprintf(" (%s)", object.AllBuiltins[operands[0]].Builtins[operands[1]].Name)
-			}
-		case "OpClosure":
-			cf := constants[operands[0]].(*object.CompiledFunction)
-			lastPart = fmt.Sprintf("\n\t%s", strings.ReplaceAll(BytecodeDebugString(cf.Instructions, constants), "\n", "\n\t"))
-			lastPart = strings.TrimSuffix(lastPart, "\n\t")
-		}
-		return fmt.Sprintf("%s %d %d%s", def.Name, operands[0], operands[1], lastPart)
-	}
-	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
 }

@@ -1522,7 +1522,7 @@ var Builtins = NewBuiltinSliceType{
 				}
 				s := args[0].(*Stringo).Value
 				if !json.Valid([]byte(s)) {
-					return newError("`from_json` error: invalid json")
+					return newError("`from_json` error: invalid json: %q", s)
 				}
 				l := lexer.New(s, "<internal:json>")
 				p := parser.New(l)
