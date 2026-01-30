@@ -10,7 +10,7 @@ import (
 )
 
 // iType is the object type represented as an integer
-type iType int
+type iType byte
 
 const (
 	i_INTEGER_OBJ iType = iota

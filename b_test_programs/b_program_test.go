@@ -8,7 +8,6 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
-	"blue/utils"
 	"blue/vm"
 	"bytes"
 	"fmt"
@@ -339,6 +338,12 @@ func TestBrokenVmConfig(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenVmRe(t *testing.T) {
+	s := `var x = r/abc[\t|\s]/;
+	var xx = re("abc[\\t|\\s]");`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
@@ -346,7 +351,7 @@ func vmStringWithCore(t *testing.T, s string) {
 	if err != nil {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
-	fmt.Print(utils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+	// fmt.Print(utils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	fmt.Printf("PARSED: ```%s```\n", program.String())
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()

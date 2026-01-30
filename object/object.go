@@ -965,20 +965,20 @@ func (bs *BlueStruct) hashStruct() uint64 {
 // TODO: Update to be generic
 func HashObject(obj Object) uint64 {
 	hasher := newHasher()
+	if obj.Type() == BOOLEAN_OBJ {
+		if obj.(*Boolean).Value {
+			return 1
+		}
+		return 0
+	} else if obj.Type() == NULL_OBJ {
+		return 2
+	}
+	hasher.WriteByte(byte(obj.IType()))
 	switch obj.Type() {
 	case INTEGER_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Integer).Value)
 	case UINTEGER_OBJ:
 		maphash.WriteComparable(hasher, obj.(*UInteger).Value)
-	case BOOLEAN_OBJ:
-		if obj.(*Boolean).Value {
-			// Use 1 for true
-			return 1
-		}
-		return 0
-	case NULL_OBJ:
-		// Use 2 for null
-		return 2
 	case FLOAT_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Float).Value)
 	case STRING_OBJ:
