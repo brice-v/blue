@@ -315,7 +315,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
-		c.emit(code.OpPop)
+		if !c.lastInstructionIsSet() {
+			c.emit(code.OpPop)
+		}
 	case *ast.InfixExpression:
 		if node.Operator == "<" || node.Operator == "<=" {
 			err := c.Compile(node.Right)

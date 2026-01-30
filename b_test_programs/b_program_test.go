@@ -344,6 +344,15 @@ func TestBrokenVmRe(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenVmTypeCallOnComprehension(t *testing.T) {
+	s := `val t12 = type([x for (x in 1..2)]);`
+	vmStringWithCore(t, s)
+
+	s1 := `val t13 = type({x for (x in 1..10)});
+	val t14 = type({x: "" for (x in 1..10)});`
+	vmStringWithCore(t, s1)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()

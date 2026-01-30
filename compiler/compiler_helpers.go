@@ -208,7 +208,6 @@ func (c *Compiler) compileAssignmentWithIdent(ident *ast.Identifier, operator st
 	} else {
 		c.emit(code.OpSetLocal, sym.Index)
 	}
-	c.emit(code.OpNull)
 	return nil
 }
 
@@ -344,6 +343,9 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	}
 	if c.lastInstructionIs(code.OpPop) {
 		c.removeLastPop()
+	}
+	if c.lastInstructionIs(code.OpNull) {
+		c.removeLastInstruction()
 	}
 	c.emit(code.OpJump, condPos)
 	afterConsequencePos := len(c.currentInstructions())

@@ -175,7 +175,6 @@ func (vm *VM) Run() error {
 					s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
 				}
 			}
-			vm.push(object.NULL)
 		case code.OpNot:
 			err := vm.executeNotOperation()
 			if err != nil {
