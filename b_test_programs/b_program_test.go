@@ -353,6 +353,13 @@ func TestBrokenVmTypeCallOnComprehension(t *testing.T) {
 	vmStringWithCore(t, s1)
 }
 
+func TestBrokenVmBuiltinAsMapKey(t *testing.T) {
+	s := `var x = {wait: 'hello'}
+	println(x['wait'])
+	assert(x['wait'] == 'hello');`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()

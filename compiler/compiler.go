@@ -454,10 +454,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 				keyNode := node.PairsIndex[i]
 				keyNode1 := keyNode
 				// Support keys in map without requiring quotes
-				ident, ok := keyNode.(*ast.Identifier)
-				if ok {
-					_, ok1 := c.symbolTable.Resolve(c.getName(ident.Value))
-					if !ok1 {
+				if ident, ok := keyNode.(*ast.Identifier); ok {
+					if obj, ok1 := c.symbolTable.Resolve(c.getName(ident.Value)); !ok1 {
+						keyNode1 = &ast.StringLiteral{Value: ident.Value}
+					} else if obj.Scope == BuiltinScope {
 						keyNode1 = &ast.StringLiteral{Value: ident.Value}
 					}
 				}
