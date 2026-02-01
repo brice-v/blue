@@ -26,8 +26,4 @@ var resultToCompare = match HelloWorld {
     _ => { null },
 };
 
-if (resultToCompare != null) {
-    return false;
-}
-
-return true;
+assert(resultToCompare == null)

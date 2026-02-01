@@ -6,9 +6,7 @@ for ([a, b] in abca) {
     abcb[a] = b;
 }
 
-if (abca != abcb) {
-    return false;
-}
+assert(abca == abcb);
 
 var x = {some: "world", another: "thing"};
 var z = {};
@@ -18,9 +16,7 @@ for ([a, b] in x) {
     z[a] = b;
 }
 
-if (z != x) {
-    return false;
-}
+assert(z == x);
 
 var xxx = "Hello World!";
 var zzz = xxx.split("");
@@ -34,8 +30,6 @@ for ([a, b] in xxx) {
 
 println("Here!");
 println("xyz = #{xyz}, zzz = #{zzz}, (xyz != zzz)=#{xyz != zzz}");
-if (xyz != zzz) {
-    return false;
-}
+assert(xyz == zzz);
 println("HERE 2");
-return true;
+assert(true);

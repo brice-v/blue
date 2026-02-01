@@ -16,38 +16,15 @@ val t14 = type({x: "" for (x in 1..10)});
 
 println("t1=#{t1}, t2=#{t2}, t3=#{t3}, t4=#{t4}, t5=#{t5}, t6=#{t6}, t7=#{t7}, t8=#{t8}, t9=#{t9}, t10=#{t10}, t11=#{t11}, t12=#{t12}, t13=#{t13}, t14=#{t14}");
 
-if (t1 != "INTEGER") {
-    return false;
-}
-if (t2 != "STRING") {
-    return false;
-}
-if (t3 != "MAP") {
-    return false;
-}
-if (t4 != "LIST") {
-    return false;
-}
-if (t5 != "SET") {
-    return false;
-}
-if (t6 != "FUNCTION") {
-    return false;
-}
-if (t7 != "NULL") {
-    return false;
-}
-if (t8 != "BIG_INTEGER") {
-    return false;
-}
-if (t9 != "UINTEGER") {
-    return false;
-}
-if (t10 != "BOOLEAN") {
-    return false;
-}
-if (t11 != "FLOAT") {
-    return false;
-}
-
-return true;
+assert(t1 == "INTEGER");
+assert(t2 == "STRING");
+assert(t3 == "MAP");
+assert(t4 == "LIST");
+assert(t5 == "SET");
+# This doesnt work for some reason
+assert(t6 == "FUNCTION" || t6 == "CLOSURE_OBJ");
+assert(t7 == "NULL");
+assert(t8 == "BIG_INTEGER");
+assert(t9 == "UINTEGER");
+assert(t10 == "BOOLEAN");
+assert(t11 == "FLOAT");

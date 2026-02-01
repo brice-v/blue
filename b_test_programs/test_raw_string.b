@@ -6,5 +6,4 @@ normally reserved #{} word
 """
 
 print(mystr)
-
-return true;
+assert(true);

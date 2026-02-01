@@ -554,14 +554,8 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 	vm.inTry = false
 	wasInCatch := vm.inCatch && !vm.inTry
 	vm.inCatch = false
-	for _, f := range vm.frames {
-		if f != nil {
-			log.Printf("FRAME: %p, vm.framesIndex = %d", f, vm.framesIndex)
-		}
-	}
 	frameIndex := vm.framesIndex - 1
 	for frame := vm.frames[frameIndex]; frameIndex >= 0; frame = vm.frames[frameIndex] {
-		log.Printf("frame = %#+v", frame)
 		if newip, ok := vm.isOpCatchOrFinallyFoundInFrame(frame, errorMessage); ok {
 			vm.framesIndex = frameIndex + 1
 			vm.currentFrame().ip = newip

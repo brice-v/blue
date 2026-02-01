@@ -4,4 +4,4 @@ fun hello(greeting, name) {
 
 println(hello("Hello there", "Brice"))
 
-return true;
+assert(true);

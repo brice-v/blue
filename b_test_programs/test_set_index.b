@@ -10,25 +10,15 @@ val z3 = z[z.len()-1]
 #println("len(x)=#{len(x)}, z.len()=#{z.len()}");
 #println("x=#{x}, z=#{z}, x1=#{x1}, x2=#{x2}, z2=#{z2}, z3=#{z3}");
 
-if (x1 != 1) {
-    return false;
-}
+assert(x1 == 1);
 println("HERE1");
-if (x2 != 10) {
-    return false;
-}
+assert(x2 == 10);
 println("HERE2");
-if (z2 != 1) {
-    return false;
-}
+assert(z2 == 1)
 println("HERE3");
-if (z3 != 5) {
-    return false;
-}
+assert(z3 == 5)
 println("HERE4");
-if ({y for (y in 1..10)}.0 != 1) {
-    return false;
-}
+assert({y for (y in 1..10)}.0 == 1)
 println("HERE5");
 
-return true;
+assert(true);

@@ -17,4 +17,4 @@ try {
     println("Catch1 #{e}");
 }
 
-return true;
+assert(true);

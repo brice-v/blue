@@ -12,4 +12,4 @@ if (map(abc, addOne) != expected_abc) {
 }
 println(map([1,2,3,4,5], addOne));
 
-return true;
+assert(true);

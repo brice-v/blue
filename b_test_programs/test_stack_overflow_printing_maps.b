@@ -8,4 +8,4 @@ x.a['b'] = new(x);
 # this should be the equivalent of saying {'a': {'b': {'a': {}}}}
 
 println(x);
-return true;
+assert(true);

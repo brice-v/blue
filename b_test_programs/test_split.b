@@ -2,55 +2,16 @@ val hw = "Hello World";
 val h = "Hello";
 val w = "World";
 
-if ("Hello World".split(" ") != ["Hello", "World"]) {
-    return false;
-}
-
-if ("Hello World".split(" ") != [h, w]) {
-    return false;
-}
-
-if (hw.split(" ") != ["Hello", "World"]) {
-    return false;
-}
-
-if (hw.split(" ") != [h, w]) {
-    return false;
-}
-
-if (hw.split() != [h, w]) {
-    return false;
-}
-
-if (split("Hello World") != ["Hello", "World"]) {
-    return false;
-}
-
-if (split("Hello World", " ") != ["Hello", "World"]) {
-    return false;
-}
-
-if (split(hw, " ") != ["Hello", "World"]) {
-    return false;
-}
-
-if (split(hw) != [h, "World"]) {
-    return false;
-}
-
-if (split("Hello World") != [h, w]) {
-    return false;
-}
-
-if (split("Hello World", " ") != ["Hello", w]) {
-    return false;
-}
-
-if (split(hw, " ") != [h, "World"]) {
-    return false;
-}
-
-if (split(hw) != [h, w]) {
-    return false;
-}
-return true;
+assert("Hello World".split(" ") == ["Hello", "World"]);
+assert("Hello World".split(" ") == [h, w]);
+assert(hw.split(" ") == ["Hello", "World"]);
+assert(hw.split(" ") == [h, w]);
+assert(hw.split() == [h, w]);
+assert(split("Hello World") == ["Hello", "World"]);
+assert(split("Hello World", " ") == ["Hello", "World"]);
+assert(split(hw, " ") == ["Hello", "World"]);
+assert(split(hw) == [h, "World"]);
+assert(split("Hello World") == [h, w]);
+assert(split("Hello World", " ") == ["Hello", w]);
+assert(split(hw, " ") == [h, "World"]);
+assert(split(hw) == [h, w]);

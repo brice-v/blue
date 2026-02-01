@@ -17,9 +17,7 @@ fun getStudentName(studentID) {
 
 var nextStudent = getStudentName(73);
 
-if (nextStudent != "Suzy") {
-    return false;
-}
+assert(nextStudent == "Suzy");
 
 println(nextStudent);
 # This is failing - but also the tests are still passing, need to figure out what exactly is happening
@@ -27,4 +25,4 @@ println(nextStudent);
 println(nextStudent == "Suzy");
 println(nextStudent != "Suzy");
 
-return true;
+assert(true);
