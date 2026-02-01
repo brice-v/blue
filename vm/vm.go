@@ -221,6 +221,8 @@ func (vm *VM) Run() error {
 		case code.OpJumpNotTruthy:
 			pos := int(code.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
+			log.Printf("vm.sp = %d, pos = %d", vm.sp, pos)
+			vm.printMiniStack(3)
 			condition := vm.pop()
 			if !isTruthy(condition) {
 				vm.currentFrame().ip = pos - 1

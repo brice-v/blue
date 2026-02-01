@@ -8,6 +8,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/repl"
+	"blue/utils"
 	"blue/vm"
 	"bytes"
 	"fmt"
@@ -370,6 +371,17 @@ func TestBrokenVmSlices(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenVmIfShortcut(t *testing.T) {
+	s := `'AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+	var x = null;
+	var y = fun() { assert(false); };
+	if (x == null || y()) {
+		println("SHOULD PRINT")
+		assert(true);
+	}`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
@@ -377,7 +389,7 @@ func vmStringWithCore(t *testing.T, s string) {
 	if err != nil {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
-	// fmt.Print(utils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+	fmt.Print(utils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	fmt.Printf("PARSED: ```%s```\n", program.String())
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()
