@@ -112,6 +112,7 @@ const (
 	OpEval
 	OpDefaultArgs
 	OpCoreCompiled
+	OpSlice
 )
 
 type Definition struct {
@@ -189,6 +190,7 @@ var definitions = map[Opcode]*Definition{
 	OpEval:               {"OpEval", []int{}},
 	OpDefaultArgs:        {"OpDefaultArgs", []int{2}},
 	OpCoreCompiled:       {"OpCoreCompiled", []int{}},
+	OpSlice:              {"OpSlice", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

@@ -427,3 +427,31 @@ func blueObjectToGoObject(blueObject object.Object) (any, error) {
 		return nil, fmt.Errorf("blueObjectToGoObject: TODO: Type currently unsupported: %s (%T)", blueObject.Type(), blueObject)
 	}
 }
+
+func (vm *VM) buildSliceFrom(maybeSliceable object.Object, sliceIndexes object.Object) object.Object {
+	if maybeSliceable.Type() != object.LIST_OBJ && maybeSliceable.Type() != object.STRING_OBJ && maybeSliceable.Type() != object.SET_OBJ {
+		return newError("slice cannot be created with type: %s", maybeSliceable.Type())
+	}
+	sliceIndexesList := sliceIndexes.(*object.List).Elements
+	minSliceIndex := sliceIndexesList[0].(*object.Integer).Value
+	maxSliceIndex := sliceIndexesList[len(sliceIndexesList)-1].(*object.Integer).Value + 1
+	if maybeSliceable.Type() == object.LIST_OBJ {
+		result := make([]object.Object, len(sliceIndexesList))
+		copy(result[:], maybeSliceable.(*object.List).Elements[minSliceIndex:maxSliceIndex])
+		return &object.List{Elements: result}
+	} else if maybeSliceable.Type() == object.SET_OBJ {
+		result := object.NewSetElementsWithSize(len(sliceIndexesList))
+		s := maybeSliceable.(*object.Set)
+		for _, o := range sliceIndexesList {
+			index := o.(*object.Integer).Value
+			sp := s.Elements.Keys[index]
+			obj, _ := s.Elements.Get(sp)
+			result.Set(sp, obj)
+		}
+		return &object.Set{Elements: result}
+	} else {
+		sliceable := []rune(maybeSliceable.(*object.Stringo).Value)
+		result := sliceable[minSliceIndex:maxSliceIndex]
+		return &object.Stringo{Value: string(result)}
+	}
+}

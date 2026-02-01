@@ -494,6 +494,11 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 }
 
 func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
+	if infixExpr, isInfix := node.Index.(*ast.InfixExpression); isInfix {
+		if infixExpr.Operator == ".." || infixExpr.Operator == "..<" {
+			return c.compileSliceExpression(node)
+		}
+	}
 	leftIdent, leftIsIdent := node.Left.(*ast.Identifier)
 	rightStr, rightIsStr := node.Index.(*ast.StringLiteral)
 	if leftIsIdent && rightIsStr {
@@ -537,6 +542,19 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 		c.loadSymbol(*symbolToIndex)
 	}
 	c.emit(code.OpIndex)
+	return nil
+}
+
+func (c *Compiler) compileSliceExpression(node *ast.IndexExpression) error {
+	err := c.Compile(node.Left)
+	if err != nil {
+		return err
+	}
+	err = c.Compile(node.Index)
+	if err != nil {
+		return err
+	}
+	c.emit(code.OpSlice)
 	return nil
 }
 

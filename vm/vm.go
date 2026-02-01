@@ -461,6 +461,16 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+		case code.OpSlice:
+			sliceIndexes := vm.pop()
+			left := vm.pop()
+			err := vm.push(vm.buildSliceFrom(left, sliceIndexes))
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
