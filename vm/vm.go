@@ -225,6 +225,22 @@ func (vm *VM) Run() error {
 			if !isTruthy(condition) {
 				vm.currentFrame().ip = pos - 1
 			}
+		case code.OpJumpNotTruthyAndPushTrue:
+			pos := int(code.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			condition := vm.pop()
+			if !isTruthy(condition) {
+				vm.currentFrame().ip = pos - 1
+				vm.push(object.TRUE)
+			}
+		case code.OpJumpNotTruthyAndPushFalse:
+			pos := int(code.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			condition := vm.pop()
+			if !isTruthy(condition) {
+				vm.currentFrame().ip = pos - 1
+				vm.push(object.FALSE)
+			}
 		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2

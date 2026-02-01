@@ -113,6 +113,8 @@ const (
 	OpDefaultArgs
 	OpCoreCompiled
 	OpSlice
+	OpJumpNotTruthyAndPushTrue
+	OpJumpNotTruthyAndPushFalse
 )
 
 type Definition struct {
@@ -191,6 +193,9 @@ var definitions = map[Opcode]*Definition{
 	OpDefaultArgs:        {"OpDefaultArgs", []int{2}},
 	OpCoreCompiled:       {"OpCoreCompiled", []int{}},
 	OpSlice:              {"OpSlice", []int{}},
+
+	OpJumpNotTruthyAndPushTrue:  {"OpJumpNotTruthyAndPushTrue", []int{2}},
+	OpJumpNotTruthyAndPushFalse: {"OpJumpNotTruthyAndPushFalse", []int{2}},
 }
 
 func Lookup(op byte) (*Definition, error) {

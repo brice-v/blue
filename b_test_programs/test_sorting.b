@@ -104,6 +104,3 @@ println("obj_float_key_sorted = #{obj_float_key_sorted}")
 assert(obj_float_key_sorted == [{19.5: "Rajeev"},{20.8: "John"},{57.4: "Amanda"},{176.8: "Monica"}]);
 assert(obj_float_key.sorted(key=|e| => e.keys()[0]) == null);
 assert(obj_float_key == obj_float_key_sorted);
-
-
-assert(true);

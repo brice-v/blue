@@ -319,7 +319,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpPop)
 		}
 	case *ast.InfixExpression:
-		if node.Operator == "<" || node.Operator == "<=" {
+		switch node.Operator {
+		case "<", "<=":
 			err := c.Compile(node.Right)
 			if err != nil {
 				return c.addNodeToErrorTrace(err, node.Token)
@@ -329,6 +330,35 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
 			c.compileInfixExpression(node.Operator)
+			return nil
+		case "or", "||":
+			// Handle Shortcut 'or' compiling
+			err := c.Compile(node.Left)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+			c.emit(code.OpNot)
+			jumpNotTruthyPos := c.emit(code.OpJumpNotTruthyAndPushTrue, 9999)
+			err = c.Compile(node.Right)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+			c.emit(code.OpOr)
+			c.changeOperand(jumpNotTruthyPos, len(c.currentInstructions()))
+			return nil
+		case "and", "&&":
+			// Handle Shortcut 'and' compiling
+			err := c.Compile(node.Left)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+			jumpNotTruthyPos := c.emit(code.OpJumpNotTruthyAndPushFalse, 9999)
+			err = c.Compile(node.Right)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+			c.emit(code.OpAnd)
+			c.changeOperand(jumpNotTruthyPos, len(c.currentInstructions()))
 			return nil
 		}
 		err := c.Compile(node.Left)
