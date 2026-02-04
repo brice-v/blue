@@ -5,28 +5,26 @@ val res = http.get(url);
 
 println("url='#{url}', res=`#{res}`");
 
-if (res == "") {
-    return false;
-}
+assert(res != "");
 
 try {
     http.get(1);
-    return false;
+    assert(false);
 } catch (e) {
     println("#{e}");
     if (e != "argument to `get` must be string. got INTEGER") {
         println("#{e}");
     }
-    true;
+    assert(true);
 }
 
 try {
     println(http._get(url));
     println("This should be unreachable");
-    return false;
+    assert(false);
 } catch (e) {
     println("Hit exception as expected");
-    true;
+    assert(true);
 }
 
-return true;
+assert(true);

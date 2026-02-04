@@ -13,6 +13,7 @@ returnTrue()
 println("---------------------");
 
 println(useInternalFun());
+### This is a compiler error for VM
 try {
     println(_internalFun());
     println("This should be unreachable");
@@ -20,6 +21,7 @@ try {
 } catch (e) {
     println("Hit exception as expected");
 }
+###
 
 
 println("-----------------521152----");

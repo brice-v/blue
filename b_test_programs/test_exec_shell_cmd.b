@@ -12,4 +12,4 @@ try {
     println(output);
 }
 
-return true;
+assert(true);

@@ -28,3 +28,5 @@ assert(KV.get(topic2, 10) == null);
 for (x in 11..20) {
     assert(KV.get(topic2, x) == x + 2)
 }
+
+assert(true);

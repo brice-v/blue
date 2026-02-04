@@ -385,6 +385,25 @@ func TestBrokenVmIfShortcut(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+// TODO: Fix
+func testBrokenVmDefaultArgs(t *testing.T) {
+	s := `fun hello(arg1=10, arg2="", arg3=true) {
+		val rv = "arg1 = #{arg1}, arg2 = #{arg2}, arg3 = #{arg3}";
+		return rv;
+	}
+	val result = hello(arg1=100, "something");
+	val expected = "arg1 = 100, arg2 = something, arg3 = true";
+	assert(result == expected);`
+	vmStringWithCore(t, s)
+}
+
+// TODO: Fix
+func testBrokenVmOpOrWithBuiltin(t *testing.T) {
+	s := `val i = 0; val lines = [];
+	val x = i > len(lines) or (i+1);`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
