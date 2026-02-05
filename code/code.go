@@ -115,6 +115,7 @@ const (
 	OpSlice
 	OpJumpNotTruthyAndPushTrue
 	OpJumpNotTruthyAndPushFalse
+	OpNotIfNotNull
 )
 
 type Definition struct {
@@ -196,6 +197,8 @@ var definitions = map[Opcode]*Definition{
 
 	OpJumpNotTruthyAndPushTrue:  {"OpJumpNotTruthyAndPushTrue", []int{2}},
 	OpJumpNotTruthyAndPushFalse: {"OpJumpNotTruthyAndPushFalse", []int{2}},
+
+	OpNotIfNotNull: {"OpNotIfNotNull", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

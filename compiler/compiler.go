@@ -337,7 +337,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if err != nil {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
-			c.emit(code.OpNot)
+			c.emit(code.OpNotIfNotNull)
 			jumpNotTruthyPos := c.emit(code.OpJumpNotTruthyAndPushTrue, 9999)
 			err = c.Compile(node.Right)
 			if err != nil {

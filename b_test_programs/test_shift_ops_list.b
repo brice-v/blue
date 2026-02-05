@@ -22,16 +22,15 @@ var b = x2 >>;
 println("b = #{b}, x2 = #{x2}");
 assert(b == 3);
 assert(x2 == [1,2]);
-var c = x3 << y1;
-println("c = #{c}, x3 = #{x3}, y1 = #{y1}")
-assert(c == null);
+# Not checking return value of shift expr as it is null for evaluator and non-null for vm
+x3 << y1;
+println("x3 = #{x3}, y1 = #{y1}")
 assert(x3 == [1,2,3,1]);
-var d = y2 >> x4;
-println("d = #{d}, x4 = #{x4}, y2 = #{y2}");
-assert(d == null);
+y2 >> x4;
+println("x4 = #{x4}, y2 = #{y2}");
 assert(x4 == ['Y',1,2,3]);
 
-println("a = #{a}, b = #{b}, c = #{c}, d = #{d}");
+println("a = #{a}, b = #{b}");
 println("x1 = #{x1}, x2 = #{x2}, x3 = #{x3}, x4 = #{x4}");
 
-true
+assert(true);

@@ -183,6 +183,14 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+		case code.OpNotIfNotNull:
+			err := vm.executeNotIfNotNullOperation()
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpNeg:
 			err := vm.executeNegOperation()
 			if err != nil {
@@ -228,10 +236,15 @@ func (vm *VM) Run() error {
 		case code.OpJumpNotTruthyAndPushTrue:
 			pos := int(code.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
-			condition := vm.pop()
-			if !isTruthy(condition) {
-				vm.currentFrame().ip = pos - 1
-				vm.push(object.TRUE)
+			// Pass null through (as this would mean we should re-push the item on the stack)
+			if vm.peek() != object.NULL {
+				condition := vm.pop()
+				if !isTruthy(condition) {
+					vm.currentFrame().ip = pos - 1
+					vm.push(object.TRUE)
+				} else {
+					vm.push(condition)
+				}
 			}
 		case code.OpJumpNotTruthyAndPushFalse:
 			pos := int(code.ReadUint16(ins[ip+1:]))
@@ -240,6 +253,8 @@ func (vm *VM) Run() error {
 			if !isTruthy(condition) {
 				vm.currentFrame().ip = pos - 1
 				vm.push(object.FALSE)
+			} else {
+				vm.push(condition)
 			}
 		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
@@ -635,16 +650,13 @@ func (vm *VM) executeNotOperation() error {
 	} else {
 		return vm.push(object.TRUE)
 	}
-	// switch operand {
-	// case object.TRUE:
-	// 	return vm.push(object.FALSE)
-	// case object.FALSE:
-	// 	return vm.push(object.TRUE)
-	// case object.NULL:
-	// 	return vm.push(object.TRUE)
-	// default:
-	// 	return vm.push(object.FALSE)
-	// }
+}
+
+func (vm *VM) executeNotIfNotNullOperation() error {
+	if vm.peek() == object.NULL {
+		return nil
+	}
+	return vm.executeNotOperation()
 }
 
 func (vm *VM) executeNegOperation() error {
@@ -904,6 +916,7 @@ func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (i
 		if da, ok := lastArg.(*object.DefaultArgs); ok {
 			defaultArgs = da.Value
 			realNumArg--
+			currentArgsOnStack = currentArgsOnStack[:len(currentArgsOnStack)-1]
 		}
 	}
 	currentArgOnStackIndex := 0
