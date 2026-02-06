@@ -48,7 +48,7 @@ speed?!
 - bundler will only work with ui deps installed (on linux/mac)
   - does not work cross-platform yet for building (gh actions handles it)
   - This will soon work with static builds (no ui or gg)
-- set `DISABLE_HTTP_SERVER_DEBUG` to `true` to disable http server route/welcome
+- set `BLUE_DISABLE_HTTP_SERVER_DEBUG` to `true` to disable http server route/welcome
   message printing
   - it will also prevent the stack trace from returning in http request failures
 - set `BLUE_INSTALL_PATH` to the directory where `blue` is installed to
@@ -167,14 +167,14 @@ an evaluator repl. (If given a file, the file will be
 evaluated)
 
 Environment Variables:
-DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
-                            http route path printing and message
-BLUE_INSTALL_PATH           set to the path where the blue src is
-                            installed. ie. ~/.blue/src
-NO_COLOR or BLUE_NO_COLOR   set to true (or any non empty string)
-                            to disable colored printing
-PATH                        add blue to the path variable to access
-                            it anywhere. ie. ~/.blue/bin
-                            could be added to path with the blue exe
-                            inside of it
+BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
+                                 http route path printing and message
+BLUE_INSTALL_PATH                set to the path where the blue src is
+                                 installed. ie. ~/.blue/src
+NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string)
+                                 to disable colored printing
+PATH                             add blue to the path variable to access
+                                 it anywhere. ie. ~/.blue/bin
+                                 could be added to path with the blue exe
+                                 inside of it
 ```
