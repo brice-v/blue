@@ -150,7 +150,7 @@ var HttpBuiltins = NewBuiltinSliceType{
 			}
 			network := args[0].(*Stringo).Value
 			var disableStartupDebug bool
-			disableStartupMessageStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
+			disableStartupMessageStr := os.Getenv(consts.BLUE_DISABLE_HTTP_SERVER_DEBUG)
 			disableStartupDebug, err := strconv.ParseBool(disableStartupMessageStr)
 			if err != nil {
 				disableStartupDebug = false

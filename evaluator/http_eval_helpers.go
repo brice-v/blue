@@ -23,7 +23,7 @@ func getErrorTokenTraceAsJson(e *Evaluator) any {
 
 func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) any {
 	var disableHttpServerDebug bool
-	disableHttpServerDebugStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
+	disableHttpServerDebugStr := os.Getenv(consts.BLUE_DISABLE_HTTP_SERVER_DEBUG)
 	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
 	if err != nil {
 		disableHttpServerDebug = false
@@ -514,7 +514,7 @@ func getAndSetHttpParams(fn *object.Function, c *fiber.Ctx) ([]object.Object, []
 
 func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 	var disableHttpServerDebug bool
-	disableHttpServerDebugStr := os.Getenv(consts.DISABLE_HTTP_SERVER_DEBUG)
+	disableHttpServerDebugStr := os.Getenv(consts.BLUE_DISABLE_HTTP_SERVER_DEBUG)
 	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
 	if err != nil {
 		disableHttpServerDebug = false
