@@ -85,8 +85,8 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 	if args[1].Type() != object.BOOLEAN_OBJ {
 		return newPositionalTypeError("sort", 2, object.BOOLEAN_OBJ, args[1].Type())
 	}
-	if args[2].Type() != object.NULL_OBJ && args[2].Type() != object.CLOSURE_OBJ && args[2].Type() != object.LIST_OBJ {
-		return newPositionalTypeError("sort", 3, object.CLOSURE_OBJ+" or null", args[2].Type())
+	if args[2].Type() != object.NULL_OBJ && args[2].Type() != object.CLOSURE && args[2].Type() != object.LIST_OBJ {
+		return newPositionalTypeError("sort", 3, object.CLOSURE+" or null", args[2].Type())
 	}
 	l := args[0].(*object.List)
 	shouldReverse := args[1].(*object.Boolean).Value
@@ -152,7 +152,7 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 		ll := args[2].(*object.List)
 		funs = make([]*object.Closure, len(ll.Elements))
 		for i, e := range ll.Elements {
-			if e.Type() != object.CLOSURE_OBJ {
+			if e.Type() != object.CLOSURE {
 				return newError("`sort` key error: all elemments must be function")
 			}
 			fun := e.(*object.Closure)
@@ -351,12 +351,12 @@ func createAllBuiltin(vm *VM) *object.Builtin {
 				if args[0].Type() != object.LIST_OBJ {
 					return newPositionalTypeError("all", 1, object.LIST_OBJ, args[0].Type())
 				}
-				if args[1].Type() != object.CLOSURE_OBJ && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("all", 2, object.CLOSURE_OBJ+" or BUILTIN", args[1].Type())
+				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+					return newPositionalTypeError("all", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
 				}
 				l := args[0].(*object.List)
 				allTrue := true
-				if args[1].Type() == object.CLOSURE_OBJ {
+				if args[1].Type() == object.CLOSURE {
 					fn := args[1].(*object.Closure)
 					if len(fn.Fun.Parameters) != 1 {
 						return newError("`all` error: function must have 1 parameter")
@@ -411,12 +411,12 @@ func createAnyBuiltin(vm *VM) *object.Builtin {
 				if args[0].Type() != object.LIST_OBJ {
 					return newPositionalTypeError("any", 1, object.LIST_OBJ, args[0].Type())
 				}
-				if args[1].Type() != object.CLOSURE_OBJ && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("any", 2, object.CLOSURE_OBJ+" or BUILTIN", args[1].Type())
+				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+					return newPositionalTypeError("any", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
 				}
 				l := args[0].(*object.List)
 				anyTrue := false
-				if args[1].Type() == object.CLOSURE_OBJ {
+				if args[1].Type() == object.CLOSURE {
 					fn := args[1].(*object.Closure)
 					if len(fn.Fun.Parameters) != 1 {
 						return newError("`any` error: function must have 1 parameter")
@@ -471,8 +471,8 @@ func createMapBuiltin(vm *VM) *object.Builtin {
 				if args[0].Type() != object.LIST_OBJ {
 					return newPositionalTypeError("map", 1, object.LIST_OBJ, args[0].Type())
 				}
-				if args[1].Type() != object.CLOSURE_OBJ && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("map", 2, object.CLOSURE_OBJ+" or BUILTIN", args[1].Type())
+				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+					return newPositionalTypeError("map", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
 				}
 				isBuiltin := args[1].Type() == object.BUILTIN_OBJ
 				l := args[0].(*object.List)
@@ -517,8 +517,8 @@ func createFilterBuiltin(vm *VM) *object.Builtin {
 				if args[0].Type() != object.LIST_OBJ {
 					return newPositionalTypeError("filter", 1, object.LIST_OBJ, args[0].Type())
 				}
-				if args[1].Type() != object.CLOSURE_OBJ && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("filter", 2, object.CLOSURE_OBJ+" or BUILTIN", args[1].Type())
+				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+					return newPositionalTypeError("filter", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
 				}
 				isBuiltin := args[1].Type() == object.BUILTIN_OBJ
 				l := args[0].(*object.List)

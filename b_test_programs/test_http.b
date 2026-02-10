@@ -1,4 +1,3 @@
-return true; # TODO: Replace with another URL or own server, maybe https://jsonplaceholder.typicode.com/guide/
 import http
 
 val URL = "https://jsonendpoint.com/blue/blue-http-test";

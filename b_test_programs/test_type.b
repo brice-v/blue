@@ -21,8 +21,7 @@ assert(t2 == "STRING");
 assert(t3 == "MAP");
 assert(t4 == "LIST");
 assert(t5 == "SET");
-# This doesnt work for some reason
-assert(t6 == "FUNCTION" || t6 == "CLOSURE_OBJ");
+assert(t6 == "FUNCTION" || t6 == "CLOSURE");
 assert(t7 == "NULL");
 assert(t8 == "BIG_INTEGER");
 assert(t9 == "UINTEGER");

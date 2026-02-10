@@ -75,8 +75,8 @@ const (
 
 	// COMPILED_FUNCTION_OBJ is the compiled function object for the VM
 	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
-	// CLOSURE_OBJ is the closure function object for the VM
-	CLOSURE_OBJ = "CLOSURE_OBJ"
+	// CLOSURE is the closure function object for the VM
+	CLOSURE = "CLOSURE"
 	// EXEC_STRING is the string object type string
 	EXEC_STRING_OBJ = "EXEC_STRING"
 	// IGNORE_OBJ is the IGNORE object type string
@@ -868,7 +868,7 @@ type Closure struct {
 }
 
 // Type returns the function objects type
-func (cf *Closure) Type() Type { return CLOSURE_OBJ }
+func (cf *Closure) Type() Type { return CLOSURE }
 
 // Inspect returns the string representation of the function
 func (cf *Closure) Inspect() string {
@@ -989,7 +989,7 @@ func HashObject(obj Object) uint64 {
 		// Note: This is a naive way of determining if two functions are identical
 		// come back and fix this or make it smarter if possible
 		hasher.WriteString(obj.(*Function).Inspect())
-	case CLOSURE_OBJ:
+	case CLOSURE:
 		hasher.Write(obj.(*Closure).Fun.Instructions)
 	case ERROR_OBJ:
 		// Although i dont think this should happen, lets give it a hash anyways

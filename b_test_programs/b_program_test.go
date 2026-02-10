@@ -44,6 +44,9 @@ func TestAllProgramsInDirectory(t *testing.T) {
 	}
 
 	for _, f := range files {
+		if f.Name() == "test_http.b" {
+			continue
+		}
 		executeBlueTestFile(f, t)
 		// TODO: See if we can make our own execution environment for blue
 		// that way the gos (global object store) can just be instantiated

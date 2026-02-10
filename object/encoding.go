@@ -208,6 +208,8 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			return nil, err
 		}
 		return &StringFunction{Value: x}, nil
+	case i_CLOSURE_OBJ:
+		return nil, fmt.Errorf("TODO: Closure unsupported for unmarhaling currently")
 	case i_GO_OBJ:
 		var ows []ObjectWrapper
 		diag("GOOBJ", data)
@@ -309,6 +311,8 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 	case i_FUNCTION_OBJ:
 		s := obj.(*Function).Inspect()
 		data, err = cbor.Marshal(s)
+	case i_CLOSURE_OBJ:
+		err = fmt.Errorf("TODO: Closure unsupported for marshaling currently")
 	case i_GO_OBJ:
 		// Note: this is unused due to the complexity of handling serializing all go object types
 		// It may be re-enabled later for a subset of supported go object types
@@ -504,9 +508,7 @@ func (x *CompiledFunction) IType() iType {
 }
 
 func (x *Closure) Encode() ([]byte, error) {
-	// return marshalObjectWrapper(x)
-	// TODO: Can probably support this
-	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+	return marshalObjectWrapper(x)
 }
 
 func (x *Closure) IType() iType {

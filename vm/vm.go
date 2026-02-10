@@ -309,7 +309,7 @@ func (vm *VM) Run() error {
 		case code.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
-			if (index.Type() == object.CLOSURE_OBJ || index.Type() == object.BUILTIN_OBJ) && vm.incrementOpCallArgCount() {
+			if (index.Type() == object.CLOSURE || index.Type() == object.BUILTIN_OBJ) && vm.incrementOpCallArgCount() {
 				vm.push(index)
 				vm.push(left)
 			} else {

@@ -11,6 +11,7 @@ val Type = {
     MAP: 'MAP',
     LIST: 'LIST',
     FUN: 'FUNCTION',
+    CLOSURE: 'CLOSURE',
     BUILTIN: 'BUILTIN',
     MODULE: 'MODULE_OBJ',
     GO_OBJ: 'GO_OBJ',
