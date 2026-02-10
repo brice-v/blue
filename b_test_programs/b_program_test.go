@@ -410,6 +410,22 @@ func TestBrokenVmNullCoalescing(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenVmOpAssign(t *testing.T) {
+	s := `val a = "A";
+	val b = "B";
+	var c = "";
+	'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+	c += a;
+	c += b;
+	assert(c == "AB");
+	
+	var x = {y: 'A', z: 'B', cc: ''};
+	x.cc += x.y;
+	x.cc += x.z;
+	assert(x.cc == "AB");`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()

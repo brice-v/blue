@@ -185,20 +185,25 @@ func (c *Compiler) compileAssignmentWithIdent(ident *ast.Identifier, operator st
 	if sym.Immutable {
 		return fmt.Errorf("'%s' is immutable", ident.Value)
 	}
-	// Always compile right hand side value first
-	err := c.Compile(v)
-	if err != nil {
-		return err
-	}
 	// If its not assignment then compile as if this is an infix expression
 	if operator != "=" {
 		// Compile "get" for the variable being assigned to
 		c.loadSymbol(sym)
+		// Always compile right hand side value first
+		err := c.Compile(v)
+		if err != nil {
+			return err
+		}
 		op, ok := assignmentToInfixOperator[operator]
 		if !ok {
 			return fmt.Errorf("invalid assignment operator: %s", operator)
 		}
-		err := c.compileInfixExpression(op)
+		err = c.compileInfixExpression(op)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := c.Compile(v)
 		if err != nil {
 			return err
 		}
@@ -241,12 +246,12 @@ func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operat
 	if sym.Immutable {
 		return fmt.Errorf("'%s' is immutable", rootIdent.Value)
 	}
-	err := c.Compile(v)
-	if err != nil {
-		return err
-	}
 	if operator != "=" {
-		err = c.Compile(index)
+		err := c.Compile(index)
+		if err != nil {
+			return err
+		}
+		err = c.Compile(v)
 		if err != nil {
 			return err
 		}
@@ -255,8 +260,13 @@ func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operat
 			return fmt.Errorf("invalid assignment operator: %s", operator)
 		}
 		c.compileInfixExpression(op)
+	} else {
+		err := c.Compile(v)
+		if err != nil {
+			return err
+		}
 	}
-	err = c.Compile(index)
+	err := c.Compile(index)
 	if err != nil {
 		return err
 	}
