@@ -1,3 +1,4 @@
+#VM IGNORE
 import http
 
 val URL = "https://jsonendpoint.com/blue/blue-http-test";

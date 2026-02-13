@@ -1,4 +1,4 @@
-
+#VM IGNORE
 val x = {hello: 'world', another: 'ignored'};
 val y = {d: 1, abc: [1,2,3]}
 

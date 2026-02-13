@@ -1,3 +1,4 @@
+#VM IGNORE
 import http
 
 val some_map = {

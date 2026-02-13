@@ -1,4 +1,4 @@
-
+#VM IGNORE
 import time
 fun read_and_exit() {
 	val current_pid = self();

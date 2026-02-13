@@ -47,30 +47,30 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		return fmt.Errorf("failed to compile std module: '%s' is not in std lib map", name)
 	}
 	fb := _std_mods[name]
-	if fb.ParsedProgram == nil {
-		l := lexer.New(fb.File, "<std/"+name+".b>")
-		p := parser.New(l)
-		fb.ParsedProgram = p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			for _, msg := range p.Errors() {
-				splitMsg := strings.Split(msg, "\n")
-				firstPart := fmt.Sprintf("%s%s\n", consts.PARSER_ERROR_PREFIX, splitMsg[0])
-				consts.ErrorPrinter(firstPart)
-				for i, s := range splitMsg {
-					if i == 0 {
-						continue
-					}
-					fmt.Println(s)
+	// if fb.ParsedProgram == nil {
+	l := lexer.New(fb.File, "<std/"+name+".b>")
+	p := parser.New(l)
+	fb.ParsedProgram = p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		for _, msg := range p.Errors() {
+			splitMsg := strings.Split(msg, "\n")
+			firstPart := fmt.Sprintf("%s%s\n", consts.PARSER_ERROR_PREFIX, splitMsg[0])
+			consts.ErrorPrinter(firstPart)
+			for i, s := range splitMsg {
+				if i == 0 {
+					continue
 				}
+				fmt.Println(s)
 			}
-			return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 		}
+		return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 	}
-	if fb.Builtins == nil {
-		i, b := object.GetIndexAndBuiltinsOf(name)
-		fb.Index = i
-		fb.Builtins = b
-	}
+	// }
+	// if fb.Builtins == nil {
+	i, b := object.GetIndexAndBuiltinsOf(name)
+	fb.Index = i
+	fb.Builtins = b
+	// }
 	for i, stdBuiltin := range fb.Builtins {
 		c.symbolTable.DefineBuiltin(i, stdBuiltin.Name, fb.Index)
 	}

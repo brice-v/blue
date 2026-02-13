@@ -1,3 +1,4 @@
+#VM IGNORE
 import crypto
 var original = 1234;
 

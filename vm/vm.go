@@ -408,9 +408,14 @@ func (vm *VM) Run() error {
 				err = vm.push(obj)
 			} else {
 				definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
+				// Check if builtin needs vm access (has _ prefix and is in GetBuiltinWithVm)
 				if definition.Builtin.Fun == nil {
 					// Lazy Evaluate Builtin that needs to use vm
-					definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
+					return vm.push(&object.Builtin{
+						Fun:     GetBuiltinWithVm(definition.Name, vm),
+						HelpStr: definition.Builtin.HelpStr,
+						Mutates: definition.Builtin.Mutates,
+					})
 				}
 				err = vm.push(definition.Builtin)
 			}

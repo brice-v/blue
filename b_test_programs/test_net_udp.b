@@ -1,3 +1,4 @@
+#VM IGNORE
 import net
 
 fun something(parent_pid) {

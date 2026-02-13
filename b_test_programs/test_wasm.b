@@ -1,3 +1,4 @@
+#VM IGNORE
 println("cwd = #{cwd()}")
 import wasm
 

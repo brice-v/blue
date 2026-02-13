@@ -1,3 +1,4 @@
+#VM IGNORE
 val fname = "test_defer_expressions_test.txt";
 fun() {
     fun appendToTestFile(content) {

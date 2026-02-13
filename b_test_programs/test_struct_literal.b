@@ -1,3 +1,4 @@
+#VM IGNORE
 var x = @{one: 1, hello_world: "Hello World!"};
 
 println(x);

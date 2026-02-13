@@ -23,45 +23,42 @@ func (hsa helpStrArgs) String() string {
 
 // Core Builtins
 
-var toNumBuiltin *object.Builtin = nil
+// var toNumBuiltin *object.Builtin = nil
 
 func createToNumBuiltin(vm *VM) *object.Builtin {
-	if toNumBuiltin == nil {
-		toNumBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 1 {
-					return newInvalidArgCountError("to_num", len(args), 1, "")
-				}
-				if args[0].Type() != object.STRING_OBJ {
-					return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
-				}
-				s := args[0].(*object.Stringo).Value
-				if strings.Contains(s, "+Inf") {
-					return &object.Float{Value: math.Inf(1)}
-				} else if strings.Contains(s, "-Inf") {
-					return &object.Float{Value: math.Inf(-1)}
-				}
-				obj := vmStr(s)
-				if isError(obj) {
-					return obj
-				}
-				if obj.Type() != object.INTEGER_OBJ && obj.Type() != object.UINTEGER_OBJ && obj.Type() != object.FLOAT_OBJ && obj.Type() != object.BIG_FLOAT_OBJ && obj.Type() != object.BIG_INTEGER_OBJ {
-					return newError("`to_num` error: failed to get number type from string '%s'. got=%s", s, obj.Type())
-				}
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_num", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			if strings.Contains(s, "+Inf") {
+				return &object.Float{Value: math.Inf(1)}
+			} else if strings.Contains(s, "-Inf") {
+				return &object.Float{Value: math.Inf(-1)}
+			}
+			obj := vmStr(s)
+			if isError(obj) {
 				return obj
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`to_num` returns the NUM value of the given STRING (int, uint, float, bigint, bigfloat)",
-				signature:   "to_num(arg: str) -> num",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "to_num('1') => 1",
-			}.String(),
-		}
+			}
+			if obj.Type() != object.INTEGER_OBJ && obj.Type() != object.UINTEGER_OBJ && obj.Type() != object.FLOAT_OBJ && obj.Type() != object.BIG_FLOAT_OBJ && obj.Type() != object.BIG_INTEGER_OBJ {
+				return newError("`to_num` error: failed to get number type from string '%s'. got=%s", s, obj.Type())
+			}
+			return obj
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_num` returns the NUM value of the given STRING (int, uint, float, bigint, bigfloat)",
+			signature:   "to_num(arg: str) -> num",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "to_num('1') => 1",
+		}.String(),
 	}
-	return toNumBuiltin
 }
 
-var sortBuiltin *object.Builtin = nil
+// var sortBuiltin *object.Builtin = nil
 
 func simpleKeyErrorPrint(vm *VM, obj object.Object) {
 	err := obj.(*object.Error)
@@ -295,370 +292,325 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 }
 
 func createSortBuiltin(vm *VM) *object.Builtin {
-	if sortBuiltin == nil {
-		sortBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				return getSortedListHelper(vm, args...)
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`sort` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int)",
-				signature:   "sort(l: list[int|float|str|any], reverse: bool=false, key: null|fun(e: list[any])=>int|str|float=null) -> list[int|float|str|any] (sorted)",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "sort(['c','b','a']) => ['a','b','c']",
-			}.String(),
-		}
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			return getSortedListHelper(vm, args...)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`sort` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int)",
+			signature:   "sort(l: list[int|float|str|any], reverse: bool=false, key: null|fun(e: list[any])=>int|str|float=null) -> list[int|float|str|any] (sorted)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "sort(['c','b','a']) => ['a','b','c']",
+		}.String(),
 	}
-	return sortBuiltin
 }
 
-var sortedBuiltin *object.Builtin = nil
+// var sortedBuiltin *object.Builtin = nil
 
 func createSortedBuiltin(vm *VM) *object.Builtin {
-	if sortedBuiltin == nil {
-		sortedBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				o := getSortedListHelper(vm, args...)
-				if isError(o) {
-					return o
-				}
-				l, ok := o.(*object.List)
-				if !ok {
-					return l
-				}
-				args[0].(*object.List).Elements = l.Elements
-				return object.NULL
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`sorted` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int). This function Mutates the underlying List",
-				signature:   "sorted(l: list[int|float|str|any], reverse: bool=false, key: null|fun(e: list[any])=>int|str|float=null) -> list[int|float|str|any] (sorted)",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "sorted(['c','b','a']) => null => side effect ['a','b','c']",
-			}.String(),
-		}
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			o := getSortedListHelper(vm, args...)
+			if isError(o) {
+				return o
+			}
+			l, ok := o.(*object.List)
+			if !ok {
+				return l
+			}
+			args[0].(*object.List).Elements = l.Elements
+			return object.NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`sorted` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int). This function Mutates the underlying List",
+			signature:   "sorted(l: list[int|float|str|any], reverse: bool=false, key: null|fun(e: list[any])=>int|str|float=null) -> list[int|float|str|any] (sorted)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "sorted(['c','b','a']) => null => side effect ['a','b','c']",
+		}.String(),
 	}
-	return sortedBuiltin
 }
 
-var allBuiltin *object.Builtin = nil
+// var allBuiltin *object.Builtin = nil
 
 func createAllBuiltin(vm *VM) *object.Builtin {
-	if allBuiltin == nil {
-		allBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("all", len(args), 2, "")
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("all", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("all", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("all", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			l := args[0].(*object.List)
+			allTrue := true
+			if args[1].Type() == object.CLOSURE {
+				fn := args[1].(*object.Closure)
+				if len(fn.Fun.Parameters) != 1 {
+					return newError("`all` error: function must have 1 parameter")
 				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("all", 1, object.LIST_OBJ, args[0].Type())
-				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("all", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
-				}
-				l := args[0].(*object.List)
-				allTrue := true
-				if args[1].Type() == object.CLOSURE {
-					fn := args[1].(*object.Closure)
-					if len(fn.Fun.Parameters) != 1 {
-						return newError("`all` error: function must have 1 parameter")
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`all` error: %s", errMsg)
 					}
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`all` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`all` error: function must return boolean")
-						}
-						allTrue = allTrue && obj.(*object.Boolean).Value
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`all` error: function must return boolean")
 					}
-				} else {
-					fn := args[1].(*object.Builtin)
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`all` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`all` error: function must return boolean")
-						}
-						allTrue = allTrue && obj.(*object.Boolean).Value
-					}
+					allTrue = allTrue && obj.(*object.Boolean).Value
 				}
-				return nativeToBooleanObject(allTrue)
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`all` returns the true if all the elements in the list return true for the given function",
-				signature:   "all(arg: list[any], f: fun(e: any)=>bool) -> bool",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "all([1,2,3], |e| => e > 0) => true",
-			}.String(),
-		}
+			} else {
+				fn := args[1].(*object.Builtin)
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`all` error: %s", errMsg)
+					}
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`all` error: function must return boolean")
+					}
+					allTrue = allTrue && obj.(*object.Boolean).Value
+				}
+			}
+			return nativeToBooleanObject(allTrue)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`all` returns the true if all the elements in the list return true for the given function",
+			signature:   "all(arg: list[any], f: fun(e: any)=>bool) -> bool",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "all([1,2,3], |e| => e > 0) => true",
+		}.String(),
 	}
-	return allBuiltin
 }
 
-var anyBuiltin *object.Builtin = nil
+// var anyBuiltin *object.Builtin = nil
 
 func createAnyBuiltin(vm *VM) *object.Builtin {
-	if anyBuiltin == nil {
-		anyBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("any", len(args), 2, "")
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("any", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("any", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("any", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			l := args[0].(*object.List)
+			anyTrue := false
+			if args[1].Type() == object.CLOSURE {
+				fn := args[1].(*object.Closure)
+				if len(fn.Fun.Parameters) != 1 {
+					return newError("`any` error: function must have 1 parameter")
 				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("any", 1, object.LIST_OBJ, args[0].Type())
-				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("any", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
-				}
-				l := args[0].(*object.List)
-				anyTrue := false
-				if args[1].Type() == object.CLOSURE {
-					fn := args[1].(*object.Closure)
-					if len(fn.Fun.Parameters) != 1 {
-						return newError("`any` error: function must have 1 parameter")
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`any` error: %s", errMsg)
 					}
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`any` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`any` error: function must return boolean")
-						}
-						anyTrue = anyTrue || obj.(*object.Boolean).Value
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`any` error: function must return boolean")
 					}
-				} else {
-					fn := args[1].(*object.Builtin)
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`any` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`any` error: function must return boolean")
-						}
-						anyTrue = anyTrue || obj.(*object.Boolean).Value
-					}
+					anyTrue = anyTrue || obj.(*object.Boolean).Value
 				}
-				return nativeToBooleanObject(anyTrue)
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`any` returns the true if any of the elements in the list return true for the given function",
-				signature:   "any(arg: list[any], f: fun(e: any)=>bool) -> bool",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "any([1,2,3], |e| => e > 0) => true",
-			}.String(),
-		}
+			} else {
+				fn := args[1].(*object.Builtin)
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`any` error: %s", errMsg)
+					}
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`any` error: function must return boolean")
+					}
+					anyTrue = anyTrue || obj.(*object.Boolean).Value
+				}
+			}
+			return nativeToBooleanObject(anyTrue)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`any` returns the true if any of the elements in the list return true for the given function",
+			signature:   "any(arg: list[any], f: fun(e: any)=>bool) -> bool",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "any([1,2,3], |e| => e > 0) => true",
+		}.String(),
 	}
-	return anyBuiltin
 }
 
-var mapBuiltin *object.Builtin = nil
+// var mapBuiltin *object.Builtin = nil
 
 func createMapBuiltin(vm *VM) *object.Builtin {
-	if mapBuiltin == nil {
-		mapBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("map", len(args), 2, "")
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("map", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("map", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("map", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			isBuiltin := args[1].Type() == object.BUILTIN_OBJ
+			l := args[0].(*object.List)
+			newElements := make([]object.Object, len(l.Elements))
+			for i, elem := range l.Elements {
+				var obj object.Object
+				if !isBuiltin {
+					fn := args[1].(*object.Closure)
+					obj = vm.applyFunctionFast(fn, elem)
+				} else {
+					fn := args[1].(*object.Builtin)
+					obj = vm.applyFunctionFast(fn, elem)
 				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("map", 1, object.LIST_OBJ, args[0].Type())
+				if isError(obj) {
+					errMsg := obj.(*object.Error).Message
+					return newError("`map` error: %s", errMsg)
 				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("map", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
-				}
-				isBuiltin := args[1].Type() == object.BUILTIN_OBJ
-				l := args[0].(*object.List)
-				newElements := make([]object.Object, len(l.Elements))
-				for i, elem := range l.Elements {
-					var obj object.Object
-					if !isBuiltin {
-						fn := args[1].(*object.Closure)
-						obj = vm.applyFunctionFast(fn, elem)
-					} else {
-						fn := args[1].(*object.Builtin)
-						obj = vm.applyFunctionFast(fn, elem)
-					}
-					if isError(obj) {
-						errMsg := obj.(*object.Error).Message
-						return newError("`map` error: %s", errMsg)
-					}
-					newElements[i] = obj
-				}
-				return &object.List{Elements: newElements}
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`map` returns the a new list with the given function mapped to each element",
-				signature:   "map(arg: list[any], f: fun(e: any)=>any) -> list[any]",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "map([1,2,3], |e| => e + 1) => [2,3,4]",
-			}.String(),
-		}
+				newElements[i] = obj
+			}
+			return &object.List{Elements: newElements}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`map` returns the a new list with the given function mapped to each element",
+			signature:   "map(arg: list[any], f: fun(e: any)=>any) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "map([1,2,3], |e| => e + 1) => [2,3,4]",
+		}.String(),
 	}
-	return mapBuiltin
 }
 
-var filterBuiltin *object.Builtin = nil
+// var filterBuiltin *object.Builtin = nil
 
 func createFilterBuiltin(vm *VM) *object.Builtin {
-	if filterBuiltin == nil {
-		filterBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("filter", len(args), 2, "")
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("filter", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("filter", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("filter", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			isBuiltin := args[1].Type() == object.BUILTIN_OBJ
+			l := args[0].(*object.List)
+			newElements := []object.Object{}
+			for _, elem := range l.Elements {
+				var obj object.Object
+				if !isBuiltin {
+					fn := args[1].(*object.Closure)
+					obj = vm.applyFunctionFast(fn, elem)
+				} else {
+					fn := args[1].(*object.Builtin)
+					obj = vm.applyFunctionFast(fn, elem)
 				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("filter", 1, object.LIST_OBJ, args[0].Type())
+				if isError(obj) {
+					errMsg := obj.(*object.Error).Message
+					return newError("`filter` error: %s", errMsg)
 				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("filter", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+				if isTruthy(obj) {
+					newElements = append(newElements, elem)
 				}
-				isBuiltin := args[1].Type() == object.BUILTIN_OBJ
-				l := args[0].(*object.List)
-				newElements := []object.Object{}
-				for _, elem := range l.Elements {
-					var obj object.Object
-					if !isBuiltin {
-						fn := args[1].(*object.Closure)
-						obj = vm.applyFunctionFast(fn, elem)
-					} else {
-						fn := args[1].(*object.Builtin)
-						obj = vm.applyFunctionFast(fn, elem)
-					}
-					if isError(obj) {
-						errMsg := obj.(*object.Error).Message
-						return newError("`filter` error: %s", errMsg)
-					}
-					if isTruthy(obj) {
-						newElements = append(newElements, elem)
-					}
-				}
-				return &object.List{Elements: newElements}
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`filter` returns the a new list with the elements that return true on the given function",
-				signature:   "filter(arg: list[any], f: fun(e: any)=>bool|any) -> list[any]",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "filter([1,2,3], |e| => e > 1) => [2,3]",
-			}.String(),
-		}
+			}
+			return &object.List{Elements: newElements}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`filter` returns the a new list with the elements that return true on the given function",
+			signature:   "filter(arg: list[any], f: fun(e: any)=>bool|any) -> list[any]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "filter([1,2,3], |e| => e > 1) => [2,3]",
+		}.String(),
 	}
-	return filterBuiltin
 }
 
-var loadBuiltin *object.Builtin = nil
+// var loadBuiltin *object.Builtin = nil
 
 func createLoadBuiltin(_ *VM) *object.Builtin {
-	if loadBuiltin == nil {
-		loadBuiltin = &object.Builtin{
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 1 {
-					return newInvalidArgCountError("load", len(args), 1, "")
+	return &object.Builtin{
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("load", len(args), 1, "")
+			}
+			if args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("load", 1, object.BYTES_OBJ, args[0].Type())
+			}
+			obj, err := object.Decode(args[0].(*object.Bytes).Value)
+			if err != nil {
+				return newError("`load` error: %s", err.Error())
+			}
+			switch o := obj.(type) {
+			case *object.Boolean:
+				return nativeToBooleanObject(o.Value)
+			case *object.Null:
+				return object.NULL
+			case *object.StringFunction:
+				obj := vmStr(o.Value)
+				if isError(obj) {
+					return newError("`load` error: %s", obj.(*object.Error).Message)
 				}
-				if args[0].Type() != object.BYTES_OBJ {
-					return newPositionalTypeError("load", 1, object.BYTES_OBJ, args[0].Type())
+				if o, ok := obj.(*object.Function); ok {
+					return o
 				}
-				obj, err := object.Decode(args[0].(*object.Bytes).Value)
-				if err != nil {
-					return newError("`load` error: %s", err.Error())
-				}
-				switch o := obj.(type) {
-				case *object.Boolean:
-					return nativeToBooleanObject(o.Value)
-				case *object.Null:
-					return object.NULL
-				case *object.StringFunction:
-					obj := vmStr(o.Value)
-					if isError(obj) {
-						return newError("`load` error: %s", obj.(*object.Error).Message)
-					}
-					if o, ok := obj.(*object.Function); ok {
-						return o
-					}
-					return newError("`load` error: failed to decode function %s", o.Value)
-				case *object.GoObjectGob:
-					// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
-					// log.Printf("GO OBJECT = %#+v", o)
-					// decoder := goObjDecoders[o.T].(func([]byte) (any, error))
-					// log.Printf("%T", decoder)
-					// a, err := decoder(o.Value)
-					// if err != nil {
-					// 	return newError("`load` error: %s", err)
-					// }
-					// log.Printf("t = %T, a = %+#v", a, a)
-					// switch o := a.(type) {
-					// case object.GoObj[color.RGBA]:
-					// 	return &o
-					// case *object.GoObj[*os.File]:
-					// 	return o
-					// default:
-					// 	return newError("`load` error: %T is not handled", a)
-					// }
-					return newError("`load` error: Go Object %T not enabled for decoding", o)
-				default:
-					return obj
-				}
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`load` returns the object decoded from bytes",
-				signature:   "load(arg: bytes) -> any",
-				errors:      "InvalidArgCount,PositionalTypeError,CustomError",
-				example:     "load('82001904d2'.to_bytes(is_hex=true)) => 1234",
-			}.String(),
-		}
+				return newError("`load` error: failed to decode function %s", o.Value)
+			case *object.GoObjectGob:
+				// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
+				// log.Printf("GO OBJECT = %#+v", o)
+				// decoder := goObjDecoders[o.T].(func([]byte) (any, error))
+				// log.Printf("%T", decoder)
+				// a, err := decoder(o.Value)
+				// if err != nil {
+				// 	return newError("`load` error: %s", err)
+				// }
+				// log.Printf("t = %T, a = %+#v", a, a)
+				// switch o := a.(type) {
+				// case object.GoObj[color.RGBA]:
+				// 	return &o
+				// case *object.GoObj[*os.File]:
+				// 	return o
+				// default:
+				// 	return newError("`load` error: %T is not handled", a)
+				// }
+				return newError("`load` error: Go Object %T not enabled for decoding", o)
+			default:
+				return obj
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load` returns the object decoded from bytes",
+			signature:   "load(arg: bytes) -> any",
+			errors:      "InvalidArgCount,PositionalTypeError,CustomError",
+			example:     "load('82001904d2'.to_bytes(is_hex=true)) => 1234",
+		}.String(),
 	}
-	return loadBuiltin
 }
 
 func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Object {
 	switch name {
 	case "to_num":
-		if toNumBuiltin == nil {
-			createToNumBuiltin(vm)
-		}
-		return toNumBuiltin.Fun
+		return createToNumBuiltin(vm).Fun
 	case "_sort":
-		if sortBuiltin == nil {
-			createSortBuiltin(vm)
-		}
-		return sortBuiltin.Fun
+		return createSortBuiltin(vm).Fun
 	case "_sorted":
-		if sortedBuiltin == nil {
-			createSortedBuiltin(vm)
-		}
-		return sortedBuiltin.Fun
+		return createSortedBuiltin(vm).Fun
 	case "all":
-		if allBuiltin == nil {
-			createAllBuiltin(vm)
-		}
-		return allBuiltin.Fun
+		return createAllBuiltin(vm).Fun
 	case "any":
-		if anyBuiltin == nil {
-			createAnyBuiltin(vm)
-		}
-		return anyBuiltin.Fun
+		return createAnyBuiltin(vm).Fun
 	case "map":
-		if mapBuiltin == nil {
-			createMapBuiltin(vm)
-		}
-		return mapBuiltin.Fun
+		return createMapBuiltin(vm).Fun
 	case "filter":
-		if filterBuiltin == nil {
-			createFilterBuiltin(vm)
-		}
-		return filterBuiltin.Fun
+		return createFilterBuiltin(vm).Fun
 	case "load":
-		if loadBuiltin == nil {
-			createLoadBuiltin(vm)
-		}
-		return loadBuiltin.Fun
+		return createLoadBuiltin(vm).Fun
 	default:
 		panic(name + " is not supported in GetBuiltinWithVm")
 	}

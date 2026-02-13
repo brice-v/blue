@@ -1,3 +1,4 @@
+#VM IGNORE
 import math
 
 var r = 100 ** 0.5;

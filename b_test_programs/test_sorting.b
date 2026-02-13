@@ -37,6 +37,7 @@ try {
 ###
 
 
+println("----HERE TEST SORTING----")
 val users = [{name: "Rajeev", age: 28}, {name: "Monica", age: 31}, {name: "John", age: 56}, {name: "Amanda", age: 16}, {name: "Steve", age: 28}];
 val users1 = new(users);
 var users2 = new(users);
