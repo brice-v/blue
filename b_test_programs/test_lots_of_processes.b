@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: vm will support processes
 
 import time
 fun read_and_exit() {
@@ -28,4 +30,4 @@ for (pid in pids) {
 	pid.send("Hello to pid #{pid}");
 }
 
-return true;
+assert(true);

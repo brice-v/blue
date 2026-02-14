@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+var ENABLE_VM_CACHING = true
+
 func CheckOverflow(leftVal, rightVal int64) bool {
 	result := leftVal + rightVal
 	return result-leftVal != rightVal

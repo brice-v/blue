@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: vm will support http server
 import http
 
 val some_map = {
@@ -160,4 +162,4 @@ http.handle_monitor("/monitor");
 fun run() {
     http.serve();
 }
-true;
+assert(true);

@@ -3,6 +3,7 @@ package vm
 import (
 	"blue/consts"
 	"blue/object"
+	"blue/utils"
 	"bytes"
 	"fmt"
 	"math"
@@ -25,8 +26,8 @@ func (hsa helpStrArgs) String() string {
 
 var toNumBuiltin *object.Builtin = nil
 
-func createToNumBuiltin(vm *VM) *object.Builtin {
-	if toNumBuiltin == nil {
+func createToNumBuiltin() *object.Builtin {
+	if toNumBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		toNumBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 1 {
@@ -63,7 +64,7 @@ func createToNumBuiltin(vm *VM) *object.Builtin {
 
 var sortBuiltin *object.Builtin = nil
 
-func simpleKeyErrorPrint(vm *VM, obj object.Object) {
+func simpleKeyErrorPrint(obj object.Object) {
 	err := obj.(*object.Error)
 	var buf bytes.Buffer
 	buf.WriteString(err.Message)
@@ -194,7 +195,7 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 		for k := 0; k < len(funs); k++ {
 			biObj := vm.applyFunctionFast(funs[k], aib)
 			if isError(biObj) {
-				simpleKeyErrorPrint(vm, biObj)
+				simpleKeyErrorPrint(biObj)
 				return false
 			}
 			if biObj.Type() != object.FLOAT_OBJ && biObj.Type() != object.INTEGER_OBJ && biObj.Type() != object.STRING_OBJ {
@@ -203,7 +204,7 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 			}
 			bjObj := vm.applyFunctionFast(funs[k], ajb)
 			if isError(bjObj) {
-				simpleKeyErrorPrint(vm, bjObj)
+				simpleKeyErrorPrint(bjObj)
 				return false
 			}
 			if bjObj.Type() != object.FLOAT_OBJ && bjObj.Type() != object.INTEGER_OBJ && bjObj.Type() != object.STRING_OBJ {
@@ -295,7 +296,7 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 }
 
 func createSortBuiltin(vm *VM) *object.Builtin {
-	if sortBuiltin == nil {
+	if sortBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		sortBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				return getSortedListHelper(vm, args...)
@@ -314,7 +315,7 @@ func createSortBuiltin(vm *VM) *object.Builtin {
 var sortedBuiltin *object.Builtin = nil
 
 func createSortedBuiltin(vm *VM) *object.Builtin {
-	if sortedBuiltin == nil {
+	if sortedBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		sortedBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				o := getSortedListHelper(vm, args...)
@@ -342,7 +343,7 @@ func createSortedBuiltin(vm *VM) *object.Builtin {
 var allBuiltin *object.Builtin = nil
 
 func createAllBuiltin(vm *VM) *object.Builtin {
-	if allBuiltin == nil {
+	if allBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		allBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
@@ -402,7 +403,7 @@ func createAllBuiltin(vm *VM) *object.Builtin {
 var anyBuiltin *object.Builtin = nil
 
 func createAnyBuiltin(vm *VM) *object.Builtin {
-	if anyBuiltin == nil {
+	if anyBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		anyBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
@@ -462,7 +463,7 @@ func createAnyBuiltin(vm *VM) *object.Builtin {
 var mapBuiltin *object.Builtin = nil
 
 func createMapBuiltin(vm *VM) *object.Builtin {
-	if mapBuiltin == nil {
+	if mapBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		mapBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
@@ -474,18 +475,10 @@ func createMapBuiltin(vm *VM) *object.Builtin {
 				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
 					return newPositionalTypeError("map", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
 				}
-				isBuiltin := args[1].Type() == object.BUILTIN_OBJ
 				l := args[0].(*object.List)
 				newElements := make([]object.Object, len(l.Elements))
 				for i, elem := range l.Elements {
-					var obj object.Object
-					if !isBuiltin {
-						fn := args[1].(*object.Closure)
-						obj = vm.applyFunctionFast(fn, elem)
-					} else {
-						fn := args[1].(*object.Builtin)
-						obj = vm.applyFunctionFast(fn, elem)
-					}
+					obj := vm.applyFunctionFast(args[1], elem)
 					if isError(obj) {
 						errMsg := obj.(*object.Error).Message
 						return newError("`map` error: %s", errMsg)
@@ -508,7 +501,7 @@ func createMapBuiltin(vm *VM) *object.Builtin {
 var filterBuiltin *object.Builtin = nil
 
 func createFilterBuiltin(vm *VM) *object.Builtin {
-	if filterBuiltin == nil {
+	if filterBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		filterBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
@@ -520,18 +513,10 @@ func createFilterBuiltin(vm *VM) *object.Builtin {
 				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
 					return newPositionalTypeError("filter", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
 				}
-				isBuiltin := args[1].Type() == object.BUILTIN_OBJ
 				l := args[0].(*object.List)
 				newElements := []object.Object{}
 				for _, elem := range l.Elements {
-					var obj object.Object
-					if !isBuiltin {
-						fn := args[1].(*object.Closure)
-						obj = vm.applyFunctionFast(fn, elem)
-					} else {
-						fn := args[1].(*object.Builtin)
-						obj = vm.applyFunctionFast(fn, elem)
-					}
+					obj := vm.applyFunctionFast(args[1], elem)
 					if isError(obj) {
 						errMsg := obj.(*object.Error).Message
 						return newError("`filter` error: %s", errMsg)
@@ -556,7 +541,7 @@ func createFilterBuiltin(vm *VM) *object.Builtin {
 var loadBuiltin *object.Builtin = nil
 
 func createLoadBuiltin(_ *VM) *object.Builtin {
-	if loadBuiltin == nil {
+	if loadBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		loadBuiltin = &object.Builtin{
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 1 {
@@ -620,45 +605,21 @@ func createLoadBuiltin(_ *VM) *object.Builtin {
 func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Object {
 	switch name {
 	case "to_num":
-		if toNumBuiltin == nil {
-			createToNumBuiltin(vm)
-		}
-		return toNumBuiltin.Fun
+		return createToNumBuiltin().Fun
 	case "_sort":
-		if sortBuiltin == nil {
-			createSortBuiltin(vm)
-		}
-		return sortBuiltin.Fun
+		return createSortBuiltin(vm).Fun
 	case "_sorted":
-		if sortedBuiltin == nil {
-			createSortedBuiltin(vm)
-		}
-		return sortedBuiltin.Fun
+		return createSortedBuiltin(vm).Fun
 	case "all":
-		if allBuiltin == nil {
-			createAllBuiltin(vm)
-		}
-		return allBuiltin.Fun
+		return createAllBuiltin(vm).Fun
 	case "any":
-		if anyBuiltin == nil {
-			createAnyBuiltin(vm)
-		}
-		return anyBuiltin.Fun
+		return createAnyBuiltin(vm).Fun
 	case "map":
-		if mapBuiltin == nil {
-			createMapBuiltin(vm)
-		}
-		return mapBuiltin.Fun
+		return createMapBuiltin(vm).Fun
 	case "filter":
-		if filterBuiltin == nil {
-			createFilterBuiltin(vm)
-		}
-		return filterBuiltin.Fun
+		return createFilterBuiltin(vm).Fun
 	case "load":
-		if loadBuiltin == nil {
-			createLoadBuiltin(vm)
-		}
-		return loadBuiltin.Fun
+		return createLoadBuiltin(vm).Fun
 	default:
 		panic(name + " is not supported in GetBuiltinWithVm")
 	}

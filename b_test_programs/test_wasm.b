@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: vm will support wasm
 println("cwd = #{cwd()}")
 import wasm
 

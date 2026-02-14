@@ -1,3 +1,4 @@
+#VM IGNORE
 val x = help(sort);
 println(x);
 val xx = """`sort` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int)

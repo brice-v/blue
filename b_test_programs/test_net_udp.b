@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: vm will support net
 import net
 
 fun something(parent_pid) {
@@ -40,4 +42,4 @@ for (true) {
     time.sleep(100);
 }
 
-return true;
+assert(true);

@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: vm will support struct literal
 var x = @{one: 1, hello_world: "Hello World!"};
 
 println(x);

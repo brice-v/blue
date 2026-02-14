@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: vm will support http client
 import http
 import time
 
@@ -168,4 +170,4 @@ fun main() {
 }
 
 main();
-true;
+assert(true);

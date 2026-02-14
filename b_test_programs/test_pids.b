@@ -1,3 +1,5 @@
+#VM IGNORE
+# TODO: vm will support pids
 # TODO: Spawn a bunch of things in various ways
 # Make sure they all report the right pid
 # Make sure they can send/recv from each other

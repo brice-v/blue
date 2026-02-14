@@ -408,11 +408,23 @@ func (vm *VM) Run() error {
 				err = vm.push(obj)
 			} else {
 				definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
+				var builtin *object.Builtin
 				if definition.Builtin.Fun == nil {
-					// Lazy Evaluate Builtin that needs to use vm
-					definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
+					if utils.ENABLE_VM_CACHING {
+						// Lazy Evaluate Builtin that needs to use vm
+						definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
+						builtin = definition.Builtin
+					} else {
+						builtin = &object.Builtin{
+							Fun:     GetBuiltinWithVm(definition.Name, vm),
+							HelpStr: definition.Builtin.HelpStr,
+							Mutates: definition.Builtin.Mutates,
+						}
+					}
+				} else {
+					builtin = definition.Builtin
 				}
-				err = vm.push(definition.Builtin)
+				err = vm.push(builtin)
 			}
 			if err != nil {
 				err = vm.PushAndReturnError(err)
