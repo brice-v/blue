@@ -7,7 +7,6 @@ x.hello_world = "abc";
 println(x)
 assert(x == @{one: 101, hello_world: "abc"});
 
-println("HERE?")
 # Test Errors on Set
 try {
     x.one = "Hello";

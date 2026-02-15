@@ -1,5 +1,13 @@
 TODO:
 
+- [ ] Default to using VM as default once everything is implemented
+- [ ] Write up full docs in html
+- [ ] Integrate with --no-exec for vm (make sure exec strings included)
+  - [ ] Make sure eval() can be disabled as well
+- [ ] See if its possible to remove *ast.StringLiteral and just directly use *object.Stringo
+- [ ] VM Upgrade
+  - [ ] Compile bytecode to file including encoded constants
+  - [ ] Create separate VM that is as small as possible (not including the rest of the blue runtime) that operates on bytecode files
 - [ ] Potentially add .0 if float formatted as string would not have any decimal place
     - This may be needed/useful later on
 - Tmp
