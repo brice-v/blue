@@ -1,5 +1,3 @@
-#VM IGNORE
-# There is another file for vm due to compilation error with immutable
 var x = @{one: 1, hello_world: "Hello World!"};
 
 println(x);
@@ -8,14 +6,8 @@ x.one = 101;
 x.hello_world = "abc";
 println(x)
 assert(x == @{one: 101, hello_world: "abc"});
-# Test Immutability
-val z = @{one: 123};
-try {
-    z.one = 99;
-    assert(false, "UNREACHABLE");
-} catch (e) {
-    assert(e == "'z' is immutable");
-}
+
+println("HERE?")
 # Test Errors on Set
 try {
     x.one = "Hello";

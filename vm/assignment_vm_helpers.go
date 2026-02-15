@@ -14,11 +14,27 @@ func (vm *VM) executeIndexSetOperator(indexable object.Object, index object.Obje
 		return vm.executeListIndexSetOperator(l, index, rightValue)
 	} else if s, ok := indexable.(*object.Stringo); ok {
 		return vm.executeStringIndexSetOperator(s, index, rightValue)
+	} else if bs, ok := indexable.(*object.BlueStruct); ok {
+		return vm.executeStructIndexSetOperator(bs, index, rightValue)
 	}
 	return fmt.Errorf("'%s' (%T) is not indexable", indexable.Inspect(), indexable)
 }
 
-func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx object.Object, rightValue object.Object) error {
+func (vm *VM) executeStructIndexSetOperator(bs *object.BlueStruct, indx, rightValue object.Object) error {
+	indexField, ok := indx.(*object.Stringo)
+	if !ok {
+		return vm.push(newError("index operator not supported: BLUE_STRUCT.%s", indx.Inspect()))
+	}
+	fieldName := indexField.Value
+	orig, origIndex := bs.Get(fieldName)
+	if orig == nil {
+		return vm.push(newError("field name `%s` not found on blue struct: %s", fieldName, bs.Inspect()))
+	}
+	bs.Set(origIndex, rightValue)
+	return nil
+}
+
+func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx, rightValue object.Object) error {
 	if m.IsEnvBuiltin {
 		if indx.Type() != object.STRING_OBJ {
 			return vm.push(newError("ENV requires string key"))
@@ -54,7 +70,7 @@ func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx object.Object, righ
 	return nil
 }
 
-func (vm *VM) executeListIndexSetOperator(l *object.List, indx object.Object, rightValue object.Object) error {
+func (vm *VM) executeListIndexSetOperator(l *object.List, indx, rightValue object.Object) error {
 	idx, ok := indx.(*object.Integer)
 	if !ok {
 		return vm.push(newError("cannot index list with %s", indx.Type()))
@@ -71,7 +87,7 @@ func (vm *VM) executeListIndexSetOperator(l *object.List, indx object.Object, ri
 	return nil
 }
 
-func (vm *VM) executeStringIndexSetOperator(str *object.Stringo, indx object.Object, rightValue object.Object) error {
+func (vm *VM) executeStringIndexSetOperator(str *object.Stringo, indx, rightValue object.Object) error {
 	if rightValue.Type() != object.STRING_OBJ {
 		return vm.push(newError("cannot assign %s to STRING", rightValue.Type()))
 	}

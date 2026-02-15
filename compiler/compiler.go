@@ -754,6 +754,15 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		literal := &object.ExecString{Value: node.Value}
 		c.emit(code.OpExecString, c.addConstant(literal))
+	case *ast.StructLiteral:
+		c.emit(code.OpConstant, c.addConstant(object.NewGoObj(node.Fields)))
+		for _, exp := range node.Values {
+			err := c.Compile(exp)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+		}
+		c.emit(code.OpStruct, len(node.Fields))
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}

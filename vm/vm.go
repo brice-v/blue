@@ -13,6 +13,8 @@ import (
 	"math/big"
 	"slices"
 	"strings"
+
+	"github.com/huandu/go-clone"
 )
 
 const (
@@ -514,6 +516,20 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+		case code.OpStruct:
+			numFields := int(code.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			// -1 to account for the fields held in go object
+			startIndex := vm.sp - numFields - 1
+			bs, err := vm.buildStruct(startIndex, vm.sp)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
+			vm.sp = startIndex
+			vm.push(bs)
 		}
 	}
 	return nil
@@ -772,6 +788,21 @@ func (vm *VM) buildSet(startIndex, endIndex int) object.Object {
 		setMap.Set(hashKey, object.SetPair{Value: elem, Present: struct{}{}})
 	}
 	return &object.Set{Elements: setMap}
+}
+
+func (vm *VM) buildStruct(startIndex, endIndex int) (object.Object, error) {
+	index := startIndex
+	maybeFields := vm.stack[index]
+	fields, ok := maybeFields.(*object.GoObj[[]string])
+	if !ok {
+		return nil, fmt.Errorf("compilation error: struct did not have fields in index: %d", index)
+	}
+	index++
+	bs, err := object.NewBlueStruct(fields.Value, clone.Clone(vm.stack[index:endIndex]).([]object.Object))
+	if err != nil {
+		return nil, err
+	}
+	return bs, nil
 }
 
 func (vm *VM) buildMap(startIndex, endIndex int) object.Object {
