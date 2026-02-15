@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+type VarValStatement interface {
+	VVToken() token.Token
+	VVKeyValueNames() map[Expression]*Identifier
+	VVNames() []*Identifier
+	VVValue() Expression
+	VVIsMapDestructor() bool
+	VVIsListDestructor() bool
+
+	IsValStatement() bool
+}
+
 // VarStatement is the node for var statements
 type VarStatement struct {
 	Token            token.Token // Token == token.VAR
@@ -74,6 +85,29 @@ func (vars *VarStatement) String() string {
 	return out.String()
 }
 
+// Implementation for VarValsStatement
+func (vars *VarStatement) VVToken() token.Token {
+	return vars.Token
+}
+func (vars *VarStatement) VVKeyValueNames() map[Expression]*Identifier {
+	return vars.KeyValueNames
+}
+func (vars *VarStatement) VVNames() []*Identifier {
+	return vars.Names
+}
+func (vars *VarStatement) VVValue() Expression {
+	return vars.Value
+}
+func (vars *VarStatement) VVIsMapDestructor() bool {
+	return vars.IsMapDestructor
+}
+func (vars *VarStatement) VVIsListDestructor() bool {
+	return vars.IsListDestructor
+}
+func (vars *VarStatement) IsValStatement() bool {
+	return false
+}
+
 // ValStatement is the node for val statements
 type ValStatement struct {
 	Token         token.Token // Token == token.VAL
@@ -136,6 +170,29 @@ func (vals *ValStatement) String() string {
 	}
 
 	return out.String()
+}
+
+// Implementation for VarValsStatement
+func (vals *ValStatement) VVToken() token.Token {
+	return vals.Token
+}
+func (vals *ValStatement) VVKeyValueNames() map[Expression]*Identifier {
+	return vals.KeyValueNames
+}
+func (vals *ValStatement) VVNames() []*Identifier {
+	return vals.Names
+}
+func (vals *ValStatement) VVValue() Expression {
+	return vals.Value
+}
+func (vals *ValStatement) VVIsMapDestructor() bool {
+	return vals.IsMapDestructor
+}
+func (vals *ValStatement) VVIsListDestructor() bool {
+	return vals.IsListDestructor
+}
+func (vals *ValStatement) IsValStatement() bool {
+	return true
 }
 
 // FunctionStatement is the function definition that is used at the source leve

@@ -520,50 +520,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 	case *ast.VarStatement:
-		err := c.Compile(node.Value)
+		err := c.compileVarValStatements(node)
 		if err != nil {
-			return c.addNodeToErrorTrace(err, node.Token)
-		}
-		if node.IsListDestructor || node.IsMapDestructor {
-			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
-		}
-		if len(node.Names) > 1 {
-			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
-		}
-		var symbol Symbol
-		if fun, isFun := node.Value.(*ast.FunctionLiteral); isFun {
-			symbol = c.symbolTable.DefineFun(c.getName(node.Names[0].Value), false, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
-		} else {
-			symbol = c.symbolTable.Define(c.getName(node.Names[0].Value), false, c.BlockNestLevel)
-		}
-		switch symbol.Scope {
-		case GlobalScope:
-			c.emit(code.OpSetGlobal, symbol.Index)
-		case LocalScope:
-			c.emit(code.OpSetLocal, symbol.Index)
+			return err
 		}
 	case *ast.ValStatement:
-		err := c.Compile(node.Value)
+		err := c.compileVarValStatements(node)
 		if err != nil {
-			return c.addNodeToErrorTrace(err, node.Token)
-		}
-		if node.IsListDestructor || node.IsMapDestructor {
-			return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
-		}
-		if len(node.Names) > 1 {
-			return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", node.Names)
-		}
-		var symbol Symbol
-		if fun, isFun := node.Value.(*ast.FunctionLiteral); isFun {
-			symbol = c.symbolTable.DefineFun(c.getName(node.Names[0].Value), true, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
-		} else {
-			symbol = c.symbolTable.Define(c.getName(node.Names[0].Value), true, c.BlockNestLevel)
-		}
-		switch symbol.Scope {
-		case GlobalScope:
-			c.emit(code.OpSetGlobalImm, symbol.Index)
-		case LocalScope:
-			c.emit(code.OpSetLocalImm, symbol.Index)
+			return err
 		}
 	case *ast.AssignmentExpression:
 		err := c.compileAssignmentExpression(node)

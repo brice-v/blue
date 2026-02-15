@@ -746,3 +746,41 @@ func (c *Compiler) compileCallExpression(node *ast.CallExpression) error {
 	c.emit(code.OpCall, argLen)
 	return nil
 }
+
+func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
+	err := c.Compile(node.VVValue())
+	if err != nil {
+		return c.addNodeToErrorTrace(err, node.VVToken())
+	}
+	if node.VVIsListDestructor() || node.VVIsMapDestructor() {
+		return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
+	}
+	names := node.VVNames()
+	if len(names) > 1 {
+		return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", names)
+	}
+	var symbol Symbol
+	immutable := node.IsValStatement()
+	if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
+		symbol = c.symbolTable.DefineFun(c.getName(names[0].Value), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
+	} else {
+		symbol = c.symbolTable.Define(c.getName(names[0].Value), immutable, c.BlockNestLevel)
+	}
+	var opcode code.Opcode
+	switch symbol.Scope {
+	case GlobalScope:
+		if immutable {
+			opcode = code.OpSetGlobalImm
+		} else {
+			opcode = code.OpSetGlobal
+		}
+	case LocalScope:
+		if immutable {
+			opcode = code.OpSetLocalImm
+		} else {
+			opcode = code.OpSetLocal
+		}
+	}
+	c.emit(opcode, symbol.Index)
+	return nil
+}
