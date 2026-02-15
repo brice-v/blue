@@ -157,26 +157,22 @@ func (c *Compiler) addConstant(obj object.Object) int {
 		// return reserved index for constant object
 		return index
 	}
-	if index := c.isConstantFolded(obj); index != -1 {
-		return index
+	hash, hashedIndex := c.isConstantFolded(obj)
+	if hashedIndex != -1 {
+		return hashedIndex
 	}
 	c.constants = append(c.constants, obj)
 	index := len(c.constants) - 1
-	c.addToConstantFolds(obj, index)
+	c.constantFolds[hash] = index
 	return index
 }
 
-func (c *Compiler) addToConstantFolds(obj object.Object, index int) {
-	ho := object.HashObject(obj)
-	c.constantFolds[ho] = index
-}
-
-func (c *Compiler) isConstantFolded(obj object.Object) int {
+func (c *Compiler) isConstantFolded(obj object.Object) (uint64, int) {
 	ho := object.HashObject(obj)
 	if index, ok := c.constantFolds[ho]; ok {
-		return index
+		return ho, index
 	}
-	return -1
+	return 0, -1
 }
 
 func (c *Compiler) emit(op code.Opcode, operands ...int) int {
