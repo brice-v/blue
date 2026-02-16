@@ -530,6 +530,18 @@ func (vm *VM) Run() error {
 			}
 			vm.sp = startIndex
 			vm.push(bs)
+		case code.OpGetListIndex:
+			index := int(code.ReadUint8(ins[ip+1:]))
+			vm.currentFrame().ip += 1
+			list := vm.peek() // Dont pop it off the stack
+			if list.Type() != object.LIST_OBJ {
+				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex did not find List of top of the stack. got=%T", list))
+			}
+			l := list.(*object.List).Elements
+			if index > len(l) {
+				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex index is greater than the length of the list. index=%d, len(list)=%d", index, len(l)))
+			}
+			vm.push(l[index])
 		}
 	}
 	return nil

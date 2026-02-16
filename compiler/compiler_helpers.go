@@ -752,20 +752,35 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 	if err != nil {
 		return c.addNodeToErrorTrace(err, node.VVToken())
 	}
-	if node.VVIsListDestructor() || node.VVIsMapDestructor() {
+	if node.VVIsMapDestructor() {
+		// TODO: Similar to _get_ if its a map destructor, get by string key (from ident.Value)
+		//  If its a List destructor, get by int index of name
+		//  Set Symbol for each item
 		return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
 	}
 	names := node.VVNames()
-	if len(names) > 1 {
-		return fmt.Errorf("multiple identifiers to define, not supported yet %#+v", names)
+	if len(names) > 255 {
+		return c.addNodeToErrorTrace(fmt.Errorf("Destructor does not support more than 255 names"), node.VVToken())
 	}
-	var symbol Symbol
-	immutable := node.IsValStatement()
-	if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
-		symbol = c.symbolTable.DefineFun(c.getName(names[0].Value), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
-	} else {
-		symbol = c.symbolTable.Define(c.getName(names[0].Value), immutable, c.BlockNestLevel)
+	for i, name := range names {
+		if node.VVIsListDestructor() {
+			c.emit(code.OpGetListIndex, i)
+		} else if node.VVIsMapDestructor() {
+
+		}
+		var symbol Symbol
+		immutable := node.IsValStatement()
+		if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
+			symbol = c.symbolTable.DefineFun(c.getName(name.Value), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
+		} else {
+			symbol = c.symbolTable.Define(c.getName(name.Value), immutable, c.BlockNestLevel)
+		}
+		c.emitSetSymbolOpcode(symbol, immutable)
 	}
+	return nil
+}
+
+func (c *Compiler) emitSetSymbolOpcode(symbol Symbol, immutable bool) {
 	var opcode code.Opcode
 	switch symbol.Scope {
 	case GlobalScope:
@@ -782,5 +797,4 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 		}
 	}
 	c.emit(opcode, symbol.Index)
-	return nil
 }
