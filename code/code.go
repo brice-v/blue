@@ -118,6 +118,7 @@ const (
 	OpNotIfNotNull
 	OpStruct
 	OpGetListIndex
+	OpGetMapKey
 )
 
 type Definition struct {
@@ -203,6 +204,7 @@ var definitions = map[Opcode]*Definition{
 	OpNotIfNotNull: {"OpNotIfNotNull", []int{}},
 	OpStruct:       {"OpStruct", []int{2}},
 	OpGetListIndex: {"OpGetListIndex", []int{1}},
+	OpGetMapKey:    {"OpGetMapKey", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

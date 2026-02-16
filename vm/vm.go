@@ -535,13 +535,27 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 1
 			list := vm.peek() // Dont pop it off the stack
 			if list.Type() != object.LIST_OBJ {
-				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex did not find List of top of the stack. got=%T", list))
+				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex did not find List on top of the stack. got=%T", list))
 			}
 			l := list.(*object.List).Elements
 			if index > len(l) {
 				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex index is greater than the length of the list. index=%d, len(list)=%d", index, len(l)))
 			}
 			vm.push(l[index])
+		case code.OpGetMapKey:
+			key := vm.peek()
+			if key.Type() != object.STRING_OBJ {
+				return vm.PushAndReturnError(fmt.Errorf("OpGetMapKey did not find string key on top of the stack. got=%T", key))
+			}
+			m := vm.peekOffset(1)
+			if m.Type() != object.MAP_OBJ {
+				return vm.PushAndReturnError(fmt.Errorf("OpGetMapKey did not find map on top-1 of the stack. got=%T", m))
+			}
+			pair, ok := m.(*object.Map).Pairs.Get(object.HashKey{Type: object.STRING_OBJ, Value: object.HashObject(key)})
+			if !ok {
+				return vm.PushAndReturnError(fmt.Errorf("OpGetMapKey did not find value for name: `%s` in the map", key.(*object.Stringo).Value))
+			}
+			vm.push(pair.Value)
 		}
 	}
 	return nil
@@ -599,6 +613,10 @@ func (vm *VM) pop() object.Object {
 
 func (vm *VM) peek() object.Object {
 	return vm.stack[vm.sp-1]
+}
+
+func (vm *VM) peekOffset(offset int) object.Object {
+	return vm.stack[vm.sp-1-offset]
 }
 
 func (vm *VM) LastPoppedStackElem() object.Object {

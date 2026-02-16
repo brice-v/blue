@@ -752,12 +752,6 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 	if err != nil {
 		return c.addNodeToErrorTrace(err, node.VVToken())
 	}
-	if node.VVIsMapDestructor() {
-		// TODO: Similar to _get_ if its a map destructor, get by string key (from ident.Value)
-		//  If its a List destructor, get by int index of name
-		//  Set Symbol for each item
-		return fmt.Errorf("List/Map Destructor not yet supported, failed to compile %#+v", node)
-	}
 	names := node.VVNames()
 	if len(names) > 255 {
 		return c.addNodeToErrorTrace(fmt.Errorf("Destructor does not support more than 255 names"), node.VVToken())
@@ -766,7 +760,8 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 		if node.VVIsListDestructor() {
 			c.emit(code.OpGetListIndex, i)
 		} else if node.VVIsMapDestructor() {
-
+			c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: name.Value}))
+			c.emit(code.OpGetMapKey)
 		}
 		var symbol Symbol
 		immutable := node.IsValStatement()
