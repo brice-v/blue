@@ -346,12 +346,14 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
-				err := vm.callClosure(deferFun, 0)
-				if err != nil {
-					err = vm.PushAndReturnError(err)
+			if frame != nil {
+				for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
+					err := vm.callClosure(deferFun, 0)
 					if err != nil {
-						return err
+						err = vm.PushAndReturnError(err)
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}
@@ -367,12 +369,14 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
-				err := vm.callClosure(deferFun, 0)
-				if err != nil {
-					err = vm.PushAndReturnError(err)
+			if frame != nil {
+				for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
+					err := vm.callClosure(deferFun, 0)
 					if err != nil {
-						return err
+						err = vm.PushAndReturnError(err)
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}
