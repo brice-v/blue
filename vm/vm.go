@@ -347,7 +347,13 @@ func (vm *VM) Run() error {
 				}
 			}
 			for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
-				vm.applyFunctionFast(deferFun, nil)
+				err := vm.callClosure(deferFun, 0)
+				if err != nil {
+					err = vm.PushAndReturnError(err)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		case code.OpReturn:
 			frame := vm.popFrame()
@@ -362,7 +368,13 @@ func (vm *VM) Run() error {
 				}
 			}
 			for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
-				vm.applyFunctionFast(deferFun, nil)
+				err := vm.callClosure(deferFun, 0)
+				if err != nil {
+					err = vm.PushAndReturnError(err)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		case code.OpSetLocal, code.OpSetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])
