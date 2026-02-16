@@ -634,14 +634,8 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		vm.frames = []*Frame{nil, nil}
 		vm.framesIndex = 1
 		vm.push(fun)
-		if arg != nil {
-			vm.push(arg)
-		}
-		argCount := 0
-		if arg != nil {
-			argCount = 1
-		}
-		vm.executeCallFastFrame(argCount)
+		vm.push(arg)
+		vm.executeCallFastFrame(1)
 		vm.Run()
 		returnValue = vm.pop()
 		vm.frames = existingFrames
