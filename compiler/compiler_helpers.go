@@ -756,6 +756,19 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 	if len(names) > 255 {
 		return c.addNodeToErrorTrace(fmt.Errorf("Destructor does not support more than 255 names"), node.VVToken())
 	}
+	for keyName, newName := range node.VVKeyValueNames() {
+		var key string
+		if ss, ok := keyName.(*ast.StringLiteral); ok {
+			key = ss.Value
+		} else if ss, ok := keyName.(*ast.Identifier); ok {
+			key = ss.Value
+		}
+		c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: key}))
+		c.emit(code.OpGetMapKey)
+		symbol, immutable := c.defineSymbolForVarValStatement(node, newName.Value)
+		c.emitSetSymbolOpcode(symbol, immutable)
+		c.emit(code.OpPop)
+	}
 	for i, name := range names {
 		if node.VVIsListDestructor() {
 			c.emit(code.OpGetListIndex, i)
@@ -763,16 +776,24 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 			c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: name.Value}))
 			c.emit(code.OpGetMapKey)
 		}
-		var symbol Symbol
-		immutable := node.IsValStatement()
-		if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
-			symbol = c.symbolTable.DefineFun(c.getName(name.Value), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
-		} else {
-			symbol = c.symbolTable.Define(c.getName(name.Value), immutable, c.BlockNestLevel)
-		}
+		symbol, immutable := c.defineSymbolForVarValStatement(node, name.Value)
 		c.emitSetSymbolOpcode(symbol, immutable)
+		if node.VVIsMapDestructor() {
+			c.emit(code.OpPop)
+		}
 	}
 	return nil
+}
+
+func (c *Compiler) defineSymbolForVarValStatement(node ast.VarValStatement, name string) (Symbol, bool) {
+	var symbol Symbol
+	immutable := node.IsValStatement()
+	if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
+		symbol = c.symbolTable.DefineFun(c.getName(name), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
+	} else {
+		symbol = c.symbolTable.Define(c.getName(name), immutable, c.BlockNestLevel)
+	}
+	return symbol, immutable
 }
 
 func (c *Compiler) emitSetSymbolOpcode(symbol Symbol, immutable bool) {

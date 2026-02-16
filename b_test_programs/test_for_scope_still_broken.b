@@ -1,5 +1,3 @@
-#VM IGNORE
-# TODO: vm will support destructuring
 var test_input ="""467..114..
 ...*......
 ..35..633.

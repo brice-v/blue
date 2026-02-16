@@ -1,5 +1,3 @@
-#VM IGNORE
-# TODO: vm will support destructuring
 val x = {hello: 'world', another: 'ignored'};
 val y = {d: 1, abc: [1,2,3]}
 
