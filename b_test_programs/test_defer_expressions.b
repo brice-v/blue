@@ -1,5 +1,3 @@
-#VM IGNORE
-# TODO: vm will support defer
 val fname = "test_defer_expressions_test.txt";
 fun() {
     fun appendToTestFile(content) {

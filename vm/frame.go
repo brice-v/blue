@@ -25,7 +25,7 @@ func (f *Frame) PushDeferFun(cl *object.Closure) {
 	if f.deferFuns == nil {
 		f.deferFuns = []*object.Closure{}
 	}
-	f.deferFuns = append(f.deferFuns, cl)
+	f.deferFuns = append([]*object.Closure{cl}, f.deferFuns...)
 }
 
 func (f *Frame) PopDeferFun() *object.Closure {
