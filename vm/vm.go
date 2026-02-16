@@ -346,6 +346,9 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
+				vm.applyFunctionFast(deferFun, nil)
+			}
 		case code.OpReturn:
 			frame := vm.popFrame()
 			if frame != nil {
@@ -357,6 +360,9 @@ func (vm *VM) Run() error {
 				if err != nil {
 					return err
 				}
+			}
+			for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
+				vm.applyFunctionFast(deferFun, nil)
 			}
 		case code.OpSetLocal, code.OpSetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])
@@ -556,6 +562,16 @@ func (vm *VM) Run() error {
 				return vm.PushAndReturnError(fmt.Errorf("OpGetMapKey did not find value for name: `%s` in the map", key.(*object.Stringo).Value))
 			}
 			vm.push(pair.Value)
+		case code.OpDefer:
+			numDefers := int(code.ReadUint8(ins[ip+1:]))
+			for range numDefers {
+				deferFun := vm.pop()
+				if deferFun.Type() != object.CLOSURE {
+					return vm.PushAndReturnError(fmt.Errorf("OpDefer did not find function on top of the stack. got=%T", deferFun))
+				}
+				vm.currentFrame().PushDeferFun(deferFun.(*object.Closure))
+			}
+
 		}
 	}
 	return nil

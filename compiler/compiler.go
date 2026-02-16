@@ -727,6 +727,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 		c.emit(code.OpStruct, len(node.Fields))
+	case *ast.DeferExpression:
+		for _, arg := range node.Arguments {
+			err := c.Compile(arg)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+		}
+		c.emit(code.OpDefer, len(node.Arguments))
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
