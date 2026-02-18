@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Dont necessarily need to return builtin for builtins that require vm reference
+    - could just return func(args...) object.Object
 - [ ] Fix up static building with VM
 - [ ] Default to using VM as default once everything is implemented
 - [ ] Write up full docs in html

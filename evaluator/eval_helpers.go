@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"sort"
 	"strings"
@@ -554,21 +555,21 @@ func checkMapObjPairsForValidJsonKeysAndValues(pairs object.OrderedMap2[object.H
 func generateJsonStringFromOtherValidTypes(buf bytes.Buffer, element object.Object) bytes.Buffer {
 	switch t := element.(type) {
 	case *object.Integer:
-		buf.WriteString(fmt.Sprintf("%d", t.Value))
+		fmt.Fprintf(&buf, "%d", t.Value)
 	case *object.UInteger:
-		buf.WriteString(fmt.Sprintf("%d", t.Value))
+		fmt.Fprintf(&buf, "%d", t.Value)
 	case *object.BigInteger:
 		buf.WriteString(t.Value.String())
 	case *object.BigFloat:
 		buf.WriteString(t.Value.String())
 	case *object.Stringo:
-		buf.WriteString(fmt.Sprintf("%q", t.Value))
+		fmt.Fprintf(&buf, "%q", t.Value)
 	case *object.Null:
 		buf.WriteString("null")
 	case *object.Float:
-		buf.WriteString(fmt.Sprintf("%f", t.Value))
+		fmt.Fprintf(&buf, "%f", t.Value)
 	case *object.Boolean:
-		buf.WriteString(fmt.Sprintf("%t", t.Value))
+		fmt.Fprintf(&buf, "%t", t.Value)
 	}
 	return buf
 }
@@ -677,9 +678,7 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 				if v == nil {
 					v = make(map[string]any)
 				}
-				for k1, v1 := range mv {
-					v[k1] = v1
-				}
+				maps.Copy(v, mv)
 			}
 		}
 	} else if strings.Contains(contentType, "json") {

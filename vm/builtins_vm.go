@@ -625,6 +625,27 @@ func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Ob
 	}
 }
 
+func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object.Object) object.Object {
+	existingFrames := vm.frames
+	existingFrameIndex := vm.framesIndex
+	existingStackPointer := vm.sp
+	vm.frames = []*Frame{nil, nil}
+	vm.framesIndex = 1
+	vm.push(fun)
+	argCount := 0
+	for _, arg := range args {
+		vm.push(arg)
+		argCount++
+	}
+	vm.executeCallFastFrame(argCount)
+	vm.Run()
+	returnValue := vm.pop()
+	vm.frames = existingFrames
+	vm.framesIndex = existingFrameIndex
+	vm.sp = existingStackPointer
+	return returnValue
+}
+
 func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 	var returnValue object.Object
 	if _, isClosure := fun.(*object.Closure); isClosure {
@@ -634,8 +655,14 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		vm.frames = []*Frame{nil, nil}
 		vm.framesIndex = 1
 		vm.push(fun)
-		vm.push(arg)
-		vm.executeCallFastFrame(1)
+		if arg != nil {
+			vm.push(arg)
+		}
+		argCount := 0
+		if arg != nil {
+			argCount++
+		}
+		vm.executeCallFastFrame(argCount)
 		vm.Run()
 		returnValue = vm.pop()
 		vm.frames = existingFrames
