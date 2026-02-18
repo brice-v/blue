@@ -866,7 +866,7 @@ func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 objec
 		buf.WriteByte('\n')
 		for newE.ErrorTokens.Len() > 0 {
 			tok := newE.ErrorTokens.PopBack()
-			buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+			fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 		}
 		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, buf.String())
 	}

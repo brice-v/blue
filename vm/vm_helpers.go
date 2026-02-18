@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"sort"
 	"strconv"
@@ -791,9 +792,7 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 				if v == nil {
 					v = make(map[string]any)
 				}
-				for k1, v1 := range mv {
-					v[k1] = v1
-				}
+				maps.Copy(v, mv)
 			}
 		}
 	} else if strings.Contains(contentType, "json") {
