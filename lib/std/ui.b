@@ -306,7 +306,7 @@ fun form(children=[], on_submit=null) {
             id = _widget;
         } else {
             if ('v' in _widget) {
-                id = widget.v;
+                id = _widget.v;
             } else if ('widget' in _widget) {
                 id = _widget.widget;
             }

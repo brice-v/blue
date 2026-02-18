@@ -3201,6 +3201,15 @@ var AllBuiltins = []struct {
 	{Name: "gg", Builtins: GgBuiltins},
 }
 
+func GetNameOfModuleByIndex(index int) string {
+	for i, builtins := range AllBuiltins {
+		if i == index {
+			return builtins.Name
+		}
+	}
+	return ""
+}
+
 func GetIndexAndBuiltinsOf(name string) (int, NewBuiltinSliceType) {
 	for i, builtins := range AllBuiltins {
 		if builtins.Name == name {

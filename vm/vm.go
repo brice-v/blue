@@ -434,15 +434,24 @@ func (vm *VM) Run() error {
 				definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
 				var builtin *object.Builtin
 				if definition.Builtin.Fun == nil {
-					if utils.ENABLE_VM_CACHING {
-						// Lazy Evaluate Builtin that needs to use vm
-						definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
-						builtin = definition.Builtin
-					} else {
+					if builtinModuleIndex != 0 {
+						modName := object.GetNameOfModuleByIndex(int(builtinModuleIndex))
 						builtin = &object.Builtin{
-							Fun:     GetBuiltinWithVm(definition.Name, vm),
+							Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
 							HelpStr: definition.Builtin.HelpStr,
 							Mutates: definition.Builtin.Mutates,
+						}
+					} else {
+						if utils.ENABLE_VM_CACHING {
+							// Lazy Evaluate Builtin that needs to use vm
+							definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
+							builtin = definition.Builtin
+						} else {
+							builtin = &object.Builtin{
+								Fun:     GetBuiltinWithVm(definition.Name, vm),
+								HelpStr: definition.Builtin.HelpStr,
+								Mutates: definition.Builtin.Mutates,
+							}
 						}
 					}
 				} else {
