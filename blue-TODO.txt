@@ -1,5 +1,6 @@
 TODO:
 
+- [ ] Fix up static building with VM
 - [ ] Default to using VM as default once everything is implemented
 - [ ] Write up full docs in html
 - [ ] Integrate with --no-exec for vm (make sure exec strings included)

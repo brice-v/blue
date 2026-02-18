@@ -1,4 +1,5 @@
 #VM IGNORE
+# test_big_hash_2 created to handle VM scenarios
 for (i in 1..2) {
     var z = "def";
 }
