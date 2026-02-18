@@ -120,6 +120,7 @@ const (
 	OpGetListIndex
 	OpGetMapKey
 	OpDefer
+	OpSelf
 )
 
 type Definition struct {
@@ -207,6 +208,7 @@ var definitions = map[Opcode]*Definition{
 	OpGetListIndex: {"OpGetListIndex", []int{1}},
 	OpGetMapKey:    {"OpGetMapKey", []int{}},
 	OpDefer:        {"OpDefer", []int{1}},
+	OpSelf:         {"OpSelf", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

@@ -735,6 +735,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 		c.emit(code.OpDefer, len(node.Arguments))
+	case *ast.SelfExpression:
+		c.emit(code.OpSelf)
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}

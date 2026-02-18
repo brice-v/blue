@@ -39,6 +39,10 @@ type VM struct {
 	inTry      bool
 	inCatch    bool
 	catchError string
+
+	// Process things
+	NodeName string
+	PID      uint64
 }
 
 func (vm *VM) currentFrame() *Frame {
@@ -76,13 +80,13 @@ func (vm *VM) popFrame() *Frame {
 	return vm.frames[vm.framesIndex]
 }
 
-func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
+func NewNode(nodeName string, bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions, PosAlreadyIncremented: make(map[int]struct{})}
 	mainClosure := &object.Closure{Fun: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
-	return &VM{
+	vm := &VM{
 		constants: bytecode.Constants,
 		stack:     make([]object.Object, StackSize),
 		sp:        0,
@@ -97,7 +101,24 @@ func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
 
 		inTry:   false,
 		inCatch: false,
+
+		PID:      object.PidCount.Load(),
+		NodeName: nodeName,
 	}
+	// Create an empty process so we can recv without spawning
+	process := &object.Process{
+		// TODO: Eventually update to non-buffered and update send and recv as needed
+		Ch: make(chan object.Object, 1),
+		Id: vm.PID,
+
+		NodeName: nodeName,
+	}
+	object.ProcessMap.LoadOrStore(object.Pk(nodeName, vm.PID), process)
+	return vm
+}
+
+func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
+	return NewNode("vm-node", bytecode, tokenMap)
 }
 
 func NewWithGlobalsStore(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token, s []object.Object) *VM {
@@ -596,7 +617,12 @@ func (vm *VM) Run() error {
 				}
 				vm.currentFrame().PushDeferFun(deferFun.(*object.Closure))
 			}
-
+		case code.OpSelf:
+			if p, ok := object.ProcessMap.Load(object.Pk(vm.NodeName, vm.PID)); ok {
+				vm.push(p)
+			} else {
+				vm.push(newError("`self` error: process not found"))
+			}
 		}
 	}
 	return nil
