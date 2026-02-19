@@ -183,3 +183,16 @@ func (vm *VM) executeStringIndexExpression(str, indx object.Object) error {
 	}
 	return vm.push(&object.Stringo{Value: string([]rune(strObj.Value)[idx])})
 }
+
+func (vm *VM) executeProcessIndexExpression(p, indx object.Object) error {
+	process := p.(*object.Process)
+	str := indx.(*object.Stringo).Value
+	if str != "name" && str != "id" {
+		return vm.push(newError("process index expression only supports 'name' or 'id' as keys"))
+	}
+	if str == "name" {
+		return vm.push(&object.Stringo{Value: process.NodeName})
+	} else {
+		return vm.push(&object.UInteger{Value: process.Id})
+	}
+}

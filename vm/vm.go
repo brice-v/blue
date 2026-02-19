@@ -3,6 +3,7 @@ package vm
 import (
 	"blue/code"
 	"blue/compiler"
+	"blue/consts"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
@@ -125,6 +126,19 @@ func NewWithGlobalsStore(bytecode *compiler.Bytecode, tokenMap map[int][]token.T
 	vm := New(bytecode, tokenMap)
 	vm.globals = s
 	return vm
+}
+
+func (vm *VM) Clone(pid uint64) *VM {
+	return &VM{
+		constants:   clone.Clone(vm.constants).([]object.Object),
+		stack:       clone.Clone(vm.stack).([]object.Object),
+		sp:          vm.sp,
+		globals:     clone.Clone(vm.globals).([]object.Object),
+		frames:      clone.Clone(vm.frames).([]*Frame),
+		framesIndex: vm.framesIndex,
+		NodeName:    vm.NodeName,
+		PID:         pid,
+	}
 }
 
 func (vm *VM) StackTop() object.Object {
@@ -623,6 +637,21 @@ func (vm *VM) Run() error {
 			} else {
 				vm.push(newError("`self` error: process not found"))
 			}
+		case code.OpSpawn:
+			numArgs := int(code.ReadUint8(ins[ip+1:]))
+			vm.currentFrame().ip += 1
+			var args []object.Object
+			funArgIndex := -1
+			listArgIndex := -1
+			if numArgs == 0 {
+				args = []object.Object{vm.pop()}
+				funArgIndex = 0
+			} else {
+				args = []object.Object{vm.pop(), vm.pop()}
+				funArgIndex = 1
+				listArgIndex = 0
+			}
+			vm.executeSpawn(args, funArgIndex, listArgIndex)
 		}
 	}
 	return nil
@@ -966,8 +995,8 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 		return vm.executeStringIndexExpression(left, indx)
 	// case left.Type() == object.MODULE_OBJ:
 	// 	return e.evalModuleIndexExpression(left, indx)
-	// case left.Type() == object.PROCESS_OBJ && indx.Type() == object.STRING_OBJ:
-	// 	return e.evalProcessIndexExpression(left, indx)
+	case left.Type() == object.PROCESS_OBJ && indx.Type() == object.STRING_OBJ:
+		return vm.executeProcessIndexExpression(left, indx)
 	// case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
 	// 	return e.evalBlueStructIndexExpression(left, indx)
 	default:
@@ -1151,4 +1180,48 @@ func vmStr(s string) object.Object {
 		return newError("vm error in `eval` string: %s", err.Error())
 	}
 	return vm.LastPoppedStackElem()
+}
+
+func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) {
+	if args[funArgIndex].Type() != object.CLOSURE {
+		vm.push(newError("`spawn` error: expected function got = %s", args[funArgIndex].Type()))
+		return
+	}
+	if args[listArgIndex].Type() != object.LIST_OBJ {
+		vm.push(newError("`spawn` error: expected list got = %s", args[listArgIndex].Type()))
+		return
+	}
+	fun := args[funArgIndex].(*object.Closure)
+	pid := object.PidCount.Add(1)
+	process := &object.Process{
+		Id: pid,
+		// TODO: Eventually update to non-buffered and update send and recv as needed
+		Ch: make(chan object.Object, 1),
+
+		NodeName: vm.NodeName,
+	}
+	object.ProcessMap.Store(object.Pk(vm.NodeName, pid), process)
+	clonedVm := vm.Clone(pid)
+	go spawnFunction(clonedVm, vm.NodeName, clone.Clone(fun).(*object.Closure), clone.Clone(args[listArgIndex]).(*object.List))
+	vm.push(process)
+}
+
+func spawnFunction(vm *VM, nodeName string, fun *object.Closure, arg1 object.Object) {
+	elems := arg1.(*object.List).Elements
+	newObj := vm.applyFunctionFastWithMultipleArgs(fun, elems)
+	if isError(newObj) {
+		// err := newObj.(*object.Error)
+		// var buf bytes.Buffer
+		// buf.WriteString(err.Message)
+		// buf.WriteByte('\n')
+		// for newE.ErrorTokens.Len() > 0 {
+		// 	tok := newE.ErrorTokens.PopBack()
+		// 	fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
+		// }
+		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, newObj.(*object.Error).Message)
+	}
+	// Delete from concurrent map and close channel (not 100% sure its necessary)
+	if process, ok := object.ProcessMap.LoadAndDelete(object.Pk(nodeName, vm.PID)); ok {
+		close(process.Ch)
+	}
 }

@@ -737,8 +737,85 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpDefer, len(node.Arguments))
 	case *ast.SelfExpression:
 		c.emit(code.OpSelf)
+	case *ast.SpawnExpression:
+		argLen := len(node.Arguments)
+		if argLen > 2 || argLen == 0 {
+			return c.addNodeToErrorTrace(fmt.Errorf("InvalidArgCountError: `spawn` wrong number of arguments. got=%d, want=1 or 2", argLen), node.Token)
+		}
+		err := c.Compile(node.Arguments[0])
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Arguments[0].TokenToken())
+		}
+		if argLen == 2 {
+			err = c.Compile(node.Arguments[1])
+		} else {
+			// Compile Empty List as a placeholder arg
+			err = c.Compile(&ast.ListLiteral{Elements: []ast.Expression{}})
+		}
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+		c.emit(code.OpSpawn, argLen)
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
 	}
 	return nil
 }
+
+// func (e *Evaluator) evalSpawnExpression(node *ast.SpawnExpression) object.Object {
+// 	argLen := len(node.Arguments)
+// 	if argLen > 2 || argLen == 0 {
+// 		return newInvalidArgCountError("spawn", argLen, 1, "or 2")
+// 	}
+// 	arg0 := e.Eval(node.Arguments[0])
+// 	if isError(arg0) {
+// 		return arg0
+// 	}
+// 	if arg0.Type() != object.FUNCTION_OBJ {
+// 		return newPositionalTypeError("spawn", 1, object.FUNCTION_OBJ, arg0.Type())
+// 	}
+// 	arg1 := MakeEmptyList()
+// 	if argLen == 2 {
+// 		arg1 = e.Eval(node.Arguments[1])
+// 		if isError(arg1) {
+// 			return arg1
+// 		}
+// 		if arg1.Type() != object.LIST_OBJ {
+// 			return newPositionalTypeError("spawn", 2, object.LIST_OBJ, arg1.Type())
+// 		}
+// 	}
+// 	fun := arg0.(*object.Function)
+// 	pid := object.PidCount.Add(1)
+// 	process := &object.Process{
+// 		Id: pid,
+// 		// TODO: Eventually update to non-buffered and update send and recv as needed
+// 		Ch: make(chan object.Object, 1),
+
+// 		NodeName: e.NodeName,
+// 	}
+// 	object.ProcessMap.Store(object.Pk(e.NodeName, pid), process)
+// 	go spawnFunction(pid, e.NodeName, fun, arg1)
+// 	return process
+// }
+
+// func spawnFunction(pid uint64, nodeName string, fun *object.Function, arg1 object.Object) {
+// 	newE := New()
+// 	newE.PID = pid
+// 	elems := arg1.(*object.List).Elements
+// 	newObj := newE.applyFunctionFast(fun, elems, make(map[string]object.Object), make([]bool, len(elems)))
+// 	if isError(newObj) {
+// 		err := newObj.(*object.Error)
+// 		var buf bytes.Buffer
+// 		buf.WriteString(err.Message)
+// 		buf.WriteByte('\n')
+// 		for newE.ErrorTokens.Len() > 0 {
+// 			tok := newE.ErrorTokens.PopBack()
+// 			fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
+// 		}
+// 		fmt.Printf("%s%s\n", consts.PROCESS_ERROR_PREFIX, buf.String())
+// 	}
+// 	// Delete from concurrent map and close channel (not 100% sure its necessary)
+// 	if process, ok := object.ProcessMap.LoadAndDelete(object.Pk(nodeName, pid)); ok {
+// 		close(process.Ch)
+// 	}
+// }
