@@ -23,7 +23,7 @@ speed?!
 
 ## Building
 
-- go1.21 required
+- go1.24 required
   - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
 - C Compiler
   - `brew install gcc` or `scoop install gcc`
@@ -42,6 +42,7 @@ speed?!
 - Static build now available (with no CGO) making it much easier to cross
   compile
   - See `make_release_static.*` to see how its being built and tested locally
+- `govulncheck` via `go install golang.org/x/vuln/cmd/govulncheck@latest`
 
 ## Notes
 
