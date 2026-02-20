@@ -410,6 +410,11 @@ func (vm *VM) Run() error {
 					}
 				}
 			}
+			if vm.currentFrame() == nil {
+				// Break out if the current frame is actually empty
+				// Should only ever happen with applyFunction
+				return fmt.Errorf(consts.NORMAL_EXIT_ON_RETURN)
+			}
 		case code.OpReturn:
 			frame := vm.popFrame()
 			if frame != nil {
@@ -432,6 +437,11 @@ func (vm *VM) Run() error {
 						}
 					}
 				}
+			}
+			if vm.currentFrame() == nil {
+				// Break out if the current frame is actually empty
+				// Should only ever happen with applyFunction
+				return fmt.Errorf(consts.NORMAL_EXIT_ON_RETURN)
 			}
 		case code.OpSetLocal, code.OpSetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])

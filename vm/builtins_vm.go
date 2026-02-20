@@ -629,8 +629,8 @@ func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object
 	existingFrames := vm.frames
 	existingFrameIndex := vm.framesIndex
 	existingStackPointer := vm.sp
-	vm.frames = []*Frame{nil, nil}
-	vm.framesIndex = 1
+	vm.frames = make([]*Frame, MaxFrames)
+	vm.framesIndex = 2
 	vm.push(fun)
 	argCount := 0
 	for _, arg := range args {
@@ -638,8 +638,13 @@ func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object
 		argCount++
 	}
 	vm.executeCallFastFrame(argCount)
-	vm.Run()
-	returnValue := vm.pop()
+	err := vm.Run()
+	var returnValue object.Object
+	if err != nil && err.Error() != consts.NORMAL_EXIT_ON_RETURN {
+		returnValue = &object.Error{Message: err.Error()}
+	} else {
+		returnValue = vm.pop()
+	}
 	vm.frames = existingFrames
 	vm.framesIndex = existingFrameIndex
 	vm.sp = existingStackPointer
@@ -652,8 +657,8 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
 		existingStackPointer := vm.sp
-		vm.frames = []*Frame{nil, nil}
-		vm.framesIndex = 1
+		vm.frames = []*Frame{nil, nil, nil}
+		vm.framesIndex = 2
 		vm.push(fun)
 		if arg != nil {
 			vm.push(arg)
@@ -663,7 +668,12 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 			argCount++
 		}
 		vm.executeCallFastFrame(argCount)
-		vm.Run()
+		err := vm.Run()
+		if err != nil && err.Error() != consts.NORMAL_EXIT_ON_RETURN {
+			returnValue = &object.Error{Message: err.Error()}
+		} else {
+			returnValue = vm.pop()
+		}
 		returnValue = vm.pop()
 		vm.frames = existingFrames
 		vm.framesIndex = existingFrameIndex

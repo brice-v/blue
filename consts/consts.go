@@ -50,6 +50,8 @@ const BLUE_DISABLE_HTTP_SERVER_DEBUG = "BLUE_DISABLE_HTTP_SERVER_DEBUG"
 
 const EMBED_FILES_PREFIX = "embed_files/"
 
+const NORMAL_EXIT_ON_RETURN = "normal exit on return"
+
 var ErrorPrinter = color.New(color.FgRed, color.Bold).Printf
 var InfoPrinter = color.New(color.FgBlue, color.Bold).Printf
 

@@ -1,5 +1,3 @@
-#VM IGNORE
-# TODO: vm will support recv
 # So we are not going to support sending on a channel to more than 1 at the same time
 # and instead pubsub will be a valid option
 
