@@ -1,6 +1,3 @@
-#VM IGNORE
-# TODO: vm will support processes
-
 import time
 fun read_and_exit() {
 	val current_pid = self();

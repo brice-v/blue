@@ -549,10 +549,21 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 			return err
 		}
 	} else {
-		c.loadSymbol(*symbolToIndex)
+		c.loadSymbolOrSpecialCaseForProcess(*symbolToIndex)
 	}
 	c.emit(code.OpIndex)
 	return nil
+}
+
+func (c *Compiler) loadSymbolOrSpecialCaseForProcess(s Symbol) {
+	if s.Immutable && s.Scope == GlobalScope {
+		processKeyIndex := object.GetProcessKeyIndex(s.Name)
+		if processKeyIndex != 0 {
+			c.emit(code.OpGetGlobalImmOrSpecial, s.Index, int(processKeyIndex))
+			return
+		}
+	}
+	c.loadSymbol(s)
 }
 
 func (c *Compiler) compileSliceExpression(node *ast.IndexExpression) error {

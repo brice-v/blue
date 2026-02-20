@@ -1,6 +1,8 @@
 package vm
 
-import "blue/object"
+import (
+	"blue/object"
+)
 
 func (vm *VM) executeListIndexExpression(list, indx object.Object) error {
 	listObj := list.(*object.List)
@@ -184,15 +186,49 @@ func (vm *VM) executeStringIndexExpression(str, indx object.Object) error {
 	return vm.push(&object.Stringo{Value: string([]rune(strObj.Value)[idx])})
 }
 
-func (vm *VM) executeProcessIndexExpression(p, indx object.Object) error {
-	process := p.(*object.Process)
-	str := indx.(*object.Stringo).Value
-	if str != "name" && str != "id" {
-		return vm.push(newError("process index expression only supports 'name' or 'id' as keys"))
-	}
-	if str == "name" {
-		return vm.push(&object.Stringo{Value: process.NodeName})
-	} else {
+func (vm *VM) executeProcessIndexExpression(process *object.Process, name string) error {
+	switch name {
+	case "id":
 		return vm.push(&object.UInteger{Value: process.Id})
+	case "name":
+		return vm.push(&object.Stringo{Value: process.NodeName})
+	case "send":
+		p := process
+		return vm.push(&object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("send", len(args), 1, "")
+				}
+				p.Ch <- args[0]
+				return object.NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`send` will take the given value and send it to the process",
+				signature:   "send(pid: PROCESS, val: any) -> null",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "send(#{name: '', id: 1}, 'hello') => null",
+			}.String(),
+		})
+	case "recv":
+		p := process
+		return vm.push(&object.Builtin{
+			Fun: func(args ...object.Object) object.Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("recv", len(args), 0, "")
+				}
+				val := <-p.Ch
+				if val == nil {
+					return newError("`recv` error: process channel was closed")
+				}
+				return val
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`recv` waits for a value on the given process and returns it",
+				signature:   "recv(pid: PROCESS) -> any",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "recv(#{name: '', id: 1}) => 'something'",
+			}.String(),
+		})
 	}
+	panic("Unsupported Process Index Operation: " + name)
 }

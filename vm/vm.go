@@ -307,6 +307,24 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+		case code.OpGetGlobalImmOrSpecial:
+			globalIndex := code.ReadUint16(ins[ip+1:])
+			processKeyIndex := code.ReadUint8(ins[ip+3:])
+			vm.currentFrame().ip += 3
+			var err error
+			if processKeyIndex != 0 && vm.safePeek().Type() == object.PROCESS_OBJ && len(ins) >= vm.currentFrame().ip+1 && ins[vm.currentFrame().ip+1] == byte(code.OpIndex) {
+				vm.currentFrame().ip += 1 // Skip over OpIndex, we are going to pop and then push the evaluated result back on the stack
+				name := object.GetProcessKeyName(processKeyIndex)
+				err = vm.executeProcessIndexExpression(vm.pop().(*object.Process), name)
+			} else {
+				err = vm.push(vm.globals[globalIndex])
+			}
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpList:
 			numElems := int(code.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
@@ -707,6 +725,13 @@ func (vm *VM) pop() object.Object {
 	return o
 }
 
+func (vm *VM) safePeek() object.Object {
+	if vm.sp == 0 {
+		return object.NULL
+	}
+	return vm.stack[vm.sp-1]
+}
+
 func (vm *VM) peek() object.Object {
 	return vm.stack[vm.sp-1]
 }
@@ -996,7 +1021,7 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 	// case left.Type() == object.MODULE_OBJ:
 	// 	return e.evalModuleIndexExpression(left, indx)
 	case left.Type() == object.PROCESS_OBJ && indx.Type() == object.STRING_OBJ:
-		return vm.executeProcessIndexExpression(left, indx)
+		return vm.executeProcessIndexExpression(left.(*object.Process), indx.(*object.Stringo).Value)
 	// case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
 	// 	return e.evalBlueStructIndexExpression(left, indx)
 	default:
@@ -1202,7 +1227,8 @@ func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) 
 	}
 	object.ProcessMap.Store(object.Pk(vm.NodeName, pid), process)
 	clonedVm := vm.Clone(pid)
-	go spawnFunction(clonedVm, vm.NodeName, clone.Clone(fun).(*object.Closure), clone.Clone(args[listArgIndex]).(*object.List))
+	// Dont clone args list so if processes are sent through then they will be usable by the process (channel must not be "cloned")
+	go spawnFunction(clonedVm, vm.NodeName, clone.Clone(fun).(*object.Closure), args[listArgIndex].(*object.List))
 	vm.push(process)
 }
 

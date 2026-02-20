@@ -386,6 +386,36 @@ func (p *Process) Help() string {
 	return createHelpStringForObject("Process", "is the object that represents a goroutine process with an associated channel", p)
 }
 
+func GetProcessKeyIndex(name string) uint8 {
+	switch name {
+	case "id":
+		return 1
+	case "name":
+		return 2
+	case "send":
+		return 3
+	case "recv":
+		return 4
+	default:
+		return 0
+	}
+}
+
+func GetProcessKeyName(index uint8) string {
+	switch index {
+	case 1:
+		return "id"
+	case 2:
+		return "name"
+	case 3:
+		return "send"
+	case 4:
+		return "recv"
+	default:
+		return ""
+	}
+}
+
 // Stringo is the string oject struct which contains a string value
 // it is named stringo to avoid name clashes
 type Stringo struct {
