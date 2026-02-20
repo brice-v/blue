@@ -674,7 +674,6 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		} else {
 			returnValue = vm.pop()
 		}
-		returnValue = vm.pop()
 		vm.frames = existingFrames
 		vm.framesIndex = existingFrameIndex
 		vm.sp = existingStackPointer

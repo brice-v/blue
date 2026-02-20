@@ -1,5 +1,3 @@
-#VM IGNORE
-# TODO: vm will support net
 import net
 
 fun something(parent_pid) {
