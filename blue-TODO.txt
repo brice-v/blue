@@ -1,12 +1,5 @@
 TODO:
 
-- [ ] VM Errors with new updates:
-    - [ ] File `test_all_builtin_fn.b`: vm returned error `all` error: function must return boolean
-    - [ ] File `test_any_all.b`: vm returned error `any` error: function must return boolean
-    - [ ] File `test_filter_fun.b`: vm returned error `assert` failed
-    - [ ] File `test_map_on_collection_with_infix_dot.b`: vm returned error `assert` failed
-    - [ ] File `test_pids.b`: vm returned error type mismatch: STRING OpGreaterThanOrEqual UINTEGER
-    - [ ] File `test_sorting.b`: vm returned error `assert` failed
 - [ ] Any time clone is used, need to make sure that processes are not cloned
 - [ ] Dont necessarily need to return builtin for builtins that require vm reference
     - could just return func(args...) object.Object
@@ -527,3 +520,10 @@ COMPLETED TASKS:
 - [x] Make sure val statements can not be reassigned
     - Need to figure out what to do with their children, maybe they just get a flag
 - [x] Fix up static building with VM
+- [x] VM Errors with new updates:
+    - [x] File `test_all_builtin_fn.b`: vm returned error `all` error: function must return boolean
+    - [x] File `test_any_all.b`: vm returned error `any` error: function must return boolean
+    - [x] File `test_filter_fun.b`: vm returned error `assert` failed
+    - [x] File `test_map_on_collection_with_infix_dot.b`: vm returned error `assert` failed
+    - [x] File `test_pids.b`: vm returned error type mismatch: STRING OpGreaterThanOrEqual UINTEGER
+    - [x] File `test_sorting.b`: vm returned error `assert` failed

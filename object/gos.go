@@ -40,3 +40,12 @@ var Files embed.FS
 
 // NoExec is a global to prevent execution of shell commands on the system
 var NoExec = false
+
+func ClearGlobalState() {
+	PidCount.Store(0)
+	ProcessMap.Clear()
+	SubscriberCount.Store(0)
+	PubSubBroker.Clear()
+	KVMap.Clear()
+	GoObjId.Store(0)
+}

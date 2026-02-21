@@ -209,6 +209,7 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 	// if obj.Inspect() != "true" {
 	// 	t.Errorf("File `%s`: Did not return true as last statement. Failed", f.Name())
 	// }
+	object.ClearGlobalState()
 }
 
 func TestFibPerf(t *testing.T) {

@@ -114,3 +114,10 @@ func (b *Broker) Publish(topic string, msg Object) {
 		})(s)
 	}
 }
+
+func (b *Broker) Clear() {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+	b.subscribers = Subscribers{}
+	b.topics = map[string]Subscribers{}
+}
