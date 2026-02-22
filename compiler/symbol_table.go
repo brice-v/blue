@@ -13,6 +13,8 @@ const (
 	LocalScope   SymbolScope = "LOCAL"
 	FreeScope    SymbolScope = "FREE"
 	BuiltinScope SymbolScope = "BUILTIN"
+
+	SpecialFunctionScope SymbolScope = "SPECIAL"
 )
 
 type Symbol struct {
@@ -35,6 +37,7 @@ func (s Symbol) Equal(other Symbol) bool {
 
 type SymbolTable struct {
 	store          map[string]Symbol
+	specialStore   map[SpecialScopeKey]Symbol
 	numDefinitions int
 	FreeSymbols    []Symbol
 	BlockSymbols   [][]Symbol
@@ -42,11 +45,17 @@ type SymbolTable struct {
 	Outer *SymbolTable
 }
 
+type SpecialScopeKey struct {
+	ScopeIndex int
+	Name       string
+}
+
 func NewSymbolTable() *SymbolTable {
 	s := make(map[string]Symbol)
+	ss := make(map[SpecialScopeKey]Symbol)
 	free := []Symbol{}
 	block := [][]Symbol{}
-	return &SymbolTable{store: s, FreeSymbols: free, BlockSymbols: block}
+	return &SymbolTable{store: s, specialStore: ss, FreeSymbols: free, BlockSymbols: block}
 }
 
 func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
@@ -82,6 +91,12 @@ func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel
 	return symbol
 }
 
+func (s *SymbolTable) defineSpecial(name string, scopeIndex, listIndex int) Symbol {
+	symbol := Symbol{Name: name, Index: listIndex, Immutable: true, Scope: SpecialFunctionScope}
+	s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex}] = symbol
+	return symbol
+}
+
 func (s *SymbolTable) DefineBuiltin(index int, name string, builtinModuleIndex int) Symbol {
 	symbol := Symbol{Name: name, Index: index, Scope: BuiltinScope, BuiltinModuleIndex: builtinModuleIndex}
 	s.store[name] = symbol
@@ -90,6 +105,11 @@ func (s *SymbolTable) DefineBuiltin(index int, name string, builtinModuleIndex i
 
 func (s *SymbolTable) Remove(name string) {
 	delete(s.store, name)
+}
+
+func (s *SymbolTable) ResolveSpecial(name string, scopeIndex int) (Symbol, bool) {
+	symbol, ok := s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex}]
+	return symbol, ok
 }
 
 func (s *SymbolTable) Resolve(name string) (Symbol, bool) {

@@ -108,7 +108,14 @@ func fmtInstruction(def *code.Definition, operands []int, constants []object.Obj
 	case 1:
 		lastPart := ""
 		if def.Name == "OpConstant" {
-			lastPart = fmt.Sprintf(" (%s)", constants[operands[0]].Inspect())
+			if operands[0] > len(constants) {
+				// Noticed this occurred with offset of core compiled but not without it
+				// so added this so that its noted during compile
+				// VM would crash anyways if this code ran with undefined reference
+				lastPart = " (<nil>) <---------------- UNDEFINED CONSTANT REFERENCE (this really shouldn't happen)"
+			} else {
+				lastPart = fmt.Sprintf(" (%s)", constants[operands[0]].Inspect())
+			}
 		}
 		return fmt.Sprintf("%s %d%s", def.Name, operands[0], lastPart)
 	case 2:

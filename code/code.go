@@ -123,6 +123,7 @@ const (
 	OpSelf
 	OpSpawn
 	OpGetGlobalImmOrSpecial
+	OpGetFunctionParameterSpecial
 )
 
 type Definition struct {
@@ -213,7 +214,8 @@ var definitions = map[Opcode]*Definition{
 	OpSelf:         {"OpSelf", []int{}},
 	OpSpawn:        {"OpSpawn", []int{1}},
 
-	OpGetGlobalImmOrSpecial: {"OpGetGlobalImmOrSpecial", []int{2, 1}},
+	OpGetGlobalImmOrSpecial:       {"OpGetGlobalImmOrSpecial", []int{2, 1}},
+	OpGetFunctionParameterSpecial: {"OpGetFunctionParameterSpecial", []int{1}},
 }
 
 func Lookup(op byte) (*Definition, error) {

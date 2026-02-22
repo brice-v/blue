@@ -543,7 +543,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 				// Due to the way compiling works, if its a builtin we need to try again
 				symbol, ok = c.symbolTable.Resolve(node.Value)
 				if !ok {
-					return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+					// Allow resolving special scope symbols
+					symbol, ok = c.symbolTable.ResolveSpecial(node.Value, c.scopeIndex)
+					if !ok {
+						return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+					}
 				}
 			}
 			c.loadSymbol(symbol)
@@ -555,9 +559,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 	case *ast.FunctionLiteral:
 		c.enterScope()
-		for _, p := range node.Parameters {
-			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
-		}
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
 		err := c.Compile(node.Body)
 		if err != nil {
@@ -582,9 +583,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.FunctionStatement:
 		symbol := c.symbolTable.Define(c.getName(node.Name.Value), true, c.BlockNestLevel)
 		c.enterScope()
-		for _, p := range node.Parameters {
-			c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
-		}
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
 		err := c.Compile(node.Body)
 		if err != nil {

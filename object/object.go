@@ -877,6 +877,8 @@ type CompiledFunction struct {
 	DisplayString string
 
 	PosAlreadyIncremented map[int]struct{}
+
+	HasSpecialFunctionParameters bool
 }
 
 // Type returns the function objects type

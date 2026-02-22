@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Add dis() builtin function to disassemble function inline
+- [ ] Add dir() builtin function to print out all keys on an object? (look at what python does and do that)
 - [ ] Any time clone is used, need to make sure that processes are not cloned
 - [ ] Dont necessarily need to return builtin for builtins that require vm reference
     - could just return func(args...) object.Object

@@ -136,6 +136,10 @@ func (c *Compiler) clearBlockSymbols() {
 }
 
 func (c *Compiler) loadSymbol(s Symbol) {
+	if s.Scope == SpecialFunctionScope {
+		c.emit(code.OpGetFunctionParameterSpecial, s.Index)
+		return
+	}
 	if s.Immutable {
 		switch s.Scope {
 		case GlobalScope:
@@ -688,12 +692,15 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement, astStr string) *object.CompiledFunction {
+	hasSpecialFunctionParameters := c.setupFunctionParameters(parameters, parameterExpressions)
 	compiledFun := &object.CompiledFunction{
 		Parameters:            make([]string, len(parameters)),
 		ParameterHasDefault:   make([]bool, len(parameters)),
 		NumParameters:         len(parameters),
 		DisplayString:         astStr,
 		PosAlreadyIncremented: make(map[int]struct{}),
+
+		HasSpecialFunctionParameters: hasSpecialFunctionParameters,
 	}
 	defaultParams := 0
 	var statementsToPrepend []ast.Statement = nil
@@ -724,6 +731,31 @@ func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressi
 		body.Statements = append(statementsToPrepend, body.Statements...)
 	}
 	return compiledFun
+}
+
+func (c *Compiler) setupFunctionParameters(parameters []*ast.Identifier, parameterExpressions []ast.Expression) bool {
+	hasSpecialFunctionParameters := false
+	for i, p := range parameters {
+		c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
+		defaultExpression := parameterExpressions[i]
+		if defaultExpression != nil {
+			if l, ok := defaultExpression.(*ast.ListLiteral); ok {
+				allStr := true
+				for _, elem := range l.Elements {
+					_, isStr := elem.(*ast.StringLiteral)
+					allStr = allStr && isStr
+				}
+				if !allStr {
+					continue
+				}
+				for i, elem := range l.Elements {
+					c.symbolTable.defineSpecial(elem.(*ast.StringLiteral).Value, c.scopeIndex, i)
+					hasSpecialFunctionParameters = true
+				}
+			}
+		}
+	}
+	return hasSpecialFunctionParameters
 }
 
 func (c *Compiler) compileCallExpression(node *ast.CallExpression) error {
