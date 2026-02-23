@@ -878,7 +878,12 @@ type CompiledFunction struct {
 
 	PosAlreadyIncremented map[int]struct{}
 
-	HasSpecialFunctionParameters bool
+	SpecialFunctionParameters map[NameIndexKey]map[NameIndexKey]Object
+}
+
+type NameIndexKey struct {
+	Name  string
+	Index int
 }
 
 // Type returns the function objects type

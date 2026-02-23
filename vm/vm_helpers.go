@@ -680,97 +680,55 @@ func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c *fiber.Ctx, metho
 	isDelete := method == "DELETE"
 	methodLower := strings.ToLower(method)
 	if !isGet && !isDelete {
-		ok, errors := getAndSetDefaultHttpParams(vm, methodLower+"_values", fn, c)
-		if !ok {
-			return false, nil, errors
-		}
+		handleSpecialFunctionArgs2(fn, methodLower+"_values", c)
 	}
-	ok, errors := getAndSetDefaultHttpParams(vm, "query_params", fn, c)
-	if !ok {
-		return false, nil, errors
-	}
+	handleSpecialFunctionArgs2(fn, "query_params", c)
 	fnArgs := getAndSetHttpParams(fn, c)
 	return true, vm.applyFunctionFastWithMultipleArgs(fn, fnArgs), []string{}
 }
 
-func getAndSetDefaultHttpParams(vm *VM, varName string, fn *object.Closure, c *fiber.Ctx) (bool, []string) {
-	// TODO: No default params, need to figure this out
-	// for k, v := range fn.DefaultParameters {
-	// 	isQueryParams := v != nil && fn.Parameters[k].Value == "query_params"
-	// 	isCookies := v != nil && fn.Parameters[k].Value == "cookies"
-	// 	if v != nil {
-	// 		if isQueryParams {
-	// 			// Handle query_params
-	// 			if v.Type() != object.LIST_OBJ {
-	// 				errors := getErrorTokenTraceAsJson(vm).([]string)
-	// 				errors = append(errors, fmt.Sprintf("query_params must be LIST. got=%s", v.Type()))
-	// 				return false, errors
-	// 			}
-	// 			l := v.(*object.List).Elements
-	// 			for _, elem := range l {
-	// 				if elem.Type() != object.STRING_OBJ {
-	// 					errors := getErrorTokenTraceAsJson(vm).([]string)
-	// 					errors = append(errors, fmt.Sprintf("query_params must be LIST of STRINGs. found=%s", elem.Type()))
-	// 					return false, errors
-	// 				}
-	// 				// Now we know its a list of strings so we can set the variables accordingly for the fn
-	// 				s := elem.(*object.Stringo).Value
-	// 				fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
-	// 			}
-	// 		} else if isCookies {
-	// 			// Handle cookies
-	// 			if v.Type() != object.LIST_OBJ {
-	// 				errors := getErrorTokenTraceAsJson(vm).([]string)
-	// 				errors = append(errors, fmt.Sprintf("cookies must be LIST. got=%s", v.Type()))
-	// 				return false, errors
-	// 			}
-	// 			l := v.(*object.List).Elements
-	// 			for _, elem := range l {
-	// 				if elem.Type() != object.STRING_OBJ {
-	// 					errors := getErrorTokenTraceAsJson(vm).([]string)
-	// 					errors = append(errors, fmt.Sprintf("cookies must be LIST of STRINGs. found=%s", elem.Type()))
-	// 					return false, errors
-	// 				}
-	// 				// Now we know its a list of strings so we can set the variables accordingly for the fn
-	// 				s := elem.(*object.Stringo).Value
-	// 				fn.Env.Set(s, &object.Stringo{Value: c.Cookies(s)})
-	// 			}
-	// 		} else if fn.Parameters[k].Value == varName {
-	// 			// Handle post_values, put_values, patch_values (in body)
-	// 			if v.Type() != object.LIST_OBJ {
-	// 				errors := getErrorTokenTraceAsJson(vm).([]string)
-	// 				errors = append(errors, fmt.Sprintf("%s must be LIST. got=%s", varName, v.Type()))
-	// 				return false, errors
-	// 			}
-	// 			l := v.(*object.List).Elements
-
-	// 			contentType := c.Get("Content-Type")
-	// 			body := strings.NewReader(string(c.Body()))
-
-	// 			returnMap, err := decodeBodyToMap(contentType, body)
-	// 			if err != nil {
-	// 				errors := getErrorTokenTraceAsJsonWithError(vm, err.Error()).([]string)
-	// 				errors = append(errors, fmt.Sprintf("received input that could not be decoded in `%s`", string(c.Body())))
-	// 				return false, errors
-	// 			}
-	// 			for _, elem := range l {
-	// 				if elem.Type() != object.STRING_OBJ {
-	// 					errors := getErrorTokenTraceAsJson(vm).([]string)
-	// 					errors = append(errors, fmt.Sprintf("%s must be LIST of STRINGs. found=%s", varName, elem.Type()))
-	// 					return false, errors
-	// 				}
-	// 				s := elem.(*object.Stringo).Value
-	// 				if v, ok := returnMap[s]; ok {
-	// 					fn.Env.Set(s, v)
-	// 				} else {
-	// 					fn.Env.Set(s, &object.Stringo{Value: c.FormValue(s)})
-	// 				}
-	// 				// Now we know its a list of strings so we can set the variables accordingly for the fn
-	// 			}
-	// 		}
-	// 	}
-	// }
-	return true, []string{}
+func handleSpecialFunctionArgs2(fn *object.Closure, varName string, c *fiber.Ctx) {
+	if fn.Fun.SpecialFunctionParameters == nil {
+		return
+	}
+	for i, p := range fn.Fun.Parameters {
+		if !fn.Fun.ParameterHasDefault[i] {
+			continue
+		}
+		key := object.NameIndexKey{Name: p, Index: i}
+		switch p {
+		case "query_params":
+			if objectMap, ok := fn.Fun.SpecialFunctionParameters[key]; ok {
+				for k := range objectMap {
+					objectMap[k] = &object.Stringo{Value: c.Query(k.Name)}
+				}
+			}
+		case "cookies":
+			if objectMap, ok := fn.Fun.SpecialFunctionParameters[key]; ok {
+				for k := range objectMap {
+					objectMap[k] = &object.Stringo{Value: c.Cookies(k.Name)}
+				}
+			}
+		case varName:
+			contentType := c.Get("Content-Type")
+			body := strings.NewReader(string(c.Body()))
+			returnMap, err := decodeBodyToMap(contentType, body)
+			if objectMap, ok := fn.Fun.SpecialFunctionParameters[key]; ok {
+				for k := range objectMap {
+					if err != nil {
+						objectMap[k] = &object.Error{Message: err.Error()}
+						continue
+					}
+					s := k.Name
+					if v, ok := returnMap[s]; ok {
+						objectMap[k] = v
+					} else {
+						objectMap[k] = &object.Stringo{Value: c.FormValue(s)}
+					}
+				}
+			}
+		}
+	}
 }
 
 func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Object, error) {
@@ -1016,4 +974,19 @@ func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string
 		}
 	}
 	return
+}
+
+func (vm *VM) pushSpecialFunctionParameter(parameterIndex, listIndex int) error {
+	for k, v := range vm.currentFrame().cl.Fun.SpecialFunctionParameters {
+		if k.Index != parameterIndex {
+			continue
+		}
+		for kk, vv := range v {
+			if kk.Index != listIndex {
+				continue
+			}
+			return vm.push(vv)
+		}
+	}
+	return fmt.Errorf("failed to GetSpecialFunctionParameter with Parameter Index: %d and List Index: %d", parameterIndex, listIndex)
 }

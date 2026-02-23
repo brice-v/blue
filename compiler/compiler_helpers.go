@@ -137,7 +137,7 @@ func (c *Compiler) clearBlockSymbols() {
 
 func (c *Compiler) loadSymbol(s Symbol) {
 	if s.Scope == SpecialFunctionScope {
-		c.emit(code.OpGetFunctionParameterSpecial, s.Index)
+		c.emit(code.OpGetFunctionParameterSpecial, s.BuiltinModuleIndex, s.Index)
 		return
 	}
 	if s.Immutable {
@@ -692,7 +692,7 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement, astStr string) *object.CompiledFunction {
-	hasSpecialFunctionParameters := c.setupFunctionParameters(parameters, parameterExpressions)
+	specialFunctionParameters := c.setupFunctionParameters(parameters, parameterExpressions)
 	compiledFun := &object.CompiledFunction{
 		Parameters:            make([]string, len(parameters)),
 		ParameterHasDefault:   make([]bool, len(parameters)),
@@ -700,7 +700,7 @@ func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressi
 		DisplayString:         astStr,
 		PosAlreadyIncremented: make(map[int]struct{}),
 
-		HasSpecialFunctionParameters: hasSpecialFunctionParameters,
+		SpecialFunctionParameters: specialFunctionParameters,
 	}
 	defaultParams := 0
 	var statementsToPrepend []ast.Statement = nil
@@ -733,10 +733,14 @@ func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressi
 	return compiledFun
 }
 
-func (c *Compiler) setupFunctionParameters(parameters []*ast.Identifier, parameterExpressions []ast.Expression) bool {
-	hasSpecialFunctionParameters := false
+func (c *Compiler) setupFunctionParameters(parameters []*ast.Identifier, parameterExpressions []ast.Expression) map[object.NameIndexKey]map[object.NameIndexKey]object.Object {
+	var specialFunctionParameters map[object.NameIndexKey]map[object.NameIndexKey]object.Object = nil
+	lensEqual := len(parameters) == len(parameterExpressions)
 	for i, p := range parameters {
 		c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
+		if !lensEqual {
+			continue
+		}
 		defaultExpression := parameterExpressions[i]
 		if defaultExpression != nil {
 			if l, ok := defaultExpression.(*ast.ListLiteral); ok {
@@ -748,14 +752,22 @@ func (c *Compiler) setupFunctionParameters(parameters []*ast.Identifier, paramet
 				if !allStr {
 					continue
 				}
-				for i, elem := range l.Elements {
-					c.symbolTable.defineSpecial(elem.(*ast.StringLiteral).Value, c.scopeIndex, i)
-					hasSpecialFunctionParameters = true
+				if specialFunctionParameters == nil {
+					specialFunctionParameters = make(map[object.NameIndexKey]map[object.NameIndexKey]object.Object)
+				}
+				key := object.NameIndexKey{Name: p.Value, Index: i}
+				if _, ok := specialFunctionParameters[key]; !ok {
+					specialFunctionParameters[key] = make(map[object.NameIndexKey]object.Object)
+				}
+				for ii, elem := range l.Elements {
+					s := elem.(*ast.StringLiteral).Value
+					c.symbolTable.defineSpecial(s, c.scopeIndex, i, ii)
+					specialFunctionParameters[key][object.NameIndexKey{Name: s, Index: ii}] = nil
 				}
 			}
 		}
 	}
-	return hasSpecialFunctionParameters
+	return specialFunctionParameters
 }
 
 func (c *Compiler) compileCallExpression(node *ast.CallExpression) error {

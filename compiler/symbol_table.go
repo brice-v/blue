@@ -91,8 +91,9 @@ func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel
 	return symbol
 }
 
-func (s *SymbolTable) defineSpecial(name string, scopeIndex, listIndex int) Symbol {
-	symbol := Symbol{Name: name, Index: listIndex, Immutable: true, Scope: SpecialFunctionScope}
+func (s *SymbolTable) defineSpecial(name string, scopeIndex, paramIndex, listIndex int) Symbol {
+	// Using BuiltinModuleIndex for the parameter index
+	symbol := Symbol{Name: name, Index: listIndex, BuiltinModuleIndex: paramIndex, Immutable: true, Scope: SpecialFunctionScope}
 	s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex}] = symbol
 	return symbol
 }

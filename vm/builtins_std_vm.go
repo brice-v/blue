@@ -275,60 +275,7 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 
 			var returnObj object.Object = object.NULL
 			wsHandler := websocket.New(func(c *websocket.Conn) {
-				// TODO: No Default Parameters map available
-				// for k, v := range fn.Fun.DefaultParameters {
-				// 	isQueryParams := v != nil && fn.Fun.Parameters[k] == "query_params"
-				// 	isCookies := v != nil && fn.Fun.Parameters[k] == "cookies"
-				// 	if v != nil {
-				// 		if isQueryParams {
-				// 			// Handle query_params
-				// 			if v.Type() != object.LIST_OBJ {
-				// 				_ = getErrorTokenTraceAsJson(vm)
-				// 				if !disableHttpServerDebug {
-				// 					fmt.Printf("%s`handle_ws` error: query_params must be LIST. got=%s\n", consts.VM_ERROR_PREFIX, v.Type())
-				// 				}
-				// 				return
-				// 			}
-				// 			l := v.(*object.List).Elements
-				// 			for _, elem := range l {
-				// 				if elem.Type() != object.STRING_OBJ {
-				// 					_ = getErrorTokenTraceAsJson(vm)
-				// 					if !disableHttpServerDebug {
-				// 						fmt.Printf("%s`handle_ws` error: query_params must be LIST of STRINGs. found=%s\n", consts.VM_ERROR_PREFIX, elem.Type())
-				// 					}
-				// 					return
-				// 				}
-				// 				// Now we know its a list of strings so we can set the variables accordingly for the fn
-				// 				// TODO: No Env, need to make this available to function
-				// 				// s := elem.(*object.Stringo).Value
-				// 				// fn.Env.Set(s, &object.Stringo{Value: c.Query(s)})
-				// 			}
-				// 		} else if isCookies {
-				// 			// Handle cookies
-				// 			if v.Type() != object.LIST_OBJ {
-				// 				_ = getErrorTokenTraceAsJson(vm)
-				// 				if !disableHttpServerDebug {
-				// 					fmt.Printf("%s`handle_ws` error: cookies must be LIST. got=%s\n", consts.VM_ERROR_PREFIX, v.Type())
-				// 				}
-				// 				return
-				// 			}
-				// 			l := v.(*object.List).Elements
-				// 			for _, elem := range l {
-				// 				if elem.Type() != object.STRING_OBJ {
-				// 					_ = getErrorTokenTraceAsJson(vm)
-				// 					if !disableHttpServerDebug {
-				// 						fmt.Printf("%s`handle_ws` error: cookies must be LIST of STRINGs. found=%s\n", consts.VM_ERROR_PREFIX, elem.Type())
-				// 					}
-				// 					return
-				// 				}
-				// 				// Now we know its a list of strings so we can set the variables accordingly for the fn
-				// 				// TODO: No Env, need to make this available to function
-				// 				// s := elem.(*object.Stringo).Value
-				// 				// fn.Env.Set(s, &object.Stringo{Value: c.Cookies(s)})
-				// 			}
-				// 		}
-				// 	}
-				// }
+				handleSpecialFunctionArgs(fn, c)
 				fnArgs := make([]object.Object, len(fn.Fun.Parameters))
 				// immutableArgs := make([]bool, len(fnArgs))
 				for i, v := range fn.Fun.Parameters {
@@ -366,6 +313,32 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 			// Always returns NULL here
 			return returnObj
 		},
+	}
+}
+
+func handleSpecialFunctionArgs(fn *object.Closure, c *websocket.Conn) {
+	if fn.Fun.SpecialFunctionParameters == nil {
+		return
+	}
+	for i, p := range fn.Fun.Parameters {
+		if !fn.Fun.ParameterHasDefault[i] {
+			continue
+		}
+		key := object.NameIndexKey{Name: p, Index: i}
+		switch p {
+		case "query_params":
+			if objectMap, ok := fn.Fun.SpecialFunctionParameters[key]; ok {
+				for k := range objectMap {
+					objectMap[k] = &object.Stringo{Value: c.Query(k.Name)}
+				}
+			}
+		case "cookies":
+			if objectMap, ok := fn.Fun.SpecialFunctionParameters[key]; ok {
+				for k := range objectMap {
+					objectMap[k] = &object.Stringo{Value: c.Cookies(k.Name)}
+				}
+			}
+		}
 	}
 }
 

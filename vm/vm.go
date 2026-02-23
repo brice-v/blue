@@ -680,6 +680,17 @@ func (vm *VM) Run() error {
 				listArgIndex = 0
 			}
 			vm.executeSpawn(args, funArgIndex, listArgIndex)
+		case code.OpGetFunctionParameterSpecial:
+			indexParam := int(code.ReadUint8(ins[ip+1:]))
+			indexList := int(code.ReadUint8(ins[ip+2:]))
+			vm.currentFrame().ip += 2
+			err := vm.pushSpecialFunctionParameter(indexParam, indexList)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil

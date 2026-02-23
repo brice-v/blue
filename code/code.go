@@ -215,7 +215,7 @@ var definitions = map[Opcode]*Definition{
 	OpSpawn:        {"OpSpawn", []int{1}},
 
 	OpGetGlobalImmOrSpecial:       {"OpGetGlobalImmOrSpecial", []int{2, 1}},
-	OpGetFunctionParameterSpecial: {"OpGetFunctionParameterSpecial", []int{1}},
+	OpGetFunctionParameterSpecial: {"OpGetFunctionParameterSpecial", []int{1, 1}},
 }
 
 func Lookup(op byte) (*Definition, error) {
