@@ -128,12 +128,27 @@ func NewWithGlobalsStore(bytecode *compiler.Bytecode, tokenMap map[int][]token.T
 	return vm
 }
 
+func cloneSlice(objects []object.Object) []object.Object {
+	os := make([]object.Object, len(objects))
+	for i, o := range objects {
+		// Only copy 'GoObj' otherwise it causes stack overflow
+		// havent quite root caused it but I would assume its a
+		// circular dependency in the object (fiber.App)
+		if o != nil && o.Type() != object.GO_OBJ {
+			os[i] = clone.Clone(o).(object.Object)
+		} else {
+			os[i] = o
+		}
+	}
+	return os
+}
+
 func (vm *VM) Clone(pid uint64) *VM {
 	return &VM{
 		constants:   clone.Clone(vm.constants).([]object.Object),
-		stack:       clone.Clone(vm.stack).([]object.Object),
+		stack:       cloneSlice(vm.stack),
 		sp:          vm.sp,
-		globals:     clone.Clone(vm.globals).([]object.Object),
+		globals:     cloneSlice(vm.globals),
 		frames:      clone.Clone(vm.frames).([]*Frame),
 		framesIndex: vm.framesIndex,
 		NodeName:    vm.NodeName,
