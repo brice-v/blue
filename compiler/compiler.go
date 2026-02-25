@@ -538,19 +538,25 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if c.inMatch && node.Value == "_" {
 			c.emit(code.OpMatchAny)
 		} else {
+			var dontEmitSymbol bool
 			symbol, ok := c.symbolTable.Resolve(c.getName(node.Value))
 			if !ok {
 				// Due to the way compiling works, if its a builtin we need to try again
 				symbol, ok = c.symbolTable.Resolve(node.Value)
 				if !ok {
 					// Allow resolving special scope symbols
-					symbol, ok = c.symbolTable.ResolveSpecial(node.Value, c.scopeIndex)
+					symbol, ok, dontEmitSymbol = c.symbolTable.ResolveSpecial(node.Value, c.scopeIndex)
 					if !ok {
 						return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
 					}
+					if dontEmitSymbol {
+						c.emit(code.OpGetFunctionParameterSpecial2, c.scopeIndex)
+					}
 				}
 			}
-			c.loadSymbol(symbol)
+			if !dontEmitSymbol {
+				c.loadSymbol(symbol)
+			}
 		}
 	case *ast.IndexExpression:
 		err := c.compileIndexExpression(node)

@@ -990,3 +990,15 @@ func (vm *VM) pushSpecialFunctionParameter(parameterIndex, listIndex int) error 
 	}
 	return fmt.Errorf("failed to GetSpecialFunctionParameter with Parameter Index: %d and List Index: %d", parameterIndex, listIndex)
 }
+
+func (vm *VM) pushSpecialFunctionParameter2(listIndex int) error {
+	for _, v := range vm.currentFrame().cl.Fun.SpecialFunctionParameters {
+		for kk, vv := range v {
+			if vv == nil || kk.Index != listIndex {
+				continue
+			}
+			return vm.push(vv)
+		}
+	}
+	return fmt.Errorf("failed to GetSpecialFunctionParameter2 with List Index: %d", listIndex)
+}

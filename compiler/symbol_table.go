@@ -36,26 +36,29 @@ func (s Symbol) Equal(other Symbol) bool {
 }
 
 type SymbolTable struct {
-	store          map[string]Symbol
-	specialStore   map[SpecialScopeKey]Symbol
-	numDefinitions int
-	FreeSymbols    []Symbol
-	BlockSymbols   [][]Symbol
+	store                     map[string]Symbol
+	specialStore              map[SpecialScopeKey]Symbol
+	specialStoreParamIndexMap map[string][]int
+	numDefinitions            int
+	FreeSymbols               []Symbol
+	BlockSymbols              [][]Symbol
 
 	Outer *SymbolTable
 }
 
 type SpecialScopeKey struct {
 	ScopeIndex int
+	ParamIndex int
 	Name       string
 }
 
 func NewSymbolTable() *SymbolTable {
 	s := make(map[string]Symbol)
 	ss := make(map[SpecialScopeKey]Symbol)
+	ssim := make(map[string][]int)
 	free := []Symbol{}
 	block := [][]Symbol{}
-	return &SymbolTable{store: s, specialStore: ss, FreeSymbols: free, BlockSymbols: block}
+	return &SymbolTable{store: s, specialStore: ss, specialStoreParamIndexMap: ssim, FreeSymbols: free, BlockSymbols: block}
 }
 
 func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
@@ -94,7 +97,8 @@ func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel
 func (s *SymbolTable) defineSpecial(name string, scopeIndex, paramIndex, listIndex int) Symbol {
 	// Using BuiltinModuleIndex for the parameter index
 	symbol := Symbol{Name: name, Index: listIndex, BuiltinModuleIndex: paramIndex, Immutable: true, Scope: SpecialFunctionScope}
-	s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex}] = symbol
+	s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex, ParamIndex: paramIndex}] = symbol
+	s.specialStoreParamIndexMap[name] = append(s.specialStoreParamIndexMap[name], paramIndex)
 	return symbol
 }
 
@@ -108,9 +112,19 @@ func (s *SymbolTable) Remove(name string) {
 	delete(s.store, name)
 }
 
-func (s *SymbolTable) ResolveSpecial(name string, scopeIndex int) (Symbol, bool) {
-	symbol, ok := s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex}]
-	return symbol, ok
+func (s *SymbolTable) ResolveSpecial(name string, scopeIndex int) (Symbol, bool, bool) {
+	indexMap, ok := s.specialStoreParamIndexMap[name]
+	if ok {
+		if len(indexMap) > 1 {
+			return emptySym, true, true
+		}
+		for _, index := range indexMap {
+			if symbol, ok := s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex, ParamIndex: index}]; ok {
+				return symbol, ok, false
+			}
+		}
+	}
+	return emptySym, false, false
 }
 
 func (s *SymbolTable) Resolve(name string) (Symbol, bool) {

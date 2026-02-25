@@ -708,6 +708,16 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+		case code.OpGetFunctionParameterSpecial2:
+			indexList := int(code.ReadUint8(ins[ip+1:]))
+			vm.currentFrame().ip += 1
+			err := vm.pushSpecialFunctionParameter2(indexList)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
