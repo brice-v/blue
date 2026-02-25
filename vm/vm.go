@@ -295,7 +295,9 @@ func (vm *VM) Run() error {
 					vm.currentFrame().ip = pos - 1
 					vm.push(object.TRUE)
 				} else {
+					// Execute Not on the Condition to reverse OpNotIfNotNull which is always called prior
 					vm.push(condition)
+					vm.executeNotOperation()
 				}
 			}
 		case code.OpJumpNotTruthyAndPushFalse:

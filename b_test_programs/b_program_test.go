@@ -440,6 +440,50 @@ func TestBrokenVmOpAssign(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestBrokenLogicInFetchVm(t *testing.T) {
+	s := `val _f = fun(resource, method, headers, body, full_resp) {
+		"#{resource}, #{method}, #{headers}, #{body}, #{full_resp}"
+	}
+
+	fun f(resource, options=null, full_resp=true) {
+		if (options == null) {
+			options = {
+				method: 'GET',
+				headers: {},
+				body: null,
+			};
+		} else {
+			val t = options.type();
+			if (t != 'MAP') {
+				return error("'fetch' error:  options must be MAP. got=#{t}");
+			}
+			if (options.method == null) {
+				options.method = 'GET';
+			}
+			if (options.headers == null) {
+				options.headers = {};
+			} else {
+				val ht = type(options.headers);
+				if (ht != 'MAP') {
+					return error("'fetch' error:  options.headers must be MAP. got=#{ht}");
+				}
+			}
+			'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+			if (options.method == 'GET' or options.method == 'DELETE') {
+				if (options.body != null) {
+					return error("'fetch' error: options.body must be NULL for 'GET' or 'DELETE' methods");
+				}
+			}
+		}
+		_f(resource, options.method, options.headers, options.body, full_resp)
+	}
+
+	var result = f("http://localhost:3001/post/abc/213", {method: 'POST', body: '{"name":"john","pass":"doe"}', headers: {'content-type': 'application/json'}});
+	assert(result == 'http://localhost:3001/post/abc/213, POST, {content-type: application/json}, {"name":"john","pass":"doe"}, true')`
+	vmStringWithCore(t, s)
+
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
