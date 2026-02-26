@@ -484,6 +484,47 @@ func TestBrokenLogicInFetchVm(t *testing.T) {
 
 }
 
+// TODO: Test this and fix then re-enable test
+func testBrokenVmStackOverflowIssue(t *testing.T) {
+	s := `val input = """[[1],[2,3,4]]
+	[[1],4]""";
+	var lines = input.split("\n");
+
+	fun get_pairs_of_lists(lines) {
+		var pairs = [];
+		var index = 1;
+		var i = 0;
+		for (true) {
+			if (i > len(lines) or (i+1) > len(lines)) {
+				break;
+			}
+			if (lines[i] == '') {
+				i += 1;
+			} else {
+				var pair1 = eval(lines[i]);
+				var pair2 = eval(lines[i+1]);
+				pairs << {'pair1': pair1, 'pair2': pair2, 'index': index};
+				index += 1;
+				i += 2;
+			}
+		}
+		return pairs;
+	}
+
+	fun part1(lines) {
+		val pairs_of_lists = get_pairs_of_lists(lines);
+		for (pair in pairs_of_lists) {
+			println("!!!!IN HERE-------------------------------")
+			println("pair = #{pair}")
+		}
+	}
+
+	part1(lines);
+
+	assert(true);`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
