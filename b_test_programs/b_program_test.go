@@ -11,7 +11,6 @@ import (
 	"blue/utils"
 	"blue/vm"
 	"bytes"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -533,7 +532,7 @@ func vmStringWithCore(t *testing.T, s string) {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
 	// fmt.Print(utils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
-	fmt.Printf("PARSED: ```%s```\n", program.String())
+	// fmt.Printf("PARSED: ```%s```\n", program.String())
 	v := vm.New(c.Bytecode(), c.Tokens)
 	err = v.Run()
 	if err != nil {

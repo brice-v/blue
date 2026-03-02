@@ -25,7 +25,8 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 		case "_handle_use":
 			return createHttpHandleBuiltin(vm, true).Fun
 		case "_handle_ws":
-			return createHttpHandleWSBuiltin(vm).Fun
+			newVm := vm.Clone(vm.PID)
+			return createHttpHandleWSBuiltin(newVm).Fun
 		default:
 			panic("GetStdBuiltinWithVm called with incorrect builtin function name '" + name + "' for module: " + mod)
 		}
@@ -277,14 +278,12 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 			wsHandler := websocket.New(func(c *websocket.Conn) {
 				handleSpecialFunctionArgs(fn, c)
 				fnArgs := make([]object.Object, len(fn.Fun.Parameters))
-				// immutableArgs := make([]bool, len(fnArgs))
 				for i, v := range fn.Fun.Parameters {
 					if i == 0 {
 						fnArgs[i] = object.CreateBasicMapObjectForGoObj("ws", NewGoObj(c))
 					} else {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v)}
 					}
-					// immutableArgs[i] = true
 				}
 				returnObj = vm.applyFunctionFastWithMultipleArgs(fn, fnArgs)
 				if isError(returnObj) {

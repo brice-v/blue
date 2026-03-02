@@ -799,7 +799,8 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 	wasInCatch := vm.inCatch && !vm.inTry
 	vm.inCatch = false
 	frameIndex := vm.framesIndex - 1
-	for frame := vm.frames[frameIndex]; frameIndex >= 0; frame = vm.frames[frameIndex] {
+	for frameIndex >= 0 {
+		frame := vm.frames[frameIndex]
 		if newip, ok := vm.isOpCatchOrFinallyFoundInFrame(frame, errorMessage); ok {
 			vm.framesIndex = frameIndex + 1
 			vm.currentFrame().ip = newip
@@ -817,6 +818,9 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 }
 
 func (vm *VM) isOpCatchOrFinallyFoundInFrame(frame *Frame, errorMessage string) (int, bool) {
+	if frame == nil {
+		return -1, false
+	}
 	ins := frame.Instructions()
 	for i := frame.ip - 1; i < len(ins); i++ {
 		def, err := code.Lookup(ins[i])

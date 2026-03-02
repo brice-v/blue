@@ -1073,6 +1073,9 @@ func HashObject(obj Object) uint64 {
 }
 
 func IsHashable(obj Object) bool {
+	if obj == nil {
+		return false
+	}
 	t := obj.Type()
 	return t == INTEGER_OBJ ||
 		t == UINTEGER_OBJ ||

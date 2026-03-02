@@ -537,7 +537,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 		} else if sym1, ok1 := c.symbolTable.Resolve(rightStr.Value); ok1 {
 			// When inside a module, we still want to be able to resolve dot calls
 			// using builtin functions
-			if isDotCall && sym1.Scope == BuiltinScope {
+			if isDotCall && (sym1.Scope == BuiltinScope || sym1.Scope == GlobalScope) {
 				symbolToIndex = &sym1
 			}
 		}
