@@ -988,7 +988,8 @@ func (vm *VM) pushSpecialFunctionParameter(parameterIndex, listIndex int) error 
 			return vm.push(vv)
 		}
 	}
-	return fmt.Errorf("failed to GetSpecialFunctionParameter with Parameter Index: %d and List Index: %d", parameterIndex, listIndex)
+	// Default behavior if not found is to put empty string
+	return vm.push(&object.Stringo{Value: ""})
 }
 
 func (vm *VM) pushSpecialFunctionParameter2(listIndex int) error {
@@ -1000,5 +1001,6 @@ func (vm *VM) pushSpecialFunctionParameter2(listIndex int) error {
 			return vm.push(vv)
 		}
 	}
-	return fmt.Errorf("failed to GetSpecialFunctionParameter2 with List Index: %d", listIndex)
+	// Default behavior if not found is to put empty string
+	return vm.push(&object.Stringo{Value: ""})
 }

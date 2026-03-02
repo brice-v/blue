@@ -718,6 +718,8 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+		case code.OpClearFunctionParameterSpectial:
+			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
 		}
 	}
 	return nil

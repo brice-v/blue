@@ -881,6 +881,14 @@ type CompiledFunction struct {
 	SpecialFunctionParameters map[NameIndexKey]map[NameIndexKey]Object
 }
 
+func (cf *CompiledFunction) ClearSpecialFunctionParameters() {
+	for k, v := range cf.SpecialFunctionParameters {
+		for kk := range v {
+			cf.SpecialFunctionParameters[k][kk] = nil
+		}
+	}
+}
+
 type NameIndexKey struct {
 	Name  string
 	Index int

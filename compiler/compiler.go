@@ -224,10 +224,11 @@ func (c *Compiler) removeLastInstruction() {
 	c.scopes[c.scopeIndex].lastInstruction = previous
 }
 
-func (c *Compiler) replaceLastPopWithReturn() {
+func (c *Compiler) replaceLastPosWithClearSpecialAndReturn() {
 	lastPos := c.scopes[c.scopeIndex].lastInstruction.Position
-	c.replaceInstruction(lastPos, code.Make(code.OpReturnValue))
-	c.scopes[c.scopeIndex].lastInstruction.Opcode = code.OpReturnValue
+	c.replaceInstruction(lastPos, code.Make(code.OpClearFunctionParameterSpectial))
+	c.scopes[c.scopeIndex].lastInstruction.Opcode = code.OpClearFunctionParameterSpectial
+	c.emit(code.OpReturnValue)
 }
 
 func (c *Compiler) replaceInstruction(pos int, newInstruction []byte) {
@@ -571,9 +572,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if c.lastInstructionIs(code.OpPop) {
-			c.replaceLastPopWithReturn()
+			c.replaceLastPosWithClearSpecialAndReturn()
 		}
 		if !c.lastInstructionIs(code.OpReturnValue) {
+			c.emit(code.OpClearFunctionParameterSpectial)
 			c.emit(code.OpReturn)
 		}
 		freeSymbols := c.symbolTable.FreeSymbols
@@ -595,9 +597,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if c.lastInstructionIs(code.OpPop) {
-			c.replaceLastPopWithReturn()
+			c.replaceLastPosWithClearSpecialAndReturn()
 		}
 		if !c.lastInstructionIs(code.OpReturnValue) {
+			c.emit(code.OpClearFunctionParameterSpectial)
 			c.emit(code.OpReturn)
 		}
 		freeSymbols := c.symbolTable.FreeSymbols
