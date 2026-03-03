@@ -135,7 +135,7 @@ func cloneSlice(objects []object.Object) []object.Object {
 		// havent quite root caused it but I would assume its a
 		// circular dependency in the object (fiber.App)
 		if o != nil && o.Type() != object.GO_OBJ {
-			os[i] = clone.Clone(o).(object.Object)
+			os[i] = clone.Slowly(o).(object.Object)
 		} else {
 			os[i] = o
 		}
