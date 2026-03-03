@@ -428,24 +428,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		literal := &object.Regex{Value: r}
 		c.emit(code.OpConstant, c.addConstant(literal))
 	case *ast.StringLiteral:
-		var literal *object.Stringo
-		if node.Value == object.USE_PARAM_STR {
-			literal = object.USE_PARAM_STR_OBJ
-		} else {
-			literal = &object.Stringo{Value: node.Value}
-		}
-		origStrIndex := c.addConstant(literal)
-		c.emit(code.OpConstant, origStrIndex)
-		if len(node.InterpolationValues) != 0 {
-			for i, interp := range node.InterpolationValues {
-				err := c.Compile(interp)
-				if err != nil {
-					return c.addNodeToErrorTrace(err, node.Token)
-				}
-				s := node.OriginalInterpolationString[i]
-				c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: s}))
-			}
-			c.emit(code.OpStringInterp, origStrIndex, len(node.InterpolationValues)*2)
+		err := c.compileStringLiteral(node)
+		if err != nil {
+			// Error token attached inside above function
+			return err
 		}
 	case *ast.ListLiteral:
 		for _, exp := range node.Elements {

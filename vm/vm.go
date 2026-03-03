@@ -404,6 +404,7 @@ func (vm *VM) Run() error {
 				}
 			}
 		case code.OpReturnValue:
+			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
 			returnValue := vm.pop()
 			frame := vm.popFrame()
 			if frame != nil {
@@ -433,6 +434,7 @@ func (vm *VM) Run() error {
 				return fmt.Errorf(consts.NORMAL_EXIT_ON_RETURN)
 			}
 		case code.OpReturn:
+			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
 			frame := vm.popFrame()
 			if frame != nil {
 				vm.sp = frame.bp - 1
@@ -718,8 +720,31 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-		case code.OpClearFunctionParameterSpectial:
-			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
+		case code.OpSpecialIndexHelper:
+			maybeJumpPos := int(code.ReadUint16(ins[ip+1:]))
+			isSet := code.Opcode(ins[maybeJumpPos]) == code.OpIndexSet
+			vm.currentFrame().ip += 2
+			// Should be the string constant of the 'indx'
+			indxStr := vm.peek().(*object.Stringo)
+			// Should be the the object we are trying to figure out if its being pushed
+			// to a function or if its a map and we are just indexing by this
+			obj1 := vm.peekOffset(1)
+			if obj1.Type() != object.MAP_OBJ {
+				// If its not a map, just assume we are trying to push this to a function
+				// pop the index string off the stack so it doesnt interfere
+				vm.pop()
+			} else {
+				// If it is a map, need to determine if we need to index the map, or just pass to next function
+				if obj1.(*object.Map).ContainsStringoKey(indxStr) || isSet {
+					// Leave the string on the stack to be used for indexing and skip loading the global
+					// If its an index set operation then we always want to use the string for setting
+					// when it was done via a dot call
+					vm.currentFrame().ip = maybeJumpPos - 1
+				} else {
+					// Otherwise pop off the stack and assume we are passing this map to a global function/index operation
+					vm.pop()
+				}
+			}
 		}
 	}
 	return nil
@@ -1091,7 +1116,7 @@ func (vm *VM) executeCallFastFrame(numArgs int) error {
 	if closure, ok := callee.(*object.Closure); ok {
 		return vm.callClosureFastFrame(closure, numArgs)
 	}
-	return vm.executeCall(numArgs)
+	return nil
 }
 
 func (vm *VM) executeCall(numArgs int) error {

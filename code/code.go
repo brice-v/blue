@@ -125,6 +125,7 @@ const (
 	OpGetGlobalImmOrSpecial
 	OpGetFunctionParameterSpecial
 	OpGetFunctionParameterSpecial2
+	OpSpecialIndexHelper
 )
 
 type Definition struct {
@@ -218,6 +219,8 @@ var definitions = map[Opcode]*Definition{
 	OpGetGlobalImmOrSpecial:        {"OpGetGlobalImmOrSpecial", []int{2, 1}},
 	OpGetFunctionParameterSpecial:  {"OpGetFunctionParameterSpecial", []int{1, 1}},
 	OpGetFunctionParameterSpecial2: {"OpGetFunctionParameterSpecial2", []int{1}},
+
+	OpSpecialIndexHelper: {"OpSpecialIndexHelper", []int{2}},
 }
 
 func Lookup(op byte) (*Definition, error) {

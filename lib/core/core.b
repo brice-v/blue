@@ -73,12 +73,12 @@ fun send(obj, value) {
     ##core:ignore
     match obj {
         {t: "ws", v: _} => {
-            import http
-            http.ws_send(obj.v, value)
+            from http import {ws_send}
+            ws_send(obj.v, value)
         },
         {t: "ws/client", v: _} => {
-            import http
-            http.ws_client_send(obj.v, value)
+            from http import {ws_client_send}
+            ws_client_send(obj.v, value)
         },
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
@@ -90,12 +90,12 @@ fun recv(obj) {
     ##core:ignore
     match obj {
         {t: "ws", v: _} => {
-            import http
-            http.ws_recv(obj.v)
+            from http import {ws_recv}
+            ws_recv(obj.v)
         },
         {t: "ws/client", v: _} => {
-            import http
-            http.ws_client_recv(obj.v)
+            from http import {ws_client_recv}
+            ws_client_recv(obj.v)
         },
         {t: "sub", v: _} => {
             _pubsub_sub_listen(obj.v)
@@ -111,8 +111,8 @@ fun read(obj, as_bytes=false) {
     match obj {
         {t: _, v: _} => {
             if ("net" in obj.t) {
-                import net
-                net.net_read(obj.v, obj.t)
+                from net import {net_read}
+                net_read(obj.v, obj.t)
             }
         },
         _ => {
@@ -126,8 +126,8 @@ fun write(obj, value) {
     match obj {
         {t: _, v: _} => {
             if ("net" in obj.t) {
-                import net
-                net.net_write(obj.v, obj.t, value)
+                from net import {net_write}
+                net_write(obj.v, obj.t, value)
             }
         },
         _ => {
@@ -184,16 +184,16 @@ fun zip(lol) {
 
 fun find_all(str_to_search, query, method="regex") {
     ##core:ignore
-    import search
+    from search import {by_regex, by_xpath}
     if type(query) == Type.REGEX {
         method = 'regex';
     }
     match method {
         "regex" => {
-            search.by_regex(str_to_search, query, false)
+            by_regex(str_to_search, query, false)
         },
         "xpath" => {
-            search.by_xpath(str_to_search, query, false)
+            by_xpath(str_to_search, query, false)
         },
         _ => {
             error("`find_all` unsupported method '#{method}'")
@@ -203,16 +203,16 @@ fun find_all(str_to_search, query, method="regex") {
 
 fun find_one(str_to_search, query, method="regex") {
     ##core:ignore
-    import search
+    from search import {by_regex, by_xpath}
     if type(query) == Type.REGEX {
         method = 'regex';
     }
     match method {
         "regex" => {
-            search.by_regex(str_to_search, query, true)
+            by_regex(str_to_search, query, true)
         },
         "xpath" => {
-            search.by_xpath(str_to_search, query, true)
+            by_xpath(str_to_search, query, true)
         },
         _ => {
             error("`find_one` unsupported method '#{method}'")
@@ -225,8 +225,8 @@ fun close(obj) {
     match obj {
         {t: _, v: _} => {
             if ("net" in obj.t) {
-                import net
-                net.net_close(obj.v, obj.t)
+                from net import {net_close}
+                net_close(obj.v, obj.t)
             }
         },
         _ => {
@@ -239,8 +239,8 @@ fun accept(obj) {
     ##core:ignore
     match obj {
         {t: "net/tcp", v: _} => {
-            import net
-            net.net_accept(obj.v)
+            from net import {net_accept}
+            net_accept(obj.v)
         },
         _ => {
             error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")

@@ -525,6 +525,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	isDotCall := node.Token.Literal == "."
 	// Support uniform function call syntax "".println()
 	var symbolToIndex *Symbol = nil
+	useSpecialIndexHelper := false
 	if rightIsStr {
 		if sym, ok := c.symbolTable.Resolve(c.getName(rightStr.Value)); ok {
 			// Allow enclosing function to use 'str' version of index var instead of
@@ -539,6 +540,7 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 			// using builtin functions
 			if isDotCall && (sym1.Scope == BuiltinScope || sym1.Scope == GlobalScope) {
 				symbolToIndex = &sym1
+				useSpecialIndexHelper = sym1.Scope == GlobalScope
 			}
 		}
 	}
@@ -547,13 +549,20 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	if err != nil {
 		return err
 	}
-	if symbolToIndex == nil {
-		err = c.Compile(node.Index)
-		if err != nil {
-			return err
-		}
-	} else {
+	if useSpecialIndexHelper {
+		c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: node.Index.(*ast.StringLiteral).Value}))
+		posToChange := c.emit(code.OpSpecialIndexHelper, 9999)
 		c.loadSymbolOrSpecialCaseForProcess(*symbolToIndex)
+		c.changeOperand(posToChange, len(c.currentInstructions()))
+	} else {
+		if symbolToIndex == nil {
+			err = c.Compile(node.Index)
+			if err != nil {
+				return err
+			}
+		} else {
+			c.loadSymbolOrSpecialCaseForProcess(*symbolToIndex)
+		}
 	}
 	c.emit(code.OpIndex)
 	return nil
@@ -868,4 +877,27 @@ func (c *Compiler) emitSetSymbolOpcode(symbol Symbol, immutable bool) {
 		}
 	}
 	c.emit(opcode, symbol.Index)
+}
+
+func (c *Compiler) compileStringLiteral(node *ast.StringLiteral) error {
+	var literal *object.Stringo
+	if node.Value == object.USE_PARAM_STR {
+		literal = object.USE_PARAM_STR_OBJ
+	} else {
+		literal = &object.Stringo{Value: node.Value}
+	}
+	origStrIndex := c.addConstant(literal)
+	c.emit(code.OpConstant, origStrIndex)
+	if len(node.InterpolationValues) != 0 {
+		for i, interp := range node.InterpolationValues {
+			err := c.Compile(interp)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+			s := node.OriginalInterpolationString[i]
+			c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: s}))
+		}
+		c.emit(code.OpStringInterp, origStrIndex, len(node.InterpolationValues)*2)
+	}
+	return nil
 }

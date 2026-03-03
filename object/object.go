@@ -637,6 +637,12 @@ func (m *Map) Help() string {
 	return createHelpStringForObject("Map", "is the object that represents a key value pair where keys and values are arbitrary objects", m)
 }
 
+func (m *Map) ContainsStringoKey(key *Stringo) bool {
+	hk := HashKey{Type: STRING_OBJ, Value: HashObject(key)}
+	_, ok := m.Pairs.store[hk]
+	return ok
+}
+
 // MapCompLiteral is the map comprehension object struct
 type MapCompLiteral struct {
 	Pairs OrderedMap2[HashKey, MapPair] // Pairs is the map of HashKey to other MapPair objects
