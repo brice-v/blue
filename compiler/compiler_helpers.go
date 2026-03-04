@@ -14,6 +14,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/puzpuzpuz/xsync/v3"
 )
 
 func (c *Compiler) compileInfixExpression(operator string) error {
@@ -707,7 +709,7 @@ func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressi
 		ParameterHasDefault:   make([]bool, len(parameters)),
 		NumParameters:         len(parameters),
 		DisplayString:         astStr,
-		PosAlreadyIncremented: make(map[int]struct{}),
+		PosAlreadyIncremented: xsync.NewMapOf[int, struct{}](),
 
 		SpecialFunctionParameters: specialFunctionParameters,
 	}

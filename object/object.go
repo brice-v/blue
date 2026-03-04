@@ -12,7 +12,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/shopspring/decimal"
 )
 
@@ -96,6 +98,7 @@ type Object interface {
 	Help() string    // Help is used to get the help string for an object
 	Encode() ([]byte, error)
 	IType() iType
+	Clone() Object
 }
 
 // Integer is the integer object type
@@ -882,9 +885,11 @@ type CompiledFunction struct {
 
 	DisplayString string
 
-	PosAlreadyIncremented map[int]struct{}
+	PosAlreadyIncremented *xsync.MapOf[int, struct{}]
 
 	SpecialFunctionParameters map[NameIndexKey]map[NameIndexKey]Object
+
+	locker sync.Mutex
 }
 
 func (cf *CompiledFunction) ClearSpecialFunctionParameters() {

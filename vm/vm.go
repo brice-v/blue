@@ -15,7 +15,7 @@ import (
 	"slices"
 	"strings"
 
-	clone "github.com/huandu/go-clone/generic"
+	"github.com/puzpuzpuz/xsync/v3"
 )
 
 const (
@@ -58,10 +58,10 @@ func (vm *VM) incrementOpCallArgCount() bool {
 		// When this function is called in a loop such as
 		// split_lines.len(), then ensure we do not end up incrementing
 		// the same byte position more then once.
-		if _, ok := cf.cl.Fun.PosAlreadyIncremented[pos]; ok {
+		if _, ok := cf.cl.Fun.PosAlreadyIncremented.Load(pos); ok {
 			return true
 		}
-		cf.cl.Fun.PosAlreadyIncremented[pos] = struct{}{}
+		cf.cl.Fun.PosAlreadyIncremented.Store(pos, struct{}{})
 		cf.cl.Fun.Instructions[pos]++
 		return true
 	}
@@ -82,7 +82,7 @@ func (vm *VM) popFrame() *Frame {
 }
 
 func NewNode(nodeName string, bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
-	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions, PosAlreadyIncremented: make(map[int]struct{})}
+	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions, PosAlreadyIncremented: xsync.NewMapOf[int, struct{}]()}
 	mainClosure := &object.Closure{Fun: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
 	frames := make([]*Frame, MaxFrames)
@@ -128,32 +128,22 @@ func NewWithGlobalsStore(bytecode *compiler.Bytecode, tokenMap map[int][]token.T
 	return vm
 }
 
-func cloneSlice(objects []object.Object) []object.Object {
-	os := make([]object.Object, len(objects))
-	for i, o := range objects {
-		// Only copy 'GoObj' otherwise it causes stack overflow
-		// havent quite root caused it but I would assume its a
-		// circular dependency in the object (fiber.App)
-		if o != nil && o.Type() != object.GO_OBJ {
-			os[i] = clone.Slowly(o)
-		} else {
-			os[i] = o
-		}
-	}
-	return os
-}
-
 func (vm *VM) Clone(pid uint64) *VM {
-	return &VM{
-		constants:   clone.Clone(vm.constants),
-		stack:       cloneSlice(vm.stack),
+	newFrames := make([]*Frame, len(vm.frames))
+	for i, f := range vm.frames {
+		newFrames[i] = f.Clone()
+	}
+	newVm := &VM{
+		constants:   object.CloneSlice(vm.constants),
+		stack:       object.CloneSlice(vm.stack),
 		sp:          vm.sp,
-		globals:     cloneSlice(vm.globals),
-		frames:      clone.Clone(vm.frames),
+		globals:     object.CloneSlice(vm.globals),
+		frames:      newFrames,
 		framesIndex: vm.framesIndex,
 		NodeName:    vm.NodeName,
 		PID:         pid,
 	}
+	return newVm
 }
 
 func (vm *VM) StackTop() object.Object {
@@ -1039,7 +1029,7 @@ func (vm *VM) buildStruct(startIndex, endIndex int) (object.Object, error) {
 		return nil, fmt.Errorf("compilation error: struct did not have fields in index: %d", index)
 	}
 	index++
-	bs, err := object.NewBlueStruct(fields.Value, clone.Clone(vm.stack[index:endIndex]))
+	bs, err := object.NewBlueStruct(fields.Value, object.CloneSlice(vm.stack[index:endIndex]))
 	if err != nil {
 		return nil, err
 	}
@@ -1318,7 +1308,7 @@ func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) 
 	object.ProcessMap.Store(object.Pk(vm.NodeName, pid), process)
 	clonedVm := vm.Clone(pid)
 	// Dont clone args list so if processes are sent through then they will be usable by the process (channel must not be "cloned")
-	go spawnFunction(clonedVm, vm.NodeName, clone.Clone(fun), args[listArgIndex].(*object.List))
+	go spawnFunction(clonedVm, vm.NodeName, fun.Clone().(*object.Closure), args[listArgIndex].(*object.List))
 	vm.push(process)
 }
 

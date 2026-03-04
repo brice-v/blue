@@ -15,6 +15,26 @@ type Frame struct {
 	lastInstruction code.Opcode
 }
 
+func (f *Frame) Clone() *Frame {
+	if f == nil {
+		return nil
+	}
+	var newDeferFuns []*object.Closure
+	if f.deferFuns != nil {
+		newDeferFuns = make([]*object.Closure, len(f.deferFuns))
+		for i, df := range f.deferFuns {
+			newDeferFuns[i] = df.Clone().(*object.Closure)
+		}
+	}
+	return &Frame{
+		cl:              f.cl.Clone().(*object.Closure),
+		ip:              f.ip,
+		bp:              f.bp,
+		deferFuns:       newDeferFuns,
+		lastInstruction: f.lastInstruction,
+	}
+}
+
 func (f *Frame) IsLastInstructionSetLocal() bool {
 	inx := f.lastInstruction
 	return inx == code.OpSetLocal || inx == code.OpSetLocalImm
