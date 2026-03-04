@@ -40,10 +40,15 @@ type SymbolTable struct {
 	specialStore              map[SpecialScopeKey]Symbol
 	specialStoreParamIndexMap map[string][]int
 	numDefinitions            int
+	specialDefinitions        int
 	FreeSymbols               []Symbol
 	BlockSymbols              [][]Symbol
 
 	Outer *SymbolTable
+}
+
+func (st *SymbolTable) NumLocals() int {
+	return st.numDefinitions + st.specialDefinitions
 }
 
 type SpecialScopeKey struct {
@@ -99,6 +104,7 @@ func (s *SymbolTable) defineSpecial(name string, scopeIndex, paramIndex, listInd
 	symbol := Symbol{Name: name, Index: listIndex, BuiltinModuleIndex: paramIndex, Immutable: true, Scope: SpecialFunctionScope}
 	s.specialStore[SpecialScopeKey{Name: name, ScopeIndex: scopeIndex, ParamIndex: paramIndex}] = symbol
 	s.specialStoreParamIndexMap[name] = append(s.specialStoreParamIndexMap[name], paramIndex)
+	s.specialDefinitions++
 	return symbol
 }
 

@@ -563,7 +563,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpReturn)
 		}
 		freeSymbols := c.symbolTable.FreeSymbols
-		numLocals := c.symbolTable.numDefinitions
+		numLocals := c.symbolTable.NumLocals()
 		instructions := c.leaveScope()
 		for _, s := range freeSymbols {
 			c.loadSymbol(s)
@@ -587,7 +587,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpReturn)
 		}
 		freeSymbols := c.symbolTable.FreeSymbols
-		numLocals := c.symbolTable.numDefinitions
+		numLocals := c.symbolTable.NumLocals()
 		instructions := c.leaveScope()
 		for _, s := range freeSymbols {
 			c.loadSymbol(s)

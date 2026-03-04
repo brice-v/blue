@@ -11,10 +11,17 @@ type Frame struct {
 	bp int
 
 	deferFuns []*object.Closure
+
+	lastInstruction code.Opcode
+}
+
+func (f *Frame) IsLastInstructionSetLocal() bool {
+	inx := f.lastInstruction
+	return inx == code.OpSetLocal || inx == code.OpSetLocalImm
 }
 
 func NewFrame(fn *object.Closure, bp int) *Frame {
-	return &Frame{cl: fn, ip: -1, bp: bp}
+	return &Frame{cl: fn, ip: -1, bp: bp, lastInstruction: code.OpInvalid}
 }
 
 func (f *Frame) Instructions() code.Instructions {

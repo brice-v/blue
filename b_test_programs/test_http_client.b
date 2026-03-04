@@ -1,5 +1,3 @@
-#VM IGNORE
-# TODO: vm will support http client
 import http
 import time
 
@@ -159,15 +157,14 @@ fun main() {
     assert(from_json(ctx_handler_resp.body) == [1,2,3]);
 
     val ws = http.new_ws("ws://localhost:3001/ws");
-    #for (true) {
-        var x = "Sending from Client!";
-        ws.send(x);
-        val y = ws.recv();
-        println("Received on Client, y = #{y}");
-        assert(x == y, "Websocket Handler did not echo the sent value from the client");
-    #}
+    var x = "Sending from Client!";
+    ws.send(x);
+    val y = ws.recv();
+    println("CLIENT: Received on ws = #{ws} x = #{x} y = #{y}, y.type() = #{y.type()}, #{type(Type.BUILTIN)}, #{y.type() != Type.BUILTIN}");
+    assert(x == y, "Websocket Handler did not echo the sent value from the client");
     http.shutdown_server();
 }
 
 main();
+println("Finished main()!")
 assert(true);

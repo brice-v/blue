@@ -1,5 +1,3 @@
-#VM IGNORE
-# TODO: vm will support http server
 import http
 
 val some_map = {
@@ -92,9 +90,11 @@ fun status_handler2() {
 
 # THIS IS WORKING! WOO
 fun ws_handler(ws) {
+    println("STARTED WS HANDLER")
     for (true) {
+        println("IN THE WEBSOCKET HANDLER");
         val x = ws.recv();
-        #println("x = #{x}");
+        println("!!!!!!!!!!!!!!! x = #{x}");
         ws.send(x);
     }
 }
