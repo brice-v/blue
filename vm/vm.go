@@ -15,7 +15,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 )
 
 const (
@@ -135,7 +135,7 @@ func cloneSlice(objects []object.Object) []object.Object {
 		// havent quite root caused it but I would assume its a
 		// circular dependency in the object (fiber.App)
 		if o != nil && o.Type() != object.GO_OBJ {
-			os[i] = clone.Slowly(o).(object.Object)
+			os[i] = clone.Slowly(o)
 		} else {
 			os[i] = o
 		}
@@ -145,11 +145,11 @@ func cloneSlice(objects []object.Object) []object.Object {
 
 func (vm *VM) Clone(pid uint64) *VM {
 	return &VM{
-		constants:   clone.Clone(vm.constants).([]object.Object),
+		constants:   clone.Clone(vm.constants),
 		stack:       cloneSlice(vm.stack),
 		sp:          vm.sp,
 		globals:     cloneSlice(vm.globals),
-		frames:      clone.Clone(vm.frames).([]*Frame),
+		frames:      clone.Clone(vm.frames),
 		framesIndex: vm.framesIndex,
 		NodeName:    vm.NodeName,
 		PID:         pid,
@@ -1039,7 +1039,7 @@ func (vm *VM) buildStruct(startIndex, endIndex int) (object.Object, error) {
 		return nil, fmt.Errorf("compilation error: struct did not have fields in index: %d", index)
 	}
 	index++
-	bs, err := object.NewBlueStruct(fields.Value, clone.Clone(vm.stack[index:endIndex]).([]object.Object))
+	bs, err := object.NewBlueStruct(fields.Value, clone.Clone(vm.stack[index:endIndex]))
 	if err != nil {
 		return nil, err
 	}
@@ -1318,7 +1318,7 @@ func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) 
 	object.ProcessMap.Store(object.Pk(vm.NodeName, pid), process)
 	clonedVm := vm.Clone(pid)
 	// Dont clone args list so if processes are sent through then they will be usable by the process (channel must not be "cloned")
-	go spawnFunction(clonedVm, vm.NodeName, clone.Clone(fun).(*object.Closure), args[listArgIndex].(*object.List))
+	go spawnFunction(clonedVm, vm.NodeName, clone.Clone(fun), args[listArgIndex].(*object.List))
 	vm.push(process)
 }
 

@@ -30,7 +30,7 @@ import (
 	"github.com/gobuffalo/plush"
 	"github.com/google/uuid"
 	"github.com/gookit/color"
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 	"github.com/huandu/xstrings"
 	"github.com/shopspring/decimal"
 )
@@ -251,13 +251,13 @@ var Builtins = NewBuiltinSliceType{
 				}
 				if args[0].Type() == MAP_OBJ {
 					m := args[0].(*Map)
-					return clone.Clone(m).(*Map)
+					return clone.Clone(m)
 				} else if args[0].Type() == LIST_OBJ {
 					l := args[0].(*List)
-					return clone.Clone(l).(*List)
+					return clone.Clone(l)
 				} else {
 					s := args[0].(*Set)
-					return clone.Clone(s).(*Set)
+					return clone.Clone(s)
 				}
 			},
 			HelpStr: helpStrArgs{

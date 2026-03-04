@@ -11,7 +11,7 @@ import (
 	"blue/utils"
 	"os"
 
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 )
 
 func (c *Compiler) compileCore() {
@@ -72,11 +72,11 @@ func newFromCore() *Compiler {
 		tokens            map[int][]token.Token
 	)
 	if utils.ENABLE_VM_CACHING {
-		compilerConstants = clone.Clone(_coreCompiler.constants).([]object.Object)
-		constantFolds = clone.Clone(_coreCompiler.constantFolds).(map[uint64]int)
-		symbolTable = clone.Clone(_coreCompiler.symbolTable).(*SymbolTable)
-		scopes = clone.Clone(_coreCompiler.scopes).([]CompilationScope)
-		tokens = clone.Clone(_coreCompiler.Tokens).(map[int][]token.Token)
+		compilerConstants = clone.Clone(_coreCompiler.constants)
+		constantFolds = clone.Clone(_coreCompiler.constantFolds)
+		symbolTable = clone.Clone(_coreCompiler.symbolTable)
+		scopes = clone.Clone(_coreCompiler.scopes)
+		tokens = clone.Clone(_coreCompiler.Tokens)
 	} else {
 		compilerConstants = _coreCompiler.constants
 		constantFolds = _coreCompiler.constantFolds

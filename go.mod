@@ -18,7 +18,7 @@ require (
 	github.com/gookit/config/v2 v2.2.5
 	github.com/gookit/ini/v2 v2.2.3
 	github.com/gorilla/websocket v1.5.1
-	github.com/huandu/go-clone v1.7.2
+	github.com/huandu/go-clone/generic v1.7.3
 	github.com/huandu/xstrings v1.4.0
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/otiai10/copy v1.14.0
@@ -70,6 +70,7 @@ require (
 	github.com/gookit/properties v0.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
+	github.com/huandu/go-clone v1.7.3 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.17.5 // indirect
