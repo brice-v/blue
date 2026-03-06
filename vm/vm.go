@@ -7,12 +7,10 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
-	"blue/token"
 	"blue/utils"
 	"fmt"
 	"log"
 	"math/big"
-	"slices"
 	"strings"
 
 	"github.com/puzpuzpuz/xsync/v3"
@@ -33,9 +31,6 @@ type VM struct {
 
 	frames      []*Frame
 	framesIndex int
-
-	tokenMap            map[int][]token.Token
-	TokensForErrorTrace []token.Token
 
 	inTry      bool
 	inCatch    bool
@@ -81,30 +76,23 @@ func (vm *VM) popFrame() *Frame {
 	return vm.frames[vm.framesIndex]
 }
 
-func NewNode(nodeName string, bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
+func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions, PosAlreadyIncremented: xsync.NewMapOf[int, struct{}]()}
 	mainClosure := &object.Closure{Fun: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
 	vm := &VM{
-		constants: bytecode.Constants,
-		stack:     make([]object.Object, StackSize),
-		sp:        0,
-
-		globals: make([]object.Object, GlobalsSize),
-
+		constants:   bytecode.Constants,
+		stack:       make([]object.Object, StackSize),
+		sp:          0,
+		globals:     make([]object.Object, GlobalsSize),
 		frames:      frames,
 		framesIndex: 1,
-
-		tokenMap:            tokenMap,
-		TokensForErrorTrace: nil,
-
-		inTry:   false,
-		inCatch: false,
-
-		PID:      object.PidCount.Load(),
-		NodeName: nodeName,
+		inTry:       false,
+		inCatch:     false,
+		PID:         object.PidCount.Load(),
+		NodeName:    nodeName,
 	}
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
@@ -118,12 +106,12 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode, tokenMap map[int][]to
 	return vm
 }
 
-func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
-	return NewNode("vm-node", bytecode, tokenMap)
+func New(bytecode *compiler.Bytecode) *VM {
+	return NewNode("vm-node", bytecode)
 }
 
-func NewWithGlobalsStore(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token, s []object.Object) *VM {
-	vm := New(bytecode, tokenMap)
+func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
+	vm := New(bytecode)
 	vm.globals = s
 	return vm
 }
@@ -762,25 +750,6 @@ func (vm *VM) printMiniStack(slots int) {
 
 func (vm *VM) push(o object.Object) error {
 	if isError(o) {
-		if vm.tokenMap != nil {
-			keys := []int{}
-			for k := range vm.tokenMap {
-				keys = append(keys, k)
-			}
-			slices.Sort(keys)
-			currentPos := vm.currentFrame().ip
-			indexToUse := -1
-			for i := len(keys) - 1; i >= 0; i-- {
-				if keys[i] > currentPos {
-					continue
-				}
-				indexToUse = keys[i]
-				break
-			}
-			if toksForErrorTrace, ok := vm.tokenMap[indexToUse]; ok {
-				vm.TokensForErrorTrace = toksForErrorTrace
-			}
-		}
 		if vm.inTry || vm.inCatch {
 			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
 			return nil
@@ -1128,26 +1097,6 @@ func (vm *VM) executeCall(numArgs int) error {
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
-		if vm.tokenMap != nil {
-			keys := []int{}
-			for k := range vm.tokenMap {
-				keys = append(keys, k)
-			}
-			slices.Sort(keys)
-			currentPos := vm.currentFrame().ip
-			indexToUse := -1
-			for i := len(keys) - 1; i >= 0; i-- {
-				if keys[i] > currentPos {
-					continue
-				}
-				indexToUse = keys[i]
-				break
-			}
-			toksForErrorTrace, ok := vm.tokenMap[indexToUse]
-			if ok {
-				vm.TokensForErrorTrace = toksForErrorTrace
-			}
-		}
 		return fmt.Errorf("calling non-closure and non-builtin %T", callee)
 	}
 }
@@ -1279,7 +1228,7 @@ func vmStr(s string) object.Object {
 	if err != nil {
 		return newError("compiler error in `eval` string: %s", err.Error())
 	}
-	vm := New(c.Bytecode(), nil)
+	vm := New(c.Bytecode())
 	err = vm.Run()
 	if err != nil {
 		return newError("vm error in `eval` string: %s", err.Error())

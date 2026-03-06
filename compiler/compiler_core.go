@@ -7,7 +7,6 @@ import (
 	"blue/lib"
 	"blue/object"
 	"blue/parser"
-	"blue/token"
 	"blue/utils"
 	"os"
 
@@ -69,20 +68,17 @@ func newFromCore() *Compiler {
 		constantFolds     map[uint64]int
 		symbolTable       *SymbolTable
 		scopes            []CompilationScope
-		tokens            map[int][]token.Token
 	)
 	if utils.ENABLE_VM_CACHING {
 		compilerConstants = clone.Clone(_coreCompiler.constants)
 		constantFolds = clone.Clone(_coreCompiler.constantFolds)
 		symbolTable = clone.Clone(_coreCompiler.symbolTable)
 		scopes = clone.Clone(_coreCompiler.scopes)
-		tokens = clone.Clone(_coreCompiler.Tokens)
 	} else {
 		compilerConstants = _coreCompiler.constants
 		constantFolds = _coreCompiler.constantFolds
 		symbolTable = _coreCompiler.symbolTable
 		scopes = _coreCompiler.scopes
-		tokens = _coreCompiler.Tokens
 	}
 	return &Compiler{
 		constants:        compilerConstants,
@@ -92,7 +88,6 @@ func newFromCore() *Compiler {
 		scopeIndex:       0,
 		ErrorTrace:       []string{},
 		currentPos:       _coreCompiler.currentPos,
-		Tokens:           tokens,
 		BlockNestLevel:   _coreCompiler.BlockNestLevel,
 		forIndex:         _coreCompiler.forIndex,
 		breakPos:         map[int][]int{},

@@ -186,7 +186,7 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 		t.Errorf("File `%s`: compiler returned error %s", f.Name(), err.Error())
 		return
 	}
-	v := vm.NewWithGlobalsStore(c.Bytecode(), c.Tokens, globals)
+	v := vm.NewWithGlobalsStore(c.Bytecode(), globals)
 	err = v.Run()
 	if err != nil {
 		t.Errorf("File `%s`: vm returned error %s", f.Name(), err.Error())
@@ -533,7 +533,7 @@ func vmStringWithCore(t *testing.T, s string) {
 	}
 	// fmt.Print(utils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	// fmt.Printf("PARSED: ```%s```\n", program.String())
-	v := vm.New(c.Bytecode(), c.Tokens)
+	v := vm.New(c.Bytecode())
 	err = v.Run()
 	if err != nil {
 		t.Fatalf("vm error: %s", err.Error())
@@ -552,7 +552,7 @@ func vmString(t *testing.T, s string) {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
 	// fmt.Print(cmd.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
-	v := vm.New(c.Bytecode(), c.Tokens)
+	v := vm.New(c.Bytecode())
 	err = v.Run()
 	if err != nil {
 		t.Fatalf("vm error: %s", err.Error())

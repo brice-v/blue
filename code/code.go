@@ -127,6 +127,7 @@ const (
 	OpGetFunctionParameterSpecial2
 	OpSpecialIndexHelper
 	OpInvalid
+	OpNode
 )
 
 type Definition struct {
@@ -223,6 +224,7 @@ var definitions = map[Opcode]*Definition{
 
 	OpSpecialIndexHelper: {"OpSpecialIndexHelper", []int{2}},
 	OpInvalid:            {"OpInvalid", []int{}},
+	OpNode:               {"OpNode", []int{2}},
 }
 
 func Lookup(op byte) (*Definition, error) {

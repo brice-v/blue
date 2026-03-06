@@ -171,15 +171,10 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		os.Exit(0)
 	}
 	bc := c.Bytecode()
-	v := vm.NewWithGlobalsStore(bc, c.Tokens, globals)
+	v := vm.NewWithGlobalsStore(bc, globals)
 	err = v.Run()
 	if err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
-		if v.TokensForErrorTrace != nil {
-			for _, tok := range v.TokensForErrorTrace {
-				fmt.Println(lexer.GetErrorLineMessage(tok))
-			}
-		}
 		os.Exit(1)
 	}
 	val := v.LastPoppedStackElem()

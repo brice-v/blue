@@ -32,7 +32,6 @@ type Compiler struct {
 	ErrorTrace []string
 
 	currentPos int
-	Tokens     map[int][]token.Token
 
 	BlockNestLevel int
 
@@ -50,6 +49,9 @@ type Compiler struct {
 	coreCompiled bool
 
 	inMatch bool
+
+	tokens     []*token.Token
+	tokenFolds map[token.Token]int
 }
 
 func (c *Compiler) DebugString() string {
@@ -62,7 +64,6 @@ func (c *Compiler) DebugString() string {
 	fmt.Fprintf(&out, "\tscopeIndex: %d\n", c.scopeIndex)
 	fmt.Fprintf(&out, "\tErrorTrace: %#+v\n", c.ErrorTrace)
 	fmt.Fprintf(&out, "\tcurrentPos: %d\n", c.currentPos)
-	fmt.Fprintf(&out, "\tTokensLen: %d\n", len(c.Tokens))
 	fmt.Fprintf(&out, "\tBlockNestLevel: %d\n", c.BlockNestLevel)
 	fmt.Fprintf(&out, "\tforIndex: %d\n", c.forIndex)
 	fmt.Fprintf(&out, "\tbreakPos: %#+v\n", c.breakPos)
@@ -98,21 +99,17 @@ func New() *Compiler {
 		previousInstruction: EmittedInstruction{},
 	}
 	return &Compiler{
-		constants:     object.OBJECT_CONSTANTS,
-		constantFolds: map[uint64]int{},
-		symbolTable:   symbolTable,
-		scopes:        []CompilationScope{mainScope},
-		scopeIndex:    0,
-		ErrorTrace:    []string{},
-
-		currentPos: 0,
-		Tokens:     map[int][]token.Token{},
-
-		BlockNestLevel: -1,
-		forIndex:       0,
-		breakPos:       map[int][]int{},
-		contPos:        map[int][]int{},
-
+		constants:        object.OBJECT_CONSTANTS,
+		constantFolds:    map[uint64]int{},
+		symbolTable:      symbolTable,
+		scopes:           []CompilationScope{mainScope},
+		scopeIndex:       0,
+		ErrorTrace:       []string{},
+		currentPos:       0,
+		BlockNestLevel:   -1,
+		forIndex:         0,
+		breakPos:         map[int][]int{},
+		contPos:          map[int][]int{},
 		importNestLevel:  -1,
 		modName:          []string{},
 		CompilerBasePath: cCompilerBasePath,
@@ -152,6 +149,18 @@ func (c *Compiler) currentInstructions() code.Instructions {
 	return c.scopes[c.scopeIndex].instructions
 }
 
+func (c *Compiler) addNode(node ast.Node) int {
+	currentTok := node.TokenToken()
+	tokPos, ok := c.tokenFolds[currentTok]
+	if ok {
+		return tokPos
+	}
+	c.tokens = append(c.tokens, &currentTok)
+	index := len(c.tokens) - 1
+	c.tokenFolds[currentTok] = index
+	return index
+}
+
 func (c *Compiler) addConstant(obj object.Object) int {
 	if index := object.IsConstantObject(obj); index != -1 {
 		// return reserved index for constant object
@@ -180,6 +189,10 @@ func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	pos := c.addInstruction(ins)
 	c.setLastInstruction(op, pos)
 	return pos
+}
+
+func (c *Compiler) emitNode(node ast.Node) {
+	c.emit(code.OpNode, c.addNode(node))
 }
 
 func (c *Compiler) addInstruction(ins []byte) int {
@@ -290,12 +303,7 @@ func existsInTokens(t token.Token, toks []token.Token) bool {
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
-	if _, ok := node.(*ast.Program); !ok {
-		t := node.TokenToken()
-		if t.LineNumber != 0 && t.PositionInLine != 0 && t.Filepath != "" && !existsInTokens(t, c.Tokens[c.currentPos]) {
-			c.Tokens[c.currentPos] = append(c.Tokens[c.currentPos], t)
-		}
-	}
+	c.emitNode(node)
 	switch node := node.(type) {
 	case *ast.Program:
 		for _, s := range node.Statements {
