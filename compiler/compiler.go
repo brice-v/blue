@@ -113,6 +113,8 @@ func New() *Compiler {
 		importNestLevel:  -1,
 		modName:          []string{},
 		CompilerBasePath: cCompilerBasePath,
+		tokens:           []*token.Token{},
+		tokenFolds:       make(map[token.Token]int),
 	}
 }
 
@@ -136,12 +138,14 @@ func NewFromCore() *Compiler {
 type Bytecode struct {
 	Instructions code.Instructions
 	Constants    []object.Object
+	Tokens       []*token.Token
 }
 
 func (c *Compiler) Bytecode() *Bytecode {
 	return &Bytecode{
 		Instructions: c.currentInstructions(),
 		Constants:    c.constants,
+		Tokens:       c.tokens,
 	}
 }
 
@@ -151,6 +155,7 @@ func (c *Compiler) currentInstructions() code.Instructions {
 
 func (c *Compiler) addNode(node ast.Node) int {
 	currentTok := node.TokenToken()
+	// log.Printf("CURRENT TOKEN: %#+v", currentTok)
 	tokPos, ok := c.tokenFolds[currentTok]
 	if ok {
 		return tokPos
@@ -158,6 +163,7 @@ func (c *Compiler) addNode(node ast.Node) int {
 	c.tokens = append(c.tokens, &currentTok)
 	index := len(c.tokens) - 1
 	c.tokenFolds[currentTok] = index
+	// log.Printf("^ THIS ONE's index is %d", index)
 	return index
 }
 
@@ -191,8 +197,16 @@ func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	return pos
 }
 
+// emitNode will emit a node instruction for error trace purposes
+// NOTE: if the position of the last instruction is 0, then there
+// are only OpNodes left when walking back the frame's instructions
 func (c *Compiler) emitNode(node ast.Node) {
-	c.emit(code.OpNode, c.addNode(node))
+	switch node.(type) {
+	case *ast.ExpressionStatement, *ast.Program, *ast.PrefixExpression, *ast.PostfixExpression, *ast.BlockStatement:
+		return
+	}
+	// log.Printf("EMITTING NODE FOR %T (%s)", node, node.String())
+	c.emit(code.OpNode, c.addNode(node), c.lastInstructionPos())
 }
 
 func (c *Compiler) addInstruction(ins []byte) int {
@@ -203,6 +217,10 @@ func (c *Compiler) addInstruction(ins []byte) int {
 }
 
 func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
+	if op == code.OpNode {
+		// Do not set OpNode as Last Instruction
+		return
+	}
 	previous := c.scopes[c.scopeIndex].lastInstruction
 	last := EmittedInstruction{Opcode: op, Position: pos}
 	c.scopes[c.scopeIndex].previousInstruction = previous
@@ -214,6 +232,16 @@ func (c *Compiler) lastInstructionIs(op code.Opcode) bool {
 		return false
 	}
 	return c.scopes[c.scopeIndex].lastInstruction.Opcode == op
+}
+
+func (c *Compiler) lastInstructionPos() int {
+	if len(c.currentInstructions()) == 0 {
+		return 0
+	}
+	if c.scopes[c.scopeIndex].lastInstruction.Opcode == code.OpNode {
+		panic("HANDLE THIS, last instruction should never be set to OpNode")
+	}
+	return c.scopes[c.scopeIndex].lastInstruction.Position
 }
 
 func (c *Compiler) lastInstructionIsSet() bool {

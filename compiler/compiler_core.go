@@ -100,5 +100,8 @@ func newFromCore() *Compiler {
 		listSetMapCompLiteralIndex: _coreCompiler.listSetMapCompLiteralIndex,
 		coreCompiled:               true,
 		inMatch:                    false,
+
+		tokens:     _coreCompiler.tokens,
+		tokenFolds: _coreCompiler.tokenFolds,
 	}
 }

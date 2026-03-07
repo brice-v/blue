@@ -7,6 +7,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"blue/token"
 	"blue/utils"
 	"fmt"
 	"log"
@@ -23,9 +24,11 @@ const (
 )
 
 type VM struct {
-	constants []object.Object
-	stack     []object.Object
-	sp        int // Always points to the next value. Top of stack is stack[sp-1]
+	constants   []object.Object
+	tokens      []*token.Token
+	lastNodePos int
+	stack       []object.Object
+	sp          int // Always points to the next value. Top of stack is stack[sp-1]
 
 	globals []object.Object
 
@@ -84,6 +87,8 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 	frames[0] = mainFrame
 	vm := &VM{
 		constants:   bytecode.Constants,
+		tokens:      bytecode.Tokens,
+		lastNodePos: -1,
 		stack:       make([]object.Object, StackSize),
 		sp:          0,
 		globals:     make([]object.Object, GlobalsSize),
@@ -158,6 +163,12 @@ func (vm *VM) Run() error {
 		ip = vm.currentFrame().ip
 		ins = vm.currentFrame().Instructions()
 		op = code.Opcode(ins[ip])
+		if op == code.OpNode {
+			vm.lastNodePos = vm.currentFrame().ip
+			// Skip Address of token
+			vm.currentFrame().ip += 4
+			continue
+		}
 		switch op {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
@@ -754,6 +765,15 @@ func (vm *VM) push(o object.Object) error {
 			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
 			return nil
 		}
+		ip := vm.currentFrame().ip
+		ins := vm.currentFrame().Instructions()
+		op := code.Opcode(ins[ip])
+		log.Printf("HIT ERROR at ip = %d, op = %s", ip, code.GetOpName(op))
+		log.Printf("Last Token Pos = %d, %s", vm.lastNodePos, code.GetOpName(code.Opcode(ins[vm.lastNodePos])))
+		tokenPos := code.ReadUint16(ins[vm.lastNodePos+1:])
+		lastInstructionPos := code.ReadUint16(ins[vm.lastNodePos+3:])
+		fmt.Println(lexer.GetErrorLineMessage(*vm.tokens[tokenPos]))
+		log.Printf("lastInstructionPos = %d", lastInstructionPos)
 		return fmt.Errorf("%s", o.(*object.Error).Message)
 	}
 	if vm.sp >= StackSize {
