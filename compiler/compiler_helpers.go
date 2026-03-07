@@ -536,13 +536,14 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 			// Here, m.a would refer to the map's version of 'a', and not the value 1.
 			if isDotCall && sym.Scope != FreeScope {
 				symbolToIndex = &sym
+				useSpecialIndexHelper = sym.Scope == GlobalScope || sym.Scope == BuiltinScope
 			}
-		} else if sym1, ok1 := c.symbolTable.Resolve(rightStr.Value); ok1 {
+		} else if sym, ok1 := c.symbolTable.Resolve(rightStr.Value); ok1 {
 			// When inside a module, we still want to be able to resolve dot calls
 			// using builtin functions
-			if isDotCall && (sym1.Scope == BuiltinScope || sym1.Scope == GlobalScope) {
-				symbolToIndex = &sym1
-				useSpecialIndexHelper = sym1.Scope == GlobalScope
+			if isDotCall && (sym.Scope == BuiltinScope || sym.Scope == GlobalScope) {
+				symbolToIndex = &sym
+				useSpecialIndexHelper = sym.Scope == GlobalScope || sym.Scope == BuiltinScope
 			}
 		}
 	}
