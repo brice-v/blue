@@ -561,18 +561,22 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpMatchAny)
 		} else {
 			var dontEmitSymbol bool
-			symbol, ok := c.symbolTable.Resolve(c.getName(node.Value))
-			if !ok {
-				// Due to the way compiling works, if its a builtin we need to try again
-				symbol, ok = c.symbolTable.Resolve(node.Value)
+			// Always try to resolve for local scope first, then try all the others
+			symbol, ok := c.symbolTable.Resolve(node.Value)
+			if !(ok && symbol.Scope == LocalScope) {
+				symbol, ok = c.symbolTable.Resolve(c.getName(node.Value))
 				if !ok {
-					// Allow resolving special scope symbols
-					symbol, ok, dontEmitSymbol = c.symbolTable.ResolveSpecial(node.Value, c.scopeIndex)
+					// Due to the way compiling works, if its a builtin we need to try again
+					symbol, ok = c.symbolTable.Resolve(node.Value)
 					if !ok {
-						return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
-					}
-					if dontEmitSymbol {
-						c.emit(code.OpGetFunctionParameterSpecial2, c.scopeIndex)
+						// Allow resolving special scope symbols
+						symbol, ok, dontEmitSymbol = c.symbolTable.ResolveSpecial(node.Value, c.scopeIndex)
+						if !ok {
+							return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+						}
+						if dontEmitSymbol {
+							c.emit(code.OpGetFunctionParameterSpecial2, c.scopeIndex)
+						}
 					}
 				}
 			}
