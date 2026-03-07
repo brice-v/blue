@@ -524,6 +524,14 @@ func testBrokenVmStackOverflowIssue(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestAssignIndexWithBuiltinDotCallVm(t *testing.T) {
+	s := `var this = {};
+	this.println = "Hello";
+	println(this.println);
+	this.println.println();`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
