@@ -127,6 +127,7 @@ const (
 	OpSpecialIndexHelper
 	OpInvalid
 	OpNode
+	OpNotInTry
 )
 
 type Definition struct {
@@ -224,6 +225,7 @@ var definitions = map[Opcode]*Definition{
 	OpSpecialIndexHelper: {"OpSpecialIndexHelper", []int{2}},
 	OpInvalid:            {"OpInvalid", []int{}},
 	OpNode:               {"OpNode", []int{2, 2}},
+	OpNotInTry:           {"OpNotInTry", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

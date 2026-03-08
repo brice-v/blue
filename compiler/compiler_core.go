@@ -92,6 +92,7 @@ func newFromCore() *Compiler {
 		forIndex:         _coreCompiler.forIndex,
 		breakPos:         map[int][]int{},
 		contPos:          map[int][]int{},
+		inTry:            map[int]struct{}{},
 		importNestLevel:  _coreCompiler.importNestLevel,
 		modName:          _coreCompiler.modName,
 		CompilerBasePath: _coreCompiler.CompilerBasePath,

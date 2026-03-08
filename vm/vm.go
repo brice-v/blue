@@ -744,6 +744,8 @@ func (vm *VM) Run() error {
 					vm.pop()
 				}
 			}
+		case code.OpNotInTry:
+			vm.inTry = false
 		}
 		if ip != 0 {
 			vm.currentFrame().lastInstruction = op

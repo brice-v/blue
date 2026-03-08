@@ -38,6 +38,7 @@ type Compiler struct {
 	forIndex int
 	breakPos map[int][]int
 	contPos  map[int][]int
+	inTry    map[int]struct{}
 
 	importNestLevel  int
 	modName          []string
@@ -110,6 +111,7 @@ func New() *Compiler {
 		forIndex:         0,
 		breakPos:         map[int][]int{},
 		contPos:          map[int][]int{},
+		inTry:            map[int]struct{}{},
 		importNestLevel:  -1,
 		modName:          []string{},
 		CompilerBasePath: cCompilerBasePath,
@@ -659,6 +661,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.BreakStatement:
+		// Set not in try for VM so once we jump its correct
+		// (if we hit an error in try that would proc first)
+		if _, ok := c.inTry[c.BlockNestLevel]; ok {
+			c.emit(code.OpNotInTry)
+		}
 		pos := c.emit(code.OpJump, 9999)
 		if c.breakPos[c.forIndex] == nil {
 			c.breakPos[c.forIndex] = []int{}
@@ -673,11 +680,13 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.TryCatchStatement:
 		c.currentPos = len(c.currentInstructions())
 		c.BlockNestLevel++
+		c.inTry[c.BlockNestLevel] = struct{}{}
 		c.emit(code.OpTry)
 		err := c.Compile(node.TryBlock)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.TryBlock.Token)
 		}
+		delete(c.inTry, c.BlockNestLevel)
 		c.clearBlockSymbols()
 		if node.CatchBlock != nil {
 			c.currentPos = len(c.currentInstructions())
