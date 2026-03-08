@@ -39,6 +39,8 @@ type VM struct {
 	inCatch    bool
 	catchError string
 
+	TokensForErrorTrace []*token.Token
+
 	// Process things
 	NodeName string
 	PID      uint64
@@ -759,21 +761,54 @@ func (vm *VM) printMiniStack(slots int) {
 	}
 }
 
+func (vm *VM) prepareStackTrace() {
+	vm.TokensForErrorTrace = []*token.Token{}
+	ins := vm.currentFrame().Instructions()
+	ip := vm.lastNodePos
+	for range 10 {
+		if ip == 0 {
+			frame := vm.popFrame()
+			if frame != nil {
+				ins = vm.currentFrame().Instructions()
+				ip = vm.currentFrame().ip - 6
+				// log.Printf("FRAME IS NOT NIL")
+			}
+			// log.Printf("HERE! ins[ip] = %d, %s", ip, code.GetOpName(code.Opcode(ins[ip])))
+		}
+		// fmt.Print(utils.BytecodeDebugString(ins, vm.constants))
+		if ip < 0 || ip > len(ins) {
+			break
+		}
+		op := code.Opcode(ins[ip])
+		if op != code.OpNode {
+			// log.Printf("NOT A NODE OP: %s", code.GetOpName(op))
+			break
+		}
+		// log.Printf("ins[ip] = %d, %s", ip, code.GetOpName(op))
+		tokenPos := code.ReadUint16(ins[ip+1:])
+		lastInstructionPos := code.ReadUint16(ins[ip+3:])
+		if int(tokenPos) > len(vm.tokens) {
+			// log.Printf("tokenPos > len(vm.tokens) = %d > %d", tokenPos, len(vm.tokens))
+			break
+		}
+		vm.TokensForErrorTrace = append(vm.TokensForErrorTrace, vm.tokens[tokenPos])
+		// fmt.Println(lexer.GetErrorLineMessage(*vm.tokens[tokenPos]))
+		// log.Printf("lastInstructionPos = %d", lastInstructionPos)
+		if lastInstructionPos == 0 {
+			ip -= 5
+		} else {
+			ip = int(lastInstructionPos) - 5
+		}
+	}
+}
+
 func (vm *VM) push(o object.Object) error {
 	if isError(o) {
 		if vm.inTry || vm.inCatch {
 			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
 			return nil
 		}
-		ip := vm.currentFrame().ip
-		ins := vm.currentFrame().Instructions()
-		op := code.Opcode(ins[ip])
-		log.Printf("HIT ERROR at ip = %d, op = %s", ip, code.GetOpName(op))
-		log.Printf("Last Token Pos = %d, %s", vm.lastNodePos, code.GetOpName(code.Opcode(ins[vm.lastNodePos])))
-		tokenPos := code.ReadUint16(ins[vm.lastNodePos+1:])
-		lastInstructionPos := code.ReadUint16(ins[vm.lastNodePos+3:])
-		fmt.Println(lexer.GetErrorLineMessage(*vm.tokens[tokenPos]))
-		log.Printf("lastInstructionPos = %d", lastInstructionPos)
+		vm.prepareStackTrace()
 		return fmt.Errorf("%s", o.(*object.Error).Message)
 	}
 	if vm.sp >= StackSize {

@@ -810,6 +810,7 @@ func (c *Compiler) compileCallExpression(node *ast.CallExpression) error {
 	if len(node.DefaultArguments) != 0 {
 		argLen++
 	}
+	c.emitNode(node)
 	c.emit(code.OpCall, argLen)
 	return nil
 }

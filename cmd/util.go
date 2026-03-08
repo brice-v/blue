@@ -175,6 +175,11 @@ func vmFile(fpath string, noExec bool, compile bool) {
 	err = v.Run()
 	if err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
+		if v.TokensForErrorTrace != nil {
+			for _, tok := range v.TokensForErrorTrace {
+				fmt.Println(lexer.GetErrorLineMessage(*tok))
+			}
+		}
 		os.Exit(1)
 	}
 	val := v.LastPoppedStackElem()
