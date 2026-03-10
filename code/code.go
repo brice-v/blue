@@ -28,8 +28,7 @@ func (ins Instructions) String() string {
 func (ins Instructions) FmtInstruction(def *Definition, operands []int) string {
 	operandCount := len(def.OperandWidths)
 	if len(operands) != operandCount {
-		return fmt.Sprintf("ERROR: operand len %d does not match defined %d\n",
-			len(operands), operandCount)
+		return fmt.Sprintf("ERROR: operand len %d does not match defined %d\n", len(operands), operandCount)
 	}
 	switch operandCount {
 	case 0:
@@ -127,6 +126,8 @@ const (
 	OpGetFunctionParameterSpecial2
 	OpSpecialIndexHelper
 	OpInvalid
+	OpNode
+	OpNotInTry
 )
 
 type Definition struct {
@@ -223,6 +224,8 @@ var definitions = map[Opcode]*Definition{
 
 	OpSpecialIndexHelper: {"OpSpecialIndexHelper", []int{2}},
 	OpInvalid:            {"OpInvalid", []int{}},
+	OpNode:               {"OpNode", []int{2}},
+	OpNotInTry:           {"OpNotInTry", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

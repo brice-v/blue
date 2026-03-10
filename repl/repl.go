@@ -198,7 +198,7 @@ func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string
 		}
 		bc := c.Bytecode()
 		constants = bc.Constants
-		v := vm.NewWithGlobalsStore(bc, nil, globals)
+		v := vm.NewWithGlobalsStore(bc, globals)
 		err = v.Run()
 		if err == nil {
 			replVar := fmt.Sprintf("_%d", replVarIndx)

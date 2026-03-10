@@ -497,8 +497,7 @@ func TestCompilerScopes(t *testing.T) {
 	}
 	compiler.emit(code.OpMinus)
 	if len(compiler.scopes[compiler.scopeIndex].instructions) != 1 {
-		t.Errorf("instructions length wrong. got=%d",
-			len(compiler.scopes[compiler.scopeIndex].instructions))
+		t.Errorf("instructions length wrong. got=%d", len(compiler.scopes[compiler.scopeIndex].instructions))
 	}
 	last := compiler.scopes[compiler.scopeIndex].lastInstruction
 	if last.Opcode != code.OpMinus {
@@ -544,6 +543,7 @@ func TestFunctionCalls(t *testing.T) {
 			},
 			expectedInstructions: []code.Instructions{
 				code.Make(code.OpClosure, constOffset+1, 0),
+				code.Make(code.OpNode, 0),
 				code.Make(code.OpCall, 0),
 				code.Make(code.OpPop),
 			},
@@ -564,6 +564,7 @@ func TestFunctionCalls(t *testing.T) {
 				code.Make(code.OpClosure, constOffset+1, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpNode, 0),
 				code.Make(code.OpCall, 0),
 				code.Make(code.OpPop),
 			},
@@ -584,6 +585,7 @@ func TestFunctionCalls(t *testing.T) {
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpConstant, constOffset+1),
+				code.Make(code.OpNode, 0),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 			},
@@ -608,6 +610,7 @@ func TestFunctionCalls(t *testing.T) {
 				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpConstant, constOffset+2),
 				code.Make(code.OpConstant, constOffset+3),
+				code.Make(code.OpNode, 0),
 				code.Make(code.OpCall, 3),
 				code.Make(code.OpPop),
 			},
@@ -628,6 +631,7 @@ func TestFunctionCalls(t *testing.T) {
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpConstant, constOffset+1),
+				code.Make(code.OpNode, 0),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 			},
@@ -657,6 +661,7 @@ func TestFunctionCalls(t *testing.T) {
 				code.Make(code.OpConstant, constOffset+1),
 				code.Make(code.OpConstant, constOffset+2),
 				code.Make(code.OpConstant, constOffset+3),
+				code.Make(code.OpNode, 0),
 				code.Make(code.OpCall, 3),
 				code.Make(code.OpPop),
 			},
@@ -869,11 +874,13 @@ func TestBuiltins(t *testing.T) {
 			expectedInstructions: []code.Instructions{
 				code.Make(code.OpGetBuiltin, 0, 8),
 				code.Make(code.OpList, 0),
+				code.Make(code.OpNode, 0),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 				code.Make(code.OpGetBuiltin, 0, 11),
 				code.Make(code.OpList, 0),
 				code.Make(code.OpConstant, constOffset+0),
+				code.Make(code.OpNode, 1),
 				code.Make(code.OpCall, 2),
 				code.Make(code.OpPop),
 			},
@@ -884,6 +891,7 @@ func TestBuiltins(t *testing.T) {
 				[]code.Instructions{
 					code.Make(code.OpGetBuiltin, 0, 8),
 					code.Make(code.OpList, 0),
+					code.Make(code.OpNode, 0),
 					code.Make(code.OpCall, 1),
 					code.Make(code.OpReturnValue),
 				},

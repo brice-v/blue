@@ -32,13 +32,13 @@ type Compiler struct {
 	ErrorTrace []string
 
 	currentPos int
-	Tokens     map[int][]token.Token
 
 	BlockNestLevel int
 
 	forIndex int
 	breakPos map[int][]int
 	contPos  map[int][]int
+	inTry    map[int]struct{}
 
 	importNestLevel  int
 	modName          []string
@@ -50,6 +50,9 @@ type Compiler struct {
 	coreCompiled bool
 
 	inMatch bool
+
+	tokens     []*token.Token
+	tokenFolds map[token.Token]int
 }
 
 func (c *Compiler) DebugString() string {
@@ -62,7 +65,6 @@ func (c *Compiler) DebugString() string {
 	fmt.Fprintf(&out, "\tscopeIndex: %d\n", c.scopeIndex)
 	fmt.Fprintf(&out, "\tErrorTrace: %#+v\n", c.ErrorTrace)
 	fmt.Fprintf(&out, "\tcurrentPos: %d\n", c.currentPos)
-	fmt.Fprintf(&out, "\tTokensLen: %d\n", len(c.Tokens))
 	fmt.Fprintf(&out, "\tBlockNestLevel: %d\n", c.BlockNestLevel)
 	fmt.Fprintf(&out, "\tforIndex: %d\n", c.forIndex)
 	fmt.Fprintf(&out, "\tbreakPos: %#+v\n", c.breakPos)
@@ -98,24 +100,23 @@ func New() *Compiler {
 		previousInstruction: EmittedInstruction{},
 	}
 	return &Compiler{
-		constants:     object.OBJECT_CONSTANTS,
-		constantFolds: map[uint64]int{},
-		symbolTable:   symbolTable,
-		scopes:        []CompilationScope{mainScope},
-		scopeIndex:    0,
-		ErrorTrace:    []string{},
-
-		currentPos: 0,
-		Tokens:     map[int][]token.Token{},
-
-		BlockNestLevel: -1,
-		forIndex:       0,
-		breakPos:       map[int][]int{},
-		contPos:        map[int][]int{},
-
+		constants:        object.OBJECT_CONSTANTS,
+		constantFolds:    map[uint64]int{},
+		symbolTable:      symbolTable,
+		scopes:           []CompilationScope{mainScope},
+		scopeIndex:       0,
+		ErrorTrace:       []string{},
+		currentPos:       0,
+		BlockNestLevel:   -1,
+		forIndex:         0,
+		breakPos:         map[int][]int{},
+		contPos:          map[int][]int{},
+		inTry:            map[int]struct{}{},
 		importNestLevel:  -1,
 		modName:          []string{},
 		CompilerBasePath: cCompilerBasePath,
+		tokens:           []*token.Token{},
+		tokenFolds:       make(map[token.Token]int),
 	}
 }
 
@@ -139,17 +140,31 @@ func NewFromCore() *Compiler {
 type Bytecode struct {
 	Instructions code.Instructions
 	Constants    []object.Object
+	Tokens       []*token.Token
 }
 
 func (c *Compiler) Bytecode() *Bytecode {
 	return &Bytecode{
 		Instructions: c.currentInstructions(),
 		Constants:    c.constants,
+		Tokens:       c.tokens,
 	}
 }
 
 func (c *Compiler) currentInstructions() code.Instructions {
 	return c.scopes[c.scopeIndex].instructions
+}
+
+func (c *Compiler) addNode(node ast.Node) int {
+	currentTok := node.TokenToken()
+	tokPos, ok := c.tokenFolds[currentTok]
+	if ok {
+		return tokPos
+	}
+	c.tokens = append(c.tokens, &currentTok)
+	index := len(c.tokens) - 1
+	c.tokenFolds[currentTok] = index
+	return index
 }
 
 func (c *Compiler) addConstant(obj object.Object) int {
@@ -182,6 +197,11 @@ func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	return pos
 }
 
+// emitNode is only used for call expressions
+func (c *Compiler) emitNode(node ast.Node) {
+	c.emit(code.OpNode, c.addNode(node))
+}
+
 func (c *Compiler) addInstruction(ins []byte) int {
 	posNewInstruction := len(c.currentInstructions())
 	updatedInstructions := append(c.currentInstructions(), ins...)
@@ -190,6 +210,10 @@ func (c *Compiler) addInstruction(ins []byte) int {
 }
 
 func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
+	if op == code.OpNode {
+		// Do not set OpNode as Last Instruction
+		return
+	}
 	previous := c.scopes[c.scopeIndex].lastInstruction
 	last := EmittedInstruction{Opcode: op, Position: pos}
 	c.scopes[c.scopeIndex].previousInstruction = previous
@@ -290,12 +314,6 @@ func existsInTokens(t token.Token, toks []token.Token) bool {
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
-	if _, ok := node.(*ast.Program); !ok {
-		t := node.TokenToken()
-		if t.LineNumber != 0 && t.PositionInLine != 0 && t.Filepath != "" && !existsInTokens(t, c.Tokens[c.currentPos]) {
-			c.Tokens[c.currentPos] = append(c.Tokens[c.currentPos], t)
-		}
-	}
 	switch node := node.(type) {
 	case *ast.Program:
 		for _, s := range node.Statements {
@@ -525,18 +543,22 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpMatchAny)
 		} else {
 			var dontEmitSymbol bool
-			symbol, ok := c.symbolTable.Resolve(c.getName(node.Value))
-			if !ok {
-				// Due to the way compiling works, if its a builtin we need to try again
-				symbol, ok = c.symbolTable.Resolve(node.Value)
+			// Always try to resolve for local scope first, then try all the others
+			symbol, ok := c.symbolTable.Resolve(node.Value)
+			if !(ok && symbol.Scope == LocalScope) {
+				symbol, ok = c.symbolTable.Resolve(c.getName(node.Value))
 				if !ok {
-					// Allow resolving special scope symbols
-					symbol, ok, dontEmitSymbol = c.symbolTable.ResolveSpecial(node.Value, c.scopeIndex)
+					// Due to the way compiling works, if its a builtin we need to try again
+					symbol, ok = c.symbolTable.Resolve(node.Value)
 					if !ok {
-						return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
-					}
-					if dontEmitSymbol {
-						c.emit(code.OpGetFunctionParameterSpecial2, c.scopeIndex)
+						// Allow resolving special scope symbols
+						symbol, ok, dontEmitSymbol = c.symbolTable.ResolveSpecial(node.Value, c.scopeIndex)
+						if !ok {
+							return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
+						}
+						if dontEmitSymbol {
+							c.emit(code.OpGetFunctionParameterSpecial2, c.scopeIndex)
+						}
 					}
 				}
 			}
@@ -619,6 +641,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.BreakStatement:
+		// Set not in try for VM so once we jump its correct
+		// (if we hit an error in try that would proc first)
+		if _, ok := c.inTry[c.BlockNestLevel]; ok {
+			c.emit(code.OpNotInTry)
+		}
 		pos := c.emit(code.OpJump, 9999)
 		if c.breakPos[c.forIndex] == nil {
 			c.breakPos[c.forIndex] = []int{}
@@ -633,11 +660,13 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.TryCatchStatement:
 		c.currentPos = len(c.currentInstructions())
 		c.BlockNestLevel++
+		c.inTry[c.BlockNestLevel] = struct{}{}
 		c.emit(code.OpTry)
 		err := c.Compile(node.TryBlock)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.TryBlock.Token)
 		}
+		delete(c.inTry, c.BlockNestLevel)
 		c.clearBlockSymbols()
 		if node.CatchBlock != nil {
 			c.currentPos = len(c.currentInstructions())

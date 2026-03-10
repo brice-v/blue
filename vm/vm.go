@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"slices"
 	"strings"
 
 	"github.com/puzpuzpuz/xsync/v3"
@@ -25,21 +24,22 @@ const (
 )
 
 type VM struct {
-	constants []object.Object
-	stack     []object.Object
-	sp        int // Always points to the next value. Top of stack is stack[sp-1]
+	constants   []object.Object
+	tokens      []*token.Token
+	lastNodePos int
+	stack       []object.Object
+	sp          int // Always points to the next value. Top of stack is stack[sp-1]
 
 	globals []object.Object
 
 	frames      []*Frame
 	framesIndex int
 
-	tokenMap            map[int][]token.Token
-	TokensForErrorTrace []token.Token
-
 	inTry      bool
 	inCatch    bool
 	catchError string
+
+	TokensForErrorTrace []*token.Token
 
 	// Process things
 	NodeName string
@@ -81,30 +81,25 @@ func (vm *VM) popFrame() *Frame {
 	return vm.frames[vm.framesIndex]
 }
 
-func NewNode(nodeName string, bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
+func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions, PosAlreadyIncremented: xsync.NewMapOf[int, struct{}]()}
 	mainClosure := &object.Closure{Fun: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
 	vm := &VM{
-		constants: bytecode.Constants,
-		stack:     make([]object.Object, StackSize),
-		sp:        0,
-
-		globals: make([]object.Object, GlobalsSize),
-
+		constants:   bytecode.Constants,
+		tokens:      bytecode.Tokens,
+		lastNodePos: -1,
+		stack:       make([]object.Object, StackSize),
+		sp:          0,
+		globals:     make([]object.Object, GlobalsSize),
 		frames:      frames,
 		framesIndex: 1,
-
-		tokenMap:            tokenMap,
-		TokensForErrorTrace: nil,
-
-		inTry:   false,
-		inCatch: false,
-
-		PID:      object.PidCount.Load(),
-		NodeName: nodeName,
+		inTry:       false,
+		inCatch:     false,
+		PID:         object.PidCount.Load(),
+		NodeName:    nodeName,
 	}
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
@@ -118,12 +113,12 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode, tokenMap map[int][]to
 	return vm
 }
 
-func New(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token) *VM {
-	return NewNode("vm-node", bytecode, tokenMap)
+func New(bytecode *compiler.Bytecode) *VM {
+	return NewNode("vm-node", bytecode)
 }
 
-func NewWithGlobalsStore(bytecode *compiler.Bytecode, tokenMap map[int][]token.Token, s []object.Object) *VM {
-	vm := New(bytecode, tokenMap)
+func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
+	vm := New(bytecode)
 	vm.globals = s
 	return vm
 }
@@ -170,6 +165,12 @@ func (vm *VM) Run() error {
 		ip = vm.currentFrame().ip
 		ins = vm.currentFrame().Instructions()
 		op = code.Opcode(ins[ip])
+		if op == code.OpNode {
+			vm.lastNodePos = vm.currentFrame().ip
+			// Skip TokenIndex of OpNode
+			vm.currentFrame().ip += 2
+			continue
+		}
 		switch op {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
@@ -743,6 +744,8 @@ func (vm *VM) Run() error {
 					vm.pop()
 				}
 			}
+		case code.OpNotInTry:
+			vm.inTry = false
 		}
 		if ip != 0 {
 			vm.currentFrame().lastInstruction = op
@@ -760,31 +763,36 @@ func (vm *VM) printMiniStack(slots int) {
 	}
 }
 
+func (vm *VM) prepareStackTrace() {
+	vm.TokensForErrorTrace = []*token.Token{}
+	ip := vm.lastNodePos
+	for vm.framesIndex >= 1 {
+		ins := vm.currentFrame().Instructions()
+		op := code.Opcode(ins[ip])
+		if op != code.OpNode {
+			break
+		}
+		tokenPos := code.ReadUint16(ins[ip+1:])
+		if int(tokenPos) > len(vm.tokens) {
+			break
+		}
+		vm.TokensForErrorTrace = append(vm.TokensForErrorTrace, vm.tokens[tokenPos])
+		if vm.framesIndex == 1 {
+			// allow capture of call in main closure then exit (popFrame will return the same main)
+			break
+		}
+		vm.popFrame()
+		ip = vm.currentFrame().ip - 4 // Move back to OpNode of calling function
+	}
+}
+
 func (vm *VM) push(o object.Object) error {
 	if isError(o) {
-		if vm.tokenMap != nil {
-			keys := []int{}
-			for k := range vm.tokenMap {
-				keys = append(keys, k)
-			}
-			slices.Sort(keys)
-			currentPos := vm.currentFrame().ip
-			indexToUse := -1
-			for i := len(keys) - 1; i >= 0; i-- {
-				if keys[i] > currentPos {
-					continue
-				}
-				indexToUse = keys[i]
-				break
-			}
-			if toksForErrorTrace, ok := vm.tokenMap[indexToUse]; ok {
-				vm.TokensForErrorTrace = toksForErrorTrace
-			}
-		}
 		if vm.inTry || vm.inCatch {
 			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
 			return nil
 		}
+		vm.prepareStackTrace()
 		return fmt.Errorf("%s", o.(*object.Error).Message)
 	}
 	if vm.sp >= StackSize {
@@ -1128,26 +1136,6 @@ func (vm *VM) executeCall(numArgs int) error {
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
-		if vm.tokenMap != nil {
-			keys := []int{}
-			for k := range vm.tokenMap {
-				keys = append(keys, k)
-			}
-			slices.Sort(keys)
-			currentPos := vm.currentFrame().ip
-			indexToUse := -1
-			for i := len(keys) - 1; i >= 0; i-- {
-				if keys[i] > currentPos {
-					continue
-				}
-				indexToUse = keys[i]
-				break
-			}
-			toksForErrorTrace, ok := vm.tokenMap[indexToUse]
-			if ok {
-				vm.TokensForErrorTrace = toksForErrorTrace
-			}
-		}
 		return fmt.Errorf("calling non-closure and non-builtin %T", callee)
 	}
 }
@@ -1279,7 +1267,7 @@ func vmStr(s string) object.Object {
 	if err != nil {
 		return newError("compiler error in `eval` string: %s", err.Error())
 	}
-	vm := New(c.Bytecode(), nil)
+	vm := New(c.Bytecode())
 	err = vm.Run()
 	if err != nil {
 		return newError("vm error in `eval` string: %s", err.Error())
