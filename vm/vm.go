@@ -167,8 +167,8 @@ func (vm *VM) Run() error {
 		op = code.Opcode(ins[ip])
 		if op == code.OpNode {
 			vm.lastNodePos = vm.currentFrame().ip
-			// Skip Address of token
-			vm.currentFrame().ip += 4
+			// Skip TokenIndex of OpNode
+			vm.currentFrame().ip += 2
 			continue
 		}
 		switch op {
@@ -765,42 +765,24 @@ func (vm *VM) printMiniStack(slots int) {
 
 func (vm *VM) prepareStackTrace() {
 	vm.TokensForErrorTrace = []*token.Token{}
-	ins := vm.currentFrame().Instructions()
 	ip := vm.lastNodePos
-	for range 10 {
-		if ip == 0 {
-			frame := vm.popFrame()
-			if frame != nil {
-				ins = vm.currentFrame().Instructions()
-				ip = vm.currentFrame().ip - 6
-				// log.Printf("FRAME IS NOT NIL")
-			}
-			// log.Printf("HERE! ins[ip] = %d, %s", ip, code.GetOpName(code.Opcode(ins[ip])))
-		}
-		// fmt.Print(utils.BytecodeDebugString(ins, vm.constants))
-		if ip < 0 || ip > len(ins) {
-			break
-		}
+	for vm.framesIndex >= 1 {
+		ins := vm.currentFrame().Instructions()
 		op := code.Opcode(ins[ip])
 		if op != code.OpNode {
-			// log.Printf("NOT A NODE OP: %s", code.GetOpName(op))
 			break
 		}
-		// log.Printf("ins[ip] = %d, %s", ip, code.GetOpName(op))
 		tokenPos := code.ReadUint16(ins[ip+1:])
-		lastInstructionPos := code.ReadUint16(ins[ip+3:])
 		if int(tokenPos) > len(vm.tokens) {
-			// log.Printf("tokenPos > len(vm.tokens) = %d > %d", tokenPos, len(vm.tokens))
 			break
 		}
 		vm.TokensForErrorTrace = append(vm.TokensForErrorTrace, vm.tokens[tokenPos])
-		// fmt.Println(lexer.GetErrorLineMessage(*vm.tokens[tokenPos]))
-		// log.Printf("lastInstructionPos = %d", lastInstructionPos)
-		if lastInstructionPos == 0 {
-			ip -= 5
-		} else {
-			ip = int(lastInstructionPos) - 5
+		if vm.framesIndex == 1 {
+			// allow capture of call in main closure then exit (popFrame will return the same main)
+			break
 		}
+		vm.popFrame()
+		ip = vm.currentFrame().ip - 4 // Move back to OpNode of calling function
 	}
 }
 

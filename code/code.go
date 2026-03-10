@@ -224,7 +224,7 @@ var definitions = map[Opcode]*Definition{
 
 	OpSpecialIndexHelper: {"OpSpecialIndexHelper", []int{2}},
 	OpInvalid:            {"OpInvalid", []int{}},
-	OpNode:               {"OpNode", []int{2, 2}},
+	OpNode:               {"OpNode", []int{2}},
 	OpNotInTry:           {"OpNotInTry", []int{}},
 }
 
