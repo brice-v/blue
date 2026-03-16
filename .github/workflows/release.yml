@@ -52,14 +52,6 @@ jobs:
         with:
           file: blue-linux
 
-      - name: Compress macos binaries
-        if: matrix.os == 'macos-latest'
-        uses: svenstaro/upx-action@v2
-        with:
-          args: --force-macos
-          file: blue-mac
-        continue-on-error: true
-
       # This will draft a new release & will attach the binaries produced by the above outputs.
       # You still need to publish this release though after job ends.
       - name: Release
