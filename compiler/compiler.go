@@ -557,7 +557,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 							return fmt.Errorf("identifier not found %s\n%s", node.Value, lexer.GetErrorLineMessage(node.Token))
 						}
 						if dontEmitSymbol {
-							c.emit(code.OpGetFunctionParameterSpecial2, c.scopeIndex)
+							c.emit(code.OpGetFunctionParameterSpecial2, c.addConstant(&object.Stringo{Value: node.Value}))
 						}
 					}
 				}

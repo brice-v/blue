@@ -710,9 +710,13 @@ func (vm *VM) Run() error {
 				}
 			}
 		case code.OpGetFunctionParameterSpecial2:
-			indexList := int(code.ReadUint8(ins[ip+1:]))
-			vm.currentFrame().ip += 1
-			err := vm.pushSpecialFunctionParameter2(indexList)
+			constIndex := code.ReadUint16(ins[ip+1:])
+			vm.currentFrame().ip += 2
+			str, ok := vm.constants[constIndex].(*object.Stringo)
+			if !ok {
+				return fmt.Errorf("found non-string in constant for OpGetFunctionParameterSpecial2, got = %T", vm.constants[constIndex])
+			}
+			err := vm.pushSpecialFunctionParameter2(str.Value)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {

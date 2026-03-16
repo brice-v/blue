@@ -992,10 +992,10 @@ func (vm *VM) pushSpecialFunctionParameter(parameterIndex, listIndex int) error 
 	return vm.push(&object.Stringo{Value: ""})
 }
 
-func (vm *VM) pushSpecialFunctionParameter2(listIndex int) error {
+func (vm *VM) pushSpecialFunctionParameter2(name string) error {
 	for _, v := range vm.currentFrame().cl.Fun.SpecialFunctionParameters {
 		for kk, vv := range v {
-			if vv == nil || kk.Index != listIndex {
+			if vv == nil || kk.Name != name {
 				continue
 			}
 			return vm.push(vv)

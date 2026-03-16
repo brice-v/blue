@@ -220,7 +220,7 @@ var definitions = map[Opcode]*Definition{
 
 	OpGetGlobalImmOrSpecial:        {"OpGetGlobalImmOrSpecial", []int{2, 1}},
 	OpGetFunctionParameterSpecial:  {"OpGetFunctionParameterSpecial", []int{1, 1}},
-	OpGetFunctionParameterSpecial2: {"OpGetFunctionParameterSpecial2", []int{1}},
+	OpGetFunctionParameterSpecial2: {"OpGetFunctionParameterSpecial2", []int{2}},
 
 	OpSpecialIndexHelper: {"OpSpecialIndexHelper", []int{2}},
 	OpInvalid:            {"OpInvalid", []int{}},
