@@ -287,7 +287,10 @@ func (vm *VM) Run() error {
 					vm.push(object.TRUE)
 				} else {
 					// Execute Not on the Condition to reverse OpNotIfNotNull which is always called prior
-					vm.push(condition)
+					err := vm.push(condition)
+					if err != nil {
+						return err
+					}
 					vm.executeNotOperation()
 				}
 			}
@@ -299,7 +302,10 @@ func (vm *VM) Run() error {
 				vm.currentFrame().ip = pos - 1
 				vm.push(object.FALSE)
 			} else {
-				vm.push(condition)
+				err := vm.push(condition)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
@@ -373,8 +379,14 @@ func (vm *VM) Run() error {
 			index := vm.pop()
 			left := vm.pop()
 			if (index.Type() == object.CLOSURE || index.Type() == object.BUILTIN_OBJ) && vm.incrementOpCallArgCount() {
-				vm.push(index)
-				vm.push(left)
+				err := vm.push(index)
+				if err != nil {
+					return err
+				}
+				err = vm.push(left)
+				if err != nil {
+					return err
+				}
 			} else {
 				err := vm.executeIndexExpression(left, index)
 				if err != nil {
@@ -430,13 +442,7 @@ func (vm *VM) Run() error {
 			if frame != nil {
 				vm.sp = frame.bp - 1
 			}
-			err := vm.push(object.NULL)
-			if err != nil {
-				err = vm.PushAndReturnError(err)
-				if err != nil {
-					return err
-				}
-			}
+			vm.push(object.NULL)
 			if frame != nil {
 				for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
 					err := vm.callClosure(deferFun, 0)
@@ -596,10 +602,20 @@ func (vm *VM) Run() error {
 			if !ok {
 				return fmt.Errorf("expected ExecString, got=%T", execStr)
 			}
-			vm.push(object.ExecStringCommand(str.Value))
+			err := vm.push(object.ExecStringCommand(str.Value))
+			if err != nil {
+				return err
+			}
 		case code.OpEval:
-			strToEval := vm.pop()
-			vm.push(vmStr(strToEval.(*object.Stringo).Value))
+			strToEval := vm.pop().(*object.Stringo).Value
+			result, err := vmStr(strToEval)
+			if err != nil {
+				return err
+			}
+			err = vm.push(result)
+			if err != nil {
+				return err
+			}
 		case code.OpMatchValue:
 			right := vm.pop()
 			left := vm.pop()
@@ -641,7 +657,10 @@ func (vm *VM) Run() error {
 				}
 			}
 			vm.sp = startIndex
-			vm.push(bs)
+			err = vm.push(bs)
+			if err != nil {
+				return err
+			}
 		case code.OpGetListIndex:
 			index := int(code.ReadUint8(ins[ip+1:]))
 			vm.currentFrame().ip += 1
@@ -653,7 +672,10 @@ func (vm *VM) Run() error {
 			if index > len(l) {
 				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex index is greater than the length of the list. index=%d, len(list)=%d", index, len(l)))
 			}
-			vm.push(l[index])
+			err := vm.push(l[index])
+			if err != nil {
+				return err
+			}
 		case code.OpGetMapKey:
 			key := vm.peek()
 			if key.Type() != object.STRING_OBJ {
@@ -667,7 +689,10 @@ func (vm *VM) Run() error {
 			if !ok {
 				return vm.PushAndReturnError(fmt.Errorf("OpGetMapKey did not find value for name: `%s` in the map", key.(*object.Stringo).Value))
 			}
-			vm.push(pair.Value)
+			err := vm.push(pair.Value)
+			if err != nil {
+				return err
+			}
 		case code.OpDefer:
 			numDefers := int(code.ReadUint8(ins[ip+1:]))
 			for range numDefers {
@@ -678,10 +703,14 @@ func (vm *VM) Run() error {
 				vm.currentFrame().PushDeferFun(deferFun.(*object.Closure))
 			}
 		case code.OpSelf:
+			var err error
 			if p, ok := object.ProcessMap.Load(object.Pk(vm.NodeName, vm.PID)); ok {
-				vm.push(p)
+				err = vm.push(p)
 			} else {
-				vm.push(newError("`self` error: process not found"))
+				err = vm.push(newError("`self` error: process not found"))
+			}
+			if err != nil {
+				return err
 			}
 		case code.OpSpawn:
 			numArgs := int(code.ReadUint8(ins[ip+1:]))
@@ -1258,25 +1287,25 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 	return vm.push(result)
 }
 
-func vmStr(s string) object.Object {
+func vmStr(s string) (object.Object, error) {
 	l := lexer.New(s, "<internal: string>")
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	pErrors := p.Errors()
 	if len(pErrors) != 0 {
-		return newError("failed to `eval` string, found '%d' parser errors", len(pErrors))
+		return nil, fmt.Errorf("failed to `eval` string, found '%d' parser errors", len(pErrors))
 	}
 	c := compiler.New()
 	err := c.Compile(prog)
 	if err != nil {
-		return newError("compiler error in `eval` string: %s", err.Error())
+		return nil, fmt.Errorf("compiler error in `eval` string: %s", err.Error())
 	}
 	vm := New(c.Bytecode())
 	err = vm.Run()
 	if err != nil {
-		return newError("vm error in `eval` string: %s", err.Error())
+		return nil, fmt.Errorf("vm error in `eval` string: %s", err.Error())
 	}
-	return vm.LastPoppedStackElem()
+	return vm.LastPoppedStackElem(), nil
 }
 
 func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) {

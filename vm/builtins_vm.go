@@ -42,7 +42,10 @@ func createToNumBuiltin() *object.Builtin {
 				} else if strings.Contains(s, "-Inf") {
 					return &object.Float{Value: math.Inf(-1)}
 				}
-				obj := vmStr(s)
+				obj, err := vmStr(s)
+				if err != nil {
+					return &object.Error{Message: err.Error()}
+				}
 				if isError(obj) {
 					return obj
 				}
@@ -560,7 +563,10 @@ func createLoadBuiltin(_ *VM) *object.Builtin {
 				case *object.Null:
 					return object.NULL
 				case *object.StringFunction:
-					obj := vmStr(o.Value)
+					obj, err := vmStr(o.Value)
+					if err != nil {
+						return &object.Error{Message: err.Error()}
+					}
 					if isError(obj) {
 						return newError("`load` error: %s", obj.(*object.Error).Message)
 					}
