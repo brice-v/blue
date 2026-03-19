@@ -608,11 +608,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpEval:
 			strToEval := vm.pop().(*object.Stringo).Value
-			result, err := vmStr(strToEval)
-			if err != nil {
-				return err
-			}
-			err = vm.push(result)
+			result := vmStr(strToEval)
+			err := vm.push(result)
 			if err != nil {
 				return err
 			}
@@ -1287,25 +1284,25 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 	return vm.push(result)
 }
 
-func vmStr(s string) (object.Object, error) {
+func vmStr(s string) object.Object {
 	l := lexer.New(s, "<internal: string>")
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	pErrors := p.Errors()
 	if len(pErrors) != 0 {
-		return nil, fmt.Errorf("failed to `eval` string, found '%d' parser errors", len(pErrors))
+		return newError("failed to `eval` string, found '%d' parser errors", len(pErrors))
 	}
 	c := compiler.New()
 	err := c.Compile(prog)
 	if err != nil {
-		return nil, fmt.Errorf("compiler error in `eval` string: %s", err.Error())
+		return newError("compiler error in `eval` string: %s", err.Error())
 	}
 	vm := New(c.Bytecode())
 	err = vm.Run()
 	if err != nil {
-		return nil, fmt.Errorf("vm error in `eval` string: %s", err.Error())
+		return newError("vm error in `eval` string: %s", err.Error())
 	}
-	return vm.LastPoppedStackElem(), nil
+	return vm.LastPoppedStackElem()
 }
 
 func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) {
