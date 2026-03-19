@@ -798,8 +798,8 @@ func (p *Parser) parseEvalExpression() ast.Expression {
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-	if !p.expectPeekIs(token.SEMICOLON) {
-		return nil
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
 	}
 	return ee
 }
