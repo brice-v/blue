@@ -1,8 +1,7 @@
-#VM IGNORE
 val x = 1;
 val y = 1;
 
-val z = eval("x + #{y}");
+val z = eval("#{x} + #{y}");
 assert(z == 2);
 eval("println(#{z})");
 

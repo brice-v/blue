@@ -607,11 +607,13 @@ func (vm *VM) Run() error {
 				return err
 			}
 		case code.OpEval:
-			strToEval := vm.pop().(*object.Stringo).Value
-			result := vmStr(strToEval)
-			err := vm.push(result)
+			strToEval := vm.pop()
+			err := vm.executeEvalOperation(strToEval)
 			if err != nil {
-				return err
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
 			}
 		case code.OpMatchValue:
 			right := vm.pop()

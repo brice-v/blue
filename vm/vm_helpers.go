@@ -1004,3 +1004,17 @@ func (vm *VM) pushSpecialFunctionParameter2(name string) error {
 	// Default behavior if not found is to put empty string
 	return vm.push(&object.Stringo{Value: ""})
 }
+
+func (vm *VM) executeEvalOperation(strToEval object.Object) error {
+	str, ok := strToEval.(*object.Stringo)
+	if !ok {
+		err := vm.push(newError("OpEval did not get string to eval. got=%T", strToEval))
+		if err != nil {
+			return err
+		}
+	} else {
+		result := vmStr(str.Value)
+		return vm.push(result)
+	}
+	return nil
+}

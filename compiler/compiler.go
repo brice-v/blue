@@ -727,8 +727,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.EvalExpression:
-		literal := &object.Stringo{Value: node.StrToEval.String()}
-		c.emit(code.OpConstant, c.addConstant(literal))
+		err := c.Compile(node.StrToEval)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
+		c.emitNode(node)
 		c.emit(code.OpEval)
 	case *ast.ExecStringLiteral:
 		if node.Value == "" {

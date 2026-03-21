@@ -1,4 +1,6 @@
 #VM IGNORE
+# New Behavior is that globals will stay global (if they should be local they need to be passed to the function)
+# For VM specifically
 val input = """addx 15
 addx -11
 addx 6
