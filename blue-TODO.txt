@@ -1,9 +1,6 @@
 TODO:
 
-- [ ] Fix up everything related to VM errors
 - [ ] Add dis() builtin function to disassemble function inline
-- [ ] Add dir() builtin function to print out all keys on an object? (look at what python does and do that)
-- [ ] Any time clone is used, need to make sure that processes are not cloned
 - [ ] Dont necessarily need to return builtin for builtins that require vm reference
     - could just return func(args...) object.Object
 - [ ] Default to using VM as default once everything is implemented
@@ -19,9 +16,6 @@ TODO:
 - Tmp
 - [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
     - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
-- [ ] FEAT: Implement proper scopes so variable shadowing can work
-    - assigning to global variable failed eg. var ll = [3,2,1]; fun () { ll = ll.sort(); } => ll still [3,2,1]
-    - when assigning to a variable, we are not allocating new?
 - [ ] FEAT: allow functions to be defined later down in the file
 - [ ] FEAT: sort doesnt work when nulls are in collections (realistically we can put at beginning or end)
     - by fixing this we might as well add true and false to be sortable in collection as well?
@@ -530,3 +524,11 @@ COMPLETED TASKS:
     - [x] File `test_map_on_collection_with_infix_dot.b`: vm returned error `assert` failed
     - [x] File `test_pids.b`: vm returned error type mismatch: STRING OpGreaterThanOrEqual UINTEGER
     - [x] File `test_sorting.b`: vm returned error `assert` failed
+- [x] Add dir() builtin function to print out all keys on an object? (look at what python does and do that)
+    - have 'keys' that does that
+- [x] Any time clone is used, need to make sure that processes are not cloned
+- [x] Fix up everything related to VM errors
+- [x] FEAT: Implement proper scopes so variable shadowing can work
+    - assigning to global variable failed eg. var ll = [3,2,1]; fun () { ll = ll.sort(); } => ll still [3,2,1]
+    - when assigning to a variable, we are not allocating new?
+    - This works with vm: var ll = [3,2,1]; fun () { ll = ll.sort() }() => ll is now [1,2,3]
