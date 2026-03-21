@@ -30,7 +30,6 @@ import (
 	"github.com/gobuffalo/plush"
 	"github.com/google/uuid"
 	"github.com/gookit/color"
-	clone "github.com/huandu/go-clone/generic"
 	"github.com/huandu/xstrings"
 	"github.com/shopspring/decimal"
 )
@@ -249,16 +248,7 @@ var Builtins = NewBuiltinSliceType{
 				if !IsCollectionType(args[0].Type()) {
 					return newPositionalTypeError("new", 1, "MAP or LIST or SET", args[0].Type())
 				}
-				if args[0].Type() == MAP_OBJ {
-					m := args[0].(*Map)
-					return clone.Clone(m)
-				} else if args[0].Type() == LIST_OBJ {
-					l := args[0].(*List)
-					return clone.Clone(l)
-				} else {
-					s := args[0].(*Set)
-					return clone.Clone(s)
-				}
+				return args[0].Clone()
 			},
 			HelpStr: helpStrArgs{
 				explanation: "`new` returns a cloned MAP object from the given arg",
