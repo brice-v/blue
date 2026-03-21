@@ -108,7 +108,6 @@ const (
 	OpExecString
 	OpMatchValue
 	OpMatchAny
-	OpEval
 	OpDefaultArgs
 	OpCoreCompiled
 	OpSlice
@@ -202,7 +201,6 @@ var definitions = map[Opcode]*Definition{
 	OpExecString:         {"OpExecString", []int{2}},
 	OpMatchValue:         {"OpMatchValue", []int{}},
 	OpMatchAny:           {"OpMatchAny", []int{}},
-	OpEval:               {"OpEval", []int{}},
 	OpDefaultArgs:        {"OpDefaultArgs", []int{2}},
 	OpCoreCompiled:       {"OpCoreCompiled", []int{}},
 	OpSlice:              {"OpSlice", []int{}},

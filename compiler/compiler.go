@@ -727,9 +727,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.EvalExpression:
-		literal := &object.Stringo{Value: node.StrToEval.String()}
-		c.emit(code.OpConstant, c.addConstant(literal))
-		c.emit(code.OpEval)
+		err := fmt.Errorf("EvalExpression not supported in vm")
+		return c.addNodeToErrorTrace(err, node.Token)
 	case *ast.ExecStringLiteral:
 		if node.Value == "" {
 			err := fmt.Errorf("exec string must not be empty")
