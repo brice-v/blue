@@ -123,6 +123,7 @@ var builtins = NewBuiltinObjMap(BuiltinMapTypeInternal{
 	"fmt":                object.GetBuiltinByName(object.BuiltinBaseType, "fmt"),
 	"save":               object.GetBuiltinByName(object.BuiltinBaseType, "save"),
 	"__hash":             object.GetBuiltinByName(object.BuiltinBaseType, "__hash"),
+	"zip":                object.GetBuiltinByName(object.BuiltinBaseType, "zip"),
 })
 
 func GetBuiltins(e *Evaluator) BuiltinMapType {

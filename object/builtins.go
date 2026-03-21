@@ -3167,6 +3167,52 @@ var Builtins = NewBuiltinSliceType{
 		Name:    "load",
 		Builtin: &Builtin{Fun: nil},
 	},
+	{
+		Name: "zip",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if args[0].Type() != LIST_OBJ {
+					return newPositionalTypeError("zip", 1, LIST_OBJ, args[0].Type())
+				}
+				minL := -1
+				lol := args[0].(*List).Elements
+				for i, e := range lol {
+					if e.Type() != LIST_OBJ {
+						return newError("`zip` error: element at index=%d is not LIST. got=%s", i, e.Type())
+					}
+					curL := len(e.(*List).Elements)
+					if minL == -1 {
+						minL = curL
+						continue
+					}
+					if curL < minL {
+						minL = curL
+					}
+				}
+				if minL == -1 {
+					return newError("`zip` error: minimum list length not found")
+				}
+				lolLen := len(lol)
+				containerList := &List{Elements: make([]Object, minL)}
+				for i := range minL {
+					if containerList.Elements[i] == nil {
+						containerList.Elements[i] = &List{Elements: make([]Object, lolLen)}
+					}
+					for j := range lolLen {
+						elem := lol[j].(*List).Elements[i]
+						containerList.Elements[i].(*List).Elements[j] = elem
+					}
+				}
+				return containerList
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`zip` returns a list of lists (tuples) for the given list of lists paired up by their index",
+				signature:   "zip(lol: list[list[any]]) -> list[list[any]]",
+				errors:      "InvalidArgCount,PositionalType,CustomError",
+				example:     "zip([[1,2],[3,4]]) => [[1,3],[2,4]]",
+			}.String(),
+		},
+	},
 }
 
 var AllBuiltins = []struct {
