@@ -3171,6 +3171,9 @@ var Builtins = NewBuiltinSliceType{
 		Name: "zip",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("zip", len(args), 1, "")
+				}
 				if args[0].Type() != LIST_OBJ {
 					return newPositionalTypeError("zip", 1, LIST_OBJ, args[0].Type())
 				}
