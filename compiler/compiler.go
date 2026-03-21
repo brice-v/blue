@@ -777,6 +777,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
+		c.emitNode(node)
 		c.emit(code.OpSpawn, argLen)
 	default:
 		log.Fatalf("Failed to compile %T %+#v", node, node)
