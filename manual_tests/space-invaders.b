@@ -232,7 +232,7 @@ fun g_render() {
 }
 
 fun main() {
-    gg.init_window(width=SCREEN_WIDTH, height=SCREEN_HEIGHT, title="Space Invaders");
+    val win = gg.new_window(width=SCREEN_WIDTH, height=SCREEN_HEIGHT, title="Space Invaders");
     gg.set_target_fps(60);
 
     reset();
@@ -243,7 +243,7 @@ fun main() {
         g_render();
     }
 
-    gg.close_window();
+    win.close();
 }
 
 main();

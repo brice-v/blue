@@ -1,7 +1,7 @@
 import gg
 
 fun main() {
-    gg.init_window(width=800, height=640, title="Example Raylib Bindings");
+    val win = gg.new_window(width=800, height=640, title="Example Raylib Bindings");
     gg.set_target_fps(60);
 
     for (!gg.window_should_close()) {
@@ -13,7 +13,7 @@ fun main() {
         gg.end_drawing()
     }
 
-    gg.close_window();
+    win.close();
 }
 
 main();

@@ -78,6 +78,352 @@ var GgBuiltins = NewBuiltinSliceType{
 		},
 	},
 	{
+		Name: "_is_window_ready",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_window_ready", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsWindowReady())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_window_ready` returns true if the window is ready",
+				signature:   "is_window_ready() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_window_ready() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_window_fullscreen",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_window_fullscreen", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsWindowFullscreen())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_window_fullscreen` returns true if the window is fullscreen",
+				signature:   "is_window_fullscreen() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_window_fullscreen() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_window_hidden",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_window_hidden", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsWindowFullscreen())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_window_hidden` returns true if the window is hidden",
+				signature:   "is_window_hidden() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_window_hidden() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_window_maximized",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_window_maximized", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsWindowMaximized())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_window_maximized` returns true if the window is maximized",
+				signature:   "is_window_maximized() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_window_maximized() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_window_minimized",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_window_minimized", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsWindowMinimized())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_window_minimized` returns true if the window is minimized",
+				signature:   "is_window_minimized() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_window_minimized() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_window_focused",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_window_focused", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsWindowFocused())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_window_focused` returns true if the window is focused",
+				signature:   "is_window_focused() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_window_focused() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_window_resized",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_window_resized", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsWindowResized())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_window_resized` returns true if the window is resized",
+				signature:   "is_window_resized() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_window_resized() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_toggle_window_fullscreen",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("toggle_window_fullscreen", len(args), 0, "")
+				}
+				rl.ToggleFullscreen()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`toggle_window_fullscreen` toggles the window to be fullscreen or not",
+				signature:   "toggle_window_fullscreen() -> null",
+				errors:      "InvalidArgCount",
+				example:     "toggle_window_fullscreen() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_maximize_window",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("maximize_window", len(args), 0, "")
+				}
+				rl.MaximizeWindow()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`maximize_window` maximizes the window",
+				signature:   "maximize_window() -> null",
+				errors:      "InvalidArgCount",
+				example:     "maximize_window() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_minimize_window",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("minimize_window", len(args), 0, "")
+				}
+				rl.MinimizeWindow()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`minimize_window` maximizes the window",
+				signature:   "minimize_window() -> null",
+				errors:      "InvalidArgCount",
+				example:     "minimize_window() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_restore_window",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("restore_window", len(args), 0, "")
+				}
+				rl.RestoreWindow()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`restore_window` restores the window",
+				signature:   "restore_window() -> null",
+				errors:      "InvalidArgCount",
+				example:     "restore_window() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_icon",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("set_window_icon", len(args), 1, "")
+				}
+				if args[0].Type() == LIST_OBJ {
+					elemList := args[0].(*List).Elements
+					icons := make([]rl.Image, len(elemList))
+					for i, e := range elemList {
+						iconImage, ok := e.(*GoObj[rl.Image])
+						if !ok {
+							return newPositionalTypeErrorForGoObj("set_window_icon", i+1, "rl.Image", e)
+						}
+						icons[i] = iconImage.Value
+					}
+					rl.SetWindowIcons(icons, int32(len(elemList)))
+				} else {
+					icon, ok := args[0].(*GoObj[rl.Image])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("set_window_icon", 1, "rl.Image", args[0])
+					}
+					rl.SetWindowIcon(icon.Value)
+				}
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_icon` sets the icon or icons for the window",
+				signature:   "set_window_icon(icon: GoObj[rl.Image]|list[GoObj[rl.Image]]) -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_icon(icon) => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_title",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("set_window_title", len(args), 1, "")
+				}
+				if args[0].Type() != STRING_OBJ {
+					return newPositionalTypeError("set_window_title", 1, STRING_OBJ, args[0].Type())
+				}
+				rl.SetWindowTitle(args[0].(*Stringo).Value)
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_title` sets the windows title to the given string",
+				signature:   "set_window_title() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_title() => null",
+			}.String(),
+		},
+	},
+	// TODO: Continue from here
+	{
+		Name: "_set_window_position",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_position` ",
+				signature:   "set_window_position() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_position() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_monitor",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_monitor` ",
+				signature:   "set_window_monitor() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_monitor() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_min_size",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_min_size` ",
+				signature:   "set_window_min_size() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_min_size() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_max_size",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_max_size` ",
+				signature:   "set_window_max_size() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_max_size() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_size",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_size` ",
+				signature:   "set_window_size() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_size() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_opacity",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_opacity` ",
+				signature:   "set_window_opacity() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_opacity() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_window_focused",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_window_focused` ",
+				signature:   "set_window_focused() -> null",
+				errors:      "InvalidArgCount,PositionalTypeError",
+				example:     "set_window_focused() => null",
+			}.String(),
+		},
+	},
+	{
 		Name: "_get_screen_width",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {

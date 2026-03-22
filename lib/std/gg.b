@@ -3,6 +3,28 @@
 
 
 val __init_window = _init_window;
+val __window_should_close = _window_should_close;
+val __close_window = _close_window;
+val __is_window_ready = _is_window_ready;
+val __is_window_fullscreen = _is_window_fullscreen;
+val __is_window_hidden = _is_window_hidden;
+val __is_window_maximized = _is_window_maximized;
+val __is_window_minimized = _is_window_minimized;
+val __is_window_focused = _is_window_focused;
+val __is_window_resized = _is_window_resized;
+val __toggle_window_fullscreen = _toggle_window_fullscreen;
+val __maximize_window = _maximize_window;
+val __minimize_window = _minimize_window;
+val __restore_window = _restore_window;
+val __set_window_icon = _set_window_icon;
+val __set_window_title = _set_window_title;
+val __set_window_position = _set_window_position;
+val __set_window_monitor = _set_window_monitor;
+val __set_window_min_size = _set_window_min_size;
+val __set_window_max_size = _set_window_max_size;
+val __set_window_size = _set_window_size;
+val __set_window_opacity = _set_window_opacity;
+val __set_window_focused = _set_window_focused;
 val get_screen_width = _get_screen_width;
 val get_screen_height = _get_screen_height;
 val __clear_background = _clear_background;
@@ -10,8 +32,6 @@ val color = _color_map();
 val begin_drawing = _begin_drawing;
 val end_drawing = _end_drawing;
 val set_target_fps = _set_target_fps;
-val window_should_close = _window_should_close;
-val close_window = _close_window;
 val unload = _unload;
 val __draw_text = _draw_text;
 val __draw_texture = _draw_texture;
@@ -420,12 +440,37 @@ fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fov
 
 # Specialized Public Functions
 
-fun init_window(width=800, height=600, title="gg - example app") {
+fun new_window(width=800, height=600, title="gg - example app") {
     ##std:this,__init_window
-    ## `init_window` will initialize the raylib window
+    ## `new_window` will initialize the raylib window
     ##
-    ## init_window(width: int=800, height: int=600, title: str="gg - example app") -> null
-    __init_window(width, height, title)
+    ## new_window(width: int=800, height: int=600, title: str="gg - example app") -> null
+    __init_window(width, height, title);
+    return {
+        'is_ready': __is_window_ready,
+        'is_fullscreen': __is_window_fullscreen,
+        'is_hidden': __is_window_hidden,
+        'is_maximized': __is_window_maximized,
+        'is_minimized': __is_window_minimized,
+        'is_focused': __is_window_focused,
+        'is_resized': __is_window_resized,
+        'toggle_fullscreen': __toggle_window_fullscreen,
+        'maximize': __maximize_window,
+        'minimize': __minimize_window,
+        'restore': __restore_window,
+        'close': __close_window,
+        'should_close': __window_should_close,
+        'set_icon': __set_window_icon,
+        'set_icons': __set_window_icon,
+        'set_title': __set_window_title,
+        'set_position': __set_window_position,
+        'set_monitor': __set_window_monitor,
+        'set_min_size': __set_window_min_size,
+        'set_max_size': __set_window_max_size,
+        'set_size': __set_window_size,
+        'set_opacity': __set_window_opacity,
+        'set_focused': __set_window_focused
+    };
 }
 
 fun clear_background(clear_color=color.white) {
