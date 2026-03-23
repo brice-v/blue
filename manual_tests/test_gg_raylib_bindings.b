@@ -3,8 +3,15 @@ import gg
 fun main() {
     val win = gg.new_window(width=800, height=640, title="Example Raylib Bindings");
     gg.set_target_fps(60);
+    for [k,v] in gg.monitor {
+        try {
+            println("k = #{k} => #{v()}")
+        } catch (e) {
+            println("k = #{k} => #{v(gg.monitor.get_current())}")
+        }
+    }
 
-    for (!gg.window_should_close()) {
+    for (!win.should_close()) {
         gg.begin_drawing()
 
         gg.clear_background(gg.color.white)

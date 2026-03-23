@@ -26,6 +26,16 @@ val __set_window_opacity = _set_window_opacity;
 val __set_window_focused = _set_window_focused;
 val get_screen_width = _get_screen_width;
 val get_screen_height = _get_screen_height;
+val __get_monitor_count = _get_monitor_count;
+val __get_current_monitor = _get_current_monitor;
+val __get_monitor_position = _get_monitor_position;
+val __get_monitor_width = _get_monitor_width;
+val __get_monitor_height = _get_monitor_height;
+val __get_monitor_physical_width = _get_monitor_physical_width;
+val __get_monitor_physical_height = _get_monitor_physical_height;
+val __get_monitor_refresh_rate = _get_monitor_refresh_rate;
+val __get_monitor_name = _get_monitor_name;
+
 val __clear_background = _clear_background;
 val color = _color_map();
 val begin_drawing = _begin_drawing;
@@ -292,6 +302,18 @@ val Gamepad = {
     'XboxAxisLt': 4,
     # [-1..1] (pressure-level)
     'XboxAxisRt': 5,
+};
+
+val monitor = {
+    'get_count': __get_monitor_count,
+    'get_current': __get_current_monitor,
+    'get_position': __get_monitor_position,
+    'get_width': __get_monitor_width,
+    'get_height': __get_monitor_height,
+    'get_physical_width': __get_monitor_physical_width,
+    'get_physical_height': __get_monitor_physical_height,
+    'get_monitor_refresh_rate': __get_monitor_refresh_rate,
+    'get_name': __get_monitor_name
 };
 
 # GG Objects

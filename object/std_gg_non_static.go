@@ -493,6 +493,187 @@ var GgBuiltins = NewBuiltinSliceType{
 		},
 	},
 	{
+		Name: "_get_monitor_count",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("get_monitor_count", len(args), 0, "")
+				}
+				return &Integer{Value: int64(rl.GetMonitorCount())}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_count` gets the number of monitors as an int",
+				signature:   "get_monitor_count() -> int",
+				errors:      "InvalidArgCount",
+				example:     "get_monitor_count() => 3",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_current_monitor",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("get_current_monitor", len(args), 0, "")
+				}
+				return &Integer{Value: int64(rl.GetCurrentMonitor())}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_current_monitor` gets the current connected monitor as an int",
+				signature:   "get_current_monitor() -> int",
+				errors:      "InvalidArgCount",
+				example:     "get_current_monitor() => 0",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_monitor_position",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("get_monitor_position", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get_monitor_position", 1, INTEGER_OBJ, args[0].Type())
+				}
+				monitor := int(args[0].(*Integer).Value)
+				return NewGoObj(rl.GetMonitorPosition(monitor))
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_position` gets given monitors position",
+				signature:   "get_monitor_position(monitor: int) -> rl.Vector2",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "get_monitor_position(0) => rl.Vector2[300,100]",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_monitor_width",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("get_monitor_width", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get_monitor_width", 1, INTEGER_OBJ, args[0].Type())
+				}
+				monitor := int(args[0].(*Integer).Value)
+				return &Integer{Value: int64(rl.GetMonitorWidth(monitor))}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_width` gets the width of the given monitor as an int",
+				signature:   "get_monitor_width(monitor: int) -> int",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "get_monitor_width(0) => 800",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_monitor_height",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("get_monitor_height", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get_monitor_height", 1, INTEGER_OBJ, args[0].Type())
+				}
+				monitor := int(args[0].(*Integer).Value)
+				return &Integer{Value: int64(rl.GetMonitorHeight(monitor))}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_height` gets the height of the given monitor as an int",
+				signature:   "get_monitor_height(monitor: int) -> int",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "get_monitor_height(0) => 800",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_monitor_physical_width",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("get_monitor_physical_width", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get_monitor_physical_width", 1, INTEGER_OBJ, args[0].Type())
+				}
+				monitor := int(args[0].(*Integer).Value)
+				return &Integer{Value: int64(rl.GetMonitorPhysicalWidth(monitor))}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_physical_width` gets the physical width of the given monitor as an int",
+				signature:   "get_monitor_physical_width(monitor: int) -> int",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "get_monitor_physical_width(0) => 800",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_monitor_physical_height",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("get_monitor_physical_height", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get_monitor_physical_height", 1, INTEGER_OBJ, args[0].Type())
+				}
+				monitor := int(args[0].(*Integer).Value)
+				return &Integer{Value: int64(rl.GetMonitorHeight(monitor))}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_physical_height` gets the physical height of the given monitor as an int",
+				signature:   "get_monitor_physical_height(monitor: int) -> int",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "get_monitor_physical_height(0) => 800",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_monitor_refresh_rate",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("get_monitor_refresh_rate", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get_monitor_refresh_rate", 1, INTEGER_OBJ, args[0].Type())
+				}
+				monitor := int(args[0].(*Integer).Value)
+				return &Integer{Value: int64(rl.GetMonitorRefreshRate(monitor))}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_refresh_rate` gets the refresh rate of the given monitor as an int",
+				signature:   "get_monitor_refresh_rate(monitor: int) -> int",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "get_monitor_refresh_rate(0) => 800",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_monitor_name",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("get_monitor_name", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get_monitor_name", 1, INTEGER_OBJ, args[0].Type())
+				}
+				monitor := int(args[0].(*Integer).Value)
+				return &Stringo{Value: rl.GetMonitorName(monitor)}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_monitor_name` gets the refresh rate of the given monitor as an int",
+				signature:   "get_monitor_name(monitor: int) -> str",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "get_monitor_name(0) => 'Hello'",
+			}.String(),
+		},
+	},
+	{
 		Name: "_begin_drawing",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
