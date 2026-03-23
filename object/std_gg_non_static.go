@@ -674,6 +674,44 @@ var GgBuiltins = NewBuiltinSliceType{
 		},
 	},
 	{
+		Name: "_get_clipboard_text",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("get_clipboard_text", len(args), 0, "")
+				}
+				return &Stringo{Value: rl.GetClipboardText()}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_clipboard_text` gets the clipboard text as a string",
+				signature:   "get_clipboard_text() -> str",
+				errors:      "InvalidArgCount",
+				example:     "get_clipboard_text() => 'Hello'",
+			}.String(),
+		},
+	},
+	{
+		Name: "_set_clipboard_text",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("set_clipboard_text", len(args), 0, "")
+				}
+				if args[0].Type() != STRING_OBJ {
+					return newPositionalTypeError("set_clipboard_text", 1, STRING_OBJ, args[0].Type())
+				}
+				rl.SetClipboardText(args[0].(*Stringo).Value)
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`set_clipboard_text` sets the clipboard text with the given string",
+				signature:   "set_clipboard_text(data: str) -> null",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "set_clipboard_text('Hello') => null",
+			}.String(),
+		},
+	},
+	{
 		Name: "_begin_drawing",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {

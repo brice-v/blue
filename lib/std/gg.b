@@ -36,6 +36,9 @@ val __get_monitor_physical_height = _get_monitor_physical_height;
 val __get_monitor_refresh_rate = _get_monitor_refresh_rate;
 val __get_monitor_name = _get_monitor_name;
 
+val __get_clipboard_text = _get_clipboard_text;
+val __set_clipboard_text = _set_clipboard_text;
+
 val __clear_background = _clear_background;
 val color = _color_map();
 val begin_drawing = _begin_drawing;
@@ -314,6 +317,11 @@ val monitor = {
     'get_physical_height': __get_monitor_physical_height,
     'get_monitor_refresh_rate': __get_monitor_refresh_rate,
     'get_name': __get_monitor_name
+};
+
+val clipboard = {
+    'get_text': __get_clipboard_text,
+    'set_text': __set_clipboard_text
 };
 
 # GG Objects
