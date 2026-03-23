@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Embed Builtin's name into the builtin and then use it instead of using list of structs
+    - [ ] Also update String() for builtin to include the builtin's name (rather than just builtin function)
 - [ ] Add dis() builtin function to disassemble function inline
 - [ ] Dont necessarily need to return builtin for builtins that require vm reference
     - could just return func(args...) object.Object

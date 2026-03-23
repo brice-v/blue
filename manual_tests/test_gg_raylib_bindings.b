@@ -10,7 +10,8 @@ fun main() {
             println("k = #{k} => #{v(gg.monitor.get_current())}")
         }
     }
-
+    println("HERE? win #{win}");
+    println("win.should_close() = #{win.should_close()}")
     for (!win.should_close()) {
         gg.begin_drawing()
 

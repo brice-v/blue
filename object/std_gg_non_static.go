@@ -712,6 +712,112 @@ var GgBuiltins = NewBuiltinSliceType{
 		},
 	},
 	{
+		Name: "_show_cursor",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("show_cursor", len(args), 0, "")
+				}
+				rl.ShowCursor()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`show_cursor` shows the cursor",
+				signature:   "show_cursor() -> null",
+				errors:      "InvalidArgCount",
+				example:     "show_cursor() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_hide_cursor",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("hide_cursor", len(args), 0, "")
+				}
+				rl.HideCursor()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`hide_cursor` hides the cursor",
+				signature:   "hide_cursor() -> null",
+				errors:      "InvalidArgCount",
+				example:     "hide_cursor() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_cursor_hidden",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_cursor_hidden", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsCursorHidden())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_cursor_hidden` returns true if the cursor is hidden",
+				signature:   "is_cursor_hidden() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_cursor_hidden() => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_enable_cursor",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("enable_cursor", len(args), 0, "")
+				}
+				rl.EnableCursor()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`enable_cursor` enables the cursor",
+				signature:   "enable_cursor() -> null",
+				errors:      "InvalidArgCount",
+				example:     "enable_cursor() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_disable_cursor",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("disable_cursor", len(args), 0, "")
+				}
+				rl.DisableCursor()
+				return NULL
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`disable_cursor` disables the cursor",
+				signature:   "disable_cursor() -> null",
+				errors:      "InvalidArgCount",
+				example:     "disable_cursor() => null",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_cursor_on_screen",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("is_cursor_on_screen", len(args), 0, "")
+				}
+				return nativeToBooleanObject(rl.IsCursorOnScreen())
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_cursor_on_screen` returns true if the cursor is on screen",
+				signature:   "is_cursor_on_screen() -> bool",
+				errors:      "InvalidArgCount",
+				example:     "is_cursor_on_screen() => false",
+			}.String(),
+		},
+	},
+	{
 		Name: "_begin_drawing",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
@@ -1075,6 +1181,57 @@ var GgBuiltins = NewBuiltinSliceType{
 		},
 	},
 	{
+		Name: "_get_fps",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("get_fps", len(args), 0, "")
+				}
+				return &Integer{Value: int64(rl.GetFPS())}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_fps` returns current fps as an integer",
+				signature:   "get_fps() -> int",
+				errors:      "InvalidArgCount",
+				example:     "get_fps() => 60",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_frame_time",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("get_frame_time", len(args), 0, "")
+				}
+				return &Float{Value: float64(rl.GetFrameTime())}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_frame_time` returns the time in seconds (float) for the last frame drawn (delta time)",
+				signature:   "get_frame_time() -> float",
+				errors:      "InvalidArgCount",
+				example:     "get_frame_time() => 16.67",
+			}.String(),
+		},
+	},
+	{
+		Name: "_get_time",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 0 {
+					return newInvalidArgCountError("get_time", len(args), 0, "")
+				}
+				return &Float{Value: rl.GetTime()}
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`get_time` returns the time elapsed (float) since init_window was called",
+				signature:   "get_time() -> float",
+				errors:      "InvalidArgCount",
+				example:     "get_time() => 100.1",
+			}.String(),
+		},
+	},
+	{
 		Name: "_set_exit_key",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
@@ -1177,6 +1334,86 @@ var GgBuiltins = NewBuiltinSliceType{
 				signature:   "is_key_released(key: int) -> bool",
 				errors:      "InvalidArgCount,PositionalType",
 				example:     "is_key_released(key.Q) => false",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_mouse_button_pressed",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("is_mouse_button_pressed", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("is_mouse_button_pressed", 1, INTEGER_OBJ, args[0].Type())
+				}
+				return nativeToBooleanObject(rl.IsMouseButtonPressed(int32(args[0].(*Integer).Value)))
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_mouse_button_pressed` returns true if mouse button has been pressed once",
+				signature:   "is_mouse_button_pressed(button: int) -> bool",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "is_mouse_button_pressed(0) => true",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_mouse_button_down",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("is_mouse_button_down", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("is_mouse_button_down", 1, INTEGER_OBJ, args[0].Type())
+				}
+				return nativeToBooleanObject(rl.IsMouseButtonDown(int32(args[0].(*Integer).Value)))
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_mouse_button_down` returns true if mouse button is being pressed",
+				signature:   "is_mouse_button_down(button: int) -> bool",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "is_mouse_button_down(0) => true",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_mouse_button_released",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("is_mouse_button_released", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("is_mouse_button_released", 1, INTEGER_OBJ, args[0].Type())
+				}
+				return nativeToBooleanObject(rl.IsMouseButtonReleased(int32(args[0].(*Integer).Value)))
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_mouse_button_released` returns true if mouse button has been released once",
+				signature:   "is_mouse_button_released(button: int) -> bool",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "is_mouse_button_released(0) => true",
+			}.String(),
+		},
+	},
+	{
+		Name: "_is_mouse_button_up",
+		Builtin: &Builtin{
+			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("is_mouse_button_up", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("is_mouse_button_up", 1, INTEGER_OBJ, args[0].Type())
+				}
+				return nativeToBooleanObject(rl.IsMouseButtonUp(int32(args[0].(*Integer).Value)))
+			},
+			HelpStr: helpStrArgs{
+				explanation: "`is_mouse_button_up` returns true is mouse button is not being pressed",
+				signature:   "is_mouse_button_up(button: int) -> bool",
+				errors:      "InvalidArgCount,PositionalType",
+				example:     "is_mouse_button_up(0) => true",
 			}.String(),
 		},
 	},

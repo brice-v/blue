@@ -39,11 +39,22 @@ val __get_monitor_name = _get_monitor_name;
 val __get_clipboard_text = _get_clipboard_text;
 val __set_clipboard_text = _set_clipboard_text;
 
+val __show_cursor = _show_cursor;
+val __hide_cursor = _hide_cursor;
+val __is_cursor_hidden = _is_cursor_hidden;
+val __enable_cursor = _enable_cursor;
+val __disable_cursor = _disable_cursor;
+val __is_cursor_on_screen = _is_cursor_on_screen;
+
 val __clear_background = _clear_background;
 val color = _color_map();
 val begin_drawing = _begin_drawing;
 val end_drawing = _end_drawing;
 val set_target_fps = _set_target_fps;
+val get_fps = _get_fps;
+val get_frame_time = _get_frame_time;
+val get_time = _get_time;
+
 val unload = _unload;
 val __draw_text = _draw_text;
 val __draw_texture = _draw_texture;
@@ -70,6 +81,10 @@ val is_key_up = _is_key_up;
 val is_key_down = _is_key_down;
 val is_key_pressed = _is_key_pressed;
 val is_key_released = _is_key_released;
+val is_mouse_button_pressed = _is_mouse_button_pressed;
+val is_mouse_button_down = _is_mouse_button_down;
+val is_mouse_button_released = _is_mouse_button_released;
+val is_mouse_button_up = _is_mouse_button_up;
 
 val __rectangle = _rectangle;
 val __vector2 = _vector2;
@@ -220,6 +235,17 @@ val Mouse = {
     'BackButton': 6,
 };
 
+val MouseButton = {
+    # Mouse Buttons
+    'Left': Mouse.LeftButton,
+    'Right': Mouse.RightButton,
+    'Middle': Mouse.MiddleButton,
+    'Side': Mouse.SideButton,
+    'Extra': Mouse.ExtraButton,
+    'Forward': Mouse.ForwardButton,
+    'Back': Mouse.BackButton,
+};
+
 # Touch points registered
 val MaxTouchPoints = 2;
 
@@ -322,6 +348,15 @@ val monitor = {
 val clipboard = {
     'get_text': __get_clipboard_text,
     'set_text': __set_clipboard_text
+};
+
+val cursor = {
+    'show': __show_cursor,
+    'hide': __hide_cursor,
+    'is_hidden': __is_cursor_hidden,
+    'enable': __enable_cursor,
+    'disable': __disable_cursor,
+    'is_on_screen': __is_cursor_on_screen
 };
 
 # GG Objects
