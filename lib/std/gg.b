@@ -21,7 +21,6 @@ val __set_window_title = _set_window_title;
 val __set_window_position = _set_window_position;
 val __set_window_monitor = _set_window_monitor;
 val __set_window_min_size = _set_window_min_size;
-val __set_window_max_size = _set_window_max_size;
 val __set_window_size = _set_window_size;
 val __set_window_opacity = _set_window_opacity;
 val __set_window_focused = _set_window_focused;
@@ -466,7 +465,6 @@ fun new_window(width=800, height=600, title="gg - example app") {
         'set_position': __set_window_position,
         'set_monitor': __set_window_monitor,
         'set_min_size': __set_window_min_size,
-        'set_max_size': __set_window_max_size,
         'set_size': __set_window_size,
         'set_opacity': __set_window_opacity,
         'set_focused': __set_window_focused

@@ -10,14 +10,6 @@ func TestAllBuiltinsHaveHelpString(t *testing.T) {
 	}
 }
 
-func TestAllStringBuiltinsHaveHelpString(t *testing.T) {
-	for k, v := range stringbuiltins.Kv {
-		if v.HelpStr == "" {
-			t.Fatalf("string builtin `%s` does not have help string", k)
-		}
-	}
-}
-
 func TestAllStdFunctionsHaveHelpString(t *testing.T) {
 	for k, v := range _std_mods {
 		// k is the module name

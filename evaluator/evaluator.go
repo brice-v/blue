@@ -128,7 +128,6 @@ func NewNode(nodeName, address string) *Evaluator {
 
 	e.Builtins = []BuiltinMapType{
 		GetBuiltins(e),
-		stringbuiltins,
 	}
 	e.BuiltinObjs = []object.BuiltinObjMapType{object.Builtinobjs}
 	e.env.SetCore(e.AddCoreLibToEnv())

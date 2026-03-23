@@ -324,18 +324,29 @@ var GgBuiltins = NewBuiltinSliceType{
 			}.String(),
 		},
 	},
-	// TODO: Continue from here
 	{
 		Name: "_set_window_position",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("set_window_position", len(args), 2, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("set_window_position", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("set_window_position", 2, INTEGER_OBJ, args[1].Type())
+				}
+				x := int(args[0].(*Integer).Value)
+				y := int(args[1].(*Integer).Value)
+				rl.SetWindowPosition(x, y)
 				return NULL
 			},
 			HelpStr: helpStrArgs{
-				explanation: "`set_window_position` ",
-				signature:   "set_window_position() -> null",
+				explanation: "`set_window_position` sets the window position to x and y",
+				signature:   "set_window_position(x: int, y: int) -> null",
 				errors:      "InvalidArgCount,PositionalTypeError",
-				example:     "set_window_position() => null",
+				example:     "set_window_position(100, 200) => null",
 			}.String(),
 		},
 	},
@@ -343,13 +354,20 @@ var GgBuiltins = NewBuiltinSliceType{
 		Name: "_set_window_monitor",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("set_window_monitor", len(args), 1, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("set_window_monitor", 1, INTEGER_OBJ, args[0].Type())
+				}
+				rl.SetWindowMonitor(int(args[0].(*Integer).Value))
 				return NULL
 			},
 			HelpStr: helpStrArgs{
-				explanation: "`set_window_monitor` ",
-				signature:   "set_window_monitor() -> null",
+				explanation: "`set_window_monitor` sets the monitor for the current window",
+				signature:   "set_window_monitor(monitor: int) -> null",
 				errors:      "InvalidArgCount,PositionalTypeError",
-				example:     "set_window_monitor() => null",
+				example:     "set_window_monitor(0) => null",
 			}.String(),
 		},
 	},
@@ -357,27 +375,25 @@ var GgBuiltins = NewBuiltinSliceType{
 		Name: "_set_window_min_size",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("set_window_min_size", len(args), 2, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("set_window_min_size", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("set_window_min_size", 2, INTEGER_OBJ, args[1].Type())
+				}
+				w := int(args[0].(*Integer).Value)
+				h := int(args[1].(*Integer).Value)
+				rl.SetWindowMinSize(w, h)
 				return NULL
 			},
 			HelpStr: helpStrArgs{
-				explanation: "`set_window_min_size` ",
-				signature:   "set_window_min_size() -> null",
+				explanation: "`set_window_min_size` sets the minimum window size for resizable windows",
+				signature:   "set_window_min_size(w: int, h: int) -> null",
 				errors:      "InvalidArgCount,PositionalTypeError",
-				example:     "set_window_min_size() => null",
-			}.String(),
-		},
-	},
-	{
-		Name: "_set_window_max_size",
-		Builtin: &Builtin{
-			Fun: func(args ...Object) Object {
-				return NULL
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`set_window_max_size` ",
-				signature:   "set_window_max_size() -> null",
-				errors:      "InvalidArgCount,PositionalTypeError",
-				example:     "set_window_max_size() => null",
+				example:     "set_window_min_size(200, 200) => null",
 			}.String(),
 		},
 	},
@@ -385,13 +401,25 @@ var GgBuiltins = NewBuiltinSliceType{
 		Name: "_set_window_size",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
+				if len(args) != 2 {
+					return newInvalidArgCountError("set_window_size", len(args), 2, "")
+				}
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("set_window_size", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("set_window_size", 2, INTEGER_OBJ, args[1].Type())
+				}
+				w := int(args[0].(*Integer).Value)
+				h := int(args[1].(*Integer).Value)
+				rl.SetWindowSize(w, h)
 				return NULL
 			},
 			HelpStr: helpStrArgs{
-				explanation: "`set_window_size` ",
-				signature:   "set_window_size() -> null",
+				explanation: "`set_window_size` sets the window size",
+				signature:   "set_window_size(w: int, h: int) -> null",
 				errors:      "InvalidArgCount,PositionalTypeError",
-				example:     "set_window_size() => null",
+				example:     "set_window_size(800, 600) => null",
 			}.String(),
 		},
 	},
@@ -399,13 +427,20 @@ var GgBuiltins = NewBuiltinSliceType{
 		Name: "_set_window_opacity",
 		Builtin: &Builtin{
 			Fun: func(args ...Object) Object {
+				if len(args) != 1 {
+					return newInvalidArgCountError("set_window_opacity", len(args), 1, "")
+				}
+				if args[0].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("set_window_opacity", 1, FLOAT_OBJ, args[0].Type())
+				}
+				rl.SetWindowOpacity(float32(args[0].(*Float).Value))
 				return NULL
 			},
 			HelpStr: helpStrArgs{
-				explanation: "`set_window_opacity` ",
-				signature:   "set_window_opacity() -> null",
+				explanation: "`set_window_opacity` sets the window opacity (value from 0.0-1.0)",
+				signature:   "set_window_opacity(o: float) -> null",
 				errors:      "InvalidArgCount,PositionalTypeError",
-				example:     "set_window_opacity() => null",
+				example:     "set_window_opacity(0.6) => null",
 			}.String(),
 		},
 	},
