@@ -6,8 +6,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var DbBuiltins = NewBuiltinSliceType{
-	{Name: "_db_open", Builtin: &Builtin{
+var DbBuiltins = []*Builtin{
+	{
+		Name: "_db_open",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("db_open", len(args), 1, "")
@@ -31,8 +32,9 @@ var DbBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "db_open() => GoObj[*sql.DB]",
 		}.String(),
-	}},
-	{Name: "_db_ping", Builtin: &Builtin{
+	},
+	{
+		Name: "_db_ping",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("db_ping", len(args), 1, "")
@@ -56,8 +58,9 @@ var DbBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "db_ping(db) => null",
 		}.String(),
-	}},
-	{Name: "_db_close", Builtin: &Builtin{
+	},
+	{
+		Name: "_db_close",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("db_close", len(args), 1, "")
@@ -81,8 +84,9 @@ var DbBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "db_close(db) => null",
 		}.String(),
-	}},
-	{Name: "_db_exec", Builtin: &Builtin{
+	},
+	{
+		Name: "_db_exec",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("db_exec", len(args), 3, "")
@@ -151,8 +155,9 @@ var DbBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "db_exec(db, 'CREATE TABLE ABC;', []) => {last_insert_id: 1, rows_affected: 1}",
 		}.String(),
-	}},
-	{Name: "_db_query", Builtin: &Builtin{
+	},
+	{
+		Name: "_db_query",
 		Fun: func(args ...Object) Object {
 			if len(args) != 4 {
 				return newInvalidArgCountError("db_query", len(args), 4, "")
@@ -264,5 +269,5 @@ var DbBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "db_query(db, 'SELECT * FROM ABC;', [], false) => list[any]",
 		}.String(),
-	}},
+	},
 }

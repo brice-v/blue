@@ -3,4 +3,4 @@
 
 package object
 
-var GgBuiltins = NewBuiltinSliceType{}
+var GgBuiltins = []*Builtin{}

@@ -2,8 +2,9 @@ package object
 
 import "github.com/gookit/color"
 
-var ColorBuiltins = NewBuiltinSliceType{
-	{Name: "_style", Builtin: &Builtin{
+var ColorBuiltins = []*Builtin{
+	{
+		Name: "_style",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("style", len(args), 3, "")
@@ -47,8 +48,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "style(fg_color=magenta, bg_color=white) => color style object",
 		}.String(),
-	}},
-	{Name: "_normal", Builtin: &Builtin{
+	},
+	{
+		Name: "_normal",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("normal", len(args), 0, "")
@@ -61,8 +63,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "normal() -> int",
 		}.String(),
-	}},
-	{Name: "_red", Builtin: &Builtin{
+	},
+	{
+		Name: "_red",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("red", len(args), 0, "")
@@ -75,8 +78,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "red() -> int",
 		}.String(),
-	}},
-	{Name: "_cyan", Builtin: &Builtin{
+	},
+	{
+		Name: "_cyan",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("cyan", len(args), 0, "")
@@ -89,8 +93,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "cyan() -> int",
 		}.String(),
-	}},
-	{Name: "_gray", Builtin: &Builtin{
+	},
+	{
+		Name: "_gray",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("gray", len(args), 0, "")
@@ -103,8 +108,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "gray() -> int",
 		}.String(),
-	}},
-	{Name: "_blue", Builtin: &Builtin{
+	},
+	{
+		Name: "_blue",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("blue", len(args), 0, "")
@@ -117,8 +123,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "blue() -> int",
 		}.String(),
-	}},
-	{Name: "_black", Builtin: &Builtin{
+	},
+	{
+		Name: "_black",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("black", len(args), 0, "")
@@ -131,8 +138,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "black() -> int",
 		}.String(),
-	}},
-	{Name: "_green", Builtin: &Builtin{
+	},
+	{
+		Name: "_green",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("green", len(args), 0, "")
@@ -145,8 +153,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "green() -> int",
 		}.String(),
-	}},
-	{Name: "_white", Builtin: &Builtin{
+	},
+	{
+		Name: "_white",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("white", len(args), 0, "")
@@ -159,8 +168,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "white() -> int",
 		}.String(),
-	}},
-	{Name: "_yellow", Builtin: &Builtin{
+	},
+	{
+		Name: "_yellow",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("yellow", len(args), 0, "")
@@ -173,8 +183,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "yellow() -> int",
 		}.String(),
-	}},
-	{Name: "_magenta", Builtin: &Builtin{
+	},
+	{
+		Name: "_magenta",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("magenta", len(args), 0, "")
@@ -187,8 +198,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "magenta() -> int",
 		}.String(),
-	}},
-	{Name: "_bold", Builtin: &Builtin{
+	},
+	{
+		Name: "_bold",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("bold", len(args), 0, "")
@@ -201,8 +213,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "bold() -> int",
 		}.String(),
-	}},
-	{Name: "_italic", Builtin: &Builtin{
+	},
+	{
+		Name: "_italic",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("italic", len(args), 0, "")
@@ -215,8 +228,9 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "italic() -> int",
 		}.String(),
-	}},
-	{Name: "_underlined", Builtin: &Builtin{
+	},
+	{
+		Name: "_underlined",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("underlined", len(args), 0, "")
@@ -229,5 +243,5 @@ var ColorBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "underlined() -> int",
 		}.String(),
-	}},
+	},
 }

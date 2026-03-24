@@ -520,29 +520,29 @@ func (vm *VM) Run() error {
 			} else {
 				definition := object.AllBuiltins[builtinModuleIndex].Builtins[builtinIndex]
 				var builtin *object.Builtin
-				if definition.Builtin.Fun == nil {
+				if definition.Fun == nil {
 					if builtinModuleIndex != 0 {
 						modName := object.GetNameOfModuleByIndex(int(builtinModuleIndex))
 						builtin = &object.Builtin{
 							Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
-							HelpStr: definition.Builtin.HelpStr,
-							Mutates: definition.Builtin.Mutates,
+							HelpStr: definition.HelpStr,
+							Mutates: definition.Mutates,
 						}
 					} else {
 						if utils.ENABLE_VM_CACHING {
 							// Lazy Evaluate Builtin that needs to use vm
-							definition.Builtin.Fun = GetBuiltinWithVm(definition.Name, vm)
-							builtin = definition.Builtin
+							definition.Fun = GetBuiltinWithVm(definition.Name, vm)
+							builtin = definition
 						} else {
 							builtin = &object.Builtin{
 								Fun:     GetBuiltinWithVm(definition.Name, vm),
-								HelpStr: definition.Builtin.HelpStr,
-								Mutates: definition.Builtin.Mutates,
+								HelpStr: definition.HelpStr,
+								Mutates: definition.Mutates,
 							}
 						}
 					}
 				} else {
-					builtin = definition.Builtin
+					builtin = definition
 				}
 				err = vm.push(builtin)
 			}

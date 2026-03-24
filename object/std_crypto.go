@@ -18,8 +18,9 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
-var CryptoBuiltins = NewBuiltinSliceType{
-	{Name: "_sha", Builtin: &Builtin{
+var CryptoBuiltins = []*Builtin{
+	{
+		Name: "_sha",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("sha", len(args), 2, "")
@@ -57,8 +58,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "sha('a',1) => '86f7e437faa5a7fce15d1ddcb9eaeaea377667b8'",
 		}.String(),
-	}},
-	{Name: "_md5", Builtin: &Builtin{
+	},
+	{
+		Name: "_md5",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("md5", len(args), 1, "")
@@ -82,8 +84,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "md5('a') => '0cc175b9c0f1b6a831c399e269772661'",
 		}.String(),
-	}},
-	{Name: "_generate_from_password", Builtin: &Builtin{
+	},
+	{
+		Name: "_generate_from_password",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("generate_from_password", len(args), 1, "")
@@ -104,8 +107,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "generate_from_password('a') => '$2a$10$4GjpUS8/60qPsxFtPbo.3e5ueULg4Llk0iCwVsGAV9LBDuw2FkSa2'",
 		}.String(),
-	}},
-	{Name: "_compare_hash_and_password", Builtin: &Builtin{
+	},
+	{
+		Name: "_compare_hash_and_password",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("compare_hash_and_password", len(args), 2, "")
@@ -130,8 +134,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "compare_hash_and_password('$2a$10$4GjpUS8/60qPsxFtPbo.3e5ueULg4Llk0iCwVsGAV9LBDuw2FkSa2', 'a') => true",
 		}.String(),
-	}},
-	{Name: "_encrypt", Builtin: &Builtin{
+	},
+	{
+		Name: "_encrypt",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("encrypt", len(args), 2, "")
@@ -188,8 +193,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "encrypt('a','test') => bytes",
 		}.String(),
-	}},
-	{Name: "_decrypt", Builtin: &Builtin{
+	},
+	{
+		Name: "_decrypt",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("decrypt", len(args), 3, "")
@@ -245,8 +251,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "decrypt('a',bs) => 'test'",
 		}.String(),
-	}},
-	{Name: "_encode_base_64_32", Builtin: &Builtin{
+	},
+	{
+		Name: "_encode_base_64_32",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("encode_base_64_32", len(args), 3, "")
@@ -285,8 +292,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "encode_base_64_32('a', true, false) => 'YQ=='",
 		}.String(),
-	}},
-	{Name: "_decode_base_64_32", Builtin: &Builtin{
+	},
+	{
+		Name: "_decode_base_64_32",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("decode_base_64_32", len(args), 3, "")
@@ -329,8 +337,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "decode_base_64_32('YQ==', true, false) => 'a'",
 		}.String(),
-	}},
-	{Name: "_decode_hex", Builtin: &Builtin{
+	},
+	{
+		Name: "_decode_hex",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("decode_hex", len(args), 2, "")
@@ -372,8 +381,9 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "decode_hex('61') => 'a'",
 		}.String(),
-	}},
-	{Name: "_encode_hex", Builtin: &Builtin{
+	},
+	{
+		Name: "_encode_hex",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("encode_hex", len(args), 2, "")
@@ -409,5 +419,5 @@ var CryptoBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "encode_hex('a') => '61'",
 		}.String(),
-	}},
+	},
 }

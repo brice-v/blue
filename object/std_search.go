@@ -7,8 +7,9 @@ import (
 	"github.com/antchfx/htmlquery"
 )
 
-var SearchBuiltins = NewBuiltinSliceType{
-	{Name: "_by_xpath", Builtin: &Builtin{
+var SearchBuiltins = []*Builtin{
+	{
+		Name: "_by_xpath",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("by_xpath", len(args), 3, "")
@@ -54,8 +55,9 @@ var SearchBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "by_xpath('<html><div id='abc'>123</div></html>', '//*[@id='abc']', true) => '<div id='abc'>123</div>'",
 		}.String(),
-	}},
-	{Name: "_by_regex", Builtin: &Builtin{
+	},
+	{
+		Name: "_by_regex",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("by_regex", len(args), 3, "")
@@ -102,5 +104,5 @@ var SearchBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "by_regex('abc', r/abc/, true) => 'abc'",
 		}.String(),
-	}},
+	},
 }

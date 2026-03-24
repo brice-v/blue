@@ -517,6 +517,7 @@ type BuiltinFunction func(args ...Object) Object
 
 // Builtin is the Builtin function object struct
 type Builtin struct {
+	Name    string
 	Fun     BuiltinFunction
 	HelpStr string
 
@@ -527,7 +528,7 @@ type Builtin struct {
 func (b *Builtin) Type() Type { return BUILTIN_OBJ }
 
 // Inspect returns "builtin function"
-func (b *Builtin) Inspect() string { return "builtin function" }
+func (b *Builtin) Inspect() string { return fmt.Sprintf("builtin_%s", b.Name) }
 
 func (b *Builtin) Help() string {
 	// TODO: Do we use createHelpStringForObject()?

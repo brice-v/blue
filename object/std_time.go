@@ -6,8 +6,9 @@ import (
 	"github.com/golang-module/carbon/v2"
 )
 
-var TimeBuiltins = NewBuiltinSliceType{
-	{Name: "_sleep", Builtin: &Builtin{
+var TimeBuiltins = []*Builtin{
+	{
+		Name: "_sleep",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("sleep", len(args), 1, "")
@@ -28,8 +29,9 @@ var TimeBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "sleep(100) => null",
 		}.String(),
-	}},
-	{Name: "_now", Builtin: &Builtin{
+	},
+	{
+		Name: "_now",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("now", len(args), 0, "")
@@ -42,8 +44,9 @@ var TimeBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "now(100) => 1703479130205",
 		}.String(),
-	}},
-	{Name: "_parse", Builtin: &Builtin{
+	},
+	{
+		Name: "_parse",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("parse", len(args), 1, "")
@@ -60,8 +63,9 @@ var TimeBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "parse('now') => 1703479130205",
 		}.String(),
-	}},
-	{Name: "_to_str", Builtin: &Builtin{
+	},
+	{
+		Name: "_to_str",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("to_str", len(args), 2, "")
@@ -87,5 +91,5 @@ var TimeBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "to_str(1703479130205) => '2023-12-24 23:42:28.144'",
 		}.String(),
-	}},
+	},
 }

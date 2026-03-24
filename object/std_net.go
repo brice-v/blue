@@ -8,8 +8,9 @@ import (
 	"strings"
 )
 
-var NetBuiltins = NewBuiltinSliceType{
-	{Name: "_connect", Builtin: &Builtin{
+var NetBuiltins = []*Builtin{
+	{
+		Name: "_connect",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("connect", len(args), 3, "")
@@ -40,8 +41,9 @@ var NetBuiltins = NewBuiltinSliceType{
 			errors:  "InvalidArgCount,PositionalType,CustomError",
 			example: "connect() => {t: 'net', v: GoObj[net.Conn]}",
 		}.String(),
-	}},
-	{Name: "_listen", Builtin: &Builtin{
+	},
+	{
+		Name: "_listen",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("listen", len(args), 3, "")
@@ -83,8 +85,9 @@ var NetBuiltins = NewBuiltinSliceType{
 			errors:  "InvalidArgCount,PositionalType,CustomError",
 			example: "listen() => {t: 'net/tcp', v: GoObj[net.Listener]}",
 		}.String(),
-	}},
-	{Name: "_accept", Builtin: &Builtin{
+	},
+	{
+		Name: "_accept",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("accept", len(args), 1, "")
@@ -108,8 +111,9 @@ var NetBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "accept(l) => {t: 'net', v: GoObj[net.Conn]}",
 		}.String(),
-	}},
-	{Name: "_net_close", Builtin: &Builtin{
+	},
+	{
+		Name: "_net_close",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("net_close", len(args), 2, "")
@@ -151,8 +155,9 @@ var NetBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "net_close(c) => null",
 		}.String(),
-	}},
-	{Name: "_net_read", Builtin: &Builtin{
+	},
+	{
+		Name: "_net_read",
 		Fun: func(args ...Object) Object {
 			if len(args) != 4 {
 				return newInvalidArgCountError("net_read", len(args), 4, "")
@@ -226,8 +231,9 @@ var NetBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "net_read(c.v, c.t) => 'test'",
 		}.String(),
-	}},
-	{Name: "_net_write", Builtin: &Builtin{
+	},
+	{
+		Name: "_net_write",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("net_write", len(args), 3, "")
@@ -309,8 +315,9 @@ var NetBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "net_write(c.v, c.t, 'test') => null",
 		}.String(),
-	}},
-	{Name: "_inspect", Builtin: &Builtin{
+	},
+	{
+		Name: "_inspect",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("inspect", len(args), 2, "")
@@ -364,5 +371,5 @@ var NetBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "inspect(c.v, c.t) => {'addr': '127.0.0.1', 'addr_network': 'tcp'}",
 		}.String(),
-	}},
+	},
 }

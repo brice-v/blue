@@ -10,8 +10,9 @@ import (
 	psutilnet "github.com/shirou/gopsutil/v3/net"
 )
 
-var PsutilBuiltins = NewBuiltinSliceType{
-	{Name: "_cpu_usage_percent", Builtin: &Builtin{
+var PsutilBuiltins = []*Builtin{
+	{
+		Name: "_cpu_usage_percent",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("cpu_usage_percent", len(args), 0, "")
@@ -32,8 +33,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "cpu_usage_percent() => [1.0,0.4,0.2,0.6]",
 		}.String(),
-	}},
-	{Name: "_cpu_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_cpu_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("cpu_info", len(args), 0, "")
@@ -54,8 +56,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "cpu_info() => [json_with_keys('cpu','vendorId','family','model','stepping','physicalId','coreId','cores','modelName','mhz','cacheSize','flags','microcode')]",
 		}.String(),
-	}},
-	{Name: "_cpu_time_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_cpu_time_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("cpu_time_info", len(args), 0, "")
@@ -76,8 +79,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "cpu_time_info() => [json_with_keys('cpu','user','system','idle','nice','iowait','irq','softirq','steal','guest','guestNice')]",
 		}.String(),
-	}},
-	{Name: "_cpu_count", Builtin: &Builtin{
+	},
+	{
+		Name: "_cpu_count",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("cpu_count", len(args), 0, "")
@@ -94,8 +98,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "cpu_count() => 4",
 		}.String(),
-	}},
-	{Name: "_mem_virt_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_mem_virt_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("mem_virt_info", len(args), 0, "")
@@ -112,8 +117,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "mem_virt_info() => json_with_keys('total','available','used','usedPercent','free','active','inactive','wired','laundry','buffers','cached','writeBack','dirty','writeBackTmp','shared','slab','sreclaimable','sunreclaim','pageTables','swapCached','commitLimit','committedAS','highTotal','highFree','lowTotal','lowFree','swapTotal','swapFree','mapped','vmallocTotal','vmallocUsed','vmallocChunk','hugePagesTotal','hugePagesFree','hugePagesRsvd','hugePagesSurp','hugePageSize')",
 		}.String(),
-	}},
-	{Name: "_mem_swap_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_mem_swap_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("mem_swap_info", len(args), 0, "")
@@ -130,8 +136,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "mem_swap_info() => json_with_keys('total','used','free','usedPercent','sin','sout','pgIn','pgOut','pgFault','pgMajFault')",
 		}.String(),
-	}},
-	{Name: "_host_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_host_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("host_info", len(args), 0, "")
@@ -148,8 +155,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "host_info() => json_with_keys('hostname','uptime','bootTime','procs','os','platform','platformFamily','platformVersion','kernelVersion','kernelArch','virtualizationSystem','virtualizationRole','hostId')",
 		}.String(),
-	}},
-	{Name: "_host_temps_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_host_temps_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("host_temps_info", len(args), 0, "")
@@ -172,8 +180,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "host_temps_info() => [json_with_keys('sensorKey','temperature','sensorHigh','sensorCritical')]",
 		}.String(),
-	}},
-	{Name: "_net_connections", Builtin: &Builtin{
+	},
+	{
+		Name: "_net_connections",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("net_connections", len(args), 1, "")
@@ -198,8 +207,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "net_connections() => [json_with_keys('fd','family','type','localaddr','remoteaddr','status','uids','pid')]",
 		}.String(),
-	}},
-	{Name: "_net_io_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_net_io_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("net_io_info", len(args), 0, "")
@@ -220,8 +230,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "net_io_info() => [json_with_keys('name','bytesSent','bytesRecv','packetsSent','packetsRecv','errin','errout','dropin','dropout','fifoin','fifoout')]",
 		}.String(),
-	}},
-	{Name: "_disk_partitions", Builtin: &Builtin{
+	},
+	{
+		Name: "_disk_partitions",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("disk_partitions", len(args), 0, "")
@@ -242,8 +253,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "disk_partitions() => [json_with_keys('device','mountpoint','fstype','opts')]",
 		}.String(),
-	}},
-	{Name: "_disk_io_info", Builtin: &Builtin{
+	},
+	{
+		Name: "_disk_io_info",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("disk_io_info", len(args), 0, "")
@@ -264,8 +276,9 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "disk_io_info() => {'drive': json_with_keys('readCount','mergedReadCount','writeCount','mergedWriteCount','readBytes','writeBytes','readTime','writeTime','iopsInProgress','ioTime','weightedIO','name','serialNumber','label')...}",
 		}.String(),
-	}},
-	{Name: "_disk_usage", Builtin: &Builtin{
+	},
+	{
+		Name: "_disk_usage",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("disk_usage", len(args), 1, "")
@@ -286,5 +299,5 @@ var PsutilBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,CustomError",
 			example:     "disk_usage(root_path) => json_with_keys('path','fstype','total','free','used','usedPercent','inodesTotal','inodesUsed','inodesFree','inodesUsedPercent')",
 		}.String(),
-	}},
+	},
 }

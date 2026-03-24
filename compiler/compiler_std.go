@@ -14,10 +14,10 @@ import (
 )
 
 type StdModFile struct {
-	File          string                     // File is the actual code used for the module
-	Index         int                        // Index is the builtins index in AllBuiltins
-	Builtins      object.NewBuiltinSliceType // Builtins is the builtins for the std module
-	HelpStr       string                     // HelpStr is the help string for the std lib program
+	File          string            // File is the actual code used for the module
+	Index         int               // Index is the builtins index in AllBuiltins
+	Builtins      []*object.Builtin // Builtins is the builtins for the std module
+	HelpStr       string            // HelpStr is the help string for the std lib program
 	ParsedProgram *ast.Program
 }
 
@@ -75,7 +75,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	for i, stdBuiltin := range fb.Builtins {
 		c.symbolTable.DefineBuiltin(i, stdBuiltin.Name, fb.Index)
 	}
-	defer func(builtinsToRemove object.NewBuiltinSliceType) {
+	defer func(builtinsToRemove []*object.Builtin) {
 		for _, stdBuiltin := range builtinsToRemove {
 			c.symbolTable.Remove(stdBuiltin.Name)
 		}

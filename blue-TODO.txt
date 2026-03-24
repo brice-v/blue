@@ -1,7 +1,5 @@
 TODO:
 
-- [ ] Embed Builtin's name into the builtin and then use it instead of using list of structs
-    - [ ] Also update String() for builtin to include the builtin's name (rather than just builtin function)
 - [ ] Add dis() builtin function to disassemble function inline
 - [ ] Dont necessarily need to return builtin for builtins that require vm reference
     - could just return func(args...) object.Object
@@ -534,3 +532,5 @@ COMPLETED TASKS:
     - assigning to global variable failed eg. var ll = [3,2,1]; fun () { ll = ll.sort(); } => ll still [3,2,1]
     - when assigning to a variable, we are not allocating new?
     - This works with vm: var ll = [3,2,1]; fun () { ll = ll.sort() }() => ll is now [1,2,3]
+- [x] Embed Builtin's name into the builtin and then use it instead of using list of structs
+    - [x] Also update String() for builtin to include the builtin's name (rather than just builtin function)

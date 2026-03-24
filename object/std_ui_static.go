@@ -3,4 +3,4 @@
 
 package object
 
-var UiBuiltins = NewBuiltinSliceType{}
+var UiBuiltins = []*Builtin{}

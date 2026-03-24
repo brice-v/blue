@@ -6,8 +6,9 @@ import (
 	"unicode/utf8"
 )
 
-var CsvBuiltins = NewBuiltinSliceType{
-	{Name: "_parse", Builtin: &Builtin{
+var CsvBuiltins = []*Builtin{
+	{
+		Name: "_parse",
 		Fun: func(args ...Object) Object {
 			if len(args) != 6 {
 				return newInvalidArgCountError("parse", len(args), 6, "")
@@ -107,8 +108,9 @@ var CsvBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "parse(data) => list[any]",
 		}.String(),
-	}},
-	{Name: "_dump", Builtin: &Builtin{
+	},
+	{
+		Name: "_dump",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("dump", len(args), 3, "")
@@ -202,5 +204,5 @@ var CsvBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "dump(data) => null",
 		}.String(),
-	}},
+	},
 }

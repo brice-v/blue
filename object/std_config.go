@@ -12,8 +12,9 @@ import (
 	"github.com/gookit/ini/v2/dotenv"
 )
 
-var ConfigBuiltins = NewBuiltinSliceType{
-	{Name: "_load_file", Builtin: &Builtin{
+var ConfigBuiltins = []*Builtin{
+	{
+		Name: "_load_file",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("load_file", len(args), 1, "")
@@ -48,8 +49,9 @@ var ConfigBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "load_file(fpath) => {}",
 		}.String(),
-	}},
-	{Name: "_dump_config", Builtin: &Builtin{
+	},
+	{
+		Name: "_dump_config",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("dump_config", len(args), 3, "")
@@ -93,5 +95,5 @@ var ConfigBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "dump_config(c, 'test.json') => null",
 		}.String(),
-	}},
+	},
 }

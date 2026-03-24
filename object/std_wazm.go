@@ -11,8 +11,9 @@ import (
 	"github.com/tetratelabs/wazero/api"
 )
 
-var WazmBuiltins = NewBuiltinSliceType{
-	{Name: "_wasm_init", Builtin: &Builtin{
+var WazmBuiltins = []*Builtin{
+	{
+		Name: "_wasm_init",
 		Fun: func(args ...Object) Object {
 			//_wasm_init(wasm_code_path, args, mounts, stdout, stderr, stdin, envs, enable_rand, enable_time_and_sleep_precision, host_logging, listens, timeout)
 			//(wasm_code_path, args=ARGV, mounts={'.':'/'}, stdout=FSTDOUT, stderr=FSTDERR, stdin=FSTDIN,
@@ -196,8 +197,9 @@ var WazmBuiltins = NewBuiltinSliceType{
 			errors:  "InvalidArgCount,PositionalType,CustomError",
 			example: "wasm_init('wasm_test_files/cat.wasm', args=['wasm_test_files/cat.go.tmp']) => GoObj[*wazm.Module]",
 		}.String(),
-	}},
-	{Name: "_wasm_get_functions", Builtin: &Builtin{
+	},
+	{
+		Name: "_wasm_get_functions",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("wasm_get_functions", len(args), 1, "")
@@ -224,8 +226,9 @@ var WazmBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "wasm_get_functions(add_mod) => ['realloc', '_start', 'add', 'asyncify_start_unwind', 'asyncify_stop_unwind', 'asyncify_start_rewind', 'free', 'calloc', 'asyncify_stop_rewind', 'malloc', 'asyncify_get_state']",
 		}.String(),
-	}},
-	{Name: "_wasm_get_exported_function", Builtin: &Builtin{
+	},
+	{
+		Name: "_wasm_get_exported_function",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("wasm_get_exported_function", len(args), 2, "")
@@ -296,8 +299,9 @@ var WazmBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "wasm_get_exported_functions(add_mod, 'add')(0x3, 0x7) => 0u10",
 		}.String(),
-	}},
-	{Name: "_wasm_run", Builtin: &Builtin{
+	},
+	{
+		Name: "_wasm_run",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("wasm_run", len(args), 1, "")
@@ -326,8 +330,9 @@ var WazmBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "wasm_run(cat_mod) => 0 (side-effects may happen such as writing to stdout)",
 		}.String(),
-	}},
-	{Name: "_wasm_close", Builtin: &Builtin{
+	},
+	{
+		Name: "_wasm_close",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("wasm_close", len(args), 1, "")
@@ -351,5 +356,5 @@ var WazmBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "wasm_close(cat_mod) => null",
 		}.String(),
-	}},
+	},
 }

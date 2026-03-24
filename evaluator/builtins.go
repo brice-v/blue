@@ -28,10 +28,10 @@ func NewBuiltinObjMap(input map[string]*object.Builtin) BuiltinMapType {
 
 type BuiltinMapTypeInternal map[string]*object.Builtin
 
-func NewBuiltinMap(builtins object.NewBuiltinSliceType) BuiltinMapType {
+func NewBuiltinMap(builtins []*object.Builtin) BuiltinMapType {
 	m := NewBuiltinObjMap(BuiltinMapTypeInternal{})
 	for _, o := range builtins {
-		m.Put(o.Name, o.Builtin)
+		m.Put(o.Name, o)
 	}
 	return m
 }

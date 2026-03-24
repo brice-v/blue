@@ -24,8 +24,9 @@ func lcm(a, b int64, integers ...int64) int64 {
 	return result
 }
 
-var MathBuiltins = NewBuiltinSliceType{
-	{Name: "_rand", Builtin: &Builtin{
+var MathBuiltins = []*Builtin{
+	{
+		Name: "_rand",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("rand", len(args), 0, "")
@@ -38,8 +39,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "rand() => 0.125215",
 		}.String(),
-	}},
-	{Name: "_NaN", Builtin: &Builtin{
+	},
+	{
+		Name: "_NaN",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
 				return newInvalidArgCountError("NaN", len(args), 0, "")
@@ -52,8 +54,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount",
 			example:     "NaN() => NaN",
 		}.String(),
-	}},
-	{Name: "_acos", Builtin: &Builtin{
+	},
+	{
+		Name: "_acos",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("acos", len(args), 1, "")
@@ -70,8 +73,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "acos(0.5) => 1.047198",
 		}.String(),
-	}},
-	{Name: "_acosh", Builtin: &Builtin{
+	},
+	{
+		Name: "_acosh",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("acosh", len(args), 1, "")
@@ -88,8 +92,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "acosh(1.04) => 0.281908",
 		}.String(),
-	}},
-	{Name: "_asin", Builtin: &Builtin{
+	},
+	{
+		Name: "_asin",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("asin", len(args), 1, "")
@@ -106,8 +111,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "asin(0.4) => 0.411517",
 		}.String(),
-	}},
-	{Name: "_asinh", Builtin: &Builtin{
+	},
+	{
+		Name: "_asinh",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("asinh", len(args), 1, "")
@@ -124,8 +130,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "asinh(0.4) => 0.390035",
 		}.String(),
-	}},
-	{Name: "_atan", Builtin: &Builtin{
+	},
+	{
+		Name: "_atan",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("atan", len(args), 1, "")
@@ -142,8 +149,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "atan(0.4) => 0.380506",
 		}.String(),
-	}},
-	{Name: "_atan2", Builtin: &Builtin{
+	},
+	{
+		Name: "_atan2",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("atan2", len(args), 2, "")
@@ -164,8 +172,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "atan2(0.4,0.4) => 0.785398",
 		}.String(),
-	}},
-	{Name: "_atanh", Builtin: &Builtin{
+	},
+	{
+		Name: "_atanh",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("atanh", len(args), 1, "")
@@ -182,8 +191,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "atanh(0.4) => 0.423649",
 		}.String(),
-	}},
-	{Name: "_cbrt", Builtin: &Builtin{
+	},
+	{
+		Name: "_cbrt",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("cbrt", len(args), 1, "")
@@ -200,8 +210,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "cbrt(8.0) => 2.0",
 		}.String(),
-	}},
-	{Name: "_ceil", Builtin: &Builtin{
+	},
+	{
+		Name: "_ceil",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("ceil", len(args), 1, "")
@@ -218,8 +229,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "ceil(1.2) => 2.0",
 		}.String(),
-	}},
-	{Name: "_copysign", Builtin: &Builtin{
+	},
+	{
+		Name: "_copysign",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("copysign", len(args), 2, "")
@@ -240,8 +252,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "copysign(1.2, -2.8) => -1.2",
 		}.String(),
-	}},
-	{Name: "_cos", Builtin: &Builtin{
+	},
+	{
+		Name: "_cos",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("cos", len(args), 1, "")
@@ -258,8 +271,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "cos(1.20) => 0.362358",
 		}.String(),
-	}},
-	{Name: "_cosh", Builtin: &Builtin{
+	},
+	{
+		Name: "_cosh",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("cosh", len(args), 1, "")
@@ -276,8 +290,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "cosh(1.2) => 1.810656",
 		}.String(),
-	}},
-	{Name: "_dim", Builtin: &Builtin{
+	},
+	{
+		Name: "_dim",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("dim", len(args), 2, "")
@@ -298,8 +313,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "dim(3.4, 1.2) => 2.2",
 		}.String(),
-	}},
-	{Name: "_erf", Builtin: &Builtin{
+	},
+	{
+		Name: "_erf",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erf", len(args), 1, "")
@@ -316,8 +332,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "erf(1.234567) => 0.919179",
 		}.String(),
-	}},
-	{Name: "_erfc", Builtin: &Builtin{
+	},
+	{
+		Name: "_erfc",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erfc", len(args), 1, "")
@@ -334,8 +351,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "erfc(1.234567) => 0.080821",
 		}.String(),
-	}},
-	{Name: "_erfcinv", Builtin: &Builtin{
+	},
+	{
+		Name: "_erfcinv",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erfcinv", len(args), 1, "")
@@ -352,8 +370,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "erfcinv(1.234567) => -0.210968",
 		}.String(),
-	}},
-	{Name: "_erfinv", Builtin: &Builtin{
+	},
+	{
+		Name: "_erfinv",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("erfinv", len(args), 1, "")
@@ -370,8 +389,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "erfinv(0.234567) => 0.210968",
 		}.String(),
-	}},
-	{Name: "_fma", Builtin: &Builtin{
+	},
+	{
+		Name: "_fma",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("fma", len(args), 3, "")
@@ -396,8 +416,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "fma(2.0, 3.0, 4.0) => 10.0",
 		}.String(),
-	}},
-	{Name: "_floor", Builtin: &Builtin{
+	},
+	{
+		Name: "_floor",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("floor", len(args), 1, "")
@@ -414,8 +435,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "floor(1.2) => 1.0",
 		}.String(),
-	}},
-	{Name: "_frexp", Builtin: &Builtin{
+	},
+	{
+		Name: "_frexp",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("frexp", len(args), 1, "")
@@ -435,8 +457,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "frexp(3.0) => {frac: 0.750000, exp: 2}",
 		}.String(),
-	}},
-	{Name: "_gamma", Builtin: &Builtin{
+	},
+	{
+		Name: "_gamma",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("gamma", len(args), 1, "")
@@ -453,8 +476,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "gamma(2.0) => 1.0",
 		}.String(),
-	}},
-	{Name: "_gcd", Builtin: &Builtin{
+	},
+	{
+		Name: "_gcd",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("gcd", len(args), 2, "")
@@ -474,8 +498,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "gcd(10,20) => 10",
 		}.String(),
-	}},
-	{Name: "_hypot", Builtin: &Builtin{
+	},
+	{
+		Name: "_hypot",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("hypot", len(args), 2, "")
@@ -496,8 +521,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "hypot(3.0,4.0) => 5.0",
 		}.String(),
-	}},
-	{Name: "_ilogb", Builtin: &Builtin{
+	},
+	{
+		Name: "_ilogb",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("ilogb", len(args), 1, "")
@@ -514,8 +540,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "ilogb(203.0) => 7",
 		}.String(),
-	}},
-	{Name: "_inf", Builtin: &Builtin{
+	},
+	{
+		Name: "_inf",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("inf", len(args), 1, "")
@@ -532,8 +559,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "inf(1) => +Inf",
 		}.String(),
-	}},
-	{Name: "_is_inf", Builtin: &Builtin{
+	},
+	{
+		Name: "_is_inf",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("is_inf", len(args), 2, "")
@@ -554,8 +582,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "is_inf(inf(1), 0) => true",
 		}.String(),
-	}},
-	{Name: "_is_NaN", Builtin: &Builtin{
+	},
+	{
+		Name: "_is_NaN",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("is_NaN", len(args), 1, "")
@@ -572,8 +601,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "is_NaN(NaN) => true",
 		}.String(),
-	}},
-	{Name: "_j0", Builtin: &Builtin{
+	},
+	{
+		Name: "_j0",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("j0", len(args), 1, "")
@@ -590,8 +620,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "j0(1.2) => 0.671133",
 		}.String(),
-	}},
-	{Name: "_j1", Builtin: &Builtin{
+	},
+	{
+		Name: "_j1",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("j1", len(args), 1, "")
@@ -608,8 +639,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "j1(1.2) => 0.498289",
 		}.String(),
-	}},
-	{Name: "_jn", Builtin: &Builtin{
+	},
+	{
+		Name: "_jn",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("jn", len(args), 2, "")
@@ -630,8 +662,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "jn(1.2, 3) => 0.032874",
 		}.String(),
-	}},
-	{Name: "_lcm", Builtin: &Builtin{
+	},
+	{
+		Name: "_lcm",
 		Fun: func(args ...Object) Object {
 			if len(args) < 1 {
 				return newInvalidArgCountError("lcm", len(args), 1, "as a list, or 2 or more")
@@ -681,8 +714,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "lcm(1,2,3,4) => 12",
 		}.String(),
-	}},
-	{Name: "_ldexp", Builtin: &Builtin{
+	},
+	{
+		Name: "_ldexp",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("ldexp", len(args), 2, "")
@@ -703,8 +737,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "ldexp(0.75, 2) => 3.0",
 		}.String(),
-	}},
-	{Name: "_lgamma", Builtin: &Builtin{
+	},
+	{
+		Name: "_lgamma",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("lgamma", len(args), 1, "")
@@ -724,8 +759,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "lgamma(2.3) => {lgamma: 0.154189, sign: 1}",
 		}.String(),
-	}},
-	{Name: "_log", Builtin: &Builtin{
+	},
+	{
+		Name: "_log",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log", len(args), 1, "")
@@ -742,8 +778,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "log(120.0) => 4.787492",
 		}.String(),
-	}},
-	{Name: "_log10", Builtin: &Builtin{
+	},
+	{
+		Name: "_log10",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log10", len(args), 1, "")
@@ -760,8 +797,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "log10(120.0) => 2.079181",
 		}.String(),
-	}},
-	{Name: "_log1p", Builtin: &Builtin{
+	},
+	{
+		Name: "_log1p",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log1p", len(args), 1, "")
@@ -778,8 +816,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "log1p(0.2) => 0.182322",
 		}.String(),
-	}},
-	{Name: "_log2", Builtin: &Builtin{
+	},
+	{
+		Name: "_log2",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("log2", len(args), 1, "")
@@ -796,8 +835,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "log2(0.2) => -2.321928",
 		}.String(),
-	}},
-	{Name: "_logb", Builtin: &Builtin{
+	},
+	{
+		Name: "_logb",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("logb", len(args), 1, "")
@@ -814,8 +854,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "logb(0.2) => -3.0",
 		}.String(),
-	}},
-	{Name: "_modf", Builtin: &Builtin{
+	},
+	{
+		Name: "_modf",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("modf", len(args), 1, "")
@@ -835,8 +876,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "modf(10.1) => {i: 10, frac: 0.1}",
 		}.String(),
-	}},
-	{Name: "_next_after", Builtin: &Builtin{
+	},
+	{
+		Name: "_next_after",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("next_after", len(args), 2, "")
@@ -857,8 +899,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "next_after(3.1, 5.0) => 3.1",
 		}.String(),
-	}},
-	{Name: "_remainder", Builtin: &Builtin{
+	},
+	{
+		Name: "_remainder",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("remainder", len(args), 2, "")
@@ -879,8 +922,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "remainder(98.2,38.3) => -16.7",
 		}.String(),
-	}},
-	{Name: "_round", Builtin: &Builtin{
+	},
+	{
+		Name: "_round",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("round", len(args), 1, "")
@@ -897,8 +941,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "round(3.5) => 4.0",
 		}.String(),
-	}},
-	{Name: "_round_to_even", Builtin: &Builtin{
+	},
+	{
+		Name: "_round_to_even",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("round_to_even", len(args), 1, "")
@@ -915,8 +960,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "round_to_even(3.2) => 3.0",
 		}.String(),
-	}},
-	{Name: "_signbit", Builtin: &Builtin{
+	},
+	{
+		Name: "_signbit",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("signbit", len(args), 1, "")
@@ -933,8 +979,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "signbit(-3.0) => true",
 		}.String(),
-	}},
-	{Name: "_sin", Builtin: &Builtin{
+	},
+	{
+		Name: "_sin",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("sin", len(args), 1, "")
@@ -951,8 +998,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "sin(0.5) => 0.479426",
 		}.String(),
-	}},
-	{Name: "_sincos", Builtin: &Builtin{
+	},
+	{
+		Name: "_sincos",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("sincos", len(args), 1, "")
@@ -972,8 +1020,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "sincos(0.5) => {sin: 0.479426, cos: 0.877583}",
 		}.String(),
-	}},
-	{Name: "_sinh", Builtin: &Builtin{
+	},
+	{
+		Name: "_sinh",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("sinh", len(args), 1, "")
@@ -990,8 +1039,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "sinh(0.5) => 0.521095",
 		}.String(),
-	}},
-	{Name: "_tan", Builtin: &Builtin{
+	},
+	{
+		Name: "_tan",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("tan", len(args), 1, "")
@@ -1008,8 +1058,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "tan(0.5) => 0.546302",
 		}.String(),
-	}},
-	{Name: "_tanh", Builtin: &Builtin{
+	},
+	{
+		Name: "_tanh",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("tanh", len(args), 1, "")
@@ -1026,8 +1077,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "tanh(0.5) => 0.462117",
 		}.String(),
-	}},
-	{Name: "_trunc", Builtin: &Builtin{
+	},
+	{
+		Name: "_trunc",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("trunc", len(args), 1, "")
@@ -1044,8 +1096,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "trunc(2.5) => 2.0",
 		}.String(),
-	}},
-	{Name: "_y0", Builtin: &Builtin{
+	},
+	{
+		Name: "_y0",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("y0", len(args), 1, "")
@@ -1062,8 +1115,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "y0(2.0) => 0.510376",
 		}.String(),
-	}},
-	{Name: "_y1", Builtin: &Builtin{
+	},
+	{
+		Name: "_y1",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("y1", len(args), 1, "")
@@ -1080,8 +1134,9 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "y1(2.0) => -0.107032",
 		}.String(),
-	}},
-	{Name: "_yn", Builtin: &Builtin{
+	},
+	{
+		Name: "_yn",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("yn", len(args), 2, "")
@@ -1102,5 +1157,5 @@ var MathBuiltins = NewBuiltinSliceType{
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "yn(3.0, 5) => -1.905946",
 		}.String(),
-	}},
+	},
 }
