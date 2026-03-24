@@ -1836,13 +1836,13 @@ var Builtins = []*Builtin{
 				// Handle each sample.
 				switch value.Kind() {
 				case metrics.KindUint64:
-					out.WriteString(fmt.Sprintf("%s: %d\n", name, value.Uint64()))
+					fmt.Fprintf(&out, "%s: %d\n", name, value.Uint64())
 				case metrics.KindFloat64:
-					out.WriteString(fmt.Sprintf("%s: %f\n", name, value.Float64()))
+					fmt.Fprintf(&out, "%s: %f\n", name, value.Float64())
 				case metrics.KindFloat64Histogram:
 					// The histogram may be quite large, so let's just pull out
 					// a crude estimate for the median for the sake of this example.
-					out.WriteString(fmt.Sprintf("%s: %f\n", name, medianBucket(value.Float64Histogram())))
+					fmt.Fprintf(&out, "%s: %f\n", name, medianBucket(value.Float64Histogram()))
 				case metrics.KindBad:
 					// This should never happen because all metrics are supported
 					// by construction.
@@ -1853,7 +1853,7 @@ var Builtins = []*Builtin{
 					// The safest thing to do here is to simply log it somewhere
 					// as something to look into, but ignore it for now.
 					// In the worst case, you might temporarily miss out on a new metric.
-					out.WriteString(fmt.Sprintf("%s: unexpected metric Kind: %v\n", name, value.Kind()))
+					fmt.Fprintf(&out, "%s: unexpected metric Kind: %v\n", name, value.Kind())
 				}
 			}
 			return &Stringo{Value: out.String()}

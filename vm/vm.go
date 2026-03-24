@@ -524,6 +524,7 @@ func (vm *VM) Run() error {
 					if builtinModuleIndex != 0 {
 						modName := object.GetNameOfModuleByIndex(int(builtinModuleIndex))
 						builtin = &object.Builtin{
+							Name:    definition.Name,
 							Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
 							HelpStr: definition.HelpStr,
 							Mutates: definition.Mutates,
@@ -535,6 +536,7 @@ func (vm *VM) Run() error {
 							builtin = definition
 						} else {
 							builtin = &object.Builtin{
+								Name:    definition.Name,
 								Fun:     GetBuiltinWithVm(definition.Name, vm),
 								HelpStr: definition.HelpStr,
 								Mutates: definition.Mutates,

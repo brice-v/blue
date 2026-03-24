@@ -53,6 +53,7 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 
 func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 	return &object.Builtin{
+		Name: "handle",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
 				return newInvalidArgCountError("handle", len(args), 4, "")
@@ -245,6 +246,7 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 		disableHttpServerDebug = false
 	}
 	return &object.Builtin{
+		Name: "handle_ws",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("handle_ws", len(args), 3, "")
@@ -343,6 +345,7 @@ func handleSpecialFunctionArgs(fn *object.Closure, c *websocket.Conn) {
 
 func createUIButtonBuiltin(vm *VM) *object.Builtin {
 	return &object.Builtin{
+		Name: "button",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("button", len(args), 2, "")
@@ -376,6 +379,7 @@ func createUIButtonBuiltin(vm *VM) *object.Builtin {
 
 func createUICheckBoxBuiltin(vm *VM) *object.Builtin {
 	return &object.Builtin{
+		Name: "checkbox",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("checkbox", len(args), 2, "")
@@ -412,6 +416,7 @@ func createUICheckBoxBuiltin(vm *VM) *object.Builtin {
 
 func createUIRadioBuiltin(vm *VM) *object.Builtin {
 	return &object.Builtin{
+		Name: "radio_group",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("radio_group", len(args), 2, "")
@@ -455,6 +460,7 @@ func createUIRadioBuiltin(vm *VM) *object.Builtin {
 
 func createUIOptionSelectBuiltin(vm *VM) *object.Builtin {
 	return &object.Builtin{
+		Name: "option_select",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("option_select", len(args), 2, "")
@@ -498,6 +504,7 @@ func createUIOptionSelectBuiltin(vm *VM) *object.Builtin {
 
 func createUIFormBuiltin(vm *VM) *object.Builtin {
 	return &object.Builtin{
+		Name: "form",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("form", len(args), 3, "")
@@ -560,6 +567,7 @@ func createUIFormBuiltin(vm *VM) *object.Builtin {
 
 func createUIToolbarAction(vm *VM) *object.Builtin {
 	return &object.Builtin{
+		Name: "toolbar_action",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("toolbar_action", len(args), 2, "")

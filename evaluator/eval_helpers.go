@@ -602,7 +602,7 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.Order
 	i := 0
 	for _, hk := range pairs.Keys {
 		mp, _ := pairs.Get(hk)
-		buf.WriteString(fmt.Sprintf("%q:", mp.Key.Inspect()))
+		fmt.Fprintf(&buf, "%q:", mp.Key.Inspect())
 		valueType := mp.Value.Type()
 		switch valueType {
 		case object.MAP_OBJ:

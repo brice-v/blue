@@ -72,7 +72,7 @@ const mainFunc = `func main() {
 			buf.WriteString(lexer.GetErrorLineMessage(evaluator.ErrorTokens.PopBack()))
 			buf.WriteByte('\n')
 		}
-		out.WriteString(fmt.Sprintf("EvaluatorError: %s", buf.String()))
+		fmt.Fprintf(&out, "EvaluatorError: %s", buf.String()))
 		os.Exit(1)
 	}
 }

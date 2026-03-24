@@ -49,6 +49,7 @@ func getErrorTokenTraceAsJsonWithError(e *Evaluator, errorMsg string) any {
 
 func createHttpHandleBuiltin(e *Evaluator, isUse bool) *object.Builtin {
 	return &object.Builtin{
+		Name: "handle",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 4 {
 				return newInvalidArgCountError("handle", len(args), 4, "")
@@ -377,6 +378,7 @@ func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
 func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 	mapObj := object.NewOrderedMap[string, object.Object]()
 	mapObj.Set("clear_cookie", &object.Builtin{
+		Name: "clear_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			cookieArgs := []string{}
 			for i, arg := range args {
@@ -391,6 +393,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("set_cookie", &object.Builtin{
+		Name: "set_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			// Arg len should be 1
 			// Arg should be map
@@ -420,6 +423,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("get_cookie", &object.Builtin{
+		Name: "get_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("get_cookie", len(args), 1, "")
@@ -431,6 +435,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("set_local", &object.Builtin{
+		Name: "set_local",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("set_local", len(args), 2, "")
@@ -454,6 +459,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("get_local", &object.Builtin{
+		Name: "get_local",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("get_local", len(args), 1, "")
@@ -520,6 +526,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 		disableHttpServerDebug = false
 	}
 	return &object.Builtin{
+		Name: "handle_ws",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 3 {
 				return newInvalidArgCountError("handle_ws", len(args), 3, "")
@@ -619,7 +626,7 @@ func createHttpHandleWSBuiltin(e *Evaluator) *object.Builtin {
 					buf.WriteByte('\n')
 					for e.ErrorTokens.Len() > 0 {
 						tok := e.ErrorTokens.PopBack()
-						buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+						fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 					}
 					if !disableHttpServerDebug {
 						fmt.Printf("%s`handle_ws` error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())

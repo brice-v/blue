@@ -52,9 +52,9 @@ func (s *Stack[T]) Len() int {
 
 func (s *Stack[T]) String() string {
 	var out bytes.Buffer
-	out.WriteString(fmt.Sprintf("%T{", s))
+	fmt.Fprintf(&out, "%T{", s)
 	for e := s.s.Front(); e != nil; e = e.Next() {
-		out.WriteString(fmt.Sprintf("%#v,", e.Value))
+		fmt.Fprintf(&out, "%#v,", e.Value)
 	}
 	out.WriteString("}")
 	return out.String()

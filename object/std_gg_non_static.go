@@ -824,6 +824,7 @@ var GgBuiltins = []*Builtin{
 			magenta := NewGoObj(rl.Magenta)
 			rayWhite := NewGoObj(rl.RayWhite)
 			newColor := &Builtin{
+				Name: "new_color",
 				Fun: func(args ...Object) Object {
 					if len(args) != 4 {
 						return newInvalidArgCountError("new_color", len(args), 4, "")

@@ -228,7 +228,7 @@ func (e *Environment) GetOrderedPublicFunctionHelpString() string {
 				consts.DisableColorIfNoColorEnvVarSet()
 				green := color.FgGreen.Render
 				bold := color.Bold.Render
-				out.WriteString(fmt.Sprintf("\n%s%s| %s", bold(green(k)), initialPad, partStr))
+				fmt.Fprintf(&out, "\n%s%s| %s", bold(green(k)), initialPad, partStr)
 			} else {
 				pad := strings.Repeat(" ", lengthOfLargestString+2)
 				nl := "\n"
@@ -241,7 +241,7 @@ func (e *Environment) GetOrderedPublicFunctionHelpString() string {
 				} else {
 					prefixNl = ""
 				}
-				out.WriteString(fmt.Sprintf("%s%s %s%s", prefixNl, pad, partStr, nl))
+				fmt.Fprintf(&out, "%s%s %s%s", prefixNl, pad, partStr, nl)
 			}
 		}
 	}

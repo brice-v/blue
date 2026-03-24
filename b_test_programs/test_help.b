@@ -52,7 +52,7 @@ dump_config | `dump_config` takes a MAP config and writes it to the given filepa
                    Example(s): dump_config(c, 'test.json') => null
                
                    type = 'BUILTIN'
-                   inspect = 'builtin function'
+                   inspect = 'builtin__dump_config'
 load_file   | `load_file` takes a filepath and returns a MAP of the configuration
                
                load_file(filepath: str) -> map[str:str]
@@ -62,5 +62,5 @@ load_file   | `load_file` takes a filepath and returns a MAP of the configuratio
                    Example(s): load_file(fpath) => {}
                
                    type = 'BUILTIN'
-                   inspect = 'builtin function'""".replace("\r", "");
+                   inspect = 'builtin__load_file'""".replace("\r", "");
 assert(config_help == expected_config_help)

@@ -7,7 +7,7 @@ val xx = """`sort` sorts the given list, if its ints, floats, or strings no cust
     Example(s): sort(['c','b','a']) => ['a','b','c']
 
     type = 'BUILTIN'
-    inspect = 'builtin function'""".replace("\r", "");
+    inspect = 'builtin_sort'""".replace("\r", "");
 assert(x == xx);
 
 val y = help(fetch);
@@ -32,7 +32,7 @@ fetch(resource: str, options: map[any:str]=null, full_resp: bool=true) -> any
     Example(s): fetch('https://danluu.com',full_resp=false) => <html>...</html>
 
     type = 'BUILTIN'
-    inspect = 'builtin function'
+    inspect = 'builtin__fetch'
 """.replace("\r", "");
 assert(y == yy);
 
@@ -53,14 +53,14 @@ replace(str_to_replace: str, replacer: str|regex, replaced: str, is_regex: bool=
     Example(s): replace('Hello', 'l', 'X') => 'HeXXo'
 
     type = 'BUILTIN'
-    inspect = 'builtin function'
+    inspect = 'builtin__replace'
 `replace_regex` will return a STRING with all occurrences of the given replacer REGEX STRING replaced by the next given STRING
     Signature:  replace_regex(arg: str, replacer: str, replaced: str) -> str
     Error(s):   InvalidArgCount,PositionalType
     Example(s): replace_regex('Hello', 'l', 'X') => 'HeXXo'
 
     type = 'BUILTIN'
-    inspect = 'builtin function'
+    inspect = 'builtin__replace_regex'
 """.replace("\r", "");
 assert(z == zz);
 
@@ -99,7 +99,7 @@ handle(pattern: str, fn: fun, method: str='GET') -> null
     Example(s): handle(s, '/', fn) => null
 
     type = 'BUILTIN'
-    inspect = 'builtin function'
+    inspect = 'builtin_handle'
 """.replace("\r", "");
 assert(handle_h == expected_handle_h);
 val handle_use_h = help(http.handle_use);
@@ -130,7 +130,7 @@ handle(pattern: str, fn: fun, method: str='GET') -> null
     Example(s): handle(s, '/', fn) => null
 
     type = 'BUILTIN'
-    inspect = 'builtin function'
+    inspect = 'builtin_handle'
 """.replace("\r", "");
 assert(handle_use_h == expected_handle_use_h);
 
@@ -144,7 +144,7 @@ val expected_hypot_h = """`hypot` returns sqrt(p*p + q*q), taking care to avoid 
     Example(s): hypot(3.0,4.0) => 5.0
 
     type = 'BUILTIN'
-    inspect = 'builtin function'""".replace("\r", "");
+    inspect = 'builtin__hypot'""".replace("\r", "");
 assert(hypot_h == expected_hypot_h);
 
 
@@ -158,7 +158,7 @@ val cpu_percent_expected = """`cpu_usage_percent` returns a list of cpu usages a
     Example(s): cpu_usage_percent() => [1.0,0.4,0.2,0.6]
 
     type = 'BUILTIN'
-    inspect = 'builtin function'""".replace("\r","");
+    inspect = 'builtin__cpu_usage_percent'""".replace("\r","");
 assert(cpu_percent_help == cpu_percent_expected)
 val host_temps_help = help(psutil.host.temps);
 println(host_temps_help);
@@ -171,7 +171,7 @@ host.temps() -> list[map[str:any]]
     Example(s): host_temps_info() => [json_with_keys('sensorKey','temperature','sensorHigh','sensorCritical')]
 
     type = 'BUILTIN'
-    inspect = 'builtin function'
+    inspect = 'builtin__host_temps_info'
 """.replace("\r","");
 assert(host_temps_help == host_temps_expected);
 val mem_virtual_help = help(psutil.mem.virtual);
@@ -185,6 +185,6 @@ mem.virtual() -> map[str:int]
     Example(s): mem_virt_info() => json_with_keys('total','available','used','usedPercent','free','active','inactive','wired','laundry','buffers','cached','writeBack','dirty','writeBackTmp','shared','slab','sreclaimable','sunreclaim','pageTables','swapCached','commitLimit','committedAS','highTotal','highFree','lowTotal','lowFree','swapTotal','swapFree','mapped','vmallocTotal','vmallocUsed','vmallocChunk','hugePagesTotal','hugePagesFree','hugePagesRsvd','hugePagesSurp','hugePageSize')
 
     type = 'BUILTIN'
-    inspect = 'builtin function'
+    inspect = 'builtin__mem_virt_info'
 """.replace("\r", "");
 assert(mem_virtual_help == mem_virtual_expected);

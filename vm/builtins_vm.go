@@ -29,6 +29,7 @@ var toNumBuiltin *object.Builtin = nil
 func createToNumBuiltin() *object.Builtin {
 	if toNumBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		toNumBuiltin = &object.Builtin{
+			Name: "to_num",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 1 {
 					return newInvalidArgCountError("to_num", len(args), 1, "")
@@ -298,6 +299,7 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 func createSortBuiltin(vm *VM) *object.Builtin {
 	if sortBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		sortBuiltin = &object.Builtin{
+			Name: "sort",
 			Fun: func(args ...object.Object) object.Object {
 				return getSortedListHelper(vm, args...)
 			},
@@ -317,6 +319,7 @@ var sortedBuiltin *object.Builtin = nil
 func createSortedBuiltin(vm *VM) *object.Builtin {
 	if sortedBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		sortedBuiltin = &object.Builtin{
+			Name: "sorted",
 			Fun: func(args ...object.Object) object.Object {
 				o := getSortedListHelper(vm, args...)
 				if isError(o) {
@@ -345,6 +348,7 @@ var allBuiltin *object.Builtin = nil
 func createAllBuiltin(vm *VM) *object.Builtin {
 	if allBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		allBuiltin = &object.Builtin{
+			Name: "all",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("all", len(args), 2, "")
@@ -405,6 +409,7 @@ var anyBuiltin *object.Builtin = nil
 func createAnyBuiltin(vm *VM) *object.Builtin {
 	if anyBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		anyBuiltin = &object.Builtin{
+			Name: "any",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("any", len(args), 2, "")
@@ -465,6 +470,7 @@ var mapBuiltin *object.Builtin = nil
 func createMapBuiltin(vm *VM) *object.Builtin {
 	if mapBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		mapBuiltin = &object.Builtin{
+			Name: "map",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("map", len(args), 2, "")
@@ -503,6 +509,7 @@ var filterBuiltin *object.Builtin = nil
 func createFilterBuiltin(vm *VM) *object.Builtin {
 	if filterBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		filterBuiltin = &object.Builtin{
+			Name: "filter",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("filter", len(args), 2, "")
@@ -543,6 +550,7 @@ var loadBuiltin *object.Builtin = nil
 func createLoadBuiltin(_ *VM) *object.Builtin {
 	if loadBuiltin == nil || !utils.ENABLE_VM_CACHING {
 		loadBuiltin = &object.Builtin{
+			Name: "load",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 1 {
 					return newInvalidArgCountError("load", len(args), 1, "")

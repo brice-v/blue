@@ -249,6 +249,7 @@ var WazmBuiltins = []*Builtin{
 			}
 			// Return a builtin function to call the wasm function
 			return &Builtin{
+				Name: "wasm_get_exported_function",
 				Fun: func(args ...Object) Object {
 					argsForCall := make([]uint64, len(args))
 					for i, arg := range args {

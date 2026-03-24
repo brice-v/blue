@@ -42,7 +42,7 @@ func createUIButtonBuiltin(e *Evaluator) *object.Builtin {
 						buf.WriteByte('\n')
 						for e.ErrorTokens.Len() > 0 {
 							tok := e.ErrorTokens.PopBack()
-							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+							fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 						}
 						fmt.Printf("%s`button` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
@@ -89,7 +89,7 @@ func createUICheckBoxBuiltin(e *Evaluator) *object.Builtin {
 						buf.WriteByte('\n')
 						for e.ErrorTokens.Len() > 0 {
 							tok := e.ErrorTokens.PopBack()
-							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+							fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 						}
 						fmt.Printf("%s`check_box` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
@@ -143,7 +143,7 @@ func createUIRadioBuiltin(e *Evaluator) *object.Builtin {
 						buf.WriteByte('\n')
 						for e.ErrorTokens.Len() > 0 {
 							tok := e.ErrorTokens.PopBack()
-							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+							fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 						}
 						fmt.Printf("%s`radio_group` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
@@ -166,6 +166,7 @@ var uiOptionSelectBuiltin *object.Builtin = nil
 func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 	if uiOptionSelectBuiltin == nil {
 		uiOptionSelectBuiltin = &object.Builtin{
+			Name: "option_select",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("option_select", len(args), 2, "")
@@ -197,7 +198,7 @@ func createUIOptionSelectBuiltin(e *Evaluator) *object.Builtin {
 						buf.WriteByte('\n')
 						for e.ErrorTokens.Len() > 0 {
 							tok := e.ErrorTokens.PopBack()
-							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+							fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 						}
 						fmt.Printf("%s`option_select` handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}
@@ -220,6 +221,7 @@ var uiFormBuiltin *object.Builtin = nil
 func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 	if uiFormBuiltin == nil {
 		uiFormBuiltin = &object.Builtin{
+			Name: "form",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 3 {
 					return newInvalidArgCountError("form", len(args), 3, "")
@@ -240,7 +242,7 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 					return newError("`form` error: labels and widget ids must be the same length. len(labels)=%d, len(widgetIds)=%d", len(labels), len(widgetIds))
 				}
 				fn := args[2].(*object.Function)
-				for i := 0; i < len(labels); i++ {
+				for i := range labels {
 					if labels[i].Type() != object.STRING_OBJ {
 						return newError("`form` error: labels were not all STRINGs. found=%s", labels[i].Type())
 					}
@@ -269,7 +271,7 @@ func createUIFormBuiltin(e *Evaluator) *object.Builtin {
 							buf.WriteByte('\n')
 							for e.ErrorTokens.Len() > 0 {
 								tok := e.ErrorTokens.PopBack()
-								buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+								fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 							}
 							fmt.Printf("%s`form` on_submit error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 						}
@@ -293,6 +295,7 @@ var uiToolbarAction *object.Builtin = nil
 func createUIToolbarAction(e *Evaluator) *object.Builtin {
 	if uiToolbarAction == nil {
 		uiToolbarAction = &object.Builtin{
+			Name: "toolbar_action",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("toolbar_action", len(args), 2, "")
@@ -317,7 +320,7 @@ func createUIToolbarAction(e *Evaluator) *object.Builtin {
 						buf.WriteByte('\n')
 						for e.ErrorTokens.Len() > 0 {
 							tok := e.ErrorTokens.PopBack()
-							buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+							fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 						}
 						fmt.Printf("%s`toolbar_action` click handler error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 					}

@@ -531,21 +531,21 @@ func checkMapObjPairsForValidJsonKeysAndValues(pairs OrderedMap2[HashKey, MapPai
 func generateJsonStringFromOtherValidTypes(buf bytes.Buffer, element Object) bytes.Buffer {
 	switch t := element.(type) {
 	case *Integer:
-		buf.WriteString(fmt.Sprintf("%d", t.Value))
+		fmt.Fprintf(&buf, "%d", t.Value)
 	case *UInteger:
-		buf.WriteString(fmt.Sprintf("%d", t.Value))
+		fmt.Fprintf(&buf, "%d", t.Value)
 	case *BigInteger:
 		buf.WriteString(t.Value.String())
 	case *BigFloat:
 		buf.WriteString(t.Value.String())
 	case *Stringo:
-		buf.WriteString(fmt.Sprintf("%q", t.Value))
+		fmt.Fprintf(&buf, "%q", t.Value)
 	case *Null:
 		buf.WriteString("null")
 	case *Float:
-		buf.WriteString(fmt.Sprintf("%f", t.Value))
+		fmt.Fprintf(&buf, "%f", t.Value)
 	case *Boolean:
-		buf.WriteString(fmt.Sprintf("%t", t.Value))
+		fmt.Fprintf(&buf, "%t", t.Value)
 	}
 	return buf
 }
@@ -578,7 +578,7 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs OrderedMap2[
 	i := 0
 	for _, hk := range pairs.Keys {
 		mp, _ := pairs.Get(hk)
-		buf.WriteString(fmt.Sprintf("%q:", mp.Key.Inspect()))
+		fmt.Fprintf(&buf, "%q:", mp.Key.Inspect())
 		valueType := mp.Value.Type()
 		switch valueType {
 		case MAP_OBJ:

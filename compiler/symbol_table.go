@@ -160,13 +160,13 @@ func (s *SymbolTable) defineFree(original Symbol) Symbol {
 func (s *SymbolTable) String() string {
 	var sb strings.Builder
 	for k, v := range s.store {
-		sb.WriteString(fmt.Sprintf("%s %#+v\n", k, v))
+		fmt.Fprintf(&sb, "%s %#+v\n", k, v)
 	}
 	outer := s.Outer
 	if outer != nil {
 		for outer != nil {
 			for k, v := range outer.store {
-				sb.WriteString(fmt.Sprintf("%s %#+v\n", k, v))
+				fmt.Fprintf(&sb, "%s %#+v\n", k, v)
 			}
 			outer = outer.Outer
 		}

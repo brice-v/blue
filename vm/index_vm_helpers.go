@@ -195,6 +195,7 @@ func (vm *VM) executeProcessIndexExpression(process *object.Process, name string
 	case "send":
 		p := process
 		return vm.push(&object.Builtin{
+			Name: "send",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 1 {
 					return newInvalidArgCountError("send", len(args), 1, "")
@@ -212,6 +213,7 @@ func (vm *VM) executeProcessIndexExpression(process *object.Process, name string
 	case "recv":
 		p := process
 		return vm.push(&object.Builtin{
+			Name: "recv",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 0 {
 					return newInvalidArgCountError("recv", len(args), 0, "")

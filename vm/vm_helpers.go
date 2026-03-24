@@ -632,7 +632,7 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.Order
 	i := 0
 	for _, hk := range pairs.Keys {
 		mp, _ := pairs.Get(hk)
-		buf.WriteString(fmt.Sprintf("%q:", mp.Key.Inspect()))
+		fmt.Fprintf(&buf, "%q:", mp.Key.Inspect())
 		valueType := mp.Value.Type()
 		switch valueType {
 		case object.MAP_OBJ:
@@ -856,6 +856,7 @@ func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
 func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 	mapObj := object.NewOrderedMap[string, object.Object]()
 	mapObj.Set("clear_cookie", &object.Builtin{
+		Name: "clear_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			cookieArgs := []string{}
 			for i, arg := range args {
@@ -870,6 +871,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("set_cookie", &object.Builtin{
+		Name: "set_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			// Arg len should be 1
 			// Arg should be map
@@ -899,6 +901,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("get_cookie", &object.Builtin{
+		Name: "get_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("get_cookie", len(args), 1, "")
@@ -910,6 +913,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("set_local", &object.Builtin{
+		Name: "set_local",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("set_local", len(args), 2, "")
@@ -933,6 +937,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 		},
 	})
 	mapObj.Set("get_local", &object.Builtin{
+		Name: "get_local",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("get_local", len(args), 1, "")

@@ -19,6 +19,7 @@ var toNumBuiltin *object.Builtin = nil
 func createToNumBuiltin(e *Evaluator) *object.Builtin {
 	if toNumBuiltin == nil {
 		toNumBuiltin = &object.Builtin{
+			Name: "to_num",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 1 {
 					return newInvalidArgCountError("to_num", len(args), 1, "")
@@ -67,7 +68,7 @@ func simpleKeyErrorPrint(e *Evaluator, obj object.Object) {
 	buf.WriteByte('\n')
 	for e.ErrorTokens.Len() > 0 {
 		tok := e.ErrorTokens.PopBack()
-		buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
+		fmt.Fprintf(&buf, "%s\n", lexer.GetErrorLineMessage(tok))
 	}
 	fmt.Printf("%s`sort` key error: %s\n", consts.EVAL_ERROR_PREFIX, buf.String())
 }
@@ -294,6 +295,7 @@ func getSortedListHelper(e *Evaluator, args ...object.Object) object.Object {
 func createSortBuiltin(e *Evaluator) *object.Builtin {
 	if sortBuiltin == nil {
 		sortBuiltin = &object.Builtin{
+			Name: "sort",
 			Fun: func(args ...object.Object) object.Object {
 				return getSortedListHelper(e, args...)
 			},
@@ -313,6 +315,7 @@ var sortedBuiltin *object.Builtin = nil
 func createSortedBuiltin(e *Evaluator) *object.Builtin {
 	if sortedBuiltin == nil {
 		sortedBuiltin = &object.Builtin{
+			Name: "sorted",
 			Fun: func(args ...object.Object) object.Object {
 				o := getSortedListHelper(e, args...)
 				if isError(o) {
@@ -341,6 +344,7 @@ var allBuiltin *object.Builtin = nil
 func createAllBuiltin(e *Evaluator) *object.Builtin {
 	if allBuiltin == nil {
 		allBuiltin = &object.Builtin{
+			Name: "all",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("all", len(args), 2, "")
@@ -401,6 +405,7 @@ var anyBuiltin *object.Builtin = nil
 func createAnyBuiltin(e *Evaluator) *object.Builtin {
 	if anyBuiltin == nil {
 		anyBuiltin = &object.Builtin{
+			Name: "any",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("any", len(args), 2, "")
@@ -461,6 +466,7 @@ var mapBuiltin *object.Builtin = nil
 func createMapBuiltin(e *Evaluator) *object.Builtin {
 	if mapBuiltin == nil {
 		mapBuiltin = &object.Builtin{
+			Name: "map",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("map", len(args), 2, "")
@@ -507,6 +513,7 @@ var filterBuiltin *object.Builtin = nil
 func createFilterBuiltin(e *Evaluator) *object.Builtin {
 	if filterBuiltin == nil {
 		filterBuiltin = &object.Builtin{
+			Name: "filter",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 2 {
 					return newInvalidArgCountError("filter", len(args), 2, "")
@@ -555,6 +562,7 @@ var loadBuiltin *object.Builtin = nil
 func createLoadBuiltin(e *Evaluator) *object.Builtin {
 	if loadBuiltin == nil {
 		loadBuiltin = &object.Builtin{
+			Name: "load",
 			Fun: func(args ...object.Object) object.Object {
 				if len(args) != 1 {
 					return newInvalidArgCountError("load", len(args), 1, "")
