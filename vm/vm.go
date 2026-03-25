@@ -890,7 +890,9 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 		frameIndex--
 	}
 	if wasInCatch {
-		vm.pushNoErrorChecking(newError("%s", errorMessage))
+		// TODO: Figure out why this breaks other tests but works for manual_tests/test_gg_raylib_bindings.b
+		// vm.pushNoErrorChecking(newError("%s", errorMessage))
+		vm.push(newError("%s", errorMessage))
 	}
 }
 

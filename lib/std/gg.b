@@ -263,8 +263,12 @@ val mouse = {
     'set_position': __set_mouse_position,
     'set_offset': __set_mouse_offset,
     'set_scale': __set_mouse_scale,
-    'get_wheel_move': __get_mouse_wheel_move,
-    'get_wheel_move_v': __get_mouse_wheel_move_v,
+    'get_wheel_move': fun(as_vector=false) {
+        if as_vector {
+            return __get_mouse_wheel_move_v;
+        }
+        return __get_mouse_wheel_move;
+    },
     'set_cursor': __set_mouse_cursor,
 };
 
