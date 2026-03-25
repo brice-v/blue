@@ -81,10 +81,21 @@ val is_key_up = _is_key_up;
 val is_key_down = _is_key_down;
 val is_key_pressed = _is_key_pressed;
 val is_key_released = _is_key_released;
-val is_mouse_button_pressed = _is_mouse_button_pressed;
-val is_mouse_button_down = _is_mouse_button_down;
-val is_mouse_button_released = _is_mouse_button_released;
-val is_mouse_button_up = _is_mouse_button_up;
+
+val __is_mouse_button_pressed = _is_mouse_button_pressed;
+val __is_mouse_button_down = _is_mouse_button_down;
+val __is_mouse_button_released = _is_mouse_button_released;
+val __is_mouse_button_up = _is_mouse_button_up;
+val __get_mouse_x = _get_mouse_x;
+val __get_mouse_y = _get_mouse_y;
+val __get_mouse_position = _get_mouse_position;
+val __get_mouse_delta = _get_mouse_delta;
+val __set_mouse_position = _set_mouse_position;
+val __set_mouse_offset = _set_mouse_offset;
+val __set_mouse_scale = _set_mouse_scale;
+val __get_mouse_wheel_move = _get_mouse_wheel_move;
+val __get_mouse_wheel_move_v = _get_mouse_wheel_move_v;
+val __set_mouse_cursor = _set_mouse_cursor;
 
 val __rectangle = _rectangle;
 val __vector2 = _vector2;
@@ -224,26 +235,37 @@ val Key = {
     'VolumeDown': 25,
 };
 
-val Mouse = {
-    # Mouse Buttons
-    'LeftButton': 0,
-    'RightButton': 1,
-    'MiddleButton': 2,
-    'SideButton': 3,
-    'ExtraButton': 4,
-    'ForwardButton': 5,
-    'BackButton': 6,
-};
-
-val MouseButton = {
-    # Mouse Buttons
-    'Left': Mouse.LeftButton,
-    'Right': Mouse.RightButton,
-    'Middle': Mouse.MiddleButton,
-    'Side': Mouse.SideButton,
-    'Extra': Mouse.ExtraButton,
-    'Forward': Mouse.ForwardButton,
-    'Back': Mouse.BackButton,
+val mouse = {
+    'button': {
+        'LeftButton': 0,
+        'Left': 0,
+        'RightButton': 1,
+        'Right': 1,
+        'MiddleButton': 2,
+        'Middle': 2,
+        'SideButton': 3,
+        'Side': 3,
+        'ExtraButton': 4,
+        'Extra': 4,
+        'ForwardButton': 5,
+        'Forward': 5,
+        'BackButton': 6,
+        'Back': 6,
+    },
+    'is_button_pressed': __is_mouse_button_pressed,
+    'is_button_released': __is_mouse_button_released,
+    'is_button_down': __is_mouse_button_down,
+    'is_button_up': __is_mouse_button_up,
+    'get_x': __get_mouse_x,
+    'get_y': __get_mouse_y,
+    'get_position': __get_mouse_position,
+    'get_delta': __get_mouse_delta,
+    'set_position': __set_mouse_position,
+    'set_offset': __set_mouse_offset,
+    'set_scale': __set_mouse_scale,
+    'get_wheel_move': __get_mouse_wheel_move,
+    'get_wheel_move_v': __get_mouse_wheel_move_v,
+    'set_cursor': __set_mouse_cursor,
 };
 
 # Touch points registered

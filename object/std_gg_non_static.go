@@ -1295,6 +1295,205 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_get_mouse_x",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_mouse_x", len(args), 0, "")
+			}
+			return &Integer{Value: int64(rl.GetMouseX())}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_mouse_x` returns mouse x position as int",
+			signature:   "get_mouse_x() -> int",
+			errors:      "InvalidArgCount",
+			example:     "get_mouse_x() => 200",
+		}.String(),
+	},
+	{
+		Name: "_get_mouse_y",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_mouse_y", len(args), 0, "")
+			}
+			return &Integer{Value: int64(rl.GetMouseY())}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_mouse_y` returns mouse y position as int",
+			signature:   "get_mouse_y() -> int",
+			errors:      "InvalidArgCount",
+			example:     "get_mouse_y() => 200",
+		}.String(),
+	},
+	{
+		Name: "_get_mouse_position",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_mouse_position", len(args), 0, "")
+			}
+			return NewGoObj(rl.GetMousePosition())
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_mouse_position` returns mouse position as GoObj[rl.Vector2] (x,y)",
+			signature:   "get_mouse_position() -> GoObj[rl.Vector2]",
+			errors:      "InvalidArgCount",
+			example:     "get_mouse_position() => GoObj[rl.Vector2]",
+		}.String(),
+	},
+	{
+		Name: "_get_mouse_delta",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_mouse_delta", len(args), 0, "")
+			}
+			return NewGoObj(rl.GetMouseDelta())
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_mouse_delta` returns mouse delta between frames as GoObj[rl.Vector2]",
+			signature:   "get_mouse_delta() -> GoObj[rl.Vector2]",
+			errors:      "InvalidArgCount",
+			example:     "get_mouse_delta() => GoObj[rl.Vector2]",
+		}.String(),
+	},
+	{
+		Name: "_set_mouse_position",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 && len(args) != 2 {
+				return newInvalidArgCountError("set_mouse_position", len(args), 1, "or 2")
+			}
+			if len(args) == 0 {
+				position, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("set_mouse_position", 1, "rl.Vector2", args[0])
+				}
+				rl.SetMousePosition(int(position.Value.X), int(position.Value.Y))
+				return NULL
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("set_mouse_position", 1, INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("set_mouse_position", 2, INTEGER_OBJ, args[1].Type())
+			}
+			rl.SetMousePosition(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_mouse_position` sets the x,y mouse position. A GoObj[rl.Vector2] can be used but float precision is not kept",
+			signature:   "set_mouse_position(position_or_x: GoObj[rl.Vector2]|int, y: int=null) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_mouse_position(100, 100) => null",
+		}.String(),
+	},
+	{
+		Name: "_set_mouse_offset",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 && len(args) != 2 {
+				return newInvalidArgCountError("set_mouse_offset", len(args), 1, "or 2")
+			}
+			if len(args) == 0 {
+				position, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("set_mouse_offset", 1, "rl.Vector2", args[0])
+				}
+				rl.SetMouseOffset(int(position.Value.X), int(position.Value.Y))
+				return NULL
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("set_mouse_offset", 1, INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("set_mouse_offset", 2, INTEGER_OBJ, args[1].Type())
+			}
+			rl.SetMouseOffset(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_mouse_offset` sets the x,y mouse offset. A GoObj[rl.Vector2] can be used but float precision is not kept",
+			signature:   "set_mouse_offset(offset_pos_or_offset_x: GoObj[rl.Vector2]|int, offset_y: int=null) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_mouse_offset(100, 100) => null",
+		}.String(),
+	},
+	{
+		Name: "_set_mouse_scale",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 && len(args) != 2 {
+				return newInvalidArgCountError("set_mouse_scale", len(args), 1, "or 2")
+			}
+			if len(args) == 0 {
+				position, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("set_mouse_scale", 1, "rl.Vector2", args[0])
+				}
+				rl.SetMouseScale(position.Value.X, position.Value.Y)
+				return NULL
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("set_mouse_scale", 1, FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("set_mouse_scale", 2, FLOAT_OBJ, args[1].Type())
+			}
+			rl.SetMouseScale(float32(args[0].(*Float).Value), float32(args[1].(*Float).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_mouse_scale` sets the x,y mouse scaling. A GoObj[rl.Vector2] can be used",
+			signature:   "set_mouse_scale(scale_or_scale_x: GoObj[rl.Vector2]|float, scale_y: float=null) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_mouse_scale(1.0, 1.0) => null",
+		}.String(),
+	},
+	{
+		Name: "_get_mouse_wheel_move",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_mouse_wheel_move", len(args), 0, "")
+			}
+			return &Float{Value: float64(rl.GetMouseWheelMove())}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_mouse_wheel_move` returns the mouse wheel movement for x or y, whichever is larger, as a float",
+			signature:   "get_mouse_wheel_move() -> float",
+			errors:      "InvalidArgCount",
+			example:     "get_mouse_wheel_move() => 1.0",
+		}.String(),
+	},
+	{
+		Name: "_get_mouse_wheel_move_v",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("get_mouse_wheel_move_v", len(args), 0, "")
+			}
+			return NewGoObj(rl.GetMouseWheelMoveV())
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_mouse_wheel_move_v` returns the mouse wheel movement for x and y as GoObj[rl.Vector2]",
+			signature:   "get_mouse_wheel_move_v() -> GoObj[rl.Vector2]",
+			errors:      "InvalidArgCount",
+			example:     "get_mouse_wheel_move_v() => GoObj[rl.Vector2]",
+		}.String(),
+	},
+	{
+		Name: "_set_mouse_cursor",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_mouse_cursor", len(args), 1, "")
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("set_mouse_cursor", 1, INTEGER_OBJ, args[0].Type())
+			}
+			rl.SetMouseCursor(int32(args[0].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_mouse_cursor` sets the mouse cursor",
+			signature:   "set_mouse_cursor(cursor: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_mouse_cursor(1) => null",
+		}.String(),
+	},
+	{
 		Name: "_load_texture",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
