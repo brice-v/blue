@@ -4,6 +4,7 @@ fun main() {
     val win = gg.new_window(width=800, height=640, title="Example Raylib Bindings");
     gg.set_target_fps(60);
     for [k,v] in gg.monitor {
+        println("k = #{k} => #{v}")
         try {
             println("k = #{k} => #{v()}")
         } catch (e) {

@@ -837,6 +837,15 @@ func (vm *VM) push(o object.Object) error {
 	return nil
 }
 
+func (vm *VM) pushNoErrorChecking(o object.Object) error {
+	if vm.sp >= StackSize {
+		return fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o)
+	}
+	vm.stack[vm.sp] = o
+	vm.sp++
+	return nil
+}
+
 func (vm *VM) pop() object.Object {
 	o := vm.stack[vm.sp-1]
 	vm.sp--
@@ -881,7 +890,7 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 		frameIndex--
 	}
 	if wasInCatch {
-		vm.push(newError("%s", errorMessage))
+		vm.pushNoErrorChecking(newError("%s", errorMessage))
 	}
 }
 
