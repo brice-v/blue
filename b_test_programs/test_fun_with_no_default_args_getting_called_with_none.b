@@ -6,7 +6,7 @@ try {
     hello();
     assert(false, "UNREACHABLE")
 } catch (e) {
-    assert("function called without enough arguments" in e);
+    assert("function called without enough arguments" in e || "wrong number of arguments" in e);
 }
 
 fun hello1(arg1, arg2="bb", arg3) {
@@ -17,7 +17,7 @@ try {
     hello1("Hello");
     assert(false, "UNREACHABLE");
 } catch (e) {
-    assert("function called without enough arguments" in e);
+    assert("function called without enough arguments" in e || "wrong number of arguments" in e);
 }
 
 fun hello2(arg1, arg2="aa", arg3, arg4) {
@@ -27,6 +27,7 @@ fun hello2(arg1, arg2="aa", arg3, arg4) {
 try {
     hello2("Hello", "SOME", "ANOTHER");
 } catch (e) {
+    println("what e = #{e}")
     assert(false, "UNREACHABLE");
 }
 

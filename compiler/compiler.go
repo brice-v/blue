@@ -652,6 +652,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.breakPos[c.forIndex] = append(c.breakPos[c.forIndex], pos)
 	case *ast.ContinueStatement:
+		c.emit(code.OpNotInCatch)
 		pos := c.emit(code.OpJump, 9999)
 		if c.contPos[c.forIndex] == nil {
 			c.contPos[c.forIndex] = []int{}

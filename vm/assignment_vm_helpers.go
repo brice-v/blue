@@ -23,36 +23,35 @@ func (vm *VM) executeIndexSetOperator(indexable object.Object, index object.Obje
 func (vm *VM) executeStructIndexSetOperator(bs *object.BlueStruct, indx, rightValue object.Object) error {
 	indexField, ok := indx.(*object.Stringo)
 	if !ok {
-		return vm.push(newError("index operator not supported: BLUE_STRUCT.%s", indx.Inspect()))
+		return fmt.Errorf("index operator not supported: BLUE_STRUCT.%s", indx.Inspect())
 	}
 	fieldName := indexField.Value
 	orig, origIndex := bs.Get(fieldName)
 	if orig == nil {
-		return vm.push(newError("field name `%s` not found on blue struct: %s", fieldName, bs.Inspect()))
+		return fmt.Errorf("field name `%s` not found on blue struct: %s", fieldName, bs.Inspect())
 	}
-	bs.Set(origIndex, rightValue)
-	return nil
+	return bs.Set(origIndex, rightValue)
 }
 
 func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx, rightValue object.Object) error {
 	if m.IsEnvBuiltin {
 		if indx.Type() != object.STRING_OBJ {
-			return vm.push(newError("ENV requires string key"))
+			return fmt.Errorf("ENV requires string key")
 		}
 		if rightValue.Type() != object.STRING_OBJ && rightValue.Type() != object.NULL_OBJ {
-			return vm.push(newError("ENV requires string value or null"))
+			return fmt.Errorf("ENV requires string value or null")
 		}
 		k := indx.(*object.Stringo).Value
 		if rightValue == object.NULL {
 			err := os.Unsetenv(k)
 			if err != nil {
-				return vm.push(newError("ENV unset error: %s", err.Error()))
+				return fmt.Errorf("ENV unset error: %s", err.Error())
 			}
 		} else {
 			v := rightValue.(*object.Stringo).Value
 			err := os.Setenv(k, v)
 			if err != nil {
-				return vm.push(newError("ENV set error: %s", err.Error()))
+				return fmt.Errorf("ENV set error: %s", err.Error())
 			}
 		}
 		object.BuiltinobjsList[object.EnvBuiltinobjsListIndex].Builtin.Obj = object.PopulateENVObj()
@@ -61,7 +60,7 @@ func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx, rightValue object.
 		}
 	} else {
 		if ok := object.IsHashable(indx); !ok {
-			return vm.push(newError("unusable as a map key: %s", indx.Type()))
+			return fmt.Errorf("unusable as a map key: %s", indx.Type())
 		}
 	}
 	hashed := object.HashObject(indx)
@@ -73,12 +72,12 @@ func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx, rightValue object.
 func (vm *VM) executeListIndexSetOperator(l *object.List, indx, rightValue object.Object) error {
 	idx, ok := indx.(*object.Integer)
 	if !ok {
-		return vm.push(newError("cannot index list with %s", indx.Type()))
+		return fmt.Errorf("cannot index list with %s", indx.Type())
 	}
 	indexInt := int(idx.Value)
 	listLen := len(l.Elements)
 	if indexInt > listLen || indexInt < 0 {
-		return vm.push(newError("index out of bounds: %d", idx.Value))
+		return fmt.Errorf("index out of bounds: %d", idx.Value)
 	}
 	if indexInt == listLen {
 		l.Elements = append(l.Elements, object.NULL)
@@ -89,16 +88,16 @@ func (vm *VM) executeListIndexSetOperator(l *object.List, indx, rightValue objec
 
 func (vm *VM) executeStringIndexSetOperator(str *object.Stringo, indx, rightValue object.Object) error {
 	if rightValue.Type() != object.STRING_OBJ {
-		return vm.push(newError("cannot assign %s to STRING", rightValue.Type()))
+		return fmt.Errorf("cannot assign %s to STRING", rightValue.Type())
 	}
 	if indx.Type() != object.INTEGER_OBJ {
-		return vm.push(newError("cannot index string with %s", indx.Type()))
+		return fmt.Errorf("cannot index string with %s", indx.Type())
 	}
 	s := str.Value
 	c := rightValue.(*object.Stringo).Value
 	indxInt := int(indx.(*object.Integer).Value)
 	if runeLen(c) != 1 {
-		return vm.push(newError("string index assignment value must be 1 character long. got=%d", runeLen(c)))
+		return fmt.Errorf("string index assignment value must be 1 character long. got=%d", runeLen(c))
 	}
 	sb := strings.Builder{}
 	for i, ch := range s {

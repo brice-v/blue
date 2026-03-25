@@ -577,8 +577,9 @@ func (vm *VM) Run() error {
 				if err != nil {
 					return err
 				}
+			} else {
+				vm.push(object.NULL)
 			}
-			vm.push(object.NULL)
 		case code.OpTry:
 			vm.inTry = true
 		case code.OpCatch:
@@ -589,11 +590,15 @@ func (vm *VM) Run() error {
 			}
 		case code.OpFinallyEnd:
 			if vm.catchError != "" {
-				return fmt.Errorf("%s", vm.catchError)
+				return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", vm.catchError))
 			}
+			vm.inTry = false
+			vm.inCatch = false
 		case code.OpCatchEnd:
 			// If we were in catch, set catch error back to empty
 			vm.catchError = ""
+			vm.inTry = false
+			vm.inCatch = false
 		case code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
 			// Do nothing
 		case code.OpExecString:
@@ -744,7 +749,7 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 2
 			str, ok := vm.constants[constIndex].(*object.Stringo)
 			if !ok {
-				return fmt.Errorf("found non-string in constant for OpGetFunctionParameterSpecial2, got = %T", vm.constants[constIndex])
+				return vm.prepareStackTraceAndReturnError(fmt.Errorf("found non-string in constant for OpGetFunctionParameterSpecial2, got = %T", vm.constants[constIndex]))
 			}
 			err := vm.pushSpecialFunctionParameter2(str.Value)
 			if err != nil {
@@ -780,6 +785,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpNotInTry:
 			vm.inTry = false
+		case code.OpNotInCatch:
+			vm.inCatch = false
 		}
 		if ip != 0 {
 			vm.currentFrame().lastInstruction = op
@@ -797,7 +804,7 @@ func (vm *VM) printMiniStack(slots int) {
 	}
 }
 
-func (vm *VM) prepareStackTrace() {
+func (vm *VM) prepareStackTraceAndReturnError(err error) error {
 	vm.TokensForErrorTrace = []*token.Token{}
 	ip := vm.lastNodePos
 	for vm.framesIndex >= 1 {
@@ -818,6 +825,7 @@ func (vm *VM) prepareStackTrace() {
 		vm.popFrame()
 		ip = vm.currentFrame().ip - 4 // Move back to OpNode of calling function
 	}
+	return err
 }
 
 func (vm *VM) push(o object.Object) error {
@@ -826,11 +834,10 @@ func (vm *VM) push(o object.Object) error {
 			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
 			return nil
 		}
-		vm.prepareStackTrace()
-		return fmt.Errorf("%s", o.(*object.Error).Message)
+		return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", o.(*object.Error).Message))
 	}
 	if vm.sp >= StackSize {
-		return fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o)
+		return vm.prepareStackTraceAndReturnError(fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o))
 	}
 	vm.stack[vm.sp] = o
 	vm.sp++
@@ -839,7 +846,7 @@ func (vm *VM) push(o object.Object) error {
 
 func (vm *VM) pushNoErrorChecking(o object.Object) error {
 	if vm.sp >= StackSize {
-		return fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o)
+		return vm.prepareStackTraceAndReturnError(fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o))
 	}
 	vm.stack[vm.sp] = o
 	vm.sp++
@@ -890,9 +897,7 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 		frameIndex--
 	}
 	if wasInCatch {
-		// TODO: Figure out why this breaks other tests but works for manual_tests/test_gg_raylib_bindings.b
-		// vm.pushNoErrorChecking(newError("%s", errorMessage))
-		vm.push(newError("%s", errorMessage))
+		vm.pushNoErrorChecking(newError("%s", errorMessage))
 	}
 }
 
@@ -1181,7 +1186,7 @@ func (vm *VM) executeCall(numArgs int) error {
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
-		return fmt.Errorf("calling non-closure and non-builtin %T", callee)
+		return vm.prepareStackTraceAndReturnError(fmt.Errorf("calling non-closure and non-builtin %T", callee))
 	}
 }
 

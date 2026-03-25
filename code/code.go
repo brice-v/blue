@@ -128,6 +128,7 @@ const (
 	OpInvalid
 	OpNode
 	OpNotInTry
+	OpNotInCatch
 )
 
 type Definition struct {
@@ -226,6 +227,7 @@ var definitions = map[Opcode]*Definition{
 	OpInvalid:            {"OpInvalid", []int{}},
 	OpNode:               {"OpNode", []int{2}},
 	OpNotInTry:           {"OpNotInTry", []int{}},
+	OpNotInCatch:         {"OpNotInCatch", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {
