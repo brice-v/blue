@@ -838,6 +838,11 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 		c.emit(code.OpPop)
 	}
 	for i, name := range names {
+		if _, ok := c.inTry[c.BlockNestLevel]; ok {
+			if c.symbolTable.IsDefinedInCurrentStore(name.Value) {
+				return fmt.Errorf("'%s' is already defined in current scope", name.Value)
+			}
+		}
 		if node.VVIsListDestructor() {
 			c.emit(code.OpGetListIndex, i)
 		} else if node.VVIsMapDestructor() {

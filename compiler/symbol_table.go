@@ -149,6 +149,11 @@ func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 	return obj, ok
 }
 
+func (s *SymbolTable) IsDefinedInCurrentStore(name string) bool {
+	_, ok := s.store[name]
+	return ok
+}
+
 func (s *SymbolTable) defineFree(original Symbol) Symbol {
 	s.FreeSymbols = append(s.FreeSymbols, original)
 	symbol := Symbol{Name: original.Name, Index: len(s.FreeSymbols) - 1}
