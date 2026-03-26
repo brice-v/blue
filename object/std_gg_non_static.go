@@ -1025,40 +1025,147 @@ var GgBuiltins = []*Builtin{
 	{
 		Name: "_draw_rectangle",
 		Fun: func(args ...Object) Object {
-			if len(args) != 5 {
-				return newInvalidArgCountError("draw_rectangle", len(args), 5, "")
+			if len(args) != 5 && len(args) != 4 && len(args) != 3 && len(args) != 2 {
+				return newInvalidArgCountError("draw_rectangle", len(args), 5, "or 4 or 3 or 2")
 			}
-			if args[0].Type() != INTEGER_OBJ {
-				return newPositionalTypeError("draw_rectangle", 1, INTEGER_OBJ, args[0].Type())
+			if len(args) == 5 {
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle", 1, INTEGER_OBJ, args[0].Type())
+				}
+				posx := int32(args[0].(*Integer).Value)
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle", 2, INTEGER_OBJ, args[1].Type())
+				}
+				posy := int32(args[1].(*Integer).Value)
+				if args[2].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle", 3, INTEGER_OBJ, args[2].Type())
+				}
+				width := int32(args[2].(*Integer).Value)
+				if args[3].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle", 4, INTEGER_OBJ, args[3].Type())
+				}
+				height := int32(args[3].(*Integer).Value)
+				if args[4].Type() != GO_OBJ {
+					return newPositionalTypeError("draw_rectangle", 5, GO_OBJ, args[4].Type())
+				}
+				color, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Color", args[4])
+				}
+				rl.DrawRectangle(posx, posy, width, height, color.Value)
+			} else if len(args) == 4 {
+				rec, ok := args[0].(*GoObj[rl.Rectangle])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 1, "rl.Rectangle", args[0])
+				}
+				origin, ok := args[1].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 2, "rl.Vector2", args[1])
+				}
+				if args[2].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_rectangle", 3, FLOAT_OBJ, args[2].Type())
+				}
+				color, ok := args[3].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 4, "rl.Color", args[3])
+				}
+				rl.DrawRectanglePro(rec.Value, origin.Value, float32(args[2].(*Float).Value), color.Value)
+			} else if len(args) == 3 {
+				position, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 1, "rl.Vector2", args[0])
+				}
+				size, ok := args[1].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 2, "rl.Vector2", args[1])
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 3, "rl.Color", args[2])
+				}
+				rl.DrawRectangleV(position.Value, size.Value, color.Value)
+			} else if len(args) == 2 {
+				rec, ok := args[0].(*GoObj[rl.Rectangle])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 1, "rl.Rectangle", args[0])
+				}
+				color, ok := args[1].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 2, "rl.Color", args[1])
+				}
+				rl.DrawRectangleRec(rec.Value, color.Value)
 			}
-			posx := int32(args[0].(*Integer).Value)
-			if args[1].Type() != INTEGER_OBJ {
-				return newPositionalTypeError("draw_rectangle", 2, INTEGER_OBJ, args[1].Type())
-			}
-			posy := int32(args[1].(*Integer).Value)
-			if args[2].Type() != INTEGER_OBJ {
-				return newPositionalTypeError("draw_rectangle", 3, INTEGER_OBJ, args[2].Type())
-			}
-			width := int32(args[2].(*Integer).Value)
-			if args[3].Type() != INTEGER_OBJ {
-				return newPositionalTypeError("draw_rectangle", 4, INTEGER_OBJ, args[3].Type())
-			}
-			height := int32(args[3].(*Integer).Value)
-			if args[4].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_rectangle", 5, GO_OBJ, args[4].Type())
-			}
-			color, ok := args[4].(*GoObj[rl.Color])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Color", args[4])
-			}
-			rl.DrawRectangle(posx, posy, width, height, color.Value)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`draw_rectangle` draws a rectangle at the given position with width and height",
-			signature:   "draw_rectangle(posx: int, posy: int, width: int, height: int, color=color.black) -> null",
-			errors:      "InvalidArgCount,PositionalType",
-			example:     "draw_rectangle() (used as Rectangle().draw(color))=> null",
+			explanation: "`draw_rectangle` draws a rectangle at the given position with width and height\n" +
+				"// Draw a color-filled rectangle\n" +
+				"void DrawRectangle(int posX, int posY, int width, int height, Color color);\n" +
+				"// Draw a color-filled rectangle (Vector version)\n" +
+				"void DrawRectangleV(Vector2 position, Vector2 size, Color color);\n" +
+				"// Draw a color-filled rectangle\n" +
+				"void DrawRectangleRec(Rectangle rec, Color color);\n" +
+				"// Draw a color-filled rectangle with pro parameters\n" +
+				"void DrawRectanglePro(Rectangle rec, Vector2 origin, float rotation, Color color);",
+			signature: "draw_rectangle(posx: int, posy: int, width: int, height: int, color=color.black) -> null",
+			errors:    "InvalidArgCount,PositionalType",
+			example:   "draw_rectangle() (used as Rectangle().draw(color))=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_rectangle_gradient",
+		Fun: func(args ...Object) Object {
+			if len(args) != 7 {
+				return newInvalidArgCountError("draw_rectangle_gradient", len(args), 7, "")
+			}
+			if args[5] == NULL {
+				// Use DrawRectangleGradientEx
+
+			} else {
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_gradient", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_gradient", 2, INTEGER_OBJ, args[1].Type())
+				}
+				if args[2].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_gradient", 3, INTEGER_OBJ, args[2].Type())
+				}
+				if args[3].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_gradient", 4, INTEGER_OBJ, args[3].Type())
+				}
+				colorLeftOrTop, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_gradient", 5, "rl.Color", args[4])
+				}
+				colorRightOrBottom, ok := args[5].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_gradient", 6, "rl.Color", args[5])
+				}
+				if args[6].Type() != BOOLEAN_OBJ {
+					return newPositionalTypeError("draw_rectangle_gradient", 7, BOOLEAN_OBJ, args[6].Type())
+				}
+				if args[6].(*Boolean).Value {
+					// Draw vertical
+					rl.DrawRectangleGradientV(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), colorLeftOrTop.Value, colorRightOrBottom.Value)
+				} else {
+					// Draw horizontal
+					rl.DrawRectangleGradientH(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), colorLeftOrTop.Value, colorRightOrBottom.Value)
+				}
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_rectangle_gradient` draws a horizontal or vertical gradient filled rectangle or with custom vertex colors\n" +
+				"// Draw a vertical-gradient-filled rectangle\n" +
+				"void DrawRectangleGradientV(int posX, int posY, int width, int height, Color top, Color bottom);\n" +
+				"// Draw a horizontal-gradient-filled rectangle\n" +
+				"void DrawRectangleGradientH(int posX, int posY, int width, int height, Color left, Color right);\n" +
+				"// Draw a gradient-filled rectangle with custom vertex colors\n" +
+				"void DrawRectangleGradientEx(Rectangle rec, Color topLeft, Color bottomLeft, Color topRight, Color bottomRight);\n",
+			signature: "draw_rectangle_gradient(posx: int, posy: int, width: int, height: int, color_left_or_top: color, color_right_or_bottom: color) -> null",
+			errors:    "InvalidArgCount,PositionalType",
+			example:   "draw_rectangle_gradient() (see explanation for some signatures)=> null",
 		}.String(),
 	},
 	{
