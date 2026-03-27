@@ -1220,6 +1220,38 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_draw_rectangle_rounded",
+		Fun: func(args ...Object) Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("draw_rectangle_rounded", len(args), 4, "")
+			}
+			rec, ok := args[0].(*GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_rectangle_rounded", 1, "rl.Rectangle", args[0])
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_rectangle_rounded", 2, FLOAT_OBJ, args[1].Type())
+			}
+			if args[2].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("draw_rectangle_rounded", 3, INTEGER_OBJ, args[2].Type())
+			}
+			color, ok := args[3].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_rectangle_rounded", 4, "rl.Rectangle", args[3])
+			}
+			rl.DrawRectangleRounded(rec.Value, float32(args[1].(*Float).Value), int32(args[2].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_rectangle_rounded` draws a rectangle outline\n" +
+				"// Draw rectangle with rounded edges\n" +
+				"void DrawRectangleRounded(Rectangle rec, float roundness, int segments, Color color);",
+			signature: "draw_rectangle_rounded(rec: Rectangle, roundness: float, segments: int, color: color) -> null",
+			errors:    "InvalidArgCount,PositionalType",
+			example:   "draw_rectangle_rounded() (see explanation for some signatures)=> null",
+		}.String(),
+	},
+	{
 		Name: "_set_target_fps",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {

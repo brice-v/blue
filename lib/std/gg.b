@@ -112,6 +112,7 @@ val end_mode3d = _end_mode3d;
 val __draw_rectangle = _draw_rectangle;
 val __draw_rectangle_gradient = _draw_rectangle_gradient;
 val __draw_rectangle_lines = _draw_rectangle_lines;
+val __draw_rectangle_rounded = _draw_rectangle_rounded;
 
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
@@ -123,6 +124,7 @@ val draw = {
         __draw_rectangle_gradient(a,b,c,d,e,f,is_vertical);
     },
     'rectangle_lines': __draw_rectangle_lines,
+    'rectangle_rounded': __draw_rectangle_rounded,
 }
 
 # Input Constants
