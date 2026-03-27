@@ -1169,6 +1169,57 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_draw_rectangle_lines",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 && len(args) != 3 {
+				return newInvalidArgCountError("draw_rectangle_lines", len(args), 5, "or 3")
+			}
+			if len(args) == 5 {
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_lines", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_lines", 2, INTEGER_OBJ, args[1].Type())
+				}
+				if args[2].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_lines", 3, INTEGER_OBJ, args[2].Type())
+				}
+				if args[3].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_rectangle_lines", 4, INTEGER_OBJ, args[3].Type())
+				}
+				color, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_lines", 5, "rl.Color", args[4])
+				}
+				rl.DrawRectangleLines(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), color.Value)
+			} else {
+				rec, ok := args[0].(*GoObj[rl.Rectangle])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_lines", 1, "rl.Rectangle", args[0])
+				}
+				if args[1].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_rectangle_lines", 2, FLOAT_OBJ, args[1].Type())
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_lines", 3, "rl.Color", args[2])
+				}
+				rl.DrawRectangleLinesEx(rec.Value, float32(args[1].(*Float).Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_rectangle_lines` draws a rectangle outline\n" +
+				"// Draw rectangle outline\n" +
+				"void DrawRectangleLines(int posX, int posY, int width, int height, Color color);\n" +
+				"// Draw rectangle outline with extended parameters\n" +
+				"void DrawRectangleLinesEx(Rectangle rec, float lineThick, Color color);",
+			signature: "draw_rectangle_lines(posx: int, posy: int, width: int, height: int, color: color) -> null",
+			errors:    "InvalidArgCount,PositionalType",
+			example:   "draw_rectangle_lines() (see explanation for some signatures)=> null",
+		}.String(),
+	},
+	{
 		Name: "_set_target_fps",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
