@@ -1050,7 +1050,7 @@ var GgBuiltins = []*Builtin{
 				}
 				color, ok := args[4].(*GoObj[rl.Color])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Color", args[4])
+					return newPositionalTypeErrorForGoObj("draw_rectangle", 4, "rl.Color", args[4])
 				}
 				rl.DrawRectangle(posx, posy, width, height, color.Value)
 			} else if len(args) == 4 {
