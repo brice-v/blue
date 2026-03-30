@@ -2975,6 +2975,21 @@ var Builtins = []*Builtin{
 			example:     "zip([[1,2],[3,4]]) => [[1,3],[2,4]]",
 		}.String(),
 	},
+	{
+		Name: "raw_type",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("raw_type", len(args), 1, "")
+			}
+			return &Stringo{Value: fmt.Sprintf("%T", args[0])}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`raw_type` returns the raw go type of the object passed in",
+			signature:   "raw_type(obj: any) -> str",
+			errors:      "InvalidArgCount",
+			example:     "raw_type(1) => '*object.Integer'",
+		}.String(),
+	},
 }
 
 var AllBuiltins = []struct {
