@@ -1136,6 +1136,39 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_draw_line_strip",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("draw_line_strip", len(args), 2, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("draw_line_strip", 1, LIST_OBJ, args[0].Type())
+			}
+			points := make([]rl.Vector2, len(args[0].(*List).Elements))
+			for i, e := range args[0].(*List).Elements {
+				point, ok := e.(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_strip", 1, "rl.Vector2", e)
+				}
+				points[i] = point.Value
+			}
+			color, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_line_strip", 2, "rl.Color", args[1])
+			}
+			rl.DrawLineStrip(points, int32(len(points)), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_line` draws a line sequence",
+			signature: "draw_line(points: list[rl.Vector2], color: color) -> null\n" +
+				"// Draw lines sequence (using gl lines)\n" +
+				"void DrawLineStrip(const Vector2 *points, int pointCount, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_line_strip() => (see signature for some signatures)=> null",
+		}.String(),
+	},
+	{
 		Name: "_draw_rectangle",
 		Fun: func(args ...Object) Object {
 			if len(args) != 5 && len(args) != 4 && len(args) != 3 && len(args) != 2 {
