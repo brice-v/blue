@@ -1252,6 +1252,206 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_draw_rectangle_rounded_lines",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("draw_rectangle_rounded_lines", len(args), 5, "")
+			}
+			rec, ok := args[0].(*GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_rectangle_rounded_lines", 1, "rl.Rectangle", args[0])
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_rectangle_rounded_lines", 2, FLOAT_OBJ, args[1].Type())
+			}
+			if args[2].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_rectangle_rounded_lines", 3, FLOAT_OBJ, args[2].Type())
+			}
+			if args[3].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_rectangle_rounded_lines", 4, FLOAT_OBJ, args[3].Type())
+			}
+			color, ok := args[4].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_rectangle_rounded_lines", 5, "rl.Color", args[4])
+			}
+			rl.DrawRectangleRoundedLines(rec.Value, float32(args[1].(*Float).Value), float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_rectangle_rounded_lines` draws a rectangle with rounded edge outline\n" +
+				"// Draw rectangle with rounded edges outline\n" +
+				"void DrawRectangleRoundedLinesEx(Rectangle rec, float roundness, int segments, float lineThick, Color color);",
+			signature: "draw_rectangle_rounded_lines(rec: Rectangle, roundness: float, segments: float, line_thick: float, color: color) -> null",
+			errors:    "InvalidArgCount,PositionalType",
+			example:   "draw_rectangle_rounded_lines() (see explanation for some signatures)=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_triangle",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("draw_triangle", len(args), 5, "")
+			}
+			v1, ok := args[0].(*GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_triangle", 1, "rl.Vector2", args[0])
+			}
+			v2, ok := args[1].(*GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_triangle", 2, "rl.Vector2", args[1])
+			}
+			v3, ok := args[2].(*GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_triangle", 3, "rl.Vector2", args[2])
+			}
+			color, ok := args[3].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_triangle", 4, "rl.Color", args[3])
+			}
+			if args[4].Type() != BOOLEAN_OBJ {
+				return newPositionalTypeError("draw_triangle", 5, BOOLEAN_OBJ, args[4].Type())
+			}
+			useLines := args[4].(*Boolean).Value
+			if useLines {
+				rl.DrawTriangleLines(v1.Value, v2.Value, v3.Value, color.Value)
+			} else {
+				rl.DrawTriangle(v1.Value, v2.Value, v3.Value, color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_triangle` draws a triangle with lines if specified\n" +
+				"// Draw a color-filled triangle (vertex in counter-clockwise order!)\n" +
+				"void DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color);\n" +
+				"// Draw triangle outline (vertex in counter-clockwise order!)\n" +
+				"void DrawTriangleLines(Vector2 v1, Vector2 v2, Vector2 v3, Color color);",
+			signature: "draw_triangle(rec: Rectangle, roundness: float, segments: float, line_thick: float, color: color) -> null",
+			errors:    "InvalidArgCount,PositionalType",
+			example:   "draw_triangle() (see explanation for some signatures)=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_triangle_fan",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("draw_triangle_fan", len(args), 2, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("draw_triangle_fan", 1, LIST_OBJ, args[0].Type())
+			}
+			points := make([]rl.Vector2, len(args[0].(*List).Elements))
+			for i, e := range args[0].(*List).Elements {
+				point, ok := e.(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_triangle_fan", 1, "rl.Vector2", e)
+				}
+				points[i] = point.Value
+			}
+			color, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_triangle_fan", 2, "rl.Color", args[1])
+			}
+			rl.DrawTriangleFan(points, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_triangle_fan` draws a triangle as a fan defined by points",
+			signature:   "draw_triangle_fan(points: list[rl.Vector2], color: color) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "draw_triangle_fan() (see explanation for some signatures)=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_triangle_strip",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("draw_triangle_strip", len(args), 2, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("draw_triangle_strip", 1, LIST_OBJ, args[0].Type())
+			}
+			points := make([]rl.Vector2, len(args[0].(*List).Elements))
+			for i, e := range args[0].(*List).Elements {
+				point, ok := e.(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_triangle_strip", 1, "rl.Vector2", e)
+				}
+				points[i] = point.Value
+			}
+			color, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_triangle_strip", 2, "rl.Color", args[1])
+			}
+			rl.DrawTriangleStrip(points, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_triangle_strip` draws a triangle as a strip defined by points",
+			signature:   "draw_triangle_strip(points: list[rl.Vector2], color: color) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "draw_triangle_strip() (see explanation for some signatures)=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_poly",
+		Fun: func(args ...Object) Object {
+			if len(args) != 7 {
+				return newInvalidArgCountError("draw_poly", len(args), 7, "")
+			}
+			center, ok := args[0].(*GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_poly", 1, "rl.Vector2", args[0])
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("draw_poly", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_poly", 3, FLOAT_OBJ, args[2].Type())
+			}
+			if args[3].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_poly", 4, FLOAT_OBJ, args[3].Type())
+			}
+			if args[5].Type() != NULL_OBJ {
+				// DrawPolyLinesEx
+				if args[4].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_poly", 5, FLOAT_OBJ, args[4].Type())
+				}
+				color, ok := args[5].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_poly", 6, "rl.Color", args[5])
+				}
+				rl.DrawPolyLinesEx(center.Value, int32(args[1].(*Integer).Value), float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), float32(args[4].(*Float).Value), color.Value)
+				return NULL
+			}
+			color, ok := args[4].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_poly", 5, "rl.Color", args[4])
+			}
+			if args[6].Type() != BOOLEAN_OBJ {
+				return newPositionalTypeError("draw_poly", 7, BOOLEAN_OBJ, args[6].Type())
+			}
+			useLines := args[6].(*Boolean).Value
+			if useLines {
+				rl.DrawPolyLines(center.Value, int32(args[1].(*Integer).Value), float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), color.Value)
+			} else {
+				rl.DrawPoly(center.Value, int32(args[1].(*Integer).Value), float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_poly` draws a polygon" +
+				"// Draw a regular polygon (Vector version)\n" +
+				"void DrawPoly(Vector2 center, int sides, float radius, float rotation, Color color);\n" +
+				"// Draw a polygon outline of n sides\n" +
+				"void DrawPolyLines(Vector2 center, int sides, float radius, float rotation, Color color);\n" +
+				"// Draw a polygon outline of n sides with extended parameters\n" +
+				"void DrawPolyLinesEx(Vector2 center, int sides, float radius, float rotation, float lineThick, Color color);",
+			signature: "draw_poly() (see explanation for some signatures) -> null",
+			errors:    "InvalidArgCount,PositionalType",
+			example:   "draw_poly() (see explanation for some signatures)=> null",
+		}.String(),
+	},
+	{
 		Name: "_set_target_fps",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {

@@ -113,6 +113,11 @@ val __draw_rectangle = _draw_rectangle;
 val __draw_rectangle_gradient = _draw_rectangle_gradient;
 val __draw_rectangle_lines = _draw_rectangle_lines;
 val __draw_rectangle_rounded = _draw_rectangle_rounded;
+val __draw_rectangle_rounded_lines = _draw_rectangle_rounded_lines;
+val __draw_triangle = _draw_triangle;
+val __draw_triangle_fan = _draw_triangle_fan;
+val __draw_triangle_strip = _draw_triangle_strip;
+val __draw_poly = _draw_poly;
 
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
@@ -125,6 +130,15 @@ val draw = {
     },
     'rectangle_lines': __draw_rectangle_lines,
     'rectangle_rounded': __draw_rectangle_rounded,
+    'rectangle_rounded_lines': __draw_rectangle_rounded_lines,
+    'triangle': fun(a,b,c,d,with_lines=false) {
+        __draw_triangle(a,b,c,d,with_lines)
+    },
+    'triangle_fan': __draw_triangle_fan,
+    'triangle_strip': __draw_triangle_strip,
+    'poly': fun(a,b,c,d,e,f=null,with_lines=false) {
+        __draw_poly(a,b,c,d,e,f,with_lines)
+    },
 }
 
 # Input Constants
