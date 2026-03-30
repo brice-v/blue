@@ -1160,12 +1160,92 @@ var GgBuiltins = []*Builtin{
 			return NULL
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`draw_line` draws a line sequence",
-			signature: "draw_line(points: list[rl.Vector2], color: color) -> null\n" +
+			explanation: "`draw_line_strip` draws a line sequence",
+			signature: "draw_line_strip(points: list[rl.Vector2], color: color) -> null\n" +
 				"// Draw lines sequence (using gl lines)\n" +
 				"void DrawLineStrip(const Vector2 *points, int pointCount, Color color);",
 			errors:  "InvalidArgCount,PositionalType",
 			example: "draw_line_strip() => (see signature for some signatures)=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_line_bezier",
+		Fun: func(args ...Object) Object {
+			if len(args) != 4 && len(args) != 5 && len(args) != 6 {
+				return newInvalidArgCountError("draw_line_bezier", len(args), 4, "or 5 or 6")
+			}
+			if len(args) == 4 {
+				startPos, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 1, "rl.Vector2", args[0])
+				}
+				endPos, ok := args[1].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 2, "rl.Vector2", args[1])
+				}
+				if args[2].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_line_bezier", 3, FLOAT_OBJ, args[2].Type())
+				}
+				color, ok := args[3].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 4, "rl.Color", args[3])
+				}
+				rl.DrawLineBezier(startPos.Value, endPos.Value, float32(args[2].(*Float).Value), color.Value)
+			} else if len(args) == 5 {
+				startPos, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 1, "rl.Vector2", args[0])
+				}
+				endPos, ok := args[1].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 2, "rl.Vector2", args[1])
+				}
+				controlPos, ok := args[2].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 3, "rl.Vector2", args[2])
+				}
+				if args[3].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_line_bezier", 4, FLOAT_OBJ, args[3].Type())
+				}
+				color, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 5, "rl.Color", args[4])
+				}
+				rl.DrawLineBezierQuad(startPos.Value, endPos.Value, controlPos.Value, float32(args[3].(*Float).Value), color.Value)
+			} else {
+				startPos, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 1, "rl.Vector2", args[0])
+				}
+				endPos, ok := args[1].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 2, "rl.Vector2", args[1])
+				}
+				startControlPos, ok := args[2].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 3, "rl.Vector2", args[2])
+				}
+				endControlPos, ok := args[3].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 4, "rl.Vector2", args[3])
+				}
+				if args[4].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_line_bezier", 5, FLOAT_OBJ, args[4].Type())
+				}
+				color, ok := args[5].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line_bezier", 6, "rl.Color", args[5])
+				}
+				rl.DrawLineBezierCubic(startPos.Value, endPos.Value, startControlPos.Value, endControlPos.Value, float32(args[4].(*Float).Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_line_bezier` draws a line with cubic bezier curves in-out",
+			signature: "draw_line_bezier(start_pos: rl.Vector2, end_pos: rl.Vector2, thick: float, color: color) -> null\n" +
+				"Cubic and Quad also available",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_line_bezier() => (see signature for some signatures)=> null",
 		}.String(),
 	},
 	{
