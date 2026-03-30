@@ -1023,6 +1023,119 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_draw_pixel",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 && len(args) != 2 {
+				return newInvalidArgCountError("draw_pixel", len(args), 3, "or 2")
+			}
+			if len(args) == 3 {
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_pixel", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_pixel", 2, INTEGER_OBJ, args[1].Type())
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_pixel", 3, "rl.Color", args[2])
+				}
+				rl.DrawPixel(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), color.Value)
+			} else {
+				pos, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_pixel", 1, "rl.Vector2", args[0])
+				}
+				color, ok := args[1].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_pixel", 2, "rl.Color", args[1])
+				}
+				rl.DrawPixelV(pos.Value, color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_pixel` draw a pixel",
+			signature: "draw_pixel(pox_x: int, pos_y: int, color: color) -> null\n" +
+				"// Draw a pixel using geometry [Can be slow, use with care]\n" +
+				"void DrawPixel(int posX, int posY, Color color);\n" +
+				"// Draw a pixel using geometry (Vector version) [Can be slow, use with care]\n" +
+				"void DrawPixelV(Vector2 position, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_pixel(0, 0, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_draw_line",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 && len(args) != 3 && len(args) != 4 {
+				return newInvalidArgCountError("draw_line", len(args), 5, "or 4 or 3")
+			}
+			if len(args) == 5 {
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_line", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_line", 2, INTEGER_OBJ, args[1].Type())
+				}
+				if args[2].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_line", 3, INTEGER_OBJ, args[2].Type())
+				}
+				if args[3].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_line", 4, INTEGER_OBJ, args[3].Type())
+				}
+				color, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line", 5, "rl.Color", args[4])
+				}
+				rl.DrawLine(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), color.Value)
+			} else if len(args) == 4 {
+				startPos, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line", 1, "rl.Vector2", args[0])
+				}
+				endPos, ok := args[1].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line", 2, "rl.Vector2", args[1])
+				}
+				if args[2].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_line", 3, FLOAT_OBJ, args[2].Type())
+				}
+				color, ok := args[3].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line", 4, "rl.Vector2", args[3])
+				}
+				rl.DrawLineEx(startPos.Value, endPos.Value, float32(args[2].(*Float).Value), color.Value)
+			} else {
+				startPos, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line", 1, "rl.Vector2", args[0])
+				}
+				endPos, ok := args[1].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line", 2, "rl.Vector2", args[1])
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_line", 3, "rl.Vector2", args[2])
+				}
+				rl.DrawLineV(startPos.Value, endPos.Value, color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_line` draw a line",
+			signature: "draw_line(start_pos_x: int, start_pos_y: int, end_pos_x: int, end_pos_y: int) -> null\n" +
+				"// Draw a line\n" +
+				"void DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color color);\n" +
+				"// Draw a line (using gl lines)\n" +
+				"void DrawLineV(Vector2 startPos, Vector2 endPos, Color color);\n" +
+				"// Draw a line (using triangles/quads)\n" +
+				"void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_line() => (see signature for some signatures)=> null",
+		}.String(),
+	},
+	{
 		Name: "_draw_rectangle",
 		Fun: func(args ...Object) Object {
 			if len(args) != 5 && len(args) != 4 && len(args) != 3 && len(args) != 2 {

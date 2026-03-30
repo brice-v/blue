@@ -109,6 +109,8 @@ val end_mode2d = _end_mode2d;
 val __begin_mode3d = _begin_mode3d;
 val end_mode3d = _end_mode3d;
 
+val __draw_pixel = _draw_pixel;
+val __draw_line = _draw_line;
 val __draw_rectangle = _draw_rectangle;
 val __draw_rectangle_gradient = _draw_rectangle_gradient;
 val __draw_rectangle_lines = _draw_rectangle_lines;
@@ -124,6 +126,8 @@ val __rectangle_check_collision = _rectangle_check_collision;
 
 # Drawing
 val draw = {
+    'pixel': __draw_pixel,
+    'line': __draw_line,
     'rectangle': __draw_rectangle,
     'rectangle_gradient': fun(a,b,c,d,e,f=null,is_vertical=true) {
         __draw_rectangle_gradient(a,b,c,d,e,f,is_vertical);
