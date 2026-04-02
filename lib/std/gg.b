@@ -113,6 +113,9 @@ val __draw_pixel = _draw_pixel;
 val __draw_line = _draw_line;
 val __draw_line_strip = _draw_line_strip;
 val __draw_line_bezier = _draw_line_bezier;
+val __draw_circle = _draw_circle;
+val __draw_circle_sector = _draw_circle_sector;
+val __draw_circle_lines = _draw_circle_lines;
 val __draw_rectangle = _draw_rectangle;
 val __draw_rectangle_gradient = _draw_rectangle_gradient;
 val __draw_rectangle_lines = _draw_rectangle_lines;
@@ -132,6 +135,11 @@ val draw = {
     'line': __draw_line,
     'line_strip': __draw_line_strip,
     'line_bezier': __draw_line_bezier,
+    'circle': __draw_circle,
+    'circle_sector': fun(a,b,c,d,e,f,with_lines=false) {
+        __draw_circle_sector(a,b,c,d,e,f,with_lines);
+    },
+    'circle_lines': __draw_circle_lines,
     'rectangle': __draw_rectangle,
     'rectangle_gradient': fun(a,b,c,d,e,f=null,is_vertical=true) {
         __draw_rectangle_gradient(a,b,c,d,e,f,is_vertical);

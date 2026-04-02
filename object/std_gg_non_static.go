@@ -1249,6 +1249,153 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_draw_circle",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 && len(args) != 4 && len(args) != 3 {
+				return newInvalidArgCountError("draw_circle", len(args), 3, "or 4 or 5")
+			}
+			if len(args) == 3 {
+				center, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_circle", 1, "rl.Vector2", args[0])
+				}
+				if args[1].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_circle", 2, FLOAT_OBJ, args[1].Type())
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_circle", 3, "rl.Color", args[2])
+				}
+				rl.DrawCircleV(center.Value, float32(args[1].(*Float).Value), color.Value)
+			} else if len(args) == 4 {
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_circle", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_circle", 2, INTEGER_OBJ, args[1].Type())
+				}
+				if args[2].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_circle", 3, FLOAT_OBJ, args[2].Type())
+				}
+				color, ok := args[3].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_circle", 4, "rl.Color", args[3])
+				}
+				rl.DrawCircle(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), float32(args[2].(*Float).Value), color.Value)
+			} else {
+				if args[0].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_circle", 1, INTEGER_OBJ, args[0].Type())
+				}
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("draw_circle", 2, INTEGER_OBJ, args[1].Type())
+				}
+				if args[2].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("draw_circle", 3, FLOAT_OBJ, args[2].Type())
+				}
+				colorInner, ok := args[3].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_circle", 4, "rl.Color", args[3])
+				}
+				colorOuter, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_circle", 5, "rl.Color", args[4])
+				}
+				rl.DrawCircleGradient(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), float32(args[2].(*Float).Value), colorInner.Value, colorOuter.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_circle` draws a colored fill circle",
+			signature: "draw_circle(center_x: int, center_y: int, radius: float, color: color) -> null\n" +
+				"// Draw a color-filled circle\n" +
+				"void DrawCircle(int centerX, int centerY, float radius, Color color);\n" +
+				"// Draw a gradient-filled circle\n" +
+				"void DrawCircleGradient(int centerX, int centerY, float radius, Color inner, Color outer);\n" +
+				"// Draw a color-filled circle (Vector version)\n" +
+				"void DrawCircleV(Vector2 center, float radius, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_circle() => (see signature for some signatures)=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_circle_sector",
+		Fun: func(args ...Object) Object {
+			if len(args) != 7 {
+				return newInvalidArgCountError("draw_circle_sector", len(args), 7, "")
+			}
+			center, ok := args[0].(*GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_circle_sector", 1, "rl.Vector2", args[0])
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_circle_sector", 2, FLOAT_OBJ, args[1].Type())
+			}
+			if args[2].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_circle_sector", 3, FLOAT_OBJ, args[2].Type())
+			}
+			if args[3].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_circle_sector", 4, FLOAT_OBJ, args[3].Type())
+			}
+			if args[4].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("draw_circle_sector", 5, INTEGER_OBJ, args[4].Type())
+			}
+			color, ok := args[5].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_circle_sector", 6, "rl.Color", args[5])
+			}
+			if args[6].Type() != BOOLEAN_OBJ {
+				return newPositionalTypeError("draw_circle_sector", 7, BOOLEAN_OBJ, args[7].Type())
+			}
+			if args[6].(*Boolean).Value {
+				rl.DrawCircleSectorLines(center.Value, float32(args[1].(*Float).Value), float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), int32(args[4].(*Integer).Value), color.Value)
+			} else {
+				rl.DrawCircleSector(center.Value, float32(args[1].(*Float).Value), float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), int32(args[4].(*Integer).Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_circle_sector` draws a piece of a circle",
+			signature: "draw_circle_sector(center: GoObj[rl.Vector2], radius: float, start_angle: float, end_angle: float, segments: int, color: color, with_lines: bool=false) -> null\n" +
+				"// Draw a piece of a circle\n" +
+				"void DrawCircleSector(Vector2 center, float radius, float startAngle, float endAngle, int segments, Color color);\n" +
+				"// Draw circle sector outline\n" +
+				"void DrawCircleSectorLines(Vector2 center, float radius, float startAngle, float endAngle, int segments, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_circle_sector() => (see signature for some signatures)=> null",
+		}.String(),
+	},
+	{
+		Name: "_draw_circle_lines",
+		Fun: func(args ...Object) Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("draw_circle_lines", len(args), 3, "or 4")
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("draw_circle_lines", 1, INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("draw_circle_lines", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_circle_lines", 3, FLOAT_OBJ, args[2].Type())
+			}
+			color, ok := args[3].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_circle_lines", 4, "rl.Color", args[3])
+			}
+			rl.DrawCircleLines(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), float32(args[2].(*Float).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_circle_lines` draws circle outline",
+			signature: "draw_circle_lines(center_x: int, center_y: int, radius: float, color: color) -> null\n" +
+				"// Draw circle outline\n" +
+				"void DrawCircleLines(int centerX, int centerY, float radius, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_circle_lines() => (see signature for some signatures)=> null",
+		}.String(),
+	},
+	{
 		Name: "_draw_rectangle",
 		Fun: func(args ...Object) Object {
 			if len(args) != 5 && len(args) != 4 && len(args) != 3 && len(args) != 2 {
