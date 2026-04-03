@@ -2351,6 +2351,123 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_check_collision",
+		Fun: func(args ...Object) Object {
+			argLen := len(args)
+			if argLen != 4 && argLen != 3 && argLen != 2 {
+				return newInvalidArgCountError("check_collision", argLen, 2, "or 3 or 4")
+			}
+			switch argLen {
+			case 2:
+				if point, ok := args[0].(*GoObj[rl.Vector2]); ok {
+					rec, ok := args[1].(*GoObj[rl.Rectangle])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("check_collision", 2, "rl.Rectangle", args[1])
+					}
+					rl.CheckCollisionPointRec(point.Value, rec.Value)
+				} else if rec, ok := args[0].(*GoObj[rl.Rectangle]); ok {
+					rec1, ok := args[1].(*GoObj[rl.Rectangle])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("check_collision", 2, "rl.Rectangle", args[1])
+					}
+					rl.CheckCollisionRecs(rec.Value, rec1.Value)
+				} else {
+					return newPositionalTypeErrorForGoObj("check_collision", 1, "rl.Vector2 or rl.Rectangle", args[0])
+				}
+			case 3:
+				pointOrCenter, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("check_collision", 1, "rl.Vector2", args[0])
+				}
+				if args[1].Type() == FLOAT_OBJ {
+					rec, ok := args[2].(*GoObj[rl.Rectangle])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("check_collision", 3, "rl.Rectangle", args[2])
+					}
+					rl.CheckCollisionCircleRec(pointOrCenter.Value, float32(args[1].(*Float).Value), rec.Value)
+				} else if args[1].Type() == LIST_OBJ {
+					l := args[1].(*List).Elements
+					points := make([]rl.Vector2, len(l))
+					for i, e := range l {
+						point, ok := e.(*GoObj[rl.Vector2])
+						if !ok {
+							return newPositionalTypeErrorForGoObj("check_collision", 2, "list[rl.Vector2]", e)
+						}
+						points[i] = point.Value
+					}
+					if args[2].Type() != INTEGER_OBJ {
+						return newPositionalTypeError("check_collision", 3, INTEGER_OBJ, args[2].Type())
+					}
+					rl.CheckCollisionPointPoly(pointOrCenter.Value, points, int32(args[2].(*Integer).Value))
+				} else if args[1].Type() == GO_OBJ {
+					center, ok := args[1].(*GoObj[rl.Vector2])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("check_collision", 2, "rl.Vector2", args[1])
+					}
+					if args[2].Type() != FLOAT_OBJ {
+						return newPositionalTypeError("check_collision", 3, FLOAT_OBJ, args[2].Type())
+					}
+					rl.CheckCollisionPointCircle(pointOrCenter.Value, center.Value, float32(args[2].(*Float).Value))
+				} else {
+					return newPositionalTypeErrorForGoObj("check_collision", 2, "float or rl.Vector2 or list[rl.Vector2]", args[1])
+				}
+			case 4:
+				pointOrCenter, ok := args[0].(*GoObj[rl.Vector2])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("check_collision", 1, "rl.Vector2", args[0])
+				}
+				if args[1].Type() == FLOAT_OBJ {
+					center, ok := args[2].(*GoObj[rl.Vector2])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("check_collision", 3, "rl.Vector2", args[2])
+					}
+					if args[3].Type() != FLOAT_OBJ {
+						return newPositionalTypeError("check_collision", 4, FLOAT_OBJ, args[3].Type())
+					}
+					rl.CheckCollisionCircles(pointOrCenter.Value, float32(args[1].(*Float).Value), center.Value, float32(args[3].(*Float).Value))
+				} else {
+					point2, ok := args[1].(*GoObj[rl.Vector2])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("check_collision", 2, "rl.Vector2", args[1])
+					}
+					point3, ok := args[2].(*GoObj[rl.Vector2])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("check_collision", 3, "rl.Vector2", args[2])
+					}
+					if point4, ok := args[3].(*GoObj[rl.Vector2]); ok {
+						rl.CheckCollisionPointTriangle(pointOrCenter.Value, point2.Value, point3.Value, point4.Value)
+					} else if args[3].Type() != INTEGER_OBJ {
+						return newPositionalTypeError("check_collision", 4, INTEGER_OBJ, args[3].Type())
+					}
+					rl.CheckCollisionPointLine(pointOrCenter.Value, point2.Value, point3.Value, int32(args[3].(*Integer).Value))
+				}
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`check_collision` returns true if the objects collide",
+			signature: "check_collision() -> bool\n" +
+				"// Check collision between two rectangles\n" +
+				"bool CheckCollisionRecs(Rectangle rec1, Rectangle rec2);\n" +
+				"// Check collision between two circles\n" +
+				"bool CheckCollisionCircles(Vector2 center1, float radius1, Vector2 center2, float radius2);\n" +
+				"// Check collision between circle and rectangle\n" +
+				"bool CheckCollisionCircleRec(Vector2 center, float radius, Rectangle rec);\n" +
+				"// Check if circle collides with a line created betweeen two points [p1] and [p2\n" +
+				"bool CheckCollisionCircleLine(Vector2 center, float radius, Vector2 p1, Vector2 p2);\n" +
+				"// Check if point is inside rectangle\n" +
+				"bool CheckCollisionPointRec(Vector2 point, Rectangle rec);\n" +
+				"// Check if point is inside circle\n" +
+				"bool CheckCollisionPointCircle(Vector2 point, Vector2 center, float radius);\n" +
+				"// Check if point belongs to line created between two points [p1] and [p2] with\n" +
+				"bool CheckCollisionPointLine(Vector2 point, Vector2 p1, Vector2 p2, int threshold);\n" +
+				"// Check if point is within a polygon described by array of vertices\n" +
+				"bool CheckCollisionPointPoly(Vector2 point, const Vector2 *points, int pointCount);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "check_collision() => (see signature for examples)=>true",
+		}.String(),
+	},
+	{
 		Name: "_vector2",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
