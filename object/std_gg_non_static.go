@@ -2468,6 +2468,31 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_get_collision_rec",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("get_collision_rect", len(args), 2, "")
+			}
+			rec1, ok := args[0].(*GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("get_collision_rec", 1, "rl.Rectangle", args[0])
+			}
+			rec2, ok := args[1].(*GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("get_collision_rec", 2, "rl.Rectangle", args[1])
+			}
+			return NewGoObj(rl.GetCollisionRec(rec1.Value, rec2.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_collision_rec` returns the collision rectangle",
+			signature: "get_collision_rec(rec1: GoObj[rl.Rectangle], rec2: GoObj[rl.Rectangle]) -> GoObj[rl.Rectangle]\n" +
+				"// Get collision rectangle for two rectangles collision\n" +
+				"Rectangle GetCollisionRec(Rectangle rec1, Rectangle rec2);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "get_collision_rec() => (see signature for examples)=>rl.Rectangle",
+		}.String(),
+	},
+	{
 		Name: "_vector2",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {

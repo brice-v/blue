@@ -129,6 +129,7 @@ val __draw_poly = _draw_poly;
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
 val check_collision = _check_collision;
+val get_collision_rec = _get_collision_rec;
 
 # Drawing
 val draw = {
