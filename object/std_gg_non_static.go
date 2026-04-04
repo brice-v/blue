@@ -1148,7 +1148,7 @@ var GgBuiltins = []*Builtin{
 			for i, e := range args[0].(*List).Elements {
 				point, ok := e.(*GoObj[rl.Vector2])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("draw_line_strip", 1, "rl.Vector2", e)
+					return newPositionalTypeErrorForGoObj("draw_line_strip", 1, "list[rl.Vector2]", e)
 				}
 				points[i] = point.Value
 			}
@@ -1492,8 +1492,27 @@ var GgBuiltins = []*Builtin{
 				return newInvalidArgCountError("draw_rectangle_gradient", len(args), 7, "")
 			}
 			if args[5] == NULL {
-				// Use DrawRectangleGradientEx
-
+				rec, ok := args[0].(*GoObj[rl.Rectangle])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_gradient", 1, "rl.Rectangle", args[0])
+				}
+				color1, ok := args[1].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_gradient", 2, "rl.Color", args[1])
+				}
+				color2, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_gradient", 3, "rl.Color", args[2])
+				}
+				color3, ok := args[3].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_gradient", 4, "rl.Color", args[3])
+				}
+				color4, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_rectangle_gradient", 5, "rl.Color", args[4])
+				}
+				rl.DrawRectangleGradientEx(rec.Value, color1.Value, color2.Value, color3.Value, color4.Value)
 			} else {
 				if args[0].Type() != INTEGER_OBJ {
 					return newPositionalTypeError("draw_rectangle_gradient", 1, INTEGER_OBJ, args[0].Type())

@@ -2990,6 +2990,21 @@ var Builtins = []*Builtin{
 			example:     "raw_type(1) => '*object.Integer'",
 		}.String(),
 	},
+	{
+		Name: "is_callable",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("is_callable", len(args), 1, "")
+			}
+			return nativeToBooleanObject(args[0].Type() == FUNCTION_OBJ || args[0].Type() == CLOSURE || args[0].Type() == BUILTIN_OBJ)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_callable` returns true if the object passed in is callable",
+			signature:   "is_callable(obj: any) -> bool",
+			errors:      "InvalidArgCount",
+			example:     "is_callable(1) => false",
+		}.String(),
+	},
 }
 
 var AllBuiltins = []struct {
