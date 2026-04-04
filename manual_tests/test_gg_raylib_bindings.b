@@ -53,6 +53,14 @@ fun main() {
         gg.draw.circle_lines(280, 280, 12.0, gg.color.orange)
 
         gg.draw.rectangle_gradient(gg.Rectangle(200,100,10,30).obj(), gg.color.red, gg.color.blue, gg.color.green, gg.color.yellow)
+        gg.draw.rectangle_gradient(100,100,10,30, gg.color.red, gg.color.blue, is_vertical=false)
+        gg.draw.rectangle_gradient(10,200,10,30, gg.color.red, gg.color.blue, false)
+        gg.draw.rectangle_gradient(10,300,10,30, gg.color.red, gg.color.blue, true)
+        gg.draw.rectangle_gradient(10,500,10,30, gg.color.red, gg.color.blue, is_vertical=true)
+        gg.draw.rectangle_lines(10, 600, 10, 30, gg.color.gray)
+        gg.draw.rectangle_lines(gg.Rectangle(100, 600, 10, 30).obj(), 2.0, gg.color.gray)
+        gg.draw.rectangle_rounded(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 10, gg.color.dark_gray)
+        gg.draw.rectangle_rounded_lines(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 5.0, 1.0, gg.color.dark_gray)
 
         gg.end_drawing()
     }

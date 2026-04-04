@@ -855,8 +855,11 @@ var GgBuiltins = []*Builtin{
 				}.String(),
 			}
 			mapObj.Set("light_gray", lightGray)
+			mapObj.Set("light_grey", lightGray)
 			mapObj.Set("gray", gray)
+			mapObj.Set("grey", gray)
 			mapObj.Set("dark_gray", darkGray)
+			mapObj.Set("dark_grey", darkGray)
 			mapObj.Set("yellow", yellow)
 			mapObj.Set("gold", gold)
 			mapObj.Set("orange", orange)
