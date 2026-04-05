@@ -1,12 +1,4 @@
-//go:build (gles || arm || arm64) && !android && !ios && !mobile && !darwin && !js && !wasm && !test_web_driver
-// +build gles arm arm64
-// +build !android
-// +build !ios
-// +build !mobile
-// +build !darwin
-// +build !js
-// +build !wasm
-// +build !test_web_driver
+//go:build (gles || arm || arm64) && !android && !ios && !mobile && !darwin && !wasm && !test_web_driver
 
 package gl
 
@@ -49,8 +41,10 @@ const (
 	vertexShader          = gl.VERTEX_SHADER
 )
 
-const noBuffer = Buffer(0)
-const noShader = Shader(0)
+const (
+	noBuffer = Buffer(0)
+	noShader = Shader(0)
+)
 
 type (
 	// Attribute represents a GL attribute
@@ -65,7 +59,7 @@ type (
 	Uniform int32
 )
 
-var textureFilterToGL = []int32{gl.LINEAR, gl.NEAREST, gl.LINEAR}
+var textureFilterToGL = [...]int32{gl.LINEAR, gl.NEAREST, gl.LINEAR}
 
 func (p *painter) Init() {
 	p.ctx = &esContext{}
@@ -78,10 +72,94 @@ func (p *painter) Init() {
 	gl.Disable(gl.DEPTH_TEST)
 	gl.Enable(gl.BLEND)
 	p.logError()
-	p.program = p.createProgram("simple_es")
-	p.lineProgram = p.createProgram("line_es")
-	p.rectangleProgram = p.createProgram("rectangle_es")
-	p.roundRectangleProgram = p.createProgram("round_rectangle_es")
+	p.program = ProgramState{
+		ref:        p.createProgram("simple_es"),
+		buff:       p.createBuffer(20),
+		uniforms:   make(map[string]*UniformState),
+		attributes: make(map[string]Attribute),
+	}
+	p.getUniformLocations(p.program, "text", "alpha", "cornerRadius", "size", "inset")
+	p.enableAttribArrays(p.program, "vert", "vertTexCoord")
+
+	p.lineProgram = ProgramState{
+		ref:        p.createProgram("line_es"),
+		buff:       p.createBuffer(24),
+		uniforms:   make(map[string]*UniformState),
+		attributes: make(map[string]Attribute),
+	}
+	p.getUniformLocations(p.lineProgram, "color", "feather", "lineWidth")
+	p.enableAttribArrays(p.lineProgram, "vert", "normal")
+
+	p.rectangleProgram = ProgramState{
+		ref:        p.createProgram("rectangle_es"),
+		buff:       p.createBuffer(16),
+		uniforms:   make(map[string]*UniformState),
+		attributes: make(map[string]Attribute),
+	}
+	p.getUniformLocations(
+		p.rectangleProgram,
+		"frame_size", "rect_coords", "stroke_width", "fill_color", "stroke_color",
+	)
+	p.enableAttribArrays(p.rectangleProgram, "vert", "normal")
+
+	p.roundRectangleProgram = ProgramState{
+		ref:        p.createProgram("round_rectangle_es"),
+		buff:       p.createBuffer(16),
+		uniforms:   make(map[string]*UniformState),
+		attributes: make(map[string]Attribute),
+	}
+	p.getUniformLocations(p.roundRectangleProgram,
+		"frame_size", "rect_coords",
+		"stroke_width_half", "rect_size_half",
+		"radius", "edge_softness",
+		"fill_color", "stroke_color",
+	)
+	p.enableAttribArrays(p.roundRectangleProgram, "vert", "normal")
+
+	p.polygonProgram = ProgramState{
+		ref:        p.createProgram("polygon_es"),
+		buff:       p.createBuffer(16),
+		uniforms:   make(map[string]*UniformState),
+		attributes: make(map[string]Attribute),
+	}
+	p.getUniformLocations(p.polygonProgram,
+		"frame_size", "rect_coords", "edge_softness",
+		"outer_radius", "angle", "sides",
+		"fill_color", "corner_radius",
+		"stroke_width", "stroke_color",
+	)
+	p.enableAttribArrays(p.polygonProgram, "vert", "normal")
+
+	p.arcProgram = ProgramState{
+		ref:        p.createProgram("arc_es"),
+		buff:       p.createBuffer(16),
+		uniforms:   make(map[string]*UniformState),
+		attributes: make(map[string]Attribute),
+	}
+	p.getUniformLocations(p.arcProgram,
+		"frame_size", "rect_coords",
+		"inner_radius", "outer_radius",
+		"start_angle", "end_angle",
+		"edge_softness", "corner_radius",
+		"stroke_width", "stroke_color",
+		"fill_color",
+	)
+	p.enableAttribArrays(p.arcProgram, "vert", "normal")
+}
+
+func (p *painter) getUniformLocations(pState ProgramState, names ...string) {
+	for _, name := range names {
+		u := p.ctx.GetUniformLocation(pState.ref, name)
+		pState.uniforms[name] = &UniformState{ref: u}
+	}
+}
+
+func (p *painter) enableAttribArrays(pState ProgramState, names ...string) {
+	for _, name := range names {
+		a := p.ctx.GetAttribLocation(pState.ref, name)
+		p.ctx.EnableVertexAttribArray(a)
+		pState.attributes[name] = a
+	}
 }
 
 type esContext struct{}
@@ -114,6 +192,10 @@ func (c *esContext) BlendFunc(srcFactor, destFactor uint32) {
 
 func (c *esContext) BufferData(target uint32, points []float32, usage uint32) {
 	gl.BufferData(target, 4*len(points), gl.Ptr(points), usage)
+}
+
+func (c *esContext) BufferSubData(target uint32, points []float32) {
+	gl.BufferSubData(target, 0, 4*len(points), gl.Ptr(points))
 }
 
 func (c *esContext) Clear(mask uint32) {

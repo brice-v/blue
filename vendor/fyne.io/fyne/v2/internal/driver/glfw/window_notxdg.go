@@ -1,5 +1,4 @@
 //go:build !linux && !freebsd && !openbsd && !netbsd
-// +build !linux,!freebsd,!openbsd,!netbsd
 
 package glfw
 
@@ -12,13 +11,6 @@ func (w *window) platformResize(canvasSize fyne.Size) {
 		return
 	}
 
-	if drawOnMainThread {
-		w.canvas.Resize(canvasSize)
-		d.repaintWindow(w)
-	} else {
-		runOnDraw(w, func() {
-			w.canvas.Resize(canvasSize)
-			d.repaintWindow(w)
-		})
-	}
+	w.canvas.Resize(canvasSize)
+	d.repaintWindow(w)
 }

@@ -10,7 +10,7 @@ import (
 
 // repositoryTable stores the mapping of schemes to Repository implementations.
 // It should only ever be used by ForURI() and Register().
-var repositoryTable map[string]Repository = map[string]Repository{}
+var repositoryTable = map[string]Repository{}
 
 // Repository represents a storage repository, which is a set of methods which
 // implement specific functions on a URI. Repositories are registered to handle
@@ -47,7 +47,6 @@ var repositoryTable map[string]Repository = map[string]Repository{}
 //
 // Since: 2.0
 type Repository interface {
-
 	// Exists will be used to implement calls to storage.Exists() for the
 	// registered scheme of this repository.
 	//
@@ -121,6 +120,20 @@ type WritableRepository interface {
 	Delete(u fyne.URI) error
 }
 
+// AppendableRepository is an extension of the WritableRepository interface which also
+// supports opening a writer for URIs in append mode, without truncating their contents
+//
+// Since: 2.6
+type AppendableRepository interface {
+	WritableRepository
+
+	// Appender will be used to call a Writer without truncating the
+	// file if it exists
+	//
+	// Since: 2.6
+	Appender(u fyne.URI) (fyne.URIWriteCloser, error)
+}
+
 // ListableRepository is an extension of the Repository interface which also
 // supports obtaining directory listings (generally analogous to a directory
 // listing) for URIs of the scheme it is registered to.
@@ -173,6 +186,22 @@ type HierarchicalRepository interface {
 	//
 	// Since: 2.0
 	Child(fyne.URI, string) (fyne.URI, error)
+}
+
+// DeleteAllRepository is an extension of the WritableRepository interface which
+// also supports deleting a URI and all its children.
+//
+// Since: 2.7
+type DeleteAllRepository interface {
+	WritableRepository
+
+	// DeleteAll will be used to implement calls to storage.DeleteAll() for the
+	// registered scheme of this repository.
+	//
+	// A generic implementation is provided by GenericDeleteAll().
+	//
+	// Since: 2.7
+	DeleteAll(fyne.URI) error
 }
 
 // CopyableRepository is an extension of the Repository interface which also
@@ -234,9 +263,7 @@ type MovableRepository interface {
 func Register(scheme string, repository Repository) {
 	scheme = strings.ToLower(scheme)
 
-	prev, ok := repositoryTable[scheme]
-
-	if ok {
+	if prev, ok := repositoryTable[scheme]; ok {
 		prev.Destroy(scheme)
 	}
 
@@ -266,7 +293,6 @@ func ForURI(u fyne.URI) (Repository, error) {
 // Since: 2.0
 func ForScheme(scheme string) (Repository, error) {
 	repo, ok := repositoryTable[scheme]
-
 	if !ok {
 		return nil, fmt.Errorf("no repository registered for scheme '%s'", scheme)
 	}

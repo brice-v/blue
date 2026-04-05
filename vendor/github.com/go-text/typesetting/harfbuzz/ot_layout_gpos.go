@@ -3,8 +3,8 @@ package harfbuzz
 import (
 	"fmt"
 
-	"github.com/go-text/typesetting/opentype/api/font"
-	"github.com/go-text/typesetting/opentype/tables"
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/font/opentype/tables"
 )
 
 // ported from harfbuzz/src/hb-ot-layout-gpos-table.hh Copyright © 2007,2008,2009,2010  Red Hat, Inc.; 2010,2012,2013  Google, Inc.  Behdad Esfahbod
@@ -59,9 +59,6 @@ func propagateAttachmentOffsets(pos []GlyphPosition, i int, direction Direction)
 	/* Adjusts offsets of attached glyphs (both cursive and mark) to accumulate
 	 * offset of glyph they are attached to. */
 	chain, type_ := pos[i].attachChain, pos[i].attachType
-	if chain == 0 {
-		return
-	}
 
 	pos[i].attachChain = 0
 
@@ -71,7 +68,9 @@ func propagateAttachmentOffsets(pos []GlyphPosition, i int, direction Direction)
 		return
 	}
 
-	propagateAttachmentOffsets(pos, j, direction)
+	if pos[j].attachChain != 0 {
+		propagateAttachmentOffsets(pos, j, direction)
+	}
 
 	//   assert (!!(type_ & attachTypeMark) ^ !!(type_ & attachTypeCursive));
 
@@ -85,34 +84,74 @@ func propagateAttachmentOffsets(pos []GlyphPosition, i int, direction Direction)
 		pos[i].XOffset += pos[j].XOffset
 		pos[i].YOffset += pos[j].YOffset
 
-		// assert (j < i);
-		if direction.isForward() {
-			for _, p := range pos[j:i] {
-				pos[i].XOffset -= p.XAdvance
-				pos[i].YOffset -= p.YAdvance
+		// i is the position of the mark; j is the base.
+		if j < i {
+			/* This is the common case: mark follows base.
+			 * And currently the only way in OpenType. */
+			if direction.isForward() {
+				for _, p := range pos[j:i] {
+					pos[i].XOffset -= p.XAdvance
+					pos[i].YOffset -= p.YAdvance
+				}
+			} else {
+				for _, p := range pos[j+1 : i+1] {
+					pos[i].XOffset += p.XAdvance
+					pos[i].YOffset += p.YAdvance
+				}
 			}
-		} else {
-			for _, p := range pos[j+1 : i+1] {
-				pos[i].XOffset += p.XAdvance
-				pos[i].YOffset += p.YAdvance
+		} else { // j > i
+			/* This can happen with `kerx`: a mark attaching
+			 * to a base after it in the logical order. */
+			if direction.isForward() {
+				for k := i; k < j; k++ {
+					pos[i].XOffset += pos[k].XAdvance
+					pos[i].YOffset += pos[k].YAdvance
+				}
+			} else {
+				for k := i + 1; k < j+1; k++ {
+					pos[i].XOffset -= pos[k].XAdvance
+					pos[i].YOffset -= pos[k].YAdvance
+				}
 			}
 		}
 	}
 }
 
-func positionFinishOffsetsGPOS(buffer *Buffer) {
+func positionFinishOffsetsGPOS(font *Font, buffer *Buffer) {
 	pos := buffer.Pos
 	direction := buffer.Props.Direction
 
 	/* Handle attachments */
 	if buffer.scratchFlags&bsfHasGPOSAttachment != 0 {
-
 		if debugMode {
 			fmt.Println("POSITION - handling attachments")
 		}
 
-		for i := range pos {
-			propagateAttachmentOffsets(pos, i, direction)
+		// https://github.com/harfbuzz/harfbuzz/issues/5514
+		if direction.isForward() {
+			for i := range pos {
+				if pos[i].attachChain != 0 {
+					propagateAttachmentOffsets(pos, i, direction)
+				}
+			}
+		} else {
+			for i := len(pos) - 1; i >= 0; i-- {
+				if pos[i].attachChain != 0 {
+					propagateAttachmentOffsets(pos, i, direction)
+				}
+			}
+		}
+	}
+
+	if font.slant != 0 && direction.isHorizontal() {
+		slantXY := font.slant * float32(font.XScale) / float32(font.YScale)
+
+		/* Slanting shaping results is only supported for horizontal text,
+		 * as it gets weird otherwise. */
+		for i, pos := range buffer.Pos {
+			if pos.YOffset != 0 {
+				buffer.Pos[i].XOffset += roundf(slantXY * float32(pos.YOffset))
+			}
 		}
 	}
 }
@@ -134,7 +173,7 @@ func (c *otApplyContext) applyGPOS(table tables.GPOSLookup) bool {
 	}
 
 	if debugMode {
-		fmt.Printf("\tAPPLY - type %T at index %d\n", table, c.buffer.idx)
+		fmt.Printf("\t\tAPPLY - type %T at index %d\n", table, c.buffer.idx)
 	}
 
 	switch data := table.(type) {
@@ -148,7 +187,7 @@ func (c *otApplyContext) applyGPOS(table tables.GPOSLookup) bool {
 		buffer.idx++
 	case tables.PairPos:
 		skippyIter := &c.iterInput
-		skippyIter.reset(buffer.idx, 1)
+		skippyIter.resetFast(buffer.idx)
 		if ok, unsafeTo := skippyIter.next(); !ok {
 			buffer.unsafeToConcat(buffer.idx, unsafeTo)
 			return false
@@ -227,8 +266,9 @@ func (c *otApplyContext) applyGPOSValueRecord(format tables.ValueFormat, v table
 		return ret
 	}
 
-	useXDevice := font.face.XPpem != 0 || len(font.varCoords()) != 0
-	useYDevice := font.face.YPpem != 0 || len(font.varCoords()) != 0
+	xp, yp := font.face.Ppem()
+	useXDevice := xp != 0 || len(font.varCoords()) != 0
+	useYDevice := yp != 0 || len(font.varCoords()) != 0
 
 	if !useXDevice && !useYDevice {
 		return ret
@@ -281,12 +321,12 @@ func reverseCursiveMinorOffset(pos []GlyphPosition, i int, direction Direction, 
 }
 
 func (c *otApplyContext) applyGPOSPair1(inner tables.PairPosData1, index int) bool {
-	buffer := c.buffer
-	skippyIter := &c.iterInput
-	pos := skippyIter.idx
 	set := inner.PairSets[index]
-	record := set.FindGlyph(gID(buffer.Info[skippyIter.idx].Glyph))
-	if record == nil {
+	pos := c.iterInput.idx
+
+	buffer := c.buffer
+	record, ok := set.FindGlyph(gID(buffer.Info[pos].Glyph))
+	if !ok {
 		buffer.unsafeToConcat(buffer.idx, pos+1)
 		return false
 	}
@@ -350,7 +390,7 @@ func (c *otApplyContext) applyGPOSCursive(data tables.CursivePos, covIndex int) 
 	}
 
 	skippyIter := &c.iterInput
-	skippyIter.reset(buffer.idx, 1)
+	skippyIter.resetFast(buffer.idx)
 	if ok, unsafeFrom := skippyIter.prev(); !ok {
 		buffer.unsafeToConcatFromOutbuffer(unsafeFrom, buffer.idx+1)
 		return false
@@ -415,8 +455,8 @@ func (c *otApplyContext) applyGPOSCursive(data tables.CursivePos, covIndex int) 
 	 * Arabic. */
 	child := i
 	parent := j
-	xOffset := Position(entryX - exitX)
-	yOffset := Position(entryY - exitY)
+	xOffset := roundf(entryX - exitX)
+	yOffset := roundf(entryY - exitY)
 	if uint16(c.lookupProps)&otRightToLeft == 0 {
 		k := child
 		child = parent
@@ -432,8 +472,14 @@ func (c *otApplyContext) applyGPOSCursive(data tables.CursivePos, covIndex int) 
 	 */
 	reverseCursiveMinorOffset(pos, child, c.direction, parent)
 
+	chain := parent - child
+	if int(int16(chain)) != parent-child { // handle overflow
+		pos[child].attachChain = 0
+		buffer.idx++
+		return true
+	}
 	pos[child].attachType = attachTypeCursive
-	pos[child].attachChain = int16(parent - child)
+	pos[child].attachChain = int16(chain)
 	buffer.scratchFlags |= bsfHasGPOSAttachment
 	if c.direction.isHorizontal() {
 		pos[child].YOffset = yOffset
@@ -463,7 +509,7 @@ func (c *otApplyContext) getAnchor(anchor tables.Anchor, glyph GID) (x, y float3
 	case tables.AnchorFormat1:
 		return font.emFscaleX(anchor.XCoordinate), font.emFscaleY(anchor.YCoordinate)
 	case tables.AnchorFormat2:
-		xPpem, yPpem := font.face.XPpem, font.face.YPpem
+		xPpem, yPpem := font.face.Ppem()
 		var cx, cy Position
 		ret := xPpem != 0 || yPpem != 0
 		if ret {
@@ -481,11 +527,12 @@ func (c *otApplyContext) getAnchor(anchor tables.Anchor, glyph GID) (x, y float3
 		}
 		return x, y
 	case tables.AnchorFormat3:
+		xPpem, yPpem := font.face.Ppem()
 		x, y = font.emFscaleX(anchor.XCoordinate), font.emFscaleY(anchor.YCoordinate)
-		if font.face.XPpem != 0 || len(font.varCoords()) != 0 {
+		if xPpem != 0 || len(font.varCoords()) != 0 {
 			x += float32(font.getXDelta(c.varStore, anchor.XDevice))
 		}
-		if font.face.YPpem != 0 || len(font.varCoords()) != 0 {
+		if yPpem != 0 || len(font.varCoords()) != 0 {
 			y += float32(font.getYDelta(c.varStore, anchor.YDevice))
 		}
 		return x, y
@@ -513,8 +560,14 @@ func (c *otApplyContext) applyGPOSMarks(marks tables.MarkArray, markIndex, glyph
 	o := buffer.curPos(0)
 	o.XOffset = roundf(baseX - markX)
 	o.YOffset = roundf(baseY - markY)
+	chain := glyphPos - buffer.idx
+	if int(int16(chain)) != chain { // overflow
+		o.attachChain = 0
+		buffer.idx++
+		return true
+	}
 	o.attachType = attachTypeMark
-	o.attachChain = int16(glyphPos - buffer.idx)
+	o.attachChain = int16(chain)
 	buffer.scratchFlags |= bsfHasGPOSAttachment
 
 	buffer.idx++
@@ -637,7 +690,7 @@ func (c *otApplyContext) applyGPOSMarkToMark(data tables.MarkMarkPos, mark1Index
 
 	// now we search backwards for a suitable mark glyph until a non-mark glyph
 	skippyIter := &c.iterInput
-	skippyIter.reset(buffer.idx, 1)
+	skippyIter.resetFast(buffer.idx)
 	skippyIter.matcher.lookupProps = c.lookupProps &^ uint32(ignoreFlags)
 	if ok, _ := skippyIter.prev(); !ok {
 		return false

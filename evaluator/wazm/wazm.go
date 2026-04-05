@@ -16,7 +16,6 @@ import (
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
-	"github.com/tetratelabs/wazero/experimental/gojs"
 	"github.com/tetratelabs/wazero/experimental/logging"
 	"github.com/tetratelabs/wazero/experimental/sock"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
@@ -199,12 +198,6 @@ func wazmInstantiate(wm *Module) (apiMod api.Module, err error) {
 			// Instantiate our binary, but using the old import names.
 			apiMod, err = wm.Runtime.InstantiateModule(wm.Ctx, wm.Module, wm.Config)
 		}
-	case modeGo:
-		gojs.MustInstantiate(wm.Ctx, wm.Runtime, wm.Module)
-
-		config := gojs.NewConfig(wm.Config)
-
-		err = gojs.Run(wm.Ctx, wm.Runtime, wm.Module, config)
 	case modeDefault:
 		apiMod, err = wm.Runtime.InstantiateModule(wm.Ctx, wm.Module, wm.Config)
 	}
@@ -254,7 +247,7 @@ func detectImports(imports []api.FunctionDefinition) importMode {
 
 func maybeHostLogging(ctx context.Context, scopes logging.LogScopes, stdErr *os.File) context.Context {
 	if scopes != 0 && stdErr != nil {
-		return context.WithValue(ctx, experimental.FunctionListenerFactoryKey{}, logging.NewHostLoggingListenerFactory(stdErr, scopes))
+		return experimental.WithFunctionListenerFactory(ctx, logging.NewHostLoggingListenerFactory(stdErr, scopes))
 	}
 	return ctx
 }

@@ -23,6 +23,7 @@ var (
 	svgMimeBytes    = []byte("image/svg+xml")
 	formMimeBytes   = []byte("application/x-www-form-urlencoded")
 	mathMimeBytes   = []byte("application/mathml+xml")
+	xmlMimeBytes    = []byte("text/xml")
 	dataSchemeBytes = []byte("data:")
 	jsSchemeBytes   = []byte("javascript:")
 	httpBytes       = []byte("http")
@@ -75,10 +76,11 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 	if o.KeepConditionalComments {
 		fmt.Println("DEPRECATED: KeepConditionalComments is replaced by KeepSpecialComments")
 		o.KeepSpecialComments = true
+		o.KeepConditionalComments = false // omit next warning
 	}
 
 	omitSpace := true // if true the next leading space is omitted
-	inPre := false
+	inPre, inTemplate := false, false
 
 	attrMinifyBuffer := buffer.NewWriter(make([]byte, 0, 64))
 	attrByteBuffer := make([]byte, 0, 64)
@@ -128,8 +130,8 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 					w.Write(t.Data)
 				}
 			}
-		case html.SvgToken:
-			if err := m.MinifyMimetype(svgMimeBytes, w, buffer.NewReader(t.Data), nil); err != nil {
+		case html.SVGToken:
+			if err := m.MinifyMimetype(svgMimeBytes, w, buffer.NewReader(t.Data), inlineParams); err != nil {
 				if err != minify.ErrNotExist {
 					return minify.UpdateErrorPosition(err, z, t.Offset)
 				}
@@ -144,10 +146,19 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 				w.Write(t.Data)
 			}
 			omitSpace = false
-		case html.TextToken:
-			if t.HasTemplate {
+		case html.XMLToken:
+			if err := m.MinifyMimetype(xmlMimeBytes, w, buffer.NewReader(t.Data), nil); err != nil {
+				if err != minify.ErrNotExist {
+					return minify.UpdateErrorPosition(err, z, t.Offset)
+				}
 				w.Write(t.Data)
-			} else if rawTagHash != 0 {
+			}
+			omitSpace = false
+		case html.TemplateToken:
+			w.Write(t.Data)
+			omitSpace = false
+		case html.TextToken:
+			if rawTagHash != 0 && !t.HasTemplate {
 				if rawTagHash == Style || rawTagHash == Script || rawTagHash == Iframe {
 					var mimetype []byte
 					var params map[string]string
@@ -171,6 +182,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 				}
 			} else if inPre {
 				w.Write(t.Data)
+				// omitSpace = true after block element
 			} else {
 				t.Data = parse.ReplaceMultipleWhitespaceAndEntities(t.Data, EntitiesMap, TextRevEntitiesMap)
 
@@ -193,10 +205,10 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 							t.Data = t.Data[:len(t.Data)-1]
 							omitSpace = false
 							break
-						} else if next.TokenType == html.TextToken && !parse.IsAllWhitespace(next.Data) {
+						} else if next.TokenType == html.TextToken && !parse.IsAllWhitespace(next.Data) || next.TokenType == html.TemplateToken {
 							// stop looking when text encountered
 							break
-						} else if next.TokenType == html.StartTagToken || next.TokenType == html.EndTagToken {
+						} else if next.TokenType == html.StartTagToken || next.TokenType == html.EndTagToken || next.TokenType == html.SVGToken || next.TokenType == html.MathToken || next.TokenType == html.XMLToken {
 							if o.KeepWhitespace {
 								break
 							}
@@ -205,14 +217,13 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 								t.Data = t.Data[:len(t.Data)-1]
 								omitSpace = false
 								break
-							} else if next.TokenType == html.StartTagToken {
+							} else if next.TokenType == html.StartTagToken || next.TokenType == html.SVGToken || next.TokenType == html.MathToken || next.TokenType == html.XMLToken {
 								break
 							}
 						}
 						i++
 					}
 				}
-
 				w.Write(t.Data)
 			}
 		case html.StartTagToken, html.EndTagToken:
@@ -247,6 +258,8 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 
 			if t.Hash == Pre {
 				inPre = t.TokenType == html.StartTagToken
+			} else if t.Hash == Template {
+				inTemplate = t.TokenType == html.StartTagToken
 			}
 
 			// remove superfluous tags, except for html, head and body tags when KeepDocumentTags is set
@@ -254,7 +267,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 				break
 			} else if t.TokenType == html.EndTagToken {
 				omitEndTag := false
-				if !o.KeepEndTags {
+				if !o.KeepEndTags && !inTemplate {
 					if t.Hash == Thead || t.Hash == Tbody || t.Hash == Tfoot || t.Hash == Tr || t.Hash == Th ||
 						t.Hash == Td || t.Hash == Option || t.Hash == Dd || t.Hash == Dt || t.Hash == Li ||
 						t.Hash == Rb || t.Hash == Rt || t.Hash == Rtc || t.Hash == Rp {
@@ -267,8 +280,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 							// continue if text token is empty or whitespace
 							if next.TokenType == html.TextToken && parse.IsAllWhitespace(next.Data) {
 								continue
-							}
-							if next.TokenType == html.ErrorToken || next.TokenType == html.EndTagToken && next.Traits&keepPTag == 0 || next.TokenType == html.StartTagToken && next.Traits&omitPTag != 0 {
+							} else if next.TokenType == html.ErrorToken || next.TokenType == html.EndTagToken && next.Traits&keepPTag == 0 || next.TokenType == html.StartTagToken && next.Traits&omitPTag != 0 {
 								omitEndTag = true // omit p end tag
 							}
 							break
@@ -281,8 +293,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 							// continue if text token
 							if next.TokenType == html.TextToken {
 								continue
-							}
-							if next.TokenType == html.ErrorToken || next.Hash != Option {
+							} else if next.TokenType == html.ErrorToken || next.Hash != Option {
 								omitEndTag = true // omit optgroup end tag
 							}
 							break
@@ -306,7 +317,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 
 				// skip text in select and optgroup tags
 				if t.Hash == Option || t.Hash == Optgroup {
-					if next := tb.Peek(0); next.TokenType == html.TextToken {
+					if next := tb.Peek(0); next.TokenType == html.TextToken && !next.HasTemplate {
 						tb.Shift()
 					}
 				}
@@ -504,7 +515,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 						if 0 < len(attr.Data) && (attr.Data[len(attr.Data)-1] == '\'' || attr.Data[len(attr.Data)-1] == '"') {
 							quote = attr.Data[len(attr.Data)-1]
 						}
-						val = html.EscapeAttrVal(&attrByteBuffer, val, quote, o.KeepQuotes, isXML)
+						val = html.EscapeAttrVal(&attrByteBuffer, val, quote, o.KeepQuotes || isXML)
 						w.Write(val)
 					}
 				}
@@ -515,7 +526,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 
 			// skip text in select and optgroup tags
 			if t.Hash == Select || t.Hash == Optgroup {
-				if next := tb.Peek(0); next.TokenType == html.TextToken {
+				if next := tb.Peek(0); next.TokenType == html.TextToken && !next.HasTemplate {
 					tb.Shift()
 				}
 			}

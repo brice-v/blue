@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build (linux && !android) || freebsd || openbsd
-// +build linux,!android freebsd openbsd
 
 package app
 
@@ -23,6 +22,7 @@ void processEvents(void);
 void swapBuffers(void);
 */
 import "C"
+
 import (
 	"runtime"
 	"time"

@@ -26,12 +26,37 @@
 // the wiki at http://github.com/tinylib/msgp
 package msgp
 
+// RT is the runtime interface for all types that can be encoded and decoded.
+type RT interface {
+	Decodable
+	Encodable
+	Sizer
+	Unmarshaler
+	Marshaler
+}
+
+// PtrTo is the runtime interface for all types that can be encoded and decoded.
+type PtrTo[T any] interface {
+	~*T
+}
+
+// RTFor is the runtime interface for all types that can be encoded and decoded.
+// Use for generic types.
+type RTFor[T any] interface {
+	PtrTo[T]
+	RT
+}
+
 const (
 	last4  = 0x0f
 	first4 = 0xf0
 	last5  = 0x1f
 	first3 = 0xe0
 	last7  = 0x7f
+
+	// recursionLimit is the limit of recursive calls.
+	// This limits the call depth of dynamic code, like Skip and interface conversions.
+	recursionLimit = 100000
 )
 
 func isfixint(b byte) bool {

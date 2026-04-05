@@ -5,6 +5,8 @@ package htmlquery
 
 import (
 	"bufio"
+	"compress/gzip"
+	"compress/zlib"
 	"fmt"
 	"io"
 	"net/http"
@@ -88,15 +90,46 @@ func QuerySelectorAll(top *html.Node, selector *xpath.Expr) []*html.Node {
 	return elems
 }
 
-// LoadURL loads the HTML document from the specified URL.
+// LoadURL loads the HTML document from the specified URL. Default enabling gzip on a HTTP request.
 func LoadURL(url string) (*html.Node, error) {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	// Enable gzip compression.
+	req.Header.Add("Accept-Encoding", "gzip")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	var reader io.ReadCloser
 
-	r, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
+	defer func() {
+		if reader != nil {
+			reader.Close()
+		}
+	}()
+	encoding := resp.Header.Get("Content-Encoding")
+	switch encoding {
+	case "gzip":
+		gzipReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		reader = gzipReader
+	case "deflate":
+		zlibReader, err := zlib.NewReader(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		reader = zlibReader
+	case "":
+		reader = resp.Body
+	default:
+		return nil, fmt.Errorf("%s compression is not support", encoding)
+	}
+
+	r, err := charset.NewReader(reader, resp.Header.Get("Content-Type"))
 	if err != nil {
 		return nil, err
 	}

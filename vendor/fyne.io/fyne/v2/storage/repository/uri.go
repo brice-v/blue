@@ -3,12 +3,30 @@ package repository
 import (
 	"bufio"
 	"mime"
-	"path/filepath"
+	"path"
 	"strings"
 	"unicode/utf8"
 
 	"fyne.io/fyne/v2"
 )
+
+// EqualURI returns true if the two URIs are equal.
+//
+// Since: 2.6
+func EqualURI(t1, t2 fyne.URI) bool {
+	if t1 == nil || t2 == nil {
+		return t1 == t2
+	}
+
+	u1, ok1 := t1.(*uri)
+	u2, ok2 := t2.(*uri)
+	if ok1 && ok2 {
+		// Knowing the type, pointers are either the same or fields are the same.
+		return u1 == u2 || *u1 == *u2
+	}
+
+	return t1 == t2 || t1.String() == t2.String()
+}
 
 // Declare conformance with fyne.URI interface.
 var _ fyne.URI = &uri{}
@@ -22,11 +40,11 @@ type uri struct {
 }
 
 func (u *uri) Extension() string {
-	return filepath.Ext(u.path)
+	return path.Ext(u.path)
 }
 
 func (u *uri) Name() string {
-	return filepath.Base(u.path)
+	return path.Base(u.path)
 }
 
 func (u *uri) MimeType() string {
@@ -49,12 +67,8 @@ func (u *uri) MimeType() string {
 		}
 	}
 
-	// Replace with strings.Cut() when Go 1.18 is our new base version.
-	semicolonIndex := strings.IndexByte(mimeTypeFull, ';')
-	if semicolonIndex == -1 {
-		return mimeTypeFull
-	}
-	return mimeTypeFull[:semicolonIndex]
+	mimeType, _, _ := strings.Cut(mimeTypeFull, ";")
+	return mimeType
 }
 
 func (u *uri) Scheme() string {
@@ -64,15 +78,23 @@ func (u *uri) Scheme() string {
 func (u *uri) String() string {
 	// NOTE: this string reconstruction is mandated by IETF RFC3986,
 	// section 5.3, pp. 35.
+	s := strings.Builder{}
+	s.Grow(len(u.scheme) + len(u.authority) + len(u.path) + len(u.query) + len(u.fragment) + len("://?#"))
 
-	s := u.scheme + "://" + u.authority + u.path
+	s.WriteString(u.scheme)
+	s.WriteString("://")
+	s.WriteString(u.authority)
+	s.WriteString(u.path)
+
 	if len(u.query) > 0 {
-		s += "?" + u.query
+		s.WriteByte('?')
+		s.WriteString(u.query)
 	}
 	if len(u.fragment) > 0 {
-		s += "#" + u.fragment
+		s.WriteByte('#')
+		s.WriteString(u.fragment)
 	}
-	return s
+	return s.String()
 }
 
 func (u *uri) Authority() string {

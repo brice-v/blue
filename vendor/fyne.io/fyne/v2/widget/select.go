@@ -1,15 +1,25 @@
 package widget
 
 import (
+	"fmt"
 	"image/color"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 )
 
 const defaultPlaceHolder string = "(Select one)"
+
+var (
+	_ fyne.Widget       = (*Select)(nil)
+	_ desktop.Hoverable = (*Select)(nil)
+	_ fyne.Tappable     = (*Select)(nil)
+	_ fyne.Focusable    = (*Select)(nil)
+	_ fyne.Disableable  = (*Select)(nil)
+)
 
 // Select widget has a list of options, with the current one shown, and triggers an event func when clicked
 type Select struct {
@@ -24,17 +34,13 @@ type Select struct {
 	PlaceHolder string
 	OnChanged   func(string) `json:"-"`
 
+	binder basicBinder
+
 	focused bool
 	hovered bool
 	popUp   *PopUpMenu
 	tapAnim *fyne.Animation
 }
-
-var _ fyne.Widget = (*Select)(nil)
-var _ desktop.Hoverable = (*Select)(nil)
-var _ fyne.Tappable = (*Select)(nil)
-var _ fyne.Focusable = (*Select)(nil)
-var _ fyne.Disableable = (*Select)(nil)
 
 // NewSelect creates a new select widget with the set list of options and changes handler
 func NewSelect(options []string, changed func(string)) *Select {
@@ -47,6 +53,30 @@ func NewSelect(options []string, changed func(string)) *Select {
 	return s
 }
 
+// NewSelectWithData returns a new select widget connected to the specified data source.
+//
+// Since: 2.6
+func NewSelectWithData(options []string, data binding.String) *Select {
+	sel := NewSelect(options, nil)
+	sel.Bind(data)
+
+	return sel
+}
+
+// Bind connects the specified data source to this select.
+// The current value will be displayed and any changes in the data will cause the widget
+// to update.
+//
+// Since: 2.6
+func (s *Select) Bind(data binding.String) {
+	s.binder.SetCallback(s.updateFromData)
+	s.binder.Bind(data)
+
+	s.OnChanged = func(_ string) {
+		s.binder.CallWithData(s.writeData)
+	}
+}
+
 // ClearSelected clears the current option of the select widget.  After
 // clearing the current option, the Select widget's PlaceHolder will
 // be displayed.
@@ -57,52 +87,47 @@ func (s *Select) ClearSelected() {
 // CreateRenderer is a private method to Fyne which links this widget to its renderer
 func (s *Select) CreateRenderer() fyne.WidgetRenderer {
 	s.ExtendBaseWidget(s)
-	s.propertyLock.RLock()
-	icon := NewIcon(theme.MenuDropDownIcon())
+	th := s.Theme()
+	v := fyne.CurrentApp().Settings().ThemeVariant()
+
+	icon := NewIcon(th.Icon(theme.IconNameArrowDropDown))
 	if s.PlaceHolder == "" {
 		s.PlaceHolder = defaultPlaceHolder
 	}
 	txtProv := NewRichTextWithText(s.Selected)
-	txtProv.inset = fyne.NewSize(theme.Padding(), theme.Padding())
+	txtProv.inset = fyne.NewSquareSize(th.Size(theme.SizeNamePadding))
 	txtProv.ExtendBaseWidget(txtProv)
 	txtProv.Truncation = fyne.TextTruncateEllipsis
-	if s.disabled {
+	if s.Disabled() {
 		txtProv.Segments[0].(*TextSegment).Style.ColorName = theme.ColorNameDisabled
 	}
 
 	background := &canvas.Rectangle{}
 	tapBG := canvas.NewRectangle(color.Transparent)
-	s.tapAnim = newButtonTapAnimation(tapBG, s)
+	s.tapAnim = newButtonTapAnimation(tapBG, s, th)
 	s.tapAnim.Curve = fyne.AnimationEaseOut
 	objects := []fyne.CanvasObject{background, tapBG, txtProv, icon}
 	r := &selectRenderer{icon, txtProv, background, objects, s}
-	background.FillColor = r.bgColor()
-	background.CornerRadius = theme.InputRadiusSize()
-	r.updateIcon()
-	s.propertyLock.RUnlock() // updateLabel and some text handling isn't quite right, resolve in text refactor for 2.0
+	background.FillColor = r.bgColor(th, v)
+	background.CornerRadius = th.Size(theme.SizeNameInputRadius)
+	r.updateIcon(th)
 	r.updateLabel()
 	return r
 }
 
 // FocusGained is called after this Select has gained focus.
-//
-// Implements: fyne.Focusable
 func (s *Select) FocusGained() {
 	s.focused = true
 	s.Refresh()
 }
 
 // FocusLost is called after this Select has lost focus.
-//
-// Implements: fyne.Focusable
 func (s *Select) FocusLost() {
 	s.focused = false
 	s.Refresh()
 }
 
 // Hide hides the select.
-//
-// Implements: fyne.Widget
 func (s *Select) Hide() {
 	if s.popUp != nil {
 		s.popUp.Hide()
@@ -134,8 +159,6 @@ func (s *Select) MouseOut() {
 }
 
 // Move changes the relative position of the select.
-//
-// Implements: fyne.Widget
 func (s *Select) Move(pos fyne.Position) {
 	s.BaseWidget.Move(pos)
 
@@ -197,6 +220,10 @@ func (s *Select) Tapped(*fyne.PointEvent) {
 		return
 	}
 
+	if !s.focused {
+		focusIfNotMobile(s.super())
+	}
+
 	s.tapAnimation()
 	s.Refresh()
 
@@ -204,8 +231,6 @@ func (s *Select) Tapped(*fyne.PointEvent) {
 }
 
 // TypedKey is called if a key event happens while this Select is focused.
-//
-// Implements: fyne.Focusable
 func (s *Select) TypedKey(event *fyne.KeyEvent) {
 	switch event.Name {
 	case fyne.KeySpace, fyne.KeyUp, fyne.KeyDown:
@@ -226,15 +251,22 @@ func (s *Select) TypedKey(event *fyne.KeyEvent) {
 }
 
 // TypedRune is called if a text event happens while this Select is focused.
-//
-// Implements: fyne.Focusable
 func (s *Select) TypedRune(_ rune) {
 	// intentionally left blank
 }
 
+// Unbind disconnects any configured data source from this Select.
+// The current value will remain at the last value of the data source.
+//
+// Since: 2.6
+func (s *Select) Unbind() {
+	s.OnChanged = nil
+	s.binder.Unbind()
+}
+
 func (s *Select) popUpPos() fyne.Position {
 	buttonPos := fyne.CurrentApp().Driver().AbsolutePositionForObject(s.super())
-	return buttonPos.Add(fyne.NewPos(0, s.Size().Height-theme.InputBorderSize()))
+	return buttonPos.Add(fyne.NewPos(0, s.Size().Height-s.Theme().Size(theme.SizeNameInputBorder)))
 }
 
 func (s *Select) showPopUp() {
@@ -248,14 +280,17 @@ func (s *Select) showPopUp() {
 	}
 
 	c := fyne.CurrentApp().Driver().CanvasForObject(s.super())
-	s.popUp = NewPopUpMenu(fyne.NewMenu("", items...), c)
-	s.popUp.alignment = s.Alignment
-	s.popUp.ShowAtPosition(s.popUpPos())
-	s.popUp.Resize(fyne.NewSize(s.Size().Width, s.popUp.MinSize().Height))
-	s.popUp.OnDismiss = func() {
-		s.popUp.Hide()
-		s.popUp = nil
+	pop := NewPopUpMenu(fyne.NewMenu("", items...), c)
+	pop.alignment = s.Alignment
+	pop.ShowAtPosition(s.popUpPos())
+	pop.Resize(fyne.NewSize(s.Size().Width, pop.MinSize().Height))
+	pop.OnDismiss = func() {
+		pop.Hide()
+		if s.popUp == pop {
+			s.popUp = nil
+		}
 	}
+	s.popUp = pop
 }
 
 func (s *Select) tapAnimation() {
@@ -269,6 +304,22 @@ func (s *Select) tapAnimation() {
 	}
 }
 
+func (s *Select) updateFromData(data binding.DataItem) {
+	if data == nil {
+		return
+	}
+	stringSource, ok := data.(binding.String)
+	if !ok {
+		return
+	}
+
+	val, err := stringSource.Get()
+	if err != nil {
+		return
+	}
+	s.SetSelected(val)
+}
+
 func (s *Select) updateSelected(text string) {
 	s.Selected = text
 
@@ -277,6 +328,26 @@ func (s *Select) updateSelected(text string) {
 	}
 
 	s.Refresh()
+}
+
+func (s *Select) writeData(data binding.DataItem) {
+	if data == nil {
+		return
+	}
+	stringTarget, ok := data.(binding.String)
+	if !ok {
+		return
+	}
+	currentValue, err := stringTarget.Get()
+	if err != nil {
+		return
+	}
+	if currentValue != s.Selected {
+		err := stringTarget.Set(s.Selected)
+		if err != nil {
+			fyne.LogError(fmt.Sprintf("Failed to set binding value to %s", s.Selected), err)
+		}
+	}
 }
 
 type selectRenderer struct {
@@ -296,69 +367,75 @@ func (s *selectRenderer) Destroy() {}
 
 // Layout the components of the button widget
 func (s *selectRenderer) Layout(size fyne.Size) {
+	th := s.combo.Theme()
+	pad := th.Size(theme.SizeNamePadding)
+	iconSize := th.Size(theme.SizeNameInlineIcon)
+	innerPad := th.Size(theme.SizeNameInnerPadding)
 	s.background.Resize(fyne.NewSize(size.Width, size.Height))
-	s.label.inset = fyne.NewSize(theme.Padding(), theme.Padding())
+	s.label.inset = fyne.NewSquareSize(pad)
 
-	iconPos := fyne.NewPos(size.Width-theme.IconInlineSize()-theme.InnerPadding(), (size.Height-theme.IconInlineSize())/2)
-	labelSize := fyne.NewSize(iconPos.X-theme.Padding(), s.label.MinSize().Height)
+	iconPos := fyne.NewPos(size.Width-iconSize-innerPad, (size.Height-iconSize)/2)
+	labelSize := fyne.NewSize(iconPos.X-pad, s.label.MinSize().Height)
 
 	s.label.Resize(labelSize)
-	s.label.Move(fyne.NewPos(theme.Padding(), (size.Height-labelSize.Height)/2))
+	s.label.Move(fyne.NewPos(pad, (size.Height-labelSize.Height)/2))
 
-	s.icon.Resize(fyne.NewSize(theme.IconInlineSize(), theme.IconInlineSize()))
+	s.icon.Resize(fyne.NewSquareSize(iconSize))
 	s.icon.Move(iconPos)
 }
 
 // MinSize calculates the minimum size of a select button.
 // This is based on the selected text, the drop icon and a standard amount of padding added.
 func (s *selectRenderer) MinSize() fyne.Size {
-	s.combo.propertyLock.RLock()
-	defer s.combo.propertyLock.RUnlock()
+	th := s.combo.Theme()
+	innerPad := th.Size(theme.SizeNameInnerPadding)
 
-	minPlaceholderWidth := fyne.MeasureText(s.combo.PlaceHolder, theme.TextSize(), fyne.TextStyle{}).Width
+	minPlaceholderWidth := fyne.MeasureText(s.combo.PlaceHolder, th.Size(theme.SizeNameText), fyne.TextStyle{}).Width
 	min := s.label.MinSize()
 	min.Width = minPlaceholderWidth
-	min = min.Add(fyne.NewSize(theme.InnerPadding()*3, theme.InnerPadding()))
-	return min.Add(fyne.NewSize(theme.IconInlineSize()+theme.InnerPadding(), 0))
+	min = min.Add(fyne.NewSize(innerPad*3, innerPad))
+	return min.Add(fyne.NewSize(th.Size(theme.SizeNameInlineIcon)+innerPad, 0))
 }
 
 func (s *selectRenderer) Refresh() {
-	s.combo.propertyLock.RLock()
+	th := s.combo.Theme()
+	v := fyne.CurrentApp().Settings().ThemeVariant()
+
 	s.updateLabel()
-	s.updateIcon()
-	s.background.FillColor = s.bgColor()
-	s.background.CornerRadius = theme.InputRadiusSize()
-	s.combo.propertyLock.RUnlock()
+	s.updateIcon(th)
+	s.background.FillColor = s.bgColor(th, v)
+	s.background.CornerRadius = s.combo.Theme().Size(theme.SizeNameInputRadius)
 
 	s.Layout(s.combo.Size())
 	if s.combo.popUp != nil {
 		s.combo.popUp.alignment = s.combo.Alignment
 		s.combo.popUp.Move(s.combo.popUpPos())
-		s.combo.popUp.Resize(fyne.NewSize(s.combo.size.Width, s.combo.popUp.MinSize().Height))
+		s.combo.popUp.Resize(fyne.NewSize(s.combo.Size().Width, s.combo.popUp.MinSize().Height))
 		s.combo.popUp.Refresh()
 	}
 	s.background.Refresh()
 	canvas.Refresh(s.combo.super())
 }
 
-func (s *selectRenderer) bgColor() color.Color {
-	if s.combo.disabled {
-		return theme.DisabledButtonColor()
+func (s *selectRenderer) bgColor(th fyne.Theme, v fyne.ThemeVariant) color.Color {
+	if s.combo.Disabled() {
+		return th.Color(theme.ColorNameDisabledButton, v)
 	}
 	if s.combo.focused {
-		return theme.FocusColor()
+		return th.Color(theme.ColorNameFocus, v)
 	}
 	if s.combo.hovered {
-		return theme.HoverColor()
+		return th.Color(theme.ColorNameHover, v)
 	}
-	return theme.InputBackgroundColor()
+	return th.Color(theme.ColorNameInputBackground, v)
 }
 
-func (s *selectRenderer) updateIcon() {
-	if s.combo.disabled {
-		s.icon.Resource = theme.NewDisabledResource(theme.MenuDropDownIcon())
+func (s *selectRenderer) updateIcon(th fyne.Theme) {
+	icon := th.Icon(theme.IconNameArrowDropDown)
+	if s.combo.Disabled() {
+		s.icon.Resource = theme.NewDisabledResource(icon)
 	} else {
-		s.icon.Resource = theme.MenuDropDownIcon()
+		s.icon.Resource = icon
 	}
 	s.icon.Refresh()
 }
@@ -368,16 +445,17 @@ func (s *selectRenderer) updateLabel() {
 		s.combo.PlaceHolder = defaultPlaceHolder
 	}
 
-	s.label.Segments[0].(*TextSegment).Style.Alignment = s.combo.Alignment
-	if s.combo.disabled {
-		s.label.Segments[0].(*TextSegment).Style.ColorName = theme.ColorNameDisabled
+	segment := s.label.Segments[0].(*TextSegment)
+	segment.Style.Alignment = s.combo.Alignment
+	if s.combo.Disabled() {
+		segment.Style.ColorName = theme.ColorNameDisabled
 	} else {
-		s.label.Segments[0].(*TextSegment).Style.ColorName = theme.ColorNameForeground
+		segment.Style.ColorName = theme.ColorNameForeground
 	}
 	if s.combo.Selected == "" {
-		s.label.Segments[0].(*TextSegment).Text = s.combo.PlaceHolder
+		segment.Text = s.combo.PlaceHolder
 	} else {
-		s.label.Segments[0].(*TextSegment).Text = s.combo.Selected
+		segment.Text = s.combo.Selected
 	}
 	s.label.Refresh()
 }

@@ -23,31 +23,31 @@ func (g *LinearGradient) Generate(iw, ih int) image.Image {
 	w, h := float64(iw), float64(ih)
 	var generator func(x, y float64) float64
 	switch g.Angle {
-	case 90: // horizontal flipped
+	case 90, -270: // horizontal flipped
 		generator = func(x, _ float64) float64 {
 			return (w - x) / w
 		}
-	case 270: // horizontal
+	case 270, -90: // horizontal
 		generator = func(x, _ float64) float64 {
 			return x / w
 		}
-	case 45: // diagonal negative flipped
+	case 45, -315: // diagonal negative flipped
 		generator = func(x, y float64) float64 {
 			return math.Abs((w - x + y) / (w + h)) // ((w+h)-(x+h-y)) / (w+h)
 		}
-	case 225: // diagonal negative
+	case 225, -135: // diagonal negative
 		generator = func(x, y float64) float64 {
 			return math.Abs((x + h - y) / (w + h))
 		}
-	case 135: // diagonal positive flipped
+	case 135, -225: // diagonal positive flipped
 		generator = func(x, y float64) float64 {
 			return math.Abs((w + h - (x + y)) / (w + h))
 		}
-	case 315: // diagonal positive
+	case 315, -45: // diagonal positive
 		generator = func(x, y float64) float64 {
 			return math.Abs((x + y) / (w + h))
 		}
-	case 180: // vertical flipped
+	case 180, -180: // vertical flipped
 		generator = func(_, y float64) float64 {
 			return (h - y) / h
 		}
@@ -68,9 +68,24 @@ func (g *LinearGradient) Hide() {
 
 // Move the gradient to a new position, relative to its parent / canvas
 func (g *LinearGradient) Move(pos fyne.Position) {
+	if g.Position() == pos {
+		return
+	}
+
 	g.baseObject.Move(pos)
 
 	repaint(g)
+}
+
+// Resize resizes the gradient to a new size.
+func (g *LinearGradient) Resize(size fyne.Size) {
+	if size == g.Size() {
+		return
+	}
+	g.baseObject.Resize(size)
+
+	// refresh needed to invalidate cached textures
+	g.Refresh()
 }
 
 // Refresh causes this gradient to be redrawn with its configured state.
@@ -134,6 +149,17 @@ func (g *RadialGradient) Move(pos fyne.Position) {
 	g.baseObject.Move(pos)
 
 	repaint(g)
+}
+
+// Resize resizes the gradient to a new size.
+func (g *RadialGradient) Resize(size fyne.Size) {
+	if size == g.Size() {
+		return
+	}
+	g.baseObject.Resize(size)
+
+	// refresh needed to invalidate cached textures
+	g.Refresh()
 }
 
 // Refresh causes this gradient to be redrawn with its configured state.

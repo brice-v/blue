@@ -8,7 +8,6 @@ import (
 	"unsafe"
 
 	"github.com/tetratelabs/wazero/experimental/sys"
-	"github.com/tetratelabs/wazero/internal/platform"
 )
 
 func openFile(path string, oflag sys.Oflag, perm fs.FileMode) (*os.File, sys.Errno) {
@@ -37,7 +36,9 @@ func openFile(path string, oflag sys.Oflag, perm fs.FileMode) (*os.File, sys.Err
 	// To match expectations of WASI, e.g. TinyGo TestStatBadDir, return
 	// ENOENT, not ENOTDIR.
 	case sys.ENOTDIR:
-		errno = sys.ENOENT
+		if !strings.HasSuffix(path, "/") {
+			errno = sys.ENOENT
+		}
 	case sys.ENOENT:
 		if isSymlink(path) {
 			// Either symlink or hard link not found. We change the returned
@@ -56,7 +57,7 @@ func openFile(path string, oflag sys.Oflag, perm fs.FileMode) (*os.File, sys.Err
 
 const supportedSyscallOflag = sys.O_NONBLOCK
 
-// Map to synthetic values here https://github.com/golang/go/blob/go1.20/src/syscall/types_windows.go#L34-L48
+// Map to synthetic values here https://github.com/golang/go/blob/go1.24.0/src/syscall/types_windows.go#L35-L52
 func withSyscallOflag(oflag sys.Oflag, flag int) int {
 	// O_DIRECTORY not defined in windows
 	// O_DSYNC not defined in windows
@@ -150,13 +151,11 @@ func open(path string, mode int, perm uint32) (fd syscall.Handle, err error) {
 		}
 	}
 
-	if platform.IsAtLeastGo120 {
-		// This shouldn't be included before 1.20 to have consistent behavior.
-		// https://github.com/golang/go/commit/0f0aa5d8a6a0253627d58b3aa083b24a1091933f
-		if createmode == syscall.OPEN_EXISTING && access == syscall.GENERIC_READ {
-			// Necessary for opening directory handles.
-			attrs |= syscall.FILE_FLAG_BACKUP_SEMANTICS
-		}
+	// This shouldn't be included before 1.20 to have consistent behavior.
+	// https://github.com/golang/go/commit/0f0aa5d8a6a0253627d58b3aa083b24a1091933f
+	if createmode == syscall.OPEN_EXISTING && access == syscall.GENERIC_READ {
+		// Necessary for opening directory handles.
+		attrs |= syscall.FILE_FLAG_BACKUP_SEMANTICS
 	}
 
 	h, e := syscall.CreateFile(pathp, access, sharemode, sa, createmode, attrs, 0)

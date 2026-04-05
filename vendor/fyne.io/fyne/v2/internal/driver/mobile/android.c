@@ -1,5 +1,4 @@
 //go:build android
-// +build android
 
 #include <android/log.h>
 #include <dirent.h>
@@ -145,7 +144,7 @@ void* openStream(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 	return (*env)->NewGlobalRef(env, stream);
 }
 
-void* saveStream(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
+void* saveStream(uintptr_t jni_env, uintptr_t ctx, char* uriCstr, bool truncate) {
 	JNIEnv *env = (JNIEnv*)jni_env;
 	jobject resolver = getContentResolver(jni_env, ctx);
 
@@ -153,7 +152,12 @@ void* saveStream(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 	jmethodID saveOutputStream = find_method(env, resolverClass, "openOutputStream", "(Landroid/net/Uri;Ljava/lang/String;)Ljava/io/OutputStream;");
 
 	jobject uri = parseURI(jni_env, ctx, uriCstr);
-	jstring modes = (*env)->NewStringUTF(env, "wt"); // truncate before write
+	jstring modes = NULL;
+	if (truncate) {
+		modes = (*env)->NewStringUTF(env, "wt"); // truncate before write
+	} else {
+		modes = (*env)->NewStringUTF(env, "wa");
+	}
 	jobject stream = (jobject)(*env)->CallObjectMethod(env, resolver, saveOutputStream, uri, modes);
 	jthrowable loadErr = (*env)->ExceptionOccurred(env);
 
@@ -166,6 +170,10 @@ void* saveStream(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 }
 
 jbyte* readStream(uintptr_t jni_env, uintptr_t ctx, void* stream, int len, int* total) {
+	if (stream == NULL) {
+		*total = -1;
+		return NULL;
+	}
 	JNIEnv *env = (JNIEnv*)jni_env;
 	jclass streamClass = (*env)->GetObjectClass(env, stream);
 	jmethodID read = find_method(env, streamClass, "read", "([BII)I");
@@ -184,6 +192,12 @@ jbyte* readStream(uintptr_t jni_env, uintptr_t ctx, void* stream, int len, int* 
 }
 
 void writeStream(uintptr_t jni_env, uintptr_t ctx, void* stream, jbyte* buf, int len) {
+	if (stream == NULL) {
+		if (buf != NULL) {
+			free(buf);
+		}
+		return;
+	}
 	JNIEnv *env = (JNIEnv*)jni_env;
 	jclass streamClass = (*env)->GetObjectClass(env, stream);
 	jmethodID write = find_method(env, streamClass, "write", "([BII)V");
@@ -197,6 +211,9 @@ void writeStream(uintptr_t jni_env, uintptr_t ctx, void* stream, jbyte* buf, int
 }
 
 void closeStream(uintptr_t jni_env, uintptr_t ctx, void* stream) {
+	if (stream == NULL) {
+		return;
+	}
 	JNIEnv *env = (JNIEnv*)jni_env;
 	jclass streamClass = (*env)->GetObjectClass(env, stream);
 	jmethodID close = find_method(env, streamClass, "close", "()V");
@@ -329,12 +346,36 @@ const char* contentURIGetFileName(uintptr_t jni_env, uintptr_t ctx, char* uriCst
 	return NULL;
 }
 
-bool existsFileURI(char* uriCstr) {
+char *filePath(char *uriCstr) {
 	// Get file path from URI
 	size_t length = strlen(uriCstr)-7;// -7 for 'file://'
 	char* path = malloc(sizeof(char)*(length+1));// +1 for '\0'
 	memcpy(path, &uriCstr[7], length);
 	path[length] = '\0';
+
+	return path;
+}
+
+bool deleteFileURI(char *uriCstr) {
+	char* path = filePath(uriCstr);
+	int result = remove(path);
+
+	free(path);
+
+	return result == 0;
+}
+
+bool deleteURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
+	if (!hasPrefix(uriCstr, "file://")) {
+	    LOG_FATAL("Cannot delete for scheme: %s", uriCstr);
+		return false;
+	}
+
+	return deleteFileURI(uriCstr);
+}
+
+bool existsFileURI(char* uriCstr) {
+	char* path = filePath(uriCstr);
 
 	// Stat path to determine if it points to an existing file
 	struct stat statbuf;
@@ -480,4 +521,26 @@ char* listURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 	}
 	LOG_FATAL("Unrecognized scheme: %s", uriCstr);
 	return "";
+}
+
+void keepScreenOn(uintptr_t jni_env, uintptr_t ctx, bool disabled) {
+	JNIEnv *env = (JNIEnv*)jni_env;
+	jclass activityClass = find_class(env, "android/app/Activity");
+	jmethodID getWindow = find_method(env, activityClass, "getWindow", "()Landroid/view/Window;");
+
+	jobject win = (*env)->CallObjectMethod(env, (jobject)ctx, getWindow);
+	jclass windowClass = find_class(env, "android/view/Window");
+
+	jmethodID action = NULL;
+	if (disabled) {
+	    action = find_method(env, windowClass, "addFlags", "(I)V");
+	} else {
+	    action = find_method(env, windowClass, "clearFlags", "(I)V");
+	}
+
+    jclass paramsClass = find_class(env, "android/view/WindowManager$LayoutParams" );
+    jfieldID screenFlagField = (*env)->GetStaticFieldID(env, paramsClass, "FLAG_KEEP_SCREEN_ON", "I" );
+    int screenFlag = (*env)->GetStaticIntField(env, paramsClass, screenFlagField);
+
+   	(*env)->CallVoidMethod(env, win, action, screenFlag);
 }

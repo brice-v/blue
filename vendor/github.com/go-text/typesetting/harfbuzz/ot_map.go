@@ -6,9 +6,9 @@ import (
 	"math/bits"
 	"sort"
 
-	"github.com/go-text/typesetting/opentype/api/font"
-	"github.com/go-text/typesetting/opentype/loader"
-	"github.com/go-text/typesetting/opentype/tables"
+	"github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/go-text/typesetting/font/opentype/tables"
 )
 
 // ported from harfbuzz/src/hb-ot-map.cc, hb-ot-map.hh Copyright © 2009,2010  Red Hat, Inc. 2010,2011,2013  Google, Inc. Behdad Esfahbod
@@ -312,7 +312,7 @@ func (mb *otMapBuilder) compile(m *otMap, key otShapePlanKey) {
 	}
 }
 
-func (mb *otMapBuilder) hasFeature(tag loader.Tag) bool {
+func (mb *otMapBuilder) hasFeature(tag ot.Tag) bool {
 	tables := [2]*font.Layout{&mb.tables.GSUB.Layout, &mb.tables.GPOS.Layout}
 
 	for tableIndex, table := range tables {
@@ -360,7 +360,7 @@ type lookupMap struct {
 	autoZWJ     bool // = 1;
 	random      bool // = 1;
 	perSyllable bool
-	featureTag  loader.Tag
+	featureTag  ot.Tag
 	mask        GlyphMask
 
 	// HB_INTERNAL static int cmp (const void *pa, const void *pb)
@@ -383,9 +383,9 @@ type otMap struct {
 	chosenScript [2]tables.Tag
 	globalMask   GlyphMask
 	foundScript  [2]bool
-}
 
-//   friend struct hb_ot_map_builder_t;
+	applyContext otApplyContext // buffer
+}
 
 func (m *otMap) needsFallback(featureTag tables.Tag) bool {
 	if ma := bsearchFeature(m.features, featureTag); ma != nil {
@@ -437,7 +437,7 @@ func (m *otMap) getStageLookups(tableIndex, stage int) []lookupMap {
 }
 
 func (m *otMap) addLookups(table *font.Layout, tableIndex int, featureIndex uint16, variationsIndex int,
-	mask GlyphMask, autoZwnj, autoZwj, random, perSyllable bool, featureTag loader.Tag,
+	mask GlyphMask, autoZwnj, autoZwj, random, perSyllable bool, featureTag ot.Tag,
 ) {
 	lookupIndices := getFeatureLookupsWithVar(table, featureIndex, variationsIndex)
 	for _, lookupInd := range lookupIndices {
@@ -479,70 +479,5 @@ func (m *otMap) position(plan *otShapePlan, font *Font, buffer *Buffer) {
 
 	if debugMode {
 		fmt.Println("POSITION - end table GPOS")
-	}
-}
-
-func (m *otMap) apply(proxy otProxy, plan *otShapePlan, font *Font, buffer *Buffer) {
-	tableIndex := proxy.tableIndex
-	i := 0
-	c := newOtApplyContext(tableIndex, font, buffer)
-	c.recurseFunc = proxy.recurseFunc
-
-	for stageI, stage := range m.stages[tableIndex] {
-
-		if debugMode {
-			fmt.Printf("\tAPPLY - stage %d\n", stageI)
-		}
-
-		for ; i < stage.lastLookup; i++ {
-			lookup := m.lookups[tableIndex][i]
-			lookupIndex := lookup.index
-
-			if debugMode {
-				fmt.Printf("\t\tLookup %d start\n", lookupIndex)
-			}
-
-			// c.digest is a digest of all the current glyphs in the buffer
-			// (plus some past glyphs).
-			//
-			// Only try applying the lookup if there is any overlap. */
-			accel := &proxy.accels[lookupIndex]
-			if accel.digest.mayHaveDigest(c.digest) {
-
-				c.lookupIndex = lookupIndex
-				c.lookupMask = lookup.mask
-				c.autoZWJ = lookup.autoZWJ
-				c.autoZWNJ = lookup.autoZWNJ
-				c.random = lookup.random
-				c.perSyllable = lookup.perSyllable
-
-				// pathological cases
-				if len(c.buffer.Info) > c.buffer.maxLen {
-					return
-				}
-				c.applyString(proxy.otProxyMeta, accel)
-			}
-
-			if debugMode {
-				fmt.Print("\t\tLookup end : ")
-				if proxy.tableIndex == 0 {
-					fmt.Println(c.buffer.Info)
-				} else {
-					fmt.Println(c.buffer.Pos)
-				}
-			}
-
-		}
-
-		if stage.pauseFunc != nil {
-			if debugMode {
-				fmt.Println("\t\tExecuting pause function")
-			}
-
-			if stage.pauseFunc(plan, font, buffer) {
-				// Refresh working buffer digest since buffer changed.
-				c.digest = buffer.digest()
-			}
-		}
 	}
 }

@@ -1,13 +1,32 @@
 package storage
 
 import (
+	"path"
+	"path/filepath"
+	"runtime"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/storage/repository"
 )
 
+// EqualURI returns true if the two URIs are equal.
+//
+// Since: 2.6
+func EqualURI(t1, t2 fyne.URI) bool {
+	return repository.EqualURI(t1, t2)
+}
+
 // NewFileURI creates a new URI from the given file path.
-func NewFileURI(path string) fyne.URI {
-	return repository.NewFileURI(path)
+// Relative paths will be converted to absolute using filepath.Abs if required.
+func NewFileURI(fpath string) fyne.URI {
+	if !(path.IsAbs(fpath) || runtime.GOOS == "windows" && filepath.IsAbs(fpath)) {
+		absolute, err := filepath.Abs(fpath)
+		if err == nil {
+			fpath = absolute
+		}
+	}
+
+	return repository.NewFileURI(fpath)
 }
 
 // NewURI creates a new URI from the given string representation. This could be
@@ -68,7 +87,6 @@ func ParseURI(s string) (fyne.URI, error) {
 //
 // Since: 1.4
 func Parent(u fyne.URI) (fyne.URI, error) {
-
 	repo, err := repository.ForURI(u)
 	if err != nil {
 		return nil, err
@@ -182,7 +200,27 @@ func Delete(u fyne.URI) error {
 	}
 
 	return wrepo.Delete(u)
+}
 
+// DeleteAll destroys, deletes, or otherwise removes the resource referenced
+// by the URI and any child resources for listable URIs.
+//
+// DeleteAll is backed by the repository system - this function calls
+// into a scheme-specific implementation from a registered repository.
+//
+// Since: 2.7
+func DeleteAll(u fyne.URI) error {
+	repo, err := repository.ForURI(u)
+	if err != nil {
+		return err
+	}
+
+	drepo, ok := repo.(repository.DeleteAllRepository)
+	if !ok {
+		return repository.GenericDeleteAll(u)
+	}
+
+	return drepo.DeleteAll(u)
 }
 
 // Reader returns URIReadCloser set up to read from the resource that the
@@ -282,6 +320,48 @@ func Writer(u fyne.URI) (fyne.URIWriteCloser, error) {
 	}
 
 	return wrepo.Writer(u)
+}
+
+// Appender returns URIWriteCloser set up to write to the resource that the
+// URI references without truncating it first
+//
+// Writing to a non-extant resource should create that resource if possible
+// (and if not possible, this should be reflected in the return of CanWrite()).
+// Writing to an extant resource should NOT overwrite it in-place.
+//
+// This method can fail in several ways:
+//
+//   - Different permissions or credentials are required to write to the
+//     referenced resource.
+//
+//   - This URI scheme could represent some resources that can be
+//     written, but this particular URI references a resources that is
+//     not something that can be written.
+//
+//   - Attempting to set up the writer depended on a lower level
+//     operation such as a network or filesystem access that has failed
+//     in some way.
+//
+//   - If the scheme of the given URI does not have a registered
+//     AppendableRepository instance, then this method will fail with a
+//     repository.ErrOperationNotSupported.
+//
+// Appender is backed by the repository system - this function calls into a
+// scheme-specific implementation from a registered repository.
+//
+// Since: 2.6
+func Appender(u fyne.URI) (fyne.URIWriteCloser, error) {
+	repo, err := repository.ForURI(u)
+	if err != nil {
+		return nil, err
+	}
+
+	wrepo, ok := repo.(repository.AppendableRepository)
+	if !ok {
+		return nil, repository.ErrOperationNotSupported
+	}
+
+	return wrepo.Appender(u)
 }
 
 // CanWrite determines if a given URI could be written to using the Writer()
@@ -494,7 +574,7 @@ func List(u fyne.URI) ([]fyne.URI, error) {
 // Storage repositories which support listing, but not creation of listable
 // objects may return repository.ErrOperationNotSupported.
 //
-// CreateListable should generally fail if the parent of it's operand does not
+// CreateListable should generally fail if the parent of its operand does not
 // exist, however this can vary by the implementation details of the specific
 // storage repository. In filesystem terms, this function is "mkdir" not "mkdir
 // -p".

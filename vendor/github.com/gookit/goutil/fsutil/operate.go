@@ -6,20 +6,28 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/gookit/goutil/basefn"
+	"github.com/gookit/goutil/x/basefn"
 )
 
 // Mkdir alias of os.MkdirAll()
-func Mkdir(dirPath string, perm os.FileMode) error {
-	return os.MkdirAll(dirPath, perm)
+func Mkdir(dirPath string, perm fs.FileMode) error { return os.MkdirAll(dirPath, perm) }
+
+// MkdirQuick with default permission 0755.
+func MkdirQuick(dirPath string) error { return EnsureDir(dirPath) }
+
+// EnsureDir creates a directory if it doesn't exist
+func EnsureDir(path string) error {
+	if !DirExist(path) {
+		return os.MkdirAll(path, 0755)
+	}
+	return nil
 }
 
-// MkDirs batch make multi dirs at once
-func MkDirs(perm os.FileMode, dirPaths ...string) error {
+// MkDirs batch makes multi dirs at once
+func MkDirs(perm fs.FileMode, dirPaths ...string) error {
 	for _, dirPath := range dirPaths {
 		if err := os.MkdirAll(dirPath, perm); err != nil {
 			return err
@@ -28,8 +36,8 @@ func MkDirs(perm os.FileMode, dirPaths ...string) error {
 	return nil
 }
 
-// MkSubDirs batch make multi sub-dirs at once
-func MkSubDirs(perm os.FileMode, parentDir string, subDirs ...string) error {
+// MkSubDirs batch makes multi sub-dirs at once
+func MkSubDirs(perm fs.FileMode, parentDir string, subDirs ...string) error {
 	for _, dirName := range subDirs {
 		dirPath := parentDir + "/" + dirName
 		if err := os.MkdirAll(dirPath, perm); err != nil {
@@ -39,7 +47,7 @@ func MkSubDirs(perm os.FileMode, parentDir string, subDirs ...string) error {
 	return nil
 }
 
-// MkParentDir quick create parent dir for given path.
+// MkParentDir quickly create parent dir for a given path.
 func MkParentDir(fpath string) error {
 	dirPath := filepath.Dir(fpath)
 	if !IsDir(dirPath) {
@@ -121,7 +129,7 @@ const (
 //
 //	file, err := OpenFile("path/to/file.txt", FsCWFlags, 0666)
 func OpenFile(filePath string, flag int, perm os.FileMode) (*os.File, error) {
-	fileDir := path.Dir(filePath)
+	fileDir := filepath.Dir(filePath)
 	if err := os.MkdirAll(fileDir, DefaultDirPerm); err != nil {
 		return nil, err
 	}
@@ -177,7 +185,7 @@ func OpenReadFile(filepath string) (*os.File, error) {
 //
 //	CreateFile("path/to/file.txt", 0664, 0666)
 func CreateFile(fpath string, filePerm, dirPerm os.FileMode, fileFlag ...int) (*os.File, error) {
-	dirPath := path.Dir(fpath)
+	dirPath := filepath.Dir(fpath)
 	if !IsDir(dirPath) {
 		err := os.MkdirAll(dirPath, dirPerm)
 		if err != nil {
@@ -233,10 +241,10 @@ func SafeRemoveAll(path string) {
 	_ = os.RemoveAll(path)
 }
 
-// RmIfExist removes the named file or (empty) directory on exists.
+// RmIfExist removes the named file or (empty) directory on existing.
 func RmIfExist(fPath string) error { return DeleteIfExist(fPath) }
 
-// DeleteIfExist removes the named file or (empty) directory on exists.
+// DeleteIfExist removes the named file or (empty) directory on existing.
 func DeleteIfExist(fPath string) error {
 	if PathExists(fPath) {
 		return os.Remove(fPath)
@@ -244,10 +252,10 @@ func DeleteIfExist(fPath string) error {
 	return nil
 }
 
-// RmFileIfExist removes the named file on exists.
+// RmFileIfExist removes the named file on existing.
 func RmFileIfExist(fPath string) error { return DeleteIfFileExist(fPath) }
 
-// DeleteIfFileExist removes the named file on exists.
+// DeleteIfFileExist removes the named file on existing.
 func DeleteIfFileExist(fPath string) error {
 	if IsFile(fPath) {
 		return os.Remove(fPath)

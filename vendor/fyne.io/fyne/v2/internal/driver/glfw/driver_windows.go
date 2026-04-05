@@ -4,14 +4,30 @@ import (
 	"fmt"
 	"runtime"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
-type MB uint32
+type (
+	MB uint32
+	ES uint
+)
 
 const (
 	MB_OK        MB = 0x0000_0000
 	MB_ICONERROR MB = 0x0000_0010
+
+	ES_CONTINUOUS       ES = 0x80000000
+	ES_DISPLAY_REQUIRED ES = 0x00000002
+)
+
+var (
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
+	user32   = syscall.NewLazyDLL("user32.dll")
+
+	executionState     = kernel32.NewProc("SetThreadExecutionState")
+	MessageBox         = user32.NewProc("MessageBoxW")
+	getDoubleClickTime = user32.NewProc("GetDoubleClickTime")
 )
 
 func toNativePtr(s string) *uint16 {
@@ -24,15 +40,11 @@ func toNativePtr(s string) *uint16 {
 
 // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messageboxw
 func messageBoxError(text, caption string) {
-	user32 := syscall.NewLazyDLL("user32.dll")
-	MessageBox := user32.NewProc("MessageBoxW")
-
 	uType := MB_OK | MB_ICONERROR
 
-	syscall.Syscall6(MessageBox.Addr(), 4,
+	syscall.SyscallN(MessageBox.Addr(),
 		uintptr(unsafe.Pointer(nil)), uintptr(unsafe.Pointer(toNativePtr(text))),
-		uintptr(unsafe.Pointer(toNativePtr(caption))), uintptr(uType),
-		0, 0)
+		uintptr(unsafe.Pointer(toNativePtr(caption))), uintptr(uType))
 }
 
 func logError(msg string, err error) {
@@ -47,4 +59,22 @@ func logError(msg string, err error) {
 	}
 
 	messageBoxError(text, "Fyne Error")
+}
+
+func setDisableScreenBlank(disable bool) {
+	uType := ES_CONTINUOUS
+	if disable {
+		uType |= ES_DISPLAY_REQUIRED
+	}
+
+	syscall.SyscallN(executionState.Addr(), uintptr(uType))
+}
+
+func (d *gLDriver) DoubleTapDelay() time.Duration {
+	// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getdoubleclicktime
+	if getDoubleClickTime == nil {
+		return desktopDefaultDoubleTapDelay
+	}
+	r1, _, _ := syscall.SyscallN(getDoubleClickTime.Addr())
+	return time.Duration(uint64(r1) * uint64(time.Millisecond))
 }

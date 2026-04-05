@@ -8,7 +8,7 @@ const (
 	BuildStandard BuildType = iota
 	// BuildDebug is used when a developer would like more information and visual output for app debugging.
 	BuildDebug
-	// BuildRelease is a final production build, it is like BuildStandard but will use distribution certificates.
+	// BuildRelease is a final production build, it is like [BuildStandard] but will use distribution certificates.
 	// A release build is typically going to connect to live services and is not usually used during development.
 	BuildRelease
 )
@@ -27,7 +27,17 @@ type Settings interface {
 	// Since: 1.4
 	PrimaryColor() string
 
+	// AddChangeListener subscribes to settings change events over a channel.
+	//
+	// Deprecated: Use AddListener instead, which uses a callback-based API
+	// with the callback guaranteed to be invoked on the app goroutine.
 	AddChangeListener(chan Settings)
+
+	// AddListener registers a callback that is invoked whenever the settings change.
+	//
+	// Since: 2.6
+	AddListener(func(Settings))
+
 	BuildType() BuildType
 
 	ShowAnimations() bool

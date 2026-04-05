@@ -3,8 +3,26 @@ package mathutil
 import "github.com/gookit/goutil/comdef"
 
 // IsNumeric returns true if the given character is a numeric, otherwise false.
-func IsNumeric(c byte) bool {
-	return c >= '0' && c <= '9'
+func IsNumeric(c byte) bool { return c >= '0' && c <= '9' }
+
+// IsInteger strict check the given value is an integer(intX,uintX), otherwise false.
+func IsInteger(val any) bool {
+	switch val.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsFloat returns true if the given character is a float(32/64), otherwise false.
+func IsFloat(val any) bool {
+	switch val.(type) {
+	case float32, float64:
+		return true
+	default:
+		return false
+	}
 }
 
 // Compare any intX,floatX value by given op. returns `first op(=,!=,<,<=,>,>=) second`
@@ -56,7 +74,7 @@ func CompFloat[T comdef.Float](first, second T, op string) (ok bool) {
 }
 
 // CompValue compare intX,uintX,floatX value. returns `first op(=,!=,<,<=,>,>=) second`
-func CompValue[T comdef.XintOrFloat](first, second T, op string) (ok bool) {
+func CompValue[T comdef.Number](first, second T, op string) (ok bool) {
 	switch op {
 	case "<", "lt":
 		ok = first < second
@@ -75,12 +93,12 @@ func CompValue[T comdef.XintOrFloat](first, second T, op string) (ok bool) {
 }
 
 // InRange check if val in int/float range [min, max]
-func InRange[T comdef.IntOrFloat](val, min, max T) bool {
+func InRange[T comdef.Number](val, min, max T) bool {
 	return val >= min && val <= max
 }
 
 // OutRange check if val not in int/float range [min, max]
-func OutRange[T comdef.IntOrFloat](val, min, max T) bool {
+func OutRange[T comdef.Number](val, min, max T) bool {
 	return val < min || val > max
 }
 
@@ -90,4 +108,31 @@ func InUintRange[T comdef.Uint](val, min, max T) bool {
 		return val >= min
 	}
 	return val >= min && val <= max
+}
+
+// InDelta Check whether two floating-point numbers are equal within a specified margin of error
+//
+// Params:
+//   want - 期望的浮点数值
+//   give - 实际给定的浮点数值
+//   delta - 允许的误差范围
+func InDelta[T comdef.Float](want, give T, delta float64) bool {
+	diff := float64(want) - float64(give)
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff <= delta
+}
+
+// InDeltaAny Check whether two floating-point numbers are equal within a specified margin of error
+func InDeltaAny(want, give any, delta float64) bool {
+	wantVal, err := ToFloat(want)
+	if err != nil {
+		return false
+	}
+	giveVal, err := ToFloat(give)
+	if err != nil {
+		return false
+	}
+	return InDelta(wantVal, giveVal, delta)
 }

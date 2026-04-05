@@ -1,143 +1,106 @@
-//go:build !ci && !js && !wasm && !test_web_driver && (linux || openbsd || freebsd || netbsd) && !android
-// +build !ci
-// +build !js
-// +build !wasm
-// +build !test_web_driver
-// +build linux openbsd freebsd netbsd
-// +build !android
+//go:build !ci && !wasm && !test_web_driver && !android && !ios && !mobile && (linux || openbsd || freebsd || netbsd) && !tinygo && !noos && !tamago
 
 package app
 
 import (
 	"net/url"
 	"os"
-	"path/filepath"
-	"sync"
+	"os/exec"
+	"sync/atomic"
 
 	"github.com/godbus/dbus/v5"
-	"golang.org/x/sys/execabs"
+	"github.com/rymdport/portal/notification"
+	"github.com/rymdport/portal/openuri"
+	portalSettings "github.com/rymdport/portal/settings"
+	"github.com/rymdport/portal/settings/appearance"
 
 	"fyne.io/fyne/v2"
+	internalapp "fyne.io/fyne/v2/internal/app"
+	"fyne.io/fyne/v2/internal/build"
 	"fyne.io/fyne/v2/theme"
 )
 
-var once sync.Once
-
-func defaultVariant() fyne.ThemeVariant {
-	return findFreedestktopColorScheme()
-}
+const systemTheme = fyne.ThemeVariant(99)
 
 func (a *fyneApp) OpenURL(url *url.URL) error {
-	cmd := execabs.Command("xdg-open", url.String())
+	if build.IsFlatpak {
+		err := openuri.OpenURI("", url.String(), nil)
+		if err != nil {
+			fyne.LogError("Opening url in portal failed", err)
+		}
+		return err
+	}
+
+	cmd := exec.Command("xdg-open", url.String())
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Start()
 }
 
 // fetch color variant from dbus portal desktop settings.
-func findFreedestktopColorScheme() fyne.ThemeVariant {
-	dbusConn, err := dbus.SessionBus()
+func findFreedesktopColorScheme() fyne.ThemeVariant {
+	colorScheme, err := appearance.GetColorScheme()
 	if err != nil {
-		fyne.LogError("Unable to connect to session D-Bus", err)
-		return theme.VariantDark
+		return systemTheme
 	}
 
-	dbusObj := dbusConn.Object("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop")
-	call := dbusObj.Call(
-		"org.freedesktop.portal.Settings.Read",
-		dbus.FlagNoAutoStart,
-		"org.freedesktop.appearance",
-		"color-scheme",
-	)
-	if call.Err != nil {
-		// many desktops don't have this exported yet
-		return theme.VariantDark
-	}
+	return colorSchemeToThemeVariant(colorScheme)
+}
 
-	var value uint8
-	if err = call.Store(&value); err != nil {
-		fyne.LogError("failed to read theme variant from D-Bus", err)
-		return theme.VariantDark
-	}
-
-	// See: https://github.com/flatpak/xdg-desktop-portal/blob/1.16.0/data/org.freedesktop.impl.portal.Settings.xml#L32-L46
-	// 0: No preference
-	// 1: Prefer dark appearance
-	// 2: Prefer light appearance
-	switch value {
-	case 2:
+func colorSchemeToThemeVariant(colorScheme appearance.ColorScheme) fyne.ThemeVariant {
+	switch colorScheme {
+	case appearance.Light:
 		return theme.VariantLight
-	case 1:
+	case appearance.Dark:
 		return theme.VariantDark
-	default:
-		// Default to light theme to support Gnome's default see https://github.com/fyne-io/fyne/pull/3561
-		return theme.VariantLight
 	}
+
+	// Default to light theme to support Gnome's default see https://github.com/fyne-io/fyne/pull/3561
+	return theme.VariantLight
 }
 
 func (a *fyneApp) SendNotification(n *fyne.Notification) {
+	if build.IsFlatpak {
+		err := a.sendNotificationThroughPortal(n)
+		if err != nil {
+			fyne.LogError("Sending notification using portal failed", err)
+		}
+		return
+	}
+
 	conn, err := dbus.SessionBus() // shared connection, don't close
 	if err != nil {
 		fyne.LogError("Unable to connect to session D-Bus", err)
 		return
 	}
 
-	appName := fyne.CurrentApp().UniqueID()
 	appIcon := a.cachedIconPath()
 	timeout := int32(0) // we don't support this yet
 
 	obj := conn.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-	call := obj.Call("org.freedesktop.Notifications.Notify", 0, appName, uint32(0),
+	call := obj.Call("org.freedesktop.Notifications.Notify", 0, a.uniqueID, uint32(0),
 		appIcon, n.Title, n.Content, []string{}, map[string]dbus.Variant{}, timeout)
 	if call.Err != nil {
 		fyne.LogError("Failed to send message to bus", call.Err)
 	}
 }
 
-func (a *fyneApp) saveIconToCache(dirPath, filePath string) error {
-	err := os.MkdirAll(dirPath, 0700)
-	if err != nil {
-		fyne.LogError("Unable to create application cache directory", err)
-		return err
-	}
+// Sending with same ID replaces the old notification.
+var notificationID atomic.Uint64
 
-	file, err := os.Create(filePath)
-	if err != nil {
-		fyne.LogError("Unable to create icon file", err)
-		return err
-	}
-
-	defer file.Close()
-
-	if icon := a.Icon(); icon != nil {
-		_, err = file.Write(icon.Content())
-		if err != nil {
-			fyne.LogError("Unable to write icon contents", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (a *fyneApp) cachedIconPath() string {
-	if a.Icon() == nil {
-		return ""
-	}
-
-	dirPath := filepath.Join(rootCacheDir(), a.UniqueID())
-	filePath := filepath.Join(dirPath, "icon.png")
-	once.Do(func() {
-		err := a.saveIconToCache(dirPath, filePath)
-		if err != nil {
-			filePath = ""
-		}
-	})
-
-	return filePath
+// See https://flatpak.github.io/xdg-desktop-portal/docs/#gdbus-org.freedesktop.portal.Notification.
+func (a *fyneApp) sendNotificationThroughPortal(n *fyne.Notification) error {
+	return notification.Add(
+		uint(notificationID.Add(1)),
+		notification.Content{
+			Title: n.Title,
+			Body:  n.Content,
+			Icon:  a.uniqueID,
+		},
+	)
 }
 
 // SetSystemTrayMenu creates a system tray item and attaches the specified menu.
-// By default this will use the application icon.
+// By default, this will use the application icon.
 func (a *fyneApp) SetSystemTrayMenu(menu *fyne.Menu) {
 	if desk, ok := a.Driver().(systrayDriver); ok { // don't use this on mobile tag
 		desk.SetSystemTrayMenu(menu)
@@ -152,51 +115,36 @@ func (a *fyneApp) SetSystemTrayIcon(icon fyne.Resource) {
 	}
 }
 
-func rootConfigDir() string {
-	desktopConfig, _ := os.UserConfigDir()
-	return filepath.Join(desktopConfig, "fyne")
+// SetSystemTrayWindow assigns a window to be shown with the system tray menu is tapped.
+// You should have previously called `SetSystemTrayMenu` to initialise the menu icon.
+func (a *fyneApp) SetSystemTrayWindow(w fyne.Window) {
+	a.Driver().(systrayDriver).SetSystemTrayWindow(w)
 }
 
-func rootCacheDir() string {
-	desktopCache, _ := os.UserCacheDir()
-	return filepath.Join(desktopCache, "fyne")
-}
-
-func watchTheme() {
-	go watchFreedekstopThemeChange()
-}
-
-func themeChanged() {
-	fyne.CurrentApp().Settings().(*settings).setupTheme()
-}
-
-// connect to dbus to detect color-schem theme changes in portal settings.
-func watchFreedekstopThemeChange() {
-	conn, err := dbus.SessionBus()
-	if err != nil {
-		fyne.LogError("Unable to connect to session D-Bus", err)
-		return
-	}
-
-	if err := conn.AddMatchSignal(
-		dbus.WithMatchObjectPath("/org/freedesktop/portal/desktop"),
-		dbus.WithMatchInterface("org.freedesktop.portal.Settings"),
-		dbus.WithMatchMember("SettingChanged"),
-	); err != nil {
-		fyne.LogError("D-Bus signal match failed", err)
-		return
-	}
-	defer conn.Close()
-
-	dbusChan := make(chan *dbus.Signal)
-	conn.Signal(dbusChan)
-
-	for sig := range dbusChan {
-		for _, v := range sig.Body {
-			if v == "color-scheme" {
-				themeChanged()
-				break
-			}
+func watchTheme(s *settings) {
+	go func() {
+		// Theme lookup hangs on some desktops. Update theme variant cache from within goroutine.
+		themeVariant := findFreedesktopColorScheme()
+		if themeVariant != systemTheme {
+			internalapp.CurrentVariant.Store(uint64(themeVariant))
+			fyne.Do(func() { s.applyVariant(themeVariant) })
 		}
-	}
+
+		portalSettings.OnSignalSettingChanged(func(changed portalSettings.Changed) {
+			if changed.Namespace == appearance.Namespace && changed.Key == "color-scheme" {
+				themeVariant := colorSchemeToThemeVariant(appearance.ColorScheme(changed.Value.(uint32)))
+				internalapp.CurrentVariant.Store(uint64(themeVariant))
+				fyne.Do(func() { s.applyVariant(themeVariant) })
+			}
+		})
+	}()
+}
+
+func (a *fyneApp) registerRepositories() {
+	// no-op
+}
+
+func (s *settings) applyVariant(variant fyne.ThemeVariant) {
+	s.variant = variant
+	s.apply()
 }

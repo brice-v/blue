@@ -3,7 +3,6 @@ package strutil
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/gookit/goutil/comdef"
@@ -51,6 +50,14 @@ func OrElse(s, orVal string) string {
 	return orVal
 }
 
+// OrElseNilSafe return default value on s is nil, otherwise return s
+func OrElseNilSafe(s *string, orVal string) string {
+	if s == nil || *s == "" {
+		return orVal
+	}
+	return *s
+}
+
 // OrHandle return fn(s) on s is not empty.
 func OrHandle(s string, fn comdef.StringHandleFunc) string {
 	if s != "" {
@@ -67,34 +74,6 @@ func Valid(ss ...string) string {
 		}
 	}
 	return ""
-}
-
-// Replaces replace multi strings
-//
-//	pairs: {old1: new1, old2: new2, ...}
-//
-// Can also use:
-//
-//	strings.NewReplacer("old1", "new1", "old2", "new2").Replace(str)
-func Replaces(str string, pairs map[string]string) string {
-	return NewReplacer(pairs).Replace(str)
-}
-
-// NewReplacer instance
-func NewReplacer(pairs map[string]string) *strings.Replacer {
-	ss := make([]string, len(pairs)*2)
-	for old, newVal := range pairs {
-		ss = append(ss, old, newVal)
-	}
-	return strings.NewReplacer(ss...)
-}
-
-// WrapTag for given string.
-func WrapTag(s, tag string) string {
-	if s == "" {
-		return s
-	}
-	return fmt.Sprintf("<%s>%s</%s>", tag, s, tag)
 }
 
 // SubstrCount returns the number of times the substr substring occurs in the s string.

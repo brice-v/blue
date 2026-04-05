@@ -1,5 +1,4 @@
-//go:build js && wasm
-// +build js,wasm
+//go:build wasm
 
 package glfw
 
@@ -32,6 +31,7 @@ func Terminate() error {
 	return nil
 }
 
+//gocyclo:ignore
 func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Window, error) {
 	// THINK: Consider https://developer.mozilla.org/en-US/docs/Web/API/Window.open?
 	body := document.Get("body")
@@ -54,8 +54,13 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 	canvas.Set("width", int(float64(width)*devicePixelRatio+0.5))   // Nearest non-negative int.
 	canvas.Set("height", int(float64(height)*devicePixelRatio+0.5)) // Nearest non-negative int.
 
-	canvas.Get("style").Call("setProperty", "width", "100vw")
-	canvas.Get("style").Call("setProperty", "height", "100vh")
+	// Use dvw and dvh if supported; otherwise, fall back to vw and vh.
+	style := canvas.Get("style")
+	setProperty := style.Get("setProperty").Call("bind", style)
+	setProperty.Invoke("width", "100vw")
+	setProperty.Invoke("width", "100dvw")
+	setProperty.Invoke("height", "100vh")
+	setProperty.Invoke("height", "100dvh")
 
 	document.Set("title", title)
 
@@ -103,7 +108,30 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		}
 	}
 
-	js.Global().Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	w.eventHandlerCleanups = make([]func(), 0, 11)
+	newJsFuncFrom := func(handler func(this js.Value, args []js.Value) any) js.Func {
+		function := js.FuncOf(handler)
+		w.eventHandlerCleanups = append(w.eventHandlerCleanups, function.Release)
+		return function
+	}
+
+	addGlobalEventListener := js.Global().Get("addEventListener").Call("bind", js.Global())
+
+	addGlobalEventListener.Invoke("focus", newJsFuncFrom(func(this js.Value, args []js.Value) any {
+		if w.focusCallback != nil {
+			w.focusCallback(w, true)
+		}
+		return nil
+	}))
+
+	addGlobalEventListener.Invoke("blur", newJsFuncFrom(func(this js.Value, args []js.Value) any {
+		if w.focusCallback != nil {
+			w.focusCallback(w, false)
+		}
+		return nil
+	}))
+
+	addGlobalEventListener.Invoke("resize", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		// HACK: Go fullscreen?
 		w.devicePixelRatio = js.Global().Get("devicePixelRatio").Float()
 		widthScaled, heightScaled := w.GetSize()
@@ -122,7 +150,9 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		return nil
 	}))
 
-	document.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	addDocumentEventListener := document.Get("addEventListener").Call("bind", document)
+
+	addDocumentEventListener.Invoke("keydown", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		ke := args[0]
 		w.goFullscreenIfRequested()
 
@@ -139,14 +169,12 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 			w.keys = append(w.keys, make([]Action, neededSize-len(w.keys))...)
 		}
 		w.keys[key] = action
-
+		mods := toModifierKey(ke)
 		if w.keyCallback != nil {
-			mods := toModifierKey(ke)
-
 			go w.keyCallback(w, key, -1, action, mods)
 		}
 
-		if w.charCallback != nil {
+		if w.charCallback != nil && mods < 2 {
 			keyStr := ke.Get("key").String()
 			if len(keyStr) == 1 {
 				keyRune := []rune(keyStr)
@@ -157,7 +185,7 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		ke.Call("preventDefault")
 		return nil
 	}))
-	document.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	addDocumentEventListener.Invoke("keyup", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		ke := args[0]
 		w.goFullscreenIfRequested()
 
@@ -179,7 +207,7 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		ke.Call("preventDefault")
 		return nil
 	}))
-	document.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	addDocumentEventListener.Invoke("mousedown", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		me := args[0]
 		w.goFullscreenIfRequested()
 
@@ -196,7 +224,7 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		me.Call("preventDefault")
 		return nil
 	}))
-	document.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	addDocumentEventListener.Invoke("mouseup", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		me := args[0]
 		w.goFullscreenIfRequested()
 
@@ -213,13 +241,13 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		me.Call("preventDefault")
 		return nil
 	}))
-	document.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	addDocumentEventListener.Invoke("contextmenu", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		me := args[0]
 		me.Call("preventDefault")
 		return nil
 	}))
 
-	document.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	addDocumentEventListener.Invoke("mousemove", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		me := args[0]
 		var movementX, movementY float64
 		if !w.missing.pointerLock {
@@ -242,7 +270,7 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		me.Call("preventDefault")
 		return nil
 	}))
-	document.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	addDocumentEventListener.Invoke("wheel", newJsFuncFrom(func(this js.Value, args []js.Value) any {
 		we := args[0]
 
 		deltaX := we.Get("deltaX").Float()
@@ -299,8 +327,16 @@ func CreateWindow(_, _ int, title string, monitor *Monitor, share *Window) (*Win
 		document.AddEventListener("touchmove", false, touchHandler)
 		document.AddEventListener("touchend", false, touchHandler)*/
 
+	addDocumentEventListener.Invoke("beforeUnload", newJsFuncFrom(func(this js.Value, args []js.Value) any {
+		if w.closeCallback != nil {
+			w.closeCallback(w)
+		}
+		return nil
+	}))
+
 	// Request first animation frame.
-	js.Global().Call("requestAnimationFrame", animationFrameCallback)
+	w.requestAnimationFrame = js.Global().Get("requestAnimationFrame").Call("bind", js.Global())
+	w.requestAnimationFrame.Invoke(animationFrameCallback)
 
 	return w, nil
 }
@@ -342,8 +378,13 @@ type Window struct {
 	charCallback            CharCallback
 	framebufferSizeCallback FramebufferSizeCallback
 	sizeCallback            SizeCallback
+	focusCallback           FocusCallback
+	closeCallback           CloseCallback
 
 	touches js.Value // Hacky mouse-emulation-via-touch.
+
+	eventHandlerCleanups  []func()
+	requestAnimationFrame js.Value
 }
 
 func (w *Window) SetPos(xpos, ypos int) {
@@ -354,7 +395,7 @@ func (w *Window) SetSize(width, height int) {
 	fmt.Println("not implemented: SetSize:", width, height)
 }
 
-func (w *Window) SetIcon(images interface{}) {
+func (w *Window) SetIcon(images any) {
 	// images is actually of type []image.Image, but no need to import image until we actually do something with it
 	fmt.Println("not implemented: SetIcon")
 }
@@ -503,14 +544,14 @@ func (w *Window) SetShouldClose(value bool) {
 
 func (w *Window) SwapBuffers() error {
 	<-animationFrameChan
-	js.Global().Call("requestAnimationFrame", animationFrameCallback)
+	w.requestAnimationFrame.Invoke(animationFrameCallback)
 
 	return nil
 }
 
 var animationFrameChan = make(chan struct{}, 1)
 
-var animationFrameCallback = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+var animationFrameCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
 	animationFrameChan <- struct{}{}
 
 	return nil
@@ -568,8 +609,10 @@ func (w *Window) GetInputMode(mode InputMode) int {
 	}
 }
 
-var ErrInvalidParameter = errors.New("invalid parameter")
-var ErrInvalidValue = errors.New("invalid value")
+var (
+	ErrInvalidParameter = errors.New("invalid parameter")
+	ErrInvalidValue     = errors.New("invalid value")
+)
 
 func (w *Window) SetInputMode(mode InputMode, value int) {
 	switch mode {
@@ -613,8 +656,9 @@ func (w *Window) SetInputMode(mode InputMode, value int) {
 type Key int
 
 // TODO: Keys defined as -iota-2 need to be set to a valid positive value that matches the keyCode
-//       generated by browsers. -iota-2 is used as a temporary solution to have unique but invalid values.
-//       See https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode.
+//
+//	generated by browsers. -iota-2 is used as a temporary solution to have unique but invalid values.
+//	See https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode.
 const (
 	KeyUnknown      Key = -1
 	KeySpace        Key = 32
@@ -939,11 +983,11 @@ func DefaultWindowHints() {
 }
 
 func (w *Window) SetClipboardString(str string) {
-	// TODO: Implement.
+	SetClipboardString(str)
 }
-func (w *Window) GetClipboardString() (string, error) {
-	// TODO: Implement.
-	return "", errors.New("GetClipboardString not implemented")
+
+func (w *Window) GetClipboardString() string {
+	return GetClipboardString()
 }
 
 func (w *Window) SetTitle(title string) {
@@ -968,15 +1012,18 @@ func (w *Window) Destroy() {
 			w.fullscreen = false
 		}
 	}
+
+	for _, free := range w.eventHandlerCleanups {
+		free()
+	}
 }
 
 type CloseCallback func(w *Window)
 
 func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
-	// TODO: Implement.
-
-	// TODO: Handle previous.
-	return nil
+	previous = w.closeCallback
+	w.closeCallback = cbfun
+	return previous
 }
 
 type RefreshCallback func(w *Window)
@@ -1027,10 +1074,9 @@ func (w *Window) SetPosCallback(cbfun PosCallback) (previous PosCallback) {
 type FocusCallback func(w *Window, focused bool)
 
 func (w *Window) SetFocusCallback(cbfun FocusCallback) (previous FocusCallback) {
-	// TODO: Implement.
-
-	// TODO: Handle previous.
-	return nil
+	previous = w.focusCallback
+	w.focusCallback = cbfun
+	return previous
 }
 
 type IconifyCallback func(w *Window, iconified bool)

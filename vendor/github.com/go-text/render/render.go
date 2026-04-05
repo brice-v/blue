@@ -4,9 +4,10 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"sort"
 
 	"github.com/go-text/typesetting/font"
-	"github.com/go-text/typesetting/opentype/api"
+	"github.com/go-text/typesetting/font/opentype"
 	"github.com/go-text/typesetting/shaping"
 	"github.com/srwiley/rasterx"
 	"golang.org/x/image/math/fixed"
@@ -26,48 +27,68 @@ type Renderer struct {
 	// Color is the pen colour for rendering
 	Color color.Color
 
-	shaper      shaping.Shaper
+	segmenter   shaping.Segmenter
+	shaper      shaping.HarfbuzzShaper
+	wrapper     shaping.LineWrapper
 	filler      *rasterx.Filler
 	fillerScale float32
+}
+
+func (r *Renderer) shape(str string, face *font.Face) (_ shaping.Line, ascent int) {
+	text := []rune(str)
+	in := shaping.Input{
+		Text:     text,
+		RunStart: 0,
+		RunEnd:   len(text),
+		Face:     face,
+		Size:     fixed.I(int(r.FontSize)),
+	}
+
+	runs := r.segmenter.Split(in, singleFontMap{face})
+
+	line := make(shaping.Line, len(runs))
+	for i, run := range runs {
+		line[i] = r.shaper.Shape(run)
+		if a := line[i].LineBounds.Ascent.Ceil(); a > ascent {
+			ascent = a
+		}
+	}
+
+	// overall direction of the text, deduced from the first runes
+	direction := line[0].Direction
+	r.wrapper.Prepare(shaping.WrapConfig{Direction: direction}, text, shaping.NewSliceIterator(line))
+	wrapped, _ := r.wrapper.WrapNextLine(math.MaxInt)
+	line = wrapped.Line
+
+	// sort the line by visual order
+	sort.Slice(line, func(i, j int) bool { return line[i].VisualIndex < line[j].VisualIndex })
+
+	return line, ascent
 }
 
 // DrawString will rasterise the given string into the output image using the specified font face.
 // The text will be drawn starting at the left edge, down from the image top by the
 // font ascent value, so that the text is all visible.
 // The return value is the X pixel position of the end of the drawn string.
-func (r *Renderer) DrawString(str string, img draw.Image, face font.Face) int {
-	if r.PixScale == 0 {
-		r.PixScale = 1
+func (r *Renderer) DrawString(str string, img draw.Image, face *font.Face) int {
+	line, ascent := r.shape(str, face)
+	x := 0
+	for _, run := range line {
+		x = r.DrawShapedRunAt(run, img, x, ascent)
 	}
-
-	in := shaping.Input{
-		Text:     []rune(str),
-		RunStart: 0,
-		RunEnd:   len(str),
-		Face:     face,
-		Size:     fixed.I(int(r.FontSize)),
-	}
-	out := r.cachedShaper().Shape(in)
-	return r.DrawShapedRunAt(out, img, 0, out.LineBounds.Ascent.Ceil())
+	return x
 }
 
 // DrawStringAt will rasterise the given string into the output image using the specified font face.
 // The text will be drawn starting at the x, y pixel position.
 // Note that x and y are not multiplied by the `PixScale` value as they refer to output coordinates.
 // The return value is the X pixel position of the end of the drawn string.
-func (r *Renderer) DrawStringAt(str string, img draw.Image, x, y int, face font.Face) int {
-	if r.PixScale == 0 {
-		r.PixScale = 1
+func (r *Renderer) DrawStringAt(str string, img draw.Image, x, y int, face *font.Face) int {
+	line, _ := r.shape(str, face)
+	for _, run := range line {
+		x = r.DrawShapedRunAt(run, img, x, y)
 	}
-
-	in := shaping.Input{
-		Text:     []rune(str),
-		RunStart: 0,
-		RunEnd:   len(str),
-		Face:     face,
-		Size:     fixed.I(int(r.FontSize)),
-	}
-	return r.DrawShapedRunAt(r.cachedShaper().Shape(in), img, x, y)
+	return x
 }
 
 // DrawShapedRunAt will rasterise the given shaper run into the output image using font face referenced in the shaping.
@@ -93,40 +114,32 @@ func (r *Renderer) DrawShapedRunAt(run shaping.Output, img draw.Image, startX, s
 		yPos := y - fixed266ToFloat(g.YOffset)*r.PixScale
 		data := run.Face.GlyphData(g.GlyphID)
 		switch format := data.(type) {
-		case api.GlyphOutline:
+		case font.GlyphOutline:
 			r.drawOutline(g, format, f, scale, xPos, yPos)
-		case api.GlyphBitmap:
+		case font.GlyphBitmap:
 			_ = r.drawBitmap(g, format, img, xPos, yPos)
-		case api.GlyphSVG:
+		case font.GlyphSVG:
 			_ = r.drawSVG(g, format, img, xPos, yPos)
 		}
 
-		x += fixed266ToFloat(g.XAdvance) * r.PixScale
+		x += fixed266ToFloat(g.Advance) * r.PixScale
 	}
 	f.Draw()
 	r.filler = nil
 	return int(math.Ceil(float64(x)))
 }
 
-func (r *Renderer) cachedShaper() shaping.Shaper {
-	if r.shaper == nil {
-		r.shaper = &shaping.HarfbuzzShaper{}
-	}
-
-	return r.shaper
-}
-
-func (r *Renderer) drawOutline(g shaping.Glyph, bitmap api.GlyphOutline, f *rasterx.Filler, scale float32, x, y float32) {
+func (r *Renderer) drawOutline(g shaping.Glyph, bitmap font.GlyphOutline, f *rasterx.Filler, scale float32, x, y float32) {
 	for _, s := range bitmap.Segments {
 		switch s.Op {
-		case api.SegmentOpMoveTo:
+		case opentype.SegmentOpMoveTo:
 			f.Start(fixed.Point26_6{X: floatToFixed266(s.Args[0].X*scale + x), Y: floatToFixed266(-s.Args[0].Y*scale + y)})
-		case api.SegmentOpLineTo:
+		case opentype.SegmentOpLineTo:
 			f.Line(fixed.Point26_6{X: floatToFixed266(s.Args[0].X*scale + x), Y: floatToFixed266(-s.Args[0].Y*scale + y)})
-		case api.SegmentOpQuadTo:
+		case opentype.SegmentOpQuadTo:
 			f.QuadBezier(fixed.Point26_6{X: floatToFixed266(s.Args[0].X*scale + x), Y: floatToFixed266(-s.Args[0].Y*scale + y)},
 				fixed.Point26_6{X: floatToFixed266(s.Args[1].X*scale + x), Y: floatToFixed266(-s.Args[1].Y*scale + y)})
-		case api.SegmentOpCubeTo:
+		case opentype.SegmentOpCubeTo:
 			f.CubeBezier(fixed.Point26_6{X: floatToFixed266(s.Args[0].X*scale + x), Y: floatToFixed266(-s.Args[0].Y*scale + y)},
 				fixed.Point26_6{X: floatToFixed266(s.Args[1].X*scale + x), Y: floatToFixed266(-s.Args[1].Y*scale + y)},
 				fixed.Point26_6{X: floatToFixed266(s.Args[2].X*scale + x), Y: floatToFixed266(-s.Args[2].Y*scale + y)})
@@ -142,3 +155,9 @@ func fixed266ToFloat(i fixed.Int26_6) float32 {
 func floatToFixed266(f float32) fixed.Int26_6 {
 	return fixed.Int26_6(int(float64(f) * 64))
 }
+
+type singleFontMap struct {
+	face *font.Face
+}
+
+func (sf singleFontMap) ResolveFace(rune) *font.Face { return sf.face }

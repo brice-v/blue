@@ -16,6 +16,25 @@ const (
 	KeySepChar = '.'
 )
 
+// Copy copies all key/value pairs in src adding them to dst.
+// When a key in src is already present in dst,
+// the value in dst will be overwritten by the value associated
+// with the key in src.
+func Copy[M1 ~map[K]V, M2 ~map[K]V, K comparable, V any](dst M1, src M2) {
+	for k, v := range src {
+		dst[k] = v
+	}
+}
+
+// DeleteFunc deletes any key/value pairs from m for which del returns true.
+func DeleteFunc[M ~map[K]V, K comparable, V any](m M, del func(K, V) bool) {
+	for k, v := range m {
+		if del(k, v) {
+			delete(m, k)
+		}
+	}
+}
+
 // SimpleMerge simple merge two data map by string key. will merge the src to dst map
 func SimpleMerge(src, dst map[string]any) map[string]any {
 	if len(src) == 0 {
@@ -39,12 +58,33 @@ func SimpleMerge(src, dst map[string]any) map[string]any {
 	return dst
 }
 
+// Merge1level merge multi any map[string]any data. only merge one level data.
+func Merge1level(mps ...map[string]any) map[string]any {
+	newMp := make(map[string]any)
+	for _, mp := range mps {
+		for k, v := range mp {
+			newMp[k] = v
+		}
+	}
+	return newMp
+}
+
 // func DeepMerge(src, dst map[string]any, deep int) map[string]any { TODO
 // }
 
 // MergeSMap simple merge two string map. merge src to dst map
 func MergeSMap(src, dst map[string]string, ignoreCase bool) map[string]string {
 	return MergeStringMap(src, dst, ignoreCase)
+}
+
+// MergeStrMap simple merge two string map. merge src to dst map
+func MergeStrMap(src, dst map[string]string) map[string]string {
+	return MergeStringMap(src, dst, false)
+}
+
+// AppendSMap append string map data to dst map.
+func AppendSMap(dst, src map[string]string) map[string]string {
+	return MergeStringMap(src, dst, false)
 }
 
 // MergeStringMap simple merge two string map. merge src to dst map
@@ -71,6 +111,25 @@ func MergeMultiSMap(mps ...map[string]string) map[string]string {
 	for _, mp := range mps {
 		for k, v := range mp {
 			newMp[k] = v
+		}
+	}
+	return newMp
+}
+
+// MergeL2StrMap merge multi level2 string-map data. The back map covers the front.
+func MergeL2StrMap(mps ...map[string]map[string]string) map[string]map[string]string {
+	newMp := make(map[string]map[string]string)
+	for _, mp := range mps {
+		for k, v := range mp {
+			// merge level 2 value
+			if oldV, ok := newMp[k]; ok {
+				for k1, v1 := range v {
+					oldV[k1] = v1
+				}
+				newMp[k] = oldV
+			} else {
+				newMp[k] = v
+			}
 		}
 	}
 	return newMp

@@ -1,5 +1,4 @@
 //go:build android
-// +build android
 
 package mobile
 
@@ -11,6 +10,7 @@ package mobile
 char* contentURIGetFileName(uintptr_t jni_env, uintptr_t ctx, char* uriCstr);
 */
 import "C"
+
 import (
 	"path/filepath"
 	"unsafe"

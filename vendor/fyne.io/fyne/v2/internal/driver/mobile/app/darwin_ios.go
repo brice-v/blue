@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build darwin && ios
-// +build darwin,ios
 
 package app
 
@@ -34,6 +33,7 @@ void showFileSavePicker(char* mimes, char *exts);
 void closeFileResource(void* urlPtr);
 */
 import "C"
+
 import (
 	"log"
 	"runtime"
@@ -74,8 +74,10 @@ func main(f func(App)) {
 	panic("unexpected return from app.runApp")
 }
 
-var pixelsPerPt float32
-var screenScale int // [UIScreen mainScreen].scale, either 1, 2, or 3.
+var (
+	pixelsPerPt float32
+	screenScale int // [UIScreen mainScreen].scale, either 1, 2, or 3.
+)
 
 var DisplayMetrics struct {
 	WidthPx  int
@@ -211,6 +213,11 @@ func lifecycleVisible() { theApp.sendLifecycle(lifecycle.StageVisible) }
 //export lifecycleFocused
 func lifecycleFocused() { theApp.sendLifecycle(lifecycle.StageFocused) }
 
+//export lifecycleMemoryWarning
+func lifecycleMemoryWarning() {
+	cleanCaches()
+}
+
 //export drawloop
 func drawloop() {
 	runtime.LockOSThread()
@@ -223,7 +230,7 @@ func drawloop() {
 		case <-theApp.publish:
 			theApp.publishResult <- PublishResult{}
 			return
-		case <-time.After(100 * time.Millisecond): // incase the method blocked!!
+		case <-time.After(100 * time.Millisecond): // in case the method blocked!!
 			return
 		}
 	}

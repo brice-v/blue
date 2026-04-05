@@ -4,8 +4,11 @@ import (
 	"image/color"
 	"math"
 	"strings"
-	"sync"
 	"unicode"
+
+	"github.com/go-text/typesetting/di"
+	"github.com/go-text/typesetting/shaping"
+	"golang.org/x/image/math/fixed"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -14,23 +17,24 @@ import (
 	"fyne.io/fyne/v2/internal/widget"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
-	"github.com/go-text/typesetting/di"
-	"github.com/go-text/typesetting/shaping"
-	"golang.org/x/image/math/fixed"
 )
 
-const (
-	passwordChar = "•"
-)
+const passwordChar = "•"
+
+var _ fyne.Widget = (*RichText)(nil)
 
 // RichText represents the base element for a rich text-based widget.
 //
 // Since: 2.1
 type RichText struct {
 	BaseWidget
-	Segments   []RichTextSegment
-	Wrapping   fyne.TextWrap
-	Scroll     widget.ScrollDirection
+	Segments []RichTextSegment
+	Wrapping fyne.TextWrap
+	Scroll   fyne.ScrollDirection
+
+	// The truncation mode of the text
+	//
+	// Since: 2.4
 	Truncation fyne.TextTruncation
 
 	inset     fyne.Size     // this varies due to how the widget works (entry with scroller vs others with padding)
@@ -39,7 +43,6 @@ type RichText struct {
 	prop      *canvas.Rectangle // used to apply text minsize to the scroller `scr`, if present - TODO improve #2464
 
 	visualCache map[RichTextSegment][]fyne.CanvasObject
-	cacheLock   sync.Mutex
 	minCache    fyne.Size
 }
 
@@ -50,7 +53,6 @@ type RichText struct {
 func NewRichText(segments ...RichTextSegment) *RichText {
 	t := &RichText{Segments: segments}
 	t.Scroll = widget.ScrollNone
-	t.updateRowBounds()
 	return t
 }
 
@@ -70,7 +72,8 @@ func (t *RichText) CreateRenderer() fyne.WidgetRenderer {
 	t.prop = canvas.NewRectangle(color.Transparent)
 	if t.scr == nil && t.Scroll != widget.ScrollNone {
 		t.scr = widget.NewScroll(&fyne.Container{Layout: layout.NewStackLayout(), Objects: []fyne.CanvasObject{
-			t.prop, &fyne.Container{}}})
+			t.prop, &fyne.Container{},
+		}})
 	}
 
 	t.ExtendBaseWidget(t)
@@ -93,34 +96,32 @@ func (t *RichText) MinSize() fyne.Size {
 }
 
 // Refresh triggers a redraw of the rich text.
-//
-// Implements: fyne.Widget
 func (t *RichText) Refresh() {
 	t.minCache = fyne.Size{}
 	t.updateRowBounds()
+
+	for _, s := range t.Segments {
+		if txt, ok := s.(*TextSegment); ok {
+			txt.parent = t
+		}
+	}
 
 	t.BaseWidget.Refresh()
 }
 
 // Resize sets a new size for the rich text.
 // This should only be called if it is not in a container with a layout manager.
-//
-// Implements: fyne.Widget
 func (t *RichText) Resize(size fyne.Size) {
-	t.propertyLock.RLock()
-	baseSize := t.size
-	segments := t.Segments
-	skipResize := !t.minCache.IsZero() && size.Width >= t.minCache.Width && size.Height >= t.minCache.Height && t.Wrapping == fyne.TextWrapOff && t.Truncation == fyne.TextTruncateOff
-	t.propertyLock.RUnlock()
-	if baseSize == size {
+	if size == t.Size() {
 		return
 	}
-	t.propertyLock.Lock()
+
 	t.size = size
-	t.propertyLock.Unlock()
+
+	skipResize := !t.minCache.IsZero() && size.Width >= t.minCache.Width && size.Height >= t.minCache.Height && t.Wrapping == fyne.TextWrapOff && t.Truncation == fyne.TextTruncateOff
 
 	if skipResize {
-		if len(segments) < 2 { // we can simplify :)
+		if len(t.Segments) < 2 { // we can simplify :)
 			cache.Renderer(t).Layout(size)
 			return
 		}
@@ -139,20 +140,24 @@ func (t *RichText) String() string {
 	return ret.String()
 }
 
-// CharMinSize returns the average char size to use for internal computation
-func (t *RichText) charMinSize(concealed bool, style fyne.TextStyle) fyne.Size {
+// charMinSize returns the average char size to use for internal computation
+func (t *RichText) charMinSize(concealed bool, style fyne.TextStyle, textSize float32) fyne.Size {
 	defaultChar := "M"
 	if concealed {
 		defaultChar = passwordChar
 	}
 
-	return fyne.MeasureText(defaultChar, theme.TextSize(), style)
+	return fyne.MeasureText(defaultChar, textSize, style)
 }
 
 // deleteFromTo removes the text between the specified positions
-func (t *RichText) deleteFromTo(lowBound int, highBound int) string {
+func (t *RichText) deleteFromTo(lowBound int, highBound int) []rune {
+	if lowBound >= highBound {
+		return []rune{}
+	}
+
 	start := 0
-	var ret []rune
+	ret := make([]rune, 0, highBound-lowBound)
 	deleting := false
 	var segs []RichTextSegment
 	for i, seg := range t.Segments {
@@ -171,10 +176,8 @@ func (t *RichText) deleteFromTo(lowBound int, highBound int) string {
 
 		startOff := int(math.Max(float64(lowBound-start), 0))
 		endOff := int(math.Min(float64(end), float64(highBound))) - start
-		deleted := make([]rune, endOff-startOff)
 		r := ([]rune)(seg.(*TextSegment).Text)
-		copy(deleted, r[startOff:endOff])
-		ret = append(ret, deleted...)
+		ret = append(ret, r[startOff:endOff]...)
 		r2 := append(r[:startOff], r[endOff:]...)
 		seg.(*TextSegment).Text = string(r2)
 		segs = append(segs, seg)
@@ -190,14 +193,12 @@ func (t *RichText) deleteFromTo(lowBound int, highBound int) string {
 	}
 	t.Segments = segs
 	t.Refresh()
-	return string(ret)
+	return ret
 }
 
 // cachedSegmentVisual returns a cached segment visual representation.
 // The offset value is > 0 if the segment had been split and so we need multiple objects.
 func (t *RichText) cachedSegmentVisual(seg RichTextSegment, offset int) fyne.CanvasObject {
-	t.cacheLock.Lock()
-	defer t.cacheLock.Unlock()
 	if t.visualCache == nil {
 		t.visualCache = make(map[RichTextSegment][]fyne.CanvasObject)
 	}
@@ -215,8 +216,31 @@ func (t *RichText) cachedSegmentVisual(seg RichTextSegment, offset int) fyne.Can
 	return vis
 }
 
+func (t *RichText) cleanVisualCache() {
+	if len(t.visualCache) <= len(t.Segments) {
+		return
+	}
+	var deletingSegs []RichTextSegment
+	for seg1 := range t.visualCache {
+		found := false
+		for _, seg2 := range t.Segments {
+			if seg1 == seg2 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			// cached segment is not currently in t.Segments, clear it
+			deletingSegs = append(deletingSegs, seg1)
+		}
+	}
+	for _, seg := range deletingSegs {
+		delete(t.visualCache, seg)
+	}
+}
+
 // insertAt inserts the text at the specified position
-func (t *RichText) insertAt(pos int, runes string) {
+func (t *RichText) insertAt(pos int, runes []rune) {
 	index := 0
 	start := 0
 	var into *TextSegment
@@ -241,7 +265,7 @@ func (t *RichText) insertAt(pos int, runes string) {
 	if pos > len(r) { // safety in case position is out of bounds for the segment
 		pos = len(r)
 	}
-	r2 := append(r[:pos], append([]rune(runes), r[pos:]...)...)
+	r2 := append(r[:pos], append(runes, r[pos:]...)...)
 	into.Text = string(r2)
 	t.Segments[index] = into
 }
@@ -256,7 +280,7 @@ func (t *RichText) len() int {
 }
 
 // lineSizeToColumn returns the rendered size for the line specified by row up to the col position
-func (t *RichText) lineSizeToColumn(col, row int) fyne.Size {
+func (t *RichText) lineSizeToColumn(col, row int, textSize, innerPad float32) fyne.Size {
 	if row < 0 {
 		row = 0
 	}
@@ -268,7 +292,7 @@ func (t *RichText) lineSizeToColumn(col, row int) fyne.Size {
 	counted := 0
 	last := false
 	if bound == nil {
-		return t.charMinSize(false, fyne.TextStyle{})
+		return t.charMinSize(false, fyne.TextStyle{}, textSize)
 	}
 	for i, seg := range bound.segments {
 		var size fyne.Size
@@ -302,7 +326,7 @@ func (t *RichText) lineSizeToColumn(col, row int) fyne.Size {
 			break
 		}
 	}
-	return total.Add(fyne.NewSize(theme.InnerPadding()-t.inset.Width, 0))
+	return total.Add(fyne.NewSize(innerPad-t.inset.Width, 0))
 }
 
 // Row returns the characters in the row specified.
@@ -332,8 +356,6 @@ func (t *RichText) row(row int) []rune {
 // RowBoundary returns the boundary of the row specified.
 // The row parameter should be between 0 and t.Rows()-1.
 func (t *RichText) rowBoundary(row int) *rowBoundary {
-	t.propertyLock.RLock()
-	defer t.propertyLock.RUnlock()
 	if row < 0 || row >= t.rows() {
 		return nil
 	}
@@ -349,22 +371,25 @@ func (t *RichText) rowLength(row int) int {
 // rows returns the number of text rows in this text entry.
 // The entry may be longer than required to show this amount of content.
 func (t *RichText) rows() int {
+	if t.rowBounds == nil { // if the widget API is used before it is shown
+		t.updateRowBounds()
+	}
 	return len(t.rowBounds)
 }
 
 // updateRowBounds updates the row bounds used to render properly the text widget.
 // updateRowBounds should be invoked every time a segment Text, widget Wrapping or size changes.
 func (t *RichText) updateRowBounds() {
-	innerPadding := theme.InnerPadding()
+	th := t.Theme()
+	innerPadding := th.Size(theme.SizeNameInnerPadding)
 	fitSize := t.Size()
 	if t.scr != nil {
 		fitSize = t.scr.Content.MinSize()
 	}
 	fitSize.Height -= (innerPadding + t.inset.Height) * 2
 
-	t.propertyLock.RLock()
 	var bounds []rowBoundary
-	maxWidth := t.size.Width - 2*innerPadding + 2*t.inset.Width
+	maxWidth := t.Size().Width - 2*innerPadding + 2*t.inset.Width
 	wrapWidth := maxWidth
 
 	var currentBound *rowBoundary
@@ -395,7 +420,7 @@ func (t *RichText) updateRowBounds() {
 				} else {
 					wrapWidth = maxWidth
 					currentBound = nil
-					fitSize.Height -= itemMin.Height + theme.LineSpacing()
+					fitSize.Height -= itemMin.Height + th.Size(theme.SizeNameLineSpacing)
 				}
 				continue
 			}
@@ -455,11 +480,7 @@ func (t *RichText) updateRowBounds() {
 	}
 
 	iterateSegments(t.Segments)
-	t.propertyLock.RUnlock()
-
-	t.propertyLock.Lock()
 	t.rowBounds = bounds
-	t.propertyLock.Unlock()
 }
 
 // RichTextBlock is an extension of a text segment that contains other segments
@@ -476,18 +497,17 @@ type textRenderer struct {
 }
 
 func (r *textRenderer) Layout(size fyne.Size) {
-	r.obj.propertyLock.RLock()
+	th := r.obj.Theme()
 	bounds := r.obj.rowBounds
 	objs := r.Objects()
 	if r.obj.scr != nil {
 		r.obj.scr.Resize(size)
 		objs = r.obj.scr.Content.(*fyne.Container).Objects[1].(*fyne.Container).Objects
 	}
-	r.obj.propertyLock.RUnlock()
 
 	// Accessing theme here is slow, so we cache the value
-	innerPadding := theme.InnerPadding()
-	lineSpacing := theme.LineSpacing()
+	innerPadding := th.Size(theme.SizeNameInnerPadding)
+	lineSpacing := th.Size(theme.SizeNameLineSpacing)
 
 	xInset := innerPadding - r.obj.inset.Width
 	left := xInset
@@ -548,7 +568,10 @@ func (r *textRenderer) Layout(size fyne.Size) {
 // MinSize calculates the minimum size of a rich text widget.
 // This is based on the contained text with a standard amount of padding added.
 func (r *textRenderer) MinSize() fyne.Size {
-	r.obj.propertyLock.RLock()
+	th := r.obj.Theme()
+	textSize := th.Size(theme.SizeNameText)
+	innerPad := th.Size(theme.SizeNameInnerPadding)
+
 	bounds := r.obj.rowBounds
 	wrap := r.obj.Wrapping
 	trunc := r.obj.Truncation
@@ -557,10 +580,9 @@ func (r *textRenderer) MinSize() fyne.Size {
 	if r.obj.scr != nil {
 		objs = r.obj.scr.Content.(*fyne.Container).Objects[1].(*fyne.Container).Objects
 	}
-	r.obj.propertyLock.RUnlock()
 
-	charMinSize := r.obj.charMinSize(false, fyne.TextStyle{})
-	min := r.calculateMin(bounds, wrap, objs, charMinSize)
+	charMinSize := r.obj.charMinSize(false, fyne.TextStyle{}, textSize)
+	min := r.calculateMin(bounds, wrap, objs, charMinSize, th)
 	if r.obj.scr != nil {
 		r.obj.prop.SetMinSize(min)
 	}
@@ -570,12 +592,12 @@ func (r *textRenderer) MinSize() fyne.Size {
 		if wrap == fyne.TextWrapOff {
 			minBounds.Height = min.Height
 		} else {
-			minBounds = minBounds.Add(fyne.NewSquareSize(theme.InnerPadding() * 2).Subtract(r.obj.inset).Subtract(r.obj.inset))
+			minBounds = minBounds.Add(fyne.NewSquareSize(innerPad * 2).Subtract(r.obj.inset).Subtract(r.obj.inset))
 		}
 		if trunc == fyne.TextTruncateClip {
 			return minBounds
 		} else if trunc == fyne.TextTruncateEllipsis {
-			ellipsisSize := fyne.MeasureText("…", theme.TextSize(), fyne.TextStyle{})
+			ellipsisSize := fyne.MeasureText("…", th.Size(theme.SizeNameText), fyne.TextStyle{})
 			return minBounds.AddWidthHeight(ellipsisSize.Width, 0)
 		}
 	}
@@ -592,15 +614,18 @@ func (r *textRenderer) MinSize() fyne.Size {
 	}
 }
 
-func (r *textRenderer) calculateMin(bounds []rowBoundary, wrap fyne.TextWrap, objs []fyne.CanvasObject, charMinSize fyne.Size) fyne.Size {
+func (r *textRenderer) calculateMin(bounds []rowBoundary, wrap fyne.TextWrap, objs []fyne.CanvasObject,
+	charMinSize fyne.Size, th fyne.Theme,
+) fyne.Size {
 	height := float32(0)
 	width := float32(0)
 	rowHeight := float32(0)
 	rowWidth := float32(0)
 	trunc := r.obj.Truncation
+	innerPad := th.Size(theme.SizeNameInnerPadding)
 
 	// Accessing the theme here is slow, so we cache the value
-	lineSpacing := theme.LineSpacing()
+	lineSpacing := th.Size(theme.SizeNameLineSpacing)
 
 	i := 0
 	for row, bound := range bounds {
@@ -613,10 +638,10 @@ func (r *textRenderer) calculateMin(bounds []rowBoundary, wrap fyne.TextWrap, ob
 
 			min := obj.MinSize()
 			if img, ok := obj.(*richImage); ok {
-				if !img.MinSize().Subtract(img.oldMin).IsZero() {
-					img.oldMin = img.MinSize()
+				if newMin := img.MinSize(); newMin != img.oldMin {
+					img.oldMin = newMin
 
-					min := r.calculateMin(bounds, wrap, objs, charMinSize)
+					min := r.calculateMin(bounds, wrap, objs, charMinSize, th)
 					if r.obj.scr != nil {
 						r.obj.prop.SetMinSize(min)
 					}
@@ -644,14 +669,12 @@ func (r *textRenderer) calculateMin(bounds []rowBoundary, wrap fyne.TextWrap, ob
 		height = charMinSize.Height
 	}
 	return fyne.NewSize(width, height).
-		Add(fyne.NewSquareSize(theme.InnerPadding() * 2).Subtract(r.obj.inset).Subtract(r.obj.inset))
+		Add(fyne.NewSquareSize(innerPad * 2).Subtract(r.obj.inset).Subtract(r.obj.inset))
 }
 
 func (r *textRenderer) Refresh() {
-	r.obj.propertyLock.RLock()
 	bounds := r.obj.rowBounds
 	scroll := r.obj.Scroll
-	r.obj.propertyLock.RUnlock()
 
 	var objs []fyne.CanvasObject
 	for _, bound := range bounds {
@@ -694,20 +717,21 @@ func (r *textRenderer) Refresh() {
 		}
 	}
 
-	r.obj.propertyLock.Lock()
 	if r.obj.scr != nil {
 		r.obj.scr.Content = &fyne.Container{Layout: layout.NewStackLayout(), Objects: []fyne.CanvasObject{
-			r.obj.prop, &fyne.Container{Objects: objs}}}
+			r.obj.prop, &fyne.Container{Objects: objs},
+		}}
 		r.obj.scr.Direction = scroll
 		r.SetObjects([]fyne.CanvasObject{r.obj.scr})
 		r.obj.scr.Refresh()
 	} else {
 		r.SetObjects(objs)
 	}
-	r.obj.propertyLock.Unlock()
 
 	r.Layout(r.obj.Size())
 	canvas.Refresh(r.obj.super())
+
+	r.obj.cleanVisualCache()
 }
 
 func (r *textRenderer) layoutRow(texts []fyne.CanvasObject, align fyne.TextAlign, xPos, yPos, lineWidth float32) (float32, float32) {
@@ -737,12 +761,13 @@ func (r *textRenderer) layoutRow(texts []fyne.CanvasObject, align fyne.TextAlign
 	baselines := make([]float32, len(texts))
 
 	// Access to theme is slow, so we cache the text size
-	textSize := theme.TextSize()
+	textSize := theme.SizeForWidget(theme.SizeNameText, r.obj)
 
+	driver := fyne.CurrentApp().Driver()
 	for i, text := range texts {
 		var size fyne.Size
 		if txt, ok := text.(*canvas.Text); ok {
-			s, base := fyne.CurrentApp().Driver().RenderedTextSize(txt.Text, txt.TextSize, txt.TextStyle)
+			s, base := driver.RenderedTextSize(txt.Text, txt.TextSize, txt.TextStyle, txt.FontSource)
 			if base > tallestBaseline {
 				if tallestBaseline > 0 {
 					realign = true
@@ -754,7 +779,7 @@ func (r *textRenderer) layoutRow(texts []fyne.CanvasObject, align fyne.TextAlign
 		} else if c, ok := text.(*fyne.Container); ok {
 			wid := c.Objects[0]
 			if link, ok := wid.(*Hyperlink); ok {
-				s, base := fyne.CurrentApp().Driver().RenderedTextSize(link.Text, textSize, link.TextStyle)
+				s, base := driver.RenderedTextSize(link.Text, textSize, link.TextStyle, nil)
 				if base > tallestBaseline {
 					if tallestBaseline > 0 {
 						realign = true
@@ -787,9 +812,11 @@ func (r *textRenderer) layoutRow(texts []fyne.CanvasObject, align fyne.TextAlign
 		}
 	}
 
+	innerPadding := r.obj.Theme().Size(theme.SizeNameInnerPadding)
 	spare := lineWidth - xPos
 	switch align {
 	case fyne.TextAlignTrailing:
+		spare += innerPadding
 		first := texts[0]
 		first.Resize(fyne.NewSize(first.Size().Width+spare, height))
 		setAlign(first, fyne.TextAlignTrailing)
@@ -798,6 +825,7 @@ func (r *textRenderer) layoutRow(texts []fyne.CanvasObject, align fyne.TextAlign
 			text.Move(text.Position().Add(fyne.NewPos(spare, 0)))
 		}
 	case fyne.TextAlignCenter:
+		spare += innerPadding
 		pad := spare / 2
 		first := texts[0]
 		first.Resize(fyne.NewSize(first.Size().Width+pad, height))
@@ -897,7 +925,7 @@ func float32ToFixed266(f float32) fixed.Int26_6 {
 func lineBounds(seg *TextSegment, wrap fyne.TextWrap, trunc fyne.TextTruncation, firstWidth float32, max fyne.Size, measurer func([]rune) fyne.Size) ([]rowBoundary, float32) {
 	lines := splitLines(seg)
 
-	if wrap == fyne.TextTruncate {
+	if wrap == fyne.TextWrap(fyne.TextTruncateClip) {
 		if trunc == fyne.TextTruncateOff {
 			trunc = fyne.TextTruncateClip
 		}
@@ -1065,7 +1093,7 @@ func splitLines(seg *TextSegment) []rowBoundary {
 }
 
 func truncateLimit(s string, text *canvas.Text, limit int, ellipsis []rune) (int, bool) {
-	face := paint.CachedFontFace(text.TextStyle, text.TextSize, 1.0)
+	face := paint.CachedFontFace(text.TextStyle, text.FontSource, text)
 
 	runes := []rune(s)
 	in := shaping.Input{
@@ -1073,10 +1101,11 @@ func truncateLimit(s string, text *canvas.Text, limit int, ellipsis []rune) (int
 		RunStart:  0,
 		RunEnd:    len(ellipsis),
 		Direction: di.DirectionLTR,
-		Face:      face.Fonts[0],
+		Face:      face.Fonts.ResolveFace(ellipsis[0]),
 		Size:      float32ToFixed266(text.TextSize),
 	}
 	shaper := &shaping.HarfbuzzShaper{}
+	segmenter := &shaping.Segmenter{}
 
 	conf := shaping.WrapConfig{}
 	conf = conf.WithTruncator(shaper, in)
@@ -1086,12 +1115,21 @@ func truncateLimit(s string, text *canvas.Text, limit int, ellipsis []rune) (int
 
 	in.Text = runes
 	in.RunEnd = len(runes)
-	out := shaper.Shape(in)
+	ins := segmenter.Split(in, face.Fonts)
+	outs := make([]shaping.Output, len(ins))
+	for i, in := range ins {
+		outs[i] = shaper.Shape(in)
+	}
 
-	l.Prepare(conf, runes, shaping.NewSliceIterator([]shaping.Output{out}))
-	finalLine, _, done := l.WrapNextLine(limit)
+	l.Prepare(conf, runes, shaping.NewSliceIterator(outs))
+	wrapped, done := l.WrapNextLine(limit)
 
-	count := finalLine[0].Runes.Count
+	count := len(runes)
+	if wrapped.Truncated != 0 {
+		count -= wrapped.Truncated
+		count += len(ellipsis)
+	}
+
 	full := done && count == len(runes)
 	if !full && len(ellipsis) > 0 {
 		count--

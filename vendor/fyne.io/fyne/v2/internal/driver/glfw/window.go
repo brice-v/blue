@@ -2,14 +2,19 @@ package glfw
 
 import (
 	"context"
+	"image/color"
 	_ "image/png" // for the icon
 	"math"
 	"runtime"
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/internal/app"
+	"fyne.io/fyne/v2/internal/async"
+	"fyne.io/fyne/v2/internal/build"
 	"fyne.io/fyne/v2/internal/cache"
 	"fyne.io/fyne/v2/internal/driver"
 	"fyne.io/fyne/v2/internal/driver/common"
@@ -17,8 +22,7 @@ import (
 )
 
 const (
-	doubleClickDelay  = 300 // ms (maximum interval between clicks for double click detection)
-	dragMoveThreshold = 2   // how far can we move before it is a drag
+	dragMoveThreshold = 2 // how far can we move before it is a drag
 	windowIconSize    = 256
 )
 
@@ -50,19 +54,21 @@ func (w *window) screenSize(canvasSize fyne.Size) (int, int) {
 }
 
 func (w *window) Resize(size fyne.Size) {
-	// we cannot perform this until window is prepared as we don't know it's scale!
+	w.canvas.size = size
+	// we cannot perform this until window is prepared as we don't know its scale!
 	bigEnough := size.Max(w.canvas.canvasSize(w.canvas.Content().MinSize()))
 	w.runOnMainWhenCreated(func() {
-		w.viewLock.Lock()
-
 		width, height := scale.ToScreenCoordinate(w.canvas, bigEnough.Width), scale.ToScreenCoordinate(w.canvas, bigEnough.Height)
 		if w.fixedSize || !w.visible { // fixed size ignores future `resized` and if not visible we may not get the event
 			w.shouldWidth, w.shouldHeight = width, height
 			w.width, w.height = width, height
 		}
-		w.viewLock.Unlock()
+
 		w.requestedWidth, w.requestedHeight = width, height
-		w.view().SetSize(width, height)
+		if runtime.GOOS != "js" {
+			w.view().SetSize(width, height)
+			w.processResized(width, height)
+		}
 	})
 }
 
@@ -72,9 +78,12 @@ func (w *window) FixedSize() bool {
 
 func (w *window) SetFixedSize(fixed bool) {
 	w.fixedSize = fixed
-	if w.view() != nil {
-		w.runOnMainWhenCreated(w.fitContent)
-	}
+	w.runOnMainWhenCreated(func() {
+		w.fitContent()
+		if !w.centered {
+			w.processResized(w.width, w.height)
+		}
+	})
 }
 
 func (w *window) Padded() bool {
@@ -126,122 +135,91 @@ func (w *window) detectTextureScale() float32 {
 }
 
 func (w *window) Show() {
-	go w.doShow()
-}
+	async.EnsureMain(func() {
+		if w.view() != nil {
+			w.doShowAgain()
+			return
+		}
 
-func (w *window) doShow() {
-	if w.view() != nil {
-		w.doShowAgain()
-		return
-	}
+		if !w.created {
+			w.created = true
+			w.create()
+		}
 
-	run.L.Lock()
-	for !run.flag {
-		run.Wait()
-	}
-	run.L.Unlock()
+		if w.view() == nil {
+			return
+		}
 
-	w.createLock.Do(w.create)
-	if w.view() == nil {
-		return
-	}
-
-	runOnMain(func() {
-		w.viewLock.Lock()
 		w.visible = true
-		w.viewLock.Unlock()
 		view := w.view()
 		view.SetTitle(w.title)
 
-		if w.centered {
+		if !build.IsWayland && w.centered {
 			w.doCenterOnScreen() // lastly center if that was requested
 		}
 		view.Show()
 
 		// save coordinates
-		w.xpos, w.ypos = view.GetPos()
+		if !build.IsWayland {
+			w.xpos, w.ypos = view.GetPos()
+		}
 
 		if w.fullScreen { // this does not work if called before viewport.Show()
-			go func() {
-				time.Sleep(time.Millisecond * 100)
-				w.SetFullScreen(true)
-			}()
+			w.doSetFullScreen(true)
+		}
+
+		// show top canvas element
+		if content := w.canvas.Content(); content != nil {
+			w.RunWithContext(func() {
+				w.driver.repaintWindow(w)
+			})
 		}
 	})
-
-	// show top canvas element
-	if content := w.canvas.Content(); content != nil {
-		content.Show()
-
-		runOnDraw(w, func() {
-			w.driver.repaintWindow(w)
-		})
-	}
 }
 
 func (w *window) Hide() {
-	runOnMain(func() {
-		w.viewLock.Lock()
+	async.EnsureMain(func() {
 		if w.closing || w.viewport == nil {
-			w.viewLock.Unlock()
 			return
 		}
 
 		w.visible = false
-		v := w.viewport
-		w.viewLock.Unlock()
-
-		v.Hide()
-
-		// hide top canvas element
-		if content := w.canvas.Content(); content != nil {
-			content.Hide()
-		}
+		w.viewport.Hide()
 	})
 }
 
 func (w *window) Close() {
-	if w.isClosing() {
-		return
-	}
+	async.EnsureMain(func() {
+		if w.isClosing() {
+			return
+		}
 
-	// trigger callbacks - early so window still exists
-	if w.onClosed != nil {
-		w.QueueEvent(w.onClosed)
-	}
+		// trigger callbacks - early so window still exists
+		if fn := w.onClosed; fn != nil {
+			w.onClosed = nil // avoid possibility of calling twice
+			fn()
+		}
 
-	// set w.closing flag inside draw thread to ensure we can free textures
-	runOnDraw(w, func() {
-		w.viewLock.Lock()
 		w.closing = true
-		w.viewLock.Unlock()
 		w.viewport.SetShouldClose(true)
 
 		cache.RangeTexturesFor(w.canvas, w.canvas.Painter().Free)
-	})
-
-	w.canvas.WalkTrees(nil, func(node *common.RenderCacheNode, _ fyne.Position) {
-		if wid, ok := node.Obj().(fyne.Widget); ok {
-			cache.DestroyRenderer(wid)
-		}
+		w.canvas.WalkTrees(nil, func(node *common.RenderCacheNode, _ fyne.Position) {
+			if wid, ok := node.Obj().(fyne.Widget); ok {
+				cache.DestroyRenderer(wid)
+			}
+		})
 	})
 }
 
 func (w *window) ShowAndRun() {
 	w.Show()
-	w.driver.Run()
+	fyne.CurrentApp().Run()
 }
 
 // Clipboard returns the system clipboard
 func (w *window) Clipboard() fyne.Clipboard {
-	if w.view() == nil {
-		return nil
-	}
-
-	if w.clipboard == nil {
-		w.clipboard = &clipboard{window: w.viewport}
-	}
-	return w.clipboard
+	return NewClipboard()
 }
 
 func (w *window) Content() fyne.CanvasObject {
@@ -249,21 +227,11 @@ func (w *window) Content() fyne.CanvasObject {
 }
 
 func (w *window) SetContent(content fyne.CanvasObject) {
-	w.viewLock.RLock()
-	visible := w.visible
-	w.viewLock.RUnlock()
-	// hide old canvas element
-	if visible && w.canvas.Content() != nil {
-		w.canvas.Content().Hide()
-	}
-
 	w.canvas.SetContent(content)
 
-	// show new canvas element
-	if content != nil {
-		content.Show()
-	}
-	w.RescaleContext()
+	async.EnsureMain(func() {
+		w.RunWithContext(w.RescaleContext)
+	})
 }
 
 func (w *window) Canvas() fyne.Canvas {
@@ -272,23 +240,29 @@ func (w *window) Canvas() fyne.Canvas {
 
 func (w *window) processClosed() {
 	if w.onCloseIntercepted != nil {
-		w.QueueEvent(w.onCloseIntercepted)
+		w.onCloseIntercepted()
 		return
 	}
 
-	go w.Close() // unsure which thread this comes from, so don't block
+	w.Close()
 }
 
 // destroy this window and, if it's the last window quit the app
 func (w *window) destroy(d *gLDriver) {
-	w.DestroyEventQueue()
 	cache.CleanCanvas(w.canvas)
 
 	if w.master {
 		d.Quit()
 	} else if runtime.GOOS == "darwin" {
-		go d.focusPreviousWindow()
+		d.focusPreviousWindow()
 	}
+}
+
+func (w *window) drainPendingEvents() {
+	for _, fn := range w.pending {
+		fn()
+	}
+	w.pending = nil
 }
 
 func (w *window) processMoved(x, y int) {
@@ -302,7 +276,7 @@ func (w *window) processMoved(x, y int) {
 	}
 
 	w.canvas.detectedScale = w.detectScale()
-	go w.canvas.reloadScale()
+	w.canvas.reloadScale()
 }
 
 func (w *window) processResized(width, height int) {
@@ -323,7 +297,9 @@ func (w *window) processResized(width, height int) {
 		return
 	}
 
-	w.platformResize(canvasSize)
+	w.RunWithContext(func() {
+		w.platformResize(canvasSize)
+	})
 }
 
 func (w *window) processFrameSized(width, height int) {
@@ -333,13 +309,8 @@ func (w *window) processFrameSized(width, height int) {
 
 	winWidth, _ := w.view().GetSize()
 	newTexScale := float32(width) / float32(winWidth) // This will be > 1.0 on a HiDPI screen
-	w.canvas.RLock()
-	texScale := w.canvas.texScale
-	w.canvas.RUnlock()
-	if texScale != newTexScale {
-		w.canvas.Lock()
+	if w.canvas.texScale != newTexScale {
 		w.canvas.texScale = newTexScale
-		w.canvas.Unlock()
 		w.canvas.Refresh(w.canvas.Content()) // reset graphics to apply texture scale
 	}
 }
@@ -353,14 +324,12 @@ func (w *window) findObjectAtPositionMatching(canvas *glCanvas, mouse fyne.Posit
 }
 
 func (w *window) processMouseMoved(xpos float64, ypos float64) {
-	w.mouseLock.Lock()
 	previousPos := w.mousePos
 	w.mousePos = fyne.NewPos(scale.ToFyneCoordinate(w.canvas, int(xpos)), scale.ToFyneCoordinate(w.canvas, int(ypos)))
 	mousePos := w.mousePos
 	mouseButton := w.mouseButton
 	mouseDragPos := w.mouseDragPos
 	mouseOver := w.mouseOver
-	w.mouseLock.Unlock()
 
 	cursor := desktop.Cursor(desktop.DefaultCursor)
 
@@ -378,11 +347,13 @@ func (w *window) processMouseMoved(xpos float64, ypos float64) {
 		rawCursor, isCustomCursor := fyneToNativeCursor(cursor)
 		w.cursor = cursor
 
-		if rawCursor == nil {
-			w.view().SetInputMode(CursorMode, CursorHidden)
-		} else {
-			w.view().SetInputMode(CursorMode, CursorNormal)
-			w.SetCursor(rawCursor)
+		if view := w.view(); view != nil { // not yet visible? linux weirdness
+			if rawCursor == nil {
+				view.SetInputMode(CursorMode, CursorHidden)
+			} else {
+				view.SetInputMode(CursorMode, CursorNormal)
+				w.SetCursor(rawCursor)
+			}
 		}
 		w.setCustomCursor(rawCursor, isCustomCursor)
 	}
@@ -398,27 +369,21 @@ func (w *window) processMouseMoved(xpos float64, ypos float64) {
 		overThreshold := math.Abs(float64(deltaX)) >= dragMoveThreshold || math.Abs(float64(deltaY)) >= dragMoveThreshold
 
 		if wid, ok := obj.(fyne.Draggable); ok && overThreshold {
-			w.mouseLock.Lock()
 			w.mouseDragged = wid
 			w.mouseDraggedOffset = previousPos.Subtract(pos)
 			w.mouseDraggedObjStart = obj.Position()
 			w.mouseDragStarted = true
-			w.mouseLock.Unlock()
 		}
 	}
 
-	w.mouseLock.RLock()
-	isObjDragged := w.objIsDragged(obj)
-	isMouseOverDragged := w.objIsDragged(mouseOver)
-	w.mouseLock.RUnlock()
-	if obj != nil && !isObjDragged {
+	if obj != nil && !w.objIsDragged(obj) {
 		ev := &desktop.MouseEvent{Button: mouseButton}
 		ev.AbsolutePosition = mousePos
 		ev.Position = pos
 
 		if hovered, ok := obj.(desktop.Hoverable); ok {
 			if hovered == mouseOver {
-				w.QueueEvent(func() { hovered.MouseMoved(ev) })
+				hovered.MouseMoved(ev)
 			} else {
 				w.mouseOut()
 				w.mouseIn(hovered, ev)
@@ -437,36 +402,29 @@ func (w *window) processMouseMoved(xpos float64, ypos float64) {
 				w.mouseOut()
 			}
 		}
-	} else if mouseOver != nil && !isMouseOverDragged {
+	} else if mouseOver != nil && !w.objIsDragged(mouseOver) {
 		w.mouseOut()
 	}
 
-	w.mouseLock.RLock()
-	mouseButton = w.mouseButton
 	mouseDragged := w.mouseDragged
-	mouseDraggedObjStart := w.mouseDraggedObjStart
-	mouseDraggedOffset := w.mouseDraggedOffset
 	mouseDragPos = w.mouseDragPos
-	w.mouseLock.RUnlock()
-	if mouseDragged != nil && mouseButton != desktop.MouseButtonSecondary {
+	if mouseDragged != nil && w.mouseButton != desktop.MouseButtonSecondary {
 		if w.mouseButton > 0 {
-			draggedObjDelta := mouseDraggedObjStart.Subtract(mouseDragged.(fyne.CanvasObject).Position())
+			draggedObjDelta := w.mouseDraggedObjStart.Subtract(mouseDragged.(fyne.CanvasObject).Position())
 			ev := &fyne.DragEvent{}
 			ev.AbsolutePosition = mousePos
-			ev.Position = mousePos.Subtract(mouseDraggedOffset).Add(draggedObjDelta)
+			ev.Position = mousePos.Subtract(w.mouseDraggedOffset).Add(draggedObjDelta)
 			ev.Dragged = fyne.NewDelta(mousePos.X-mouseDragPos.X, mousePos.Y-mouseDragPos.Y)
 			wd := mouseDragged
-			w.QueueEvent(func() { wd.Dragged(ev) })
+			wd.Dragged(ev)
 		}
 
-		w.mouseLock.Lock()
 		w.mouseDragStarted = true
 		w.mouseDragPos = mousePos
-		w.mouseLock.Unlock()
 	}
 }
 
-func (w *window) objIsDragged(obj interface{}) bool {
+func (w *window) objIsDragged(obj any) bool {
 	if w.mouseDragged != nil && obj != nil {
 		draggedObj, _ := obj.(fyne.Draggable)
 		return draggedObj == w.mouseDragged
@@ -475,47 +433,33 @@ func (w *window) objIsDragged(obj interface{}) bool {
 }
 
 func (w *window) mouseIn(obj desktop.Hoverable, ev *desktop.MouseEvent) {
-	w.QueueEvent(func() {
-		if obj != nil {
-			obj.MouseIn(ev)
-		}
-		w.mouseLock.Lock()
-		w.mouseOver = obj
-		w.mouseLock.Unlock()
-	})
+	if obj != nil {
+		obj.MouseIn(ev)
+	}
+	w.mouseOver = obj
 }
 
 func (w *window) mouseOut() {
-	w.QueueEvent(func() {
-		w.mouseLock.RLock()
-		mouseOver := w.mouseOver
-		w.mouseLock.RUnlock()
-		if mouseOver != nil {
-			mouseOver.MouseOut()
-			w.mouseLock.Lock()
-			w.mouseOver = nil
-			w.mouseLock.Unlock()
-		}
-	})
+	mouseOver := w.mouseOver
+	if mouseOver != nil {
+		mouseOver.MouseOut()
+		w.mouseOver = nil
+	}
 }
 
 func (w *window) processMouseClicked(button desktop.MouseButton, action action, modifiers fyne.KeyModifier) {
-	w.mouseLock.RLock()
 	w.mouseDragPos = w.mousePos
 	mousePos := w.mousePos
 	mouseDragStarted := w.mouseDragStarted
-	w.mouseLock.RUnlock()
 	if mousePos.IsZero() { // window may not be focused (darwin mostly) and so position callbacks not happening
 		xpos, ypos := w.view().GetCursorPos()
-		w.mouseLock.Lock()
 		w.mousePos = fyne.NewPos(scale.ToFyneCoordinate(w.canvas, int(xpos)), scale.ToFyneCoordinate(w.canvas, int(ypos)))
 		mousePos = w.mousePos
-		w.mouseLock.Unlock()
 	}
 
 	co, pos, _ := w.findObjectAtPositionMatching(w.canvas, mousePos, func(object fyne.CanvasObject) bool {
 		switch object.(type) {
-		case fyne.Tappable, fyne.SecondaryTappable, fyne.DoubleTappable, fyne.Focusable, desktop.Mouseable, desktop.Hoverable:
+		case fyne.Tappable, fyne.SecondaryTappable, fyne.DoubleTappable, fyne.Focusable, desktop.Mouseable:
 			return true
 		case fyne.Draggable:
 			if mouseDragStarted {
@@ -558,10 +502,10 @@ func (w *window) processMouseClicked(button desktop.MouseButton, action action, 
 		}
 	}
 
-	w.mouseLock.Lock()
-	if action == press {
+	switch action {
+	case press:
 		w.mouseButton |= button
-	} else if action == release {
+	case release:
 		w.mouseButton &= ^button
 	}
 
@@ -570,35 +514,27 @@ func (w *window) processMouseClicked(button desktop.MouseButton, action action, 
 	mouseOver := w.mouseOver
 	shouldMouseOut := w.objIsDragged(mouseOver) && !w.objIsDragged(coMouse)
 	mousePressed := w.mousePressed
-	w.mouseLock.Unlock()
 
 	if action == release && mouseDragged != nil {
 		if mouseDragStarted {
-			w.QueueEvent(mouseDragged.DragEnd)
-			w.mouseLock.Lock()
+			mouseDragged.DragEnd()
 			w.mouseDragStarted = false
-			w.mouseLock.Unlock()
 		}
 		if shouldMouseOut {
 			w.mouseOut()
 		}
-		w.mouseLock.Lock()
 		w.mouseDragged = nil
-		w.mouseLock.Unlock()
 	}
 
 	_, tap := co.(fyne.Tappable)
 	secondary, altTap := co.(fyne.SecondaryTappable)
 	if tap || altTap {
-		if action == press {
-			w.mouseLock.Lock()
+		switch action {
+		case press:
 			w.mousePressed = co
-			w.mouseLock.Unlock()
-		} else if action == release {
-			if co == mousePressed {
-				if button == desktop.MouseButtonSecondary && altTap {
-					w.QueueEvent(func() { secondary.TappedSecondary(ev) })
-				}
+		case release:
+			if co == mousePressed && button == desktop.MouseButtonSecondary && altTap {
+				secondary.TappedSecondary(ev)
 			}
 		}
 	}
@@ -610,22 +546,20 @@ func (w *window) processMouseClicked(button desktop.MouseButton, action action, 
 }
 
 func (w *window) mouseClickedHandleMouseable(mev *desktop.MouseEvent, action action, wid desktop.Mouseable) {
-	mousePos := mev.AbsolutePosition
-	if action == press {
-		w.QueueEvent(func() { wid.MouseDown(mev) })
-	} else if action == release {
-		w.mouseLock.RLock()
+	switch action {
+	case press:
+		wid.MouseDown(mev)
+	case release:
 		mouseDragged := w.mouseDragged
 		mouseDraggedOffset := w.mouseDraggedOffset
-		w.mouseLock.RUnlock()
 		if mouseDragged == nil {
-			w.QueueEvent(func() { wid.MouseUp(mev) })
+			wid.MouseUp(mev)
 		} else {
 			if dragged, ok := mouseDragged.(desktop.Mouseable); ok {
-				mev.Position = mousePos.Subtract(mouseDraggedOffset)
-				w.QueueEvent(func() { dragged.MouseUp(mev) })
+				mev.Position = mev.AbsolutePosition.Subtract(mouseDraggedOffset)
+				dragged.MouseUp(mev)
 			} else {
-				w.QueueEvent(func() { wid.MouseUp(mev) })
+				wid.MouseUp(mev)
 			}
 		}
 	}
@@ -634,45 +568,46 @@ func (w *window) mouseClickedHandleMouseable(mev *desktop.MouseEvent, action act
 func (w *window) mouseClickedHandleTapDoubleTap(co fyne.CanvasObject, ev *fyne.PointEvent) {
 	_, doubleTap := co.(fyne.DoubleTappable)
 	if doubleTap {
-		w.mouseLock.Lock()
 		w.mouseClickCount++
 		w.mouseLastClick = co
+
 		mouseCancelFunc := w.mouseCancelFunc
-		w.mouseLock.Unlock()
 		if mouseCancelFunc != nil {
 			mouseCancelFunc()
 			return
 		}
+
 		go w.waitForDoubleTap(co, ev)
 	} else {
-		w.mouseLock.Lock()
 		if wid, ok := co.(fyne.Tappable); ok && co == w.mousePressed {
-			w.QueueEvent(func() { wid.Tapped(ev) })
+			wid.Tapped(ev)
 		}
 		w.mousePressed = nil
-		w.mouseLock.Unlock()
 	}
 }
 
 func (w *window) waitForDoubleTap(co fyne.CanvasObject, ev *fyne.PointEvent) {
-	var ctx context.Context
-	w.mouseLock.Lock()
-	ctx, w.mouseCancelFunc = context.WithDeadline(context.TODO(), time.Now().Add(time.Millisecond*doubleClickDelay))
-	defer w.mouseCancelFunc()
-	w.mouseLock.Unlock()
+	ctx, mouseCancelFunc := context.WithDeadline(context.TODO(), time.Now().Add(w.driver.DoubleTapDelay()))
+	defer runOnMain(mouseCancelFunc)
+	runOnMain(func() {
+		w.mouseCancelFunc = mouseCancelFunc
+	})
 
 	<-ctx.Done()
 
-	w.mouseLock.Lock()
-	defer w.mouseLock.Unlock()
+	runOnMain(func() {
+		w.waitForDoubleTapEnded(co, ev)
+	})
+}
 
+func (w *window) waitForDoubleTapEnded(co fyne.CanvasObject, ev *fyne.PointEvent) {
 	if w.mouseClickCount == 2 && w.mouseLastClick == co {
 		if wid, ok := co.(fyne.DoubleTappable); ok {
-			w.QueueEvent(func() { wid.DoubleTapped(ev) })
+			wid.DoubleTapped(ev)
 		}
 	} else if co == w.mousePressed {
 		if wid, ok := co.(fyne.Tappable); ok {
-			w.QueueEvent(func() { wid.Tapped(ev) })
+			wid.Tapped(ev)
 		}
 	}
 
@@ -683,9 +618,7 @@ func (w *window) waitForDoubleTap(co fyne.CanvasObject, ev *fyne.PointEvent) {
 }
 
 func (w *window) processMouseScrolled(xoff float64, yoff float64) {
-	w.mouseLock.RLock()
 	mousePos := w.mousePos
-	w.mouseLock.RUnlock()
 	co, pos, _ := w.findObjectAtPositionMatching(w.canvas, mousePos, func(object fyne.CanvasObject) bool {
 		_, ok := object.(fyne.Scrollable)
 		return ok
@@ -708,31 +641,26 @@ func (w *window) processMouseScrolled(xoff float64, yoff float64) {
 }
 
 func (w *window) capturesTab(modifier fyne.KeyModifier) bool {
-	captures := false
-
-	if ent, ok := w.canvas.Focused().(fyne.Tabbable); ok {
-		captures = ent.AcceptsTab()
-	}
-	if !captures {
-		switch modifier {
-		case 0:
-			w.QueueEvent(w.canvas.FocusNext)
-			return false
-		case fyne.KeyModifierShift:
-			w.QueueEvent(w.canvas.FocusPrevious)
-			return false
-		}
+	if ent, ok := w.canvas.Focused().(fyne.Tabbable); ok && ent.AcceptsTab() {
+		return true
 	}
 
-	return captures
+	switch modifier {
+	case 0:
+		w.canvas.FocusNext()
+	case fyne.KeyModifierShift:
+		w.canvas.FocusPrevious()
+	}
+
+	return false
 }
 
 func (w *window) processKeyPressed(keyName fyne.KeyName, keyASCII fyne.KeyName, scancode int, action action, keyDesktopModifier fyne.KeyModifier) {
 	keyEvent := &fyne.KeyEvent{Name: keyName, Physical: fyne.HardwareKey{ScanCode: scancode}}
 
 	pendingMenuToggle := w.menuTogglePending
-	pendingMenuDeactivation := w.menuDeactivationPending
 	w.menuTogglePending = desktop.KeyNone
+	pendingMenuDeactivation := w.menuDeactivationPending
 	w.menuDeactivationPending = desktop.KeyNone
 	switch action {
 	case release:
@@ -749,10 +677,10 @@ func (w *window) processKeyPressed(keyName fyne.KeyName, keyASCII fyne.KeyName, 
 
 		if w.canvas.Focused() != nil {
 			if focused, ok := w.canvas.Focused().(desktop.Keyable); ok {
-				w.QueueEvent(func() { focused.KeyUp(keyEvent) })
+				focused.KeyUp(keyEvent)
 			}
 		} else if w.canvas.onKeyUp != nil {
-			w.QueueEvent(func() { w.canvas.onKeyUp(keyEvent) })
+			w.canvas.onKeyUp(keyEvent)
 		}
 		return // ignore key up in other core events
 	case press:
@@ -767,10 +695,10 @@ func (w *window) processKeyPressed(keyName fyne.KeyName, keyASCII fyne.KeyName, 
 		}
 		if w.canvas.Focused() != nil {
 			if focused, ok := w.canvas.Focused().(desktop.Keyable); ok {
-				w.QueueEvent(func() { focused.KeyDown(keyEvent) })
+				focused.KeyDown(keyEvent)
 			}
 		} else if w.canvas.onKeyDown != nil {
-			w.QueueEvent(func() { w.canvas.onKeyDown(keyEvent) })
+			w.canvas.onKeyDown(keyEvent)
 		}
 	default:
 		// key repeat will fall through to TypedKey and TypedShortcut
@@ -787,9 +715,9 @@ func (w *window) processKeyPressed(keyName fyne.KeyName, keyASCII fyne.KeyName, 
 	// No shortcut detected, pass down to TypedKey
 	focused := w.canvas.Focused()
 	if focused != nil {
-		w.QueueEvent(func() { focused.TypedKey(keyEvent) })
+		focused.TypedKey(keyEvent)
 	} else if w.canvas.onTypedKey != nil {
-		w.QueueEvent(func() { w.canvas.onTypedKey(keyEvent) })
+		w.canvas.onTypedKey(keyEvent)
 	}
 }
 
@@ -799,41 +727,44 @@ func (w *window) processKeyPressed(keyName fyne.KeyName, keyASCII fyne.KeyName, 
 // Characters do not map 1:1 to physical keys, as a key may produce zero, one or more characters.
 func (w *window) processCharInput(char rune) {
 	if focused := w.canvas.Focused(); focused != nil {
-		w.QueueEvent(func() { focused.TypedRune(char) })
+		focused.TypedRune(char)
 	} else if w.canvas.onTypedRune != nil {
-		w.QueueEvent(func() { w.canvas.onTypedRune(char) })
+		w.canvas.onTypedRune(char)
 	}
 }
 
 func (w *window) processFocused(focus bool) {
 	if focus {
 		if curWindow == nil {
-			fyne.CurrentApp().Lifecycle().(*app.Lifecycle).TriggerEnteredForeground()
+			if f := fyne.CurrentApp().Lifecycle().(*app.Lifecycle).OnEnteredForeground(); f != nil {
+				f()
+			}
 		}
 		curWindow = w
 		w.canvas.FocusGained()
 	} else {
 		w.canvas.FocusLost()
-		w.mouseLock.Lock()
 		w.mousePos = fyne.Position{}
-		w.mouseLock.Unlock()
+		// Avoid triggering menu on Alt+Tab: glfw sends a fake "alt key released" event immediately after
+		// unfocusing the window, and it should be ignored.
+		w.menuTogglePending = desktop.KeyNone
+		w.menuDeactivationPending = desktop.KeyNone
 
-		go func() { // check whether another window was focused or not
-			time.Sleep(time.Millisecond * 100)
-			if curWindow != w {
-				return
-			}
+		// check whether another window was focused or not
+		if curWindow != w {
+			return
+		}
 
-			curWindow = nil
-			fyne.CurrentApp().Lifecycle().(*app.Lifecycle).TriggerExitedForeground()
-		}()
+		curWindow = nil
+		if f := fyne.CurrentApp().Lifecycle().(*app.Lifecycle).OnExitedForeground(); f != nil {
+			f()
+		}
 	}
 }
 
 func (w *window) triggersShortcut(localizedKeyName fyne.KeyName, key fyne.KeyName, modifier fyne.KeyModifier) bool {
-	var shortcut fyne.Shortcut
 	ctrlMod := fyne.KeyModifierControl
-	if runtime.GOOS == "darwin" {
+	if isMacOSRuntime() {
 		ctrlMod = fyne.KeyModifierSuper
 	}
 	// User pressing physical keys Ctrl+V while using a Russian (or any non-ASCII) keyboard layout
@@ -842,45 +773,43 @@ func (w *window) triggersShortcut(localizedKeyName fyne.KeyName, key fyne.KeyNam
 	// See https://github.com/fyne-io/fyne/pull/2587 for discussion.
 	keyName := localizedKeyName
 	resemblesShortcut := (modifier&(fyne.KeyModifierControl|fyne.KeyModifierSuper) != 0)
-	if (localizedKeyName == fyne.KeyUnknown) && resemblesShortcut {
-		if key != fyne.KeyUnknown {
-			keyName = key
-		}
+	if (localizedKeyName == fyne.KeyUnknown) && resemblesShortcut && key != fyne.KeyUnknown {
+		keyName = key
 	}
+
+	var shortcut fyne.Shortcut
 	if modifier == ctrlMod {
 		switch keyName {
-		case fyne.KeyV:
-			// detect paste shortcut
+		case fyne.KeyZ: // detect undo shortcut
+			shortcut = &fyne.ShortcutUndo{}
+		case fyne.KeyY: // detect redo shortcut
+			shortcut = &fyne.ShortcutRedo{}
+		case fyne.KeyV: // detect paste shortcut
 			shortcut = &fyne.ShortcutPaste{
-				Clipboard: w.Clipboard(),
+				Clipboard: NewClipboard(),
 			}
-		case fyne.KeyC, fyne.KeyInsert:
-			// detect copy shortcut
+		case fyne.KeyC, fyne.KeyInsert: // detect copy shortcut
 			shortcut = &fyne.ShortcutCopy{
-				Clipboard: w.Clipboard(),
+				Clipboard: NewClipboard(),
 			}
-		case fyne.KeyX:
-			// detect cut shortcut
+		case fyne.KeyX: // detect cut shortcut
 			shortcut = &fyne.ShortcutCut{
-				Clipboard: w.Clipboard(),
+				Clipboard: NewClipboard(),
 			}
-		case fyne.KeyA:
-			// detect selectAll shortcut
+		case fyne.KeyA: // detect selectAll shortcut
 			shortcut = &fyne.ShortcutSelectAll{}
 		}
 	}
 
 	if modifier == fyne.KeyModifierShift {
 		switch keyName {
-		case fyne.KeyInsert:
-			// detect paste shortcut
+		case fyne.KeyInsert: // detect paste shortcut
 			shortcut = &fyne.ShortcutPaste{
-				Clipboard: w.Clipboard(),
+				Clipboard: NewClipboard(),
 			}
-		case fyne.KeyDelete:
-			// detect cut shortcut
+		case fyne.KeyDelete: // detect cut shortcut
 			shortcut = &fyne.ShortcutCut{
-				Clipboard: w.Clipboard(),
+				Clipboard: NewClipboard(),
 			}
 		}
 	}
@@ -893,6 +822,9 @@ func (w *window) triggersShortcut(localizedKeyName fyne.KeyName, key fyne.KeyNam
 	}
 
 	if shortcut != nil {
+		if w.triggerMainMenuShortcut(shortcut) {
+			return true
+		}
 		if focused, ok := w.canvas.Focused().(fyne.Shortcutable); ok {
 			shouldRunShortcut := true
 			type selectableText interface {
@@ -903,12 +835,43 @@ func (w *window) triggersShortcut(localizedKeyName fyne.KeyName, key fyne.KeyNam
 				shouldRunShortcut = shortcut.ShortcutName() == "Copy"
 			}
 			if shouldRunShortcut {
-				w.QueueEvent(func() { focused.TypedShortcut(shortcut) })
+				focused.TypedShortcut(shortcut)
 			}
 			return shouldRunShortcut
 		}
-		w.QueueEvent(func() { w.canvas.TypedShortcut(shortcut) })
+		w.canvas.TypedShortcut(shortcut)
 		return true
+	}
+
+	return false
+}
+
+func (w *window) triggerMenuShortcut(sh fyne.Shortcut, m *fyne.Menu) bool {
+	for _, i := range m.Items {
+		if i.Shortcut != nil && i.Shortcut.ShortcutName() == sh.ShortcutName() {
+			if f := i.Action; f != nil {
+				f()
+				return true
+			}
+		}
+
+		if i.ChildMenu != nil && w.triggerMenuShortcut(sh, i.ChildMenu) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (w *window) triggerMainMenuShortcut(sh fyne.Shortcut) bool {
+	if w.mainmenu == nil {
+		return false
+	}
+
+	for _, m := range w.mainmenu.Items {
+		if w.triggerMenuShortcut(sh, m) {
+			return true
+		}
 	}
 
 	return false
@@ -925,25 +888,53 @@ func (w *window) RunWithContext(f func()) {
 	w.DetachCurrentContext()
 }
 
-func (w *window) RescaleContext() {
-	runOnMain(w.rescaleOnMain)
-}
-
-func (w *window) Context() interface{} {
+func (w *window) Context() any {
 	return nil
 }
 
 func (w *window) runOnMainWhenCreated(fn func()) {
 	if w.view() != nil {
-		runOnMain(fn)
+		async.EnsureMain(fn)
 		return
 	}
 
 	w.pending = append(w.pending, fn)
 }
 
-func (d *gLDriver) CreateWindow(title string) fyne.Window {
-	return d.createWindow(title, true)
+func (d *gLDriver) CreateWindow(title string) (win fyne.Window) {
+	if runtime.GOOS != "js" {
+		async.EnsureMain(func() {
+			win = d.createWindow(title, true)
+		})
+		return win
+	}
+
+	// handling multiple windows by overlaying on the root for web
+	var root fyne.Window
+	hasVisible := false
+	for _, w := range d.windows {
+		if w.(*window).visible {
+			hasVisible = true
+			root = w
+			break
+		}
+	}
+
+	if !hasVisible {
+		return d.createWindow(title, true)
+	}
+
+	c := root.Canvas().(*glCanvas)
+	multi := c.webExtraWindows
+	if multi == nil {
+		multi = container.NewMultipleWindows()
+		multi.Resize(c.Size())
+		c.webExtraWindows = multi
+	}
+	inner := container.NewInnerWindow(title, canvas.NewRectangle(color.Transparent))
+	multi.Add(inner)
+
+	return wrapInnerWindow(inner, root, d)
 }
 
 func (d *gLDriver) createWindow(title string, decorate bool) fyne.Window {
@@ -951,19 +942,14 @@ func (d *gLDriver) createWindow(title string, decorate bool) fyne.Window {
 	if title == "" {
 		title = defaultTitle
 	}
-	runOnMain(func() {
-		d.initGLFW()
 
-		ret = &window{title: title, decorate: decorate, driver: d}
-		// This queue is destroyed when the window is closed.
-		ret.InitEventQueue()
-		go ret.RunEventQueue()
+	d.init()
 
-		ret.canvas = newCanvas()
-		ret.canvas.context = ret
-		ret.SetIcon(ret.icon)
-		d.addWindow(ret)
-	})
+	ret = &window{title: title, decorate: decorate, driver: d}
+	ret.canvas = newCanvas()
+	ret.canvas.context = ret
+	ret.SetIcon(ret.icon)
+	d.addWindow(ret)
 	return ret
 }
 
@@ -972,26 +958,32 @@ func (w *window) doShowAgain() {
 		return
 	}
 
-	runOnMain(func() {
-		// show top canvas element
-		if content := w.canvas.Content(); content != nil {
-			content.Show()
-		}
-
-		view := w.view()
+	view := w.view()
+	if !build.IsWayland {
 		view.SetPos(w.xpos, w.ypos)
-		view.Show()
-		w.viewLock.Lock()
-		w.visible = true
-		w.viewLock.Unlock()
+	}
+	view.Show()
+	w.visible = true
+
+	if w.fullScreen {
+		w.doSetFullScreen(true)
+	}
+
+	w.RunWithContext(func() {
+		w.driver.repaintWindow(w)
 	})
 }
 
 func (w *window) isClosing() bool {
-	w.viewLock.RLock()
-	closing := w.closing || w.viewport == nil
-	w.viewLock.RUnlock()
-	return closing
+	return w.closing || w.viewport == nil
+}
+
+func (w *window) toggleVisible() {
+	if w.visible {
+		w.Hide()
+	} else {
+		w.Show()
+	}
 }
 
 func (d *gLDriver) CreateSplashWindow() fyne.Window {

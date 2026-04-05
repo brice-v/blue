@@ -11,19 +11,19 @@ import (
 	"github.com/gookit/goutil/strutil"
 )
 
-// FilePathInDirs get full file path in dirs.
+// FilePathInDirs get full file path in dirs. return empty string if not found.
 //
 // Params:
 //   - file: can be relative path, file name, full path.
 //   - dirs: dir paths
-func FilePathInDirs(file string, dirs ...string) string {
-	file = comfunc.ExpandHome(file)
-	if FileExists(file) {
-		return file
+func FilePathInDirs(fPath string, dirs ...string) string {
+	fPath = comfunc.ExpandHome(fPath)
+	if FileExists(fPath) {
+		return fPath
 	}
 
 	for _, dirPath := range dirs {
-		fPath := JoinSubPaths(dirPath, file)
+		fPath = JoinSubPaths(dirPath, fPath)
 		if FileExists(fPath) {
 			return fPath
 		}
@@ -67,6 +67,103 @@ func MatchFirst(paths []string, matcher PathMatchFunc, defaultPath string) strin
 	return defaultPath
 }
 
+// FindParentOption options
+type FindParentOption struct {
+	MaxLevel int // default: 10
+	// NeedDir true: find dirs; false(default): find files
+	NeedDir bool
+	OnlyOne bool // only find one, default: true
+	// Collector func
+	Collector func(fullPath string)
+	// MatchFunc custom matcher func. return false to stop find.
+	MatchFunc func(currentDir string) bool
+}
+
+// FindParentOptFn find parent option func
+type FindParentOptFn func(opt *FindParentOption)
+
+// FindAllInParentDirs looks for all match file(default)/dir in the current directory and parent directories
+func FindAllInParentDirs(dirPath, name string, optFns ...FindParentOptFn) []string {
+	var foundPaths []string
+	optFns = append(optFns, func(opt *FindParentOption) {
+		opt.OnlyOne = false
+	})
+
+	FindNameInParentDirs(dirPath, name, func(fullPath string) {
+		foundPaths = append(foundPaths, fullPath)
+	}, optFns...)
+	return foundPaths
+}
+
+// FindOneInParentDirs looks for a file(default)/dir in the current directory and parent directories
+func FindOneInParentDirs(dirPath, name string, optFns ...FindParentOptFn) string {
+	var foundPath string
+	FindNameInParentDirs(dirPath, name, func(fullPath string) {
+		foundPath = fullPath
+	}, optFns...)
+	return foundPath
+}
+
+// FindNameInParentDirs looks for file(default)/dir in the current directory and parent directories
+func FindNameInParentDirs(dirPath, name string, collectFn func(fullPath string), optFns ...FindParentOptFn) {
+	opts := &FindParentOption{
+		MaxLevel:  10,
+		OnlyOne:   true,
+		Collector: collectFn,
+	}
+	for _, fn := range optFns {
+		fn(opts)
+	}
+
+	FindInParentDirs(dirPath, func(currentDir string) bool {
+		filePath := filepath.Join(currentDir, name)
+		if fi, err := os.Stat(filePath); err == nil {
+			found := false
+			if fi.IsDir() {
+				found = opts.NeedDir
+			} else {
+				found = !opts.NeedDir
+			}
+
+			if found {
+				opts.Collector(filePath)
+				return !opts.OnlyOne
+			}
+		}
+		return true
+	}, opts.MaxLevel)
+}
+
+// FindInParentDirs looks for file/dir in the current directory and parent directories
+//  - MatchFunc custom matcher func. return false to stop find.
+func FindInParentDirs(dirPath string, matchFunc func(dir string) bool, maxLevel int) {
+	currentLv := 1
+	currentDir := ToAbsPath(dirPath)
+
+	for {
+		// Check if the file exists in the current directory
+		if !matchFunc(currentDir) {
+			return
+		}
+
+		// check find level
+		if maxLevel > 0 && currentLv > maxLevel {
+			break
+		}
+
+		// Get parent directory
+		parentDir := filepath.Dir(currentDir)
+		if parentDir == currentDir {
+			// Reached the root, file not found
+			return
+		}
+
+		// Move to parent directory
+		currentLv++
+		currentDir = parentDir
+	}
+}
+
 // SearchNameUp find file/dir name in dirPath or parent dirs,
 // return the name of directory path
 //
@@ -102,12 +199,12 @@ func SearchNameUpx(dirPath, name string) (string, bool) {
 // WalkDir walks the file tree rooted at root, calling fn for each file or
 // directory in the tree, including root.
 //
-// TIP: will recursively find in sub dirs.
+// TIP: will recursively found in sub dirs.
 func WalkDir(dir string, fn fs.WalkDirFunc) error {
 	return filepath.WalkDir(dir, fn)
 }
 
-// Glob find files by glob path pattern. alias of filepath.Glob()
+// Glob finds files by glob path pattern. alias of filepath.Glob()
 // and support filter matched files by name.
 //
 // Usage:
@@ -132,8 +229,6 @@ func Glob(pattern string, fls ...NameMatchFunc) []string {
 }
 
 // GlobWithFunc find files by glob path pattern, then handle matched file
-//
-// - TIP: will be not find in subdir.
 func GlobWithFunc(pattern string, fn func(filePath string) error) (err error) {
 	files, err := filepath.Glob(pattern)
 	if err != nil {
@@ -160,14 +255,10 @@ type (
 )
 
 // OnlyFindDir on find
-func OnlyFindDir(_ string, ent fs.DirEntry) bool {
-	return ent.IsDir()
-}
+func OnlyFindDir(_ string, ent fs.DirEntry) bool { return ent.IsDir() }
 
 // OnlyFindFile on find
-func OnlyFindFile(_ string, ent fs.DirEntry) bool {
-	return !ent.IsDir()
-}
+func OnlyFindFile(_ string, ent fs.DirEntry) bool { return !ent.IsDir() }
 
 // ExcludeNames on find
 func ExcludeNames(names ...string) FilterFunc {
@@ -184,9 +275,7 @@ func IncludeSuffix(ss ...string) FilterFunc {
 }
 
 // ExcludeDotFile on find
-func ExcludeDotFile(_ string, ent fs.DirEntry) bool {
-	return ent.Name()[0] != '.'
-}
+func ExcludeDotFile(_ string, ent fs.DirEntry) bool { return ent.Name()[0] != '.' }
 
 // ExcludeSuffix on find
 func ExcludeSuffix(ss ...string) FilterFunc {
@@ -207,7 +296,7 @@ func ApplyFilters(fPath string, ent fs.DirEntry, filters []FilterFunc) bool {
 
 // FindInDir code refer the go pkg: path/filepath.glob()
 //
-// - TIP: will be not find in subdir.
+// - TIP: default will be not found in sub-dir.
 //
 // filters: return false will skip the file.
 func FindInDir(dir string, handleFn HandleFunc, filters ...FilterFunc) (e error) {
@@ -216,12 +305,15 @@ func FindInDir(dir string, handleFn HandleFunc, filters ...FilterFunc) (e error)
 		return // ignore I/O error
 	}
 
-	// names, _ := d.Readdirnames(-1)
-	// sort.Strings(names)
-
 	des, err := os.ReadDir(dir)
 	if err != nil {
 		return
+	}
+
+	// remove the last '/' char
+	dirLn := len(dir)
+	if dirLn > 1 && dir[dirLn-1] == '/' {
+		dir = dir[:dirLn-1]
 	}
 
 	for _, ent := range des {
@@ -232,9 +324,22 @@ func FindInDir(dir string, handleFn HandleFunc, filters ...FilterFunc) (e error)
 			continue
 		}
 
-		if err := handleFn(filePath, ent); err != nil {
-			return err
+		if err1 := handleFn(filePath, ent); err1 != nil {
+			return err1
 		}
 	}
 	return nil
+}
+
+// FileInDirs returns the first file path in the given dirs.
+func FileInDirs(paths []string, names ...string) string {
+	for _, pathDir := range paths {
+		for _, name := range names {
+			file := pathDir + "/" + name
+			if IsFile(file) {
+				return file
+			}
+		}
+	}
+	return ""
 }

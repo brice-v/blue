@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 
-	"github.com/gobuffalo/helpers/hctx"
+	"github.com/gobuffalo/plush/v5/helpers/hctx"
 	"github.com/gobuffalo/tags/v3"
 )
 
@@ -41,7 +41,7 @@ func helper(opts tags.Options, help hctx.HelperContext, fn func(opts tags.Option
 		hn = n.(string)
 		delete(opts, "var")
 	}
-	if opts["errors"] == nil && help.Value("errors") != nil {
+	if opts["errors"] == nil && help != nil && help.Value("errors") != nil {
 		opts["errors"] = help.Value("errors")
 	}
 	form := fn(opts)

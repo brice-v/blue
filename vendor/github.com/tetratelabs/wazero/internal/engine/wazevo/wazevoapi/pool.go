@@ -39,7 +39,9 @@ func (p *Pool[T]) Allocate() *T {
 		p.index = 0
 	}
 	ret := &p.pages[len(p.pages)-1][p.index]
-	p.resetFn(ret)
+	if p.resetFn != nil {
+		p.resetFn(ret)
+	}
 	p.index++
 	p.allocated++
 	return ret
@@ -56,4 +58,158 @@ func (p *Pool[T]) Reset() {
 	p.pages = p.pages[:0]
 	p.index = poolPageSize
 	p.allocated = 0
+}
+
+// IDedPool is a pool of T that can be allocated and reset, with a way to get T by an ID.
+type IDedPool[T any] struct {
+	pool             Pool[T]
+	idToItems        []*T
+	maxIDEncountered int
+}
+
+// NewIDedPool returns a new IDedPool.
+func NewIDedPool[T any](resetFn func(*T)) IDedPool[T] {
+	return IDedPool[T]{pool: NewPool(resetFn), maxIDEncountered: -1}
+}
+
+// GetOrAllocate returns the T with the given id.
+func (p *IDedPool[T]) GetOrAllocate(id int) *T {
+	if p.maxIDEncountered < id {
+		p.maxIDEncountered = id
+	}
+	if id >= len(p.idToItems) {
+		p.idToItems = append(p.idToItems, make([]*T, id-len(p.idToItems)+1)...)
+	}
+	if p.idToItems[id] == nil {
+		p.idToItems[id] = p.pool.Allocate()
+	}
+	return p.idToItems[id]
+}
+
+// Get returns the T with the given id, or nil if it's not allocated.
+func (p *IDedPool[T]) Get(id int) *T {
+	if id >= len(p.idToItems) {
+		return nil
+	}
+	return p.idToItems[id]
+}
+
+// Reset resets the pool.
+func (p *IDedPool[T]) Reset() {
+	p.pool.Reset()
+	for i := 0; i <= p.maxIDEncountered; i++ {
+		p.idToItems[i] = nil
+	}
+	p.maxIDEncountered = -1
+}
+
+// MaxIDEncountered returns the maximum id encountered so far.
+func (p *IDedPool[T]) MaxIDEncountered() int {
+	return p.maxIDEncountered
+}
+
+// arraySize is the size of the array used in VarLengthPool's arrayPool.
+// This is chosen to be 8, which is empirically a good number among 8, 12, 16 and 20.
+const arraySize = 8
+
+// VarLengthPool is a pool of VarLength[T] that can be allocated and reset.
+type (
+	VarLengthPool[T any] struct {
+		arrayPool Pool[varLengthPoolArray[T]]
+		slicePool Pool[[]T]
+	}
+	// varLengthPoolArray wraps an array and keeps track of the next index to be used to avoid the heap allocation.
+	varLengthPoolArray[T any] struct {
+		arr  [arraySize]T
+		next int
+	}
+)
+
+// VarLength is a variable length array that can be reused via a pool.
+type VarLength[T any] struct {
+	arr *varLengthPoolArray[T]
+	slc *[]T
+}
+
+// NewVarLengthPool returns a new VarLengthPool.
+func NewVarLengthPool[T any]() VarLengthPool[T] {
+	return VarLengthPool[T]{
+		arrayPool: NewPool(func(v *varLengthPoolArray[T]) {
+			v.next = 0
+		}),
+		slicePool: NewPool(func(i *[]T) {
+			*i = (*i)[:0]
+		}),
+	}
+}
+
+// NewNilVarLength returns a new VarLength[T] with a nil backing.
+func NewNilVarLength[T any]() VarLength[T] {
+	return VarLength[T]{}
+}
+
+// Allocate allocates a new VarLength[T] from the pool.
+func (p *VarLengthPool[T]) Allocate(knownMin int) VarLength[T] {
+	if knownMin <= arraySize {
+		arr := p.arrayPool.Allocate()
+		return VarLength[T]{arr: arr}
+	}
+	slc := p.slicePool.Allocate()
+	if cap(*slc) < knownMin {
+		*slc = make([]T, 0, knownMin)
+	}
+	return VarLength[T]{slc: slc}
+}
+
+// Reset resets the pool.
+func (p *VarLengthPool[T]) Reset() {
+	p.arrayPool.Reset()
+	p.slicePool.Reset()
+}
+
+// Append appends items to the backing slice just like the `append` builtin function in Go.
+func (i VarLength[T]) Append(p *VarLengthPool[T], items ...T) VarLength[T] {
+	slc := i.slc
+	if slc != nil {
+		*slc = append(*slc, items...)
+		return i
+	}
+
+	arr := i.arr
+	if arr == nil {
+		arr = p.arrayPool.Allocate()
+		i.arr = arr
+	}
+
+	if arr.next+len(items) <= arraySize {
+		arr.next += copy(arr.arr[arr.next:], items)
+	} else {
+		slc = p.slicePool.Allocate()
+		// Copy the array to the slice.
+		*slc = append(*slc, arr.arr[:arr.next]...)
+		*slc = append(*slc, items...)
+		i.slc = slc
+	}
+	return i
+}
+
+// View returns the backing slice.
+func (i VarLength[T]) View() []T {
+	if slc := i.slc; slc != nil {
+		return *i.slc
+	}
+	if arr := i.arr; arr != nil {
+		return arr.arr[:arr.next]
+	}
+	return nil
+}
+
+// Cut cuts the backing slice to the given length.
+// Precondition: n <= len(i.backing).
+func (i VarLength[T]) Cut(n int) {
+	if slc := i.slc; slc != nil {
+		*slc = (*slc)[:n]
+	} else if arr := i.arr; arr != nil {
+		arr.next = n
+	}
 }

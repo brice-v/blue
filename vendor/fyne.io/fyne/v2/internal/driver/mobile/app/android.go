@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build android
-// +build android
 
 /*
 Android Apps are built with -buildmode=c-shared. They are loaded by a
@@ -53,13 +52,12 @@ void finish(JNIEnv* env, jobject ctx);
 void Java_org_golang_app_GoNativeActivity_filePickerReturned(JNIEnv *env, jclass clazz, jstring str);
 */
 import "C"
+
 import (
 	"fmt"
 	"log"
 	"mime"
 	"os"
-	"runtime"
-	"runtime/debug"
 	"strings"
 	"time"
 	"unsafe"
@@ -169,6 +167,7 @@ func onWindowFocusChanged(activity *C.ANativeActivity, hasFocus C.int) {
 
 //export onNativeWindowCreated
 func onNativeWindowCreated(activity *C.ANativeActivity, window *C.ANativeWindow) {
+	windowCreated <- window
 }
 
 //export onNativeWindowRedrawNeeded
@@ -279,21 +278,21 @@ func onConfigurationChanged(activity *C.ANativeActivity) {
 
 //export onLowMemory
 func onLowMemory(activity *C.ANativeActivity) {
-	runtime.GC()
-	debug.FreeOSMemory()
+	cleanCaches()
 }
 
 var (
 	inputQueue         = make(chan *C.AInputQueue)
 	inputQueueDone     = make(chan struct{})
+	windowCreated      = make(chan *C.ANativeWindow)
 	windowDestroyed    = make(chan *C.ANativeWindow)
 	windowRedrawNeeded = make(chan *C.ANativeWindow)
 	windowRedrawDone   = make(chan struct{})
 	windowConfigChange = make(chan windowConfig)
 	activityDestroyed  = make(chan struct{})
 
-	screenInsetTop, screenInsetBottom, screenInsetLeft, screenInsetRight int
-	darkMode                                                             bool
+	currentSize size.Event
+	darkMode    bool
 )
 
 func init() {
@@ -355,7 +354,12 @@ func filePickerReturned(str *C.char) {
 
 //export insetsChanged
 func insetsChanged(top, bottom, left, right int) {
-	screenInsetTop, screenInsetBottom, screenInsetLeft, screenInsetRight = top, bottom, left, right
+	currentSize.InsetTopPx = top
+	currentSize.InsetBottomPx = bottom
+	currentSize.InsetLeftPx = left
+	currentSize.InsetRightPx = right
+
+	theApp.events.In() <- currentSize
 }
 
 func mimeStringFromFilter(filter *FileFilter) string {
@@ -440,6 +444,7 @@ func mainUI(vm, jniEnv, ctx uintptr) error {
 	}()
 
 	var pixelsPerPt float32
+	var surfaceInitialized, wasDestroyed bool
 
 	for {
 		select {
@@ -447,31 +452,42 @@ func mainUI(vm, jniEnv, ctx uintptr) error {
 			return nil
 		case cfg := <-windowConfigChange:
 			pixelsPerPt = cfg.pixelsPerPt
+		case w := <-windowCreated:
+			if surfaceInitialized && !wasDestroyed {
+				if errStr := C.destroyEGLSurface(); errStr != nil {
+					return fmt.Errorf("%s (%s)", C.GoString(errStr), eglGetError())
+				}
+				if errStr := C.createEGLSurface(w); errStr != nil {
+					return fmt.Errorf("%s (%s)", C.GoString(errStr), eglGetError())
+				}
+			}
 		case w := <-windowRedrawNeeded:
 			if C.surface == nil {
 				if errStr := C.createEGLSurface(w); errStr != nil {
 					return fmt.Errorf("%s (%s)", C.GoString(errStr), eglGetError())
 				}
+				surfaceInitialized = true
 				DisplayMetrics.WidthPx = int(C.ANativeWindow_getWidth(w))
 				DisplayMetrics.HeightPx = int(C.ANativeWindow_getHeight(w))
 			}
 			theApp.sendLifecycle(lifecycle.StageFocused)
 			widthPx := int(C.ANativeWindow_getWidth(w))
 			heightPx := int(C.ANativeWindow_getHeight(w))
-			theApp.events.In() <- size.Event{
+			currentSize = size.Event{
 				WidthPx:       widthPx,
 				HeightPx:      heightPx,
 				WidthPt:       float32(widthPx) / pixelsPerPt,
 				HeightPt:      float32(heightPx) / pixelsPerPt,
-				InsetTopPx:    screenInsetTop,
-				InsetBottomPx: screenInsetBottom,
-				InsetLeftPx:   screenInsetLeft,
-				InsetRightPx:  screenInsetRight,
+				InsetTopPx:    currentSize.InsetTopPx,
+				InsetBottomPx: currentSize.InsetBottomPx,
+				InsetLeftPx:   currentSize.InsetLeftPx,
+				InsetRightPx:  currentSize.InsetRightPx,
 				PixelsPerPt:   pixelsPerPt,
 				Orientation:   screenOrientation(widthPx, heightPx), // we are guessing orientation here as it was not always working
 				DarkMode:      darkMode,
 			}
-			theApp.events.In() <- paint.Event{External: true}
+			theApp.events.In() <- currentSize
+			theApp.events.In() <- paint.Event{External: true, Window: uintptr(unsafe.Pointer(w))}
 		case <-windowDestroyed:
 			if C.surface != nil {
 				if errStr := C.destroyEGLSurface(); errStr != nil {
@@ -479,6 +495,7 @@ func mainUI(vm, jniEnv, ctx uintptr) error {
 				}
 			}
 			C.surface = nil
+			wasDestroyed = true
 			theApp.sendLifecycle(lifecycle.StageAlive)
 		case <-activityDestroyed:
 			theApp.sendLifecycle(lifecycle.StageDead)
@@ -517,7 +534,7 @@ func runInputQueue(vm, jniEnv, ctx uintptr) error {
 
 	var q *C.AInputQueue
 	for {
-		if C.ALooper_pollAll(-1, nil, nil, nil) == C.ALOOPER_POLL_WAKE {
+		if C.ALooper_pollOnce(-1, nil, nil, nil) == C.ALOOPER_POLL_WAKE {
 			select {
 			default:
 			case p := <-pending:

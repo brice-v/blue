@@ -1,6 +1,7 @@
 package textutil
 
 import (
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -11,7 +12,8 @@ import (
 	"github.com/gookit/goutil/strutil"
 )
 
-const defaultVarFormat = "{{,}}"
+// DefaultVarFormat var template
+const DefaultVarFormat = "{{,}}"
 
 // FallbackFn type
 type FallbackFn = func(name string) (val string, ok bool)
@@ -24,12 +26,19 @@ type VarReplacer struct {
 	lLen, rLen  int
 
 	varReg *regexp.Regexp
-	// flatten sub map in vars
+	// flatten sub map in vars. default: true
+	//
+	// eg: {name: {a: 1, b: 2}} => {name.a: 1, name.b: 2}
 	flatSubs bool
+	// do parse env value in var-value and tpl var-name. default: false
 	parseEnv bool
-	// support parse default value. eg: {{ name | inhere }}
+	// do parse default value. default: false
+	//
+	// eg: {{ name | inhere }}
 	parseDef bool
-	// keepMissVars list. default False: will clear on each replace
+	// keepMissVars list.
+	//
+	// default: False - will clear on each replacement
 	keepMissVars bool
 	// missing vars list
 	missVars []string
@@ -39,11 +48,13 @@ type VarReplacer struct {
 	RenderFn func(s string, vs map[string]string) string
 }
 
-// NewVarReplacer instance.
+// NewVarReplacer instance. default format is: DefaultVarFormat
 //
 // Usage:
 //
-//	rpl := NewVarReplacer("{{,}}")
+//	rpl := NewVarReplacer("{{,}}") // access var: {{ var }}, {{ top.sub }}
+//	// or
+//	rpl := NewVarReplacer("$") // access var: $var, $top.sub
 func NewVarReplacer(format string, opFns ...func(vp *VarReplacer)) *VarReplacer {
 	vp := &VarReplacer{flatSubs: true}
 	for _, fn := range opFns {
@@ -75,7 +86,7 @@ func (r *VarReplacer) KeepMissingVars() *VarReplacer {
 	return r
 }
 
-// WithParseDefault value on the input template contents
+// WithParseDefault value on the input template contents. eg: {{ name | inhere }}
 func (r *VarReplacer) WithParseDefault() *VarReplacer {
 	r.parseDef = true
 	return r
@@ -87,7 +98,7 @@ func (r *VarReplacer) WithParseEnv() *VarReplacer {
 	return r
 }
 
-// OnNotFound var handle
+// OnNotFound var handle func
 func (r *VarReplacer) OnNotFound(fn FallbackFn) *VarReplacer {
 	r.NotFound = fn
 	return r
@@ -95,7 +106,7 @@ func (r *VarReplacer) OnNotFound(fn FallbackFn) *VarReplacer {
 
 // WithFormat custom var template
 func (r *VarReplacer) WithFormat(format string) *VarReplacer {
-	r.Left, r.Right = strutil.QuietCut(strutil.OrElse(format, defaultVarFormat), ",")
+	r.Left, r.Right = strutil.QuietCut(strutil.OrElse(format, DefaultVarFormat), ",")
 	r.Init()
 	return r
 }
@@ -115,7 +126,7 @@ func (r *VarReplacer) Init() {
 	}
 }
 
-// ParseVars the text contents and collect vars
+// ParseVars parse the text contents and collect vars
 func (r *VarReplacer) ParseVars(s string) []string {
 	ss := arrutil.StringsMap(r.varReg.FindAllString(s, -1), func(val string) string {
 		return strings.TrimSpace(val[r.lLen : len(val)-r.rLen])
@@ -174,7 +185,11 @@ func (r *VarReplacer) RenderSimple(s string, varMap map[string]string) string {
 
 	if r.parseEnv {
 		for name, val := range varMap {
-			varMap[name] = varexpr.SafeParse(val)
+			if strings.Contains(val, "${") {
+				varMap[name] = varexpr.SafeParse(val)
+			} else {
+				varMap[name] = val
+			}
 		}
 	}
 
@@ -195,7 +210,7 @@ func (r *VarReplacer) ResetMissVars() {
 // Replace string-map vars in the text contents
 func (r *VarReplacer) doReplace(s string, varMap map[string]string) string {
 	if !r.keepMissVars {
-		r.missVars = make([]string, 0) // clear on each replace
+		r.missVars = make([]string, 0) // clear on each replacement
 	}
 
 	// use custom render func
@@ -214,7 +229,13 @@ func (r *VarReplacer) doReplace(s string, varMap map[string]string) string {
 		if val, ok := varMap[name]; ok {
 			return val
 		}
+		if r.parseEnv && strutil.IsEnvName(name) {
+			if val := os.Getenv(name); val != "" {
+				return val
+			}
+		}
 
+		// has custom not found handle func
 		if r.NotFound != nil {
 			if val, ok := r.NotFound(name); ok {
 				return val

@@ -1,7 +1,7 @@
 
-gofumpt       := mvdan.cc/gofumpt@v0.5.0
+gofumpt       := mvdan.cc/gofumpt@v0.6.0
 gosimports    := github.com/rinchsan/gosimports/cmd/gosimports@v0.3.8
-golangci_lint := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+golangci_lint := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
 asmfmt        := github.com/klauspost/asmfmt/cmd/asmfmt@v1.3.2
 # sync this with netlify.toml!
 hugo          := github.com/gohugoio/hugo@v0.115.2
@@ -20,26 +20,9 @@ main_packages := $(sort $(foreach f,$(dir $(main_sources)),$(if $(findstring ./,
 
 go_test_options ?= -timeout 300s
 
-ensureCompilerFastest := -ldflags '-X github.com/tetratelabs/wazero/internal/integration_test/vs.ensureCompilerFastest=true'
-.PHONY: bench
-bench:
-	@go test -run=NONE -benchmem -bench=. ./internal/engine/compiler/...
-	@go build ./internal/integration_test/bench/...
-	@# Don't use -test.benchmem as it isn't accurate when comparing against CGO libs
-	@for d in vs/time vs/wasmedge vs/wasmtime ; do \
-		cd ./internal/integration_test/$$d ; \
-		go test -bench=. . -tags='wasmedge' $(ensureCompilerFastest) ; \
-		cd - ;\
-	done
-
-bench_testdata_dir := internal/integration_test/bench/testdata
-.PHONY: build.bench
-build.bench:
-	@tinygo build -o $(bench_testdata_dir)/case.wasm -scheduler=none --no-debug -target=wasi $(bench_testdata_dir)/case.go
-
 .PHONY: test.examples
 test.examples:
-	@go test $(go_test_options) ./examples/... ./imports/assemblyscript/example/... ./imports/emscripten/... ./experimental/gojs/example/... ./imports/wasi_snapshot_preview1/example/...
+	@go test $(go_test_options) ./examples/... ./imports/assemblyscript/example/... ./imports/emscripten/... ./imports/wasi_snapshot_preview1/example/...
 
 .PHONY: build.examples.as
 build.examples.as:
@@ -53,12 +36,23 @@ build.examples.as:
 build.examples.zig: examples/allocation/zig/testdata/greet.wasm imports/wasi_snapshot_preview1/example/testdata/zig/cat.wasm imports/wasi_snapshot_preview1/testdata/zig/wasi.wasm
 	@cd internal/testing/dwarftestdata/testdata/zig; zig build; mv zig-out/*/main.wasm ./ # Need DWARF custom sections.
 
-tinygo_sources := examples/basic/testdata/add.go examples/allocation/tinygo/testdata/greet.go examples/cli/testdata/cli.go imports/wasi_snapshot_preview1/example/testdata/tinygo/cat.go imports/wasi_snapshot_preview1/testdata/tinygo/wasi.go
-.PHONY: build.examples.tinygo
-build.examples.tinygo: $(tinygo_sources)
+tinygo_reactor_sources_reactor := examples/basic/testdata/add.go examples/allocation/tinygo/testdata/greet.go
+.PHONY: build.examples.tinygo_reactor
+build.examples.tinygo_reactor: $(tinygo_sources_reactor)
 	@for f in $^; do \
-	    tinygo build -o $$(echo $$f | sed -e 's/\.go/\.wasm/') -scheduler=none --no-debug --target=wasi $$f; \
+	    tinygo build -o $$(echo $$f | sed -e 's/\.go/\.wasm/') -scheduler=none --no-debug --target=wasip1 -buildmode=c-shared $$f; \
 	done
+
+tinygo_sources_clis := examples/cli/testdata/cli.go imports/wasi_snapshot_preview1/example/testdata/tinygo/cat.go imports/wasi_snapshot_preview1/testdata/tinygo/wasi.go cmd/wazero/testdata/cat/cat.go
+.PHONY: build.examples.tinygo_clis
+build.examples.tinygo_clis: $(tinygo_sources_clis)
+	@for f in $^; do \
+	    tinygo build -o $$(echo $$f | sed -e 's/\.go/\.wasm/') -scheduler=none --no-debug --target=wasip1 $$f; \
+	done
+	@mv cmd/wazero/testdata/cat/cat.wasm cmd/wazero/testdata/cat/cat-tinygo.wasm
+
+.PHONY: build.examples.tinygo
+build.examples.tinygo: build.examples.tinygo_reactor build.examples.tinygo_clis
 
 # We use zig to build C as it is easy to install and embeds a copy of zig-cc.
 # Note: Don't use "-Oz" as that breaks our wasi sock example.
@@ -96,36 +90,47 @@ build.examples.emscripten: $(emscripten_sources)
 	done
 
 %/greet.wasm : cargo_target := wasm32-unknown-unknown
-%/cat.wasm : cargo_target := wasm32-wasi
-%/wasi.wasm : cargo_target := wasm32-wasi
+%/cat.wasm : cargo_target := wasm32-wasip1
+%/wasi.wasm : cargo_target := wasm32-wasip1
 
 .PHONY: build.examples.rust
 build.examples.rust: examples/allocation/rust/testdata/greet.wasm imports/wasi_snapshot_preview1/example/testdata/cargo-wasi/cat.wasm imports/wasi_snapshot_preview1/testdata/cargo-wasi/wasi.wasm internal/testing/dwarftestdata/testdata/rust/main.wasm.xz
 
 # Normally, we build release because it is smaller. Testing dwarf requires the debug build.
 internal/testing/dwarftestdata/testdata/rust/main.wasm.xz:
-	cd $(@D) && cargo wasi build
-	mv $(@D)/target/wasm32-wasi/debug/main.wasm $(@D)
+	cd $(@D) && cargo build --target wasm32-wasip1
+	mv $(@D)/target/wasm32-wasip1/debug/main.wasm $(@D)
 	cd $(@D) && xz -k -f ./main.wasm # Rust's DWARF section is huge, so compress it.
 
-# Builds rust using cargo normally, or cargo-wasi.
+# Builds rust using cargo normally
 %.wasm: %.rs
-	@(cd $(@D); cargo $(if $(findstring wasi,$(cargo_target)),wasi build,build --target $(cargo_target)) --release)
+	@(cd $(@D); cargo build --target $(cargo_target) --release)
 	@mv $(@D)/target/$(cargo_target)/release/$(@F) $(@D)
 
 spectest_base_dir := internal/integration_test/spectest
+
 spectest_v1_dir := $(spectest_base_dir)/v1
 spectest_v1_testdata_dir := $(spectest_v1_dir)/testdata
 spec_version_v1 := wg-1.0
+
 spectest_v2_dir := $(spectest_base_dir)/v2
 spectest_v2_testdata_dir := $(spectest_v2_dir)/testdata
-# Latest draft state as of May 23, 2023.
-spec_version_v2 := 2e8912e88a3118a46b90e8ccb659e24b4e8f3c23
+spec_version_v2 := wg-2.0
+
+spectest_threads_dir := $(spectest_base_dir)/threads
+spectest_threads_testdata_dir := $(spectest_threads_dir)/testdata
+spec_version_threads := ff17701446d8e2086142423ef77ae947a025e26f
+
+spectest_tail_call_dir := $(spectest_base_dir)/tail-call
+spectest_tail_call_testdata_dir := $(spectest_tail_call_dir)/testdata
+spec_version_tail_call := 88e97b0f742f4c3ee01fea683da130f344dd7b02
 
 .PHONY: build.spectest
 build.spectest:
 	@$(MAKE) build.spectest.v1
 	@$(MAKE) build.spectest.v2
+	@$(MAKE) build.spectest.threads
+	@$(MAKE) build.spectest.tail_call
 
 .PHONY: build.spectest.v1
 build.spectest.v1: # Note: wabt by default uses >1.0 features, so wast2json flags might drift as they include more. See WebAssembly/wabt#1878
@@ -156,19 +161,43 @@ build.spectest.v1: # Note: wabt by default uses >1.0 features, so wast2json flag
 
 .PHONY: build.spectest.v2
 build.spectest.v2: # Note: SIMD cases are placed in the "simd" subdirectory.
+	@rm -rf $(spectest_v2_testdata_dir)
 	@mkdir -p $(spectest_v2_testdata_dir)
 	@cd $(spectest_v2_testdata_dir) \
 		&& curl -sSL 'https://api.github.com/repos/WebAssembly/spec/contents/test/core?ref=$(spec_version_v2)' | jq -r '.[]| .download_url' | grep -E ".wast" | xargs -Iurl curl -sJL url -O
 	@cd $(spectest_v2_testdata_dir) \
 		&& curl -sSL 'https://api.github.com/repos/WebAssembly/spec/contents/test/core/simd?ref=$(spec_version_v2)' | jq -r '.[]| .download_url' | grep -E ".wast" | xargs -Iurl curl -sJL url -O
 	@cd $(spectest_v2_testdata_dir) && for f in `find . -name '*.wast'`; do \
-		wast2json --debug-names --no-check $$f; \
+		wast2json --debug-names --no-check $$f || true; \
+	done # Ignore the error here as some tests (e.g. comments.wast right now) are not supported by wast2json yet.
+
+# Note: We currently cannot build the "threads" subdirectory that spawns threads due to missing support in wast2json.
+# https://github.com/WebAssembly/wabt/issues/2348#issuecomment-1878003959
+.PHONY: build.spectest.threads
+build.spectest.threads:
+	@rm -rf $(spectest_threads_testdata_dir)
+	@mkdir -p $(spectest_threads_testdata_dir)
+	@cd $(spectest_threads_testdata_dir) \
+		&& curl -sSL 'https://api.github.com/repos/WebAssembly/threads/contents/test/core/threads?ref=$(spec_version_threads)' | jq -r '.[]| .download_url' | grep -E "/atomic.wast" | xargs -Iurl curl -sJL url -O
+	@cd $(spectest_threads_testdata_dir) && for f in `find . -name '*.wast'`; do \
+		wast2json --enable-threads --debug-names $$f; \
+	done
+
+.PHONY: build.spectest.tail_call
+build.spectest.tail_call:
+	@rm -rf $(spectest_tail_call_testdata_dir)
+	@mkdir -p $(spectest_tail_call_testdata_dir)
+	@cd $(spectest_tail_call_testdata_dir) \
+		&& curl -sSL 'https://api.github.com/repos/WebAssembly/testsuite/contents/proposals/tail-call?ref=$(spec_version_tail_call)' | jq -r '.[]| .download_url' | grep -E ".wast" | xargs -Iurl curl -sJL url -O
+	@cd $(spectest_tail_call_testdata_dir) && for f in `find . -name '*.wast'`; do \
+		wast2json --enable-tail-call --debug-names $$f; \
 	done
 
 .PHONY: test
 test:
-	@go test $(go_test_options) $$(go list ./... | grep -vE '$(spectest_v1_dir)|$(spectest_v2_dir)')
+	@go test $(go_test_options) ./...
 	@cd internal/version/testdata && go test $(go_test_options) ./...
+	@cd internal/integration_test/fuzz/wazerolib && CGO_ENABLED=0 WASM_BINARY_PATH=testdata/test.wasm go test ./...
 
 .PHONY: coverage
 # replace spaces with commas
@@ -176,17 +205,6 @@ coverpkg = $(shell echo $(main_packages) | tr ' ' ',')
 coverage: ## Generate test coverage
 	@go test -coverprofile=coverage.txt -covermode=atomic --coverpkg=$(coverpkg) $(main_packages)
 	@go tool cover -func coverage.txt
-
-.PHONY: spectest
-spectest:
-	@$(MAKE) spectest.v1
-	@$(MAKE) spectest.v2
-
-spectest.v1:
-	@go test $(go_test_options) $$(go list ./... | grep $(spectest_v1_dir))
-
-spectest.v2:
-	@go test $(go_test_options) $$(go list ./... | grep $(spectest_v2_dir))
 
 golangci_lint_path := $(shell go env GOPATH)/bin/golangci-lint
 
@@ -197,7 +215,7 @@ golangci_lint_goarch ?= $(shell go env GOARCH)
 
 .PHONY: lint
 lint: $(golangci_lint_path)
-	@GOARCH=$(golangci_lint_goarch) CGO_ENABLED=0 $(golangci_lint_path) run --timeout 5m
+	@GOARCH=$(golangci_lint_goarch) CGO_ENABLED=0 $(golangci_lint_path) run --timeout 5m -E testableexamples
 
 .PHONY: format
 format:
@@ -216,17 +234,14 @@ check:
 	@GOARCH=amd64 GOOS=plan9 go build ./...
 # Ensure we build on gojs. See #1526.
 	@GOARCH=wasm GOOS=js go build ./...
-# Ensure we build on gojs. See #1526.
+# Ensure we build on wasip1. See #1526.
 	@GOARCH=wasm GOOS=wasip1 go build ./...
 # Ensure we build on aix. See #1723
 	@GOARCH=ppc64 GOOS=aix go build ./...
-# Ensure we build on windows:
-	@GOARCH=amd64 GOOS=windows go build ./...
-# Ensure we build on an arbitrary operating system:
-	@GOARCH=amd64 GOOS=dragonfly go build ./...
-# Ensure we build on solaris/illumos:
-	@GOARCH=amd64 GOOS=illumos go build ./...
-	@GOARCH=amd64 GOOS=solaris go build ./...
+# Ensure we build on linux s390x. See #2412
+	@GOARCH=s390x GOOS=linux go build ./...
+# Ensure we build on linux ppc64le. See #2412
+	@GOARCH=ppc64le GOOS=linux go build ./...
 # Ensure we build on linux arm for Dapr:
 #	gh release view -R dapr/dapr --json assets --jq 'first(.assets[] | select(.name = "daprd_linux_arm.tar.gz") | {url, downloadCount})'
 	@GOARCH=arm GOOS=linux go build ./...
@@ -255,33 +270,34 @@ clean: ## Ensure a clean build
 	@rm -rf dist build coverage.txt
 	@go clean -testcache
 
+fuzz_default_flags := --no-trace-compares --sanitizer=none -- -rss_limit_mb=8192
+
 fuzz_timeout_seconds ?= 10
 .PHONY: fuzz
 fuzz:
 	@cd internal/integration_test/fuzz && cargo test
-	@cd internal/integration_test/fuzz && cargo fuzz run no_diff --sanitizer=none -- -rss_limit_mb=8192 -max_total_time=$(fuzz_timeout_seconds)
-	@cd internal/integration_test/fuzz && cargo fuzz run memory_no_diff --sanitizer=none -- -rss_limit_mb=8192 -max_total_time=$(fuzz_timeout_seconds)
-	@cd internal/integration_test/fuzz && cargo fuzz run validation --sanitizer=none -- -rss_limit_mb=8192 -max_total_time=$(fuzz_timeout_seconds)
+	@cd internal/integration_test/fuzz && cargo fuzz run logging_no_diff $(fuzz_default_flags) -max_total_time=$(fuzz_timeout_seconds)
+	@cd internal/integration_test/fuzz && cargo fuzz run no_diff $(fuzz_default_flags) -max_total_time=$(fuzz_timeout_seconds)
+	@cd internal/integration_test/fuzz && cargo fuzz run memory_no_diff $(fuzz_default_flags) -max_total_time=$(fuzz_timeout_seconds)
+	@cd internal/integration_test/fuzz && cargo fuzz run validation $(fuzz_default_flags) -max_total_time=$(fuzz_timeout_seconds)
+
+libsodium:
+	cd ./internal/integration_test/libsodium/testdata && \
+		curl -s "https://api.github.com/repos/jedisct1/webassembly-benchmarks/contents/2022-12/wasm?ref=7e86d68e99e60130899fbe3b3ab6e9dce9187a7c" \
+		| jq -r '.[] | .download_url' | xargs -n 1 curl -LO
 
 #### CLI release related ####
 
 VERSION ?= dev
-# Default to a dummy version 0.0.1.1, which is always lower than a real release.
-# Legal version values should look like 'x.x.x.x' where x is an integer from 0 to 65534.
-# https://learn.microsoft.com/en-us/windows/win32/msi/productversion?redirectedfrom=MSDN
-# https://stackoverflow.com/questions/9312221/msi-version-numbers
-MSI_VERSION ?= 0.0.1.1
 non_windows_platforms := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64
 non_windows_archives  := $(non_windows_platforms:%=dist/wazero_$(VERSION)_%.tar.gz)
 windows_platforms     := windows_amd64 # TODO: add arm64 windows once we start testing on it.
-windows_archives      := $(windows_platforms:%=dist/wazero_$(VERSION)_%.zip) $(windows_platforms:%=dist/wazero_$(VERSION)_%.msi)
+windows_archives      := $(windows_platforms:%=dist/wazero_$(VERSION)_%.zip)
 checksum_txt          := dist/wazero_$(VERSION)_checksums.txt
 
 # define macros for multi-platform builds. these parse the filename being built
 go-arch = $(if $(findstring amd64,$1),amd64,arm64)
 go-os   = $(if $(findstring .exe,$1),windows,$(if $(findstring linux,$1),linux,darwin))
-# msi-arch is a macro so we can detect it based on the file naming convention
-msi-arch     = $(if $(findstring amd64,$1),x64,arm64)
 
 build/wazero_%/wazero:
 	$(call go-build,$@,$<)
@@ -306,51 +322,15 @@ define go-build
 	@echo build "ok"
 endef
 
-# this makes a marker file ending in .signed to avoid repeatedly calling codesign
-%.signed: %
-	$(call codesign,$<)
-	@touch $@
-
-# This requires osslsigncode package (apt or brew) or latest windows release from mtrojnar/osslsigncode
-#
-# Default is self-signed while production should be a Digicert signing key
-#
-# Ex.
-# ```bash
-# keytool -genkey -alias wazero -storetype PKCS12 -keyalg RSA -keysize 2048 -storepass wazero-bunch \
-# -keystore wazero.p12 -dname "O=wazero,CN=wazero.io" -validity 3650
-# ```
-WINDOWS_CODESIGN_P12      ?= packaging/msi/wazero.p12
-WINDOWS_CODESIGN_PASSWORD ?= wazero-bunch
-define codesign
-	@printf "$(ansi_format_dark)" codesign "signing $1"
-	@osslsigncode sign -h sha256 -pkcs12 ${WINDOWS_CODESIGN_P12} -pass "${WINDOWS_CODESIGN_PASSWORD}" \
-	-n "wazero is the zero dependency WebAssembly runtime for Go developers" -i https://wazero.io -t http://timestamp.digicert.com \
-	$(if $(findstring msi,$(1)),-add-msi-dse) -in $1 -out $1-signed
-	@mv $1-signed $1
-	@printf "$(ansi_format_bright)" codesign "ok"
-endef
-
-# This task is only supported on Windows, where we use candle.exe (compile wxs to wixobj) and light.exe (link to msi)
-dist/wazero_$(VERSION)_%.msi: build/wazero_%/wazero.exe.signed
-ifeq ($(OS),Windows_NT)
-	@echo msi "building $@"
-	@mkdir -p $(@D)
-	@candle -nologo -arch $(call msi-arch,$@) -dVersion=$(MSI_VERSION) -dBin=$(<:.signed=) -o build/wazero.wixobj packaging/msi/wazero.wxs
-	@light -nologo -o $@ build/wazero.wixobj -spdb
-	$(call codesign,$@)
-	@echo msi "ok"
-endif
-
-dist/wazero_$(VERSION)_%.zip: build/wazero_%/wazero.exe.signed
+dist/wazero_$(VERSION)_%.zip: build/wazero_%/wazero.exe
 	@echo zip "zipping $@"
 	@mkdir -p $(@D)
-	@zip -qj $@ $(<:.signed=)
+	@zip -qj $@ $<
 	@echo zip "ok"
 
 # Darwin doesn't have sha256sum. See https://github.com/actions/virtual-environments/issues/90
 sha256sum := $(if $(findstring darwin,$(shell go env GOOS)),shasum -a 256,sha256sum)
-$(checksum_txt):
-	@cd $(@D); touch $(@F); $(sha256sum) * >> $(@F)
+$(checksum_txt): $(non_windows_archives) $(windows_archives)
+	@cd $(@D); touch $(@F); $(sha256sum) * > $(@F)
 
-dist: $(non_windows_archives) $(if $(findstring Windows_NT,$(OS)),$(windows_archives),) $(checksum_txt)
+dist: $(non_windows_archives) $(windows_archives) $(checksum_txt)

@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build darwin && ios
-// +build darwin,ios
 
 #include "_cgo_export.h"
 #include <pthread.h>
@@ -16,6 +15,8 @@
 #import <UserNotifications/UserNotifications.h>
 
 struct utsname sysInfo;
+
+static CGFloat keyboardHeight;
 
 @interface GoAppAppController : GLKViewController<UIContentContainer, GLKViewDelegate>
 @end
@@ -48,7 +49,7 @@ struct utsname sysInfo;
 	updateConfig((int)size.width, (int)size.height, orientation);
 
 	UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-	center.delegate = self;
+	center.delegate = (id) self;
 
 	return YES;
 }
@@ -67,6 +68,10 @@ struct utsname sysInfo;
 
 - (void)applicationWillTerminate:(UIApplication *)application {
 	lifecycleDead();
+}
+
+- (void)applicationDidReceiveMemoryWarning:(UIApplication *)application {
+	lifecycleMemoryWarning();
 }
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray <NSURL *>*)urls {
@@ -107,6 +112,16 @@ struct utsname sysInfo;
 	// TODO: replace by swapping out GLKViewController for a UIVIewController.
 	[super viewWillAppear:animated];
 	self.paused = YES;
+
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillHideNotification object:nil];
 }
 
 - (void)viewDidLoad {
@@ -197,6 +212,24 @@ static void sendTouches(int change, NSSet* touches) {
 	CGSize size = [UIScreen mainScreen].nativeBounds.size;
 	updateConfig((int)size.width, (int)size.height, orientation);
 }
+
+- (void)keyboardWillShow:(NSNotification *)note {
+    CGSize keyboardSize = [[[note userInfo] objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue].size;
+    keyboardHeight = keyboardSize.height;
+
+    CGSize size = [UIScreen mainScreen].nativeBounds.size;
+	UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
+	updateConfig((int)size.width, (int)size.height, orientation);
+}
+
+- (void)keyboardWillHide:(NSNotification *)note {
+    keyboardHeight = 0;
+
+    CGSize size = [UIScreen mainScreen].nativeBounds.size;
+	UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
+	updateConfig((int)size.width, (int)size.height, orientation);
+}
+
 @end
 
 @implementation GoInputView
@@ -210,7 +243,20 @@ static void sendTouches(int change, NSSet* touches) {
 }
 
 -(BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
-    keyboardTyped([string UTF8String]);
+    keyboardTyped((char *)[string UTF8String]);
+    return NO;
+}
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField {
+    if ([self returnKeyType] != UIReturnKeyDone) {
+        keyboardTyped("\n");
+        return YES;
+    }
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self resignFirstResponder];
+    });
+
     return NO;
 }
 
@@ -251,7 +297,11 @@ UIEdgeInsets getDevicePadding() {
     if (@available(iOS 11.0, *)) {
         UIWindow *window = UIApplication.sharedApplication.keyWindow;
 
-        return window.safeAreaInsets;
+        UIEdgeInsets inset = window.safeAreaInsets;
+        if (keyboardHeight != 0) {
+            inset.bottom = keyboardHeight;
+        }
+        return inset;
     }
 
     return UIEdgeInsetsZero;
@@ -313,12 +363,12 @@ NSMutableArray *docTypesForMimeExts(char *mimes, char *exts) {
         NSString *mimeList = [NSString stringWithUTF8String:mimes];
 
         if ([mimeList isEqualToString:@"application/x-directory"]) {
-            [docTypes addObject:kUTTypeFolder];
+            [docTypes addObject:(NSString*)kUTTypeFolder];
         } else {
             NSArray *mimeItems = [mimeList componentsSeparatedByString:@"|"];
 
             for (NSString *mime in mimeItems)  {
-                CFStringRef UTI = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, mime, NULL);
+                NSString *UTI = (NSString *) UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (CFStringRef)mime, NULL);
 
                 [docTypes addObject:UTI];
             }
@@ -328,7 +378,7 @@ NSMutableArray *docTypesForMimeExts(char *mimes, char *exts) {
         NSArray *extItems = [extList componentsSeparatedByString:@"|"];
 
         for (NSString *ext in extItems)  {
-            CFStringRef UTI = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, ext, NULL);
+            NSString *UTI = (NSString *) UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (CFStringRef)ext, NULL);
 
             [docTypes addObject:UTI];
         }
@@ -346,7 +396,7 @@ void showFileOpenPicker(char* mimes, char *exts) {
 
     UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc]
         initWithDocumentTypes:docTypes inMode:UIDocumentPickerModeOpen];
-    documentPicker.delegate = appDelegate;
+    documentPicker.delegate = (id) appDelegate;
 
     dispatch_async(dispatch_get_main_queue(), ^{
         [appDelegate.controller presentViewController:documentPicker animated:YES completion:nil];
@@ -367,7 +417,7 @@ void showFileSavePicker(char* mimes, char *exts) {
 
     UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc]
         initWithURL:temporaryFileURL inMode:UIDocumentPickerModeMoveToService];
-    documentPicker.delegate = appDelegate;
+    documentPicker.delegate = (id) appDelegate;
 
     dispatch_async(dispatch_get_main_queue(), ^{
         [appDelegate.controller presentViewController:documentPicker animated:YES completion:nil];

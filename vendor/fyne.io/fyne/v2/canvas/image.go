@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/internal/cache"
@@ -34,6 +33,12 @@ const (
 	// as with ImageFillContain there may be transparent areas around the image.
 	// Note that the minSize may be smaller than the image dimensions if scale > 1.
 	ImageFillOriginal
+
+	// ImageFillCover maintains the image aspect ratio whilst filling the space.
+	// The image content will be centered on the available space meaning that an equal amount of top and bottom
+	// or left and right will be clipped if the output aspect ratio does not match the source image.
+	// Since: 2.7
+	ImageFillCover
 )
 
 // ImageScale defines the different scaling filters used to scaling images
@@ -62,7 +67,6 @@ type Image struct {
 	aspect float32
 	icon   *svg.Decoder
 	isSVG  bool
-	lock   sync.Mutex
 
 	// one of the following sources will provide our image data
 	File     string        // Load the image from a file
@@ -72,6 +76,13 @@ type Image struct {
 	Translucency float64    // Set a translucency value > 0.0 to fade the image
 	FillMode     ImageFill  // Specify how the image should expand to fill or fit the available space
 	ScaleMode    ImageScale // Specify the type of scaling interpolation applied to the image
+
+	// CornerRadius specifies a radius to apply to round corners of the image.
+	//
+	// Since: 2.7
+	CornerRadius float32
+
+	previousRender bool // did we successfully draw before? if so a nil content will need a reset
 }
 
 // Alpha is a convenience function that returns the alpha value for an image
@@ -100,13 +111,19 @@ func (i *Image) Hide() {
 // MinSize returns the specified minimum size, if set, or {1, 1} otherwise.
 func (i *Image) MinSize() fyne.Size {
 	if i.Image == nil || i.aspect == 0 {
-		i.Refresh()
+		if i.File != "" || i.Resource != nil {
+			i.Refresh()
+		}
 	}
 	return i.baseObject.MinSize()
 }
 
 // Move the image object to a new position, relative to its parent top, left corner.
 func (i *Image) Move(pos fyne.Position) {
+	if i.Position() == pos {
+		return
+	}
+
 	i.baseObject.Move(pos)
 
 	repaint(i)
@@ -114,9 +131,6 @@ func (i *Image) Move(pos fyne.Position) {
 
 // Refresh causes this image to be redrawn with its configured state.
 func (i *Image) Refresh() {
-	i.lock.Lock()
-	defer i.lock.Unlock()
-
 	rc, err := i.updateReader()
 	if err != nil {
 		fyne.LogError("Failed to load image", err)
@@ -134,6 +148,13 @@ func (i *Image) Refresh() {
 			return
 		}
 		rc = io.NopCloser(r)
+	} else if i.previousRender {
+		i.previousRender = false
+
+		Refresh(i)
+		return
+	} else {
+		return
 	}
 
 	if i.File != "" || i.Resource != nil {
@@ -166,6 +187,7 @@ func (i *Image) Refresh() {
 		}
 	}
 
+	i.previousRender = true
 	Refresh(i)
 }
 
@@ -176,7 +198,7 @@ func (i *Image) Resize(s fyne.Size) {
 		return
 	}
 	i.baseObject.Resize(s)
-	if i.FillMode == ImageFillOriginal && i.size.Height > 2 { // we can just ask for a GPU redraw to align
+	if i.FillMode == ImageFillOriginal && i.Size().Height > 2 { // we can just ask for a GPU redraw to align
 		Refresh(i)
 		return
 	}
@@ -270,7 +292,19 @@ func (i *Image) updateReader() (io.ReadCloser, error) {
 	i.isSVG = false
 	if i.Resource != nil {
 		i.isSVG = svg.IsResourceSVG(i.Resource)
-		return io.NopCloser(bytes.NewReader(i.Resource.Content())), nil
+		content := i.Resource.Content()
+		if res, ok := i.Resource.(fyne.ThemedResource); i.isSVG && ok {
+			th := cache.WidgetTheme(i)
+			if th != nil {
+				col := th.Color(res.ThemeColorName(), fyne.CurrentApp().Settings().ThemeVariant())
+				var err error
+				content, err = svg.Colorize(content, col)
+				if err != nil {
+					fyne.LogError("", err)
+				}
+			}
+		}
+		return io.NopCloser(bytes.NewReader(content)), nil
 	} else if i.File != "" {
 		var err error
 
@@ -336,7 +370,7 @@ func (i *Image) imageDetailsFromReader(source io.Reader) (reader io.Reader, widt
 		width, height = config.Width, config.Height
 		aspect = float32(width) / float32(height)
 	}
-	return
+	return reader, width, height, aspect, err
 }
 
 func (i *Image) renderSVG(width, height float32) (image.Image, error) {
@@ -345,9 +379,12 @@ func (i *Image) renderSVG(width, height float32) (image.Image, error) {
 	if c != nil {
 		// We want real output pixel count not just the screen coordinate space (i.e. macOS Retina)
 		screenWidth, screenHeight = c.PixelCoordinateForPosition(fyne.Position{X: width, Y: height})
+	} else { // no canvas info, assume HiDPI
+		screenWidth *= 2
+		screenHeight *= 2
 	}
 
-	tex := cache.GetSvg(i.name(), screenWidth, screenHeight)
+	tex := cache.GetSvg(i.name(), i, screenWidth, screenHeight)
 	if tex != nil {
 		return tex, nil
 	}
@@ -357,6 +394,6 @@ func (i *Image) renderSVG(width, height float32) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache.SetSvg(i.name(), tex, screenWidth, screenHeight)
+	cache.SetSvg(i.name(), i, tex, screenWidth, screenHeight)
 	return tex, nil
 }

@@ -1,5 +1,4 @@
 //go:build android
-// +build android
 
 package mobile
 
@@ -14,6 +13,7 @@ bool createListableURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr);
 char *listURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr);
 */
 import "C"
+
 import (
 	"errors"
 	"strings"

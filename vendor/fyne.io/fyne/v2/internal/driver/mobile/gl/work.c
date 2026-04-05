@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build darwin || linux || openbsd || freebsd
-// +build darwin linux openbsd freebsd
 
 #include <stdlib.h>
 #include "_cgo_export.h"
@@ -49,6 +48,9 @@ uintptr_t processFn(struct fnargs* args, char* parg) {
 		break;
 	case glfnBufferData:
 		glBufferData((GLenum)args->a0, (GLsizeiptr)args->a1, (GLvoid*)parg, (GLenum)args->a2);
+		break;
+	case glfnBufferSubData:
+		glBufferSubData((GLenum)args->a0, (GLsizeiptr)args->a1, (GLenum)args->a2, (GLvoid*)parg);
 		break;
 	case glfnClear:
 		glClear((GLenum)args->a0);

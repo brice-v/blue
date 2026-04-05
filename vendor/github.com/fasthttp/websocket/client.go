@@ -52,7 +52,7 @@ func NewClient(netConn net.Conn, u *url.URL, requestHeader http.Header, readBufS
 // It is safe to call Dialer's methods concurrently.
 type Dialer struct {
 	// NetDial specifies the dial function for creating TCP connections. If
-	// NetDial is nil, net.Dial is used.
+	// NetDial is nil, net.Dialer DialContext is used.
 	NetDial func(network, addr string) (net.Conn, error)
 
 	// NetDialContext specifies the dial function for creating TCP connections. If
@@ -244,46 +244,25 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		defer cancel()
 	}
 
-	// Get network dial function.
-	var netDial func(network, add string) (net.Conn, error)
-
-	switch u.Scheme {
-	case "http":
-		if d.NetDialContext != nil {
-			netDial = func(network, addr string) (net.Conn, error) {
-				return d.NetDialContext(ctx, network, addr)
-			}
-		} else if d.NetDial != nil {
-			netDial = d.NetDial
-		}
-	case "https":
-		if d.NetDialTLSContext != nil {
-			netDial = func(network, addr string) (net.Conn, error) {
-				return d.NetDialTLSContext(ctx, network, addr)
-			}
-		} else if d.NetDialContext != nil {
-			netDial = func(network, addr string) (net.Conn, error) {
-				return d.NetDialContext(ctx, network, addr)
-			}
-		} else if d.NetDial != nil {
-			netDial = d.NetDial
+	var netDial netDialerFunc
+	switch {
+	case u.Scheme == "https" && d.NetDialTLSContext != nil:
+		netDial = d.NetDialTLSContext
+	case d.NetDialContext != nil:
+		netDial = d.NetDialContext
+	case d.NetDial != nil:
+		netDial = func(ctx context.Context, net, addr string) (net.Conn, error) {
+			return d.NetDial(net, addr)
 		}
 	default:
-		return nil, nil, errMalformedURL
-	}
-
-	if netDial == nil {
-		netDialer := &net.Dialer{}
-		netDial = func(network, addr string) (net.Conn, error) {
-			return netDialer.DialContext(ctx, network, addr)
-		}
+		netDial = (&net.Dialer{}).DialContext
 	}
 
 	// If needed, wrap the dial function to set the connection deadline.
 	if deadline, ok := ctx.Deadline(); ok {
 		forwardDial := netDial
-		netDial = func(network, addr string) (net.Conn, error) {
-			c, err := forwardDial(network, addr)
+		netDial = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			c, err := forwardDial(ctx, network, addr)
 			if err != nil {
 				return nil, err
 			}
@@ -303,11 +282,10 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 			return nil, nil, err
 		}
 		if proxyURL != nil {
-			dialer, err := proxy_FromURL(proxyURL, netDialerFunc(netDial))
+			netDial, err = proxyFromURL(proxyURL, netDial)
 			if err != nil {
 				return nil, nil, err
 			}
-			netDial = dialer.Dial
 		}
 	}
 
@@ -317,7 +295,7 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		trace.GetConn(hostPort)
 	}
 
-	netConn, err := netDial("tcp", hostPort)
+	netConn, err := netDial(ctx, "tcp", hostPort)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -327,9 +305,15 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		})
 	}
 
+	// Close the network connection when returning an error. The variable
+	// netConn is set to nil before the success return at the end of the
+	// function.
 	defer func() {
 		if netConn != nil {
-			netConn.Close()
+			// It's safe to ignore the error from Close() because this code is
+			// only executed when returning a more important error to the
+			// application.
+			_ = netConn.Close()
 		}
 	}()
 
@@ -420,8 +404,14 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 	resp.Body = io.NopCloser(bytes.NewReader([]byte{}))
 	conn.subprotocol = resp.Header.Get("Sec-Websocket-Protocol")
 
-	netConn.SetDeadline(time.Time{})
-	netConn = nil // to avoid close in defer.
+	if err := netConn.SetDeadline(time.Time{}); err != nil {
+		return nil, resp, err
+	}
+
+	// Success! Set netConn to nil to stop the deferred function above from
+	// closing the network connection.
+	netConn = nil
+
 	return conn, resp, nil
 }
 
@@ -430,4 +420,16 @@ func cloneTLSConfig(cfg *tls.Config) *tls.Config {
 		return &tls.Config{}
 	}
 	return cfg.Clone()
+}
+
+func doHandshake(ctx context.Context, tlsConn *tls.Conn, cfg *tls.Config) error {
+	if err := tlsConn.HandshakeContext(ctx); err != nil {
+		return err
+	}
+	if !cfg.InsecureSkipVerify {
+		if err := tlsConn.VerifyHostname(cfg.ServerName); err != nil {
+			return err
+		}
+	}
+	return nil
 }

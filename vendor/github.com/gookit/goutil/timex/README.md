@@ -101,6 +101,24 @@ t := NowAddSeconds(180) // from now add 180 seconds
 ... ...
 ```
 
+| Character | Description                      | Example Output              |
+|-----------|----------------------------------|-----------------------------|
+| `Y`       | 4-digit year                     | `2006`                      |
+| `y`       | 2-digit year                     | `06`                        |
+| `m`       | Month with leading zero          | `01-12`                     |
+| `n`       | Month without leading zero       | `1-12`                      |
+| `d`       | Day with leading zero            | 01-31                       |
+| `j`       | Day without leading zero         | 1-31                        |
+| `H`       | 24-hour format with leading zero | 00-23                       |
+| `h`       | 12-hour format with leading zero | `01-12`                     |
+| `I`       | Minute with leading zero         | 00-59                       |
+| `i`       | Minute without leading zero      | 0-59                        |
+| `S`       | Second with leading zero         | 00-59                       |
+| `s`       | Second without leading zero      | 0-59                        |
+| `v`       | Milliseconds                     | `000`                       |
+| `u`       | Microseconds                     | `000000`                    |
+| `c`       | ISO 8601 date                    | `2006-01-02T15:04:05Z07:00` |
+
 > More, please see [charMap](./template.go)
 
 Examples, use timex format date:

@@ -23,7 +23,7 @@ speed?!
 
 ## Building
 
-- go1.24 required
+- go1.25 required
   - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
 - C Compiler
   - `brew install gcc` or `scoop install gcc`

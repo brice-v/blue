@@ -4,10 +4,10 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/gookit/goutil/envutil"
-	"github.com/mitchellh/mapstructure"
+	"github.com/gookit/goutil/reflects"
 )
 
 // ValDecodeHookFunc returns a mapstructure.DecodeHookFunc
@@ -31,15 +31,9 @@ func ValDecodeHookFunc(parseEnv, parseTime bool) mapstructure.DecodeHookFunc {
 			return str, nil
 		}
 
-		// start char is number(1-9)
-		if str[0] > '0' && str[0] <= '9' {
-			// parse time string. eg: 10s
-			if parseTime && t.Kind() == reflect.Int64 {
-				dur, err := time.ParseDuration(str)
-				if err == nil {
-					return dur, nil
-				}
-			}
+		// feat: support parse time or duration string. eg: 10s
+		if parseTime && str[0] > '0' && str[0] <= '9' {
+			return reflects.ToTimeOrDuration(str, t)
 		}
 		return str, nil
 	}
@@ -134,20 +128,28 @@ func Getenv(name string, defVal ...string) (val string) {
 	return
 }
 
-func parseVarNameAndType(key string) (string, string) {
+func parseVarNameAndType(key string) (string, string, string) {
+	var desc string
 	typ := "string"
 	key = strings.Trim(key, "-")
 
 	// can set var type: int, uint, bool
 	if strings.IndexByte(key, ':') > 0 {
-		list := strings.SplitN(key, ":", 2)
+		list := strings.SplitN(key, ":", 3)
 		key, typ = list[0], list[1]
+		if len(list) == 3 {
+			desc = list[2]
+		}
 
+		// if type is not valid and has multi words, as desc message.
 		if _, ok := validTypes[typ]; !ok {
+			if desc == "" && strings.ContainsRune(typ, ' ') {
+				desc = typ
+			}
 			typ = "string"
 		}
 	}
-	return key, typ
+	return key, typ, desc
 }
 
 // format key

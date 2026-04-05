@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ios android
+//go:build ios || android
 
 package gl
 
@@ -24,8 +24,8 @@ var ContextWatcher contextWatcher
 
 type contextWatcher struct{}
 
-func (contextWatcher) OnMakeCurrent(context interface{}) {}
-func (contextWatcher) OnDetach()                         {}
+func (contextWatcher) OnMakeCurrent(context any) {}
+func (contextWatcher) OnDetach()                 {}
 
 func ActiveTexture(texture Enum) {
 	C.glActiveTexture(texture.c())

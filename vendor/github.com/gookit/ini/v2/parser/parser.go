@@ -40,14 +40,25 @@ import (
 	"strings"
 
 	"github.com/gookit/goutil/strutil/textscan"
-	"github.com/mitchellh/mapstructure"
+	"github.com/gookit/ini/v2/internal"
 )
 
 // match: [section]
 var sectionRegex = regexp.MustCompile(`^\[(.*)]$`)
+var commentChars = []byte{'#', ';'}
 
 // TokSection for mark a section
 const TokSection = textscan.TokComments + 1 + iota
+
+// IsCommentChar check is comment char
+func IsCommentChar(ch byte) bool {
+	for _, v := range commentChars {
+		if ch == v {
+			return true
+		}
+	}
+	return false
+}
 
 // SectionMatcher match section line: [section]
 type SectionMatcher struct{}
@@ -65,10 +76,11 @@ func (m *SectionMatcher) Match(text string, _ textscan.Token) (textscan.Token, e
 	return nil, nil
 }
 
-// Parser definition
+// Parser definition for parse INI content.
 type Parser struct {
 	*Options
 	// parsed bool
+
 	// comments map, key is name
 	comments map[string]string
 
@@ -202,7 +214,7 @@ func (p *Parser) ParseFrom(in *bufio.Scanner) (count int64, err error) {
 	ts.AddKind(TokSection, "Section")
 	ts.AddMatchers(
 		&textscan.CommentsMatcher{
-			InlineChars: []byte{'#', ';'},
+			InlineChars: commentChars,
 		},
 		&SectionMatcher{},
 		&textscan.KeyValueMatcher{
@@ -358,79 +370,28 @@ func (p *Parser) collectLiteValue(sec, key, val string, _ bool) {
  *************************************************************/
 
 // Decode the parsed data to struct ptr
-func (p *Parser) Decode(ptr any) error {
-	return p.MapStruct(ptr)
-}
+func (p *Parser) Decode(ptr any) error { return p.MapStruct(ptr) }
 
 // MapStruct mapping the parsed data to struct ptr
 func (p *Parser) MapStruct(ptr any) (err error) {
+	// mapping for full mode data
 	if p.ParseMode == ModeFull {
 		if p.NoDefSection {
-			return mapStruct(p.TagName, p.fullData, ptr)
+			return internal.MapStruct(p.TagName, p.fullData, ptr)
 		}
-
-		// collect all default section data to top
-		anyMap := make(map[string]any, len(p.fullData)+4)
-		if defData, ok := p.fullData[p.DefSection]; ok {
-			for key, val := range defData.(map[string]any) {
-				anyMap[key] = val
-			}
-		}
-
-		for group, mp := range p.fullData {
-			if group == p.DefSection {
-				continue
-			}
-			anyMap[group] = mp
-		}
-		return mapStruct(p.TagName, anyMap, ptr)
+		return internal.FullToStruct(p.TagName, p.DefSection, p.fullData, ptr)
 	}
 
-	defData := p.liteData[p.DefSection]
-	defLen := len(defData)
-	anyMap := make(map[string]any, len(p.liteData)+defLen)
-
-	// collect all default section data to top
-	if defLen > 0 {
-		for key, val := range defData {
-			anyMap[key] = val
-		}
-	}
-
-	for group, smp := range p.liteData {
-		if group == p.DefSection {
-			continue
-		}
-		anyMap[group] = smp
-	}
-
-	return mapStruct(p.TagName, anyMap, ptr)
-}
-
-func mapStruct(tagName string, data any, ptr any) error {
-	mapConf := &mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   ptr,
-		TagName:  tagName,
-		// will auto convert string to int/uint
-		WeaklyTypedInput: true,
-	}
-
-	decoder, err := mapstructure.NewDecoder(mapConf)
-	if err != nil {
-		return err
-	}
-	return decoder.Decode(data)
+	// mapping for lite mode data
+	return internal.LiteToStruct(p.TagName, p.DefSection, p.liteData, ptr)
 }
 
 /*************************************************************
  * helper methods
  *************************************************************/
 
-// Comments get
-func (p *Parser) Comments() map[string]string {
-	return p.comments
-}
+// Comments get all comments
+func (p *Parser) Comments() map[string]string { return p.comments }
 
 // ParsedData get parsed data
 func (p *Parser) ParsedData() any {
@@ -463,6 +424,7 @@ func (p *Parser) LiteSection(name string) map[string]string {
 // Reset parser, clear parsed data
 func (p *Parser) Reset() {
 	// p.parsed = false
+	p.comments = make(map[string]string)
 	if p.ParseMode == ModeFull {
 		p.fullData = make(map[string]any)
 	} else {

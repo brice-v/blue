@@ -1,4 +1,4 @@
-// +build required
+//go:build required
 
 package glfw
 

@@ -1,5 +1,4 @@
-//go:build !js
-// +build !js
+//go:build !wasm
 
 package glfw
 
@@ -42,6 +41,8 @@ const (
 	PreferLowPowerToHighPerformance
 	FailIfMajorPerformanceCaveat
 )
+
+const NoAPI int = glfw.NoAPI
 
 // noopHint is ignored.
 const noopHint Hint = -1

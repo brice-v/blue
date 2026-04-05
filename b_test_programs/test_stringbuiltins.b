@@ -34,7 +34,7 @@ assert(padded_lr_hello.lstrip() == "#{hello} ");
 
 assert(hello.reverse() == "OLLEH");
 assert(hello.to_title() == "Hello");
-assert("hello-world".to_camel() == "HelloWorld");
+assert("hello-world".to_camel() == "helloWorld");
 assert("Hello-World".to_snake() == "hello_world");
 assert("Hello World".to_kebab() == "hello-world");
 

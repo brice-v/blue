@@ -4,15 +4,16 @@ import (
 	"strings"
 
 	"github.com/gookit/goutil/arrutil"
+	"github.com/gookit/goutil/internal/comfunc"
 	"github.com/gookit/goutil/mathutil"
 	"github.com/gookit/goutil/strutil"
 )
 
-// Data an map data type
-type Data map[string]any
-
 // Map alias of Data
 type Map = Data
+
+// Data alias of map[string]any
+type Data map[string]any
 
 // Has value on the data map
 func (d Data) Has(key string) bool {
@@ -25,37 +26,10 @@ func (d Data) IsEmpty() bool {
 	return len(d) == 0
 }
 
-// Value get from the data map
-func (d Data) Value(key string) (any, bool) {
-	val, ok := d.GetByPath(key)
-	return val, ok
-}
-
-// Get value from the data map.
-// Supports dot syntax to get deep values. eg: top.sub
-func (d Data) Get(key string) any {
-	if val, ok := d.GetByPath(key); ok {
-		return val
-	}
-	return nil
-}
-
-// GetByPath get value from the data map by path. eg: top.sub
-// Supports dot syntax to get deep values.
-func (d Data) GetByPath(path string) (any, bool) {
-	if val, ok := d[path]; ok {
-		return val, true
-	}
-
-	// is key path.
-	if strings.ContainsRune(path, '.') {
-		val, ok := GetByPath(path, d)
-		if ok {
-			return val, true
-		}
-	}
-	return nil, false
-}
+//
+// endregion
+// region T: set value(s)
+//
 
 // Set value to the data map
 func (d Data) Set(key string, val any) {
@@ -65,7 +39,7 @@ func (d Data) Set(key string, val any) {
 // SetByPath sets a value in the map.
 // Supports dot syntax to set deep values.
 //
-// For example:
+// Example:
 //
 //	d.SetByPath("name.first", "Mat")
 func (d Data) SetByPath(path string, value any) error {
@@ -78,7 +52,7 @@ func (d Data) SetByPath(path string, value any) error {
 // SetByKeys sets a value in the map by path keys.
 // Supports dot syntax to set deep values.
 //
-// For example:
+// Example:
 //
 //	d.SetByKeys([]string{"name", "first"}, "Mat")
 func (d Data) SetByKeys(keys []string, value any) error {
@@ -102,6 +76,61 @@ func (d Data) SetByKeys(keys []string, value any) error {
 	// return SetByKeys((*map[string]any)(d), keys, value)
 }
 
+//
+// endregion
+// region T: read value(s)
+//
+
+// Value get from the data map
+func (d Data) Value(key string) (any, bool) {
+	val, ok := d.GetByPath(key)
+	return val, ok
+}
+
+// Get value from the data map.
+// Supports dot syntax to get deep values. eg: top.sub
+func (d Data) Get(key string) any {
+	if val, ok := d.GetByPath(key); ok {
+		return val
+	}
+	return nil
+}
+
+// One get value from the data by multi paths. will return first founded value
+func (d Data) One(keys ...string) any {
+	if val, ok := d.TryOne(keys...); ok {
+		return val
+	}
+	return nil
+}
+
+// TryOne get value from the data by multi paths. will return first founded value
+func (d Data) TryOne(keys ...string) (any, bool) {
+	for _, path := range keys {
+		if val, ok := d.GetByPath(path); ok {
+			return val, true
+		}
+	}
+	return nil, false
+}
+
+// GetByPath get value from the data map by path. eg: top.sub
+// Supports dot syntax to get deep values.
+func (d Data) GetByPath(path string) (any, bool) {
+	if val, ok := d[path]; ok {
+		return val, true
+	}
+
+	// is a key path.
+	if strings.ContainsRune(path, '.') {
+		val, ok := GetByPath(path, d)
+		if ok {
+			return val, true
+		}
+	}
+	return nil, false
+}
+
 // Default get value from the data map with default value
 func (d Data) Default(key string, def any) any {
 	if val, ok := d.GetByPath(key); ok {
@@ -110,42 +139,79 @@ func (d Data) Default(key string, def any) any {
 	return def
 }
 
-// Int value get
-func (d Data) Int(key string) int {
+// Int value get, or default value
+func (d Data) Int(key string, defVal ...int) int {
 	if val, ok := d.GetByPath(key); ok {
-		return mathutil.QuietInt(val)
+		return mathutil.SafeInt(val)
+	}
+	if len(defVal) > 0 {
+		return defVal[0]
 	}
 	return 0
 }
 
-// Int64 value get
-func (d Data) Int64(key string) int64 {
+// Int64 value get, or default value
+func (d Data) Int64(key string, defVal ...int64) int64 {
 	if val, ok := d.GetByPath(key); ok {
-		return mathutil.QuietInt64(val)
+		return mathutil.SafeInt64(val)
+	}
+	if len(defVal) > 0 {
+		return defVal[0]
 	}
 	return 0
 }
 
-// Uint value get
-func (d Data) Uint(key string) uint {
+// Uint value get, or default value
+func (d Data) Uint(key string, defVal ...uint) uint {
 	if val, ok := d.GetByPath(key); ok {
 		return mathutil.QuietUint(val)
 	}
-	return 0
-}
-
-// Uint64 value get
-func (d Data) Uint64(key string) uint64 {
-	if val, ok := d.GetByPath(key); ok {
-		return mathutil.QuietUint64(val)
+	if len(defVal) > 0 {
+		return defVal[0]
 	}
 	return 0
 }
 
-// Str value get by key
-func (d Data) Str(key string) string {
+// Uint16 value get, or default value
+func (d Data) Uint16(key string, defVal ...uint16) uint16 {
 	if val, ok := d.GetByPath(key); ok {
-		return strutil.QuietString(val)
+		return uint16(mathutil.SafeUint(val))
+	}
+
+	if len(defVal) > 0 {
+		return defVal[0]
+	}
+	return 0
+}
+
+// Uint64 value get, or default value
+func (d Data) Uint64(key string, defVal ...uint64) uint64 {
+	if val, ok := d.GetByPath(key); ok {
+		return mathutil.QuietUint64(val)
+	}
+	if len(defVal) > 0 {
+		return defVal[0]
+	}
+	return 0
+}
+
+// Str value gets by key, or default value
+func (d Data) Str(key string, defVal ...string) string {
+	if val, ok := d.GetByPath(key); ok {
+		return strutil.SafeString(val)
+	}
+	if len(defVal) > 0 {
+		return defVal[0]
+	}
+	return ""
+}
+
+// StrOne value gets by multi keys, will return first value
+func (d Data) StrOne(keys ...string) string {
+	for _, key := range keys {
+		if val, ok := d.GetByPath(key); ok {
+			return strutil.SafeString(val)
+		}
 	}
 	return ""
 }
@@ -156,45 +222,46 @@ func (d Data) Bool(key string) bool {
 	if !ok {
 		return false
 	}
-
-	switch tv := val.(type) {
-	case string:
-		return strutil.QuietBool(tv)
-	case bool:
-		return tv
-	default:
-		return false
-	}
+	return comfunc.Bool(val)
 }
 
-// Strings get []string value
-func (d Data) Strings(key string) []string {
-	val, ok := d.GetByPath(key)
-	if !ok {
-		return nil
+// BoolOne value gets from multi keys, return first value
+func (d Data) BoolOne(keys ...string) bool {
+	for _, key := range keys {
+		if val, ok := d.GetByPath(key); ok {
+			return comfunc.Bool(val)
+		}
 	}
-
-	switch typVal := val.(type) {
-	case string:
-		return []string{typVal}
-	case []string:
-		return typVal
-	case []any:
-		return arrutil.SliceToStrings(typVal)
-	default:
-		return nil
-	}
+	return false
 }
 
-// StrSplit get strings by split key value
-func (d Data) StrSplit(key, sep string) []string {
-	if val, ok := d.GetByPath(key); ok {
-		return strings.Split(strutil.QuietString(val), sep)
+// StringsOne get []string value by multi keys, return first founded value
+func (d Data) StringsOne(keys ...string) []string {
+	for _, key := range keys {
+		if val, ok := d.GetByPath(key); ok {
+			return arrutil.AnyToStrings(val)
+		}
 	}
 	return nil
 }
 
-// StringsByStr value get by key
+// Strings get []string value by key
+func (d Data) Strings(key string) []string {
+	if val, ok := d.GetByPath(key); ok {
+		return arrutil.AnyToStrings(val)
+	}
+	return nil
+}
+
+// StrSplit get strings by split string value
+func (d Data) StrSplit(key, sep string) []string {
+	if val, ok := d.GetByPath(key); ok {
+		return strings.Split(strutil.SafeString(val), sep)
+	}
+	return nil
+}
+
+// StringsByStr value gets by key, will split string value by ","
 func (d Data) StringsByStr(key string) []string {
 	return d.StrSplit(key, ",")
 }
@@ -221,14 +288,32 @@ func (d Data) StringMap(key string) map[string]string {
 	}
 }
 
-// Sub get sub value as new Data
+// Sub get sub value(map[string]any) as new Data
 func (d Data) Sub(key string) Data {
 	if val, ok := d.GetByPath(key); ok {
-		if sub, ok := val.(map[string]any); ok {
-			return sub
-		}
+		return d.toAnyMap(val)
 	}
 	return nil
+}
+
+// AnyMap get sub value as map[string]any
+func (d Data) AnyMap(key string) map[string]any {
+	if val, ok := d.GetByPath(key); ok {
+		return d.toAnyMap(val)
+	}
+	return nil
+}
+
+// AnyMap get sub value as map[string]any
+func (d Data) toAnyMap(val any) map[string]any {
+	switch tv := val.(type) {
+	case map[string]string:
+		return ToAnyMap(tv)
+	case map[string]any:
+		return tv
+	default:
+		return nil
+	}
 }
 
 // Slice get []any value from data map
@@ -237,7 +322,6 @@ func (d Data) Slice(key string) ([]any, error) {
 	if !ok {
 		return nil, nil
 	}
-
 	return arrutil.AnyToSlice(val)
 }
 

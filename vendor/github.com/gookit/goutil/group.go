@@ -11,12 +11,16 @@ import (
 // are part of the same overall task.
 type ErrGroup = syncs.ErrGroup
 
-// NewCtxErrGroup instance
+// NewCtxErrGroup instance. use for batch run tasks, can with context.
+//
+// Deprecated: use syncs.NewCtxErrGroup instead
 func NewCtxErrGroup(ctx context.Context, limit ...int) (*ErrGroup, context.Context) {
 	return syncs.NewCtxErrGroup(ctx, limit...)
 }
 
-// NewErrGroup instance
+// NewErrGroup instance. use for batch run tasks
+//
+// Deprecated: use syncs.NewErrGroup instead
 func NewErrGroup(limit ...int) *ErrGroup {
 	return syncs.NewErrGroup(limit...)
 }
@@ -47,8 +51,7 @@ func (p *QuickRun) Add(fns ...RunFn) *QuickRun {
 // Run all func
 func (p *QuickRun) Run() error {
 	for i, fn := range p.fns {
-		p.ctx.Set("index", i)
-
+		p.ctx.Set("_index", i)
 		if err := fn(p.ctx); err != nil {
 			return err
 		}

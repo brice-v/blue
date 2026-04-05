@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gookit/goutil/fsutil"
 	"github.com/gookit/ini/v2/parser"
 )
 
@@ -24,14 +25,19 @@ var (
 	// save original Env data
 	// originalEnv []string
 
-	// cache all loaded ENV data
-	loadedData = map[string]string{}
+	// cache all lib loaded ENV data
+	loadedData  = map[string]string{}
+	loadedFiles []string // cache all loaded files
 )
 
-// LoadedData get all loaded data by dontenv
-func LoadedData() map[string]string {
-	return loadedData
-}
+// DontUpperEnvKey don't change key to upper on set ENV
+func DontUpperEnvKey() { UpperEnvKey = false }
+
+// LoadedData get all loaded data by dotenv
+func LoadedData() map[string]string { return loadedData }
+
+// LoadedFiles get all loaded files
+func LoadedFiles() []string { return loadedFiles }
 
 // Reset clear the previously set ENV value
 func Reset() { ClearLoaded() }
@@ -46,12 +52,13 @@ func ClearLoaded() {
 	loadedData = map[string]string{}
 }
 
-// DontUpperEnvKey don't change key to upper on set ENV
-func DontUpperEnvKey() {
-	UpperEnvKey = false
-}
+//
+// -------------------- load env file/data --------------------
+//
 
-// Load parse .env file data to os ENV.
+// Load parse dotenv file data to os ENV. default load ".env" file
+//
+// - NEW: filename support simple glob pattern. eg: ".env.*", "*.env"
 //
 // Usage:
 //
@@ -62,15 +69,57 @@ func Load(dir string, filenames ...string) (err error) {
 	}
 
 	for _, filename := range filenames {
-		file := filepath.Join(dir, filename)
-		if err = loadFile(file); err != nil {
+		// filename support simple glob pattern.
+		if strings.ContainsRune(filename, '*') {
+			if err = loadMatched(dir, filename); err != nil {
+				break
+			}
+			continue
+		}
+
+		filePath := filepath.Join(dir, filename)
+		if err = loadFile(filePath); err != nil {
 			break
 		}
 	}
 	return
 }
 
-// LoadExists only load on file exists
+// LoadMatched load env files by match filename pattern. Default pattern is *.env
+//
+// Usage:
+//
+//	dotenv.LoadMatched("./local")
+//	dotenv.LoadMatched("./", "*.env")
+func LoadMatched(dir string, patterns ...string) error {
+	if !fsutil.DirExist(dir) {
+		return nil
+	}
+	if len(patterns) == 0 {
+		patterns = []string{"*.env"}
+	}
+
+	for _, pattern := range patterns {
+		if err := loadMatched(dir, pattern); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func loadMatched(dir string, pattern string) error {
+	matches, err := filepath.Glob(filepath.Join(dir, pattern))
+	if err != nil {
+		return err
+	}
+
+	if len(matches) == 0 {
+		return nil
+	}
+	return LoadFiles(matches...)
+}
+
+// LoadExists only load on file exists. see Load
 func LoadExists(dir string, filenames ...string) error {
 	oldVal := OnlyLoadExists
 
@@ -81,7 +130,7 @@ func LoadExists(dir string, filenames ...string) error {
 	return err
 }
 
-// LoadFiles load ENV from given file
+// LoadFiles load ENV from given file path.
 func LoadFiles(filePaths ...string) (err error) {
 	for _, filePath := range filePaths {
 		if err = loadFile(filePath); err != nil {
@@ -120,7 +169,11 @@ func LoadFromMap(kv map[string]string) (err error) {
 	return
 }
 
-// Get get os ENV value by name
+//
+// -------------------- get env value --------------------
+//
+
+// Get os ENV value by name
 func Get(name string, defVal ...string) (val string) {
 	if val, ok := getVal(name); ok {
 		return val
@@ -147,7 +200,7 @@ func Bool(name string, defVal ...bool) (val bool) {
 	return
 }
 
-// Int get a int value by key
+// Int get an int value by key
 func Int(name string, defVal ...int) (val int) {
 	if str, ok := getVal(name); ok {
 		val, err := strconv.ParseInt(str, 10, 0)
@@ -191,9 +244,7 @@ func loadFile(file string) (err error) {
 	defer fd.Close()
 
 	// parse file contents
-	p := parser.NewLite(func(opt *parser.Options) {
-		opt.InlineComment = true
-	})
+	p := parser.NewLite(parser.InlineComment)
 	if _, err = p.ParseFrom(bufio.NewScanner(fd)); err != nil {
 		return
 	}
@@ -202,5 +253,8 @@ func loadFile(file string) (err error) {
 	if mp := p.LiteSection(p.DefSection); len(mp) > 0 {
 		err = LoadFromMap(mp)
 	}
+
+	// add to loadedFiles
+	loadedFiles = append(loadedFiles, file)
 	return
 }
