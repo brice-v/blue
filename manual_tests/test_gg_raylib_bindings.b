@@ -61,6 +61,18 @@ fun main() {
         gg.draw.rectangle_lines(gg.Rectangle(100, 600, 10, 30).obj(), 2.0, gg.color.gray)
         gg.draw.rectangle_rounded(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 10, gg.color.dark_gray)
         gg.draw.rectangle_rounded_lines(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 5.0, 1.0, gg.color.dark_gray)
+        gg.draw.triangle(gg.Vector(600/4*3, 10).obj(), gg.Vector(600/4*3-60, 150).obj(), gg.Vector(600/4*3+60, 150).obj(), gg.color.red)
+        gg.draw.triangle(gg.Vector(600/4*3, 20).obj(), gg.Vector(600/4*3-60, 150).obj(), gg.Vector(600/4*3+60, 150).obj(), gg.color.pink, with_lines=true)
+        gg.draw.triangle(gg.Vector(600/4*3, 30).obj(), gg.Vector(600/4*3-60, 150).obj(), gg.Vector(600/4*3+60, 150).obj(), gg.color.black, true)
+        gg.draw.triangle(gg.Vector(600/4*3, 40).obj(), gg.Vector(600/4*3-60, 150).obj(), gg.Vector(600/4*3+60, 150).obj(), gg.color.dark_blue, false)
+        gg.draw.triangle(gg.Vector(600/4*3, 50).obj(), gg.Vector(600/4*3-60, 150).obj(), gg.Vector(600/4*3+60, 150).obj(), gg.color.dark_brown, with_lines=false)
+        gg.draw.triangle_fan([gg.Vector(110, 600).obj(),gg.Vector(120, 600).obj(),gg.Vector(130, 400).obj(),gg.Vector(140, 200).obj(),gg.Vector(150, 700).obj()],gg.color.sky_blue)
+        gg.draw.triangle_strip([gg.Vector(90, 500).obj(),gg.Vector(120, 500).obj(),gg.Vector(130, 300).obj(),gg.Vector(140, 100).obj(),gg.Vector(150, 800).obj()],gg.color.green)
+        gg.draw.poly(gg.Vector(600,600).obj(), 5, 100.0, 0.0, 2.0, gg.color.black)
+        gg.draw.poly(gg.Vector(400,400).obj(), 12, 50.0, 0.0, gg.color.magenta, with_lines=true)
+        gg.draw.poly(gg.Vector(300,400).obj(), 8, 50.0, 0.0, gg.color.blue, with_lines=false)
+        gg.draw.poly(gg.Vector(200,400).obj(), 10, 50.0, 0.0, 2.0, gg.color.red, true)
+        gg.draw.poly(gg.Vector(100,400).obj(), 6, 50.0, 0.0, 3.0, gg.color.green, false)
 
         gg.end_drawing()
     }

@@ -97,10 +97,10 @@ val __get_mouse_wheel_move = _get_mouse_wheel_move;
 val __get_mouse_wheel_move_v = _get_mouse_wheel_move_v;
 val __set_mouse_cursor = _set_mouse_cursor;
 
-val __rectangle = _rectangle;
-val __vector2 = _vector2;
-val __vector3 = _vector3;
-val __vector4 = _vector4;
+val rectangle = _rectangle;
+val vector2 = _vector2;
+val vector3 = _vector3;
+val vector4 = _vector4;
 val __camera2d = _camera2d;
 val __camera3d = _camera3d;
 
@@ -433,7 +433,7 @@ val cursor = {
 # GG Objects
 
 fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
-    ##std:this,__rectangle
+    ##std:this,rectangle
     ## `Rectangle` is an object constructor that represents the GO_OBJ for rectangles
     ##
     ## the object can be modified using the x,y,width,height variables and the GO_OBJ
@@ -448,7 +448,7 @@ fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
         'height': height,
     };
     this.obj = fun() {
-        return __rectangle(float(this['x']), float(this['y']), float(this['width']), float(this['height']));
+        return rectangle(float(this['x']), float(this['y']), float(this['width']), float(this['height']));
     }
     this.draw = fun(c=color.red) {
         __draw_rectangle(int(this.x), int(this.y), int(this.width), int(this.height), c);
@@ -463,7 +463,7 @@ fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
 }
 
 fun Vector(x=0.0, y=0.0, z=null, w=null) {
-    ##std:this,__vector2,__vector3,__vector4
+    ##std:this,vector2,vector3,vector4
     ## `Vector` is an object constructor that represents the GO_OBJ for a 2, 3, or 4 Point Vector
     ## currently there is no way to edit it so any vec will just need to be recreated with .obj()
     ##
@@ -481,18 +481,18 @@ fun Vector(x=0.0, y=0.0, z=null, w=null) {
     };
     if (z == null && w == null) {
         this.obj = fun() {
-            return __vector2(float(this['x']), float(this['y']))
+            return vector2(float(this['x']), float(this['y']))
         };
     } else if (z != null && w == null) {
         this['z'] = float(z);
         this.obj = fun() {
-            return __vector3(float(this['x']), float(this['y']), float(this['z']))
+            return vector3(float(this['x']), float(this['y']), float(this['z']))
         };
     } else if (z != null && w != null) {
         this['z'] = float(z);
         this['w'] = float(w);
         this.obj = fun() {
-            return __vector4(float(this['x']), float(this['y']), float(this['z']), float(this['w']))
+            return vector4(float(this['x']), float(this['y']), float(this['z']), float(this['w']))
         };
     } else {
         return error("gg.Vector has invalid arguments");

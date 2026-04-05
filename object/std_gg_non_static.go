@@ -1807,7 +1807,6 @@ var GgBuiltins = []*Builtin{
 				return newPositionalTypeError("draw_poly", 4, FLOAT_OBJ, args[3].Type())
 			}
 			if args[5].Type() != NULL_OBJ {
-				// DrawPolyLinesEx
 				if args[4].Type() != FLOAT_OBJ {
 					return newPositionalTypeError("draw_poly", 5, FLOAT_OBJ, args[4].Type())
 				}

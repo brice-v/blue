@@ -237,7 +237,7 @@ fun main() {
 
     reset();
 
-    for (!gg.window_should_close()) {
+    for (!win.should_close()) {
         g_input();
         g_update();
         g_render();
