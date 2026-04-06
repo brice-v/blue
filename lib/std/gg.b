@@ -101,6 +101,7 @@ val rectangle = _rectangle;
 val vector2 = _vector2;
 val vector3 = _vector3;
 val vector4 = _vector4;
+val ray = _ray;
 val __camera2d = _camera2d;
 val __camera3d = _camera3d;
 
@@ -125,6 +126,23 @@ val __draw_triangle = _draw_triangle;
 val __draw_triangle_fan = _draw_triangle_fan;
 val __draw_triangle_strip = _draw_triangle_strip;
 val __draw_poly = _draw_poly;
+
+###
+val __draw_line_3d = _draw_line_3d;
+val __draw_point_3d = _draw_point_3d;
+val __draw_circle_3d = _draw_circle_3d;
+val __draw_cube_wires = _draw_cube_wires;
+val __draw_cube = _draw_cube;
+val __draw_sphere_wires = _draw_sphere_wires;
+val __draw_sphere = _draw_sphere;
+val __draw_cylinder_wires = _draw_cylinder_wires;
+val __draw_cylinder = _draw_cylinder;
+val __draw_capsule_wires = _draw_capsule_wires;
+val __draw_capsule = _draw_capsule;
+val __draw_plane = _draw_plane;
+val __draw_ray = _draw_ray;
+val __draw_grid = _draw_grid;
+###
 
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
@@ -158,6 +176,46 @@ val draw = {
         __draw_poly(a,b,c,d,e,f,with_lines)
     },
 }
+
+###
+# 3D Drawing functions
+val draw3d = {
+    'line': __draw_line_3d,
+    'point': __draw_point_3d,
+    'circle': __draw_circle_3d,
+    'cube': fun(a,b,c,d=null,e=null,with_wires=false) {
+        if with_wires {
+            __draw_cube_wires(a,b,c,d,e)
+        } else {
+            __draw_cube(a,b,c,d,e)
+        }
+    },
+    'sphere': fun(a,b,c,d=null,e=null,with_wires=false) {
+        if with_wires {
+            __draw_sphere_wires(a,b,c,d,e)
+        } else {
+            __draw_sphere(a,b,c,d,e)
+        }
+    },
+    'cylinder': fun(a,b,c,d,e,f,with_wires=false) {
+        if with_wires {
+            __draw_cylinder_wires(a,b,c,d,e,f)
+        } else {
+            __draw_cylinder(a,b,c,d,e,f)
+        }
+    },
+    'capsule': fun(a,b,c,d,e,f,with_wires=false) {
+        if with_wires {
+            __draw_capsule_wires(a,b,c,d,e,f)
+        } else {
+            __draw_capsule(a,b,c,d,e,f)
+        }
+    },
+    'plane': __draw_plane,
+    'ray': __draw_ray,
+    'grid': __draw_grid,
+}
+###
 
 # Input Constants
 
