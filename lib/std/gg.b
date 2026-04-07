@@ -127,7 +127,6 @@ val __draw_triangle_fan = _draw_triangle_fan;
 val __draw_triangle_strip = _draw_triangle_strip;
 val __draw_poly = _draw_poly;
 
-###
 val __draw_line_3d = _draw_line_3d;
 val __draw_point_3d = _draw_point_3d;
 val __draw_circle_3d = _draw_circle_3d;
@@ -142,7 +141,6 @@ val __draw_capsule = _draw_capsule;
 val __draw_plane = _draw_plane;
 val __draw_ray = _draw_ray;
 val __draw_grid = _draw_grid;
-###
 
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
@@ -177,7 +175,6 @@ val draw = {
     },
 }
 
-###
 # 3D Drawing functions
 val draw3d = {
     'line': __draw_line_3d,
@@ -215,7 +212,6 @@ val draw3d = {
     'ray': __draw_ray,
     'grid': __draw_grid,
 }
-###
 
 # Input Constants
 

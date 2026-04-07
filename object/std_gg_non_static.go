@@ -1845,278 +1845,606 @@ var GgBuiltins = []*Builtin{
 			example:   "draw_poly() (see explanation for some signatures)=> null",
 		}.String(),
 	},
-	// {
-	// 	Name: "_draw_line_3d",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 3 {
-	// 			return newInvalidArgCountError("draw_line_3d", len(args), 3, "")
-	// 		}
-	// 		startPos, ok := args[0].(*GoObj[rl.Vector3])
-	// 		endPos, ok := args[1].(*GoObj[rl.Vector3])
-	// 		color, ok := args[2].(*GoObj[rl.Color])
-	// 		rl.DrawLine3D()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_line_3d` draws a line in 3d world space",
-	// 		signature: "draw_line_3d(start_pos: vector3, end_pos: vector3, color: color)\n" +
-	// 			"// Draw a line in 3D world space\n" +
-	// 			"void DrawLine3D(Vector3 startPos, Vector3 endPos, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_line_3d()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_point_3d",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 2 {
-	// 			return newInvalidArgCountError("draw_point_3d", len(args), 2, "")
-	// 		}
-	// 		pos, ok := args[0].(*GoObj[rl.Vector3])
-	// 		color, ok := args[1].(*GoObj[rl.Color])
-	// 		rl.DrawPoint3D()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_point_3d` draws a point in 3d world space",
-	// 		signature: "draw_point_3d(pos: vector3, color: color)\n" +
-	// 			"// Draw a point in 3D space, actually a small line\n" +
-	// 			"void DrawPoint3D(Vector3 position, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_point_3d()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_circle_3d",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 5 {
-	// 			return newInvalidArgCountError("draw_circle_3d", len(args), 5, "")
-	// 		}
-	// 		rl.DrawCircle3D()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_circle_3d` draws a circle in 3d world space",
-	// 		signature: "draw_circle_3d(center: vector3, radius: float, rotation_axis: vector3, rotation_angle: float, color: color)\n" +
-	// 			"// Draw a circle in 3D world space\n" +
-	// 			"void DrawCircle3D(Vector3 center, float radius, Vector3 rotationAxis, float rotationAngle, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_circle_3d()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_cube_wires",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 3 && len(args) != 5 {
-	// 			return newInvalidArgCountError("draw_cube_wires", len(args), 3, "or 5")
-	// 		}
-	// 		rl.DrawCubeWires()
-	// 		rl.DrawCubeWiresV()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_cube_wires` draws cube with wires",
-	// 		signature: "draw_cube_wires(pos: vector3, width: float, height: float, length: float, color: color)\n" +
-	// 			"// Draw cube wires\n" +
-	// 			"void DrawCubeWires(Vector3 position, float width, float height, float length, Color color);\n" +
-	// 			"// Draw cube wires (Vector version)\n" +
-	// 			"void DrawCubeWiresV(Vector3 position, Vector3 size, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_cube_wires()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_cube",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 3 && len(args) != 5 {
-	// 			return newInvalidArgCountError("draw_cube", len(args), 3, "or 5")
-	// 		}
-	// 		rl.DrawCube()
-	// 		rl.DrawCubeV()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_cube` draws cube",
-	// 		signature: "draw_cube(pos: vector3, width: float, height: float, length: float, color: color)\n" +
-	// 			"// Draw cube\n" +
-	// 			"void DrawCube(Vector3 position, float width, float height, float length, Color color);\n" +
-	// 			"// Draw cube (Vector version)\n" +
-	// 			"void DrawCubeV(Vector3 position, Vector3 size, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_cube()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_sphere_wires",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 5 {
-	// 			return newInvalidArgCountError("draw_sphere_wires", len(args), 5, "")
-	// 		}
-	// 		rl.DrawSphereWires()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_sphere_wires` draws sphere with wires",
-	// 		signature: "draw_sphere_wires(center_pos: vector3, radius: float, rings: int, slices: int32, color: color)\n" +
-	// 			"// Draw sphere wires\n" +
-	// 			"void DrawSphereWires(Vector3 centerPos, float radius, int rings, int slices, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_sphere_wires()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_sphere",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 3 && len(args) != 5 {
-	// 			return newInvalidArgCountError("draw_sphere", len(args), 3, "or 5")
-	// 		}
-	// 		rl.DrawSphere()
-	// 		rl.DrawSphereEx()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_sphere` draws sphere",
-	// 		signature: "draw_sphere(center_pos: vector3, radius: float, color: color)\n" +
-	// 			"// Draw sphere\n" +
-	// 			"void DrawSphere(Vector3 centerPos, float radius, Color color);\n" +
-	// 			"// Draw sphere with extended parameters\n" +
-	// 			"void DrawSphereEx(Vector3 centerPos, float radius, int rings, int slices, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_sphere()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_cylinder_wires",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 6 {
-	// 			return newInvalidArgCountError("draw_cylinder_wires", len(args), 6, "")
-	// 		}
-	// 		rl.DrawCylinderWires()
-	// 		rl.DrawCylinderWiresEx()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_cylinder_wires` draws cylinder with wires",
-	// 		signature: "draw_cylinder_wires(pos: vector3, radius_top: float, radius_bot: float, height: float, slices_sides: int, color: color)\n" +
-	// 			"// Draw a cylinder/cone wires\n" +
-	// 			"void DrawCylinderWires(Vector3 position, float radiusTop, float radiusBottom, float height, int slices, Color color);\n" +
-	// 			"// Draw a cylinder wires with base at startPos and top at endPos\n" +
-	// 			"void DrawCylinderWiresEx(Vector3 startPos, Vector3 endPos, float startRadius, float endRadius, int sides, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_cylinder_wires()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_cylinder",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 6 {
-	// 			return newInvalidArgCountError("draw_cylinder", len(args), 6, "")
-	// 		}
-	// 		rl.DrawCylinder()
-	// 		rl.DrawCylinderEx()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_cylinder` draws cylinder",
-	// 		signature: "draw_cylinder(pos: vector3, radius_top: float, radius_bot: float, height: float, slices_sides: int, color: color)\n" +
-	// 			"// Draw a cylinder/cone\n" +
-	// 			"void DrawCylinder(Vector3 position, float radiusTop, float radiusBottom, float height, int slices, Color color);\n" +
-	// 			"// Draw a cylinder with base at startPos and top at endPos\n" +
-	// 			"void DrawCylinderEx(Vector3 startPos, Vector3 endPos, float startRadius, float endRadius, int sides, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_cylinder()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_capsule_wires",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 6 {
-	// 			return newInvalidArgCountError("draw_capsule_wires", len(args), 6, "")
-	// 		}
-	// 		rl.DrawCapsuleWires()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_capsule_wires` draws capsule with wires",
-	// 		signature: "draw_capsule_wires(start_pos: vector3, end_pos: vector3, radius: float, slices: int, rings: int, color: color)\n" +
-	// 			"// Draw capsule wireframe with the center of its sphere caps at startPos and endPos\n" +
-	// 			"void DrawCapsuleWires(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_capsule_wires()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_capsule",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 6 {
-	// 			return newInvalidArgCountError("draw_capsule", len(args), 6, "")
-	// 		}
-	// 		rl.DrawCapsule()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_capsule` draws capsule",
-	// 		signature: "draw_capsule(start_pos: vector3, end_pos: vector3, radius: float, slices: int, rings: int, color: color)\n" +
-	// 			"// Draw a capsule with the center of its sphere caps at startPos and endPos\n" +
-	// 			"void DrawCapsule(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_capsule()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_plane",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 3 {
-	// 			return newInvalidArgCountError("draw_plane", len(args), 3, "")
-	// 		}
-	// 		rl.DrawPlane()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_plane` draws a plane XZ",
-	// 		signature: "draw_plane(center_pos: vector3, size: vector2, color: color)\n" +
-	// 			"// Draw a plane XZ\n" +
-	// 			"void DrawPlane(Vector3 centerPos, Vector2 size, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_plane()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_ray",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 2 {
-	// 			return newInvalidArgCountError("draw_ray", len(args), 2, "")
-	// 		}
-	// 		rl.DrawRay()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_ray` draws a ray line",
-	// 		signature: "draw_ray(ray: ray, color: color)\n" +
-	// 			"// Draw a ray line\n" +
-	// 			"void DrawRay(Ray ray, Color color);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_ray()",
-	// 	}.String(),
-	// },
-	// {
-	// 	Name: "_draw_grid",
-	// 	Fun: func(args ...Object) Object {
-	// 		if len(args) != 2 {
-	// 			return newInvalidArgCountError("draw_grid", len(args), 2, "")
-	// 		}
-	// 		rl.DrawGrid()
-	// 		return NULL
-	// 	},
-	// 	HelpStr: helpStrArgs{
-	// 		explanation: "`draw_grid` draws a grid centered at 0,0,0",
-	// 		signature: "draw_grid(slices: int, spacing: float)\n" +
-	// 			"// Draw a grid (centered at (0, 0, 0))\n" +
-	// 			"void DrawGrid(int slices, float spacing);",
-	// 		errors:  "InvalidArgCount,PositionalType",
-	// 		example: "draw_grid()",
-	// 	}.String(),
-	// },
+	{
+		Name: "_draw_line_3d",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("draw_line_3d", len(args), 3, "")
+			}
+			startPos, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_line_3d", 1, "rl.Vector3", args[0])
+			}
+			endPos, ok := args[1].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_line_3d", 2, "rl.Vector3", args[1])
+			}
+			color, ok := args[2].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_line_3d", 3, "rl.Color", args[2])
+			}
+			rl.DrawLine3D(startPos.Value, endPos.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_line_3d` draws a line in 3d world space",
+			signature: "draw_line_3d(start_pos: vector3, end_pos: vector3, color: color)\n" +
+				"// Draw a line in 3D world space\n" +
+				"void DrawLine3D(Vector3 startPos, Vector3 endPos, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_line_3d()",
+		}.String(),
+	},
+	{
+		Name: "_draw_point_3d",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("draw_point_3d", len(args), 2, "")
+			}
+			pos, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_point_3d", 1, "rl.Vector3", args[0])
+			}
+			color, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_point_3d", 2, "rl.Color", args[1])
+			}
+			rl.DrawPoint3D(pos.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_point_3d` draws a point in 3d world space",
+			signature: "draw_point_3d(pos: vector3, color: color)\n" +
+				"// Draw a point in 3D space, actually a small line\n" +
+				"void DrawPoint3D(Vector3 position, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_point_3d()",
+		}.String(),
+	},
+	{
+		Name: "_draw_circle_3d",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("draw_circle_3d", len(args), 5, "")
+			}
+			center, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_circle_3d", 1, "rl.Vector3", args[0])
+			}
+			radius, ok := args[1].(*Float)
+			if !ok {
+				return newPositionalTypeError("draw_circle_3d", 2, FLOAT_OBJ, args[1].Type())
+			}
+			rotationAxis := args[2].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_circle_3d", 1, "rl.Vector3", args[2])
+			}
+			rotationAngle, ok := args[3].(*Float)
+			if !ok {
+				return newPositionalTypeError("draw_circle_3d", 2, FLOAT_OBJ, args[3].Type())
+			}
+			color, ok := args[4].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_circle_3d", 1, "rl.Vector3", args[4])
+			}
+			rl.DrawCircle3D(center.Value, float32(radius.Value), rotationAxis.Value, float32(rotationAngle.Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_circle_3d` draws a circle in 3d world space",
+			signature: "draw_circle_3d(center: vector3, radius: float, rotation_axis: vector3, rotation_angle: float, color: color)\n" +
+				"// Draw a circle in 3D world space\n" +
+				"void DrawCircle3D(Vector3 center, float radius, Vector3 rotationAxis, float rotationAngle, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_circle_3d()",
+		}.String(),
+	},
+	{
+		Name: "_draw_cube_wires",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 && len(args) != 5 {
+				return newInvalidArgCountError("draw_cube_wires", len(args), 3, "or 5")
+			}
+			if len(args) == 3 {
+				position, ok := args[0].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube_wires", 1, "rl.Vector3", args[0])
+				}
+				size, ok := args[1].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube_wires", 2, "rl.Vector3", args[1])
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube_wires", 3, "rl.Color", args[2])
+				}
+				rl.DrawCubeWiresV(position.Value, size.Value, color.Value)
+			} else {
+				position, ok := args[0].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube_wires", 1, "rl.Vector3", args[0])
+				}
+				width, ok := args[1].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cube_wires", 2, FLOAT_OBJ, args[1].Type())
+				}
+				height, ok := args[2].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cube_wires", 3, FLOAT_OBJ, args[2].Type())
+				}
+				length, ok := args[3].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cube_wires", 4, FLOAT_OBJ, args[3].Type())
+				}
+				color, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube_wires", 5, "rl.Color", args[4])
+				}
+				rl.DrawCubeWires(position.Value, float32(width.Value), float32(height.Value), float32(length.Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_cube_wires` draws cube with wires",
+			signature: "draw_cube_wires(pos: vector3, width: float, height: float, length: float, color: color)\n" +
+				"// Draw cube wires\n" +
+				"void DrawCubeWires(Vector3 position, float width, float height, float length, Color color);\n" +
+				"// Draw cube wires (Vector version)\n" +
+				"void DrawCubeWiresV(Vector3 position, Vector3 size, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_cube_wires()",
+		}.String(),
+	},
+	{
+		Name: "_draw_cube",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 && len(args) != 5 {
+				return newInvalidArgCountError("draw_cube", len(args), 3, "or 5")
+			}
+			if len(args) == 3 {
+				position, ok := args[0].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube", 1, "rl.Vector3", args[0])
+				}
+				size, ok := args[1].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube", 2, "rl.Vector3", args[1])
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube", 3, "rl.Color", args[2])
+				}
+				rl.DrawCubeV(position.Value, size.Value, color.Value)
+			} else {
+				position, ok := args[0].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube", 1, "rl.Vector3", args[0])
+				}
+				width, ok := args[1].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cube", 2, FLOAT_OBJ, args[1].Type())
+				}
+				height, ok := args[2].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cube", 3, FLOAT_OBJ, args[2].Type())
+				}
+				length, ok := args[3].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cube", 4, FLOAT_OBJ, args[3].Type())
+				}
+				color, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cube", 5, "rl.Color", args[4])
+				}
+				rl.DrawCube(position.Value, float32(width.Value), float32(height.Value), float32(length.Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_cube` draws cube",
+			signature: "draw_cube(pos: vector3, width: float, height: float, length: float, color: color)\n" +
+				"// Draw cube\n" +
+				"void DrawCube(Vector3 position, float width, float height, float length, Color color);\n" +
+				"// Draw cube (Vector version)\n" +
+				"void DrawCubeV(Vector3 position, Vector3 size, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_cube()",
+		}.String(),
+	},
+	{
+		Name: "_draw_sphere_wires",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("draw_sphere_wires", len(args), 5, "")
+			}
+			centerPos, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_sphere_wires", 1, "rl.Vector3", args[0])
+			}
+			radius, ok := args[1].(*Float)
+			if !ok {
+				return newPositionalTypeError("draw_sphere_wires", 2, FLOAT_OBJ, args[1].Type())
+			}
+			rings, ok := args[2].(*Integer)
+			if !ok {
+				return newPositionalTypeError("draw_sphere_wires", 3, INTEGER_OBJ, args[2].Type())
+			}
+			slices, ok := args[3].(*Integer)
+			if !ok {
+				return newPositionalTypeError("draw_sphere_wires", 4, INTEGER_OBJ, args[3].Type())
+			}
+			color, ok := args[4].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_sphere_wires", 5, "rl.Vector3", args[4])
+			}
+			rl.DrawSphereWires(centerPos.Value, float32(radius.Value), int32(rings.Value), int32(slices.Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_sphere_wires` draws sphere with wires",
+			signature: "draw_sphere_wires(center_pos: vector3, radius: float, rings: int, slices: int32, color: color)\n" +
+				"// Draw sphere wires\n" +
+				"void DrawSphereWires(Vector3 centerPos, float radius, int rings, int slices, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_sphere_wires()",
+		}.String(),
+	},
+	{
+		Name: "_draw_sphere",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 && len(args) != 5 {
+				return newInvalidArgCountError("draw_sphere", len(args), 3, "or 5")
+			}
+			if len(args) == 3 {
+				centerPos, ok := args[0].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_sphere", 1, "rl.Vector3", args[0])
+				}
+				radius, ok := args[1].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_sphere", 2, FLOAT_OBJ, args[1].Type())
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_sphere", 3, "rl.Vector3", args[2])
+				}
+				rl.DrawSphere(centerPos.Value, float32(radius.Value), color.Value)
+			} else {
+				centerPos, ok := args[0].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_sphere", 1, "rl.Vector3", args[0])
+				}
+				radius, ok := args[1].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_sphere", 2, FLOAT_OBJ, args[1].Type())
+				}
+				rings, ok := args[2].(*Integer)
+				if !ok {
+					return newPositionalTypeError("draw_sphere", 3, INTEGER_OBJ, args[2].Type())
+				}
+				slices, ok := args[3].(*Integer)
+				if !ok {
+					return newPositionalTypeError("draw_sphere", 4, INTEGER_OBJ, args[3].Type())
+				}
+				color, ok := args[4].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_sphere", 5, "rl.Vector3", args[4])
+				}
+				rl.DrawSphereEx(centerPos.Value, float32(radius.Value), int32(rings.Value), int32(slices.Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_sphere` draws sphere",
+			signature: "draw_sphere(center_pos: vector3, radius: float, color: color)\n" +
+				"// Draw sphere\n" +
+				"void DrawSphere(Vector3 centerPos, float radius, Color color);\n" +
+				"// Draw sphere with extended parameters\n" +
+				"void DrawSphereEx(Vector3 centerPos, float radius, int rings, int slices, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_sphere()",
+		}.String(),
+	},
+	{
+		Name: "_draw_cylinder_wires",
+		Fun: func(args ...Object) Object {
+			if len(args) != 6 {
+				return newInvalidArgCountError("draw_cylinder_wires", len(args), 6, "")
+			}
+			position, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_cylinder_wires", 1, "rl.Vector3", args[0])
+			}
+			if args[1].Type() == FLOAT_OBJ {
+				radiusTop := args[1].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder_wires", 2, FLOAT_OBJ, args[1].Type())
+				}
+				radiusBot, ok := args[2].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder_wires", 3, FLOAT_OBJ, args[2].Type())
+				}
+				height, ok := args[3].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder_wires", 4, FLOAT_OBJ, args[3].Type())
+				}
+				slices, ok := args[4].(*Integer)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder_wires", 5, INTEGER_OBJ, args[4].Type())
+				}
+				color, ok := args[5].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cylinder_wires", 6, "rl.Color", args[5])
+				}
+				rl.DrawCylinderWires(position.Value, float32(radiusTop.Value), float32(radiusBot.Value), float32(height.Value), int32(slices.Value), color.Value)
+			} else {
+				endPos, ok := args[1].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cylinder_wires", 2, "rl.Vector3", args[1])
+				}
+				startRadius := args[2].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder_wires", 3, FLOAT_OBJ, args[2].Type())
+				}
+				endRadius, ok := args[3].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder_wires", 4, FLOAT_OBJ, args[3].Type())
+				}
+				sides, ok := args[4].(*Integer)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder_wires", 5, INTEGER_OBJ, args[4].Type())
+				}
+				color, ok := args[5].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cylinder_wires", 6, "rl.Color", args[5])
+				}
+				rl.DrawCylinderWiresEx(position.Value, endPos.Value, float32(startRadius.Value), float32(endRadius.Value), int32(sides.Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_cylinder_wires` draws cylinder with wires",
+			signature: "draw_cylinder_wires(pos: vector3, radius_top: float, radius_bot: float, height: float, slices_sides: int, color: color)\n" +
+				"// Draw a cylinder/cone wires\n" +
+				"void DrawCylinderWires(Vector3 position, float radiusTop, float radiusBottom, float height, int slices, Color color);\n" +
+				"// Draw a cylinder wires with base at startPos and top at endPos\n" +
+				"void DrawCylinderWiresEx(Vector3 startPos, Vector3 endPos, float startRadius, float endRadius, int sides, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_cylinder_wires()",
+		}.String(),
+	},
+	{
+		Name: "_draw_cylinder",
+		Fun: func(args ...Object) Object {
+			if len(args) != 6 {
+				return newInvalidArgCountError("draw_cylinder", len(args), 6, "")
+			}
+			position, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_cylinder", 1, "rl.Vector3", args[0])
+			}
+			if args[1].Type() == FLOAT_OBJ {
+				radiusTop := args[1].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder", 2, FLOAT_OBJ, args[1].Type())
+				}
+				radiusBot, ok := args[2].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder", 3, FLOAT_OBJ, args[2].Type())
+				}
+				height, ok := args[3].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder", 4, FLOAT_OBJ, args[3].Type())
+				}
+				slices, ok := args[4].(*Integer)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder", 5, INTEGER_OBJ, args[4].Type())
+				}
+				color, ok := args[5].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cylinder", 6, "rl.Color", args[5])
+				}
+				rl.DrawCylinder(position.Value, float32(radiusTop.Value), float32(radiusBot.Value), float32(height.Value), int32(slices.Value), color.Value)
+			} else {
+				endPos, ok := args[1].(*GoObj[rl.Vector3])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cylinder", 2, "rl.Vector3", args[1])
+				}
+				startRadius := args[2].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder", 3, FLOAT_OBJ, args[2].Type())
+				}
+				endRadius, ok := args[3].(*Float)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder", 4, FLOAT_OBJ, args[3].Type())
+				}
+				sides, ok := args[4].(*Integer)
+				if !ok {
+					return newPositionalTypeError("draw_cylinder", 5, INTEGER_OBJ, args[4].Type())
+				}
+				color, ok := args[5].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("draw_cylinder", 6, "rl.Color", args[5])
+				}
+				rl.DrawCylinderEx(position.Value, endPos.Value, float32(startRadius.Value), float32(endRadius.Value), int32(sides.Value), color.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_cylinder` draws cylinder",
+			signature: "draw_cylinder(pos: vector3, radius_top: float, radius_bot: float, height: float, slices_sides: int, color: color)\n" +
+				"// Draw a cylinder/cone\n" +
+				"void DrawCylinder(Vector3 position, float radiusTop, float radiusBottom, float height, int slices, Color color);\n" +
+				"// Draw a cylinder with base at startPos and top at endPos\n" +
+				"void DrawCylinderEx(Vector3 startPos, Vector3 endPos, float startRadius, float endRadius, int sides, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_cylinder()",
+		}.String(),
+	},
+	{
+		Name: "_draw_capsule_wires",
+		Fun: func(args ...Object) Object {
+			if len(args) != 6 {
+				return newInvalidArgCountError("draw_capsule_wires", len(args), 6, "")
+			}
+			startPos, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_capsule_wires", 1, "rl.Vector3", args[0])
+			}
+			endPos, ok := args[1].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_capsule_wires", 2, "rl.Vector3", args[1])
+			}
+			radius := args[2].(*Float)
+			if !ok {
+				return newPositionalTypeError("draw_capsule_wires", 3, FLOAT_OBJ, args[2].Type())
+			}
+			slices, ok := args[3].(*Integer)
+			if !ok {
+				return newPositionalTypeError("draw_capsule_wires", 4, INTEGER_OBJ, args[3].Type())
+			}
+			rings, ok := args[4].(*Integer)
+			if !ok {
+				return newPositionalTypeError("draw_capsule_wires", 5, INTEGER_OBJ, args[4].Type())
+			}
+			color, ok := args[5].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_capsule_wires", 6, "rl.Color", args[5])
+			}
+			rl.DrawCapsuleWires(startPos.Value, endPos.Value, float32(radius.Value), int32(slices.Value), int32(rings.Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_capsule_wires` draws capsule with wires",
+			signature: "draw_capsule_wires(start_pos: vector3, end_pos: vector3, radius: float, slices: int, rings: int, color: color)\n" +
+				"// Draw capsule wireframe with the center of its sphere caps at startPos and endPos\n" +
+				"void DrawCapsuleWires(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_capsule_wires()",
+		}.String(),
+	},
+	{
+		Name: "_draw_capsule",
+		Fun: func(args ...Object) Object {
+			if len(args) != 6 {
+				return newInvalidArgCountError("draw_capsule", len(args), 6, "")
+			}
+			startPos, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_capsule", 1, "rl.Vector3", args[0])
+			}
+			endPos, ok := args[1].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_capsule", 2, "rl.Vector3", args[1])
+			}
+			radius := args[2].(*Float)
+			if !ok {
+				return newPositionalTypeError("draw_capsule", 3, FLOAT_OBJ, args[2].Type())
+			}
+			slices, ok := args[3].(*Integer)
+			if !ok {
+				return newPositionalTypeError("draw_capsule", 4, INTEGER_OBJ, args[3].Type())
+			}
+			rings, ok := args[4].(*Integer)
+			if !ok {
+				return newPositionalTypeError("draw_capsule", 5, INTEGER_OBJ, args[4].Type())
+			}
+			color, ok := args[5].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_capsule", 6, "rl.Color", args[5])
+			}
+			rl.DrawCapsule(startPos.Value, endPos.Value, float32(radius.Value), int32(slices.Value), int32(rings.Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_capsule` draws capsule",
+			signature: "draw_capsule(start_pos: vector3, end_pos: vector3, radius: float, slices: int, rings: int, color: color)\n" +
+				"// Draw a capsule with the center of its sphere caps at startPos and endPos\n" +
+				"void DrawCapsule(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_capsule()",
+		}.String(),
+	},
+	{
+		Name: "_draw_plane",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("draw_plane", len(args), 3, "")
+			}
+			position, ok := args[0].(*GoObj[rl.Vector3])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_plane", 1, "rl.Vector3", args[0])
+			}
+			size, ok := args[1].(*GoObj[rl.Vector2])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_plane", 2, "rl.Vector2", args[1])
+			}
+			color, ok := args[2].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_plane", 3, "rl.Color", args[2])
+			}
+			rl.DrawPlane(position.Value, size.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_plane` draws a plane XZ",
+			signature: "draw_plane(center_pos: vector3, size: vector2, color: color)\n" +
+				"// Draw a plane XZ\n" +
+				"void DrawPlane(Vector3 centerPos, Vector2 size, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_plane()",
+		}.String(),
+	},
+	{
+		Name: "_draw_ray",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("draw_ray", len(args), 2, "")
+			}
+			ray, ok := args[0].(*GoObj[rl.Ray])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_ray", 1, "rl.Ray", args[0])
+			}
+			color, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("draw_ray", 2, "rl.Color", args[1])
+			}
+			rl.DrawRay(ray.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_ray` draws a ray line",
+			signature: "draw_ray(ray: ray, color: color)\n" +
+				"// Draw a ray line\n" +
+				"void DrawRay(Ray ray, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_ray()",
+		}.String(),
+	},
+	{
+		Name: "_draw_grid",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("draw_grid", len(args), 2, "")
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("draw_grid", 1, INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("draw_grid", 2, FLOAT_OBJ, args[1].Type())
+			}
+			rl.DrawGrid(int32(args[0].(*Integer).Value), float32(args[1].(*Float).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_grid` draws a grid centered at 0,0,0",
+			signature: "draw_grid(slices: int, spacing: float)\n" +
+				"// Draw a grid (centered at (0, 0, 0))\n" +
+				"void DrawGrid(int slices, float spacing);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_grid()",
+		}.String(),
+	},
 	{
 		Name: "_set_target_fps",
 		Fun: func(args ...Object) Object {
