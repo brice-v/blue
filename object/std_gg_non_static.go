@@ -1915,17 +1915,17 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeError("draw_circle_3d", 2, FLOAT_OBJ, args[1].Type())
 			}
-			rotationAxis := args[2].(*GoObj[rl.Vector3])
+			rotationAxis, ok := args[2].(*GoObj[rl.Vector3])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_circle_3d", 1, "rl.Vector3", args[2])
+				return newPositionalTypeErrorForGoObj("draw_circle_3d", 3, "rl.Vector3", args[2])
 			}
 			rotationAngle, ok := args[3].(*Float)
 			if !ok {
-				return newPositionalTypeError("draw_circle_3d", 2, FLOAT_OBJ, args[3].Type())
+				return newPositionalTypeError("draw_circle_3d", 4, FLOAT_OBJ, args[3].Type())
 			}
 			color, ok := args[4].(*GoObj[rl.Color])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_circle_3d", 1, "rl.Vector3", args[4])
+				return newPositionalTypeErrorForGoObj("draw_circle_3d", 5, "rl.Vector3", args[4])
 			}
 			rl.DrawCircle3D(center.Value, float32(radius.Value), rotationAxis.Value, float32(rotationAngle.Value), color.Value)
 			return NULL
@@ -2106,7 +2106,7 @@ var GgBuiltins = []*Builtin{
 				}
 				color, ok := args[2].(*GoObj[rl.Color])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("draw_sphere", 3, "rl.Vector3", args[2])
+					return newPositionalTypeErrorForGoObj("draw_sphere", 3, "rl.Color", args[2])
 				}
 				rl.DrawSphere(centerPos.Value, float32(radius.Value), color.Value)
 			} else {
@@ -2128,7 +2128,7 @@ var GgBuiltins = []*Builtin{
 				}
 				color, ok := args[4].(*GoObj[rl.Color])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("draw_sphere", 5, "rl.Vector3", args[4])
+					return newPositionalTypeErrorForGoObj("draw_sphere", 5, "rl.Color", args[4])
 				}
 				rl.DrawSphereEx(centerPos.Value, float32(radius.Value), int32(rings.Value), int32(slices.Value), color.Value)
 			}
@@ -2157,9 +2157,6 @@ var GgBuiltins = []*Builtin{
 			}
 			if args[1].Type() == FLOAT_OBJ {
 				radiusTop := args[1].(*Float)
-				if !ok {
-					return newPositionalTypeError("draw_cylinder_wires", 2, FLOAT_OBJ, args[1].Type())
-				}
 				radiusBot, ok := args[2].(*Float)
 				if !ok {
 					return newPositionalTypeError("draw_cylinder_wires", 3, FLOAT_OBJ, args[2].Type())
@@ -2182,7 +2179,7 @@ var GgBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("draw_cylinder_wires", 2, "rl.Vector3", args[1])
 				}
-				startRadius := args[2].(*Float)
+				startRadius, ok := args[2].(*Float)
 				if !ok {
 					return newPositionalTypeError("draw_cylinder_wires", 3, FLOAT_OBJ, args[2].Type())
 				}
@@ -2250,7 +2247,7 @@ var GgBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("draw_cylinder", 2, "rl.Vector3", args[1])
 				}
-				startRadius := args[2].(*Float)
+				startRadius, ok := args[2].(*Float)
 				if !ok {
 					return newPositionalTypeError("draw_cylinder", 3, FLOAT_OBJ, args[2].Type())
 				}
@@ -2295,7 +2292,7 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("draw_capsule_wires", 2, "rl.Vector3", args[1])
 			}
-			radius := args[2].(*Float)
+			radius, ok := args[2].(*Float)
 			if !ok {
 				return newPositionalTypeError("draw_capsule_wires", 3, FLOAT_OBJ, args[2].Type())
 			}
@@ -2337,7 +2334,7 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("draw_capsule", 2, "rl.Vector3", args[1])
 			}
-			radius := args[2].(*Float)
+			radius, ok := args[2].(*Float)
 			if !ok {
 				return newPositionalTypeError("draw_capsule", 3, FLOAT_OBJ, args[2].Type())
 			}
