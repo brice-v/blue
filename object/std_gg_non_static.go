@@ -1925,7 +1925,7 @@ var GgBuiltins = []*Builtin{
 			}
 			color, ok := args[4].(*GoObj[rl.Color])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_circle_3d", 5, "rl.Vector3", args[4])
+				return newPositionalTypeErrorForGoObj("draw_circle_3d", 5, "rl.Color", args[4])
 			}
 			rl.DrawCircle3D(center.Value, float32(radius.Value), rotationAxis.Value, float32(rotationAngle.Value), color.Value)
 			return NULL
@@ -2222,9 +2222,6 @@ var GgBuiltins = []*Builtin{
 			}
 			if args[1].Type() == FLOAT_OBJ {
 				radiusTop := args[1].(*Float)
-				if !ok {
-					return newPositionalTypeError("draw_cylinder", 2, FLOAT_OBJ, args[1].Type())
-				}
 				radiusBot, ok := args[2].(*Float)
 				if !ok {
 					return newPositionalTypeError("draw_cylinder", 3, FLOAT_OBJ, args[2].Type())
