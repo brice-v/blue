@@ -701,3 +701,11 @@ func checkType(name string, position int, expectedType Type, args ...Object) Obj
 	}
 	return nil
 }
+
+func checkGoObjType[T any](name string, position int, expectedType string, args ...Object) Object {
+	arg := args[position-1]
+	if _, ok := arg.(*GoObj[T]); !ok {
+		return newPositionalTypeErrorForGoObj(name, position, Type(expectedType), arg)
+	}
+	return nil
+}
