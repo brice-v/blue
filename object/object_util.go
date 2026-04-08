@@ -686,3 +686,18 @@ func ParseJson(expr ast.Expression) Object {
 	}
 	panic("UNREACHABLE")
 }
+
+func checkArgCount(name string, expectedCount int, args ...Object) Object {
+	if len(args) != expectedCount {
+		return newInvalidArgCountError(name, len(args), expectedCount, "")
+	}
+	return nil
+}
+
+func checkType(name string, position int, expectedType Type, args ...Object) Object {
+	arg := args[position-1]
+	if arg.Type() != expectedType {
+		return newPositionalTypeError(name, position, expectedType, arg.Type())
+	}
+	return nil
+}
