@@ -687,14 +687,31 @@ func ParseJson(expr ast.Expression) Object {
 	panic("UNREACHABLE")
 }
 
-func checkArgCount(name string, expectedCount int, args ...Object) Object {
+func checkArgCount(name string, expectedCount int, args []Object) Object {
 	if len(args) != expectedCount {
 		return newInvalidArgCountError(name, len(args), expectedCount, "")
 	}
 	return nil
 }
 
-func checkType(name string, position int, expectedType Type, args ...Object) Object {
+func checkArgsCount(name string, expectedCounts []int, args []Object) Object {
+	if len(expectedCounts) < 1 {
+		panic("checkArgsCount expectedCounts len must be greater than 0")
+	}
+	argLen := len(args)
+	orErrStr := strings.Builder{}
+	for i, count := range expectedCounts {
+		if count == argLen {
+			return nil
+		}
+		if i != 0 {
+			fmt.Fprintf(&orErrStr, "or %d ", count)
+		}
+	}
+	return newInvalidArgCountError(name, argLen, expectedCounts[0], orErrStr.String())
+}
+
+func checkArgType(name string, position int, expectedType Type, args []Object) Object {
 	arg := args[position-1]
 	if arg.Type() != expectedType {
 		return newPositionalTypeError(name, position, expectedType, arg.Type())
@@ -702,10 +719,11 @@ func checkType(name string, position int, expectedType Type, args ...Object) Obj
 	return nil
 }
 
-func checkGoObjType[T any](name string, position int, expectedType string, args ...Object) Object {
+func checkGoObjType[T any](name string, position int, expectedType string, args []Object) (*GoObj[T], Object) {
 	arg := args[position-1]
-	if _, ok := arg.(*GoObj[T]); !ok {
-		return newPositionalTypeErrorForGoObj(name, position, Type(expectedType), arg)
+	obj, ok := arg.(*GoObj[T])
+	if !ok {
+		return obj, newPositionalTypeErrorForGoObj(name, position, Type(expectedType), arg)
 	}
-	return nil
+	return obj, nil
 }
