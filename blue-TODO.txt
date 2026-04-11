@@ -1,5 +1,6 @@
 TODO:
 
+- [ ] Do builtins work with GoObj? as in can you do something like vector().println()
 - [ ] Implement helpers for invalidargcount and positionaltype errors so they can be checked easier
 - [ ] Issue when trying to call gg.draw.XXX that doesnt exist (need to make sure error returned for vm, and evaluator is returning weird error)
     - Example: gg.draw.rectangle_roundned(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 10, gg.color.dark_gray)

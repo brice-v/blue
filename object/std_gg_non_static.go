@@ -3376,6 +3376,132 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_matrix",
+		Fun: func(args ...Object) Object {
+			err := checkArgsCount("matrix", []int{16, 1}, args)
+			if err != nil {
+				return err
+			}
+			if len(args) == 1 || args[0].Type() == LIST_OBJ {
+				elems := args[0].(*List).Elements
+				if len(elems) != 4 {
+					return newInvalidArgCountError("matrix", len(elems), 4, "")
+				}
+				matrix := rl.Matrix{}
+				for i, e := range elems {
+					if e.Type() != LIST_OBJ {
+						return newPositionalTypeError("matrxi", 1, LIST_OBJ, e.Type())
+					}
+					elems2 := e.(*List).Elements
+					if len(elems2) != 4 {
+						return newInvalidArgCountError("matrix", len(elems2), 4, "")
+					}
+					for _, ee := range elems2 {
+						if ee.Type() != FLOAT_OBJ {
+							return newPositionalTypeError("matrix", 1, FLOAT_OBJ, ee.Type())
+						}
+					}
+					switch i {
+					case 0:
+						// M0, M1, M2, M3
+						matrix.M0 = float32(elems[i].(*List).Elements[0].(*Float).Value)
+						matrix.M1 = float32(elems[i].(*List).Elements[1].(*Float).Value)
+						matrix.M2 = float32(elems[i].(*List).Elements[2].(*Float).Value)
+						matrix.M3 = float32(elems[i].(*List).Elements[3].(*Float).Value)
+					case 1:
+						// M4, M5, M6, M7
+						matrix.M4 = float32(elems[i].(*List).Elements[4].(*Float).Value)
+						matrix.M5 = float32(elems[i].(*List).Elements[5].(*Float).Value)
+						matrix.M6 = float32(elems[i].(*List).Elements[6].(*Float).Value)
+						matrix.M7 = float32(elems[i].(*List).Elements[7].(*Float).Value)
+					case 2:
+						// M8, M9, M10, M11
+						matrix.M8 = float32(elems[i].(*List).Elements[8].(*Float).Value)
+						matrix.M9 = float32(elems[i].(*List).Elements[9].(*Float).Value)
+						matrix.M10 = float32(elems[i].(*List).Elements[10].(*Float).Value)
+						matrix.M11 = float32(elems[i].(*List).Elements[11].(*Float).Value)
+					case 3:
+						// M12, M13, M14, M15
+						matrix.M12 = float32(elems[i].(*List).Elements[12].(*Float).Value)
+						matrix.M13 = float32(elems[i].(*List).Elements[13].(*Float).Value)
+						matrix.M14 = float32(elems[i].(*List).Elements[14].(*Float).Value)
+						matrix.M15 = float32(elems[i].(*List).Elements[15].(*Float).Value)
+					}
+				}
+				return NewGoObj(matrix)
+			} else {
+				m0, ok := args[0].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 1, FLOAT_OBJ, args[0].Type())
+				}
+				m4, ok := args[1].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 2, FLOAT_OBJ, args[1].Type())
+				}
+				m8, ok := args[2].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 3, FLOAT_OBJ, args[2].Type())
+				}
+				m12, ok := args[3].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 4, FLOAT_OBJ, args[3].Type())
+				}
+				m1, ok := args[4].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 5, FLOAT_OBJ, args[4].Type())
+				}
+				m5, ok := args[5].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 6, FLOAT_OBJ, args[5].Type())
+				}
+				m9, ok := args[6].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 7, FLOAT_OBJ, args[6].Type())
+				}
+				m13, ok := args[7].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 8, FLOAT_OBJ, args[7].Type())
+				}
+				m2, ok := args[8].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 9, FLOAT_OBJ, args[8].Type())
+				}
+				m6, ok := args[9].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 10, FLOAT_OBJ, args[9].Type())
+				}
+				m10, ok := args[10].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 11, FLOAT_OBJ, args[10].Type())
+				}
+				m14, ok := args[11].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 12, FLOAT_OBJ, args[11].Type())
+				}
+				m3, ok := args[12].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 13, FLOAT_OBJ, args[12].Type())
+				}
+				m7, ok := args[13].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 14, FLOAT_OBJ, args[13].Type())
+				}
+				m11, ok := args[14].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 15, FLOAT_OBJ, args[14].Type())
+				}
+				m15, ok := args[15].(*Float)
+				if !ok {
+					return newPositionalTypeError("matrix", 16, FLOAT_OBJ, args[15].Type())
+				}
+				return NewGoObj(rl.NewMatrix(float32(m0.Value), float32(m4.Value), float32(m8.Value), float32(m12.Value),
+					float32(m1.Value), float32(m5.Value), float32(m9.Value), float32(m13.Value),
+					float32(m2.Value), float32(m6.Value), float32(m10.Value), float32(m14.Value),
+					float32(m3.Value), float32(m7.Value), float32(m11.Value), float32(m15.Value)))
+			}
+		},
+	},
+	{
 		Name: "_init_audio_device",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
@@ -3728,24 +3854,31 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "_get_model_bounding_box",
+		Name: "_get_bounding_box",
 		Fun: func(args ...Object) Object {
-			if err := checkArgCount("get_model_bounding_box", 1, args); err != nil {
+			if err := checkArgCount("get_bounding_box", 1, args); err != nil {
 				return err
 			}
-			model, err := checkGoObjType[rl.Model]("get_model_bounding_box", 1, "rl.Model", args)
+			model, err := checkGoObjType[rl.Model]("get_bounding_box", 1, "rl.Model", args)
 			if err != nil {
-				return err
+				mesh, err := checkGoObjType[rl.Mesh]("get_bounding_box", 1, "rl.Mesh", args)
+				if err != nil {
+					return err
+				}
+				return NewGoObj(rl.GetMeshBoundingBox(mesh.Value))
+			} else {
+				return NewGoObj(rl.GetModelBoundingBox(model.Value))
 			}
-			return NewGoObj(rl.GetModelBoundingBox(model.Value))
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`get_model_bounding_box` returns the model's bounding box",
-			signature: "get_model_bounding_box(model: rl.Model) -> rl.BoundingBox\n" +
+			explanation: "`get_bounding_box` returns the model/mesh's bounding box",
+			signature: "get_bounding_box(model: rl.Model|rl.Mesh) -> rl.BoundingBox\n" +
 				"// Compute model bounding box limits (considers all meshes)\n" +
-				"BoundingBox GetModelBoundingBox(Model model);",
+				"BoundingBox GetModelBoundingBox(Model model);" +
+				"// Compute mesh bounding box limits\n" +
+				"BoundingBox GetMeshBoundingBox(Mesh mesh);",
 			errors:  "InvalidArgCount,PositionalType",
-			example: "get_model_bounding_box()",
+			example: "get_bounding_box()",
 		}.String(),
 	},
 	{
@@ -3937,6 +4070,444 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_upload_mesh",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("upload_mesh", 2, args)
+			if err != nil {
+				return err
+			}
+			mesh, err := checkGoObjType[rl.Mesh]("upload_mesh", 1, "rl.Mesh", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("upload_mesh", 2, BOOLEAN_OBJ, args)
+			if err != nil {
+				return err
+			}
+			rl.UploadMesh(&mesh.Value, args[1].(*Boolean).Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`upload_mesh` uploads mesh vertex data",
+			signature: "upload_mesh(mesh: rl.Mesh, dynamic: bool) -> null\n" +
+				"// Upload mesh vertex data in GPU and provide VAO/VBO ids\n" +
+				"void UploadMesh(Mesh *mesh, bool dynamic);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "upload_mesh()",
+		}.String(),
+	},
+	{
+		Name: "_draw_mesh",
+		Fun: func(args ...Object) Object {
+			err := checkArgsCount("draw_mesh", []int{3, 4}, args)
+			if err != nil {
+				return err
+			}
+			mesh, err := checkGoObjType[rl.Mesh]("draw_mesh", 1, "rl.Mesh", args)
+			if err != nil {
+				return err
+			}
+			material, err := checkGoObjType[rl.Material]("draw_mesh", 2, "rl.Material", args)
+			if err != nil {
+				return err
+			}
+			if len(args) == 3 {
+				transform, err := checkGoObjType[rl.Matrix]("draw_mesh", 3, "rl.Matrix", args)
+				if err != nil {
+					return err
+				}
+				rl.DrawMesh(mesh.Value, material.Value, transform.Value)
+			} else {
+				err = checkArgType("draw_mesh", 3, LIST_OBJ, args)
+				if err != nil {
+					return err
+				}
+				elems := args[2].(*List).Elements
+				transforms := make([]rl.Matrix, len(elems))
+				for i, e := range elems {
+					transform, ok := e.(*GoObj[rl.Matrix])
+					if !ok {
+						return newPositionalTypeErrorForGoObj("draw_mesh", 3, "list[rl.Matrix]", e)
+					}
+					transforms[i] = transform.Value
+				}
+				err = checkArgType("draw_mesh", 4, INTEGER_OBJ, args)
+				if err != nil {
+					return err
+				}
+				rl.DrawMeshInstanced(mesh.Value, material.Value, transforms, int(args[3].(*Integer).Value))
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_mesh` draws the mesh or multiple mesh instances with material and different transforms",
+			signature: "draw_mesh(mesh: rl.Mesh, material: rl.Material, transform: rl.Matrix) -> null\n" +
+				"// Draw a 3d mesh with material and transform\n" +
+				"void DrawMesh(Mesh mesh, Material material, Matrix transform);\n" +
+				"// Draw multiple mesh instances with material and different transforms\n" +
+				"void DrawMeshInstanced(Mesh mesh, Material material, const Matrix *transforms, int instances);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_mesh()",
+		}.String(),
+	},
+	{
+		Name: "_export_mesh",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("export_mesh", 2, args)
+			if err != nil {
+				return err
+			}
+			mesh, err := checkGoObjType[rl.Mesh]("export_mesh", 1, "rl.Mesh", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("export_mesh", 2, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			rl.ExportMesh(mesh.Value, args[1].(*Stringo).Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`export_mesh` exports the mesh as an obj file",
+			signature: "export_mesh(mesh: rl.Mesh, filename: str) -> null\n" +
+				"// Export mesh data to file, returns true on success\n" +
+				"bool ExportMesh(Mesh mesh, const char *fileName);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "export_mesh()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_poly",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_poly", 2, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_poly", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_poly", 2, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshPoly(int(args[0].(*Integer).Value), float32(args[1].(*Float).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_poly` generates poly mesh",
+			signature: "gen_mesh_poly(sides: int, radius: float) -> rl.Mesh\n" +
+				"// Generate polygonal mesh\n" +
+				"Mesh GenMeshPoly(int sides, float radius);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_poly()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_plane",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_plane", 4, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_plane", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_plane", 2, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_plane", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_plane", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshPlane(float32(args[0].(*Float).Value), float32(args[1].(*Float).Value), int(args[2].(*Integer).Value), int(args[3].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_plane` generates plane mesh",
+			signature: "gen_mesh_plane(width: float, height: float, res_x: int, res_z: int) -> rl.Mesh\n" +
+				"// Generate plane mesh (with subdivisions)\n" +
+				"Mesh GenMeshPlane(float width, float length, int resX, int resZ);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_plane()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_cube",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_cube", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cube", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cube", 2, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cube", 3, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshCube(float32(args[0].(*Float).Value), float32(args[1].(*Float).Value), float32(args[2].(*Float).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_cube` generates cube mesh",
+			signature: "gen_mesh_cube(width: float, height: float, length: float) -> rl.Mesh\n" +
+				"// Generate cuboid mesh\n" +
+				"Mesh GenMeshCube(float width, float height, float length);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_cube()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_sphere",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_sphere", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_sphere", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_sphere", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_sphere", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshSphere(float32(args[0].(*Float).Value), int(args[1].(*Integer).Value), int(args[2].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_sphere` generates sphere mesh",
+			signature: "gen_mesh_sphere(radius: float, rings: int, slices: int) -> rl.Mesh\n" +
+				"// Generate sphere mesh (standard sphere)\n" +
+				"Mesh GenMeshSphere(float radius, int rings, int slices);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_sphere()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_hemi_sphere",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_hemi_shere", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_hemi_shere", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_hemi_shere", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_hemi_shere", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshHemiSphere(float32(args[0].(*Float).Value), int(args[1].(*Integer).Value), int(args[2].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_hemi_sphere` generates half-sphere mesh (no bottom)",
+			signature: "gen_mesh_hemi_sphere(radius: float, rings: int, slices: int) -> rl.Mesh\n" +
+				"// Generate half-sphere mesh (no bottom cap)\n" +
+				"Mesh GenMeshHemiSphere(float radius, int rings, int slices);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_hemi_sphere()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_cylinder",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_cylinder", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cylinder", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cylinder", 2, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cylinder", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshCylinder(float32(args[0].(*Float).Value), float32(args[1].(*Integer).Value), int(args[2].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_cylinder` generates cylinder mesh",
+			signature: "gen_mesh_cylinder(radius: float, height: float, slices: int) -> rl.Mesh\n" +
+				"// Generate cylinder mesh\n" +
+				"Mesh GenMeshCylinder(float radius, float height, int slices);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_cylinder()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_cone",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_cone", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cone", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cone", 2, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cone", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshCone(float32(args[0].(*Float).Value), float32(args[1].(*Integer).Value), int(args[2].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_cone` generates cone/pyramid mesh",
+			signature: "gen_mesh_cone(radius: float, height: float, slices: int) -> rl.Mesh\n" +
+				"// Generate cone/pyramid mesh\n" +
+				"Mesh GenMeshCone(float radius, float height, int slices);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_cone()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_torus",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_torus", 4, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cone", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cone", 2, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cone", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_cone", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshTorus(float32(args[0].(*Float).Value), float32(args[1].(*Float).Value), int(args[2].(*Integer).Value), int(args[3].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_torus` generates torus mesh",
+			signature: "gen_mesh_torus(radius: float, size: float, rad_seg: int, sides: int) -> rl.Mesh\n" +
+				"// Generate torus mesh\n" +
+				"Mesh GenMeshTorus(float radius, float size, int radSeg, int sides);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_torus()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_knot",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_knot", 4, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_knot", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_knot", 2, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_knot", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("gen_mesh_knot", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshKnot(float32(args[0].(*Float).Value), float32(args[1].(*Float).Value), int(args[2].(*Integer).Value), int(args[3].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_knot` generates trefoil knot mesh",
+			signature: "gen_mesh_knot(radius: float, size: float, rad_seg: int, sides: int) -> rl.Mesh\n" +
+				"// Generate trefoil knot mesh\n" +
+				"Mesh GenMeshKnot(float radius, float size, int radSeg, int sides);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_knot()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_heightmap",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_heightmap", 2, args)
+			if err != nil {
+				return err
+			}
+			heightMap, err := checkGoObjType[rl.Image]("gen_mesh_heightmap", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			size, err := checkGoObjType[rl.Vector3]("gen_mesh_heightmap", 2, "rl.Vector3", args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshHeightmap(heightMap.Value, size.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_heightmap` generates heightmap mesh from image data",
+			signature: "gen_mesh_heightmap(heightmap: rl.Image, size: rl.Vector3) -> rl.Mesh\n" +
+				"// Generate heightmap mesh from image data\n" +
+				"Mesh GenMeshHeightmap(Image heightmap, Vector3 size);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_heightmap()",
+		}.String(),
+	},
+	{
+		Name: "_gen_mesh_cubicmap",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("gen_mesh_cubicmap", 2, args)
+			if err != nil {
+				return err
+			}
+			cubicMap, err := checkGoObjType[rl.Image]("gen_mesh_cubicmap", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			size, err := checkGoObjType[rl.Vector3]("gen_mesh_cubicmap", 2, "rl.Vector3", args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenMeshCubicmap(cubicMap.Value, size.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gen_mesh_cubicmap` generates cube based map mesh from image data",
+			signature: "gen_mesh_cubicmap(cubicmap: rl.Image, size: rl.Vector3) -> rl.Mesh\n" +
+				"// Generate cubes-based map mesh from image data\n" +
+				"Mesh GenMeshCubicmap(Image cubicmap, Vector3 cubeSize);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "gen_mesh_cubicmap()",
+		}.String(),
+	},
+	{
 		Name: "_unload",
 		Fun: func(args ...Object) Object {
 			for i, arg := range args {
@@ -3958,7 +4529,7 @@ var GgBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`unload` unloads the given objects from the gg object",
-			signature:   "unload(args...: GoObject[rl.Texture2D|rl.Music|rl.Sound]|list[GoObject[rl.Texture2D|rl.Music|rl.Sound]]) -> null",
+			signature:   "unload(args...: rl.any|list[rl.any]) -> null",
 			errors:      "CustomError",
 			example:     "unload() => null",
 		}.String(),
@@ -3980,6 +4551,12 @@ func unloadFromRaylib(arg Object, pos int) Object {
 		return nil
 	} else if model, ok := arg.(*GoObj[rl.Model]); ok {
 		rl.UnloadModel(model.Value)
+		return nil
+	} else if mesh, ok := arg.(*GoObj[rl.Mesh]); ok {
+		rl.UnloadMesh(&mesh.Value)
+		return nil
+	} else if material, ok := arg.(*GoObj[rl.Material]); ok {
+		rl.UnloadMaterial(material.Value)
 		return nil
 	}
 	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of rl.* that has an unload function")

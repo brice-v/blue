@@ -104,6 +104,7 @@ val vector4 = _vector4;
 val ray = _ray;
 val __camera2d = _camera2d;
 val __camera3d = _camera3d;
+val matrix = _matrix;
 
 val __begin_mode2d = _begin_mode2d;
 val end_mode2d = _end_mode2d;
@@ -143,10 +144,26 @@ val __draw_ray = _draw_ray;
 val __draw_grid = _draw_grid;
 val load_model = _load_model;
 val is_model_ready = _is_model_ready;
-val get_model_bounding_box = _get_model_bounding_box;
+val get_bounding_box = _get_bounding_box;
 val __draw_model = _draw_model;
 val __draw_bounding_box = _draw_bounding_box;
 val __draw_billboard = _draw_billboard;
+val __draw_mesh = _draw_mesh;
+val __upload_mesh = _upload_mesh;
+val __gen_mesh_tangents = _gen_mesh_tangents;
+val __gen_mesh_tangents = _gen_mesh_tangents;
+val __gen_mesh_poly = _gen_mesh_poly;
+val __gen_mesh_plane = _gen_mesh_plane;
+val __gen_mesh_cube = _gen_mesh_cube;
+val __gen_mesh_sphere = _gen_mesh_sphere;
+val __gen_mesh_hemi_sphere = _gen_mesh_hemi_sphere;
+val __gen_mesh_cylinder = _gen_mesh_cylinder;
+val __gen_mesh_cone = _gen_mesh_cone;
+val __gen_mesh_torus = _gen_mesh_torus;
+val __gen_mesh_knot = _gen_mesh_knot;
+val __gen_mesh_heightmap = _gen_mesh_heightmap;
+val __gen_mesh_cubicmap = _gen_mesh_cubicmap;
+val __export_mesh = _export_mesh;
 
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
@@ -222,6 +239,25 @@ val draw3d = {
     },
     'bounding_box': __draw_bounding_box,
     'billboard': __draw_billboard,
+    'mesh': __draw_mesh,
+}
+
+val mesh = {
+    'gen': {
+        'poly': __gen_mesh_poly,
+        'plane': __gen_mesh_plane,
+        'cube': __gen_mesh_cube,
+        'sphere': __gen_mesh_sphere,
+        'hemi_sphere': __gen_mesh_hemi_sphere,
+        'cylinder': __gen_mesh_cylinder,
+        'cone': __gen_mesh_cone,
+        'torus': __gen_mesh_torus,
+        'knot': __gen_mesh_knot,
+        'heightmap': __gen_mesh_heightmap,
+        'cubicmap': __gen_mesh_cubicmap,
+    },
+    'export': __export_mesh,
+    'upload': __upload_mesh,
 }
 
 # Input Constants
@@ -636,6 +672,26 @@ fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fov
         return __camera3d(this['position']['obj'](), this['target']['obj'](), this['up']['obj'](), float(this['fovy']), int(this['projection']));
     }
     return this;
+}
+
+fun Matrix(m0=0.0, m4=0.0, m8=0.0, m12=0.0, m1=0.0, m5=0.0, m9=0.0, m13=0.0, m2=0.0, m6=0.0, m10=0.0, m14=0.0, m3=0.0, m7=0.0, m11=0.0, m15=0.0) {
+    ##std:this,_matrix
+    ## `Matrix` returns a matrix in opengl style
+    ##
+    ## M0, M4, M8, M12  float
+	## M1, M5, M9, M13  float
+	## M2, M6, M10, M14 float
+	## M3, M7, M11, M15 float
+    ##
+    ## If first arg is list, it will be interpreted as:
+    ## [
+    ##    [M0, M1, M2, M3],
+    ##    [M4, M5, M6, M7],
+    ##    [M8, M9, M10, M11],
+    ##    [M12, M13, M14, M15],
+    ## ]
+    ## Note: It is still passed into the function as is seen below
+    return matrix(m0, m4, m8, m12, m1, m5, m9, m13, m2, m6, m10, m14, m3, m7, m11, m15);
 }
 
 # Specialized Public Functions
