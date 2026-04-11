@@ -3680,6 +3680,124 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_load_model",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("load_model", 1, args); err != nil {
+				return err
+			}
+			if args[0].Type() == STRING_OBJ {
+				return NewGoObj(rl.LoadModel(args[0].(*Stringo).Value))
+			}
+			mesh, err := checkGoObjType[rl.Mesh]("load_model", 1, "rl.Mesh", args)
+			if err != nil {
+				return err
+			}
+			rl.LoadModelFromMesh(mesh.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_model` loads a model",
+			signature: "load_model(filename_or_mesh: str|rl.Mesh) -> rl.Model\n" +
+				"// Load model from files (meshes and materials)\n" +
+				"Model LoadModel(const char *fileName);\n" +
+				"// Load model from generated mesh (default material)\n" +
+				"Model LoadModelFromMesh(Mesh mesh);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "load_model()",
+		}.String(),
+	},
+	{
+		Name: "_is_model_ready",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("is_model_ready", 1, args); err != nil {
+				return err
+			}
+			model, err := checkGoObjType[rl.Model]("is_model_ready", 1, "rl.Model", args)
+			if err != nil {
+				return err
+			}
+			return nativeToBooleanObject(rl.IsModelReady(model.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_model_ready` returns true if the model is ready",
+			signature: "is_model_ready(model: rl.Model) -> bool\n" +
+				"// Check if a model is valid (loaded in GPU, VAO/VBOs)\n" +
+				"bool IsModelValid(Model model);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "is_model_ready()",
+		}.String(),
+	},
+	{
+		Name: "_draw_model",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("draw_model", 7, args); err != nil {
+				return err
+			}
+			if err := checkArgType("draw_model", 7, BOOLEAN_OBJ, args); err != nil {
+				return err
+			}
+			model, err := checkGoObjType[rl.Model]("draw_model", 1, "rl.Model", args)
+			if err != nil {
+				return err
+			}
+			position, err := checkGoObjType[rl.Vector3]("draw_model", 2, "rl.Vector3", args)
+			if err != nil {
+				return err
+			}
+			withWires := args[6].(*Boolean).Value
+			if args[5].Type() == NULL_OBJ {
+				rotationAxis, err := checkGoObjType[rl.Vector3]("draw_model", 3, "rl.Vector3", args)
+				if err != nil {
+					return err
+				}
+				if err := checkArgType("draw_model", 4, FLOAT_OBJ, args); err != nil {
+					return err
+				}
+				scale, err := checkGoObjType[rl.Vector3]("draw_model", 5, "rl.Vector3", args)
+				if err != nil {
+					return err
+				}
+				tint, err := checkGoObjType[rl.Color]("draw_model", 6, "rl.Color", args)
+				if err != nil {
+					return err
+				}
+				if withWires {
+					rl.DrawModelWiresEx(model.Value, position.Value, rotationAxis.Value, float32(args[3].(*Float).Value), scale.Value, tint.Value)
+				} else {
+					rl.DrawModelEx(model.Value, position.Value, rotationAxis.Value, float32(args[3].(*Float).Value), scale.Value, tint.Value)
+				}
+			} else {
+				if err := checkArgType("draw_model", 3, FLOAT_OBJ, args); err != nil {
+					return err
+				}
+				tint, err := checkGoObjType[rl.Color]("draw_model", 4, "rl.Color", args)
+				if err != nil {
+					return err
+				}
+				if withWires {
+					rl.DrawModelWires(model.Value, position.Value, float32(args[2].(*Float).Value), tint.Value)
+				} else {
+					rl.DrawModel(model.Value, position.Value, float32(args[2].(*Float).Value), tint.Value)
+				}
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_model` draws the model",
+			signature: "draw_model(model: rl.Model) -> null\n" +
+				"// Draw a model (with texture if set)\n" +
+				"void DrawModel(Model model, Vector3 position, float scale, Color tint);\n" +
+				"// Draw a model with extended parameters\n" +
+				"void DrawModelEx(Model model, Vector3 position, Vector3 rotationAxis, float rotationAngle, Vector3 scale, Color tint);\n" +
+				"// Draw a model wires (with texture if set)\n" +
+				"void DrawModelWires(Model model, Vector3 position, float scale, Color tint);\n" +
+				"// Draw a model wires (with texture if set) with extended parameters\n" +
+				"void DrawModelWiresEx(Model model, Vector3 position, Vector3 rotationAxis, float rotationAngle, Vector3 scale, Color tint);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_model()",
+		}.String(),
+	},
+	{
 		Name: "_unload",
 		Fun: func(args ...Object) Object {
 			for i, arg := range args {
@@ -3687,15 +3805,13 @@ var GgBuiltins = []*Builtin{
 				if arg.Type() == LIST_OBJ {
 					l := arg.(*List).Elements
 					for _, e := range l {
-						maybeErr := unloadFromRaylib(e, i)
-						if isError(maybeErr) {
-							return maybeErr
+						if err := unloadFromRaylib(e, i); err != nil {
+							return err
 						}
 					}
 				} else {
-					maybeErr := unloadFromRaylib(arg, i)
-					if isError(maybeErr) {
-						return maybeErr
+					if err := unloadFromRaylib(arg, i); err != nil {
+						return err
 					}
 				}
 			}
@@ -3716,13 +3832,16 @@ func unloadFromRaylib(arg Object, pos int) Object {
 	}
 	if tex, ok := arg.(*GoObj[rl.Texture2D]); ok {
 		rl.UnloadTexture(tex.Value)
-		return NULL
+		return nil
 	} else if music, ok := arg.(*GoObj[rl.Music]); ok {
 		rl.UnloadMusicStream(music.Value)
-		return NULL
+		return nil
 	} else if sound, ok := arg.(*GoObj[rl.Sound]); ok {
 		rl.UnloadSound(sound.Value)
-		return NULL
+		return nil
+	} else if model, ok := arg.(*GoObj[rl.Model]); ok {
+		rl.UnloadModel(model.Value)
+		return nil
 	}
-	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of [rl.Texture2D, rl.Music, rl.Sound]")
+	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of rl.* that has an unload function")
 }
