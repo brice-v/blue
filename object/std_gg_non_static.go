@@ -3728,6 +3728,27 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_get_model_bounding_box",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("get_model_bounding_box", 1, args); err != nil {
+				return err
+			}
+			model, err := checkGoObjType[rl.Model]("get_model_bounding_box", 1, "rl.Model", args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GetModelBoundingBox(model.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_model_bounding_box` returns the model's bounding box",
+			signature: "get_model_bounding_box(model: rl.Model) -> rl.BoundingBox\n" +
+				"// Compute model bounding box limits (considers all meshes)\n" +
+				"BoundingBox GetModelBoundingBox(Model model);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "get_model_bounding_box()",
+		}.String(),
+	},
+	{
 		Name: "_draw_model",
 		Fun: func(args ...Object) Object {
 			if err := checkArgCount("draw_model", 7, args); err != nil {
@@ -3795,6 +3816,124 @@ var GgBuiltins = []*Builtin{
 				"void DrawModelWiresEx(Model model, Vector3 position, Vector3 rotationAxis, float rotationAngle, Vector3 scale, Color tint);",
 			errors:  "InvalidArgCount,PositionalType",
 			example: "draw_model()",
+		}.String(),
+	},
+	{
+		Name: "_draw_bounding_box",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("draw_bounding_box", 2, args); err != nil {
+				return err
+			}
+			boundingBox, err := checkGoObjType[rl.BoundingBox]("draw_bounding_box", 1, "rl.BoundingBox", args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("draw_bounding_box", 1, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.DrawBoundingBox(boundingBox.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_bounding_box` draws a bounding box",
+			signature: "draw_bounding_box(bounding_box: rl.BoundingBox, color: color) -> null\n" +
+				"// Draw bounding box (wires)\n" +
+				"void DrawBoundingBox(BoundingBox box, Color color);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_bounding_box()",
+		}.String(),
+	},
+	{
+		Name: "_draw_billboard",
+		Fun: func(args ...Object) Object {
+			if err := checkArgsCount("draw_billboard", []int{5, 6, 9}, args); err != nil {
+				return err
+			}
+			camera, err := checkGoObjType[rl.Camera]("draw_billboard", 1, "rl.Camera", args)
+			if err != nil {
+				return err
+			}
+			texture, err := checkGoObjType[rl.Texture2D]("draw_billboard", 2, "rl.Texture2D", args)
+			if err != nil {
+				return err
+			}
+			if len(args) == 5 {
+				position, err := checkGoObjType[rl.Vector3]("draw_billboard", 3, "rl.Vector3", args)
+				if err != nil {
+					return err
+				}
+				err = checkArgType("draw_billboard", 4, FLOAT_OBJ, args)
+				if err != nil {
+					return err
+				}
+				tint, err := checkGoObjType[rl.Color]("draw_billboard", 5, "rl.Color", args)
+				if err != nil {
+					return err
+				}
+				rl.DrawBillboard(camera.Value, texture.Value, position.Value, float32(args[3].(*Float).Value), tint.Value)
+			} else if len(args) == 6 {
+				source, err := checkGoObjType[rl.Rectangle]("draw_billboard", 3, "rl.Rectangle", args)
+				if err != nil {
+					return err
+				}
+				position, err := checkGoObjType[rl.Vector3]("draw_billboard", 4, "rl.Vector3", args)
+				if err != nil {
+					return err
+				}
+				size, err := checkGoObjType[rl.Vector2]("draw_billboard", 5, "rl.Vector2", args)
+				if err != nil {
+					return err
+				}
+				tint, err := checkGoObjType[rl.Color]("draw_billboard", 6, "rl.Color", args)
+				if err != nil {
+					return err
+				}
+				rl.DrawBillboardRec(camera.Value, texture.Value, source.Value, position.Value, size.Value, tint.Value)
+			} else {
+				source, err := checkGoObjType[rl.Rectangle]("draw_billboard", 3, "rl.Rectangle", args)
+				if err != nil {
+					return err
+				}
+				position, err := checkGoObjType[rl.Vector3]("draw_billboard", 4, "rl.Vector3", args)
+				if err != nil {
+					return err
+				}
+				up, err := checkGoObjType[rl.Vector3]("draw_billboard", 5, "rl.Vector3", args)
+				if err != nil {
+					return err
+				}
+				size, err := checkGoObjType[rl.Vector2]("draw_billboard", 6, "rl.Vector2", args)
+				if err != nil {
+					return err
+				}
+				origin, err := checkGoObjType[rl.Vector2]("draw_billboard", 7, "rl.Vector2", args)
+				if err != nil {
+					return err
+				}
+				err = checkArgType("draw_billboard", 7, FLOAT_OBJ, args)
+				if err != nil {
+					return err
+				}
+				tint, err := checkGoObjType[rl.Color]("draw_billboard", 8, "rl.Color", args)
+				if err != nil {
+					return err
+				}
+				rl.DrawBillboardPro(camera.Value, texture.Value, source.Value, position.Value, up.Value, origin.Value, size.Value, float32(args[7].(*Float).Value), tint.Value)
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`draw_billboard` draws a bounding box",
+			signature: "draw_billboard(camera: rl.Camera, texture: rl.Texture2D, position: rl.Vector3, scale: float, tint: color) -> null\n" +
+				"// Draw a billboard texture\n" +
+				"void DrawBillboard(Camera camera, Texture2D texture, Vector3 position, float scale, Color tint);\n" +
+				"// Draw a billboard texture defined by source\n" +
+				"void DrawBillboardRec(Camera camera, Texture2D texture, Rectangle source, Vector3 position, Vector2 size, Color tint);\n" +
+				"// Draw a billboard texture defined by source and rotation\n" +
+				"void DrawBillboardPro(Camera camera, Texture2D texture, Rectangle source, Vector3 position, Vector3 up, Vector2 size, Vector2 origin, float rotation, Color tint);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_billboard()",
 		}.String(),
 	},
 	{

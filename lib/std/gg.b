@@ -143,7 +143,10 @@ val __draw_ray = _draw_ray;
 val __draw_grid = _draw_grid;
 val load_model = _load_model;
 val is_model_ready = _is_model_ready;
+val get_model_bounding_box = _get_model_bounding_box;
 val __draw_model = _draw_model;
+val __draw_bounding_box = _draw_bounding_box;
+val __draw_billboard = _draw_billboard;
 
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
@@ -217,6 +220,8 @@ val draw3d = {
     'model': fun(a,b,c,d,e=null,f=null,with_wires=false) {
         __draw_model(a,b,c,d,e,f,with_wires)
     },
+    'bounding_box': __draw_bounding_box,
+    'billboard': __draw_billboard,
 }
 
 # Input Constants
