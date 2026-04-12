@@ -164,6 +164,11 @@ val __gen_mesh_knot = _gen_mesh_knot;
 val __gen_mesh_heightmap = _gen_mesh_heightmap;
 val __gen_mesh_cubicmap = _gen_mesh_cubicmap;
 val __export_mesh = _export_mesh;
+val __load_materials = _load_materials;
+val __load_material_default = _load_material_default;
+val __is_material_ready = _is_material_ready;
+val __set_material_texture = _set_material_texture;
+val set_model_mesh_material = _set_model_mesh_material;
 
 # TODO: Once we have more check_collision functions, just make it standalone
 val __rectangle_check_collision = _rectangle_check_collision;
@@ -258,7 +263,14 @@ val mesh = {
     },
     'export': __export_mesh,
     'upload': __upload_mesh,
-}
+};
+
+val material = {
+    'load': __load_materials,
+    'load_default': __load_material_default,
+    'is_ready': __is_material_ready,
+    'set_texture': __set_material_texture,
+};
 
 # Input Constants
 

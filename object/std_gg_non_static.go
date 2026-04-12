@@ -3500,6 +3500,12 @@ var GgBuiltins = []*Builtin{
 					float32(m3.Value), float32(m7.Value), float32(m11.Value), float32(m15.Value)))
 			}
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`matrix` returns a new matrix",
+			signature:   "matrix(m0: float=0.0, m4: float=0.0, m8: float=0.0, m12: float=0.0, m1: float=0.0, m5: float=0.0, m9: float=0.0, m13: float=0.0, m2: float=0.0, m6: float=0.0, m10: float=0.0, m14: float=0.0, m3: float=0.0, m7: float=0.0, m11: float=0.0, m15: float=0.0) -> rl.Matrix",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "matrix() => rl.Matrix",
+		}.String(),
 	},
 	{
 		Name: "_init_audio_device",
@@ -4508,6 +4514,133 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_load_materials",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("load_materials", 1, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("load_materials", 1, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			materials := rl.LoadMaterials(args[0].(*Stringo).Value)
+			materialsList := make([]Object, len(materials))
+			for i, e := range materials {
+				materialsList[i] = NewGoObj(e)
+			}
+			return &List{Elements: materialsList}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_materials` loads materials from model file (.MTL)",
+			signature: "load_materials(filename: str) -> list[rl.Material]\n" +
+				"// Load materials from model file\n" +
+				"Material *LoadMaterials(const char *fileName, int *materialCount);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "load_materials()",
+		}.String(),
+	},
+	{
+		Name: "_load_material_default",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("load_material_default", 0, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.LoadMaterialDefault())
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_material_default` loads default material (supports: DIFFUSE, SPECULAR, NORMAL maps)",
+			signature: "load_material_default() -> rl.Material\n" +
+				"// Load default material (Supports: DIFFUSE, SPECULAR, NORMAL maps)\n" +
+				"Material LoadMaterialDefault(void);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "load_material_default()",
+		}.String(),
+	},
+	{
+		Name: "_is_material_ready",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("is_material_ready", 1, args)
+			if err != nil {
+				return err
+			}
+			material, err := checkGoObjType[rl.Material]("is_material_ready", 1, "rl.Material", args)
+			if err != nil {
+				return err
+			}
+			return nativeToBooleanObject(rl.IsMaterialReady(material.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_material_ready` returns true if material is ready",
+			signature:   "is_material_ready(material: rl.Material) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_material_ready()",
+		}.String(),
+	},
+	{
+		Name: "_set_material_texture",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("set_material_texture", 3, args)
+			if err != nil {
+				return err
+			}
+			material, err := checkGoObjType[rl.Material]("set_material_texture", 1, "rl.Material", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("set_material_texture", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			texture, err := checkGoObjType[rl.Texture2D]("set_material_texture", 3, "rl.Texture2D", args)
+			if err != nil {
+				return err
+			}
+			rl.SetMaterialTexture(&material.Value, int32(args[1].(*Integer).Value), texture.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_material_texture` sets texture for a material map type",
+			signature: "set_material_texture(material: rl.Material, map_type: int, texture: rl.Texture2D) -> null\n" +
+				"// Set texture for a material map type (MATERIAL_MAP_DIFFUSE, MATERIAL_MAP_SPECULAR...)\n" +
+				"void SetMaterialTexture(Material *material, int mapType, Texture2D texture);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "set_material_texture()",
+		}.String(),
+	},
+	{
+		Name: "_set_model_mesh_material",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("set_model_mesh_material", 3, args)
+			if err != nil {
+				return err
+			}
+			model, err := checkGoObjType[rl.Model]("set_model_mesh_material", 1, "rl.Model", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("set_model_mesh_material", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("set_model_mesh_material", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			rl.SetModelMeshMaterial(&model.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_model_mesh_material` sets material for mesh",
+			signature: "set_model_mesh_material(model: rl.Model, mesh_id: int, material_id: int) -> null\n" +
+				"// Set material for a mesh\n" +
+				"void SetModelMeshMaterial(Model *model, int meshId, int materialId);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "set_model_mesh_material()",
+		}.String(),
+	},
+	{
 		Name: "_unload",
 		Fun: func(args ...Object) Object {
 			for i, arg := range args {
@@ -4557,6 +4690,10 @@ func unloadFromRaylib(arg Object, pos int) Object {
 		return nil
 	} else if material, ok := arg.(*GoObj[rl.Material]); ok {
 		rl.UnloadMaterial(material.Value)
+		return nil
+	} else if modelAnimation, ok := arg.(*GoObj[rl.ModelAnimation]); ok {
+		// Note: there is a version for []rl.ModelAnimation that may be more efficient
+		rl.UnloadModelAnimation(modelAnimation.Value)
 		return nil
 	}
 	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of rl.* that has an unload function")
