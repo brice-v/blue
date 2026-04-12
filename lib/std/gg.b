@@ -142,8 +142,8 @@ val __draw_capsule = _draw_capsule;
 val __draw_plane = _draw_plane;
 val __draw_ray = _draw_ray;
 val __draw_grid = _draw_grid;
-val load_model = _load_model;
-val is_model_ready = _is_model_ready;
+val __load_model = _load_model;
+val __is_model_ready = _is_model_ready;
 val get_bounding_box = _get_bounding_box;
 val __draw_model = _draw_model;
 val __draw_bounding_box = _draw_bounding_box;
@@ -168,12 +168,13 @@ val __load_materials = _load_materials;
 val __load_material_default = _load_material_default;
 val __is_material_ready = _is_material_ready;
 val __set_material_texture = _set_material_texture;
-val set_model_mesh_material = _set_model_mesh_material;
+val __set_model_mesh_material = _set_model_mesh_material;
+val __load_model_animations = _load_model_animations;
+val __update_model_animation = _update_model_animation;
+val __is_model_animation_valid = _is_model_animation_valid;
 
-# TODO: Once we have more check_collision functions, just make it standalone
-val __rectangle_check_collision = _rectangle_check_collision;
 val check_collision = _check_collision;
-val get_collision_rec = _get_collision_rec;
+val get_collision = _get_collision;
 
 # Drawing
 val draw = {
@@ -270,6 +271,15 @@ val material = {
     'load_default': __load_material_default,
     'is_ready': __is_material_ready,
     'set_texture': __set_material_texture,
+};
+
+val model = {
+    'load': __load_model,
+    'is_ready': __is_model_ready,
+    'load_animations': __load_model_animations,
+    'update_animations': __update_model_animations,
+    'is_animation_valid': __is_model_animation_valid,
+    'set_mesh_material': __set_model_mesh_material,
 };
 
 # Input Constants
@@ -570,7 +580,7 @@ fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
         if ('obj' notin rec) {
             return error("rec must have obj() function on its map");
         }
-        return __rectangle_check_collision(this.obj(), rec.obj());
+        return check_collision(this.obj(), rec.obj());
     }
     return this;
 }
