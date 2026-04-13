@@ -39,13 +39,19 @@ var SearchBuiltins = []*Builtin{
 			if !shouldFindOne {
 				listToReturn := &List{Elements: []Object{}}
 				for _, e := range htmlquery.Find(doc, strQuery) {
-					result := htmlquery.OutputHTML(e, true)
+					result := ""
+					if e != nil {
+						result = htmlquery.OutputHTML(e, true)
+					}
 					listToReturn.Elements = append(listToReturn.Elements, &Stringo{Value: result})
 				}
 				return listToReturn
 			} else {
 				e := htmlquery.FindOne(doc, strQuery)
-				result := htmlquery.OutputHTML(e, true)
+				result := ""
+				if e != nil {
+					result = htmlquery.OutputHTML(e, true)
+				}
 				return &Stringo{Value: result}
 			}
 		},

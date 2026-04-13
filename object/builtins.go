@@ -1375,7 +1375,7 @@ var Builtins = []*Builtin{
 				return newError("`ls` error: %s", err.Error())
 			}
 			result := &List{Elements: make([]Object, len(fileOrDirs))}
-			for i := 0; i < len(fileOrDirs); i++ {
+			for i := range fileOrDirs {
 				result.Elements[i] = &Stringo{Value: fileOrDirs[i].Name()}
 			}
 			return result
