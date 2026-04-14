@@ -804,11 +804,43 @@ func (vm *VM) printMiniStack(slots int) {
 	}
 }
 
+func (vm *VM) printStackInfo() {
+	normalItems := 0
+	nilItems := 0
+	typeMapCount := map[string]int{}
+	for _, e := range vm.stack {
+		if e != nil {
+			normalItems++
+			t := fmt.Sprintf("%T", e)
+			_, ok := typeMapCount[t]
+			if !ok {
+				typeMapCount[t] = 1
+			} else {
+				typeMapCount[t]++
+			}
+		} else {
+			nilItems++
+		}
+	}
+	log.Printf("normalItems = %d, nilItems = %d", normalItems, nilItems)
+	log.Printf("typeMapCount --------------------------")
+	for k, v := range typeMapCount {
+		log.Printf("%s %d", k, v)
+	}
+	log.Printf("------------ --------------------------")
+}
+
 func (vm *VM) prepareStackTraceAndReturnError(err error) error {
 	vm.TokensForErrorTrace = []*token.Token{}
 	ip := vm.lastNodePos
+	// vm.printStackInfo()
 	for vm.framesIndex >= 1 {
 		ins := vm.currentFrame().Instructions()
+		if ip > len(ins) {
+			// Prevent panic when preparing stack trace
+			// Note: I saw this occur when dealing with stack overflow
+			break
+		}
 		op := code.Opcode(ins[ip])
 		if op != code.OpNode {
 			break
