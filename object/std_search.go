@@ -47,7 +47,10 @@ var SearchBuiltins = []*Builtin{
 				}
 				return listToReturn
 			} else {
-				e := htmlquery.FindOne(doc, strQuery)
+				e, err := htmlquery.Query(doc, strQuery)
+				if err != nil {
+					return newError("`by_xpath` error: %s", err.Error())
+				}
 				result := ""
 				if e != nil {
 					result = htmlquery.OutputHTML(e, true)
