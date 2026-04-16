@@ -1,4 +1,3 @@
-
 var elems = [];
 var alsoElems = [];
 
@@ -13,16 +12,10 @@ for (x in 1..<10) {
 var expectedElems = [1,2,3,4,5,6,7,8,9,10];
 var alsoExpected = [1,2,3,4,5,6,7,8,9];
 
-if (elems != expectedElems) {
-    return false;
-}
+assert(elems == expectedElems);
 
 println("Elements is: #{elems}")
-
-if (alsoElems != alsoExpected) {
-    return false;
-}
-
+assert(alsoElems == alsoExpected);
 println("Also Elems is: #{alsoElems}")
 
 var count = 0;
