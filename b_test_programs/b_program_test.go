@@ -239,6 +239,17 @@ func testVmScopes(t *testing.T) {
 	vmString(t, vmScopes)
 }
 
+func TestVmStackOverflowForIn(t *testing.T) {
+	s := `fun main() {
+		for i in 1..10000 {
+			println("Hello World #{i}!");
+		}
+	}
+
+	main();`
+	vmStringWithCore(t, s)
+}
+
 func TestVmNotEqualIssue(t *testing.T) {
 	s := `var abc = 1;
 	assert(abc != 5);`
