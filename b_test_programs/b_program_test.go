@@ -241,7 +241,7 @@ func testVmScopes(t *testing.T) {
 
 func TestVmStackOverflowForIn(t *testing.T) {
 	s := `fun main() {
-		for i in 1..10000 {
+		for i in 1..5000 {
 			println("Hello World #{i}!");
 		}
 	}

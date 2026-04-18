@@ -498,14 +498,6 @@ func (vm *VM) Run() error {
 				}
 			}
 		case code.OpGetBuiltin:
-			// TODO: This is sort of a temporary workaround
-			// There was/is a scenario in test_http_client where
-			// the sp ends up equaling the local index and because
-			// both are on the stack, it causes the push here to overwrite the previous set
-			// I imagine this should be added when something external is being brought into the stack
-			if vm.currentFrame().IsLastInstructionSetLocal() {
-				vm.push(object.NULL)
-			}
 			builtinModuleIndex := code.ReadUint8(ins[ip+1:])
 			builtinIndex := code.ReadUint8(ins[ip+2:])
 			vm.currentFrame().ip += 2
@@ -799,7 +791,11 @@ func (vm *VM) printMiniStack(slots int) {
 	for i := range slots {
 		obj := vm.stack[i]
 		if obj != nil {
-			log.Printf("stack[%d] = %q (%T)\n", i, obj.Inspect(), obj)
+			s := obj.Inspect()
+			if runeLen(s) > 10000 {
+				s = s[:100] + "..."
+			}
+			log.Printf("stack[%d] = %q (%T)\n", i, s, obj)
 		}
 	}
 }

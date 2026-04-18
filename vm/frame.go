@@ -35,11 +35,6 @@ func (f *Frame) Clone() *Frame {
 	}
 }
 
-func (f *Frame) IsLastInstructionSetLocal() bool {
-	inx := f.lastInstruction
-	return inx == code.OpSetLocal || inx == code.OpSetLocalImm
-}
-
 func NewFrame(fn *object.Closure, bp int) *Frame {
 	return &Frame{cl: fn, ip: -1, bp: bp, lastInstruction: code.OpInvalid}
 }
