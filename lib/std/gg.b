@@ -150,8 +150,6 @@ val __draw_bounding_box = _draw_bounding_box;
 val __draw_billboard = _draw_billboard;
 val __draw_mesh = _draw_mesh;
 val __upload_mesh = _upload_mesh;
-val __gen_mesh_tangents = _gen_mesh_tangents;
-val __gen_mesh_tangents = _gen_mesh_tangents;
 val __gen_mesh_poly = _gen_mesh_poly;
 val __gen_mesh_plane = _gen_mesh_plane;
 val __gen_mesh_cube = _gen_mesh_cube;
@@ -277,7 +275,7 @@ val model = {
     'load': __load_model,
     'is_ready': __is_model_ready,
     'load_animations': __load_model_animations,
-    'update_animations': __update_model_animations,
+    'update_animation': __update_model_animation,
     'is_animation_valid': __is_model_animation_valid,
     'set_mesh_material': __set_model_mesh_material,
 };

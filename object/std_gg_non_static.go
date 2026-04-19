@@ -4774,21 +4774,21 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "_update_model_animations",
+		Name: "_update_model_animation",
 		Fun: func(args ...Object) Object {
-			err := checkArgCount("update_model_animations", 3, args)
+			err := checkArgCount("update_model_animation", 3, args)
 			if err != nil {
 				return err
 			}
-			model, err := checkGoObjType[rl.Model]("update_model_animations", 1, "rl.Model", args)
+			model, err := checkGoObjType[rl.Model]("update_model_animation", 1, "rl.Model", args)
 			if err != nil {
 				return err
 			}
-			modelAnimation, err := checkGoObjType[rl.ModelAnimation]("update_model_animations", 2, "rl.ModelAnimation", args)
+			modelAnimation, err := checkGoObjType[rl.ModelAnimation]("update_model_animation", 2, "rl.ModelAnimation", args)
 			if err != nil {
 				return err
 			}
-			err = checkArgType("update_model_animations", 3, INTEGER_OBJ, args)
+			err = checkArgType("update_model_animation", 3, INTEGER_OBJ, args)
 			if err != nil {
 				return err
 			}

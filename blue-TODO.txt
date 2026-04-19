@@ -1,8 +1,6 @@
 TODO:
 
 - [ ] Cache Empty string object and small ints maybe?
-- [ ] Do builtins work with GoObj? as in can you do something like vector().println()
-- [ ] Implement helpers for invalidargcount and positionaltype errors so they can be checked easier
 - [ ] Issue when trying to call gg.draw.XXX that doesnt exist (need to make sure error returned for vm, and evaluator is returning weird error)
     - Example: gg.draw.rectangle_roundned(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 10, gg.color.dark_gray)
 - [ ] Add dis() builtin function to disassemble function inline
@@ -539,3 +537,5 @@ COMPLETED TASKS:
     - This works with vm: var ll = [3,2,1]; fun () { ll = ll.sort() }() => ll is now [1,2,3]
 - [x] Embed Builtin's name into the builtin and then use it instead of using list of structs
     - [x] Also update String() for builtin to include the builtin's name (rather than just builtin function)
+- [x] Do builtins work with GoObj? as in can you do something like vector().println()
+- [x] Implement helpers for invalidargcount and positionaltype errors so they can be checked easier
