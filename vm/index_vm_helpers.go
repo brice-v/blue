@@ -262,7 +262,7 @@ func (vm *VM) executeGoObjIndexExpression(goObj object.Object, name string) erro
 	}
 	obj, err := goObjectToBlueObject(innerFieldVal.Interface())
 	if err != nil {
-		return vm.push(newError("GoObj.Value.%s conversion to blue object failed: %s", err.Error()))
+		return vm.push(newError("GoObj.Value.%s conversion to blue object failed: %s", nameToUse, err.Error()))
 	}
 	return vm.push(obj)
 }
