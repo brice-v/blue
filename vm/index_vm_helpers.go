@@ -2,6 +2,8 @@ package vm
 
 import (
 	"blue/object"
+	"blue/util"
+	"reflect"
 )
 
 func (vm *VM) executeListIndexExpression(list, indx object.Object) error {
@@ -233,4 +235,34 @@ func (vm *VM) executeProcessIndexExpression(process *object.Process, name string
 		})
 	}
 	panic("Unsupported Process Index Operation: " + name)
+}
+
+func (vm *VM) executeGoObjIndexExpression(goObj object.Object, name string) error {
+	val := reflect.ValueOf(goObj)
+	if val.Kind() != reflect.Pointer {
+		return vm.push(newError("GoObj is not a pointer, got=%T", goObj))
+	}
+	elem := val.Elem()
+	if elem.Kind() != reflect.Struct {
+		return vm.push(newError("GoObj elem is not a struct got=%T", elem))
+	}
+	valueField := elem.FieldByName("Value")
+	if !valueField.IsValid() {
+		return vm.push(newError("GoObj.Value field is not valid, %#+v", valueField))
+	}
+	innerVal := valueField.Interface()
+	innerType := reflect.TypeOf(innerVal)
+	if innerType.Kind() != reflect.Struct {
+		return vm.push(newError("GoObj.Value is not a struct, got=%T", innerType))
+	}
+	nameToUse := util.ToTitleCase(name)
+	innerFieldVal := reflect.ValueOf(innerVal).FieldByName(nameToUse)
+	if !innerFieldVal.IsValid() {
+		return vm.push(newError("GoObj.Value.%s is not valid", nameToUse))
+	}
+	obj, err := goObjectToBlueObject(innerFieldVal.Interface())
+	if err != nil {
+		return vm.push(newError("GoObj.Value.%s conversion to blue object failed: %s", err.Error()))
+	}
+	return vm.push(obj)
 }

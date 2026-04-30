@@ -1,8 +1,6 @@
 TODO:
 
 - [ ] Cache Empty string object and small ints maybe?
-- [ ] Issue when trying to call gg.draw.XXX that doesnt exist (need to make sure error returned for vm, and evaluator is returning weird error)
-    - Example: gg.draw.rectangle_roundned(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 10, gg.color.dark_gray)
 - [ ] Add dis() builtin function to disassemble function inline
 - [ ] Dont necessarily need to return builtin for builtins that require vm reference
     - could just return func(args...) object.Object
@@ -22,15 +20,6 @@ TODO:
 - [ ] FEAT: allow functions to be defined later down in the file
 - [ ] FEAT: sort doesnt work when nulls are in collections (realistically we can put at beginning or end)
     - by fixing this we might as well add true and false to be sortable in collection as well?
-- [ ] TASK: add helper to format multi object positional type errors (if possible) so you dont have to write "or ..."
-- [-] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
-    - [ ] Accept subcmd for gui/browser that specifies what you want to do
-        - Just implemented browser for now but technically gui should also be possible (this should still be done)
-    - Browser: Lots of issues with it currently
-        - [ ] Fix styling on browser
-        - [ ] Return errors in cleaner way when it times out or errors out for any other reason
-        - [ ] Make sure limiter works at all?
-        - [ ] Support stdin somehow?
 - [ ] Ensure destructuring works in more places (possibly update imports to work like they do in JS)
     - [ ] Aliasing for destructuring
     - [ ] Spread operator from JS
@@ -65,7 +54,6 @@ TODO:
 - [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] If for loop returns list in expression it needs to be ordered, otherwise it wont work
 - [ ] Add catch with a block to expressions to handle errors?
-- [ ] Support golang float with e in it
 - [ ] Add some sort of package management with a file like blue.json (or blue.toml)
     - This will allow us to also add a script runner
     - And by this time we can add a `blue init` command to generate the initial scaffolding
@@ -539,3 +527,15 @@ COMPLETED TASKS:
     - [x] Also update String() for builtin to include the builtin's name (rather than just builtin function)
 - [x] Do builtins work with GoObj? as in can you do something like vector().println()
 - [x] Implement helpers for invalidargcount and positionaltype errors so they can be checked easier
+- [-] Make a blue ide/play command that starts a gui to mess with the language (possibly starts a server with basic site that could be hosted?)
+    - [ ] Accept subcmd for gui/browser that specifies what you want to do
+        - Just implemented browser for now but technically gui should also be possible (this should still be done)
+    - Browser: Lots of issues with it currently
+        - [ ] Fix styling on browser
+        - [ ] Return errors in cleaner way when it times out or errors out for any other reason
+        - [ ] Make sure limiter works at all?
+        - [ ] Support stdin somehow?
+- [x] Issue when trying to call gg.draw.XXX that doesnt exist (need to make sure error returned for vm, and evaluator is returning weird error)
+    - Example: gg.draw.rectangle_roundned(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 10, gg.color.dark_gray)
+- [x] TASK: add helper to format multi object positional type errors (if possible) so you dont have to write "or ..."
+- [x] Support golang float with e in it
