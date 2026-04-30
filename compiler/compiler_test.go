@@ -49,6 +49,11 @@ func testConstants(t *testing.T, expected []any, actual []object.Object) error {
 			if err != nil {
 				return fmt.Errorf("constant %d - testIntegerObject failed: %s", ii, err)
 			}
+		case uint64:
+			err := testUIntegerObject(constant, actual[ii])
+			if err != nil {
+				return fmt.Errorf("constant %d - testUIntegerObject failed: %s", ii, err)
+			}
 		case []code.Instructions:
 			fun, ok := actual[ii].(*object.CompiledFunction)
 			if !ok {
@@ -67,6 +72,17 @@ func testIntegerObject(expected int64, actual object.Object) error {
 	result, ok := actual.(*object.Integer)
 	if !ok {
 		return fmt.Errorf("object is not Integer. got=%T (%+v)", actual, actual)
+	}
+	if result.Value != expected {
+		return fmt.Errorf("object has wrong value. got=%d, want=%d", result.Value, expected)
+	}
+	return nil
+}
+
+func testUIntegerObject(expected uint64, actual object.Object) error {
+	result, ok := actual.(*object.UInteger)
+	if !ok {
+		return fmt.Errorf("object is not UInteger. got=%T (%+v)", actual, actual)
 	}
 	if result.Value != expected {
 		return fmt.Errorf("object has wrong value. got=%d, want=%d", result.Value, expected)
