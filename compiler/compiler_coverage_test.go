@@ -6,6 +6,7 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"os"
 	"testing"
 )
 
@@ -1275,14 +1276,15 @@ func TestGetName(t *testing.T) {
 }
 
 func TestCreateFilePathFromImportPath(t *testing.T) {
+	sep := string(os.PathSeparator)
 	tests := []struct {
-		basePath string
+		basePath   string
 		importPath string
-		expected string
+		expected   string
 	}{
 		{".", "foo", "foo.b"},
-		{".", "foo.bar", "foo/bar.b"},
-		{"/path", "foo", "/path/foo.b"},
+		{".", "foo.bar", "foo" + sep + "bar.b"},
+		{sep + "path", "foo", sep + "path" + sep + "foo.b"},
 	}
 	for _, tt := range tests {
 		compiler := New()
