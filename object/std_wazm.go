@@ -2,7 +2,7 @@ package object
 
 import (
 	"blue/consts"
-	"blue/evaluator/wazm"
+	"blue/object/wazm"
 	"io"
 	"os"
 	"strings"

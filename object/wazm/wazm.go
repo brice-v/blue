@@ -110,8 +110,7 @@ func WazmInit(wc Config) (*Module, error) {
 		}
 	}
 
-	conf := wazero.NewModuleConfig().
-		WithFSConfig(fs)
+	conf := wazero.NewModuleConfig().WithFSConfig(fs)
 	if wc.StdOut != nil {
 		conf = conf.WithStdout(wc.StdOut)
 	}
@@ -125,9 +124,7 @@ func WazmInit(wc Config) (*Module, error) {
 		conf = conf.WithRandSource(rand.Reader)
 	}
 	if wc.EnableTimeAndSleepPrecision {
-		conf = conf.WithSysNanosleep().
-			WithSysNanotime().
-			WithSysWalltime()
+		conf = conf.WithSysNanosleep().WithSysNanotime().WithSysWalltime()
 	}
 	conf = conf.WithArgs(wc.Args...)
 	for k, v := range wc.Envs {
