@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"blue/blueutils"
+	"blue/blueutil"
 	"blue/code"
 	"blue/compiler"
 	"blue/consts"
@@ -167,7 +167,7 @@ func vmFile(fpath string, noExec bool, compile bool) {
 				offset = i
 			}
 		}
-		fmt.Print(blueutils.BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
+		fmt.Print(blueutil.BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
 		os.Exit(0)
 	}
 	bc := c.Bytecode()

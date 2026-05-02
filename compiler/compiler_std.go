@@ -2,7 +2,7 @@ package compiler
 
 import (
 	"blue/ast"
-	"blue/blueutils"
+	"blue/blueutil"
 	"blue/code"
 	"blue/consts"
 	"blue/lexer"
@@ -48,7 +48,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		return fmt.Errorf("failed to compile std module: '%s' is not in std lib map", name)
 	}
 	fb := _std_mods[name]
-	if fb.ParsedProgram == nil || !blueutils.ENABLE_VM_CACHING {
+	if fb.ParsedProgram == nil || !blueutil.ENABLE_VM_CACHING {
 		l := lexer.New(fb.File, "<std/"+name+".b>")
 		p := parser.New(l)
 		fb.ParsedProgram = p.ParseProgram()
@@ -67,7 +67,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 			return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 		}
 	}
-	if fb.Builtins == nil || !blueutils.ENABLE_VM_CACHING {
+	if fb.Builtins == nil || !blueutil.ENABLE_VM_CACHING {
 		i, b := object.GetIndexAndBuiltinsOf(name)
 		fb.Index = i
 		fb.Builtins = b

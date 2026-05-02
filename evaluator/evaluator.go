@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"blue/ast"
-	"blue/blueutils"
+	"blue/blueutil"
 	"blue/consts"
 	"blue/lexer"
 	"blue/object"
@@ -612,7 +612,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			e.env.SetObj(name.Value, l[i], isVal)
 		} else if isMapDestructor {
 			m := val.(*object.Map)
-			if !blueutils.IfNameInMapSetEnv(e.env, m.Pairs, name.Value) {
+			if !blueutil.IfNameInMapSetEnv(e.env, m.Pairs, name.Value) {
 				return newError("Map destructor key name '%s' was not found in map", name.Value)
 			}
 		} else {

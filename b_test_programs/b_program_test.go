@@ -2,7 +2,7 @@ package b_program_test
 
 import (
 	"blue/ast"
-	"blue/blueutils"
+	"blue/blueutil"
 	"blue/compiler"
 	"blue/evaluator"
 	"blue/lexer"
@@ -126,7 +126,7 @@ func TestAllProgramsInDirectoryWithVm(t *testing.T) {
 	}
 
 	// Disable caching that breaks tests
-	blueutils.ENABLE_VM_CACHING = false
+	blueutil.ENABLE_VM_CACHING = false
 
 	for _, f := range files {
 		// test_http is still not setup to work yet
@@ -550,7 +550,7 @@ func vmStringWithCore(t *testing.T, s string) {
 	if err != nil {
 		t.Fatalf("compiler error: %s", err.Error())
 	}
-	// fmt.Print(blueutils.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+	// fmt.Print(blueutil.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
 	// fmt.Printf("PARSED: ```%s```\n", program.String())
 	v := vm.New(c.Bytecode())
 	err = v.Run()

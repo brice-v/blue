@@ -1,4 +1,4 @@
-package blueutils
+package blueutil
 
 import (
 	"blue/code"
