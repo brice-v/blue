@@ -3,7 +3,7 @@ package vm
 import (
 	"blue/code"
 	"blue/object"
-	"blue/utils"
+	"blue/util"
 	"bytes"
 	"math"
 	"math/big"
@@ -19,7 +19,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		rightVal := rightObj.(*object.Integer).Value
 		switch op {
 		case code.OpAdd:
-			overflowed := utils.CheckOverflow(leftVal, rightVal)
+			overflowed := util.CheckOverflow(leftVal, rightVal)
 			if overflowed {
 				left := new(big.Int).SetInt64(leftVal)
 				right := new(big.Int).SetInt64(rightVal)
@@ -28,7 +28,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			}
 			return vm.push(&object.Integer{Value: leftVal + rightVal})
 		case code.OpMinus:
-			underflowed := utils.CheckUnderflow(leftVal, rightVal)
+			underflowed := util.CheckUnderflow(leftVal, rightVal)
 			if underflowed {
 				left := new(big.Int).SetInt64(leftVal)
 				right := new(big.Int).SetInt64(rightVal)
@@ -45,7 +45,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			}
 			return vm.push(&object.Integer{Value: leftVal / rightVal})
 		case code.OpStar:
-			overflowed := utils.CheckOverflowMul(leftVal, rightVal)
+			overflowed := util.CheckOverflowMul(leftVal, rightVal)
 			if overflowed {
 				left := new(big.Int).SetInt64(leftVal)
 				right := new(big.Int).SetInt64(rightVal)
@@ -54,7 +54,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			}
 			return vm.push(&object.Integer{Value: leftVal * rightVal})
 		case code.OpPow:
-			overflowed := utils.CheckOverflowPow(leftVal, rightVal)
+			overflowed := util.CheckOverflowPow(leftVal, rightVal)
 			if overflowed {
 				left := new(big.Int).SetInt64(leftVal)
 				right := new(big.Int).SetInt64(rightVal)

@@ -1,9 +1,9 @@
 package vm
 
 import (
+	"blue/blueutils"
 	"blue/consts"
 	"blue/object"
-	"blue/utils"
 	"bytes"
 	"fmt"
 	"math"
@@ -27,7 +27,7 @@ func (hsa helpStrArgs) String() string {
 var toNumBuiltin *object.Builtin = nil
 
 func createToNumBuiltin() *object.Builtin {
-	if toNumBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if toNumBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		toNumBuiltin = &object.Builtin{
 			Name: "to_num",
 			Fun: func(args ...object.Object) object.Object {
@@ -297,7 +297,7 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 }
 
 func createSortBuiltin(vm *VM) *object.Builtin {
-	if sortBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if sortBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		sortBuiltin = &object.Builtin{
 			Name: "sort",
 			Fun: func(args ...object.Object) object.Object {
@@ -317,7 +317,7 @@ func createSortBuiltin(vm *VM) *object.Builtin {
 var sortedBuiltin *object.Builtin = nil
 
 func createSortedBuiltin(vm *VM) *object.Builtin {
-	if sortedBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if sortedBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		sortedBuiltin = &object.Builtin{
 			Name: "sorted",
 			Fun: func(args ...object.Object) object.Object {
@@ -346,7 +346,7 @@ func createSortedBuiltin(vm *VM) *object.Builtin {
 var allBuiltin *object.Builtin = nil
 
 func createAllBuiltin(vm *VM) *object.Builtin {
-	if allBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if allBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		allBuiltin = &object.Builtin{
 			Name: "all",
 			Fun: func(args ...object.Object) object.Object {
@@ -407,7 +407,7 @@ func createAllBuiltin(vm *VM) *object.Builtin {
 var anyBuiltin *object.Builtin = nil
 
 func createAnyBuiltin(vm *VM) *object.Builtin {
-	if anyBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if anyBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		anyBuiltin = &object.Builtin{
 			Name: "any",
 			Fun: func(args ...object.Object) object.Object {
@@ -468,7 +468,7 @@ func createAnyBuiltin(vm *VM) *object.Builtin {
 var mapBuiltin *object.Builtin = nil
 
 func createMapBuiltin(vm *VM) *object.Builtin {
-	if mapBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if mapBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		mapBuiltin = &object.Builtin{
 			Name: "map",
 			Fun: func(args ...object.Object) object.Object {
@@ -507,7 +507,7 @@ func createMapBuiltin(vm *VM) *object.Builtin {
 var filterBuiltin *object.Builtin = nil
 
 func createFilterBuiltin(vm *VM) *object.Builtin {
-	if filterBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if filterBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		filterBuiltin = &object.Builtin{
 			Name: "filter",
 			Fun: func(args ...object.Object) object.Object {
@@ -548,7 +548,7 @@ func createFilterBuiltin(vm *VM) *object.Builtin {
 var loadBuiltin *object.Builtin = nil
 
 func createLoadBuiltin(_ *VM) *object.Builtin {
-	if loadBuiltin == nil || !utils.ENABLE_VM_CACHING {
+	if loadBuiltin == nil || !blueutils.ENABLE_VM_CACHING {
 		loadBuiltin = &object.Builtin{
 			Name: "load",
 			Fun: func(args ...object.Object) object.Object {

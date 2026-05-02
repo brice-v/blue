@@ -1,20 +1,20 @@
 package compiler
 
 import (
+	"blue/blueutils"
 	"blue/code"
 	"blue/consts"
 	"blue/lexer"
 	"blue/lib"
 	"blue/object"
 	"blue/parser"
-	"blue/utils"
 	"os"
 
 	clone "github.com/huandu/go-clone/generic"
 )
 
 func (c *Compiler) compileCore() {
-	if !c.coreCompiled || !utils.ENABLE_VM_CACHING {
+	if !c.coreCompiled || !blueutils.ENABLE_VM_CACHING {
 		l := lexer.New(lib.CoreFile, consts.CORE_FILE_PATH)
 		p := parser.New(l)
 		program := p.ParseProgram()
@@ -35,7 +35,7 @@ func (c *Compiler) compileCore() {
 var _coreCompiler *Compiler = nil
 
 func newFromCore() *Compiler {
-	if _coreCompiler == nil || !utils.ENABLE_VM_CACHING {
+	if _coreCompiler == nil || !blueutils.ENABLE_VM_CACHING {
 		l := lexer.New(lib.CoreFile, consts.CORE_FILE_PATH)
 		p := parser.New(l)
 		program := p.ParseProgram()
@@ -69,7 +69,7 @@ func newFromCore() *Compiler {
 		symbolTable       *SymbolTable
 		scopes            []CompilationScope
 	)
-	if utils.ENABLE_VM_CACHING {
+	if blueutils.ENABLE_VM_CACHING {
 		compilerConstants = clone.Clone(_coreCompiler.constants)
 		constantFolds = clone.Clone(_coreCompiler.constantFolds)
 		symbolTable = clone.Clone(_coreCompiler.symbolTable)

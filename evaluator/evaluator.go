@@ -2,13 +2,13 @@ package evaluator
 
 import (
 	"blue/ast"
+	"blue/blueutils"
 	"blue/consts"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
 	"blue/token"
 	"blue/util"
-	"blue/utils"
 	"bytes"
 	"fmt"
 	"io"
@@ -612,7 +612,7 @@ func (e *Evaluator) evalVariableStatement(isVal, isMapDestructor, isListDestruct
 			e.env.SetObj(name.Value, l[i], isVal)
 		} else if isMapDestructor {
 			m := val.(*object.Map)
-			if !utils.IfNameInMapSetEnv(e.env, m.Pairs, name.Value) {
+			if !blueutils.IfNameInMapSetEnv(e.env, m.Pairs, name.Value) {
 				return newError("Map destructor key name '%s' was not found in map", name.Value)
 			}
 		} else {
@@ -3186,7 +3186,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 
 	switch operator {
 	case "+":
-		overflowed := utils.CheckOverflow(leftVal, rightVal)
+		overflowed := util.CheckOverflow(leftVal, rightVal)
 		if overflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)
@@ -3195,7 +3195,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		}
 		return &object.Integer{Value: leftVal + rightVal}
 	case "-":
-		underflowed := utils.CheckUnderflow(leftVal, rightVal)
+		underflowed := util.CheckUnderflow(leftVal, rightVal)
 		if underflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)
@@ -3212,7 +3212,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		}
 		return &object.Integer{Value: leftVal / rightVal}
 	case "*":
-		overflowed := utils.CheckOverflowMul(leftVal, rightVal)
+		overflowed := util.CheckOverflowMul(leftVal, rightVal)
 		if overflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)
@@ -3221,7 +3221,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		}
 		return &object.Integer{Value: leftVal * rightVal}
 	case "**":
-		overflowed := utils.CheckOverflowPow(leftVal, rightVal)
+		overflowed := util.CheckOverflowPow(leftVal, rightVal)
 		if overflowed {
 			left := new(big.Int).SetInt64(leftVal)
 			right := new(big.Int).SetInt64(rightVal)

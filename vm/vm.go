@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"blue/blueutils"
 	"blue/code"
 	"blue/compiler"
 	"blue/consts"
@@ -8,7 +9,6 @@ import (
 	"blue/object"
 	"blue/parser"
 	"blue/token"
-	"blue/utils"
 	"fmt"
 	"log"
 	"math/big"
@@ -52,7 +52,7 @@ func (vm *VM) currentFrame() *Frame {
 
 func (vm *VM) incrementOpCallArgCount() bool {
 	cf := vm.frames[vm.framesIndex-1]
-	nextPos := utils.GetNextOpCallPos(cf.cl.Fun.Instructions, cf.ip)
+	nextPos := blueutils.GetNextOpCallPos(cf.cl.Fun.Instructions, cf.ip)
 	if nextPos != -1 {
 		pos := nextPos + 1
 		// When this function is called in a loop such as
@@ -522,7 +522,7 @@ func (vm *VM) Run() error {
 							Mutates: definition.Mutates,
 						}
 					} else {
-						if utils.ENABLE_VM_CACHING {
+						if blueutils.ENABLE_VM_CACHING {
 							// Lazy Evaluate Builtin that needs to use vm
 							definition.Fun = GetBuiltinWithVm(definition.Name, vm)
 							builtin = definition
