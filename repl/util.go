@@ -4,7 +4,9 @@ import (
 	"blue/evaluator"
 	"blue/lexer"
 	"blue/parser"
+	"blue/vm"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -27,6 +29,21 @@ func handleDotCommand(line string, out io.Writer, fileBuf *bytes.Buffer, e *eval
 	return nil
 }
 
+func handleVmDotCommand(line string, out io.Writer, fileBuf *bytes.Buffer, vm *vm.VM) error {
+	cmdAndArg := strings.Split(line, " ")
+	if len(cmdAndArg) == 1 {
+		handleHelpCommand(out)
+	}
+	cmd := cmdAndArg[0]
+	switch cmd {
+	case ".save":
+		return handleSaveCommand(out, fileBuf, cmdAndArg[1])
+	case ".load":
+		return handleVmLoadCommand(out, fileBuf, cmdAndArg[1], vm)
+	}
+	return nil
+}
+
 const helpCommandUsage = `.exit           exits the repl
 .help           prints this message
 .save <fname>   saves the successfully evaluated commands
@@ -43,9 +60,7 @@ func handleSaveCommand(out io.Writer, filebuf *bytes.Buffer, filename string) er
 	if err != nil {
 		return err
 	}
-	io.WriteString(out, "file `")
-	io.WriteString(out, filename)
-	io.WriteString(out, "` saved\n")
+	fmt.Fprintf(out, "file `%s` saved\n", filename)
 	return nil
 }
 
@@ -63,15 +78,15 @@ func handleLoadCommand(out io.Writer, filebuf *bytes.Buffer, filename string, e 
 	}
 	evaluated := e.Eval(program)
 
-	io.WriteString(out, "file `")
-	io.WriteString(out, filename)
-	io.WriteString(out, "` loaded\n")
+	fmt.Fprintf(out, "file `%s` loaded\n", filename)
 	if evaluated != nil {
-		io.WriteString(out, "=> ")
-		io.WriteString(out, evaluated.Inspect())
-		io.WriteString(out, "\n")
+		fmt.Fprintf(out, "=> %s\n", evaluated.Inspect())
 	}
 	filebuf.WriteString(data)
 	filebuf.WriteByte('\n')
 	return nil
+}
+
+func handleVmLoadCommand(out io.Writer, filebuf *bytes.Buffer, filename string, vm *vm.VM) error {
+	return fmt.Errorf("vm load not yet supported")
 }

@@ -96,7 +96,7 @@ func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address 
 				println(err.Error())
 				os.Exit(0)
 			}
-			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s", err.Error())
+			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
 			os.Exit(1)
 			break
 		}
@@ -108,9 +108,7 @@ func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address 
 			}
 			err := handleDotCommand(line, out, &filebuf, e)
 			if err != nil {
-				io.WriteString(out, "repl command error: ")
-				io.WriteString(out, err.Error())
-				io.WriteString(out, "\n")
+				fmt.Fprintf(out, "repl command error: %s\n", err.Error())
 			}
 			continue
 		}
@@ -128,10 +126,7 @@ func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address 
 			replVar := fmt.Sprintf("_%d", replVarIndx)
 			e.ReplEnvAdd(replVar, evaluated)
 			replVarIndx++
-			io.WriteString(out, replVar)
-			io.WriteString(out, " => ")
-			io.WriteString(out, evaluated.Inspect())
-			io.WriteString(out, "\n")
+			fmt.Fprintf(out, "%s => %s\n", replVar, evaluated.Inspect())
 		}
 		filebuf.WriteString(line)
 		filebuf.WriteByte('\n')
@@ -173,24 +168,23 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 				println(err.Error())
 				os.Exit(0)
 			}
-			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s", err.Error())
+			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
 			os.Exit(1)
 			break
 		}
 
-		// if strings.HasPrefix(line, ".") {
-		// 	if strings.HasPrefix(line, ".exit") {
-		// 		io.WriteString(out, "\n")
-		// 		break
-		// 	}
-		// 	err := handleDotCommand(line, out, &filebuf, e)
-		// 	if err != nil {
-		// 		io.WriteString(out, "repl command error: ")
-		// 		io.WriteString(out, err.Error())
-		// 		io.WriteString(out, "\n")
-		// 	}
-		// 	continue
-		// }
+		if strings.HasPrefix(line, ".") {
+			if strings.HasPrefix(line, ".exit") {
+				io.WriteString(out, "\n")
+				break
+			}
+			// TODO: Need to be able to pass something here to store loaded file
+			err := handleVmDotCommand(line, out, &filebuf, nil)
+			if err != nil {
+				fmt.Fprintf(out, "repl command error: %s\n", err.Error())
+			}
+			continue
+		}
 
 		l := lexer.New(line, "<repl>")
 		p := parser.New(l)
@@ -202,7 +196,7 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		c := compiler.NewWithStateAndCore(symbolTable, constants)
 		err = c.Compile(program)
 		if err != nil {
-			consts.ErrorPrinter(consts.COMPILER_ERROR_PREFIX + err.Error())
+			consts.ErrorPrinter(fmt.Sprintf("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error()))
 			c.PrintStackTrace()
 			continue
 		}
@@ -212,15 +206,11 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		err = v.Run()
 		if err == nil {
 			replVar := fmt.Sprintf("_%d", replVarIndx)
-			// e.ReplEnvAdd(replVar, evaluated)
+			// TODO: Add var to environment
 			replVarIndx++
-			io.WriteString(out, replVar)
-			io.WriteString(out, " => ")
-			io.WriteString(out, v.LastPoppedStackElem().Inspect())
-			io.WriteString(out, "\n")
+			fmt.Fprintf(out, "%s => %s\n", replVar, v.LastPoppedStackElem().Inspect())
 		} else {
-			io.WriteString(out, err.Error())
-			io.WriteString(out, "\n")
+			fmt.Fprintf(out, "%s\n", err.Error())
 		}
 		filebuf.WriteString(line)
 		filebuf.WriteByte('\n')
