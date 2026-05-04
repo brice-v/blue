@@ -24,83 +24,34 @@ const PROMPT = "> "
 
 // StartLexerRepl starts the read eval print loop for the lexer
 func StartLexerRepl() {
-	user, err := user.Current()
-	if err != nil {
-		fmt.Println("Unable to get current username, proceeding with none")
-		startLexerRepl(os.Stdin, os.Stdout, "")
-		os.Exit(0)
-	}
-	startLexerRepl(os.Stdin, os.Stdout, user.Username)
-	os.Exit(0)
+	startLexerRepl(os.Stdin, os.Stdout, getUsername())
 }
 
 // StartParserRepl start the read eval print loop for the parser
 func StartParserRepl() {
-	user, err := user.Current()
-	if err != nil {
-		fmt.Println("Unable to get current username, proceeding with none")
-		startParserRepl(os.Stdin, os.Stdout, "")
-		os.Exit(0)
-	}
-	startParserRepl(os.Stdin, os.Stdout, user.Username)
-	os.Exit(0)
+	startParserRepl(os.Stdin, os.Stdout, getUsername())
 }
 
 // StartEvalRepl start the read eval print loop for the parser
 func StartEvalRepl() {
-	user, err := user.Current()
-	if err != nil {
-		fmt.Println("Unable to get current username, proceeding with none")
-		startEvalRepl(os.Stdin, os.Stdout, "", "", "")
-		os.Exit(0)
-	}
-	startEvalRepl(os.Stdin, os.Stdout, user.Username, "", "")
-	os.Exit(0)
+	startEvalRepl(os.Stdin, os.Stdout, getUsername(), "", "")
 }
 
 // StartVmRepl start the read Vm print loop for the parser
 func StartVmRepl() {
-	user, err := user.Current()
-	if err != nil {
-		fmt.Println("Unable to get current username, proceeding with none")
-		startVmRepl(os.Stdin, os.Stdout, "", "", "")
-		os.Exit(0)
-	}
-	startVmRepl(os.Stdin, os.Stdout, user.Username, "", "")
-	os.Exit(0)
+	startVmRepl(os.Stdin, os.Stdout, getUsername(), "", "")
 }
 
 // startEvalRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
 func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
-	e := evaluator.NewNode(nodeName, address)
-	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", consts.VERSION, username)
-	rl, err := readline.NewEx(&readline.Config{
-		Stdin:  in,
-		Stdout: out,
-		Stderr: out,
-		Prompt: PROMPT,
-	})
-	if err != nil {
-		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
-		os.Exit(1)
-	}
-	consts.InfoPrinter(header + "\n")
-	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
+	rl := NewReadline(in, out, "EVAL", username)
+	fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
 	replVarIndx := 1
+	e := evaluator.NewNode(nodeName, address)
 	for {
-		line, err := rl.Readline()
-		if err != nil {
-			if err.Error() == "Interrupt" || err.Error() == "EOF" {
-				println(err.Error())
-				os.Exit(0)
-			}
-			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
-			os.Exit(1)
-			break
-		}
-
+		line := readLine(rl)
 		if strings.HasPrefix(line, ".") {
 			if strings.HasPrefix(line, ".exit") {
 				io.WriteString(out, "\n")
@@ -128,26 +79,14 @@ func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address 
 			replVarIndx++
 			fmt.Fprintf(out, "%s => %s\n", replVar, evaluated.Inspect())
 		}
-		filebuf.WriteString(line)
-		filebuf.WriteByte('\n')
+		fmt.Fprintf(&filebuf, "%s\n", line)
 	}
 }
 
 // startEvalRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
 func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
-	header := fmt.Sprintf("blue | v%s | REPL | MODE: VM | User: %s", consts.VERSION, username)
-	rl, err := readline.NewEx(&readline.Config{
-		Stdin:  in,
-		Stdout: out,
-		Stderr: out,
-		Prompt: PROMPT,
-	})
-	if err != nil {
-		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
-		os.Exit(1)
-	}
-
+	rl := NewReadline(in, out, "VM", username)
 	constants := []object.Object{}
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
@@ -157,22 +96,11 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	for i, v := range object.BuiltinobjsList {
 		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex)
 	}
-	consts.InfoPrinter(header + "\n")
-	fmt.Println("type .help for more information or help(OBJECT) for a specific object")
+	fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
 	replVarIndx := 1
 	for {
-		line, err := rl.Readline()
-		if err != nil {
-			if err.Error() == "Interrupt" || err.Error() == "EOF" {
-				println(err.Error())
-				os.Exit(0)
-			}
-			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
-			os.Exit(1)
-			break
-		}
-
+		line := readLine(rl)
 		if strings.HasPrefix(line, ".") {
 			if strings.HasPrefix(line, ".exit") {
 				io.WriteString(out, "\n")
@@ -194,7 +122,7 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 			continue
 		}
 		c := compiler.NewWithStateAndCore(symbolTable, constants)
-		err = c.Compile(program)
+		err := c.Compile(program)
 		if err != nil {
 			consts.ErrorPrinter(fmt.Sprintf("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error()))
 			c.PrintStackTrace()
@@ -212,42 +140,19 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		} else {
 			fmt.Fprintf(out, "%s\n", err.Error())
 		}
-		filebuf.WriteString(line)
-		filebuf.WriteByte('\n')
+		fmt.Fprintf(&filebuf, "%s\n", line)
 	}
 }
 
 // startLexerRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
 func startLexerRepl(in io.ReadCloser, out io.Writer, username string) {
-	header := fmt.Sprintf("blue | v%s | REPL | MODE: LEXER | User: %s", consts.VERSION, username)
-	rl, err := readline.NewEx(&readline.Config{
-		Stdin:  in,
-		Stdout: out,
-		Stderr: out,
-		Prompt: PROMPT,
-	})
-	if err != nil {
-		consts.ErrorPrinter("Failed to instantiate readline| Error: %s\n", err)
-		os.Exit(1)
-	}
-	fmt.Println(header)
+	rl := NewReadline(in, out, "LEX", username)
 	for {
-		line, err := rl.Readline()
-		if err != nil {
-			if err.Error() == "Interrupt" || err.Error() == "EOF" {
-				println(err.Error())
-				os.Exit(0)
-			}
-			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
-			os.Exit(1)
-			break
-		}
-
+		line := readLine(rl)
 		l := lexer.New(line, "<repl>")
-
 		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			fmt.Printf("%+v\n", tok)
+			fmt.Fprintf(out, "%+v\n", tok)
 		}
 	}
 }
@@ -270,41 +175,48 @@ func PrintParserErrors(out io.Writer, errors []string) {
 // startParserRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
 func startParserRepl(in io.ReadCloser, out io.Writer, username string) {
-	header := fmt.Sprintf("blue | v%s | REPL | MODE: PARSER | User: %s", consts.VERSION, username)
-	rl, err := readline.NewEx(&readline.Config{
-		Stdin:  in,
-		Stdout: out,
-		Stderr: out,
-		Prompt: PROMPT,
-	})
-	if err != nil {
-		consts.ErrorPrinter("Failed to instantiate readline| Error: %s\n", err)
-		os.Exit(1)
-	}
-	fmt.Println(header)
+	rl := NewReadline(in, out, "PARSE", username)
 	for {
-		line, err := rl.Readline()
-		if err != nil {
-			if err.Error() == "Interrupt" || err.Error() == "EOF" {
-				println(err.Error())
-				os.Exit(0)
-			}
-			consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
-			os.Exit(1)
-			break
-		}
-
+		line := readLine(rl)
 		l := lexer.New(line, "<repl>")
-
 		p := parser.New(l)
-
 		program := p.ParseProgram()
 		if len(p.Errors()) != 0 {
 			PrintParserErrors(out, p.Errors())
 			continue
 		}
-
-		io.WriteString(out, program.String())
-		io.WriteString(out, "\n")
+		fmt.Fprintf(out, "%s\n", program.String())
 	}
+}
+
+func NewReadline(in io.ReadCloser, out io.Writer, mode, username string) *readline.Instance {
+	fmt.Fprintf(out, "blue | v%s | REPL | MODE: %s | User: %s\n", consts.VERSION, mode, username)
+	rl, err := readline.NewEx(&readline.Config{Stdin: in, Stdout: out, Prompt: PROMPT})
+	if err != nil {
+		consts.ErrorPrinter("Failed to instantiate readline. error: %s\n", err.Error())
+		os.Exit(1)
+	}
+	return rl
+}
+
+func getUsername() string {
+	user, err := user.Current()
+	if err != nil {
+		fmt.Println("Unable to get current username, proceeding with none")
+		return ""
+	}
+	return user.Username
+}
+
+func readLine(rl *readline.Instance) string {
+	line, err := rl.Readline()
+	if err != nil {
+		if err.Error() == "Interrupt" || err.Error() == "EOF" {
+			println(err.Error())
+			os.Exit(0)
+		}
+		consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
+		os.Exit(1)
+	}
+	return line
 }

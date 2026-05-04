@@ -66,6 +66,7 @@ func Run(args ...string) {
 		// so perform the default behavior of starting
 		// an evaluator repl.
 		repl.StartEvalRepl()
+		os.Exit(0)
 	}
 	command := strings.ToLower(arguments[0])
 	switch command {
