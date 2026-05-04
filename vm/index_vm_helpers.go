@@ -4,6 +4,7 @@ import (
 	"blue/object"
 	"blue/util"
 	"reflect"
+	"strings"
 )
 
 func (vm *VM) executeListIndexExpression(list, indx object.Object) error {
@@ -255,7 +256,7 @@ func (vm *VM) executeGoObjIndexExpression(goObj object.Object, name string) erro
 	if innerType.Kind() != reflect.Struct {
 		return vm.push(newError("GoObj.Value is not a struct, got=%T", innerType))
 	}
-	nameToUse := util.ToTitleCase(name)
+	nameToUse := util.ToTitleCase(strings.ReplaceAll(name, "_", " "))
 	innerFieldVal := reflect.ValueOf(innerVal).FieldByName(nameToUse)
 	if !innerFieldVal.IsValid() {
 		return vm.push(newError("GoObj.Value.%s is not valid", nameToUse))
