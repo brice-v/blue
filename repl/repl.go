@@ -72,10 +72,15 @@ func StartVmRepl() {
 
 // startEvalRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startEvalRepl(in io.Reader, out io.Writer, username, nodeName, address string) {
+func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
 	e := evaluator.NewNode(nodeName, address)
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: EVAL | User: %s", consts.VERSION, username)
-	rl, err := readline.New(PROMPT)
+	rl, err := readline.NewEx(&readline.Config{
+		Stdin:  in,
+		Stdout: out,
+		Stderr: out,
+		Prompt: PROMPT,
+	})
 	if err != nil {
 		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
 		os.Exit(1)
@@ -135,9 +140,14 @@ func startEvalRepl(in io.Reader, out io.Writer, username, nodeName, address stri
 
 // startEvalRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string) {
+func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: VM | User: %s", consts.VERSION, username)
-	rl, err := readline.New(PROMPT)
+	rl, err := readline.NewEx(&readline.Config{
+		Stdin:  in,
+		Stdout: out,
+		Stderr: out,
+		Prompt: PROMPT,
+	})
 	if err != nil {
 		consts.ErrorPrinter("Failed to instantiate readline| Error: %s", err)
 		os.Exit(1)
@@ -219,9 +229,14 @@ func startVmRepl(in io.Reader, out io.Writer, username, nodeName, address string
 
 // startLexerRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startLexerRepl(in io.Reader, out io.Writer, username string) {
+func startLexerRepl(in io.ReadCloser, out io.Writer, username string) {
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: LEXER | User: %s", consts.VERSION, username)
-	rl, err := readline.New(PROMPT)
+	rl, err := readline.NewEx(&readline.Config{
+		Stdin:  in,
+		Stdout: out,
+		Stderr: out,
+		Prompt: PROMPT,
+	})
 	if err != nil {
 		consts.ErrorPrinter("Failed to instantiate readline| Error: %s\n", err)
 		os.Exit(1)
@@ -264,9 +279,14 @@ func PrintParserErrors(out io.Writer, errors []string) {
 
 // startParserRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
-func startParserRepl(in io.Reader, out io.Writer, username string) {
+func startParserRepl(in io.ReadCloser, out io.Writer, username string) {
 	header := fmt.Sprintf("blue | v%s | REPL | MODE: PARSER | User: %s", consts.VERSION, username)
-	rl, err := readline.New(PROMPT)
+	rl, err := readline.NewEx(&readline.Config{
+		Stdin:  in,
+		Stdout: out,
+		Stderr: out,
+		Prompt: PROMPT,
+	})
 	if err != nil {
 		consts.ErrorPrinter("Failed to instantiate readline| Error: %s\n", err)
 		os.Exit(1)

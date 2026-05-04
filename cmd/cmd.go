@@ -32,11 +32,13 @@ The commands are:
             functions in the given filepath or module
             note: the file/module will be evaluated to gather
             all functions - so any side effects may take place
+    vm      starts the vm repl
+            --vm will run the given file with the vm
     help    prints this help message
     version prints the current version
 
 The default behavior for no command/arguments will start
-an evaluator repl. (If given a file, the file will be 
+an evaluator repl. (If given a file, the file will be
 evaluated)
 
 Environment Variables:
