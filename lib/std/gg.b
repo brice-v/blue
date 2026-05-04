@@ -447,9 +447,9 @@ val Gamepad = {
     'Player2': 1,
     'Player3': 2,
     'Player4': 3,
-    
+
     # Gamepad Buttons/Axis
-    
+
     # PS3 USB Controller Buttons
     'Ps3ButtonTriangle': 0,
     'Ps3ButtonCircle': 1,
@@ -466,7 +466,7 @@ val Gamepad = {
     'Ps3ButtonDown': 26,
     'Ps3ButtonLeft': 27,
     'Ps3ButtonPs': 12,
-    
+
     # PS3 USB Controller Axis
     'Ps3AxisLeftX': 0,
     'Ps3AxisLeftY': 1,
@@ -476,7 +476,7 @@ val Gamepad = {
     'Ps3AxisL2': 3,
     # [1..-1] (pressure-level)
     'Ps3AxisR2': 4,
-    
+
     # Xbox360 USB Controller Buttons
     'XboxButtonA': 0,
     'XboxButtonB': 1,
@@ -491,14 +491,14 @@ val Gamepad = {
     'XboxButtonDown': 12,
     'XboxButtonLeft': 13,
     'XboxButtonHome': 8,
-    
+
     # Android Gamepad Controller (SNES CLASSIC)
     'AndroidDpadUp': 19,
     'AndroidDpadDown': 20,
     'AndroidDpadLeft': 21,
     'AndroidDpadRight': 22,
     'AndroidDpadCenter': 23,
-    
+
     'AndroidButtonA': 96,
     'AndroidButtonB': 97,
     'AndroidButtonC': 98,
@@ -509,7 +509,7 @@ val Gamepad = {
     'AndroidButtonR1': 103,
     'AndroidButtonL2': 104,
     'AndroidButtonR2': 105,
-    
+
     # Xbox360 USB Controller Axis
     # [-1..1] (left->right)
     'XboxAxisLeftX': 0,
@@ -630,7 +630,7 @@ fun Camera2D(offset=Vector(), target=Vector(), rotation=0.0, zoom=1.0) {
 	## rotation in degrees
 	## zoom (scaling), should be 1.0f by default
     ##
-    ## Camera2D(offset: Vector2, target: Vector2, rotation: float, zoom: float) 
+    ## Camera2D(offset: Vector2, target: Vector2, rotation: float, zoom: float)
     ##  -> {'offset':Vector(x,y)=Vector(),'target':Vector(x,y)=Vector(),'rotation':float=0.0,'zoom':float=1.0,'obj':|this|=>GO_OBJ[rl.Camera2D]}
     if ('obj' notin offset) {
         return error("offset must have obj() function on its map");
@@ -665,7 +665,7 @@ fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fov
 	## fovy - field-of-view apperture in Y (degrees) in perspective, used as near plane width in orthographic
     ## projection - Camera type, controlling projection type, either CameraProjection.Perspective or CameraProjection.Orthographic
     ##
-    ## Camera3D(position: Vector3, target: Vector3, up: Vector3, fovy: float, projection: int[CameraProjection.Perspective|Orthographic]) 
+    ## Camera3D(position: Vector3, target: Vector3, up: Vector3, fovy: float, projection: int[CameraProjection.Perspective|Orthographic])
     ##  -> {'position':Vector(x,y,z)=Vector(z=0.0),
     ##      'target':Vector(x,y,z)=Vector(z=0.0),
     ##      'up':Vector(x,y,z)=Vector(z=0.0),
@@ -788,7 +788,7 @@ fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle()
     ## by a rectangle with 'pro' parameters
     ##
     ## texture is the 2D texture, likely a file loaded with `load_texture`
-    ## source_rec is the rectangle position of the source 
+    ## source_rec is the rectangle position of the source
     ## dest_rec is the rectangle position of the destination
     ## origin is the point where to get the texture from
     ## rotation is the amount the texture should be rotated by
