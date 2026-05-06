@@ -78,16 +78,19 @@ func parseFile(fpath string) {
 	io.WriteString(out, "\n")
 }
 
-// evalFile evaluates the given file
-func evalFile(fpath string, noExec bool) {
-	data, err := os.ReadFile(fpath)
-	if err != nil {
-		consts.ErrorPrinter("`evalFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
-		os.Exit(1)
+// evalFileOrString evaluates the given file or string if isFpath is false
+func evalFileOrString(inputOrFpath string, isFpath, noExec bool) {
+	var l *lexer.Lexer
+	if isFpath {
+		data, err := os.ReadFile(inputOrFpath)
+		if err != nil {
+			consts.ErrorPrinter("`evalFile` error trying to read file `%s`. error: %s\n", inputOrFpath, err.Error())
+			os.Exit(1)
+		}
+		l = lexer.New(string(data), inputOrFpath)
+	} else {
+		l = lexer.New(inputOrFpath, "<stdin>")
 	}
-
-	l := lexer.New(string(data), fpath)
-
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
@@ -96,8 +99,10 @@ func evalFile(fpath string, noExec bool) {
 	}
 	object.NoExec = noExec
 	e := evaluator.New()
-	e.CurrentFile = filepath.Clean(fpath)
-	e.EvalBasePath = filepath.Dir(fpath)
+	if isFpath {
+		e.CurrentFile = filepath.Clean(inputOrFpath)
+		e.EvalBasePath = filepath.Dir(inputOrFpath)
+	}
 	val := e.Eval(program)
 	if val.Type() == object.ERROR_OBJ {
 		errorObj := val.(*object.Error)
@@ -129,14 +134,18 @@ func evalFile(fpath string, noExec bool) {
 	// }
 }
 
-func vmFile(fpath string, noExec bool, compile bool) {
-	data, err := os.ReadFile(fpath)
-	if err != nil {
-		consts.ErrorPrinter("`vm` error trying to read file `%s`. error: %s\n", fpath, err.Error())
-		os.Exit(1)
+func instantiateCompiler(inputOrFpath string, isFpath bool) *compiler.Compiler {
+	var l *lexer.Lexer
+	if isFpath {
+		data, err := os.ReadFile(inputOrFpath)
+		if err != nil {
+			consts.ErrorPrinter("`vm` error trying to read file `%s`. error: %s\n", inputOrFpath, err.Error())
+			os.Exit(1)
+		}
+		l = lexer.New(string(data), inputOrFpath)
+	} else {
+		l = lexer.New(inputOrFpath, "<stdin>")
 	}
-
-	l := lexer.New(string(data), fpath)
 
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -145,7 +154,6 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		os.Exit(1)
 	}
 	constants := object.NewObjectConstants()
-	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {
 		symbolTable.DefineBuiltin(i, v.Name, 0)
@@ -154,26 +162,33 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex)
 	}
 	c := compiler.NewWithStateAndCore(symbolTable, constants)
-	err = c.Compile(program)
-	if err != nil {
+	if err := c.Compile(program); err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
 		c.PrintStackTrace()
 		os.Exit(1)
 	}
-	if compile {
-		offset := 0
-		for i, ins := range c.Bytecode().Instructions {
-			if ins == byte(code.OpCoreCompiled) {
-				offset = i
-			}
+	return c
+}
+
+func compileFileOrString(inputOrFpath string, isFpath bool) {
+	c := instantiateCompiler(inputOrFpath, isFpath)
+	offset := 0
+	for i, ins := range c.Bytecode().Instructions {
+		if ins == byte(code.OpCoreCompiled) {
+			offset = i
 		}
-		fmt.Print(blueutil.BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
-		os.Exit(0)
 	}
+	fmt.Print(blueutil.BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
+	os.Exit(0)
+}
+
+func vmFileOrString(inputOrFpath string, isFpath, noExec bool) {
+	c := instantiateCompiler(inputOrFpath, isFpath)
+	globals := make([]object.Object, vm.GlobalsSize)
 	bc := c.Bytecode()
 	v := vm.NewWithGlobalsStore(bc, globals)
-	err = v.Run()
-	if err != nil {
+	object.NoExec = noExec
+	if err := v.Run(); err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
 		if v.TokensForErrorTrace != nil {
 			for _, tok := range v.TokensForErrorTrace {
@@ -188,10 +203,6 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		var buf bytes.Buffer
 		buf.WriteString(errorObj.Message)
 		buf.WriteByte('\n')
-		// for e.ErrorTokens.Len() > 0 {
-		// 	buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
-		// 	buf.WriteByte('\n')
-		// }
 		msg := fmt.Sprintf("%s%s", consts.VM_ERROR_PREFIX, buf.String())
 		splitMsg := strings.Split(msg, "\n")
 		for i, s := range splitMsg {
@@ -207,49 +218,6 @@ func vmFile(fpath string, noExec bool, compile bool) {
 		}
 		os.Exit(1)
 	}
-}
-
-// evalString evaluates the given string
-func evalString(strToEval string, noExec bool) {
-	l := lexer.New(strToEval, "<stdin>")
-
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(out, p.Errors())
-		os.Exit(1)
-	}
-	object.NoExec = noExec
-	e := evaluator.New()
-	val := e.Eval(program)
-	if val.Type() == object.ERROR_OBJ {
-		errorObj := val.(*object.Error)
-		var buf bytes.Buffer
-		buf.WriteString(errorObj.Message)
-		buf.WriteByte('\n')
-		for e.ErrorTokens.Len() > 0 {
-			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
-			buf.WriteByte('\n')
-		}
-		msg := fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String())
-		splitMsg := strings.Split(msg, "\n")
-		for i, s := range splitMsg {
-			if i == 0 {
-				consts.ErrorPrinter(s + "\n")
-				continue
-			}
-			delimeter := ""
-			if i != len(splitMsg)-1 {
-				delimeter = "\n"
-			}
-			fmt.Fprintf(out, "%s%s", s, delimeter)
-		}
-		os.Exit(1)
-	}
-	// NOTE: This could be used for debugging programs return values
-	// if evaluated != nil {
-	// 	os.Stdout.WriteString(evaluated.Inspect() + "\n")
-	// }
 }
 
 func getDocStringFor(name string) string {

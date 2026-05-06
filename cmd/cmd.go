@@ -32,8 +32,11 @@ The commands are:
             functions in the given filepath or module
             note: the file/module will be evaluated to gather
             all functions - so any side effects may take place
-    vm      starts the vm repl
-            --vm will run the given file with the vm
+    vm      starts the vm repl if no other arguments passed in
+            if a string is passed in, it is compiled and run
+            by the vm, otherwise it is assumed to be a file and
+            compiled and run
+    compile compiles the given string or file passed in
     help    prints this help message
     version prints the current version
 
@@ -85,31 +88,21 @@ func Run(args ...string) {
 		handleEvalCommand(argc, arguments)
 	case "vm":
 		handleVmCommand(argc, arguments)
+	case "compile":
+	case "c":
+		handleCompileCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
 	default:
 		if isFile(command) {
 			// Eval the file
 			noExec := false
-			useVm := false
-			c := false
 			for _, arg := range arguments {
 				if arg == "--no-exec" {
 					noExec = true
 				}
-				switch arg {
-				case "--vm":
-					useVm = true
-				case "--c":
-					useVm = true
-					c = true
-				}
 			}
-			if useVm {
-				vmFile(command, noExec, c)
-			} else {
-				evalFile(command, noExec)
-			}
+			evalFileOrString(command, true, noExec)
 		} else {
 			printUsage()
 		}
@@ -231,11 +224,7 @@ func handleEvalCommand(argc int, arguments []string) {
 				strToEval = arg
 			}
 		}
-		if isFile(strToEval) {
-			evalFile(strToEval, flagNoExec)
-		} else {
-			evalString(strToEval, flagNoExec)
-		}
+		evalFileOrString(strToEval, isFile(strToEval), flagNoExec)
 	} else {
 		consts.ErrorPrinter("unexpected `eval` arguments. got=%+v\n", arguments)
 		os.Exit(1)
@@ -243,7 +232,33 @@ func handleEvalCommand(argc int, arguments []string) {
 }
 
 func handleVmCommand(argc int, arguments []string) {
-	repl.StartVmRepl()
+	if argc == 1 {
+		repl.StartVmRepl()
+	} else if argc == 2 || argc == 3 {
+		strToEval := ""
+		flagNoExec := false
+		for _, arg := range arguments[1:] {
+			if arg == "--no-exec" {
+				flagNoExec = true
+			} else {
+				strToEval = arg
+			}
+		}
+		vmFileOrString(strToEval, isFile(strToEval), flagNoExec)
+	} else {
+		consts.ErrorPrinter("unexpected `vm` arguments. got=%+v\n", arguments)
+		os.Exit(1)
+	}
+}
+
+func handleCompileCommand(argc int, arguments []string) {
+	if argc == 2 {
+		strToEval := arguments[1]
+		compileFileOrString(strToEval, isFile(strToEval))
+	} else {
+		consts.ErrorPrinter("unexpected `compile` arguments. got=%+v\n", arguments)
+		os.Exit(1)
+	}
 }
 
 func printNodeErrorUsageAndExit() {

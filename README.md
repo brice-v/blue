@@ -160,8 +160,11 @@ The commands are:
             functions in the given filepath or module
             note: the file/module will be evaluated to gather
             all functions - so any side effects may take place
-    vm      starts the vm repl
-            --vm will run the given file with the vm
+    vm      starts the vm repl if no other arguments passed in
+            if a string is passed in, it is compiled and run
+            by the vm, otherwise it is assumed to be a file and
+            compiled and run
+    compile compiles the given string or file passed in
     help    prints this help message
     version prints the current version
 

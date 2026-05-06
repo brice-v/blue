@@ -19,7 +19,12 @@ type(main) = 'FUNCTION'
 inspect(main) = 'fun() {
 ""
 }'""".replace("\r", "");
-assert(help(main) == expected_help);
+val expected_help2 = """`main` is the entry point of this application
+more here
+
+type(main) = 'COMPILED_FUNCTION_OBJ'
+inspect(main) = 'fun main() { "" } '""".replace("\r", "");
+assert(help(main) == expected_help || help(main) == expected_help2);
 
 ## `on_this` is a random variable that we 
 ## want to see if this gets picked up
