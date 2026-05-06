@@ -229,20 +229,20 @@ func (e *Environment) GetOrderedPublicFunctionHelpString() string {
 				green := color.FgGreen.Render
 				bold := color.Bold.Render
 				fmt.Fprintf(&out, "\n%s%s| %s", bold(green(k)), initialPad, partStr)
-			} else {
-				pad := strings.Repeat(" ", lengthOfLargestString+2)
-				nl := "\n"
-				if i == len(vSplitFurther)-1 {
-					nl = ""
-				}
-				prefixNl := ""
-				if i == 1 {
-					prefixNl = "\n"
-				} else {
-					prefixNl = ""
-				}
-				fmt.Fprintf(&out, "%s%s %s%s", prefixNl, pad, partStr, nl)
+				continue
 			}
+			pad := strings.Repeat(" ", lengthOfLargestString+2)
+			nl := "\n"
+			if i == len(vSplitFurther)-1 {
+				nl = ""
+			}
+			prefixNl := ""
+			if i == 1 {
+				prefixNl = "\n"
+			} else {
+				prefixNl = ""
+			}
+			fmt.Fprintf(&out, "%s%s %s%s", prefixNl, pad, partStr, nl)
 		}
 	}
 	return out.String()

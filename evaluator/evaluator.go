@@ -377,7 +377,7 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 		}
 		// Note: Clone is really slow
 		funObj := &object.Function{Parameters: params, DefaultParameters: defaultParams, Body: body, Env: e.env}
-		funObj.HelpStr = createHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
+		funObj.HelpStr = object.CreateHelpStringFromBodyTokens(node.Name.Value, funObj, body.HelpStrTokens)
 		e.env.SetFunStatementAndHelp(node.Name.Value, funObj)
 	case *ast.CallExpression:
 		e.UFCSArg.Push(nil)

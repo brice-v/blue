@@ -577,7 +577,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 // parseIntegerLiteral will return the integer literal ast node
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
 	value, err := strconv.ParseInt(tokenLiteral, 0, 64)
 	if err != nil {
 		bigInt := new(big.Int)
@@ -641,8 +641,8 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 // parseHexLiteral will return the Hex literal ast node
 func (p *Parser) parseHexLiteral() ast.Expression {
 	lit := &ast.HexLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
-	tokenLiteral = strings.Replace(tokenLiteral, "0x", "", -1)
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
+	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0x", "")
 	value, err := strconv.ParseUint(tokenLiteral, 16, 64)
 	if err != nil {
 		errorLine := lexer.GetErrorLineMessage(p.curToken)
@@ -657,8 +657,8 @@ func (p *Parser) parseHexLiteral() ast.Expression {
 // parseOctalLiteral will return the Octal literal ast node
 func (p *Parser) parseOctalLiteral() ast.Expression {
 	lit := &ast.OctalLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
-	tokenLiteral = strings.Replace(tokenLiteral, "0o", "", -1)
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
+	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0o", "")
 	value, err := strconv.ParseUint(tokenLiteral, 8, 64)
 	if err != nil {
 		errorLine := lexer.GetErrorLineMessage(p.curToken)
@@ -673,8 +673,8 @@ func (p *Parser) parseOctalLiteral() ast.Expression {
 // parseBinaryLiteral will return the Binary literal ast node
 func (p *Parser) parseBinaryLiteral() ast.Expression {
 	lit := &ast.BinaryLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
-	tokenLiteral = strings.Replace(tokenLiteral, "0b", "", -1)
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
+	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0b", "")
 	value, err := strconv.ParseUint(tokenLiteral, 2, 64)
 	if err != nil {
 		errorLine := lexer.GetErrorLineMessage(p.curToken)
@@ -689,8 +689,8 @@ func (p *Parser) parseBinaryLiteral() ast.Expression {
 // parseUIntegerLiteral will return the UInteger literal ast node
 func (p *Parser) parseUIntegerLiteral() ast.Expression {
 	lit := &ast.UIntegerLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
-	tokenLiteral = strings.Replace(tokenLiteral, "0u", "", -1)
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
+	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0u", "")
 	value, err := strconv.ParseUint(tokenLiteral, 10, 64)
 	if err != nil {
 		errorLine := lexer.GetErrorLineMessage(p.curToken)
@@ -705,8 +705,8 @@ func (p *Parser) parseUIntegerLiteral() ast.Expression {
 // parseBigIntegerLiteral will return the BigInteger literal ast node
 func (p *Parser) parseBigIntegerLiteral() ast.Expression {
 	lit := &ast.BigIntegerLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
-	tokenLiteral = strings.Replace(tokenLiteral, "n", "", -1)
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
+	tokenLiteral = strings.ReplaceAll(tokenLiteral, "n", "")
 	bi := new(big.Int)
 	value, ok := bi.SetString(tokenLiteral, 10)
 	if !ok {
@@ -722,8 +722,8 @@ func (p *Parser) parseBigIntegerLiteral() ast.Expression {
 // parseBigFloatLiteral will return the BigFloat literal ast node
 func (p *Parser) parseBigFloatLiteral() ast.Expression {
 	lit := &ast.BigFloatLiteral{Token: p.curToken}
-	tokenLiteral := strings.Replace(p.curToken.Literal, "_", "", -1)
-	tokenLiteral = strings.Replace(tokenLiteral, "n", "", -1)
+	tokenLiteral := strings.ReplaceAll(p.curToken.Literal, "_", "")
+	tokenLiteral = strings.ReplaceAll(tokenLiteral, "n", "")
 	value, err := decimal.NewFromString(tokenLiteral)
 	if err != nil {
 		errorLine := lexer.GetErrorLineMessage(p.curToken)

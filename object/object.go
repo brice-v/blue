@@ -76,15 +76,15 @@ const (
 	// FOR VM
 
 	// COMPILED_FUNCTION_OBJ is the compiled function object for the VM
-	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
+	COMPILED_FUNCTION_OBJ Type = "COMPILED_FUNCTION_OBJ"
 	// CLOSURE is the closure function object for the VM
-	CLOSURE = "CLOSURE"
+	CLOSURE Type = "CLOSURE"
 	// EXEC_STRING is the string object type string
-	EXEC_STRING_OBJ = "EXEC_STRING"
+	EXEC_STRING_OBJ Type = "EXEC_STRING"
 	// IGNORE_OBJ is the IGNORE object type string
 	IGNORE_OBJ Type = "IGNORE"
 	// DEFAULT_ARGS_OBJ is the default args object for use in vm functions
-	DEFAULT_ARGS_OBJ = "DEFAULT_ARGS_OBJ"
+	DEFAULT_ARGS_OBJ Type = "DEFAULT_ARGS_OBJ"
 )
 
 // Type is the object type represented as a string
@@ -891,6 +891,8 @@ type CompiledFunction struct {
 	SpecialFunctionParameters map[NameIndexKey]map[NameIndexKey]Object
 
 	locker sync.Mutex
+
+	HelpStr string
 }
 
 func (cf *CompiledFunction) ClearSpecialFunctionParameters() {
@@ -915,7 +917,7 @@ func (cf *CompiledFunction) Inspect() string {
 }
 
 func (cf *CompiledFunction) Help() string {
-	return ""
+	return cf.HelpStr
 }
 
 // Closure is the compiled function object struct
@@ -933,7 +935,7 @@ func (cf *Closure) Inspect() string {
 }
 
 func (cf *Closure) Help() string {
-	return ""
+	return cf.Fun.HelpStr
 }
 
 type ExecString struct {

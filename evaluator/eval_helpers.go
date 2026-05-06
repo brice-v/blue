@@ -355,22 +355,6 @@ func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, en
 	}
 }
 
-func createHelpStringFromBodyTokens(functionName string, funObj *object.Function, helpStrTokens []string) string {
-	explanation := ""
-	if len(helpStrTokens) > 0 && helpStrTokens[0] == "core:ignore" {
-		return ""
-	}
-	if len(helpStrTokens) == 1 {
-		explanation = helpStrTokens[0]
-	} else if len(helpStrTokens) == 0 {
-		explanation = ""
-	} else {
-		explanation = strings.Join(helpStrTokens, "\n")
-	}
-	helpStr := fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, funObj.Type(), functionName, funObj.Inspect())
-	return helpStr
-}
-
 func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, pubFunHelpStr string) string {
 	explanation := ""
 	if len(helpStrTokens) == 1 {

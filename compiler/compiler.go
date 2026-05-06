@@ -574,6 +574,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.FunctionLiteral:
 		c.enterScope()
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
+		compiledFun.HelpStr = object.CreateHelpStringFromBodyTokens("", compiledFun, node.Body.HelpStrTokens)
 		err := c.Compile(node.Body)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -598,6 +599,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		symbol := c.symbolTable.Define(c.getName(node.Name.Value), true, c.BlockNestLevel)
 		c.enterScope()
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
+		compiledFun.HelpStr = object.CreateHelpStringFromBodyTokens(node.Name.Value, compiledFun, node.Body.HelpStrTokens)
 		err := c.Compile(node.Body)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
