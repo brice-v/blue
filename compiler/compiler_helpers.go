@@ -496,8 +496,8 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	c.ValidModuleNames = append(c.ValidModuleNames, modName)
 	// So the problem now is that index operator, needs to work based off available modules
 	// while compiling, if we encounter a identifier that is a module, we must pull it in
-	// TODO: Figure out help string later
-	literal := &object.Module{Name: modName, Env: nil, HelpStr: ""}
+	pubFunHelpStr := c.symbolTable.GetOrderedPublicFunctionHelpString(modName)
+	literal := &object.Module{Name: modName, Env: nil, HelpStr: object.CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr)}
 	c.emit(code.OpConstant, c.addConstant(literal))
 	symbol := c.symbolTable.Define(modName, true, c.BlockNestLevel)
 	switch symbol.Scope {
@@ -862,7 +862,8 @@ func (c *Compiler) defineSymbolForVarValStatement(node ast.VarValStatement, name
 	var symbol Symbol
 	immutable := node.IsValStatement()
 	if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
-		symbol = c.symbolTable.DefineFun(c.getName(name), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions)
+		helpStr := object.CreateHelpStringFromBodyTokensAstFun(name, fun, fun.Body.HelpStrTokens)
+		symbol = c.symbolTable.DefineFun(c.getName(name), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions, helpStr)
 	} else {
 		symbol = c.symbolTable.Define(c.getName(name), immutable, c.BlockNestLevel)
 	}

@@ -2,8 +2,14 @@ package compiler
 
 import (
 	"blue/ast"
+	"blue/consts"
+	"bytes"
 	"fmt"
+	"slices"
 	"strings"
+	"unicode/utf8"
+
+	"github.com/gookit/color"
 )
 
 type SymbolScope string
@@ -29,6 +35,8 @@ type Symbol struct {
 	// For Functions (to allow consistent calling with default args)
 	Parameters           []*ast.Identifier
 	ParameterExpressions []ast.Expression
+
+	HelpStr string
 }
 
 func (s Symbol) Equal(other Symbol) bool {
@@ -73,15 +81,22 @@ func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 }
 
 func (s *SymbolTable) Define(name string, isImmutable bool, blockNestLevel int) Symbol {
-	return s.defineActual(name, isImmutable, blockNestLevel, nil, nil)
+	return s.defineActual(name, isImmutable, blockNestLevel, nil, nil, "")
 }
 
-func (s *SymbolTable) DefineFun(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression) Symbol {
-	return s.defineActual(name, isImmutable, blockNestLevel, parameters, parameterExpressions)
+func (s *SymbolTable) DefineWithHelpStr(name string, isImmutable bool, blockNestLevel int, helpStr string) Symbol {
+	return s.defineActual(name, isImmutable, blockNestLevel, nil, nil, helpStr)
 }
 
-func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression) Symbol {
-	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: isImmutable, Parameters: parameters, ParameterExpressions: parameterExpressions}
+func (s *SymbolTable) DefineFun(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
+	return s.defineActual(name, isImmutable, blockNestLevel, parameters, parameterExpressions, helpStr)
+}
+
+func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
+	if helpStr != "" {
+		helpStr = s.getHelpInPublicFunctionHelpStore(name, helpStr)
+	}
+	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: isImmutable, Parameters: parameters, ParameterExpressions: parameterExpressions, HelpStr: helpStr}
 	if s.Outer == nil {
 		symbol.Scope = GlobalScope
 	} else {
@@ -192,3 +207,118 @@ func (s *SymbolTable) UpdateName(ogName, newName string) error {
 	s.store[newName] = orig
 	return nil
 }
+
+// Help String related
+
+func (s *SymbolTable) getLengthOfLargestStringAndOrderedKeys(modName string) (int, []string) {
+	lengthOfLargestString := 0
+	keys := []string{}
+	prefix := modName + "."
+	for key, value := range s.store {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		key = strings.TrimPrefix(key, prefix)
+		if value.HelpStr != "" {
+			keys = append(keys, key)
+			l := utf8.RuneCountInString(key)
+			if l > lengthOfLargestString {
+				lengthOfLargestString = l
+			}
+		}
+	}
+	lengthOfLargestString++
+	slices.Sort(keys)
+	return lengthOfLargestString, keys
+}
+
+func (s *SymbolTable) GetOrderedPublicFunctionHelpString(modName string) string {
+	var out bytes.Buffer
+	lengthOfLargestString, orderedKeys := s.getLengthOfLargestStringAndOrderedKeys(modName)
+	prefix := modName + "."
+	for _, k := range orderedKeys {
+		keyToUse := k
+		if modName != "" {
+			keyToUse = prefix + k
+		}
+		value := s.store[keyToUse]
+		v := value.HelpStr
+		// if v == "" {
+		// 	continue
+		// }
+		vSplit := strings.Split(v, "\ntype(")[0]
+		// remove the trailing \n
+		vSplit = vSplit[:len(vSplit)-1]
+		vSplitFurther := strings.Split(vSplit, "\n")
+		for i, partStr := range vSplitFurther {
+			if i == 0 {
+				initialPadLen := lengthOfLargestString - utf8.RuneCountInString(k)
+				initialPad := strings.Repeat(" ", initialPadLen)
+				consts.DisableColorIfNoColorEnvVarSet()
+				green := color.FgGreen.Render
+				bold := color.Bold.Render
+				fmt.Fprintf(&out, "\n%s%s| %s", bold(green(k)), initialPad, partStr)
+				continue
+			}
+			pad := strings.Repeat(" ", lengthOfLargestString+2)
+			nl := "\n"
+			if i == len(vSplitFurther)-1 {
+				nl = ""
+			}
+			prefixNl := ""
+			if i == 1 {
+				prefixNl = "\n"
+			} else {
+				prefixNl = ""
+			}
+			fmt.Fprintf(&out, "%s%s %s%s", prefixNl, pad, partStr, nl)
+		}
+	}
+	return out.String()
+}
+
+func (s *SymbolTable) getFunctionHelpString(origHelp, prefix string) string {
+	parts := strings.Split(origHelp, "\n")
+	thingsToGet := strings.Split(strings.Split(parts[0], prefix)[1], ",")
+	var out bytes.Buffer
+	l := len(thingsToGet)
+	for j, v := range thingsToGet {
+		if v == "this" {
+			indexForTypeFun := 0
+			for i, e := range parts {
+				if strings.HasPrefix(e, "type(") {
+					indexForTypeFun = i - 1
+					break
+				}
+			}
+			newHelp := strings.Join(parts[1:indexForTypeFun][:], "\n")
+			out.WriteString(newHelp)
+		} else {
+			if val, ok := s.store[v]; ok {
+				out.WriteString(val.HelpStr)
+			}
+		}
+		if l > 1 && j != j-1 {
+			out.WriteByte('\n')
+		}
+	}
+	return out.String()
+}
+
+func (s *SymbolTable) getHelpInPublicFunctionHelpStore(name, ogHelp string) string {
+	var help string
+	if !strings.HasPrefix(name, "_") {
+		if !strings.HasPrefix(ogHelp, "core:ignore") {
+			if strings.HasPrefix(ogHelp, "core:") {
+				help = s.getFunctionHelpString(ogHelp, "core:")
+			} else if strings.HasPrefix(ogHelp, "std:") {
+				help = s.getFunctionHelpString(ogHelp, "std:")
+			} else {
+				help = ogHelp
+			}
+		}
+	}
+	return help
+}
+
+// End of HelpStr related

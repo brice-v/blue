@@ -2,6 +2,7 @@ package object
 
 import (
 	"blue/ast"
+	"blue/consts"
 	"bytes"
 	"errors"
 	"fmt"
@@ -14,6 +15,8 @@ import (
 	"runtime/metrics"
 	"sort"
 	"strings"
+
+	"github.com/gookit/color"
 )
 
 // CreateBasicMapObject creates an object that looks like {'t': objType, 'v': objValue}
@@ -742,4 +745,37 @@ func CreateHelpStringFromBodyTokens(functionName string, funObj Object, helpStrT
 	}
 	helpStr := fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, funObj.Type(), functionName, funObj.Inspect())
 	return helpStr
+}
+
+func CreateHelpStringFromBodyTokensAstFun(functionName string, funObj ast.Node, helpStrTokens []string) string {
+	explanation := ""
+	if len(helpStrTokens) > 0 && helpStrTokens[0] == "core:ignore" {
+		return ""
+	}
+	if len(helpStrTokens) == 1 {
+		explanation = helpStrTokens[0]
+	} else if len(helpStrTokens) == 0 {
+		explanation = ""
+	} else {
+		explanation = strings.Join(helpStrTokens, "\n")
+	}
+	helpStr := fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, FUNCTION_OBJ, functionName, funObj.String())
+	return helpStr
+}
+
+func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, pubFunHelpStr string) string {
+	explanation := ""
+	if len(helpStrTokens) == 1 {
+		explanation = helpStrTokens[0]
+	} else if len(helpStrTokens) == 0 {
+		explanation = ""
+	} else {
+		explanation = strings.Join(helpStrTokens, "\n")
+	}
+	consts.DisableColorIfNoColorEnvVarSet()
+	green := color.FgGreen.Render
+	bold := color.Bold.Render
+	blue := color.FgCyan.Render
+	firstPart := fmt.Sprintf("%s`%s`: %s", blue(bold("MODULE ")), blue(bold(modName)), blue(bold(explanation)))
+	return fmt.Sprintf("%s\n\ntype(%s) = '%s'\n\n%s:%s", firstPart, modName, MODULE_OBJ, bold(green("PUBLIC FUNCTIONS")), pubFunHelpStr)
 }

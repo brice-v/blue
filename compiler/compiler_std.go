@@ -113,8 +113,8 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	c.ValidModuleNames = append(c.ValidModuleNames, name)
 	// So the problem now is that index operator, needs to work based off available modules
 	// while compiling, if we encounter a identifier that is a module, we must pull it in
-	// TODO: Figure out help string later
-	literal := &object.Module{Name: name, Env: nil, HelpStr: ""}
+	pubFunHelpStr := c.symbolTable.GetOrderedPublicFunctionHelpString(name)
+	literal := &object.Module{Name: name, Env: nil, HelpStr: object.CreateHelpStringFromProgramTokens(name, fb.ParsedProgram.HelpStrTokens, pubFunHelpStr)}
 	c.emit(code.OpConstant, c.addConstant(literal))
 	symbol := c.symbolTable.Define(name, true, c.BlockNestLevel)
 	switch symbol.Scope {

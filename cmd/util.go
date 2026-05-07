@@ -255,7 +255,7 @@ func getDocStringFor(name string) string {
 		}
 		e.Eval(program)
 		pubFunHelpStr := e.GetPublicFunctionHelpString()
-		return evaluator.CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr) + "\n"
+		return object.CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr) + "\n"
 	}
 	return ""
 }

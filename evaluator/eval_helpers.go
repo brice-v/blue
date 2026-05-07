@@ -19,7 +19,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/clbanning/mxj/v2"
-	"github.com/gookit/color"
 )
 
 func unwrapReturnValue(obj object.Object) object.Object {
@@ -353,23 +352,6 @@ func setDefaultCallExpressionParameters(defaultArgs map[string]object.Object, en
 			env.Set(k, v)
 		}
 	}
-}
-
-func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, pubFunHelpStr string) string {
-	explanation := ""
-	if len(helpStrTokens) == 1 {
-		explanation = helpStrTokens[0]
-	} else if len(helpStrTokens) == 0 {
-		explanation = ""
-	} else {
-		explanation = strings.Join(helpStrTokens, "\n")
-	}
-	consts.DisableColorIfNoColorEnvVarSet()
-	green := color.FgGreen.Render
-	bold := color.Bold.Render
-	blue := color.FgCyan.Render
-	firstPart := fmt.Sprintf("%s`%s`: %s", blue(bold("MODULE ")), blue(bold(modName)), blue(bold(explanation)))
-	return fmt.Sprintf("%s\n\ntype(%s) = '%s'\n\n%s:%s", firstPart, modName, object.MODULE_OBJ, bold(green("PUBLIC FUNCTIONS")), pubFunHelpStr)
 }
 
 func (e *Evaluator) createFilePathFromImportPath(importPath string) string {

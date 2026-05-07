@@ -596,10 +596,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 		funIndex := c.addConstant(compiledFun)
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 	case *ast.FunctionStatement:
-		symbol := c.symbolTable.Define(c.getName(node.Name.Value), true, c.BlockNestLevel)
+		helpStr := object.CreateHelpStringFromBodyTokensAstFun(node.Name.Value, node, node.Body.HelpStrTokens)
+		symbol := c.symbolTable.DefineWithHelpStr(c.getName(node.Name.Value), true, c.BlockNestLevel, helpStr)
 		c.enterScope()
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
-		compiledFun.HelpStr = object.CreateHelpStringFromBodyTokens(node.Name.Value, compiledFun, node.Body.HelpStrTokens)
+		compiledFun.HelpStr = symbol.HelpStr
 		err := c.Compile(node.Body)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
