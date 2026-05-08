@@ -156,10 +156,10 @@ func instantiateCompiler(inputOrFpath string, isFpath bool) *compiler.Compiler {
 	constants := object.NewObjectConstants()
 	symbolTable := compiler.NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {
-		symbolTable.DefineBuiltin(i, v.Name, 0)
+		symbolTable.DefineBuiltin(i, v.Name, 0, v.Help())
 	}
 	for i, v := range object.BuiltinobjsList {
-		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex)
+		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex, v.Builtin.Help())
 	}
 	c := compiler.NewWithStateAndCore(symbolTable, constants)
 	if err := c.Compile(program); err != nil {

@@ -531,7 +531,6 @@ func (b *Builtin) Type() Type { return BUILTIN_OBJ }
 func (b *Builtin) Inspect() string { return fmt.Sprintf("builtin_%s", b.Name) }
 
 func (b *Builtin) Help() string {
-	// TODO: Do we use createHelpStringForObject()?
 	return fmt.Sprintf("%s\n    type = '%s'\n    inspect = '%s'", b.HelpStr, b.Type(), b.Inspect())
 }
 

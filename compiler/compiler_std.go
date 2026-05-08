@@ -73,7 +73,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		fb.Builtins = b
 	}
 	for i, stdBuiltin := range fb.Builtins {
-		c.symbolTable.DefineBuiltin(i, stdBuiltin.Name, fb.Index)
+		c.symbolTable.DefineBuiltin(i, stdBuiltin.Name, fb.Index, stdBuiltin.Help())
 	}
 	defer func(builtinsToRemove []*object.Builtin) {
 		for _, stdBuiltin := range builtinsToRemove {

@@ -2,7 +2,6 @@ package object
 
 import (
 	"blue/ast"
-	"blue/consts"
 	"bytes"
 	"errors"
 	"fmt"
@@ -15,8 +14,6 @@ import (
 	"runtime/metrics"
 	"sort"
 	"strings"
-
-	"github.com/gookit/color"
 )
 
 // CreateBasicMapObject creates an object that looks like {'t': objType, 'v': objValue}
@@ -772,10 +769,5 @@ func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, p
 	} else {
 		explanation = strings.Join(helpStrTokens, "\n")
 	}
-	consts.DisableColorIfNoColorEnvVarSet()
-	green := color.FgGreen.Render
-	bold := color.Bold.Render
-	blue := color.FgCyan.Render
-	firstPart := fmt.Sprintf("%s`%s`: %s", blue(bold("MODULE ")), blue(bold(modName)), blue(bold(explanation)))
-	return fmt.Sprintf("%s\n\ntype(%s) = '%s'\n\n%s:%s", firstPart, modName, MODULE_OBJ, bold(green("PUBLIC FUNCTIONS")), pubFunHelpStr)
+	return fmt.Sprintf("MODULE `%s`: %s\n\ntype(%s) = '%s'\n\nPUBLIC FUNCTIONS:%s", modName, explanation, modName, MODULE_OBJ, pubFunHelpStr)
 }

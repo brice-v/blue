@@ -130,8 +130,7 @@ func TestAllProgramsInDirectoryWithVm(t *testing.T) {
 
 	for _, f := range files {
 		// test_http is still not setup to work yet
-		// test_help may not end up being supported for VM
-		if f.Name() == "test_http.b" || f.Name() == "test_help.b" {
+		if f.Name() == "test_http.b" {
 			continue
 		}
 		executeBlueTestFileWithVm(f, t)

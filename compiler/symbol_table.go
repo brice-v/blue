@@ -2,14 +2,11 @@ package compiler
 
 import (
 	"blue/ast"
-	"blue/consts"
 	"bytes"
 	"fmt"
 	"slices"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/gookit/color"
 )
 
 type SymbolScope string
@@ -123,8 +120,8 @@ func (s *SymbolTable) defineSpecial(name string, scopeIndex, paramIndex, listInd
 	return symbol
 }
 
-func (s *SymbolTable) DefineBuiltin(index int, name string, builtinModuleIndex int) Symbol {
-	symbol := Symbol{Name: name, Index: index, Scope: BuiltinScope, BuiltinModuleIndex: builtinModuleIndex}
+func (s *SymbolTable) DefineBuiltin(index int, name string, builtinModuleIndex int, helpStr string) Symbol {
+	symbol := Symbol{Name: name, Index: index, Scope: BuiltinScope, BuiltinModuleIndex: builtinModuleIndex, HelpStr: helpStr}
 	s.store[name] = symbol
 	return symbol
 }
@@ -254,10 +251,7 @@ func (s *SymbolTable) GetOrderedPublicFunctionHelpString(modName string) string 
 			if i == 0 {
 				initialPadLen := lengthOfLargestString - utf8.RuneCountInString(k)
 				initialPad := strings.Repeat(" ", initialPadLen)
-				consts.DisableColorIfNoColorEnvVarSet()
-				green := color.FgGreen.Render
-				bold := color.Bold.Render
-				fmt.Fprintf(&out, "\n%s%s| %s", bold(green(k)), initialPad, partStr)
+				fmt.Fprintf(&out, "\n%s%s| %s", k, initialPad, partStr)
 				continue
 			}
 			pad := strings.Repeat(" ", lengthOfLargestString+2)
@@ -294,7 +288,11 @@ func (s *SymbolTable) getFunctionHelpString(origHelp, prefix string) string {
 			newHelp := strings.Join(parts[1:indexForTypeFun][:], "\n")
 			out.WriteString(newHelp)
 		} else {
-			if val, ok := s.store[v]; ok {
+			vToUse := v
+			if strings.HasPrefix(v, "__") {
+				vToUse = vToUse[1:]
+			}
+			if val, ok := s.store[vToUse]; ok {
 				out.WriteString(val.HelpStr)
 			}
 		}

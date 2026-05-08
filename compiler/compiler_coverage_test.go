@@ -898,7 +898,7 @@ var {a, b} = {a: 1, b: 2};
 func TestNewWithState(t *testing.T) {
 	global := NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {
-		global.DefineBuiltin(i, v.Name, 0)
+		global.DefineBuiltin(i, v.Name, 0, v.Help())
 	}
 	compiler := NewWithState(global, []object.Object{object.OBJECT_CONSTANTS[0]})
 	if compiler.symbolTable != global {

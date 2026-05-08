@@ -91,10 +91,10 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {
-		symbolTable.DefineBuiltin(i, v.Name, 0)
+		symbolTable.DefineBuiltin(i, v.Name, 0, v.Help())
 	}
 	for i, v := range object.BuiltinobjsList {
-		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex)
+		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex, v.Builtin.Help())
 	}
 	fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
