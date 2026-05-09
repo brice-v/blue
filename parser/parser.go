@@ -1538,9 +1538,15 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 		list = append(list, val)
 	}
 
+	skipEndPeek := false
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
+		if p.curTokenIs(token.RBRACKET) && end == token.RBRACKET {
+			// To allow trailing comma in list literal
+			skipEndPeek = true
+			break
+		}
 		val := p.parseExpression(LOWEST)
 		assignmentExpression, ok := val.(*ast.AssignmentExpression)
 		if ok {
@@ -1551,7 +1557,10 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 		}
 	}
 
-	if !p.expectPeekIs(end) {
+	if !skipEndPeek && !p.expectPeekIs(end) {
+		return nil, nil
+	} else if skipEndPeek && !p.curTokenIs(end) {
+		p.peekError(p.curToken.Type)
 		return nil, nil
 	}
 
