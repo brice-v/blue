@@ -2,10 +2,13 @@ package blueutil
 
 import (
 	"blue/code"
+	"blue/consts"
 	"blue/object"
 	"bytes"
 	"fmt"
+	"io"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -100,4 +103,79 @@ func fmtInstruction(def *code.Definition, operands []int, constants []object.Obj
 		return fmt.Sprintf("%s %d %d%s", def.Name, operands[0], operands[1], lastPart)
 	}
 	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
+}
+
+type genericError struct {
+	Message        string
+	FileLineColumn string
+	PointerPos     string
+	SourceLine     string
+	LineNumber     int
+}
+
+func parseErrorString(errStr string, lineNumber int) genericError {
+	lines := strings.SplitN(errStr, "\n", 3)
+	offset := 0
+	if len(lines) == 3 && lines[2] == "" {
+		offset++
+	}
+	err := genericError{}
+	err.LineNumber = lineNumber
+
+	if len(lines) >= 1 && offset != 1 {
+		err.Message = lines[0-offset]
+	}
+	if len(lines) >= 2 {
+		posToSplit := strings.Index(lines[1-offset], " ")
+		err.FileLineColumn = lines[1-offset][:posToSplit]
+		if err.LineNumber == -1 {
+			lineNumberStart := strings.Index(err.FileLineColumn, ":")
+			if lineNumberStart != -1 {
+				s := err.FileLineColumn[lineNumberStart+1:]
+				lineNumberEnd := strings.Index(s, ":")
+				if lineNumberEnd != -1 {
+					y := s[:lineNumberEnd]
+					if lineNum, errr := strconv.Atoi(y); errr == nil {
+						err.LineNumber = lineNum
+					}
+				}
+			}
+		}
+		err.SourceLine = lines[1-offset][posToSplit+1:]
+		if len(lines) >= 3 {
+			pointerPos := strings.Index(lines[2-offset], "^")
+			if pointerPos != -1 {
+				err.PointerPos = lines[2-offset][posToSplit+1 : pointerPos+1]
+			} else {
+				err.PointerPos = "^"
+			}
+		}
+	}
+
+	return err
+}
+
+func PrintCustomError(out io.Writer, errPrefix, errStr string, lineNumber int, printHeaderLine bool) {
+	err := parseErrorString(errStr, lineNumber)
+
+	if printHeaderLine {
+		consts.ErrorPrinter("%s%s\n", errPrefix, err.Message)
+	}
+	if err.FileLineColumn != "" {
+		fmt.Fprintf(out, "   %s\n", err.FileLineColumn)
+	}
+	if err.SourceLine != "" {
+		fmt.Fprintf(out, "    %d │ %s\n", err.LineNumber, err.SourceLine)
+		// Compute the line number prefix width so the pointer line
+		// aligns with the source content (not the line number)
+		lineNumWidth := len(fmt.Sprintf("%d", err.LineNumber))
+		prefix := "    " + strings.Repeat(" ", lineNumWidth) + " │ "
+		fmt.Fprintf(out, "%s%s", prefix, err.PointerPos)
+		if err.Message != "" {
+			fmt.Fprintf(out, " %s", err.Message)
+		}
+		fmt.Fprintln(out)
+	}
+
+	fmt.Fprintln(out)
 }

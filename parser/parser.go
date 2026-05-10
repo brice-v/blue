@@ -288,15 +288,12 @@ func (p *Parser) PrintParserErrors(out io.Writer) {
 			fmt.Fprintln(out)
 		}
 
-		// Print hints if present
 		if len(err.Hints) > 0 {
 			for _, hint := range err.Hints {
 				fmt.Fprintf(out, "  [HINT] %s\n", hint)
 			}
 		}
 
-		// Phase 2.2: Print deduplication notice after the last occurrence
-		// of a duplicate group.
 		if count > 1 && isLast {
 			fmt.Fprintf(out, "  [%d more similar error(s) omitted]\n", count-1)
 		}

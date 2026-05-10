@@ -2,13 +2,16 @@ package compiler
 
 import (
 	"blue/ast"
+	"blue/blueutil"
 	"blue/code"
+	"blue/consts"
 	"blue/lexer"
 	"blue/object"
 	"blue/token"
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 	"sort"
 )
@@ -298,7 +301,7 @@ func (c *Compiler) PrintStackTrace() {
 	prevS := ""
 	for _, s := range c.ErrorTrace {
 		if s != prevS && s != ignoreStr {
-			fmt.Print(s)
+			blueutil.PrintCustomError(os.Stdout, consts.COMPILER_ERROR_PREFIX, s, -1, false)
 		}
 		prevS = s
 	}

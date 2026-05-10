@@ -203,10 +203,13 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
 	v := vm.NewWithGlobalsStore(bc, globals)
 	object.NoExec = noExec
 	if err := v.Run(); err != nil {
-		consts.ErrorPrinter("%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
-		if v.TokensForErrorTrace != nil {
-			for _, tok := range v.TokensForErrorTrace {
-				fmt.Println(lexer.GetErrorLineMessage(*tok))
+		if v.TokensForErrorTrace == nil {
+			consts.ErrorPrinter("%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
+		} else {
+			for i, tok := range v.TokensForErrorTrace {
+				errorLine := lexer.GetErrorLineMessage(*tok)
+				fullMsg := fmt.Sprintf("%s\n%s", err.Error(), errorLine)
+				blueutil.PrintCustomError(os.Stdout, consts.VM_ERROR_PREFIX, fullMsg, tok.LineNumber, i == 0)
 			}
 		}
 		os.Exit(1)
