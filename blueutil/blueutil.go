@@ -121,6 +121,9 @@ func parseErrorString(errStr string, lineNumber int) genericError {
 	}
 	err := genericError{}
 	err.LineNumber = lineNumber
+	if lineNumber != -1 {
+		err.LineNumber = lineNumber + 1
+	}
 
 	if len(lines) >= 1 && offset != 1 {
 		err.Message = lines[0-offset]
@@ -160,6 +163,8 @@ func PrintCustomError(out io.Writer, errPrefix, errStr string, lineNumber int, p
 
 	if printHeaderLine {
 		consts.ErrorPrinter("%s%s\n", errPrefix, err.Message)
+	} else {
+		err.Message = ""
 	}
 	if err.FileLineColumn != "" {
 		fmt.Fprintf(out, "   %s\n", err.FileLineColumn)

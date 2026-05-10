@@ -131,7 +131,7 @@ func parseErrorString(errStr string, lineNumber int) parserError {
 			}
 		}
 	}
-	err.LineNumber = lineNumber
+	err.LineNumber = lineNumber + 1
 
 	return err
 }
