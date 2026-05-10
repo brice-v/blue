@@ -1,10 +1,62 @@
 TODO:
 
+- [ ] This causes panic
+    ```
+    # Closure with try-catch
+    fun makeSafeAdder() {
+        var safe = true
+        return fun(a, b) {
+            try {
+                a + b
+            } catch (e) {
+                if (safe) {
+                    0
+                } else {
+                    error(e)
+                }
+            }
+        }
+    }
+
+    val safeAdder = makeSafeAdder()
+    assert(safeAdder(1, 2) == 3)
+    ```
+- [ ] This causes panic
+    ```
+    val noMatch = match (999) {
+        1 => { "one" },
+    }
+    assert(noMatch == null)
+    ```
+- [ ] This causes panic
+    ```
+    val m1 = {a: 1, b: 2}
+    val m2 = {c: 3, d: 4}
+    val merged = {k: v for [k, v] in m1} + {k: v for [k, v] in m2}
+    ```
+- [ ] Fix this type of shadowing
+    ```
+    var x = 1
+    if true {
+        var x = 2
+        assert(x == 2)
+        if true {
+            var x = 3
+            assert(x == 3)
+            assert(x == 3)
+        }
+        assert(x == 2)
+    }
+    assert(x == 1)
+    ```
+- [ ] Support Bitwise shift with unsigned int for vm
+    - Maybe also support for int just to make it easier (it will auto transition to uint? - maybe maybe not)
+- [ ] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
 - [ ] Support nested comprehensions
-- [ ] Support > < for strings 
+- [ ] Support > < for strings
 - Struct Improvements/Fixes
     - [ ] Allow structs to be matched against
     - [ ] Allow blue struct with int/float/etc. field names?
@@ -254,7 +306,7 @@ COMPLETED TASKS:
 - [x] Add abs_path function for a file that exists? otherwise throw error
 - [-] Include shift operators and assignment expressions to other types
 - [x] remove need for parens in for loop and if statments? - removing it feels more like go, keeping it is more 'C' like
-- [x] Add list builtin to convert set to list? 
+- [x] Add list builtin to convert set to list?
 - [x] Make sure + and << work for sets (maybe, technically union operator works)
 - [x] Support regex literal in parser and evaluator
     - Might just use a syntax such as `re"[0-9]+"`
@@ -424,7 +476,7 @@ COMPLETED TASKS:
 - add filename (with abs path) to token so that we can get the exact line
     - then GetErrorLineMessage wont have to live in lexer (and we can print errors elsewhere)
 - [x] Make sure self works inside the spawned process
-- [x] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever) 
+- [x] Fix hashing of True, False, Null. These should probably just return a 0, 1, 2 (or whatever)
 - [x] Add way to get types of objects inside code
 - [x] support index operator for set so we can do something like `set_abc.1` or `set_abc[1]` to get 2nd element
     - cant fix this until sets are in order (otherwise its unfriendly to use)
@@ -496,13 +548,13 @@ COMPLETED TASKS:
 - [x] Read below commit message to follow up with default parameters in functions
     ```
     blang: parser: parse default arguments as ast.AssignmentExpression
-        
+
         We now need to create a new field for the function literal to store
         these and the parseFunctionParameter function can return both as a
         tuple.
-        
+
         With that the evaluator can then set the environment to use these.
-        
+
         Still need to figure out how to have a call expression use either
         default or given if it is given them.
     ```

@@ -147,47 +147,43 @@ Usage:
 
 The commands are:
 
-    lex     start the lexer repl or lex the given file
-            (converts the file to tokens and prints)
-    parse   start the parser repl or parse the given file
-            (converts the file to an inspectable AST
-            without node names)
-            --all-parser-errors  show all parser errors 
-                                 instead of stopping at
-                                 the first one
-    bundle  bundle the given file into a go executable
-            with the runtime included
-            (bundle accepts a '-d' flag for debugging)
-    eval    eval the given string
-    doc     print the help strings of all publicly accesible
-            functions in the given filepath or module
-            note: the file/module will be evaluated to gather
-            all functions - so any side effects may take place
-    vm      run the given string or file through the VM
-            --all-parser-errors  show all parser errors 
-                                 instead of stopping at
-                                 the first one
-            --no-exec             do not allow exec'ing programs
-    compile compiles the given string or file to bytecode
-            --all-parser-errors  show all parser errors 
-                                 instead of stopping at
-                                 the first one
-    help    prints this help message
-    version prints the current version
+    lex      start the lexer repl or lex the given file (converts the file to tokens and prints)
 
-The default behavior for no command/arguments will start
-an evaluator repl. (If given a file, the file will be
-evaluated)
+    parse    start the parser repl or parse the given file (converts the file to an inspectable AST without node names)
+                                                                                              
+             --all-parser-errors   show all parser errors instead of stopping at the first one
+
+    bundle   bundle the given file into a go executable with the runtime included (bundle accepts a '-d' flag for debugging)
+
+    eval     eval the given string
+
+    doc      print the help strings of all publicly accesible functions in the given filepath or module
+                                                                                              
+             note: the file/module will be evaluated to gather all functions - so any side effects may take place
+
+    vm       run the given string or file through the VM
+                                                                                              
+             --all-parser-errors   show all parser errors instead of stopping at the first one
+                                                                                              
+             --no-exec             do not allow exec'ing programs
+
+    compile  compiles the given string or file to bytecode
+                                                                                              
+             --all-parser-errors   show all parser errors instead of stopping at the first one
+
+    help     prints this help message
+
+    version  prints the current version
+
+The default behavior for no command/arguments will start an evaluator repl. (If given a file, the file will be evaluated)
 
 Environment Variables:
-BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
-                                 http route path printing and message
-BLUE_INSTALL_PATH                set to the path where the blue src is
-                                 installed. ie. ~/.blue/src
-NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string)
-                                 to disable colored printing
-PATH                             add blue to the path variable to access
-                                 it anywhere. ie. ~/.blue/bin
-                                 could be added to path with the blue exe
-                                 inside of it
+
+BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber http route path printing and message
+
+BLUE_INSTALL_PATH                set to the path where the blue src is installed. ie. ~/.blue/src
+
+NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string) to disable colored printing
+
+PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it
 ```

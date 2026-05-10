@@ -36,7 +36,7 @@ fun receiver(parentPid) {
 val recvPid = spawn(receiver, [me])
 time.sleep(50)
 me.send("hello")
-val response = recvPid.recv()
+val response = me.recv()
 assert(response == "received: hello")
 
 # Multiple sends and receives
@@ -44,8 +44,9 @@ var sendCount = 0
 var recvCount = 0
 
 fun doubleReceiver(parentPid) {
+    val meHere = self();
     for (i in 1..3) {
-        val msg = parentPid.recv()
+        val msg = meHere.recv()
         parentPid.send("echo: #{msg}")
     }
 }
@@ -54,33 +55,33 @@ val doublePid = spawn(doubleReceiver, [me])
 time.sleep(50)
 
 for (i in 1..3) {
-    me.send("msg #{i}")
-    val resp = doublePid.recv()
+    doublePid.send("msg #{i}")
+    val resp = me.recv()
     assert(resp == "echo: msg #{i}")
 }
 
 # Process with computation
-fun compute(n) {
+fun compute(n, parentPid) {
     var sum = 0
     for (i in 1..n) {
         sum += i
     }
-    return sum
+    parentPid.send(sum);
 }
 
-val computePid = spawn(compute, [100])
+val computePid = spawn(compute, [100, me])
 time.sleep(200)
-# The result should be in the channel
-# Note: we cant directly get the return value, but we can check the process
+val computeResult = me.recv();
+assert(computeResult == 5050)
 
 # Multiple processes
 var results = []
-fun countingWorker(id) {
-    return id * 10
+fun countingWorker(id, parentPid) {
+    parentPid.send(id * 10)
 }
 
 for (i in 1..5) {
-    results << spawn(countingWorker, [i])
+    results << spawn(countingWorker, [i, me])
 }
 
 time.sleep(500)
@@ -92,9 +93,9 @@ for (i in 1..5) {
 
 # Self in nested spawn
 fun nestedWorker(parentPid) {
-    val childPid = spawn(fun(childParent) {
-        childParent.send("from child")
-    }, [parentPid])
+    val childPid = spawn(fun() {
+        self().send("from child")
+    }, [])
     time.sleep(100)
     val childMsg = childPid.recv()
     parentPid.send("nested: #{childMsg}")
@@ -122,19 +123,21 @@ try {
 # Process with closure
 var captured = 0
 fun captureWorker(capturedVal) {
-    return capturedVal + 1
+    self().send(capturedVal + 1)
 }
 
 val closurePid = spawn(captureWorker, [41])
 time.sleep(100)
+assert(closurePid.recv() == 42);
 
 # Process with default args
 fun defaultWorker(a, b = 10) {
-    return a + b
+    self().send(a + b)
 }
 
 val defaultPid = spawn(defaultWorker, [5])
 time.sleep(100)
+assert(defaultPid.recv() == 15);
 
 # Verify process id increases
 val pid1 = self()

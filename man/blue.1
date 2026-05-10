@@ -11,76 +11,57 @@ blue <command> [arguments]
 The commands are:
 .TP
 lex
-start the lexer repl or lex the given file
-(converts the file to tokens and prints)
+start the lexer repl or lex the given file (converts the file to tokens and prints)
 .TP
 parse
-start the parser repl or parse the given file
-(converts the file to an inspectable AST
-without node names)
-\fB\-\-all\-parser\-errors\fR  show all parser errors
+start the parser repl or parse the given file (converts the file to an inspectable AST without node names)
 .TP
-instead of stopping at
-the first one
+\fB\-\-all\-parser\-errors\fR
+show all parser errors instead of stopping at the first one
 .TP
 bundle
-bundle the given file into a go executable
-with the runtime included
-(bundle accepts a '\-d' flag for debugging)
+bundle the given file into a go executable with the runtime included (bundle accepts a '\-d' flag for debugging)
 .TP
 eval
 eval the given string
 .TP
 doc
-print the help strings of all publicly accesible
-functions in the given filepath or module
-note: the file/module will be evaluated to gather
-all functions \- so any side effects may take place
+print the help strings of all publicly accesible functions in the given filepath or module
+.IP
+note: the file/module will be evaluated to gather all functions \- so any side effects may take place
 .TP
 vm
 run the given string or file through the VM
-\fB\-\-all\-parser\-errors\fR  show all parser errors
 .TP
-instead of stopping at
-the first one
+\fB\-\-all\-parser\-errors\fR
+show all parser errors instead of stopping at the first one
 .TP
 \fB\-\-no\-exec\fR
 do not allow exec'ing programs
-.IP
-compile compiles the given string or file to bytecode
+.TP
+compile
+compiles the given string or file to bytecode
 .TP
 \fB\-\-all\-parser\-errors\fR
-show all parser errors
-instead of stopping at
-the first one
+show all parser errors instead of stopping at the first one
 .TP
 help
 prints this help message
-.IP
-version prints the current version
+.TP
+version
+prints the current version
 .PP
-The default behavior for no command/arguments will start
-an evaluator repl. (If given a file, the file will be
-evaluated)
+The default behavior for no command/arguments will start an evaluator repl. (If given a file, the file will be evaluated)
 .PP
 Environment Variables:
-BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
-.IP
-http route path printing and message
 .PP
-BLUE_INSTALL_PATH                set to the path where the blue src is
-.IP
-installed. ie. ~/.blue/src
+BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber http route path printing and message
 .PP
-NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string)
-.IP
-to disable colored printing
+BLUE_INSTALL_PATH                set to the path where the blue src is installed. ie. ~/.blue/src
 .PP
-PATH                             add blue to the path variable to access
-.TP
-it anywhere. ie. ~/.blue/bin
-could be added to path with the blue exe
-inside of it
+NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string) to disable colored printing
+.PP
+PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it
 .SS "Usage:"
 .IP
 blue <command> [arguments]
@@ -88,73 +69,54 @@ blue <command> [arguments]
 The commands are:
 .TP
 lex
-start the lexer repl or lex the given file
-(converts the file to tokens and prints)
+start the lexer repl or lex the given file (converts the file to tokens and prints)
 .TP
 parse
-start the parser repl or parse the given file
-(converts the file to an inspectable AST
-without node names)
-\fB\-\-all\-parser\-errors\fR  show all parser errors
+start the parser repl or parse the given file (converts the file to an inspectable AST without node names)
 .TP
-instead of stopping at
-the first one
+\fB\-\-all\-parser\-errors\fR
+show all parser errors instead of stopping at the first one
 .TP
 bundle
-bundle the given file into a go executable
-with the runtime included
-(bundle accepts a '\-d' flag for debugging)
+bundle the given file into a go executable with the runtime included (bundle accepts a '\-d' flag for debugging)
 .TP
 eval
 eval the given string
 .TP
 doc
-print the help strings of all publicly accesible
-functions in the given filepath or module
-note: the file/module will be evaluated to gather
-all functions \- so any side effects may take place
+print the help strings of all publicly accesible functions in the given filepath or module
+.IP
+note: the file/module will be evaluated to gather all functions \- so any side effects may take place
 .TP
 vm
 run the given string or file through the VM
-\fB\-\-all\-parser\-errors\fR  show all parser errors
 .TP
-instead of stopping at
-the first one
+\fB\-\-all\-parser\-errors\fR
+show all parser errors instead of stopping at the first one
 .TP
 \fB\-\-no\-exec\fR
 do not allow exec'ing programs
-.IP
-compile compiles the given string or file to bytecode
+.TP
+compile
+compiles the given string or file to bytecode
 .TP
 \fB\-\-all\-parser\-errors\fR
-show all parser errors
-instead of stopping at
-the first one
+show all parser errors instead of stopping at the first one
 .TP
 help
 prints this help message
-.IP
-version prints the current version
+.TP
+version
+prints the current version
 .PP
-The default behavior for no command/arguments will start
-an evaluator repl. (If given a file, the file will be
-evaluated)
+The default behavior for no command/arguments will start an evaluator repl. (If given a file, the file will be evaluated)
 .PP
 Environment Variables:
-BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber
-.IP
-http route path printing and message
 .PP
-BLUE_INSTALL_PATH                set to the path where the blue src is
-.IP
-installed. ie. ~/.blue/src
+BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber http route path printing and message
 .PP
-NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string)
-.IP
-to disable colored printing
+BLUE_INSTALL_PATH                set to the path where the blue src is installed. ie. ~/.blue/src
 .PP
-PATH                             add blue to the path variable to access
-.TP
-it anywhere. ie. ~/.blue/bin
-could be added to path with the blue exe
-inside of it
+NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string) to disable colored printing
+.PP
+PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it

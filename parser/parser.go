@@ -2111,7 +2111,7 @@ func (p *Parser) expectIdentIsUnique(key *ast.Identifier, keys map[string]struct
 }
 
 func (p *Parser) peekTokenIsAssignmentToken() bool {
-	if p.peekTokenIs(token.ASSIGN) ||
+	return p.peekTokenIs(token.ASSIGN) ||
 		p.peekTokenIs(token.PLUSEQ) ||
 		p.peekTokenIs(token.MINUSEQ) ||
 		p.peekTokenIs(token.DIVEQ) ||
@@ -2126,10 +2126,7 @@ func (p *Parser) peekTokenIsAssignmentToken() bool {
 		p.peekTokenIs(token.LSHIFTEQ) ||
 		p.peekTokenIs(token.RSHIFTEQ) ||
 		p.peekTokenIs(token.PERCENTEQ) ||
-		p.peekTokenIs(token.XOREQ) {
-		return true
-	}
-	return false
+		p.peekTokenIs(token.XOREQ)
 }
 
 // registerPrefix associates a token with a prefix parsing function
