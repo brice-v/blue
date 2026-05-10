@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/gobuffalo/plush"
@@ -2518,7 +2519,7 @@ var Builtins = []*Builtin{
 				if !ok {
 					return newPositionalTypeError("lstrip", 1, STRING_OBJ, args[0].Type())
 				}
-				str := strings.TrimLeft(arg0.Value, " ")
+				str := strings.TrimLeftFunc(arg0.Value, unicode.IsSpace)
 				return &Stringo{Value: str}
 			}
 			if len(args) == 2 {
@@ -2553,7 +2554,7 @@ var Builtins = []*Builtin{
 				if !ok {
 					return newPositionalTypeError("rstrip", 1, STRING_OBJ, args[0].Type())
 				}
-				str := strings.TrimRight(arg0.Value, " ")
+				str := strings.TrimRightFunc(arg0.Value, unicode.IsSpace)
 				return &Stringo{Value: str}
 			}
 			if len(args) == 2 {

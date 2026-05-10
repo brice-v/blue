@@ -267,3 +267,11 @@ func (vm *VM) executeGoObjIndexExpression(goObj object.Object, name string) erro
 	}
 	return vm.push(obj)
 }
+
+func (vm *VM) executeBlueIndexGetExpression(blueStruct *object.BlueStruct, fieldName string) error {
+	result, pos := blueStruct.Get(fieldName)
+	if pos == -1 {
+		return vm.push(newError("BlueStruct.%s error: field not found", fieldName))
+	}
+	return vm.push(result)
+}

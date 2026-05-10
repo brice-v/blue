@@ -1190,8 +1190,8 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 		return vm.executeProcessIndexExpression(left.(*object.Process), indx.(*object.Stringo).Value)
 	case left.Type() == object.GO_OBJ && indx.Type() == object.STRING_OBJ:
 		return vm.executeGoObjIndexExpression(left, indx.(*object.Stringo).Value)
-	// case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
-	// 	return e.evalBlueStructIndexExpression(left, indx)
+	case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
+		return vm.executeBlueIndexGetExpression(left.(*object.BlueStruct), indx.(*object.Stringo).Value)
 	default:
 		return vm.push(newError("index operator not supported: %s.%s (%s.%s)", left.Type(), indx.Type(), left.Inspect(), indx.Inspect()))
 	}

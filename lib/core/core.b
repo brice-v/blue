@@ -19,6 +19,7 @@ val Type = {
     NULL: 'NULL',
     PROCESS: 'PROCESS',
     STRUCT: 'BLUE_STRUCT_OBJ',
+    ERR: 'ERROR',
 };
 
 val __fetch = _fetch;
