@@ -446,18 +446,8 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	l := lexer.New(inputStr, fpath)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		for _, msg := range p.Errors() {
-			splitMsg := strings.Split(msg, "\n")
-			firstPart := fmt.Sprintf("%s%s\n", consts.PARSER_ERROR_PREFIX, splitMsg[0])
-			consts.ErrorPrinter(firstPart)
-			for i, s := range splitMsg {
-				if i == 0 {
-					continue
-				}
-				fmt.Println(s)
-			}
-		}
+	if p.HasErrors() {
+		p.PrintParserErrors(os.Stdout)
 		return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 	}
 	if node.ImportAll {
@@ -604,8 +594,8 @@ func (c *Compiler) compileCompLiteral(t, nonEvaluatedProgram string) error {
 	if len(rootNode.Statements) < 1 {
 		return fmt.Errorf("%s error:, not enough statements", t)
 	}
-	if len(p.Errors()) > 0 {
-		return fmt.Errorf("%s error: %s", t, strings.Join(p.Errors(), " | "))
+	if p.HasErrors() {
+		return fmt.Errorf("%s error: %s", t, p.JoinedErrors())
 	}
 	err := c.Compile(rootNode)
 	if err != nil {

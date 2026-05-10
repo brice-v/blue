@@ -5,7 +5,6 @@ import (
 	"blue/object"
 	"blue/parser"
 	"log"
-	"strings"
 	"testing"
 )
 
@@ -689,8 +688,8 @@ func testEval(input string) object.Object {
 	l := lexer.New(input, "<internal: test>")
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		log.Fatalf("Parser Errors in Test `%s`: %s", input, strings.Join(p.Errors(), "\n"))
+	if p.HasErrors() {
+		log.Fatalf("Parser Errors in Test `%s`: %s", input, p.JoinedErrors())
 	}
 	e := New()
 	return e.Eval(program)

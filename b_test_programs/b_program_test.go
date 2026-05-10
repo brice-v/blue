@@ -8,7 +8,6 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
-	"blue/repl"
 	"blue/vm"
 	"bytes"
 	"io"
@@ -94,8 +93,8 @@ func executeBlueTestFile(f fs.DirEntry, t *testing.T) {
 
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(os.Stderr, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(os.Stderr)
 		t.Fatalf("File `%s`: failed to parse", f.Name())
 	}
 	e := evaluator.New()
@@ -174,8 +173,8 @@ func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
 
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(os.Stderr, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(os.Stderr)
 		t.Fatalf("File `%s`: failed to parse", f.Name())
 	}
 	globals := make([]object.Object, vm.GlobalsSize)
@@ -586,8 +585,8 @@ func parseString(t *testing.T, s string) *ast.Program {
 
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(os.Stderr, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(os.Stderr)
 		t.Fatalf("failed to parse string: %s", s)
 	}
 	return program

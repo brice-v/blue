@@ -67,8 +67,8 @@ func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address 
 		l := lexer.New(line, "<repl>")
 		p := parser.New(l)
 		program := p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			PrintParserErrors(out, p.Errors())
+		if p.HasErrors() {
+			p.PrintParserErrors(out)
 			continue
 		}
 		evaluated := e.Eval(program)
@@ -117,8 +117,8 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		l := lexer.New(line, "<repl>")
 		p := parser.New(l)
 		program := p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			PrintParserErrors(out, p.Errors())
+		if p.HasErrors() {
+			p.PrintParserErrors(out)
 			continue
 		}
 		c := compiler.NewWithStateAndCore(symbolTable, constants)
@@ -157,21 +157,6 @@ func startLexerRepl(in io.ReadCloser, out io.Writer, username string) {
 	}
 }
 
-// PrintParserErrors prints the parser errors to the output
-func PrintParserErrors(out io.Writer, errors []string) {
-	for _, msg := range errors {
-		splitMsg := strings.Split(msg, "\n")
-		firstPart := consts.PARSER_ERROR_PREFIX + splitMsg[0] + "\n"
-		consts.ErrorPrinter(firstPart)
-		for i, s := range splitMsg {
-			if i == 0 {
-				continue
-			}
-			fmt.Fprintf(out, "%s\n", s)
-		}
-	}
-}
-
 // startParserRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
 func startParserRepl(in io.ReadCloser, out io.Writer, username string) {
@@ -181,8 +166,8 @@ func startParserRepl(in io.ReadCloser, out io.Writer, username string) {
 		l := lexer.New(line, "<repl>")
 		p := parser.New(l)
 		program := p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			PrintParserErrors(out, p.Errors())
+		if p.HasErrors() {
+			p.PrintParserErrors(out)
 			continue
 		}
 		fmt.Fprintf(out, "%s\n", program.String())

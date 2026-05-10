@@ -16,7 +16,7 @@ import (
 // that happened after parsing otherwise it will return
 // and the program will continue
 func checkParserErrors(t *testing.T, p *Parser) {
-	errors := p.Errors()
+	errors := p.ErrorMessages()
 	if len(errors) == 0 {
 		return
 	}
@@ -1646,11 +1646,11 @@ func TestParsingStructLiteralsIdentifierKeysWithDuplicateKeyError(t *testing.T) 
 	l := lexer.New(input, "<internal: test>")
 	p := New(l)
 	_ = p.ParseProgram()
-	if len(p.Errors()) == 0 {
-		t.Fatalf("Expected at least one program parser error. got=%d", len(p.Errors()))
+	if !p.HasErrors() {
+		t.Fatalf("Expected at least one program parser error. got=%d", len(p.ErrorMessages()))
 	}
-	expected := "struct literal keys must be unique, current identifer one\nFilepath: \"<internal: test>\", LineNumber: 0, PositionInLine: 29"
-	error1 := p.Errors()[0]
+	expected := "struct literal keys must be unique, current identifier one"
+	error1 := p.ErrorMessages()[0]
 	if expected != error1 {
 		t.Fatalf("parser error message did not match expected.\ngot=%s\nwant=%s", error1, expected)
 	}
@@ -1912,8 +1912,8 @@ func TestFromImportStatement(t *testing.T) {
 
 func TestImportStatement(t *testing.T) {
 	tests := []struct {
-		input        string
-		expectedPath string
+		input         string
+		expectedPath  string
 		expectedAlias string
 	}{
 		{`import foo`, "foo", ""},
@@ -2532,19 +2532,19 @@ func TestNoPrefixParseFunError(t *testing.T) {
 	p := New(l)
 	p.ParseProgram()
 
-	if len(p.Errors()) == 0 {
+	if !p.HasErrors() {
 		t.Fatalf("expected parser errors for @ token, got none")
 	}
 
 	found := false
-	for _, err := range p.Errors() {
-		if strings.Contains(err, "no prefix parse function") {
+	for _, err := range p.ErrorMessages() {
+		if strings.Contains(err, "unexpected") {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Errorf("expected 'no prefix parse function' error, got: %v", p.Errors())
+		t.Errorf("expected 'unexpected' error, got: %v", p.ErrorMessages())
 	}
 }
 

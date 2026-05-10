@@ -73,8 +73,8 @@ func handleLoadCommand(out io.Writer, filebuf *bytes.Buffer, filename string, e 
 	l := lexer.New(data, filename)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		PrintParserErrors(out, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(out)
 	}
 	evaluated := e.Eval(program)
 

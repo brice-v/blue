@@ -411,12 +411,9 @@ func (e *Evaluator) EvalString(s string) (object.Object, error) {
 	l := lexer.New(s, "<internal: string>")
 	p := parser.New(l)
 	prog := p.ParseProgram()
-	pErrors := p.Errors()
-	if len(pErrors) != 0 {
-		for _, err := range pErrors {
-			consts.ErrorPrinter("ParserError in `eval`: %s\n", err)
-		}
-		return nil, fmt.Errorf("failed to `eval` string, found '%d' parser errors", len(pErrors))
+	if p.HasErrors() {
+		p.PrintParserErrors(os.Stdout)
+		return nil, fmt.Errorf("failed to `eval` string, found '%d' parser errors", len(p.ErrorMessages()))
 	}
 	result := e.Eval(prog)
 	return result, nil

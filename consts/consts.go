@@ -36,11 +36,11 @@ func versionFn() string {
 	return versionStr
 }
 
-const PARSER_ERROR_PREFIX = "ParserError: "
-const COMPILER_ERROR_PREFIX = "CompilerError: "
-const PROCESS_ERROR_PREFIX = "ProcessError: "
-const EVAL_ERROR_PREFIX = "EvaluatorError: "
-const VM_ERROR_PREFIX = "VMError: "
+const PARSER_ERROR_PREFIX = "[ERROR] ParserError: "
+const COMPILER_ERROR_PREFIX = "[ERROR] CompilerError: "
+const PROCESS_ERROR_PREFIX = "[ERROR] ProcessError: "
+const EVAL_ERROR_PREFIX = "[ERROR] EvaluatorError: "
+const VM_ERROR_PREFIX = "[ERROR] VMError: "
 
 const CORE_FILE_PATH = "<embed: core/core.b>"
 

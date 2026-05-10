@@ -6,7 +6,7 @@ import (
 )
 
 func (l *Lexer) newToken(tokenType token.Type, ch rune) token.Token {
-	return token.Token{Type: tokenType, Literal: string(ch), LineNumber: l.lineNo, PositionInLine: l.posInLine, Filepath: l.fname}
+	return token.Token{Type: tokenType, Literal: string(ch), LineNumber: l.lineNo, PositionInLine: l.posInLine - 1, Filepath: l.fname}
 }
 
 // makeTwoCharToken takes a tokens type and returns the new token

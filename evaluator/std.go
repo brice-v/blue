@@ -53,18 +53,8 @@ func (e *Evaluator) AddStdLibToEnv(name string, nodeIdentsToImport []*ast.Identi
 		l := lexer.New(fb.File, "<std/"+name+".b>")
 		p := parser.New(l)
 		program := p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			for _, msg := range p.Errors() {
-				splitMsg := strings.Split(msg, "\n")
-				firstPart := fmt.Sprintf("%smodule `%s`: %s\n", consts.PARSER_ERROR_PREFIX, name, splitMsg[0])
-				consts.ErrorPrinter(firstPart)
-				for i, s := range splitMsg {
-					if i == 0 {
-						continue
-					}
-					fmt.Println(s)
-				}
-			}
+		if p.HasErrors() {
+			p.PrintParserErrors(os.Stdout)
 			os.Exit(1)
 		}
 		newE := New()

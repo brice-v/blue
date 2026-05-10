@@ -94,15 +94,21 @@ func Run(args ...string) {
 	case "doc":
 		handleDocCommand(argc, arguments)
 	default:
-		if isFile(command) {
-			// Eval the file
-			noExec := false
-			for _, arg := range arguments {
-				if arg == "--no-exec" {
-					noExec = true
-				}
+		// Check for flags before the filename
+		fpath := ""
+		noExec := false
+		allErrors := false
+		for _, arg := range arguments {
+			if arg == "--no-exec" {
+				noExec = true
+			} else if arg == "--all-parser-errors" {
+				allErrors = true
+			} else if fpath == "" {
+				fpath = arg
 			}
-			evalFileOrString(command, true, noExec)
+		}
+		if isFile(fpath) {
+			evalFileOrString(fpath, true, noExec, allErrors)
 		} else {
 			printUsage()
 		}
@@ -139,9 +145,17 @@ func handleParseCommand(argc int, arguments []string) {
 		repl.StartParserRepl()
 	} else {
 		// Check if the file exists and if so, run the parser on it
-		fpath := arguments[1]
+		fpath := ""
+		allErrors := false
+		for _, arg := range arguments[1:] {
+			if arg == "--all-parser-errors" {
+				allErrors = true
+			} else {
+				fpath = arg
+			}
+		}
 		if isFile(fpath) {
-			parseFile(fpath)
+			parseFile(fpath, allErrors)
 		} else {
 			consts.ErrorPrinter("`parse` command expects valid file as argument. got=%s\n", fpath)
 			os.Exit(1)
@@ -217,14 +231,17 @@ func handleEvalCommand(argc int, arguments []string) {
 	if argc == 2 || argc == 3 {
 		strToEval := ""
 		flagNoExec := false
+		allErrors := false
 		for _, arg := range arguments[1:] {
 			if arg == "--no-exec" {
 				flagNoExec = true
+			} else if arg == "--all-parser-errors" {
+				allErrors = true
 			} else {
 				strToEval = arg
 			}
 		}
-		evalFileOrString(strToEval, isFile(strToEval), flagNoExec)
+		evalFileOrString(strToEval, isFile(strToEval), flagNoExec, allErrors)
 	} else {
 		consts.ErrorPrinter("unexpected `eval` arguments. got=%+v\n", arguments)
 		os.Exit(1)
@@ -237,14 +254,17 @@ func handleVmCommand(argc int, arguments []string) {
 	} else if argc == 2 || argc == 3 {
 		strToEval := ""
 		flagNoExec := false
+		allErrors := false
 		for _, arg := range arguments[1:] {
 			if arg == "--no-exec" {
 				flagNoExec = true
+			} else if arg == "--all-parser-errors" {
+				allErrors = true
 			} else {
 				strToEval = arg
 			}
 		}
-		vmFileOrString(strToEval, isFile(strToEval), flagNoExec)
+		vmFileOrString(strToEval, isFile(strToEval), flagNoExec, allErrors)
 	} else {
 		consts.ErrorPrinter("unexpected `vm` arguments. got=%+v\n", arguments)
 		os.Exit(1)
@@ -252,9 +272,17 @@ func handleVmCommand(argc int, arguments []string) {
 }
 
 func handleCompileCommand(argc int, arguments []string) {
-	if argc == 2 {
-		strToEval := arguments[1]
-		compileFileOrString(strToEval, isFile(strToEval))
+	if argc == 2 || argc == 3 {
+		strToEval := ""
+		allErrors := false
+		for _, arg := range arguments[1:] {
+			if arg == "--all-parser-errors" {
+				allErrors = true
+			} else {
+				strToEval = arg
+			}
+		}
+		compileFileOrString(strToEval, isFile(strToEval), allErrors)
 	} else {
 		consts.ErrorPrinter("unexpected `compile` arguments. got=%+v\n", arguments)
 		os.Exit(1)

@@ -55,8 +55,8 @@ const mainFunc = `func main() {
 	l := lexer.New(input, "<embed: "+entryPointPath+">")
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(out, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(out)
 		os.Exit(1)
 	}
 	evaluator := evaluator.New()

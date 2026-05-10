@@ -303,3 +303,260 @@ func LookupIdent(ident string) Type {
 	}
 	return IDENT
 }
+
+// UserFriendlyName returns a human-readable name for the token type,
+// suitable for display in error messages to end users. It converts
+// internal token constants (like RBRACE, FOR, IDENT) into what a user
+// would actually type or recognize (like '}', 'for', an identifier).
+func (t Type) UserFriendlyName() string {
+	switch t {
+	// Delimiters
+	case LBRACE:
+		return "{" 
+	case RBRACE:
+		return "}"
+	case LPAREN:
+		return "(" 
+	case RPAREN:
+		return ")"
+	case LBRACKET:
+		return "["
+	case RBRACKET:
+		return "]"
+
+	// Operators
+	case PLUS:
+		return "+"
+	case MINUS:
+		return "-"
+	case STAR:
+		return "*"
+	case FSLASH:
+		return "/"
+	case POW:
+		return "**"
+	case PERCENT:
+		return "%"
+	case EQ:
+		return "=="
+	case NEQ:
+		return "!="
+	case LT:
+		return "<"
+	case GT:
+		return ">"
+	case LTEQ:
+		return "<="
+	case GTEQ:
+		return ">="
+	case RARROW:
+		return "=>"
+	case COMMA:
+		return ","
+	case COLON:
+		return ":"
+	case SEMICOLON:
+		return ";"
+	case DOT:
+		return "."
+	case PIPE:
+		return "|"
+	case AND:
+		return "and"
+	case OR:
+		return "or"
+	case NOT:
+		return "not"
+	case TILDE:
+		return "~"
+	case HASH:
+		return "#"
+	case HAT:
+		return "^"
+	case AMPERSAND:
+		return "&"
+	case BANG:
+		return "!"
+	case ASSIGN:
+		return "="
+	case RANGE:
+		return ".."
+	case FDIV:
+		return "//"
+	case RSHIFT:
+		return ">>"
+	case LSHIFT:
+		return "<<"
+	case POWEQ:
+		return "**="
+	case FDIVEQ:
+		return "//="
+	case RSHIFTEQ:
+		return ">>="
+	case LSHIFTEQ:
+		return "<<="
+	case MULEQ:
+		return "*="
+	case PLUSEQ:
+		return "+="
+	case MINUSEQ:
+		return "-="
+	case DIVEQ:
+		return "/="
+	case PERCENTEQ:
+		return "%="
+	case ANDANDEQ:
+		return "&&="
+	case OROREQ:
+		return "||="
+	case ANDEQ:
+		return "&="
+	case OREQ:
+		return "|="
+	case BINNOTEQ:
+		return "~="
+	case XOREQ:
+		return "^="
+	case NONINCRANGE:
+		return "..<"
+	case ATLBRACE:
+		return "@{"
+	case ELLIPSE:
+		return "..."
+
+	// Keywords
+	case VAR:
+		return "var"
+	case VAL:
+		return "val"
+	case FUNCTION:
+		return "fun"
+	case IF:
+		return "if"
+	case ELSE:
+		return "else"
+	case FOR:
+		return "for"
+	case IN:
+		return "in"
+	case NOTIN:
+		return "notin"
+	case RETURN:
+		return "return"
+	case BREAK:
+		return "break"
+	case CONTINUE:
+		return "continue"
+	case TRY:
+		return "try"
+	case CATCH:
+		return "catch"
+	case FINALLY:
+		return "finally"
+	case MATCH:
+		return "match"
+	case IMPORT:
+		return "import"
+	case FROM:
+		return "from"
+	case AS:
+		return "as"
+	case TRUE:
+		return "true"
+	case FALSE:
+		return "false"
+	case NULL_KW:
+		return "null"
+	case SPAWN:
+		return "spawn"
+	case DEFER:
+		return "defer"
+	case SELF:
+		return "self"
+	case EVAL:
+		return "eval"
+	case CONST:
+		return "const"
+
+	// Literal tokens
+	case INT:
+		return "an integer"
+	case FLOAT:
+		return "a float"
+	case STRING_DOUBLE_QUOTE:
+		return "a string"
+	case STRING_SINGLE_QUOTE:
+		return "a string"
+	case RAW_STRING:
+		return "a raw string"
+	case BACKTICK:
+		return "a backtick string"
+	case HEX:
+		return "a hex number"
+	case OCTAL:
+		return "an octal number"
+	case BINARY:
+		return "a binary number"
+	case UINT:
+		return "an unsigned integer"
+	case BIGINT:
+		return "a big integer"
+	case BIGFLOAT:
+		return "a big float"
+	case REGEX:
+		return "a regex"
+	case STRINGINTERP:
+		return "string interpolation"
+
+	// Special tokens
+	case IDENT:
+		return "an identifier"
+	case EOF:
+		return "end of input"
+	case ILLEGAL:
+		return "an illegal character"
+	case MULTLINE_COMMENT:
+		return "a multiline comment"
+	case DOCSTRING_COMMENT:
+		return "a doc comment"
+	case IMPORT_PATH:
+		return "an import path"
+
+	// Default: fall back to the raw type name, quoted
+	default:
+		return fmt.Sprintf("%q", t)
+	}
+}
+
+// TokenDescription returns a description suitable for error messages
+// that includes the actual token literal value. For literal tokens
+// (INT, STRING, IDENT, etc.), it shows the value so the user can see
+// exactly what was parsed. For other tokens, it returns the
+// UserFriendlyName.
+//
+// Examples:
+//
+//	INT with literal "42" → integer "42"
+//	STRING with literal "hello" → string "hello"
+//	IDENT with literal "foo" → identifier "foo"
+//	RBRACE → "}"
+func (t Type) TokenDescription(literal string) string {
+	switch t {
+	case INT, UINT, HEX, OCTAL, BINARY, BIGINT:
+		return fmt.Sprintf("integer %q", literal)
+	case FLOAT, BIGFLOAT:
+		return fmt.Sprintf("float %q", literal)
+	case STRING_DOUBLE_QUOTE, STRING_SINGLE_QUOTE, RAW_STRING, BACKTICK:
+		return fmt.Sprintf("string %q", literal)
+	case IDENT:
+		return fmt.Sprintf("identifier %q", literal)
+	case REGEX:
+		return fmt.Sprintf("regex %q", literal)
+	case EOF:
+		return "end of input"
+	case ILLEGAL:
+		return fmt.Sprintf("illegal character %q", literal)
+	default:
+		return t.UserFriendlyName()
+	}
+}

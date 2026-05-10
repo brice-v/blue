@@ -9,7 +9,6 @@ import (
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
-	"blue/repl"
 	"blue/token"
 	"blue/vm"
 	"bytes"
@@ -58,7 +57,7 @@ func lexFile(fpath string) {
 }
 
 // parseFile parses the given file
-func parseFile(fpath string) {
+func parseFile(fpath string, allErrors bool) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
 		consts.ErrorPrinter("`parseFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
@@ -67,10 +66,15 @@ func parseFile(fpath string) {
 
 	l := lexer.New(string(data), fpath)
 
-	p := parser.New(l)
+	var p *parser.Parser
+	if allErrors {
+		p = parser.New(l)
+	} else {
+		p = parser.NewWithStopAfterFirst(l)
+	}
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(out, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(out)
 		os.Exit(1)
 	}
 
@@ -79,7 +83,7 @@ func parseFile(fpath string) {
 }
 
 // evalFileOrString evaluates the given file or string if isFpath is false
-func evalFileOrString(inputOrFpath string, isFpath, noExec bool) {
+func evalFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
 	var l *lexer.Lexer
 	if isFpath {
 		data, err := os.ReadFile(inputOrFpath)
@@ -91,10 +95,15 @@ func evalFileOrString(inputOrFpath string, isFpath, noExec bool) {
 	} else {
 		l = lexer.New(inputOrFpath, "<stdin>")
 	}
-	p := parser.New(l)
+	var p *parser.Parser
+	if allErrors {
+		p = parser.New(l)
+	} else {
+		p = parser.NewWithStopAfterFirst(l)
+	}
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(out, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(out)
 		os.Exit(1)
 	}
 	object.NoExec = noExec
@@ -134,7 +143,7 @@ func evalFileOrString(inputOrFpath string, isFpath, noExec bool) {
 	// }
 }
 
-func instantiateCompiler(inputOrFpath string, isFpath bool) *compiler.Compiler {
+func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *compiler.Compiler {
 	var l *lexer.Lexer
 	if isFpath {
 		data, err := os.ReadFile(inputOrFpath)
@@ -147,10 +156,15 @@ func instantiateCompiler(inputOrFpath string, isFpath bool) *compiler.Compiler {
 		l = lexer.New(inputOrFpath, "<stdin>")
 	}
 
-	p := parser.New(l)
+	var p *parser.Parser
+	if allErrors {
+		p = parser.New(l)
+	} else {
+		p = parser.NewWithStopAfterFirst(l)
+	}
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		repl.PrintParserErrors(out, p.Errors())
+	if p.HasErrors() {
+		p.PrintParserErrors(out)
 		os.Exit(1)
 	}
 	constants := object.NewObjectConstants()
@@ -170,8 +184,8 @@ func instantiateCompiler(inputOrFpath string, isFpath bool) *compiler.Compiler {
 	return c
 }
 
-func compileFileOrString(inputOrFpath string, isFpath bool) {
-	c := instantiateCompiler(inputOrFpath, isFpath)
+func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) {
+	c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
 	offset := 0
 	for i, ins := range c.Bytecode().Instructions {
 		if ins == byte(code.OpCoreCompiled) {
@@ -182,8 +196,8 @@ func compileFileOrString(inputOrFpath string, isFpath bool) {
 	os.Exit(0)
 }
 
-func vmFileOrString(inputOrFpath string, isFpath, noExec bool) {
-	c := instantiateCompiler(inputOrFpath, isFpath)
+func vmFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
+	c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
 	globals := make([]object.Object, vm.GlobalsSize)
 	bc := c.Bytecode()
 	v := vm.NewWithGlobalsStore(bc, globals)
@@ -239,18 +253,8 @@ func getDocStringFor(name string) string {
 		l := lexer.New(string(fdata), name)
 		p := parser.New(l)
 		program := p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			for _, msg := range p.Errors() {
-				splitMsg := strings.Split(msg, "\n")
-				firstPart := fmt.Sprintf("%smodule `%s`: %s\n", consts.PARSER_ERROR_PREFIX, name, splitMsg[0])
-				consts.ErrorPrinter(firstPart)
-				for i, s := range splitMsg {
-					if i == 0 {
-						continue
-					}
-					fmt.Println(s)
-				}
-			}
+		if p.HasErrors() {
+			p.PrintParserErrors(os.Stdout)
 			os.Exit(1)
 		}
 		e.Eval(program)

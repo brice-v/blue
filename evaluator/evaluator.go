@@ -703,18 +703,8 @@ func (e *Evaluator) evalImportStatement(node *ast.ImportStatement) object.Object
 	l := lexer.New(inputStr, fpath)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		for _, msg := range p.Errors() {
-			splitMsg := strings.Split(msg, "\n")
-			firstPart := fmt.Sprintf("%s%s\n", consts.PARSER_ERROR_PREFIX, splitMsg[0])
-			consts.ErrorPrinter(firstPart)
-			for i, s := range splitMsg {
-				if i == 0 {
-					continue
-				}
-				fmt.Println(s)
-			}
-		}
+	if p.HasErrors() {
+		p.PrintParserErrors(os.Stdout)
 		return newError("%sFile '%s' contains Parser Errors.", consts.PARSER_ERROR_PREFIX, name)
 	}
 	newE := New()
@@ -969,8 +959,8 @@ func (e *Evaluator) evalListCompLiteral(node *ast.ListCompLiteral) object.Object
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	if len(p.Errors()) > 0 {
-		return newError("ListCompLiteral error: %s", strings.Join(p.Errors(), " | "))
+	if p.HasErrors() {
+		return newError("ListCompLiteral error: %s", p.JoinedErrors())
 	}
 	result := e.Eval(rootNode)
 	defer e.env.RemoveIdentifier("__internal__")
@@ -991,8 +981,8 @@ func (e *Evaluator) evalMapCompLiteral(node *ast.MapCompLiteral) object.Object {
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	if len(p.Errors()) > 0 {
-		return newError("MapCompLiteral error: %s", strings.Join(p.Errors(), " | "))
+	if p.HasErrors() {
+		return newError("MapCompLiteral error: %s", p.JoinedErrors())
 	}
 	result := e.Eval(rootNode)
 	defer e.env.RemoveIdentifier("__internal__")
@@ -1013,8 +1003,8 @@ func (e *Evaluator) evalSetCompLiteral(node *ast.SetCompLiteral) object.Object {
 	if len(rootNode.Statements) < 1 {
 		return nil
 	}
-	if len(p.Errors()) > 0 {
-		return newError("SetCompLiteral error: %s", strings.Join(p.Errors(), " | "))
+	if p.HasErrors() {
+		return newError("SetCompLiteral error: %s", p.JoinedErrors())
 	}
 	result := e.Eval(rootNode)
 	defer e.env.RemoveIdentifier("__internal__")

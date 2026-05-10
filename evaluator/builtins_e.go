@@ -36,7 +36,7 @@ func createToNumBuiltin(e *Evaluator) *object.Builtin {
 				ll := lexer.New(s, "")
 				pp := parser.New(ll)
 				prog := pp.ParseProgram()
-				if len(pp.Errors()) != 0 {
+				if pp.HasErrors() {
 					return newError("`to_num` error: failed to parse number from string '%s'", s)
 				}
 				obj := e.Eval(prog)
@@ -583,7 +583,7 @@ func createLoadBuiltin(e *Evaluator) *object.Builtin {
 					l := lexer.New(o.Value, "load")
 					p := parser.New(l)
 					prog := p.ParseProgram()
-					if len(p.Errors()) != 0 {
+					if p.HasErrors() {
 						return newError("`load` error: failed to decode function %s", o.Value)
 					}
 					obj := e.Eval(prog)

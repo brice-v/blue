@@ -2,9 +2,12 @@ package parser
 
 import (
 	"blue/ast"
+	"blue/consts"
 	"blue/lexer"
 	"blue/token"
+	"bytes"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"strconv"
@@ -100,6 +103,208 @@ var precedences = map[token.Type]int{
 	token.DOT:         INDEX,
 }
 
+type parserError struct {
+	Message        string
+	FileLineColumn string
+	PointerPos     string
+	SourceLine     string
+	LineNumber     int
+	Hints          []string
+}
+
+func parseErrorString(errStr string, lineNumber int) parserError {
+	lines := strings.SplitN(errStr, "\n", 3)
+	err := parserError{}
+	if len(lines) >= 1 {
+		err.Message = lines[0]
+	}
+	if len(lines) >= 2 {
+		posToSplit := strings.Index(lines[1], " ")
+		err.FileLineColumn = lines[1][:posToSplit]
+		err.SourceLine = lines[1][posToSplit+1:]
+		if len(lines) >= 3 {
+			pointerPos := strings.Index(lines[2], "^")
+			if pointerPos != -1 {
+				err.PointerPos = lines[2][posToSplit+1 : pointerPos+1]
+			} else {
+				err.PointerPos = "^"
+			}
+		}
+	}
+	err.LineNumber = lineNumber
+
+	return err
+}
+
+func (p *Parser) JoinedErrors() string {
+	var out bytes.Buffer
+	for _, err := range p.errors {
+		fmt.Fprintf(&out, "|%#+v|", err)
+	}
+	return out.String()
+}
+
+// hintPattern is a pattern-to-hints mapping for error suggestions.
+// Patterns are matched using strings.Contains against the error message.
+type hintPattern struct {
+	Pattern string
+	Hints   []string
+}
+
+// parserHints is the ordered list of hint patterns. Earlier entries
+// take priority when multiple patterns match the same message.
+var parserHints = []hintPattern{
+	{
+		"expected = got for",
+		[]string{"Did you mean to use '=' for assignment? e.g. val x = 42"},
+	},
+	{
+		"expected = got if",
+		[]string{"Did you mean to use '=' for assignment? e.g. val x = 42"},
+	},
+	{
+		"expected = got while",
+		[]string{"Did you mean to use '=' for assignment? e.g. val x = 42"},
+	},
+	{
+		"unexpected }",
+		[]string{"Unmatched closing brace — check for a missing '{' earlier"},
+	},
+	{
+		"expected : got }",
+		[]string{"Expected ':' after the key in a map or struct literal"},
+	},
+	{
+		"expected : got for",
+		[]string{"Expected ':' after the key in a map or struct literal"},
+	},
+	{
+		"expected : got in",
+		[]string{"Expected ':' after the key in a map or struct literal"},
+	},
+	{
+		"expected : got an",
+		[]string{"Expected ':' after the key in a map or struct literal"},
+	},
+	{
+		"expected : got a",
+		[]string{"Expected ':' after the key in a map or struct literal"},
+	},
+	{
+		"expected ) got }",
+		[]string{"Missing closing parenthesis"},
+	},
+	{
+		"expected ) got for",
+		[]string{"Missing closing parenthesis"},
+	},
+	{
+		"expected ) got while",
+		[]string{"Missing closing parenthesis"},
+	},
+	{
+		"expected , got }",
+		[]string{"Missing comma between elements"},
+	},
+	{
+		"expected ; here got }",
+		[]string{"Missing semicolon — did you forget to separate the loop parts?"},
+	},
+	{
+		"expected ; here got for",
+		[]string{"Missing semicolon — did you forget to separate the loop parts?"},
+	},
+	{
+		"expected { got }",
+		[]string{"Missing opening brace — check for a missing '{' earlier"},
+	},
+	{
+		"invalid type for destructuring",
+		[]string{"Destructuring expects identifiers or string keys, e.g. {key: value}"},
+	},
+	{
+		"struct literal keys must be unique",
+		[]string{"Each key in a struct literal must be unique"},
+	},
+	{
+		"unexpected while",
+		[]string{"blue does not have a 'while' keyword — use 'for' instead"},
+	},
+	{
+		"unexpected do",
+		[]string{"blue does not have a 'do' keyword — use 'for' instead"},
+	},
+}
+
+// lookupHints checks the error message against known patterns and
+// returns matching hints. Returns nil if no hints apply.
+func lookupHints(message string) []string {
+	for _, hp := range parserHints {
+		if strings.Contains(message, hp.Pattern) {
+			return hp.Hints
+		}
+	}
+	return nil
+}
+
+func (p *Parser) ErrorMessages() []string {
+	result := make([]string, len(p.errors))
+	for i, err := range p.errors {
+		result[i] = err.Message
+	}
+	return result
+}
+
+func (p *Parser) PrintParserErrors(out io.Writer) {
+	// First pass: count duplicates keyed by (Message, FileLineColumn)
+	// and track the index of the last occurrence of each key.
+	dedupMap := make(map[string]int)       // key -> count
+	lastOccurrence := make(map[string]int) // key -> index of last occurrence
+	for i, err := range p.errors {
+		key := err.Message + "|" + err.FileLineColumn
+		dedupMap[key]++
+		lastOccurrence[key] = i
+	}
+
+	for i, err := range p.errors {
+		key := err.Message + "|" + err.FileLineColumn
+		count := dedupMap[key]
+		isLast := i == lastOccurrence[key]
+
+		consts.ErrorPrinter("%s%s\n", consts.PARSER_ERROR_PREFIX, err.Message)
+		if err.FileLineColumn != "" {
+			fmt.Fprintf(out, "   %s\n", err.FileLineColumn)
+		}
+		if err.SourceLine != "" {
+			fmt.Fprintf(out, "    %d │ %s\n", err.LineNumber, err.SourceLine)
+			// Compute the line number prefix width so the pointer line
+			// aligns with the source content (not the line number)
+			lineNumWidth := len(fmt.Sprintf("%d", err.LineNumber))
+			prefix := "    " + strings.Repeat(" ", lineNumWidth) + " │ "
+			fmt.Fprintf(out, "%s%s", prefix, err.PointerPos)
+			if err.Message != "" {
+				fmt.Fprintf(out, " %s", err.Message)
+			}
+			fmt.Fprintln(out)
+		}
+
+		// Print hints if present
+		if len(err.Hints) > 0 {
+			for _, hint := range err.Hints {
+				fmt.Fprintf(out, "  [HINT] %s\n", hint)
+			}
+		}
+
+		// Phase 2.2: Print deduplication notice after the last occurrence
+		// of a duplicate group.
+		if count > 1 && isLast {
+			fmt.Fprintf(out, "  [%d more similar error(s) omitted]\n", count-1)
+		}
+
+		fmt.Fprintln(out)
+	}
+}
+
 // Parser is the struct containing information relevant to parsing
 type Parser struct {
 	l *lexer.Lexer
@@ -107,11 +312,17 @@ type Parser struct {
 	curToken  token.Token
 	peekToken token.Token
 
-	errors []string
+	errors []parserError
 
 	prefixParseFuns map[token.Type]prefixParseFun
 	infixParseFuns  map[token.Type]infixParseFun
 	// postfixParseFuns map[token.Type]postfixParseFun
+
+	// StopAfterFirstError causes the parser to stop immediately after
+	// the first error is encountered, preventing cascade errors.
+	StopAfterFirstError bool
+	// stopParsing is set internally when StopAfterFirstError triggers.
+	stopParsing bool
 }
 
 // helper functions at bottom
@@ -122,7 +333,7 @@ type (
 
 // New takes a lexer and returns a Parser object
 func New(l *lexer.Lexer) *Parser {
-	p := &Parser{l: l, errors: []string{}}
+	p := &Parser{l: l, errors: []parserError{}}
 
 	p.prefixParseFuns = make(map[token.Type]prefixParseFun)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
@@ -210,36 +421,43 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
+// NewWithStopAfterFirst creates a Parser that stops immediately after
+// the first error is encountered, preventing cascade errors.
+func NewWithStopAfterFirst(l *lexer.Lexer) *Parser {
+	p := New(l)
+	p.StopAfterFirstError = true
+	return p
+}
+
 // Errors returns a list of all the parser errors
-func (p *Parser) Errors() []string {
-	return p.errors
+func (p *Parser) HasErrors() bool {
+	return len(p.errors) > 0
 }
 
-// peekError is a peekToken error and will append the error
-// to the list of parser errors
-func (p *Parser) peekError(t token.Type) {
-	errorLine := lexer.GetErrorLineMessage(p.peekToken)
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead\n%s", t, p.peekToken.Type, errorLine)
-	p.errors = append(p.errors, msg)
-}
-
-func (p *Parser) peekErrorTwo(t token.Type, t2 token.Type) {
-	errorLine := lexer.GetErrorLineMessage(p.peekToken)
-	msg := fmt.Sprintf("expected next token to be %s or %s, got %s instead\n%s", t, t2, p.peekToken.Type, errorLine)
-	p.errors = append(p.errors, msg)
-}
-
-func (p *Parser) peekError2(t token.Type) {
-	errorLine := lexer.GetErrorLineMessage(p.peekToken)
-	msg := fmt.Sprintf("expected next token to be not be %s, got %s\n%s", t, p.peekToken.Type, errorLine)
-	p.errors = append(p.errors, msg)
-}
-
-// noPrefixParseFunError will append an error if no prefix parse function is found
-func (p *Parser) noPrefixParseFunError(t token.Type) {
-	errorLine := lexer.GetErrorLineMessage(p.curToken)
-	msg := fmt.Sprintf("no prefix parse function for %s found\n%s", t, errorLine)
-	p.errors = append(p.errors, msg)
+// error is a unified error method that appends a formatted error
+// message to the parser's error list. It uses UserFriendlyName() for
+// token types so error messages display human-readable names like '}'
+// instead of raw token constants like RBRACE.
+//
+// The errorLine parameter determines which token's context to include:
+//   - "peek" uses p.peekToken (for "expected next token" messages)
+//   - "cur" uses p.curToken (for "got" messages)
+//   - "tok" uses the provided token
+//
+// If StopAfterFirstError is true, this also sets stopParsing to signal
+// that parsing should halt after the current call returns.
+//
+// Hints are automatically attached based on the error message content.
+func (p *Parser) error(msg string, tokenContext token.Token) {
+	errorLine := lexer.GetErrorLineMessage(tokenContext)
+	fullMsg := msg + "\n" + errorLine
+	pe := parseErrorString(fullMsg, tokenContext.LineNumber)
+	// Attach contextual hints based on the error message
+	pe.Hints = lookupHints(msg)
+	p.errors = append(p.errors, pe)
+	if p.StopAfterFirstError {
+		p.stopParsing = true
+	}
 }
 
 // nextToken is a helper function to advance the tokens
@@ -273,10 +491,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	for {
 		tok = lcpy.NextToken()
 		if tok.Type == token.ILLEGAL {
-			errorLine := lexer.GetErrorLineMessage(tok)
-			msg := fmt.Sprintf("%s token encountered. got=%q\n%s", tok.Type, tok.Literal, errorLine)
-			p.errors = append(p.errors, msg)
-			return nil
+			p.error(fmt.Sprintf("%s token encountered. got=%q", tok.Type, tok.Literal), tok)
 		}
 		if tok.Type == token.EOF {
 			break
@@ -284,6 +499,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 	}
 
 	for !p.curTokenIs(token.EOF) {
+		if p.stopParsing {
+			break
+		}
 		if p.curTokenIs(token.HASH) || p.curTokenIs(token.MULTLINE_COMMENT) {
 			p.nextToken()
 			if p.curTokenIs(token.EOF) {
@@ -310,6 +528,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 // parseStatement will parse any potential statement nodes and
 // return a statement node otherwise nil
 func (p *Parser) parseStatement() ast.Statement {
+	if p.stopParsing {
+		return nil
+	}
 	switch p.curToken.Type {
 	case token.VAR:
 		return p.parseVarStatement()
@@ -358,9 +579,7 @@ func (p *Parser) parseDestructorIdents(isMapDestructor, isListDestructor bool) (
 				_, ok1 := keyExp.(*ast.Identifier)
 				_, ok2 := keyExp.(*ast.StringLiteral)
 				if !ok1 && !ok2 {
-					errorLine := lexer.GetErrorLineMessage(p.peekToken)
-					msg := fmt.Sprintf("invalid type for destructuring found=%T\n%s", keyExp, errorLine)
-					p.errors = append(p.errors, msg)
+					p.error(fmt.Sprintf("invalid type for destructuring, expected identifier or string got %T instead", keyExp), p.peekToken)
 					return nil, nil, true
 				}
 				// Skip key exp
@@ -374,9 +593,7 @@ func (p *Parser) parseDestructorIdents(isMapDestructor, isListDestructor bool) (
 				if isIdent {
 					kvNames[keyExp] = ident
 				} else {
-					errorLine := lexer.GetErrorLineMessage(p.peekToken)
-					msg := fmt.Sprintf("invalid type for destructuring found=%T\n%s", keyExp, errorLine)
-					p.errors = append(p.errors, msg)
+					p.error(fmt.Sprintf("invalid type for destructuring, expected identifier or string got %T instead", keyExp), p.peekToken)
 					return nil, nil, true
 				}
 			}
@@ -398,9 +615,7 @@ func (p *Parser) parseDestructorIdents(isMapDestructor, isListDestructor bool) (
 			p.nextToken()
 		}
 	} else {
-		errorLine := lexer.GetErrorLineMessage(p.peekToken)
-		msg := fmt.Sprintf("destructing needs to be used with [ or { as first token\n%s", errorLine)
-		p.errors = append(p.errors, msg)
+		p.error("destructuring needs to be used with [ or { as first token", p.peekToken)
 		return nil, nil, true
 	}
 	return names, kvNames, false
@@ -434,7 +649,7 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 		}
 	} else {
 		if !p.peekTokenIsAssignmentToken() {
-			p.peekError(token.ASSIGN)
+			p.error(fmt.Sprintf("expected '%s' got %s instead", token.ASSIGN.UserFriendlyName(), p.peekToken.Type.UserFriendlyName()), p.peekToken)
 			return nil
 		}
 		if p.peekTokenIsAssignmentToken() {
@@ -539,7 +754,7 @@ func (p *Parser) parseFunctionLiteralStatement() *ast.FunctionStatement {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFuns[p.curToken.Type]
 	if prefix == nil {
-		p.noPrefixParseFunError(p.curToken.Type)
+		p.error(fmt.Sprintf("unexpected %s", p.curToken.Literal), p.curToken)
 		return nil
 	}
 	leftExp := prefix()
@@ -587,9 +802,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 			bigLit.Value = bigValue
 			return bigLit
 		}
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as an integer\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.INT.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	lit.Value = value
@@ -632,9 +845,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 		bigLit.Value = *maybeDecimal
 		return bigLit
 	}
-	errorLine := lexer.GetErrorLineMessage(p.curToken)
-	msg := fmt.Sprintf("could not parse %q as a float\n%s", p.curToken.Literal, errorLine)
-	p.errors = append(p.errors, msg)
+	p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.FLOAT.UserFriendlyName()), p.curToken)
 	return nil
 }
 
@@ -645,9 +856,7 @@ func (p *Parser) parseHexLiteral() ast.Expression {
 	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0x", "")
 	value, err := strconv.ParseUint(tokenLiteral, 16, 64)
 	if err != nil {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.HEX.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	lit.Value = value
@@ -661,9 +870,7 @@ func (p *Parser) parseOctalLiteral() ast.Expression {
 	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0o", "")
 	value, err := strconv.ParseUint(tokenLiteral, 8, 64)
 	if err != nil {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.OCTAL.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	lit.Value = value
@@ -677,9 +884,7 @@ func (p *Parser) parseBinaryLiteral() ast.Expression {
 	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0b", "")
 	value, err := strconv.ParseUint(tokenLiteral, 2, 64)
 	if err != nil {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.BINARY.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	lit.Value = value
@@ -693,9 +898,7 @@ func (p *Parser) parseUIntegerLiteral() ast.Expression {
 	tokenLiteral = strings.ReplaceAll(tokenLiteral, "0u", "")
 	value, err := strconv.ParseUint(tokenLiteral, 10, 64)
 	if err != nil {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as an unsigned integer\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.UINT.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	lit.Value = value
@@ -710,9 +913,7 @@ func (p *Parser) parseBigIntegerLiteral() ast.Expression {
 	bi := new(big.Int)
 	value, ok := bi.SetString(tokenLiteral, 10)
 	if !ok {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as a big integer\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.BIGINT.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	lit.Value = value
@@ -726,9 +927,7 @@ func (p *Parser) parseBigFloatLiteral() ast.Expression {
 	tokenLiteral = strings.ReplaceAll(tokenLiteral, "n", "")
 	value, err := decimal.NewFromString(tokenLiteral)
 	if err != nil {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("could not parse %q as a big float\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("could not parse %q as %s", p.curToken.Literal, token.BIGFLOAT.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	lit.Value = value
@@ -793,9 +992,7 @@ func (p *Parser) parseEvalExpression() ast.Expression {
 	strToEvalExpression := p.parseExpression(LOWEST)
 	ee.StrToEval = strToEvalExpression
 	if !p.curTokenIs(token.RPAREN) {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("token after EvalExpression is not ), got %s instead\n%s", p.curToken.Literal, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	if p.peekTokenIs(token.SEMICOLON) {
@@ -868,17 +1065,13 @@ func (p *Parser) parseFromStatement() ast.Statement {
 	// Because we want to use {} we now do this via parseMapOrSet and hope its a set of idents
 	list := p.parseMapOrSetLiteral()
 	if _, ok := list.(*ast.SetLiteral); !ok {
-		errorLine := lexer.GetErrorLineMessage(savedPoint)
-		msg := fmt.Sprintf("brackets should be used to import multiple identifiers, found type %T\n%s", list, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("expected {brackets} to import multiple identifiers got %T instead", list), savedPoint)
 		return nil
 	}
 	for _, e := range list.(*ast.SetLiteral).Elements {
 		v, ok := e.(*ast.Identifier)
 		if !ok {
-			errorLine := lexer.GetErrorLineMessage(savedPoint)
-			msg := fmt.Sprintf("expected all import elements to be *ast.Identifer, found %s\n%s", v, errorLine)
-			p.errors = append(p.errors, msg)
+			p.error(fmt.Sprintf("expected import elements to be identifiers got %s instead", v), savedPoint)
 			return nil
 		}
 		stmt.IdentsToImport = append(stmt.IdentsToImport, v)
@@ -1050,9 +1243,11 @@ func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression)
 		identifiers = append(identifiers, ident)
 		defaultParameters = append(defaultParameters, nil)
 	default:
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("expected assignment expression or identifier. got=%T\n%s", val, errorLine)
-		p.errors = append(p.errors, msg)
+		if val == nil {
+			p.error(fmt.Sprintf("expected %s or identifier got <nil> instead", token.IDENT.UserFriendlyName()), p.curToken)
+		} else {
+			p.error(fmt.Sprintf("expected %s or identifier got %q instead", token.IDENT.UserFriendlyName(), val.String()), p.curToken)
+		}
 		return nil, nil
 	}
 
@@ -1071,9 +1266,11 @@ func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression)
 			identifiers = append(identifiers, ident)
 			defaultParameters = append(defaultParameters, nil)
 		default:
-			errorLine := lexer.GetErrorLineMessage(p.curToken)
-			msg := fmt.Sprintf("expected assignment expression or identifier. got=%T\n%s", val, errorLine)
-			p.errors = append(p.errors, msg)
+			if val == nil {
+				p.error(fmt.Sprintf("expected %s or identifier got <nil> instead", token.IDENT.UserFriendlyName()), p.curToken)
+			} else {
+				p.error(fmt.Sprintf("expected %s or identifier got %s instead", token.IDENT.UserFriendlyName(), val.String()), p.curToken)
+			}
 			return nil, nil
 		}
 	}
@@ -1098,9 +1295,7 @@ func (p *Parser) parseLambdaLiteral() ast.Expression {
 		return lit
 	}
 	if !p.curTokenIs(token.RARROW) {
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("expected current token to be %s, got %s instead\n%s", token.RARROW, p.curToken.Type, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.RARROW.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	p.nextToken()
@@ -1199,9 +1394,7 @@ func (p *Parser) parseSetLiteral(firstTok token.Token, firstExp ast.Expression) 
 	exp := &ast.SetLiteral{Token: firstTok}
 	exp.Elements = []ast.Expression{firstExp}
 	if !p.peekTokenIs(token.COMMA) && !p.peekTokenIs(token.RBRACE) {
-		errorLine := lexer.GetErrorLineMessage(p.peekToken)
-		msg := fmt.Sprintf("expected next token to be %s or %s, got %s instead\n%s", token.COMMA, token.RBRACE, p.peekToken.Type, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("expected %s or %s got %s instead", token.COMMA.UserFriendlyName(), token.RBRACE.UserFriendlyName(), p.peekToken.Type.UserFriendlyName()), p.peekToken)
 		return nil
 	}
 	if p.peekTokenIs(token.COMMA) {
@@ -1355,7 +1548,7 @@ func (p *Parser) parseMemberAccessExpression(left ast.Expression) ast.Expression
 		indxExp := &ast.IndexExpression{Token: dotTok, Left: left, Index: indx}
 		return indxExp
 	} else {
-		p.peekError(token.INT)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.INT.UserFriendlyName(), p.peekToken.Type.UserFriendlyName()), p.peekToken)
 		return nil
 	}
 }
@@ -1379,7 +1572,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 		}
 		exp.Initializer = p.parseVarStatement()
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1388,7 +1581,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 			return nil
 		}
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1401,7 +1594,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 	}
 
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
-		p.peekError(p.curToken.Type)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	if !p.expectPeekIs(token.LBRACE) {
@@ -1419,9 +1612,7 @@ func (p *Parser) parseAssignmentExpression(exp ast.Expression) ast.Expression {
 	switch node := exp.(type) {
 	case *ast.Identifier, *ast.IndexExpression:
 	default:
-		errorLine := lexer.GetErrorLineMessage(p.curToken)
-		msg := fmt.Sprintf("expected identifier or index expression on left but got %T %#v\n%s", node, exp, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("expected identifier or index expression on left got %T instead", node), p.curToken)
 		return nil
 	}
 
@@ -1475,7 +1666,7 @@ func (p *Parser) parseTryCatchBlock() *ast.TryCatchStatement {
 	var catchBlock *ast.BlockStatement
 	var finallyBlock *ast.BlockStatement
 	if !p.peekTokenIs(token.CATCH) && !p.peekTokenIs(token.FINALLY) {
-		p.peekErrorTwo(token.CATCH, token.FINALLY)
+		p.error(fmt.Sprintf("expected %s or %s got %s instead", token.CATCH.UserFriendlyName(), token.FINALLY.UserFriendlyName(), p.peekToken.Type.UserFriendlyName()), p.peekToken)
 		return nil
 	}
 	if p.peekTokenIs(token.CATCH) {
@@ -1560,7 +1751,7 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 	if !skipEndPeek && !p.expectPeekIs(end) {
 		return nil, nil
 	} else if skipEndPeek && !p.curTokenIs(end) {
-		p.peekError(p.curToken.Type)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil, nil
 	}
 
@@ -1589,7 +1780,7 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 		}
 		varStmt := p.parseVarStatement()
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1598,7 +1789,7 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 			return nil
 		}
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1613,10 +1804,10 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 	}
 
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
-		p.peekError(token.RPAREN)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
-		p.peekError2(token.RPAREN)
+		p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	if p.peekTokenIs(token.RPAREN) {
@@ -1666,7 +1857,7 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 		}
 		varStmt := p.parseVarStatement()
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1675,7 +1866,7 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 			return nil
 		}
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1690,10 +1881,10 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 	}
 
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
-		p.peekError(token.RPAREN)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
-		p.peekError2(token.RPAREN)
+		p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	if p.peekTokenIs(token.RPAREN) {
@@ -1744,7 +1935,7 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 		}
 		varStmt := p.parseVarStatement()
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1753,7 +1944,7 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 			return nil
 		}
 		if !p.curTokenIs(token.SEMICOLON) {
-			p.peekError2(token.SEMICOLON)
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
 		p.nextToken()
@@ -1768,10 +1959,10 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 	}
 
 	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
-		p.peekError(token.RPAREN)
+		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
-		p.peekError2(token.RPAREN)
+		p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
 	}
 	if p.peekTokenIs(token.RPAREN) {
@@ -1865,9 +2056,7 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 			for {
 				tok = lcpy.NextToken()
 				if tok.Type == token.ILLEGAL {
-					errorLine := lexer.GetErrorLineMessage(tok)
-					msg := fmt.Sprintf("%s token encountered. got=%q\n%s", tok.Type, tok.Literal, errorLine)
-					p.errors = append(p.errors, msg)
+					p.error(fmt.Sprintf("%s token encountered. got=%q", tok.Type, tok.Literal), tok)
 				}
 				if tok.Type == token.EOF {
 					break
@@ -1909,17 +2098,14 @@ func (p *Parser) expectPeekIs(t token.Type) bool {
 		p.nextToken()
 		return true
 	}
-	// create a peek error
-	p.peekError(t)
+	// create a peek error using the unified error method
+	p.error(fmt.Sprintf("expected %s got %s instead", t.UserFriendlyName(), p.peekToken.Type.UserFriendlyName()), p.peekToken)
 	return false
 }
 
 func (p *Parser) expectIdentIsUnique(key *ast.Identifier, keys map[string]struct{}) bool {
 	if _, ok := keys[key.Value]; ok {
-		errorLine := lexer.GetErrorLineMessage(key.Token)
-		msg := fmt.Sprintf("struct literal keys must be unique, current identifer %s\n%s",
-			key.Value, errorLine)
-		p.errors = append(p.errors, msg)
+		p.error(fmt.Sprintf("struct literal keys must be unique, current identifier %s", key.Value), key.Token)
 		return false
 	} else {
 		keys[key.Value] = struct{}{}

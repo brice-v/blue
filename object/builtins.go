@@ -1424,7 +1424,7 @@ var Builtins = []*Builtin{
 			p := parser.New(l)
 			program := p.ParseProgram()
 			// Should be no errors once float parsing supported
-			if len(p.Errors()) > 0 {
+			if p.HasErrors() {
 				return newError("`from_json` error: failed to parse json string `%s`", s)
 			}
 			// Should only be 1 statement

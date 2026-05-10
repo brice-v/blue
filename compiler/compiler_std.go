@@ -10,6 +10,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -52,18 +53,8 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		l := lexer.New(fb.File, "<std/"+name+".b>")
 		p := parser.New(l)
 		fb.ParsedProgram = p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			for _, msg := range p.Errors() {
-				splitMsg := strings.Split(msg, "\n")
-				firstPart := fmt.Sprintf("%s%s\n", consts.PARSER_ERROR_PREFIX, splitMsg[0])
-				consts.ErrorPrinter(firstPart)
-				for i, s := range splitMsg {
-					if i == 0 {
-						continue
-					}
-					fmt.Println(s)
-				}
-			}
+		if p.HasErrors() {
+			p.PrintParserErrors(os.Stdout)
 			return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 		}
 	}

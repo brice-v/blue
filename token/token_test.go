@@ -416,3 +416,262 @@ func TestTokenKeywordsNotOperators(t *testing.T) {
 		}
 	}
 }
+
+// UserFriendlyName tests
+
+func TestUserFriendlyNameDelimiters(t *testing.T) {
+	tests := []struct {
+		token    Type
+		expected string
+	}{
+		{LBRACE, "{"},
+		{RBRACE, "}"},
+		{LPAREN, "("},
+		{RPAREN, ")"},
+		{LBRACKET, "["},
+		{RBRACKET, "]"},
+	}
+
+	for _, tt := range tests {
+		result := tt.token.UserFriendlyName()
+		if result != tt.expected {
+			t.Errorf("%s.UserFriendlyName() = %q, want %q", tt.token, result, tt.expected)
+		}
+	}
+}
+
+func TestUserFriendlyNameOperators(t *testing.T) {
+	tests := []struct {
+		token    Type
+		expected string
+	}{
+		{PLUS, "+"},
+		{MINUS, "-"},
+		{STAR, "*"},
+		{FSLASH, "/"},
+		{POW, "**"},
+		{PERCENT, "%"},
+		{EQ, "=="},
+		{NEQ, "!="},
+		{LT, "<"},
+		{GT, ">"},
+		{LTEQ, "<="},
+		{GTEQ, ">="},
+		{RARROW, "=>"},
+		{COMMA, ","},
+		{COLON, ":"},
+		{SEMICOLON, ";"},
+		{DOT, "."},
+		{PIPE, "|"},
+		{HASH, "#"},
+		{HAT, "^"},
+		{AMPERSAND, "&"},
+		{TILDE, "~"},
+		{BANG, "!"},
+		{ASSIGN, "="},
+		{RANGE, ".."},
+		{FDIV, "//"},
+		{RSHIFT, ">>"},
+		{LSHIFT, "<<"},
+		{POWEQ, "**="},
+		{FDIVEQ, "//="},
+		{RSHIFTEQ, ">>="},
+		{LSHIFTEQ, "<<="},
+		{MULEQ, "*="},
+		{PLUSEQ, "+="},
+		{MINUSEQ, "-="},
+		{DIVEQ, "/="},
+		{PERCENTEQ, "%="},
+		{ANDANDEQ, "&&="},
+		{OROREQ, "||="},
+		{ANDEQ, "&="},
+		{OREQ, "|="},
+		{BINNOTEQ, "~="},
+		{XOREQ, "^="},
+		{NONINCRANGE, "..<"},
+		{ATLBRACE, "@{"},
+		{ELLIPSE, "..."},
+	}
+
+	for _, tt := range tests {
+		result := tt.token.UserFriendlyName()
+		if result != tt.expected {
+			t.Errorf("%s.UserFriendlyName() = %q, want %q", tt.token, result, tt.expected)
+		}
+	}
+}
+
+func TestUserFriendlyNameKeywords(t *testing.T) {
+	tests := []struct {
+		token    Type
+		expected string
+	}{
+		{VAR, "var"},
+		{VAL, "val"},
+		{FUNCTION, "fun"},
+		{IF, "if"},
+		{ELSE, "else"},
+		{FOR, "for"},
+		{IN, "in"},
+		{NOTIN, "notin"},
+		{RETURN, "return"},
+		{BREAK, "break"},
+		{CONTINUE, "continue"},
+		{TRY, "try"},
+		{CATCH, "catch"},
+		{FINALLY, "finally"},
+		{MATCH, "match"},
+		{IMPORT, "import"},
+		{FROM, "from"},
+		{AS, "as"},
+		{TRUE, "true"},
+		{FALSE, "false"},
+		{NULL_KW, "null"},
+		{SPAWN, "spawn"},
+		{DEFER, "defer"},
+		{SELF, "self"},
+		{EVAL, "eval"},
+		{CONST, "const"},
+		{AND, "and"},
+		{OR, "or"},
+		{NOT, "not"},
+	}
+
+	for _, tt := range tests {
+		result := tt.token.UserFriendlyName()
+		if result != tt.expected {
+			t.Errorf("%s.UserFriendlyName() = %q, want %q", tt.token, result, tt.expected)
+		}
+	}
+}
+
+func TestUserFriendlyNameLiterals(t *testing.T) {
+	tests := []struct {
+		token    Type
+		expected string
+	}{
+		{INT, "an integer"},
+		{FLOAT, "a float"},
+		{STRING_DOUBLE_QUOTE, "a string"},
+		{STRING_SINGLE_QUOTE, "a string"},
+		{RAW_STRING, "a raw string"},
+		{BACKTICK, "a backtick string"},
+		{HEX, "a hex number"},
+		{OCTAL, "an octal number"},
+		{BINARY, "a binary number"},
+		{UINT, "an unsigned integer"},
+		{BIGINT, "a big integer"},
+		{BIGFLOAT, "a big float"},
+		{REGEX, "a regex"},
+		{STRINGINTERP, "string interpolation"},
+	}
+
+	for _, tt := range tests {
+		result := tt.token.UserFriendlyName()
+		if result != tt.expected {
+			t.Errorf("%s.UserFriendlyName() = %q, want %q", tt.token, result, tt.expected)
+		}
+	}
+}
+
+func TestUserFriendlyNameSpecial(t *testing.T) {
+	tests := []struct {
+		token    Type
+		expected string
+	}{
+		{IDENT, "an identifier"},
+		{EOF, "end of input"},
+		{ILLEGAL, "an illegal character"},
+		{MULTLINE_COMMENT, "a multiline comment"},
+		{DOCSTRING_COMMENT, "a doc comment"},
+		{IMPORT_PATH, "an import path"},
+	}
+
+	for _, tt := range tests {
+		result := tt.token.UserFriendlyName()
+		if result != tt.expected {
+			t.Errorf("%s.UserFriendlyName() = %q, want %q", tt.token, result, tt.expected)
+		}
+	}
+}
+
+func TestUserFriendlyNameDefault(t *testing.T) {
+	// Test that unknown/undefined token types fall back to quoted name
+	unknown := Type("UNKNOWN_TOKEN_TYPE")
+	result := unknown.UserFriendlyName()
+	if result != `"UNKNOWN_TOKEN_TYPE"` {
+		t.Errorf("unknown token.UserFriendlyName() = %q, want %q", result, `"UNKNOWN_TOKEN_TYPE"`)
+	}
+}
+
+// TokenDescription tests
+
+func TestTokenDescriptionLiterals(t *testing.T) {
+	tests := []struct {
+		token    Type
+		literal  string
+		expected string
+	}{
+		{INT, "42", `integer "42"`},
+		{INT, "-123", `integer "-123"`},
+		{UINT, "42", `integer "42"`},
+		{HEX, "0xff", `integer "0xff"`},
+		{OCTAL, "0o77", `integer "0o77"`},
+		{BINARY, "0b1010", `integer "0b1010"`},
+		{BIGINT, "99999999999999999999", `integer "99999999999999999999"`},
+		{FLOAT, "3.14", `float "3.14"`},
+		{BIGFLOAT, "1.7976931348623157e+308", `float "1.7976931348623157e+308"`},
+		{STRING_DOUBLE_QUOTE, "hello", `string "hello"`},
+		{STRING_SINGLE_QUOTE, "hello", `string "hello"`},
+		{RAW_STRING, "raw text", `string "raw text"`},
+		{BACKTICK, "shell command", `string "shell command"`},
+		{IDENT, "foo", `identifier "foo"`},
+		{IDENT, "myVar123", `identifier "myVar123"`},
+		{REGEX, "[a-z]+", `regex "[a-z]+"`},
+		{ILLEGAL, "@", `illegal character "@"`},
+	}
+
+	for _, tt := range tests {
+		result := tt.token.TokenDescription(tt.literal)
+		if result != tt.expected {
+			t.Errorf("%s.TokenDescription(%q) = %q, want %q", tt.token, tt.literal, result, tt.expected)
+		}
+	}
+}
+
+func TestTokenDescriptionEOF(t *testing.T) {
+	result := EOF.TokenDescription("")
+	if result != "end of input" {
+		t.Errorf("EOF.TokenDescription(\"\") = %q, want %q", result, "end of input")
+	}
+}
+
+func TestTokenDescriptionNonLiteral(t *testing.T) {
+	// For non-literal tokens, TokenDescription should return UserFriendlyName
+	tests := []struct {
+		token    Type
+		expected string
+	}{
+		{RBRACE, "}"},
+		{FOR, "for"},
+		{PLUS, "+"},
+		{COMMA, ","},
+		{LPAREN, "("},
+		{IDENT, "foo"}, // even IDENT with a literal value should use the literal form
+	}
+
+	for _, tt := range tests {
+		result := tt.token.TokenDescription("any")
+		// IDENT is handled specially (shows literal), so skip it
+		if tt.token == IDENT {
+			expected := `identifier "any"`
+			if result != expected {
+				t.Errorf("%s.TokenDescription(\"any\") = %q, want %q", tt.token, result, expected)
+			}
+			continue
+		}
+		if result != tt.expected {
+			t.Errorf("%s.TokenDescription(\"any\") = %q, want %q", tt.token, result, tt.expected)
+		}
+	}
+}

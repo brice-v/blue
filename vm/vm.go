@@ -1338,9 +1338,8 @@ func vmStr(s string) object.Object {
 	l := lexer.New(s, "<internal: string>")
 	p := parser.New(l)
 	prog := p.ParseProgram()
-	pErrors := p.Errors()
-	if len(pErrors) != 0 {
-		return newError("failed to `eval` string, found '%d' parser errors", len(pErrors))
+	if p.HasErrors() {
+		return newError("failed to `eval` string, found '%d' parser errors", len(p.ErrorMessages()))
 	}
 	c := compiler.New()
 	err := c.Compile(prog)
