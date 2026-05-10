@@ -29,10 +29,10 @@ assert(blockResult == 6)
 
 # IIFE returning function
 val getter = fun() {
-    var counter = 0
+    var x = {counter: 0}
     return fun() {
-        counter += 1
-        counter
+        x.counter += 1
+        x.counter
     }
 }()
 assert(getter() == 1)
@@ -108,10 +108,19 @@ val safe = fun() {
     try {
         error("test")
     } catch (e) {
-        "caught"
+        return "caught";
     }
 }()
 assert(safe == "caught")
+
+val safe1 = fun() {
+    try {
+        error("test")
+    } catch (e) {
+        "caught";
+    }
+}()
+assert(safe1 == null);
 
 # IIFE with for loop
 var total = 0

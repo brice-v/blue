@@ -1,5 +1,17 @@
 TODO:
 
+- [ ] Would be good to have an error hint for this pattern
+    - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
+    - In this scenario the bool side is evaluated first and set | bool is not valid
+- [ ] Support nested comprehensions
+- [ ] Support > < for strings 
+- Struct Improvements/Fixes
+    - [ ] Allow structs to be matched against
+    - [ ] Allow blue struct with int/float/etc. field names?
+    - [ ] When blue struct field name matches a var that is used in scope, can this work?
+    - [ ] Support Struct in list comprehension?
+- [ ] Support not needing Trailing comma in match expression
+
 - [ ] Cache Empty string object and small ints maybe?
 - [ ] Add dis() builtin function to disassemble function inline
 - [ ] Dont necessarily need to return builtin for builtins that require vm reference

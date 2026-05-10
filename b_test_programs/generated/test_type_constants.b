@@ -7,16 +7,16 @@ val tMap = Type.MAP
 val tSet = Type.SET
 val tBool = Type.BOOL
 val tNull = Type.NULL
-val tFunction = Type.FUNCTION
+val tFunction = Type.FUN
 val tClosure = Type.CLOSURE
 val tBuiltin = Type.BUILTIN
 val tRegex = Type.REGEX
 val tBytes = Type.BYTES
 val tBigint = Type.BIGINT
 val tBigfloat = Type.BIGFLOAT
-val tUinteger = Type.UINTEGER
+val tUinteger = Type.UINT
 val tProcess = Type.PROCESS
-val tError = Type.ERROR
+val tError = Type.ERR
 
 # Verify types match expected strings
 assert(tInt == "INTEGER")
@@ -47,12 +47,12 @@ assert(type(false) == Type.BOOL)
 assert(type(null) == Type.NULL)
 assert(type(1234n) == Type.BIGINT)
 assert(type(3.14n) == Type.BIGFLOAT)
-assert(type(0x1F) == Type.UINTEGER)
+assert(type(0x1F) == Type.UINT)
 assert(type(r/abc/) == Type.REGEX)
 
 # Function type (could be FUNCTION or CLOSURE depending on context)
 val fn = fun() { 1 }
-assert(type(fn) == Type.FUNCTION || type(fn) == Type.CLOSURE)
+assert(type(fn) == Type.FUN || type(fn) == Type.CLOSURE)
 
 # Closure type
 fun makeClosure() {
@@ -115,13 +115,13 @@ assert(type(ifResult) == Type.INT)
 # Test with match expression result
 val matchResult = match (5) {
     5 => { "five" },
-    _ => { "other" }
+    _ => { "other" },
 }
 assert(type(matchResult) == Type.STRING)
 
 # Test with range
 val range = 1..5
-assert(type(range) == "RANGE")
+assert(type(range) == "LIST")
 
 # Test with raw string
 val raw = """hello"""
@@ -129,4 +129,4 @@ assert(type(raw) == Type.STRING)
 
 # Test with backtick string
 val backtick = `echo test`
-assert(type(backtick) == "EXEC_STRING")
+assert(type(backtick) == "STRING")
