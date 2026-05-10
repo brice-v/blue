@@ -152,6 +152,9 @@ The commands are:
     parse   start the parser repl or parse the given file
             (converts the file to an inspectable AST
             without node names)
+            --all-parser-errors  show all parser errors 
+                                 instead of stopping at
+                                 the first one
     bundle  bundle the given file into a go executable
             with the runtime included
             (bundle accepts a '-d' flag for debugging)
@@ -160,11 +163,15 @@ The commands are:
             functions in the given filepath or module
             note: the file/module will be evaluated to gather
             all functions - so any side effects may take place
-    vm      starts the vm repl if no other arguments passed in
-            if a string is passed in, it is compiled and run
-            by the vm, otherwise it is assumed to be a file and
-            compiled and run
-    compile compiles the given string or file passed in
+    vm      run the given string or file through the VM
+            --all-parser-errors  show all parser errors 
+                                 instead of stopping at
+                                 the first one
+            --no-exec             do not allow exec'ing programs
+    compile compiles the given string or file to bytecode
+            --all-parser-errors  show all parser errors 
+                                 instead of stopping at
+                                 the first one
     help    prints this help message
     version prints the current version
 
