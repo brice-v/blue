@@ -30,7 +30,7 @@ import name.foo.bar`
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -98,7 +98,7 @@ func TestNextToken1(t *testing.T) {
 		{token.SEMICOLON, ";"},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -138,7 +138,7 @@ func TestNextToken2(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -182,7 +182,7 @@ func TestNextToken3(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -217,7 +217,7 @@ func TestNextToken4(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -256,7 +256,7 @@ func TestNextToken5(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -318,7 +318,7 @@ func TestNextTokenMulti(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -359,7 +359,7 @@ func TestNextTokenMulti1(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -387,7 +387,7 @@ func testNextTokenBacktick(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -433,7 +433,7 @@ func TestNextTokenNumbers(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -467,7 +467,7 @@ func TestNextTokenNewKeywords(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -507,7 +507,7 @@ func TestNextTokenNewKeywords(t *testing.T) {
 // 		{token.EOF, ""},
 // 	}
 
-// 	l := New(input, "<internal: test>")
+// 	l := New(input, "<internal:test>")
 
 // 	for i, tt := range tests {
 // 		tok := l.NextToken()
@@ -540,7 +540,7 @@ func TestNextTokenStrings(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -570,7 +570,7 @@ func TestUnicodeIdentifiers(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -609,7 +609,7 @@ func TestTryCatchStatement(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -639,7 +639,7 @@ func TestEvalExpression(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -671,7 +671,7 @@ func TestVarWithNum(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -690,7 +690,7 @@ func TestVarWithNum(t *testing.T) {
 
 func TestNextTokenEscapeNewline(t *testing.T) {
 	input := `"hello\nworld"`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_DOUBLE_QUOTE {
 		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
@@ -702,7 +702,7 @@ func TestNextTokenEscapeNewline(t *testing.T) {
 
 func TestNextTokenEscapeCarriageReturn(t *testing.T) {
 	input := `"hello\rworld"`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_DOUBLE_QUOTE {
 		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
@@ -714,7 +714,7 @@ func TestNextTokenEscapeCarriageReturn(t *testing.T) {
 
 func TestNextTokenEscapeTab(t *testing.T) {
 	input := `"hello\tworld"`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_DOUBLE_QUOTE {
 		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
@@ -726,7 +726,7 @@ func TestNextTokenEscapeTab(t *testing.T) {
 
 func TestNextTokenEscapeBackslash(t *testing.T) {
 	input := `"hello\\world"`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_DOUBLE_QUOTE {
 		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
@@ -738,7 +738,7 @@ func TestNextTokenEscapeBackslash(t *testing.T) {
 
 func TestNextTokenEscapeQuote(t *testing.T) {
 	input := `"say \"hi\""`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_DOUBLE_QUOTE {
 		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
@@ -750,7 +750,7 @@ func TestNextTokenEscapeQuote(t *testing.T) {
 
 func TestNextTokenEscapeHex(t *testing.T) {
 	input := `"\x41"`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_DOUBLE_QUOTE {
 		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
@@ -762,7 +762,7 @@ func TestNextTokenEscapeHex(t *testing.T) {
 
 func TestNextTokenUnfinishedString(t *testing.T) {
 	input := `"hello`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.ILLEGAL {
 		t.Fatalf("expected ILLEGAL for unterminated string, got %v", tok.Type)
@@ -771,7 +771,7 @@ func TestNextTokenUnfinishedString(t *testing.T) {
 
 func TestNextTokenUnfinishedSingleQuoteString(t *testing.T) {
 	input := `'hello`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.ILLEGAL {
 		t.Fatalf("expected ILLEGAL for unterminated single quote string, got %v", tok.Type)
@@ -780,7 +780,7 @@ func TestNextTokenUnfinishedSingleQuoteString(t *testing.T) {
 
 func TestNextTokenRegex(t *testing.T) {
 	input := `r/^[a-z]+$/`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.REGEX {
 		t.Fatalf("expected REGEX, got %v", tok.Type)
@@ -792,7 +792,7 @@ func TestNextTokenRegex(t *testing.T) {
 
 func TestNextTokenRegexWithEscapedSlash(t *testing.T) {
 	input := `r/\/test/`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.REGEX {
 		t.Fatalf("expected REGEX, got %v", tok.Type)
@@ -804,7 +804,7 @@ func TestNextTokenRegexWithEscapedSlash(t *testing.T) {
 
 func TestNextTokenRegexUnfinished(t *testing.T) {
 	input := `r/unclosed`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.ILLEGAL {
 		t.Fatalf("expected ILLEGAL for unterminated regex, got %v", tok.Type)
@@ -813,7 +813,7 @@ func TestNextTokenRegexUnfinished(t *testing.T) {
 
 func TestNextTokenBigInt(t *testing.T) {
 	input := `123456789012345678901234567890n`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.BIGINT {
 		t.Fatalf("expected BIGINT, got %v", tok.Type)
@@ -825,7 +825,7 @@ func TestNextTokenBigInt(t *testing.T) {
 
 func TestNextTokenBigFloat(t *testing.T) {
 	input := `12345678901234567890.1234567890n`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.BIGFLOAT {
 		t.Fatalf("expected BIGFLOAT, got %v", tok.Type)
@@ -834,7 +834,7 @@ func TestNextTokenBigFloat(t *testing.T) {
 
 func TestNextTokenUint(t *testing.T) {
 	input := `0u1234567890`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.UINT {
 		t.Fatalf("expected UINT, got %v", tok.Type)
@@ -843,7 +843,7 @@ func TestNextTokenUint(t *testing.T) {
 
 func TestNextTokenFromImport(t *testing.T) {
 	input := `from foo import [bar, baz]`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -875,7 +875,7 @@ func TestNextTokenFromImport(t *testing.T) {
 
 func TestNextTokenMultiLineComment(t *testing.T) {
 	input := `### this is a comment ###`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.MULTLINE_COMMENT {
 		t.Fatalf("expected MULTLINE_COMMENT, got %v", tok.Type)
@@ -884,7 +884,7 @@ func TestNextTokenMultiLineComment(t *testing.T) {
 
 func TestNextTokenDocStringComment(t *testing.T) {
 	input := `## this is a doc comment`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.DOCSTRING_COMMENT {
 		t.Fatalf("expected DOCSTRING_COMMENT, got %v", tok.Type)
@@ -897,7 +897,7 @@ func TestNextTokenDocStringComment(t *testing.T) {
 
 func TestNextTokenStringInterpolation(t *testing.T) {
 	input := `"hello #{name}!"`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_DOUBLE_QUOTE {
 		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
@@ -906,7 +906,7 @@ func TestNextTokenStringInterpolation(t *testing.T) {
 
 func TestNextTokenBacktickExec(t *testing.T) {
 	input := "`ls -la`"
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.BACKTICK {
 		t.Fatalf("expected BACKTICK, got %v", tok.Type)
@@ -918,7 +918,7 @@ func TestNextTokenBacktickExec(t *testing.T) {
 
 func TestNextTokenSpawnDefer(t *testing.T) {
 	input := `spawn(foo) defer(bar)`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -950,7 +950,7 @@ func TestNextTokenSpawnDefer(t *testing.T) {
 
 func TestNextTokenBreakContinue(t *testing.T) {
 	input := `for (var i = 0; i < 10; i += 1) { break; continue; }`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -995,7 +995,7 @@ func TestNextTokenBreakContinue(t *testing.T) {
 
 func TestNextTokenNotIn(t *testing.T) {
 	input := `x notin y`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1022,7 +1022,7 @@ func TestNextTokenNotIn(t *testing.T) {
 
 func TestNextTokenNull(t *testing.T) {
 	input := `val x = null`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1050,7 +1050,7 @@ func TestNextTokenNull(t *testing.T) {
 
 func TestNextTokenSelf(t *testing.T) {
 	input := `self()`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1077,7 +1077,7 @@ func TestNextTokenSelf(t *testing.T) {
 
 func TestNextTokenIllegalChar(t *testing.T) {
 	input := `@`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.ILLEGAL {
 		t.Fatalf("expected ILLEGAL for @, got %v", tok.Type)
@@ -1129,7 +1129,7 @@ func TestNextTokenPositionTracking(t *testing.T) {
 
 func TestNextTokenWhitespaceOnly(t *testing.T) {
 	input := "   \t\n  "
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.EOF {
 		t.Fatalf("expected EOF for whitespace-only input, got %v", tok.Type)
@@ -1138,7 +1138,7 @@ func TestNextTokenWhitespaceOnly(t *testing.T) {
 
 func TestNextTokenEmptyInput(t *testing.T) {
 	input := ``
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.EOF {
 		t.Fatalf("expected EOF for empty input, got %v", tok.Type)
@@ -1148,7 +1148,7 @@ func TestNextTokenEmptyInput(t *testing.T) {
 func TestNextTokenComments(t *testing.T) {
 	input := `## this is a doc comment
 ## another doc comment`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	// First ## starts docstring comment
 	tok := l.NextToken()
@@ -1171,7 +1171,7 @@ func TestNextTokenComments(t *testing.T) {
 
 func TestNextTokenSingleQuoteEscapes(t *testing.T) {
 	input := `'hello\nworld'`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.STRING_SINGLE_QUOTE {
 		t.Fatalf("expected STRING_SINGLE_QUOTE, got %v", tok.Type)
@@ -1183,7 +1183,7 @@ func TestNextTokenSingleQuoteEscapes(t *testing.T) {
 
 func TestNextTokenHexWithUnderscores(t *testing.T) {
 	input := `0xFF_FF_FF`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.HEX {
 		t.Fatalf("expected HEX, got %v", tok.Type)
@@ -1192,7 +1192,7 @@ func TestNextTokenHexWithUnderscores(t *testing.T) {
 
 func TestNextTokenOctalWithUnderscores(t *testing.T) {
 	input := `0o77_77`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.OCTAL {
 		t.Fatalf("expected OCTAL, got %v", tok.Type)
@@ -1201,7 +1201,7 @@ func TestNextTokenOctalWithUnderscores(t *testing.T) {
 
 func TestNextTokenBinaryWithUnderscores(t *testing.T) {
 	input := `0b1010_1010`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.BINARY {
 		t.Fatalf("expected BINARY, got %v", tok.Type)
@@ -1210,7 +1210,7 @@ func TestNextTokenBinaryWithUnderscores(t *testing.T) {
 
 func TestNextTokenScientificNotation(t *testing.T) {
 	input := `1e10`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.FLOAT {
 		t.Fatalf("expected FLOAT for scientific notation, got %v", tok.Type)
@@ -1219,7 +1219,7 @@ func TestNextTokenScientificNotation(t *testing.T) {
 
 func TestNextTokenScientificNotationWithExp(t *testing.T) {
 	input := `1.5e-10`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.FLOAT {
 		t.Fatalf("expected FLOAT for scientific notation with sign, got %v", tok.Type)
@@ -1228,7 +1228,7 @@ func TestNextTokenScientificNotationWithExp(t *testing.T) {
 
 func TestNextTokenScientificNotationUpperExp(t *testing.T) {
 	input := `1E+10`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.FLOAT {
 		t.Fatalf("expected FLOAT for scientific notation uppercase E, got %v", tok.Type)
@@ -1237,7 +1237,7 @@ func TestNextTokenScientificNotationUpperExp(t *testing.T) {
 
 func TestNextTokenDoubleDotRange(t *testing.T) {
 	input := `1..10`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1264,7 +1264,7 @@ func TestNextTokenDoubleDotRange(t *testing.T) {
 
 func TestNextTokenNonInclusiveRange(t *testing.T) {
 	input := `1..<10`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1291,7 +1291,7 @@ func TestNextTokenNonInclusiveRange(t *testing.T) {
 
 func TestNextTokenEllipsis(t *testing.T) {
 	input := `func(args...)`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1320,7 +1320,7 @@ func TestNextTokenEllipsis(t *testing.T) {
 
 func TestNextTokenFloorDiv(t *testing.T) {
 	input := `a // b`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1347,7 +1347,7 @@ func TestNextTokenFloorDiv(t *testing.T) {
 
 func TestNextTokenFloorDivEq(t *testing.T) {
 	input := `a //= 1`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1374,7 +1374,7 @@ func TestNextTokenFloorDivEq(t *testing.T) {
 
 func TestNextTokenPowerEq(t *testing.T) {
 	input := `a **= 2`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1401,7 +1401,7 @@ func TestNextTokenPowerEq(t *testing.T) {
 
 func TestNextTokenRightArrow(t *testing.T) {
 	input := `a => b`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1428,7 +1428,7 @@ func TestNextTokenRightArrow(t *testing.T) {
 
 func TestNextTokenPower(t *testing.T) {
 	input := `2 ** 3`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1455,7 +1455,7 @@ func TestNextTokenPower(t *testing.T) {
 
 func TestNextTokenShiftOperators(t *testing.T) {
 	input := `a << 1 >> 2`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1484,7 +1484,7 @@ func TestNextTokenShiftOperators(t *testing.T) {
 
 func TestNextTokenShiftEqOperators(t *testing.T) {
 	input := `a <<= 1 >>= 2`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1513,7 +1513,7 @@ func TestNextTokenShiftEqOperators(t *testing.T) {
 
 func TestNextTokenLogicalAndOr(t *testing.T) {
 	input := `a && b || c`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1542,7 +1542,7 @@ func TestNextTokenLogicalAndOr(t *testing.T) {
 
 func TestNextTokenLogicalAndOrEq(t *testing.T) {
 	input := `a &&= b ||= c`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1571,7 +1571,7 @@ func TestNextTokenLogicalAndOrEq(t *testing.T) {
 
 func TestNextTokenBitwiseAssignments(t *testing.T) {
 	input := `a &= b |= c ~= d ^= e`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1604,7 +1604,7 @@ func TestNextTokenBitwiseAssignments(t *testing.T) {
 
 func TestNextTokenCompoundAssignments(t *testing.T) {
 	input := `a += b -= c *= d /= e %= f`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1639,7 +1639,7 @@ func TestNextTokenCompoundAssignments(t *testing.T) {
 
 func TestNextTokenIdentifierWithSpecialChars(t *testing.T) {
 	input := `foo? bar!`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1665,7 +1665,7 @@ func TestNextTokenIdentifierWithSpecialChars(t *testing.T) {
 
 func TestNextTokenStructLiteral(t *testing.T) {
 	input := `@{name: "alice"}`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1694,7 +1694,7 @@ func TestNextTokenStructLiteral(t *testing.T) {
 
 func TestNextTokenMapLiteral(t *testing.T) {
 	input := `{"key": "value"}`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1723,7 +1723,7 @@ func TestNextTokenMapLiteral(t *testing.T) {
 
 func TestNextTokenListLiteral(t *testing.T) {
 	input := `[1, 2, 3]`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1754,7 +1754,7 @@ func TestNextTokenListLiteral(t *testing.T) {
 
 func TestNextTokenPipe(t *testing.T) {
 	input := `a | b`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1781,7 +1781,7 @@ func TestNextTokenPipe(t *testing.T) {
 
 func TestNextTokenHash(t *testing.T) {
 	input := `# not a comment`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.HASH {
 		t.Fatalf("expected HASH, got %v", tok.Type)
@@ -1790,7 +1790,7 @@ func TestNextTokenHash(t *testing.T) {
 
 func TestNextTokenColon(t *testing.T) {
 	input := `key: value`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1817,7 +1817,7 @@ func TestNextTokenColon(t *testing.T) {
 
 func TestNextTokenMatchExpression(t *testing.T) {
 	input := `match x { true => { 1 } false => { 0 } }`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1855,7 +1855,7 @@ func TestNextTokenMatchExpression(t *testing.T) {
 
 func TestNextTokenTryCatchFinally(t *testing.T) {
 	input := `try { 1 } catch (e) { 2 } finally { 3 }`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1894,7 +1894,7 @@ func TestNextTokenTryCatchFinally(t *testing.T) {
 
 func TestNextTokenForLoopWithVar(t *testing.T) {
 	input := `for (var i = 0; i < 10; i += 1) { x }`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 
 	tests := []struct {
 		expectedType    token.Type
@@ -1936,7 +1936,7 @@ func TestNextTokenForLoopWithVar(t *testing.T) {
 
 func TestNextTokenRawString(t *testing.T) {
 	input := `"""hello world"""`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.RAW_STRING {
 		t.Fatalf("expected RAW_STRING, got %v", tok.Type)
@@ -1948,7 +1948,7 @@ func TestNextTokenRawString(t *testing.T) {
 
 func TestNextTokenRawStringWithInterpolation(t *testing.T) {
 	input := `"""hello #{name}!"""`
-	l := New(input, "<internal: test>")
+	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.RAW_STRING {
 		t.Fatalf("expected RAW_STRING, got %v", tok.Type)

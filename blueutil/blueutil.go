@@ -130,7 +130,9 @@ func parseErrorString(errStr string, lineNumber int) genericError {
 	}
 	if len(lines) >= 2 {
 		posToSplit := strings.Index(lines[1-offset], " ")
-		err.FileLineColumn = lines[1-offset][:posToSplit]
+		if posToSplit != -1 {
+			err.FileLineColumn = lines[1-offset][:posToSplit]
+		}
 		if err.LineNumber == -1 {
 			lineNumberStart := strings.Index(err.FileLineColumn, ":")
 			if lineNumberStart != -1 {
@@ -157,8 +159,10 @@ func parseErrorString(errStr string, lineNumber int) genericError {
 }
 
 func PrintCustomError(out io.Writer, errPrefix, errStr string, lineNumber int, printHeaderLine bool) {
+	if strings.HasPrefix(errStr, consts.INTERNAL_ERROR_PATTERN) {
+		return
+	}
 	err := parseErrorString(errStr, lineNumber)
-
 	if printHeaderLine {
 		consts.ErrorPrinter("%s%s\n", errPrefix, err.Message)
 	} else {

@@ -1,5 +1,16 @@
 TODO:
 
+- [ ] Floor division and modulo with negative going to 0 mistakenly? (check what another lang does here)
+    ```
+    # Floor division with negatives (floor toward -inf)
+    assert(-7 // 2 == -4)
+    assert(7 // -2 == -4)
+    assert(-7 // -2 == 3)
+    # Modulo with negatives
+    assert(-7 % 2 == 1) # this just gives wrong answer when compared to python
+    assert(7 % -2 == -1)
+    assert(-7 % -2 == -1)
+    ```
 - [ ] This causes panic
     ```
     # Closure with try-catch

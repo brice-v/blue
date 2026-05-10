@@ -177,7 +177,8 @@ func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *com
 	}
 	c := compiler.NewWithStateAndCore(symbolTable, constants)
 	if err := c.Compile(program); err != nil {
-		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
+		errToPrint, _, _ := strings.Cut(err.Error(), "\n"+consts.INTERNAL_ERROR_PATTERN)
+		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, errToPrint)
 		c.PrintStackTrace()
 		os.Exit(1)
 	}

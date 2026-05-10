@@ -172,12 +172,12 @@ assert(chain == 16)  # (1+1)*2-1 = 3, 3**2 = 9... wait
 assert(chain == 9)
 
 # Compound assignment with if expression
-var val = 0
-val += if (true) { 10 } else { 20 }
-assert(val == 10)
+var v = 0
+v += if (true) { 10 } else { 20 }
+assert(v == 10)
 
-val += if (false) { 100 } else { 50 }
-assert(val == 60)
+v += if (false) { 100 } else { 50 }
+assert(v == 60)
 
 # Compound assignment with function result
 fun getNum() { 42 }

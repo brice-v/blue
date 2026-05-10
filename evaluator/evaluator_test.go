@@ -685,7 +685,7 @@ func testNullObject(t *testing.T, obj object.Object) bool {
 }
 
 func testEval(input string) object.Object {
-	l := lexer.New(input, "<internal: test>")
+	l := lexer.New(input, "<internal:test>")
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if p.HasErrors() {

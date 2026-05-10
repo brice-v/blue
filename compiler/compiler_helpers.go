@@ -588,7 +588,7 @@ func (c *Compiler) compileSliceExpression(node *ast.IndexExpression) error {
 func (c *Compiler) compileCompLiteral(t, nonEvaluatedProgram string) error {
 	symName := fmt.Sprintf("__internal__%d", c.listSetMapCompLiteralIndex)
 	s := strings.ReplaceAll(nonEvaluatedProgram, "__internal__", symName)
-	l := lexer.New(s, fmt.Sprintf("<internal: %s>", t))
+	l := lexer.New(s, fmt.Sprintf("<internal:%s>", t))
 	p := parser.New(l)
 	rootNode := p.ParseProgram()
 	if len(rootNode.Statements) < 1 {

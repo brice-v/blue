@@ -124,7 +124,8 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		c := compiler.NewWithStateAndCore(symbolTable, constants)
 		err := c.Compile(program)
 		if err != nil {
-			consts.ErrorPrinter(fmt.Sprintf("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error()))
+			errToPrint, _, _ := strings.Cut(err.Error(), "\n"+consts.INTERNAL_ERROR_PATTERN)
+			consts.ErrorPrinter(fmt.Sprintf("%s%s\n", consts.COMPILER_ERROR_PREFIX, errToPrint))
 			c.PrintStackTrace()
 			continue
 		}

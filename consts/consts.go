@@ -44,6 +44,8 @@ const VM_ERROR_PREFIX = "[ERROR] VMError: "
 
 const CORE_FILE_PATH = "<embed:core/core.b>"
 
+const INTERNAL_ERROR_PATTERN = "Filepath: \"<internal:"
+
 const BLUE_INSTALL_PATH = "BLUE_INSTALL_PATH"
 const BLUE_NO_COLOR = "BLUE_NO_COLOR"
 const BLUE_DISABLE_HTTP_SERVER_DEBUG = "BLUE_DISABLE_HTTP_SERVER_DEBUG"
