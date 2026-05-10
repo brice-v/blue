@@ -52,7 +52,7 @@ const mainFunc = `func main() {
 	input := string(entryPoint)
 	evaluator.IsEmbed = true
 	evaluator.Files = files
-	l := lexer.New(input, "<embed: "+entryPointPath+">")
+	l := lexer.New(input, "<embed:"+entryPointPath+">")
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if p.HasErrors() {

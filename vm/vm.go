@@ -1335,7 +1335,7 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 }
 
 func vmStr(s string) object.Object {
-	l := lexer.New(s, "<internal: string>")
+	l := lexer.New(s, "<internal:string>")
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	if p.HasErrors() {

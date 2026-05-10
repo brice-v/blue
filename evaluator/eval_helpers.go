@@ -408,7 +408,7 @@ func isBooleanOperator(operator string) bool {
 }
 
 func (e *Evaluator) EvalString(s string) (object.Object, error) {
-	l := lexer.New(s, "<internal: string>")
+	l := lexer.New(s, "<internal:string>")
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	if p.HasErrors() {

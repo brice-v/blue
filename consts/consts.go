@@ -42,7 +42,7 @@ const PROCESS_ERROR_PREFIX = "[ERROR] ProcessError: "
 const EVAL_ERROR_PREFIX = "[ERROR] EvaluatorError: "
 const VM_ERROR_PREFIX = "[ERROR] VMError: "
 
-const CORE_FILE_PATH = "<embed: core/core.b>"
+const CORE_FILE_PATH = "<embed:core/core.b>"
 
 const BLUE_INSTALL_PATH = "BLUE_INSTALL_PATH"
 const BLUE_NO_COLOR = "BLUE_NO_COLOR"

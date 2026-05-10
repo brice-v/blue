@@ -135,10 +135,8 @@ func parseErrorString(errStr string, lineNumber int) genericError {
 			lineNumberStart := strings.Index(err.FileLineColumn, ":")
 			if lineNumberStart != -1 {
 				s := err.FileLineColumn[lineNumberStart+1:]
-				lineNumberEnd := strings.Index(s, ":")
-				if lineNumberEnd != -1 {
-					y := s[:lineNumberEnd]
-					if lineNum, errr := strconv.Atoi(y); errr == nil {
+				if before, _, ok := strings.Cut(s, ":"); ok {
+					if lineNum, errr := strconv.Atoi(before); errr == nil {
 						err.LineNumber = lineNum
 					}
 				}
