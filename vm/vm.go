@@ -194,28 +194,12 @@ func (vm *VM) Run() error {
 			code.OpFlDiv, code.OpPercent, code.OpCarat, code.OpAmpersand,
 			code.OpPipe, code.OpIn, code.OpNotin, code.OpRange, code.OpNonIncRange,
 			code.OpAnd, code.OpEqual, code.OpNotEqual, code.OpOr, code.OpGreaterThan, code.OpGreaterThanOrEqual,
-			code.OpRshift:
+			code.OpRshift, code.OpLshift:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {
 					return err
-				}
-			}
-		case code.OpLshift:
-			right := vm.pop()
-			left := vm.peek()
-			if left.Type() != object.LIST_OBJ && left.Type() != object.SET_OBJ {
-				return vm.push(newError("unknown operator: %s << %s", left.Type(), right.Type()))
-			}
-			if left.Type() == object.LIST_OBJ {
-				l := left.(*object.List)
-				l.Elements = append(l.Elements, right)
-			} else {
-				s := left.(*object.Set)
-				key := object.HashObject(right)
-				if _, ok := s.Elements.Get(key); !ok {
-					s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
 				}
 			}
 		case code.OpNot:
@@ -969,22 +953,6 @@ func (vm *VM) gotoCatchEnd() {
 		}
 		i += read
 	}
-}
-
-func (vm *VM) executeBinaryOperation(op code.Opcode) error {
-	right := vm.pop()
-	left := vm.pop()
-	leftType := left.Type()
-	rightType := right.Type()
-	if leftType == rightType {
-		if binFun, ok := binaryOperationFunctions[leftType]; ok {
-			return binFun(vm, op, left, right)
-		}
-		return vm.executeDefaultBinaryOperation(op, left, right)
-	} else if leftType != rightType {
-		return vm.executeBinaryOperationDifferentTypes(op, left, right, leftType, rightType)
-	}
-	return nil
 }
 
 func (vm *VM) executeNotOperation() error {

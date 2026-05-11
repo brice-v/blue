@@ -86,13 +86,11 @@ func Run(args ...string) {
 		handleParseCommand(argc, arguments)
 	case "bundle":
 		handleBundleCommand(argc, arguments)
-	case "eval":
-	case "-e":
+	case "eval", "-e", "e":
 		handleEvalCommand(argc, arguments)
 	case "vm":
 		handleVmCommand(argc, arguments)
-	case "compile":
-	case "c":
+	case "compile", "-c", "c":
 		handleCompileCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)

@@ -5,6 +5,7 @@ import (
 	"blue/object"
 	"blue/util"
 	"bytes"
+	"log"
 	"math"
 	"math/big"
 	"slices"
@@ -12,6 +13,26 @@ import (
 
 	"github.com/shopspring/decimal"
 )
+
+func (vm *VM) executeBinaryOperation(op code.Opcode) error {
+	right := vm.pop()
+	left := vm.peek()
+	leftType := left.Type()
+	if op == code.OpLshift && (leftType == object.LIST_OBJ || leftType == object.SET_OBJ) {
+		return vm.executeSpecialLshiftForListAndSet(left, right)
+	}
+	left = vm.pop()
+	rightType := right.Type()
+	if leftType == rightType {
+		if binFun, ok := binaryOperationFunctions[leftType]; ok {
+			return binFun(vm, op, left, right)
+		}
+		return vm.executeDefaultBinaryOperation(op, left, right)
+	} else if leftType != rightType {
+		return vm.executeBinaryOperationDifferentTypes(op, left, right, leftType, rightType)
+	}
+	return nil
+}
 
 var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left, right object.Object) error{
 	object.INTEGER_OBJ: func(vm *VM, op code.Opcode, leftObj, rightObj object.Object) error {
@@ -93,7 +114,18 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			return vm.push(executeIntegerRangeOperator(leftVal, rightVal))
 		case code.OpNonIncRange:
 			return vm.push(executeIntegerNonInclusiveRangeOperator(leftVal, rightVal))
+		case code.OpAmpersand:
+			return vm.push(&object.Integer{Value: leftVal & rightVal})
+		case code.OpPipe:
+			return vm.push(&object.Integer{Value: leftVal | rightVal})
+		case code.OpCarat:
+			return vm.push(&object.Integer{Value: leftVal ^ rightVal})
+		case code.OpLshift:
+			return vm.push(&object.Integer{Value: leftVal << rightVal})
+		case code.OpRshift:
+			return vm.push(&object.Integer{Value: leftVal >> rightVal})
 		default:
+			log.Printf("HERE")
 			return vm.push(newError("unknown operator: %s %s %s", leftObj.Type(), code.GetOpName(op), rightObj.Type()))
 		}
 	},
@@ -792,4 +824,18 @@ func (vm *VM) executeDefaultBinaryOperation(op code.Opcode, left, right object.O
 	default:
 		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 	}
+}
+
+func (vm *VM) executeSpecialLshiftForListAndSet(left, right object.Object) error {
+	if left.Type() == object.LIST_OBJ {
+		l := left.(*object.List)
+		l.Elements = append(l.Elements, right)
+		return nil
+	}
+	s := left.(*object.Set)
+	key := object.HashObject(right)
+	if _, ok := s.Elements.Get(key); !ok {
+		s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
+	}
+	return nil
 }
