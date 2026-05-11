@@ -59,7 +59,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			return vm.push(&object.Integer{Value: leftVal - rightVal})
 		case code.OpDiv:
 			if rightVal == 0 {
-				return vm.push(newError("Division by zero is not allowed"))
+				return vm.push(newError("division by zero is not allowed"))
 			}
 			if rightVal > leftVal {
 				return vm.push(&object.Integer{Value: 0})
@@ -85,7 +85,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			return vm.push(&object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))})
 		case code.OpFlDiv:
 			if rightVal == 0 {
-				return vm.push(newError("Floor Division by zero is not allowed"))
+				return vm.push(newError("floor division by zero is not allowed"))
 			}
 			if rightVal > leftVal {
 				return vm.push(&object.Integer{Value: 0})

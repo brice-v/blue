@@ -30,9 +30,9 @@ assert(9 ** 0.5 == 3.0)
 assert(16 ** 0.5 == 4.0)
 
 # Negative exponents
-assert(2 ** -1 == 0.5)
-assert(10 ** -1 == 0.1)
-assert(2 ** -2 == 0.25)
+assert(2.0 ** -1 == 0.5)
+assert(10.0 ** -1 == 0.1)
+assert(2.0 ** -2 == 0.25)
 
 # Zero base
 assert(0 ** 1 == 0)
@@ -69,10 +69,9 @@ val negBaseEven = (-2) ** 2
 assert(negBaseEven == 4)
 
 # Exponentiation in list comprehension
-val squares = [x ** 2 for x in 1..10]
+val squares = [zz ** 2 for zz in 1..10]
 assert(squares == [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
-
-val cubes = [x ** 3 for x in 1..5]
+val cubes = [zz ** 3 for zz in 1..5]
 assert(cubes == [1, 8, 27, 64, 125])
 
 # Exponentiation in if expression

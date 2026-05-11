@@ -1,5 +1,43 @@
 TODO:
 
+- [ ] When a variable is used in list comp, it needs to be allowed to shadow any others
+    - for instance: var x = 90; var y = [x ** 2 for x in 1..5]; y will be [] here because x is not in 1..5, its 90
+- [ ] Fix up error handling for vm, all try-catch stuff is sort of broken
+    - [ ] Make nested try-catch-finally work
+    - [ ] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
+        - put errors into certain places, with comments in place, make sure it is picked up correctly
+- [ ] Support ~= in compiler and vm
+- [ ] This causes process marked as failed with status code 1 and early exits
+    ```
+    # Try-catch in function
+    fun riskyOperation(shouldFail) {
+        try {
+            if (shouldFail) {
+                error("operation failed")
+            }
+            return "success"
+        } catch (e) {
+            return "failed: #{e}"
+        }
+    }
+    assert(riskyOperation(true) == "failed: operation failed")
+    ```
+- [ ] Nested try catch causes vm to spin forever
+    ```
+    # Nested try-catch
+    var outerCaught = false
+    var innerCaught = false
+    try {
+        try {
+            error("inner error")
+        } catch (e) {
+            innerCaught = true
+            assert(e == "inner error")
+        }
+    } catch (e) {
+        outerCaught = true
+    }
+    ```
 - [ ] Floor division and modulo with negative going to 0 mistakenly? (check what another lang does here)
     ```
     # Floor division with negatives (floor toward -inf)
