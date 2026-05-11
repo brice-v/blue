@@ -2921,6 +2921,30 @@ var Builtins = []*Builtin{
 			example:     "matches('hello', re('hello')) => true  ||  matches(/hello/, 'hello') => true",
 		}.String(),
 	},
+	{
+		Name: "contains",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("contains", 2, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("contains", 1, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("contains", 2, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return nativeToBooleanObject(strings.Contains(args[0].(*Stringo).Value, args[1].(*Stringo).Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`contains` returns a true if haystack contains needle",
+			signature:   "contains(haystack: str, needle: str) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "contains('hello world', 'hello') => true",
+		}.String(),
+	},
 	{Name: "to_num", Fun: nil},
 	{Name: "_sort", Fun: nil},
 	{Name: "_sorted", Fun: nil},
