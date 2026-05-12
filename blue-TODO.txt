@@ -2,6 +2,7 @@ TODO:
 
 - [ ] When a variable is used in list comp, it needs to be allowed to shadow any others
     - for instance: var x = 90; var y = [x ** 2 for x in 1..5]; y will be [] here because x is not in 1..5, its 90
+    - more specifically, when theres a variable in use for a for statement, that must allowed to shadow if there is no 
 - [ ] Fix up error handling for vm, all try-catch stuff is sort of broken
     - [ ] Make nested try-catch-finally work
     - [ ] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
