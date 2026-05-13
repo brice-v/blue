@@ -175,6 +175,9 @@ func (vm *VM) Run() error {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2
+			if int(constIndex) > len(vm.constants) {
+				return fmt.Errorf("constant index out of bounds, got=%d, len=%d", constIndex, len(vm.constants))
+			}
 			err := vm.push(vm.constants[constIndex])
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -816,8 +819,8 @@ func (vm *VM) prepareStackTraceAndReturnError(err error) error {
 	// vm.printStackInfo()
 	for vm.framesIndex >= 1 {
 		ins := vm.currentFrame().Instructions()
-		if ip > len(ins) {
-			// Prevent panic when preparing stack trace
+		if ip < 0 || ip >= len(ins) {
+			// Prevent panic when preparing stack trace (ip can be -1 if no OpNode was hit)
 			// Note: I saw this occur when dealing with stack overflow
 			break
 		}
