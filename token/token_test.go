@@ -166,7 +166,6 @@ func TestTokenTypes(t *testing.T) {
 		{"OROREQ", OROREQ, "||="},
 		{"ANDEQ", ANDEQ, "&="},
 		{"OREQ", OREQ, "|="},
-		{"BINNOTEQ", BINNOTEQ, "~="},
 		{"XOREQ", XOREQ, "^="},
 		{"MULEQ", MULEQ, "*="},
 		{"PLUSEQ", PLUSEQ, "+="},
@@ -380,7 +379,7 @@ func TestTokenStringRepresentation(t *testing.T) {
 	seen := make(map[string]bool)
 	operators := []Type{
 		ASSIGN, PERCENTEQ, LTEQ, GTEQ, RARROW, ANDANDEQ, OROREQ,
-		ANDEQ, OREQ, BINNOTEQ, XOREQ, MULEQ, PLUSEQ, MINUSEQ, DIVEQ,
+		ANDEQ, OREQ, XOREQ, MULEQ, PLUSEQ, MINUSEQ, DIVEQ,
 		PLUS, BANG, STAR, FSLASH, MINUS, TILDE, AMPERSAND, HAT,
 		HASH, PERCENT, DOT, LT, GT, EQ, NEQ, POW, RANGE, FDIV,
 		RSHIFT, LSHIFT, ATLBRACE, COMMA, SEMICOLON, COLON, BACKTICK,
@@ -486,7 +485,6 @@ func TestUserFriendlyNameOperators(t *testing.T) {
 		{OROREQ, "||="},
 		{ANDEQ, "&="},
 		{OREQ, "|="},
-		{BINNOTEQ, "~="},
 		{XOREQ, "^="},
 		{NONINCRANGE, "..<"},
 		{ATLBRACE, "@{"},

@@ -281,7 +281,6 @@ func TestNextTokenMulti(t *testing.T) {
 	=>
 	&=
 	|=
-	~=
 	^=
 	*=
 	+=
@@ -306,7 +305,6 @@ func TestNextTokenMulti(t *testing.T) {
 		{token.RARROW, "=>"},
 		{token.ANDEQ, "&="},
 		{token.OREQ, "|="},
-		{token.BINNOTEQ, "~="},
 		{token.XOREQ, "^="},
 		{token.MULEQ, "*="},
 		{token.PLUSEQ, "+="},
@@ -1570,7 +1568,7 @@ func TestNextTokenLogicalAndOrEq(t *testing.T) {
 }
 
 func TestNextTokenBitwiseAssignments(t *testing.T) {
-	input := `a &= b |= c ~= d ^= e`
+	input := `a &= b |= c ^= e`
 	l := New(input, "<internal:test>")
 
 	tests := []struct {
@@ -1582,8 +1580,6 @@ func TestNextTokenBitwiseAssignments(t *testing.T) {
 		{token.IDENT, "b"},
 		{token.OREQ, "|="},
 		{token.IDENT, "c"},
-		{token.BINNOTEQ, "~="},
-		{token.IDENT, "d"},
 		{token.XOREQ, "^="},
 		{token.IDENT, "e"},
 		{token.EOF, ""},

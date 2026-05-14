@@ -1845,8 +1845,6 @@ func (e *Evaluator) evalMultiCharAssignmentInfixExpression(operator string, t ob
 		evaluated = e.evalInfixExpression("&", left, right)
 	case "|=":
 		evaluated = e.evalInfixExpression("|", left, right)
-	case "~=":
-		evaluated = e.evalInfixExpression("~", left, right)
 	case "<<=":
 		evaluated = e.evalInfixExpression("<<", left, right)
 	case ">>=":

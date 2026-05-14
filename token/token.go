@@ -79,7 +79,7 @@ const (
 	// REGEX is the string rep. of the regex literal start token
 	REGEX Type = "r/"
 
-	// NOTE: ANDEQ, OREQ, BINNOTEQ, and XOREQ might also be used for sets and other data types eventually
+	// NOTE: ANDEQ, OREQ, and XOREQ might also be used for sets and other data types eventually
 
 	// ANDANDEQ is the string rep. of the boolean and equal tok.
 	ANDANDEQ Type = "&&="
@@ -89,8 +89,6 @@ const (
 	ANDEQ Type = "&="
 	// OREQ is the string rep. of the binary or equal tok.
 	OREQ Type = "|="
-	// BINNOTEQ is the string rep. of the binary not equal tok.
-	BINNOTEQ Type = "~="
 	// XOREQ is the string rep. of the binary xor equal tok.
 	XOREQ Type = "^="
 
@@ -312,11 +310,11 @@ func (t Type) UserFriendlyName() string {
 	switch t {
 	// Delimiters
 	case LBRACE:
-		return "{" 
+		return "{"
 	case RBRACE:
 		return "}"
 	case LPAREN:
-		return "(" 
+		return "("
 	case RPAREN:
 		return ")"
 	case LBRACKET:
@@ -413,8 +411,6 @@ func (t Type) UserFriendlyName() string {
 		return "&="
 	case OREQ:
 		return "|="
-	case BINNOTEQ:
-		return "~="
 	case XOREQ:
 		return "^="
 	case NONINCRANGE:

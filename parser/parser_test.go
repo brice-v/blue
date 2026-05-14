@@ -196,11 +196,6 @@ func TestAssignmentExpression(t *testing.T) {
 		{"foobar |= y", "foobar |= y"},
 		{"[1, 2, 3][1] |= 4", "([1, 2, 3][1]) |= 4"},
 		{`{"a": 1}["b"] |= 2`, `({"a": 1}["b"]) |= 2` + ""},
-		{"x ~= 5", "x ~= 5"},
-		{"y ~= true", "y ~= true"},
-		{"foobar ~= y", "foobar ~= y"},
-		{"[1, 2, 3][1] ~= 4", "([1, 2, 3][1]) ~= 4"},
-		{`{"a": 1}["b"] ~= 2`, `({"a": 1}["b"]) ~= 2` + ""},
 		{"x >>= 5", "x >>= 5"},
 		{"y >>= true", "y >>= true"},
 		{"foobar >>= y", "foobar >>= y"},
@@ -245,7 +240,6 @@ func TestVarStatementsWithOtherAssignmentTokens(t *testing.T) {
 	var c **= 6;
 	var d &= 7;
 	var e |= 8;
-	var f ~= 9;
 	var g >>= 10;
 	var h <<= 11;
 	var i %= 12;
@@ -261,8 +255,8 @@ func TestVarStatementsWithOtherAssignmentTokens(t *testing.T) {
 	if program == nil {
 		t.Fatalf("ParseProgram() returned nil")
 	}
-	if len(program.Statements) != 13 {
-		t.Fatalf("program.Statements does not contain 13 statements. got=%d", len(program.Statements))
+	if len(program.Statements) != 12 {
+		t.Fatalf("program.Statements does not contain 12 statements. got=%d", len(program.Statements))
 	}
 
 	tests := []struct {
@@ -276,7 +270,6 @@ func TestVarStatementsWithOtherAssignmentTokens(t *testing.T) {
 		{"c"},
 		{"d"},
 		{"e"},
-		{"f"},
 		{"g"},
 		{"h"},
 		{"i"},

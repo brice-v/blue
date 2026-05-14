@@ -231,7 +231,6 @@ var assignmentToInfixOperator = map[string]string{
 	"**=": "**",
 	"&=":  "&",
 	"|=":  "|",
-	"~=":  "~",
 	"<<=": "<<",
 	">>=": ">>",
 	"%=":  "%",

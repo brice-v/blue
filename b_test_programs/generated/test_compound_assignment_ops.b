@@ -124,11 +124,6 @@ m = false
 m ||= false
 assert(m == false)
 
-# ~= (bitwise not-equal and assign) - This is XOR in blue
-var n = 10
-n ~= 5
-assert(n == 15)  # 1010 ^ 0101 = 1111 = 15
-
 # <<=
 var o = 1
 o <<= 4
