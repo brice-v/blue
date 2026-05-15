@@ -1854,6 +1854,108 @@ func TestMatchExpressionWithValue(t *testing.T) {
 	}
 }
 
+func TestMatchExpressionNoTrailingComma(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		wantConds int
+		wantCons  int
+	}{
+		{
+			name: "single arm, no trailing comma",
+			input: `match 999 {
+				1 => { "one" }
+			}`,
+			wantConds: 1,
+			wantCons:  1,
+		},
+		{
+			name: "single arm, trailing comma",
+			input: `match 999 {
+				1 => { "one" },
+			}`,
+			wantConds: 1,
+			wantCons:  1,
+		},
+		{
+			name: "multiple arms, no trailing comma on last",
+			input: `match x {
+				1 => { "one" },
+				2 => { "two" }
+			}`,
+			wantConds: 2,
+			wantCons:  2,
+		},
+		{
+			name: "multiple arms, trailing comma on last",
+			input: `match x {
+				1 => { "one" },
+				2 => { "two" },
+			}`,
+			wantConds: 2,
+			wantCons:  2,
+		},
+		{
+			name: "wildcard arm, no trailing comma",
+			input: `match x {
+				"hello" => { 1 },
+				_ => { 0 }
+			}`,
+			wantConds: 2,
+			wantCons:  2,
+		},
+		{
+			name: "match without value, no trailing comma",
+			input: `match {
+				true => { 1 },
+				false => { 0 }
+			}`,
+			wantConds: 2,
+			wantCons:  2,
+		},
+		{
+			name: "destructuring pattern, no trailing comma",
+			input: `match obj {
+				{name: "foo", _} => { 1 },
+				_ => { 0 }
+			}`,
+			wantConds: 2,
+			wantCons:  2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := lexer.New(tt.input, "<internal:test>")
+			p := New(l)
+			program := p.ParseProgram()
+			checkParserErrors(t, p)
+
+			if len(program.Statements) != 1 {
+				t.Fatalf("program.Statements does not contain 1 statement. got=%d", len(program.Statements))
+			}
+
+			stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+			if !ok {
+				t.Fatalf("program.Statements[0] is not *ast.ExpressionStatement. got=%T", program.Statements[0])
+			}
+
+			match, ok := stmt.Expression.(*ast.MatchExpression)
+			if !ok {
+				t.Fatalf("stmt.Expression is not *ast.MatchExpression. got=%T", stmt.Expression)
+			}
+
+			if len(match.Conditions) != tt.wantConds {
+				t.Errorf("match.Conditions has wrong length. got=%d, want=%d", len(match.Conditions), tt.wantConds)
+			}
+
+			if len(match.Consequences) != tt.wantCons {
+				t.Errorf("match.Consequences has wrong length. got=%d, want=%d", len(match.Consequences), tt.wantCons)
+			}
+		})
+	}
+}
+
 func TestFromImportStatement(t *testing.T) {
 	tests := []struct {
 		input          string

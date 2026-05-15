@@ -1642,7 +1642,13 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		p.nextToken()
 
 		me.Consequences = append(me.Consequences, p.parseBlockStatement())
-		if !p.expectPeekIs(token.COMMA) {
+		if p.curTokenIs(token.RBRACE) && p.peekTokenIs(token.COMMA) {
+			p.nextToken() // skip comma
+		} else if p.curTokenIs(token.RBRACE) && p.peekTokenIs(token.RBRACE) {
+			p.nextToken() // skip outer RBRACE (no trailing comma)
+			break
+		} else {
+			p.error(fmt.Sprintf("expected %s or %s got %s instead", token.COMMA.UserFriendlyName(), token.RBRACE.UserFriendlyName(), p.peekToken.Type.UserFriendlyName()), p.peekToken)
 			return nil
 		}
 		p.nextToken()

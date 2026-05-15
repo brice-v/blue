@@ -7,7 +7,6 @@ TODO:
     - [ ] Make nested try-catch-finally work
     - [ ] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
         - put errors into certain places, with comments in place, make sure it is picked up correctly
-- [ ] Support ~= in compiler and vm
 - [ ] This causes process marked as failed with status code 1 and early exits
     ```
     # Try-catch in function
@@ -73,13 +72,6 @@ TODO:
     ```
 - [ ] This causes panic
     ```
-    val noMatch = match (999) {
-        1 => { "one" },
-    }
-    assert(noMatch == null)
-    ```
-- [ ] This causes panic
-    ```
     val m1 = {a: 1, b: 2}
     val m2 = {c: 3, d: 4}
     val merged = {k: v for [k, v] in m1} + {k: v for [k, v] in m2}
@@ -112,7 +104,6 @@ TODO:
     - [ ] Allow blue struct with int/float/etc. field names?
     - [ ] When blue struct field name matches a var that is used in scope, can this work?
     - [ ] Support Struct in list comprehension?
-- [ ] Support not needing Trailing comma in match expression
 
 - [ ] Cache Empty string object and small ints maybe?
 - [ ] Add dis() builtin function to disassemble function inline
@@ -653,3 +644,13 @@ COMPLETED TASKS:
     - Example: gg.draw.rectangle_roundned(gg.Rectangle(500, 40, 10, 30).obj(), 2.0, 10, gg.color.dark_gray)
 - [x] TASK: add helper to format multi object positional type errors (if possible) so you dont have to write "or ..."
 - [x] Support golang float with e in it
+- [x] Support ~= in compiler and vm
+    - This doesnt make sense (bitwise not is predicate)
+- [x] Support not needing Trailing comma in match expression
+- [x] This causes panic
+    ```
+    val noMatch = match (999) {
+        1 => { "one" },
+    }
+    assert(noMatch == null)
+    ```
