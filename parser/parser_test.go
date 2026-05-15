@@ -1866,16 +1866,16 @@ func TestMatchExpressionNoTrailingComma(t *testing.T) {
 			input: `match 999 {
 				1 => { "one" }
 			}`,
-			wantConds: 1,
-			wantCons:  1,
+			wantConds: 2,
+			wantCons:  2,
 		},
 		{
 			name: "single arm, trailing comma",
 			input: `match 999 {
 				1 => { "one" },
 			}`,
-			wantConds: 1,
-			wantCons:  1,
+			wantConds: 2,
+			wantCons:  2,
 		},
 		{
 			name: "multiple arms, no trailing comma on last",
@@ -1883,8 +1883,8 @@ func TestMatchExpressionNoTrailingComma(t *testing.T) {
 				1 => { "one" },
 				2 => { "two" }
 			}`,
-			wantConds: 2,
-			wantCons:  2,
+			wantConds: 3,
+			wantCons:  3,
 		},
 		{
 			name: "multiple arms, trailing comma on last",
@@ -1892,8 +1892,8 @@ func TestMatchExpressionNoTrailingComma(t *testing.T) {
 				1 => { "one" },
 				2 => { "two" },
 			}`,
-			wantConds: 2,
-			wantCons:  2,
+			wantConds: 3,
+			wantCons:  3,
 		},
 		{
 			name: "wildcard arm, no trailing comma",
@@ -1910,8 +1910,8 @@ func TestMatchExpressionNoTrailingComma(t *testing.T) {
 				true => { 1 },
 				false => { 0 }
 			}`,
-			wantConds: 2,
-			wantCons:  2,
+			wantConds: 3,
+			wantCons:  3,
 		},
 		{
 			name: "destructuring pattern, no trailing comma",
@@ -2719,7 +2719,7 @@ func TestMatchExpressionWithComplexConditions(t *testing.T) {
 	stmt := program.Statements[0].(*ast.ExpressionStatement)
 	match := stmt.Expression.(*ast.MatchExpression)
 
-	if len(match.Conditions) != 3 {
+	if len(match.Conditions) != 4 {
 		t.Fatalf("match.Conditions has wrong length. got=%d", len(match.Conditions))
 	}
 
@@ -2747,7 +2747,7 @@ func TestMatchExpressionString(t *testing.T) {
 	stmt := program.Statements[0].(*ast.ExpressionStatement)
 	match := stmt.Expression.(*ast.MatchExpression)
 
-	if len(match.Conditions) != 2 {
+	if len(match.Conditions) != 3 {
 		t.Fatalf("match.Conditions has wrong length. got=%d", len(match.Conditions))
 	}
 

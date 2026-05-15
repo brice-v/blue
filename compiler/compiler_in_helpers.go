@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"blue/ast"
+	"blue/parser"
 	"blue/token"
 	"fmt"
 )
@@ -123,7 +124,7 @@ func (c *Compiler) compileListIdentsInIterableFor(sym1 Symbol, sym2 Symbol, node
 	indexedIdent := &ast.Identifier{Value: fmt.Sprintf("__indexed_%s%s", sym1.Name, sym2.Name)}
 	vs1 := &ast.VarStatement{
 		Names: []*ast.Identifier{indexedIdent},
-		Value: &ast.Null{},
+		Value: parser.AST_NULL,
 	}
 	err = c.Compile(vs1)
 	if err != nil {

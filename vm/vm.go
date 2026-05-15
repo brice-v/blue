@@ -869,6 +869,9 @@ func (vm *VM) pushNoErrorChecking(o object.Object) error {
 }
 
 func (vm *VM) pop() object.Object {
+	if vm.sp == 0 || vm.sp-1 > len(vm.stack) {
+		return newError("stack pointer out of bounds")
+	}
 	o := vm.stack[vm.sp-1]
 	vm.sp--
 	return o

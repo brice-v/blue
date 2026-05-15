@@ -541,6 +541,14 @@ func TestAssignIndexWithBuiltinDotCallVm(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestMatchExpressionWithDefaultNull(t *testing.T) {
+	s := `val noMatch2 = match (999) {
+		1 => { "one" }
+	}
+	assert(noMatch2 == null)`
+	vmStringWithCore(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()

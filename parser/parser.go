@@ -973,8 +973,10 @@ func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
 }
 
+var AST_NULL = &ast.Null{}
+
 func (p *Parser) parseNullKeyword() ast.Expression {
-	return &ast.Null{}
+	return AST_NULL
 }
 
 func (p *Parser) parseEvalExpression() ast.Expression {
@@ -1620,6 +1622,40 @@ func (p *Parser) parseAssignmentExpression(exp ast.Expression) ast.Expression {
 	return ae
 }
 
+var defaultMatchCondition = &ast.Identifier{
+	Token: token.Token{
+		Type:           token.IDENT,
+		Literal:        "_",
+		Filepath:       "", // Filled in when used
+		LineNumber:     0,  // Filled in when used
+		PositionInLine: 0,  // Filled in when used
+	},
+	Value: "_",
+}
+
+var defaultMatchConsequence = &ast.BlockStatement{
+	Token: token.Token{
+		Type:           token.LBRACE,
+		Literal:        "{",
+		Filepath:       "", // Filled in when used
+		LineNumber:     0,  // Filled in when used
+		PositionInLine: 0,  // Filled in when used
+	},
+	Statements: []ast.Statement{
+		&ast.ExpressionStatement{
+			Token: token.Token{
+				Type:           token.NULL_KW,
+				Literal:        "null",
+				Filepath:       "", // Filled in when used
+				LineNumber:     0,  // Filled in when used
+				PositionInLine: 0,  // Filled in when used
+			},
+			Expression: AST_NULL,
+		},
+	},
+	HelpStrTokens: []string{},
+}
+
 func (p *Parser) parseMatchExpression() ast.Expression {
 	me := &ast.MatchExpression{Token: p.curToken,
 		Conditions:   []ast.Expression{},
@@ -1634,8 +1670,15 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		return nil
 	}
 	p.nextToken()
+	foundDefaultMatchCondition := false
 	for {
-		me.Conditions = append(me.Conditions, p.parseExpression(LOWEST))
+		expr := p.parseExpression(LOWEST)
+		if ident, ok := expr.(*ast.Identifier); ok {
+			if ident.Value == defaultMatchCondition.Value {
+				foundDefaultMatchCondition = true
+			}
+		}
+		me.Conditions = append(me.Conditions, expr)
 		if !p.expectPeekIs(token.RARROW) {
 			return nil
 		}
@@ -1655,6 +1698,20 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		if p.curTokenIs(token.RBRACE) {
 			break
 		}
+	}
+	// Pre-populate default case so compiler can correctly handle scenarios where no match legs match and provide null anyways rather than crashing
+	if !foundDefaultMatchCondition {
+		defaultMatchCondition.Token.Filepath = p.curToken.Filepath
+		defaultMatchCondition.Token.LineNumber = p.curToken.LineNumber
+		defaultMatchCondition.Token.PositionInLine = p.curToken.PositionInLine
+		me.Conditions = append(me.Conditions, defaultMatchCondition)
+		defaultMatchConsequence.Token.Filepath = p.curToken.Filepath
+		defaultMatchConsequence.Token.LineNumber = p.curToken.LineNumber
+		defaultMatchConsequence.Token.PositionInLine = p.curToken.PositionInLine
+		defaultMatchConsequence.Statements[0].(*ast.ExpressionStatement).Token.Filepath = p.curToken.Filepath
+		defaultMatchConsequence.Statements[0].(*ast.ExpressionStatement).Token.LineNumber = p.curToken.LineNumber
+		defaultMatchConsequence.Statements[0].(*ast.ExpressionStatement).Token.PositionInLine = p.curToken.PositionInLine
+		me.Consequences = append(me.Consequences, defaultMatchConsequence)
 	}
 	return me
 }
