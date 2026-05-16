@@ -1962,7 +1962,7 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 	if ifCond != nil {
 		program = fmt.Sprintf("var __internal__ = {}; for %s { if %s { __internal__[%s] = %s } };", condStr, ifCond, key.String(), value.String())
 	} else {
-		program = fmt.Sprintf("var __internal__ = {}; for %s { __internal__[%s] = %s  };", condStr, key.String(), value.String())
+		program = fmt.Sprintf("var __internal__ = {}; for %s { __internal__[%s] = %s };", condStr, key.String(), value.String())
 	}
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil

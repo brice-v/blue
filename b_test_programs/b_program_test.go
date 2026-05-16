@@ -549,6 +549,13 @@ func TestMatchExpressionWithDefaultNull(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestExpectedVmErrorForMapCompAddAndNoPanic(t *testing.T) {
+	s := `val m1 = {a: 1, b: 2}
+	val m2 = {c: 3, d: 4}
+	val merged = {k: v for [k, v] in m1} + {k: v for [k, v] in m2}`
+	vmStringWithCoreExpectErrorContaining(t, s, "unknown operator: MAP OpAdd MAP")
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()
@@ -566,6 +573,26 @@ func vmStringWithCore(t *testing.T, s string) {
 	obj := v.LastPoppedStackElem()
 	if obj.Type() == object.ERROR_OBJ {
 		t.Fatalf("vm returned error: %s, %s", s, obj.(*object.Error).Message)
+	}
+}
+
+func vmStringWithCoreExpectErrorContaining(t *testing.T, s, expectedErrorString string) {
+	program := parseString(t, s)
+	c := compiler.NewFromCore()
+	err := c.Compile(program)
+	if err != nil {
+		t.Fatalf("compiler error: %s", err.Error())
+	}
+	// fmt.Print(blueutil.BytecodeDebugString(c.Bytecode().Instructions, c.Bytecode().Constants))
+	// fmt.Printf("PARSED: ```%s```\n", program.String())
+	v := vm.New(c.Bytecode())
+	err = v.Run()
+	if err != nil {
+		if !strings.Contains(err.Error(), expectedErrorString) {
+			t.Fatalf("vm error did not contain expected: `%s`, got: `%s`", expectedErrorString, err.Error())
+		}
+	} else {
+		t.Fatalf("vm expected error but got nothing")
 	}
 }
 

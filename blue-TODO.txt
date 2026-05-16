@@ -70,12 +70,6 @@ TODO:
     val safeAdder = makeSafeAdder()
     assert(safeAdder(1, 2) == 3)
     ```
-- [ ] This causes panic
-    ```
-    val m1 = {a: 1, b: 2}
-    val m2 = {c: 3, d: 4}
-    val merged = {k: v for [k, v] in m1} + {k: v for [k, v] in m2}
-    ```
 - [ ] Fix this type of shadowing
     ```
     var x = 1
@@ -653,4 +647,10 @@ COMPLETED TASKS:
         1 => { "one" },
     }
     assert(noMatch == null)
+    ```
+- [x] This causes panic
+    ```
+    val m1 = {a: 1, b: 2}
+    val m2 = {c: 3, d: 4}
+    val merged = {k: v for [k, v] in m1} + {k: v for [k, v] in m2}
     ```

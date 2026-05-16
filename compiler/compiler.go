@@ -477,35 +477,33 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpSet, len(node.Elements))
 		}
 	case *ast.MapLiteral:
-		if !c.lastInstructionIs(code.OpMapCompLiteral) {
-			indices := make([]int, 0, len(node.PairsIndex))
-			for k := range node.PairsIndex {
-				indices = append(indices, k)
-			}
-			sort.Ints(indices)
-			for _, i := range indices {
-				keyNode := node.PairsIndex[i]
-				keyNode1 := keyNode
-				// Support keys in map without requiring quotes
-				if ident, ok := keyNode.(*ast.Identifier); ok {
-					if obj, ok1 := c.symbolTable.Resolve(c.getName(ident.Value)); !ok1 {
-						keyNode1 = &ast.StringLiteral{Value: ident.Value}
-					} else if obj.Scope == BuiltinScope {
-						keyNode1 = &ast.StringLiteral{Value: ident.Value}
-					}
-				}
-				err := c.Compile(keyNode1)
-				if err != nil {
-					return c.addNodeToErrorTrace(err, node.Token)
-				}
-				valueNode := node.Pairs[keyNode]
-				err = c.Compile(valueNode)
-				if err != nil {
-					return c.addNodeToErrorTrace(err, node.Token)
-				}
-			}
-			c.emit(code.OpMap, len(node.Pairs)*2)
+		indices := make([]int, 0, len(node.PairsIndex))
+		for k := range node.PairsIndex {
+			indices = append(indices, k)
 		}
+		sort.Ints(indices)
+		for _, i := range indices {
+			keyNode := node.PairsIndex[i]
+			keyNode1 := keyNode
+			// Support keys in map without requiring quotes
+			if ident, ok := keyNode.(*ast.Identifier); ok {
+				if obj, ok1 := c.symbolTable.Resolve(c.getName(ident.Value)); !ok1 {
+					keyNode1 = &ast.StringLiteral{Value: ident.Value}
+				} else if obj.Scope == BuiltinScope {
+					keyNode1 = &ast.StringLiteral{Value: ident.Value}
+				}
+			}
+			err := c.Compile(keyNode1)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+			valueNode := node.Pairs[keyNode]
+			err = c.Compile(valueNode)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
+		}
+		c.emit(code.OpMap, len(node.Pairs)*2)
 	case *ast.Boolean:
 		if node.Value {
 			c.emit(code.OpTrue)
