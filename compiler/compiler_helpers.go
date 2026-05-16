@@ -296,8 +296,6 @@ func getRootIdent(node *ast.IndexExpression) (*ast.Identifier, bool) {
 
 func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	c.forIndex++
-	// Ident on Left needs to be cleaned up after executing for (as these are temporary in the for statement)
-	cleanupSyms := []string{}
 	if node.UsesVar {
 		err := c.Compile(node.Initializer)
 		if err != nil {
@@ -310,7 +308,6 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 			if err != nil {
 				return err
 			}
-			cleanupSyms = append(cleanupSyms, sym.Name)
 		} else {
 			ok, sym1, sym2, right := c.isListIdentsOnLeftInIterableOnRight(node.Condition)
 			if ok {
@@ -318,8 +315,6 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 				if err != nil {
 					return err
 				}
-				cleanupSyms = append(cleanupSyms, sym1.Name)
-				cleanupSyms = append(cleanupSyms, sym2.Name)
 			}
 		}
 	}
@@ -373,9 +368,6 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 	}
 	delete(c.breakPos, c.forIndex)
 	delete(c.contPos, c.forIndex)
-	for _, name := range cleanupSyms {
-		c.symbolTable.Remove(name)
-	}
 	c.forIndex--
 	return nil
 }
