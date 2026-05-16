@@ -47,7 +47,8 @@ type SymbolTable struct {
 	numDefinitions            int
 	specialDefinitions        int
 	FreeSymbols               []Symbol
-	BlockSymbols              [][]Symbol
+
+	BlockNestLevel int
 
 	Outer *SymbolTable
 }
@@ -67,8 +68,7 @@ func NewSymbolTable() *SymbolTable {
 	ss := make(map[SpecialScopeKey]Symbol)
 	ssim := make(map[string][]int)
 	free := []Symbol{}
-	block := [][]Symbol{}
-	return &SymbolTable{store: s, specialStore: ss, specialStoreParamIndexMap: ssim, FreeSymbols: free, BlockSymbols: block}
+	return &SymbolTable{store: s, specialStore: ss, specialStoreParamIndexMap: ssim, FreeSymbols: free, BlockNestLevel: -1}
 }
 
 func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
@@ -77,19 +77,19 @@ func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 	return s
 }
 
-func (s *SymbolTable) Define(name string, isImmutable bool, blockNestLevel int) Symbol {
-	return s.defineActual(name, isImmutable, blockNestLevel, nil, nil, "")
+func (s *SymbolTable) Define(name string, isImmutable bool) Symbol {
+	return s.defineActual(name, isImmutable, nil, nil, "")
 }
 
-func (s *SymbolTable) DefineWithHelpStr(name string, isImmutable bool, blockNestLevel int, helpStr string) Symbol {
-	return s.defineActual(name, isImmutable, blockNestLevel, nil, nil, helpStr)
+func (s *SymbolTable) DefineWithHelpStr(name string, isImmutable bool, helpStr string) Symbol {
+	return s.defineActual(name, isImmutable, nil, nil, helpStr)
 }
 
-func (s *SymbolTable) DefineFun(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
-	return s.defineActual(name, isImmutable, blockNestLevel, parameters, parameterExpressions, helpStr)
+func (s *SymbolTable) DefineFun(name string, isImmutable bool, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
+	return s.defineActual(name, isImmutable, parameters, parameterExpressions, helpStr)
 }
 
-func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel int, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
+func (s *SymbolTable) defineActual(name string, isImmutable bool, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
 	if helpStr != "" {
 		helpStr = s.getHelpInPublicFunctionHelpStore(name, helpStr)
 	}
@@ -99,14 +99,12 @@ func (s *SymbolTable) defineActual(name string, isImmutable bool, blockNestLevel
 	} else {
 		symbol.Scope = LocalScope
 	}
-	if blockNestLevel != -1 {
-		numToAppend := blockNestLevel - len(s.BlockSymbols)
-		for i := 0; i <= numToAppend; i++ {
-			s.BlockSymbols = append(s.BlockSymbols, []Symbol{})
-		}
-		s.BlockSymbols[blockNestLevel] = append(s.BlockSymbols[blockNestLevel], symbol)
+	if s.BlockNestLevel != -1 {
+		newName := fmt.Sprintf("%d:%s", s.BlockNestLevel, name)
+		s.store[newName] = symbol
+	} else {
+		s.store[name] = symbol
 	}
-	s.store[name] = symbol
 	s.numDefinitions++
 	return symbol
 }
@@ -145,8 +143,19 @@ func (s *SymbolTable) ResolveSpecial(name string, scopeIndex int) (Symbol, bool,
 	return emptySym, false, false
 }
 
-func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
+func (s *SymbolTable) resolveFromCurrentBlockNestLevel(name string) (Symbol, bool) {
+	for i := s.BlockNestLevel; i >= 0; i-- {
+		newName := fmt.Sprintf("%d:%s", i, name)
+		if obj, ok := s.store[newName]; ok {
+			return obj, ok
+		}
+	}
 	obj, ok := s.store[name]
+	return obj, ok
+}
+
+func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
+	obj, ok := s.resolveFromCurrentBlockNestLevel(name)
 	if !ok && s.Outer != nil {
 		obj, ok := s.Outer.Resolve(name)
 		if !ok {

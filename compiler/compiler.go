@@ -36,8 +36,6 @@ type Compiler struct {
 
 	currentPos int
 
-	BlockNestLevel int
-
 	forIndex int
 	breakPos map[int][]int
 	contPos  map[int][]int
@@ -68,7 +66,6 @@ func (c *Compiler) DebugString() string {
 	fmt.Fprintf(&out, "\tscopeIndex: %d\n", c.scopeIndex)
 	fmt.Fprintf(&out, "\tErrorTrace: %#+v\n", c.ErrorTrace)
 	fmt.Fprintf(&out, "\tcurrentPos: %d\n", c.currentPos)
-	fmt.Fprintf(&out, "\tBlockNestLevel: %d\n", c.BlockNestLevel)
 	fmt.Fprintf(&out, "\tforIndex: %d\n", c.forIndex)
 	fmt.Fprintf(&out, "\tbreakPos: %#+v\n", c.breakPos)
 	fmt.Fprintf(&out, "\tcontPos: %#+v\n", c.contPos)
@@ -110,7 +107,6 @@ func New() *Compiler {
 		scopeIndex:       0,
 		ErrorTrace:       []string{},
 		currentPos:       0,
-		BlockNestLevel:   -1,
 		forIndex:         0,
 		breakPos:         map[int][]int{},
 		contPos:          map[int][]int{},
@@ -518,12 +514,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.BlockStatement:
+		c.enterBlock()
 		for _, s := range node.Statements {
 			err := c.Compile(s)
 			if err != nil {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
+		c.exitBlock()
 	case *ast.VarStatement:
 		err := c.compileVarValStatements(node)
 		if err != nil {
@@ -598,7 +596,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 	case *ast.FunctionStatement:
 		helpStr := object.CreateHelpStringFromBodyTokensAstFun(node.Name.Value, node, node.Body.HelpStrTokens)
-		symbol := c.symbolTable.DefineWithHelpStr(c.getName(node.Name.Value), true, c.BlockNestLevel, helpStr)
+		symbol := c.symbolTable.DefineWithHelpStr(c.getName(node.Name.Value), true, helpStr)
 		c.enterScope()
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
 		compiledFun.HelpStr = symbol.HelpStr
@@ -640,14 +638,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.ForStatement:
+		c.enterBlock()
 		err := c.compileForStatement(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
+		c.exitBlock()
 	case *ast.BreakStatement:
 		// Set not in try for VM so once we jump its correct
 		// (if we hit an error in try that would proc first)
-		if _, ok := c.inTry[c.BlockNestLevel]; ok {
+		if _, ok := c.inTry[c.symbolTable.BlockNestLevel]; ok {
 			c.emit(code.OpNotInTry)
 		}
 		pos := c.emit(code.OpJump, 9999)
@@ -664,20 +664,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.contPos[c.forIndex] = append(c.contPos[c.forIndex], pos)
 	case *ast.TryCatchStatement:
 		c.currentPos = len(c.currentInstructions())
-		c.BlockNestLevel++
-		c.inTry[c.BlockNestLevel] = struct{}{}
+		c.enterBlock()
+		c.inTry[c.symbolTable.BlockNestLevel] = struct{}{}
 		c.emit(code.OpTry)
 		err := c.Compile(node.TryBlock)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.TryBlock.Token)
 		}
-		delete(c.inTry, c.BlockNestLevel)
-		c.clearBlockSymbols()
+		delete(c.inTry, c.symbolTable.BlockNestLevel)
+		c.exitBlock()
 		if node.CatchBlock != nil {
 			c.currentPos = len(c.currentInstructions())
-			c.BlockNestLevel++
+			c.enterBlock()
 			c.emit(code.OpCatch)
-			symbol := c.symbolTable.Define(node.CatchIdentifier.Value, true, c.BlockNestLevel)
+			symbol := c.symbolTable.Define(node.CatchIdentifier.Value, true)
 			switch symbol.Scope {
 			case GlobalScope:
 				c.emit(code.OpSetGlobalImm, symbol.Index)
@@ -693,24 +693,27 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return c.addNodeToErrorTrace(err, node.CatchBlock.Token)
 			}
 			c.emit(code.OpCatchEnd)
-			c.clearBlockSymbols()
+			c.exitBlock()
 		}
 		if node.FinallyBlock != nil {
 			c.currentPos = len(c.currentInstructions())
-			c.BlockNestLevel++
+			c.enterBlock()
 			c.emit(code.OpFinally)
 			err := c.Compile(node.FinallyBlock)
 			if err != nil {
 				return c.addNodeToErrorTrace(err, node.FinallyBlock.Token)
 			}
-			c.clearBlockSymbols()
+			c.exitBlock()
 			c.emit(code.OpFinallyEnd)
 		}
 	case *ast.ImportStatement:
+		savedBlockNestLevel := c.symbolTable.BlockNestLevel
+		c.symbolTable.BlockNestLevel = -1
 		err := c.compileImportStatement(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
+		c.symbolTable.BlockNestLevel = savedBlockNestLevel
 	case *ast.ListCompLiteral:
 		err := c.compileListCompLiteral(node)
 		if err != nil {

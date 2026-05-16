@@ -107,7 +107,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	pubFunHelpStr := c.symbolTable.GetOrderedPublicFunctionHelpString(name)
 	literal := &object.Module{Name: name, Env: nil, HelpStr: object.CreateHelpStringFromProgramTokens(name, fb.ParsedProgram.HelpStrTokens, pubFunHelpStr)}
 	c.emit(code.OpConstant, c.addConstant(literal))
-	symbol := c.symbolTable.Define(name, true, c.BlockNestLevel)
+	symbol := c.symbolTable.Define(name, true)
 	switch symbol.Scope {
 	case GlobalScope:
 		c.emit(code.OpSetGlobalImm, symbol.Index)

@@ -25,7 +25,7 @@ func (c *Compiler) isIdentOnLeftInIterableOnRight(cond ast.Expression) (bool, Sy
 	if ok {
 		return false, emptySym, nil
 	}
-	sym := c.symbolTable.Define(ident.Value, false, c.BlockNestLevel)
+	sym := c.symbolTable.Define(ident.Value, false)
 	return true, sym, infix.Right
 }
 
@@ -104,8 +104,8 @@ func (c *Compiler) isListIdentsOnLeftInIterableOnRight(cond ast.Expression) (boo
 	if ok {
 		return false, emptySym, emptySym, nil
 	}
-	sym1 := c.symbolTable.Define(ident1.Value, false, c.BlockNestLevel)
-	sym2 := c.symbolTable.Define(ident2.Value, false, c.BlockNestLevel)
+	sym1 := c.symbolTable.Define(ident1.Value, false)
+	sym2 := c.symbolTable.Define(ident2.Value, false)
 	return true, sym1, sym2, infix.Right
 }
 

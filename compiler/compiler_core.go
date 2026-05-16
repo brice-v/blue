@@ -84,7 +84,6 @@ func newFromCore() *Compiler {
 		scopeIndex:       0,
 		ErrorTrace:       []string{},
 		currentPos:       _coreCompiler.currentPos,
-		BlockNestLevel:   _coreCompiler.BlockNestLevel,
 		forIndex:         _coreCompiler.forIndex,
 		breakPos:         map[int][]int{},
 		contPos:          map[int][]int{},

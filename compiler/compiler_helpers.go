@@ -79,7 +79,6 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		}
 		// Emit an `OpJumpNotTruthy` with a bogus value
 		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
-		c.BlockNestLevel++
 		err = c.Compile(node.Consequences[i])
 		if err != nil {
 			return err
@@ -90,7 +89,6 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
-		c.clearBlockSymbols()
 		// Emit an `OpJump` with a bogus value
 		jumpPos := c.emit(code.OpJump, 9999)
 		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
@@ -100,7 +98,6 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 	if node.Alternative == nil {
 		c.emit(code.OpNull)
 	} else {
-		c.BlockNestLevel++
 		err := c.Compile(node.Alternative)
 		if err != nil {
 			return err
@@ -111,7 +108,6 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
-		c.clearBlockSymbols()
 	}
 	afterAlternativePos := len(c.currentInstructions())
 	for _, jumpPos := range allEndingJumpPos {
@@ -120,21 +116,18 @@ func (c *Compiler) compileIfExpression(node *ast.IfExpression) error {
 	return nil
 }
 
-func (c *Compiler) clearBlockSymbols() {
-	if c.BlockNestLevel == -1 {
-		return
-	}
-	if len(c.symbolTable.BlockSymbols) > c.BlockNestLevel {
-		for _, sym := range c.symbolTable.BlockSymbols[c.BlockNestLevel] {
-			delete(c.symbolTable.store, sym.Name)
+func (c *Compiler) enterBlock() {
+	c.symbolTable.BlockNestLevel++
+}
+
+func (c *Compiler) exitBlock() {
+	prefix := fmt.Sprintf("%d:", c.symbolTable.BlockNestLevel)
+	for k := range c.symbolTable.store {
+		if strings.HasPrefix(k, prefix) {
+			delete(c.symbolTable.store, k)
 		}
-		if c.BlockNestLevel > 0 {
-			c.symbolTable.BlockSymbols = c.symbolTable.BlockSymbols[:c.BlockNestLevel]
-		}
-	} else {
-		clear(c.symbolTable.BlockSymbols)
 	}
-	c.BlockNestLevel--
+	c.symbolTable.BlockNestLevel--
 }
 
 func (c *Compiler) loadSymbol(s Symbol) {
@@ -302,7 +295,6 @@ func getRootIdent(node *ast.IndexExpression) (*ast.Identifier, bool) {
 }
 
 func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
-	c.BlockNestLevel++
 	c.forIndex++
 	// Ident on Left needs to be cleaned up after executing for (as these are temporary in the for statement)
 	cleanupSyms := []string{}
@@ -385,7 +377,6 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 		c.symbolTable.Remove(name)
 	}
 	c.forIndex--
-	c.clearBlockSymbols()
 	return nil
 }
 
@@ -488,7 +479,7 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	pubFunHelpStr := c.symbolTable.GetOrderedPublicFunctionHelpString(modName)
 	literal := &object.Module{Name: modName, Env: nil, HelpStr: object.CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr)}
 	c.emit(code.OpConstant, c.addConstant(literal))
-	symbol := c.symbolTable.Define(modName, true, c.BlockNestLevel)
+	symbol := c.symbolTable.Define(modName, true)
 	switch symbol.Scope {
 	case GlobalScope:
 		c.emit(code.OpSetGlobalImm, symbol.Index)
@@ -664,7 +655,6 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 			// Emit an `OpJumpNotTruthy` with a bogus value
 			jumpNotTruthyPos = c.emit(code.OpJumpNotTruthy, 9999)
 		}
-		c.BlockNestLevel++
 		err = c.Compile(node.Consequences[i])
 		if err != nil {
 			return err
@@ -675,7 +665,6 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
-		c.clearBlockSymbols()
 		// Emit an `OpJump` with a bogus value
 		jumpPos := c.emit(code.OpJump, 9999)
 		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
@@ -739,7 +728,7 @@ func (c *Compiler) setupFunctionParameters(parameters []*ast.Identifier, paramet
 	var specialFunctionParameters map[object.NameIndexKey]map[object.NameIndexKey]object.Object = nil
 	lensEqual := len(parameters) == len(parameterExpressions)
 	for i, p := range parameters {
-		c.symbolTable.Define(p.Value, false, c.BlockNestLevel)
+		c.symbolTable.Define(p.Value, false)
 		if !lensEqual {
 			continue
 		}
@@ -828,7 +817,7 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 		c.emit(code.OpPop)
 	}
 	for i, name := range names {
-		if _, ok := c.inTry[c.BlockNestLevel]; ok {
+		if _, ok := c.inTry[c.symbolTable.BlockNestLevel]; ok {
 			if c.symbolTable.IsDefinedInCurrentStore(name.Value) {
 				return fmt.Errorf("'%s' is already defined in current scope", name.Value)
 			}
@@ -853,9 +842,9 @@ func (c *Compiler) defineSymbolForVarValStatement(node ast.VarValStatement, name
 	immutable := node.IsValStatement()
 	if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
 		helpStr := object.CreateHelpStringFromBodyTokensAstFun(name, fun, fun.Body.HelpStrTokens)
-		symbol = c.symbolTable.DefineFun(c.getName(name), immutable, c.BlockNestLevel, fun.Parameters, fun.ParameterExpressions, helpStr)
+		symbol = c.symbolTable.DefineFun(c.getName(name), immutable, fun.Parameters, fun.ParameterExpressions, helpStr)
 	} else {
-		symbol = c.symbolTable.Define(c.getName(name), immutable, c.BlockNestLevel)
+		symbol = c.symbolTable.Define(c.getName(name), immutable)
 	}
 	return symbol, immutable
 }

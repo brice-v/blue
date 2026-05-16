@@ -1247,17 +1247,6 @@ func TestLastInstructionIsEmpty(t *testing.T) {
 	}
 }
 
-func TestClearBlockSymbols(t *testing.T) {
-	compiler := New()
-	compiler.BlockNestLevel = -1
-	compiler.clearBlockSymbols()
-	// Should not panic with BlockNestLevel == -1
-
-	compiler.BlockNestLevel = 0
-	compiler.clearBlockSymbols()
-	// Should not panic with BlockNestLevel == 0
-}
-
 func TestGetName(t *testing.T) {
 	compiler := New()
 	// Without import nest, getName should return the name unchanged

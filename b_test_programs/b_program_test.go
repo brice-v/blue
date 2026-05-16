@@ -556,6 +556,26 @@ func TestExpectedVmErrorForMapCompAddAndNoPanic(t *testing.T) {
 	vmStringWithCoreExpectErrorContaining(t, s, "unknown operator: MAP OpAdd MAP")
 }
 
+func TestAnotherVmScopeIssue(t *testing.T) {
+	s := `var x = 1
+	println('x1 = #{x}')
+	if true {
+		var x = 2
+		println('x2 = #{x}')
+		assert(x == 2)
+		if true {
+			var x = 3
+			println('x3 = #{x}')
+			assert(x == 3)
+		}
+		println('x2 = #{x}')
+		assert(x == 2)
+	}
+	println('x1 = #{x}')
+	assert(x == 1)`
+	vmString(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()

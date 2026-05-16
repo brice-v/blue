@@ -70,21 +70,6 @@ TODO:
     val safeAdder = makeSafeAdder()
     assert(safeAdder(1, 2) == 3)
     ```
-- [ ] Fix this type of shadowing
-    ```
-    var x = 1
-    if true {
-        var x = 2
-        assert(x == 2)
-        if true {
-            var x = 3
-            assert(x == 3)
-            assert(x == 3)
-        }
-        assert(x == 2)
-    }
-    assert(x == 1)
-    ```
 - [ ] Support Bitwise shift with unsigned int for vm
     - Maybe also support for int just to make it easier (it will auto transition to uint? - maybe maybe not)
 - [ ] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
@@ -653,4 +638,19 @@ COMPLETED TASKS:
     val m1 = {a: 1, b: 2}
     val m2 = {c: 3, d: 4}
     val merged = {k: v for [k, v] in m1} + {k: v for [k, v] in m2}
+    ```
+- [x] Fix this type of shadowing
+    ```
+    var x = 1
+    if true {
+        var x = 2
+        assert(x == 2)
+        if true {
+            var x = 3
+            assert(x == 3)
+            assert(x == 3)
+        }
+        assert(x == 2)
+    }
+    assert(x == 1)
     ```
