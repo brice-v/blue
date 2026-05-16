@@ -70,8 +70,6 @@ TODO:
     val safeAdder = makeSafeAdder()
     assert(safeAdder(1, 2) == 3)
     ```
-- [ ] Support Bitwise shift with unsigned int for vm
-    - Maybe also support for int just to make it easier (it will auto transition to uint? - maybe maybe not)
 - [ ] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
@@ -654,3 +652,5 @@ COMPLETED TASKS:
     }
     assert(x == 1)
     ```
+- [x] Support Bitwise shift with unsigned int for vm
+    - Maybe also support for int just to make it easier (it will auto transition to uint? - maybe maybe not)
