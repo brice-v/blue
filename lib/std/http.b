@@ -26,6 +26,7 @@ val _server = fun() {
 }();
 val __shutdown_server = _shutdown_server;
 val __md_to_html = _md_to_html;
+val __html_to_md = _html_to_md;
 val __sanitize_and_minify = _sanitize_and_minify;
 
 val __inspect = _inspect;
@@ -321,6 +322,14 @@ fun md_to_html(content) {
     ##
     ## md_to_html(content: str) -> str
     __md_to_html(content)
+}
+
+fun html_to_md(content, domain="") {
+    ##std:this,__html_to_md
+    ## `html_to_md` will transform the html content passed in to valid markdown
+    ##
+    ## html_to_md(content: str, domain="") -> str
+    __html_to_md(content, domain)
 }
 
 fun inspect(obj) {

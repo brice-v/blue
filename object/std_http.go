@@ -25,6 +25,12 @@ import (
 	"github.com/russross/blackfriday/v2"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
+
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/strikethrough"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
 )
 
 // Used to catch interrupt to shutdown server
@@ -512,6 +518,54 @@ var HttpBuiltins = []*Builtin{
 			signature:   "md_to_html(s: str) -> str",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "md_to_html('# Hello World') => '<h1>Hello World</h1>'",
+		}.String(),
+	},
+	{
+		Name: "_html_to_md",
+		Fun: func(args ...Object) Object {
+			e := checkArgCount("html_to_md", 2, args)
+			if e != nil {
+				return e
+			}
+			e = checkArgType("html_to_md", 1, STRING_OBJ, args)
+			if e != nil {
+				return e
+			}
+			e = checkArgType("html_to_md", 2, STRING_OBJ, args)
+			if e != nil {
+				return e
+			}
+			htmlString := args[0].(*Stringo).Value
+			domain := args[1].(*Stringo).Value
+			conv := converter.NewConverter(
+				converter.WithPlugins(
+					base.NewBasePlugin(),
+					commonmark.NewCommonmarkPlugin(),
+					table.NewTablePlugin(),
+					strikethrough.NewStrikethroughPlugin(),
+				),
+			)
+			var markdown string
+			if domain == "" {
+				m, err := conv.ConvertString(htmlString)
+				if err != nil {
+					return newError("`html_to_md` error: %s", err.Error())
+				}
+				markdown = m
+			} else {
+				m, err := conv.ConvertString(htmlString, converter.WithDomain(domain))
+				if err != nil {
+					return newError("`html_to_md` error: %s", err.Error())
+				}
+				markdown = m
+			}
+			return &Stringo{Value: markdown}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`html_to_md` converts html string to markdown. If domain is populate, links will use absolute link with domain name.",
+			signature:   "html_to_md(s: str, domain='') -> str",
+			errors:      "InvalidArgCount,PositionalType,Custom",
+			example:     "html_to_md('<h1>Hello World</h1>') => '# Hello World'",
 		}.String(),
 	},
 	{
