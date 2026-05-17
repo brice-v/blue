@@ -31,6 +31,7 @@ val __sanitize_and_minify = _sanitize_and_minify;
 
 val __inspect = _inspect;
 
+val url_parse = _url_parse;
 val url_encode = _url_encode;
 val url_escape = _url_escape;
 val url_unescape = _url_unescape;

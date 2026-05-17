@@ -38,6 +38,67 @@ var interruptCh = make(chan os.Signal, 1)
 
 var HttpBuiltins = []*Builtin{
 	{
+		Name: "_url_parse",
+		Fun: func(args ...Object) Object {
+			e := checkArgCount("url_parse", 1, args)
+			if e != nil {
+				return e
+			}
+			e = checkArgType("url_parse", 1, STRING_OBJ, args)
+			if e != nil {
+				return e
+			}
+			u, err := url.Parse(args[0].(*Stringo).Value)
+			if err != nil {
+				return newError("`url_parse` error: %s", err.Error())
+			}
+			var passwordField Object
+			if pw, ok := u.User.Password(); ok {
+				passwordField = &Stringo{Value: pw}
+			} else {
+				passwordField = NULL
+			}
+			fields := []string{
+				"scheme",
+				"opaque",
+				"username",
+				"password",
+				"host",
+				"path",
+				"fragment",
+				"raw_query",
+				"raw_path",
+				"raw_fragment",
+				"force_query",
+				"omit_host",
+			}
+			values := []Object{&Stringo{Value: u.Scheme},
+				&Stringo{Value: u.Opaque},
+				&Stringo{Value: u.User.Username()},
+				passwordField,
+				&Stringo{Value: u.Host},
+				&Stringo{Value: u.Path},
+				&Stringo{Value: u.Fragment},
+				&Stringo{Value: u.RawQuery},
+				&Stringo{Value: u.RawPath},
+				&Stringo{Value: u.RawFragment},
+				nativeToBooleanObject(u.ForceQuery),
+				nativeToBooleanObject(u.OmitHost),
+			}
+			bs, err := NewBlueStruct(fields, values)
+			if err != nil {
+				return newError("`url_parse` error: %s", err.Error())
+			}
+			return bs
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`url_parse` returns the url as it was parsed with different components in a blue struct",
+			signature:   "url_parse(arg: str) -> struct",
+			errors:      "InvalidArgCount,PositionalType,Custom",
+			example:     "url_parse('https://go.dev') => 'hello%20world'",
+		}.String(),
+	},
+	{
 		Name: "_url_encode",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
