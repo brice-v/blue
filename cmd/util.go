@@ -238,7 +238,37 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
 	}
 }
 
+func getBuiltinHelpIfExists(name string) string {
+	var out bytes.Buffer
+	found := false
+	// Look through modules
+	for _, builtins := range object.AllBuiltins {
+		if builtins.Name == name {
+			found = true
+			fmt.Fprintf(&out, "MODULE: %s", name)
+			for _, b := range builtins.Builtins {
+				fmt.Fprintf(&out, "%s\n", b.HelpStr)
+			}
+		}
+	}
+	// Look through builtins individually
+	if !found {
+		for _, builtins := range object.AllBuiltins {
+			for _, b := range builtins.Builtins {
+				if b.Name == name || b.Name[1:] == name {
+					fmt.Fprintf(&out, "%s", b.HelpStr)
+				}
+			}
+		}
+	}
+	return out.String()
+}
+
 func getDocStringFor(name string) string {
+	builtinHelpStr := getBuiltinHelpIfExists(name)
+	if builtinHelpStr != "" {
+		return builtinHelpStr
+	}
 	e := evaluator.New()
 	if name == "std" {
 		// Get all std modules public function help strings
