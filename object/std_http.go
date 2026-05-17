@@ -95,7 +95,7 @@ var HttpBuiltins = []*Builtin{
 			explanation: "`url_parse` returns the url as it was parsed with different components in a blue struct",
 			signature:   "url_parse(arg: str) -> struct",
 			errors:      "InvalidArgCount,PositionalType,Custom",
-			example:     "url_parse('https://go.dev') => 'hello%20world'",
+			example:     "url_parse('https://go.dev') => @{scheme: 'https', opaque: '', username: '', password: null, host: 'go.dev', path: '', fragment: '', raw_query: '', raw_path: '', raw_fragment: '', force_query: false, omit_host: false}",
 		}.String(),
 	},
 	{
