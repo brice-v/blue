@@ -26,11 +26,8 @@ import (
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
 
-	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
-	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
-	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
-	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/strikethrough"
-	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
+	htmlToMd "github.com/JohannesKaufmann/html-to-markdown"
+	"github.com/JohannesKaufmann/html-to-markdown/plugin"
 )
 
 // Used to catch interrupt to shutdown server
@@ -598,29 +595,15 @@ var HttpBuiltins = []*Builtin{
 			}
 			htmlString := args[0].(*Stringo).Value
 			domain := args[1].(*Stringo).Value
-			conv := converter.NewConverter(
-				converter.WithPlugins(
-					base.NewBasePlugin(),
-					commonmark.NewCommonmarkPlugin(),
-					table.NewTablePlugin(),
-					strikethrough.NewStrikethroughPlugin(),
-				),
-			)
-			var markdown string
-			if domain == "" {
-				m, err := conv.ConvertString(htmlString)
-				if err != nil {
-					return newError("`html_to_md` error: %s", err.Error())
-				}
-				markdown = m
-			} else {
-				m, err := conv.ConvertString(htmlString, converter.WithDomain(domain))
-				if err != nil {
-					return newError("`html_to_md` error: %s", err.Error())
-				}
-				markdown = m
+			conv := htmlToMd.NewConverter(domain, true, nil)
+			conv.Use(plugin.GitHubFlavored())
+			conv.Use(plugin.Strikethrough(""))
+			conv.Use(plugin.YoutubeEmbed())
+			m, err := conv.ConvertString(htmlString)
+			if err != nil {
+				return newError("`html_to_md` error: %s", err.Error())
 			}
-			return &Stringo{Value: markdown}
+			return &Stringo{Value: m}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`html_to_md` converts html string to markdown. If domain is populate, links will use absolute link with domain name.",
