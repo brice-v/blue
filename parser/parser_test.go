@@ -3175,3 +3175,156 @@ func TestTrailingCommaDefaultParameter(t *testing.T) {
 		t.Fatalf("parameter 1 default should be IntegerLiteral, got %T", function.ParameterExpressions[1])
 	}
 }
+
+func TestLambdaWithEmptyArgsAndBlockBody(t *testing.T) {
+	input := `|| => { 42; }`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("statement is not ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	funcLit, ok := stmt.Expression.(*ast.FunctionLiteral)
+	if !ok {
+		t.Fatalf("expression is not FunctionLiteral, got %T", stmt.Expression)
+	}
+
+	if len(funcLit.Parameters) != 0 {
+		t.Fatalf("expected 0 parameters, got %d", len(funcLit.Parameters))
+	}
+
+	if len(funcLit.Body.Statements) != 1 {
+		t.Fatalf("expected 1 body statement, got %d", len(funcLit.Body.Statements))
+	}
+}
+
+func TestLambdaWithEmptyArgsAndSingleExprBody(t *testing.T) {
+	input := `|| => x + 1`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("statement is not ExpressionStatement, got %T", program.Statements[0])
+	}
+
+	funcLit, ok := stmt.Expression.(*ast.FunctionLiteral)
+	if !ok {
+		t.Fatalf("expression is not FunctionLiteral, got %T", stmt.Expression)
+	}
+
+	if len(funcLit.Parameters) != 0 {
+		t.Fatalf("expected 0 parameters, got %d", len(funcLit.Parameters))
+	}
+
+	if len(funcLit.Body.Statements) != 1 {
+		t.Fatalf("expected 1 body statement, got %d", len(funcLit.Body.Statements))
+	}
+}
+
+func TestLambdaWithEmptyArgsAndSimpleExprBody(t *testing.T) {
+	input := `|| => x`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	funcLit := stmt.Expression.(*ast.FunctionLiteral)
+
+	if len(funcLit.Parameters) != 0 {
+		t.Fatalf("expected 0 parameters, got %d", len(funcLit.Parameters))
+	}
+
+	if len(funcLit.Body.Statements) != 1 {
+		t.Fatalf("expected 1 body statement, got %d", len(funcLit.Body.Statements))
+	}
+}
+
+func TestLambdaWithEmptyArgsCallingFunction(t *testing.T) {
+	input := `|| => { }`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	funcLit := stmt.Expression.(*ast.FunctionLiteral)
+
+	if len(funcLit.Parameters) != 0 {
+		t.Fatalf("expected 0 parameters, got %d", len(funcLit.Parameters))
+	}
+
+	if len(funcLit.Body.Statements) != 0 {
+		t.Fatalf("expected 0 body statements for empty block, got %d", len(funcLit.Body.Statements))
+	}
+}
+
+func TestLambdaWithEmptyArgsUsedAsArgument(t *testing.T) {
+	input := `map([1,2,3], || => { 42 })`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	callExpr := stmt.Expression.(*ast.CallExpression)
+
+	if len(callExpr.Arguments) != 2 {
+		t.Fatalf("expected 2 arguments, got %d", len(callExpr.Arguments))
+	}
+
+	success := false
+	for _, arg := range callExpr.Arguments {
+		if funcLit, ok := arg.(*ast.FunctionLiteral); ok {
+			if len(funcLit.Parameters) != 0 {
+				t.Fatalf("expected nested lambda to have 0 parameters, got %d", len(funcLit.Parameters))
+			}
+			success = true
+		}
+	}
+	if !success {
+		t.Fatal("expected a lambda as second argument")
+	}
+}
+
+func TestLambdaWithEmptyArgsMissingArrow(t *testing.T) {
+	input := `|| x + 1`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	p.ParseProgram()
+
+	if len(p.errors) == 0 {
+		t.Fatal("expected parser errors for || without =>")
+	}
+
+	errFound := false
+	for _, err := range p.errors {
+		if strings.Contains(err.Message, "=>") {
+			errFound = true
+		}
+	}
+	if !errFound {
+		t.Fatalf("expected error mentioning '=>', got: %s", p.errors[0].Message)
+	}
+}

@@ -717,7 +717,8 @@ func (s *Set) Inspect() string {
 		if i != len(keys)-1 {
 			endStr = ", "
 		}
-		out.WriteString(e.Value.Inspect() + endStr)
+		out.WriteString(e.Value.Inspect())
+		out.WriteString(endStr)
 	}
 	out.WriteString("}")
 	return out.String()
