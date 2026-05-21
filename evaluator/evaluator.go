@@ -918,34 +918,36 @@ func (e *Evaluator) evalMatchExpression(node *ast.MatchExpression) object.Object
 	}
 	e.env.Set("_", object.NULL)
 	for i := range conditionLen {
-		if node.Conditions[i].String() == "_" {
-			// Default case should always run (even if its before others)
-			return e.evalBlockStatement(node.Consequences[i])
-		}
-		// Run through each condtion and if it evaluates to "true" then return the evaluated consequence
-		condVal := e.Eval(node.Conditions[i])
-		// This is our very basic form of pattern matching
-		if condVal.Type() == object.MAP_OBJ && optVal != nil && optVal.Type() == object.MAP_OBJ {
-			// Do our shape matching on it
-			if doCondAndMatchExpEqual(condVal, optVal) {
+		for j := range node.Conditions[i] {
+			if node.Conditions[i][j].String() == "_" {
+				// Default case should always run (even if its before others)
 				return e.evalBlockStatement(node.Consequences[i])
 			}
-		}
-		if optVal == nil {
-			evald := e.Eval(node.Conditions[i])
-			if isError(evald) {
-				return evald
+			// Run through each condtion and if it evaluates to "true" then return the evaluated consequence
+			condVal := e.Eval(node.Conditions[i][j])
+			// This is our very basic form of pattern matching
+			if condVal.Type() == object.MAP_OBJ && optVal != nil && optVal.Type() == object.MAP_OBJ {
+				// Do our shape matching on it
+				if doCondAndMatchExpEqual(condVal, optVal) {
+					return e.evalBlockStatement(node.Consequences[i])
+				}
 			}
-			if evald == object.TRUE {
+			if optVal == nil {
+				evald := e.Eval(node.Conditions[i][j])
+				if isError(evald) {
+					return evald
+				}
+				if evald == object.TRUE {
+					return e.evalBlockStatement(node.Consequences[i])
+				}
+				continue
+			}
+			if object.HashObject(condVal) == object.HashObject(optVal) {
 				return e.evalBlockStatement(node.Consequences[i])
 			}
-			continue
-		}
-		if object.HashObject(condVal) == object.HashObject(optVal) {
-			return e.evalBlockStatement(node.Consequences[i])
-		}
-		if condVal == object.IGNORE {
-			return e.evalBlockStatement(node.Consequences[i])
+			if condVal == object.IGNORE {
+				return e.evalBlockStatement(node.Consequences[i])
+			}
 		}
 	}
 	// Shouldnt reach here ideally

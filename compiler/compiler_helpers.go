@@ -629,40 +629,40 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 	for i := range node.Conditions {
 		var err error
 		var jumpNotTruthyPos int
-		condIsDefault := node.Conditions[i].String() == "_"
-		if !condIsDefault {
-			c.inMatch = true
-			err = c.Compile(node.Conditions[i])
-			if err != nil {
-				return err
-			}
-			if node.OptionalValue != nil {
-				err = c.Compile(node.OptionalValue)
+		for j := range node.Conditions[i] {
+			condIsDefault := node.Conditions[i][j].String() == "_"
+			if !condIsDefault {
+				c.inMatch = true
+				err = c.Compile(node.Conditions[i][j])
 				if err != nil {
 					return err
 				}
-				c.emit(code.OpMatchValue)
+				if node.OptionalValue != nil {
+					err = c.Compile(node.OptionalValue)
+					if err != nil {
+						return err
+					}
+					c.emit(code.OpMatchValue)
+				}
+				c.inMatch = false
+				jumpNotTruthyPos = c.emit(code.OpJumpNotTruthy, 9999)
 			}
-			c.inMatch = false
-			// Emit an `OpJumpNotTruthy` with a bogus value
-			jumpNotTruthyPos = c.emit(code.OpJumpNotTruthy, 9999)
-		}
-		err = c.Compile(node.Consequences[i])
-		if err != nil {
-			return err
-		}
-		if c.lastInstructionIsSet() {
-			c.emit(code.OpNull)
-		}
-		if c.lastInstructionIs(code.OpPop) {
-			c.removeLastPop()
-		}
-		// Emit an `OpJump` with a bogus value
-		jumpPos := c.emit(code.OpJump, 9999)
-		allEndingJumpPos = append(allEndingJumpPos, jumpPos)
-		afterConsequencePos := len(c.currentInstructions())
-		if !condIsDefault {
-			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+			err = c.Compile(node.Consequences[i])
+			if err != nil {
+				return err
+			}
+			if c.lastInstructionIsSet() {
+				c.emit(code.OpNull)
+			}
+			if c.lastInstructionIs(code.OpPop) {
+				c.removeLastPop()
+			}
+			jumpPos := c.emit(code.OpJump, 9999)
+			allEndingJumpPos = append(allEndingJumpPos, jumpPos)
+			afterConsequencePos := len(c.currentInstructions())
+			if !condIsDefault {
+				c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+			}
 		}
 	}
 	afterAlternativePos := len(c.currentInstructions())

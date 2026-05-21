@@ -1654,15 +1654,17 @@ func (p *Parser) parseAssignmentExpression(exp ast.Expression) ast.Expression {
 	return ae
 }
 
-var defaultMatchCondition = &ast.Identifier{
-	Token: token.Token{
-		Type:           token.IDENT,
-		Literal:        "_",
-		Filepath:       "", // Filled in when used
-		LineNumber:     0,  // Filled in when used
-		PositionInLine: 0,  // Filled in when used
+var defaultMatchCondition = []ast.Expression{
+	&ast.Identifier{
+		Token: token.Token{
+			Type:           token.IDENT,
+			Literal:        "_",
+			Filepath:       "", // Filled in when used
+			LineNumber:     0,  // Filled in when used
+			PositionInLine: 0,  // Filled in when used
+		},
+		Value: "_",
 	},
-	Value: "_",
 }
 
 var defaultMatchConsequence = &ast.BlockStatement{
@@ -1690,7 +1692,7 @@ var defaultMatchConsequence = &ast.BlockStatement{
 
 func (p *Parser) parseMatchExpression() ast.Expression {
 	me := &ast.MatchExpression{Token: p.curToken,
-		Conditions:   []ast.Expression{},
+		Conditions:   [][]ast.Expression{},
 		Consequences: []*ast.BlockStatement{},
 	}
 	if !p.peekTokenIs(token.LBRACE) {
@@ -1704,18 +1706,28 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	p.nextToken()
 	foundDefaultMatchCondition := false
 	for {
-		expr := p.parseExpression(LOWEST)
-		if ident, ok := expr.(*ast.Identifier); ok {
-			if ident.Value == defaultMatchCondition.Value {
-				foundDefaultMatchCondition = true
+		var exprConds []ast.Expression
+		for {
+			expr := p.parseExpression(LOWEST)
+			if ident, ok := expr.(*ast.Identifier); ok {
+				if ident.Value == defaultMatchCondition[0].(*ast.Identifier).Value {
+					foundDefaultMatchCondition = true
+				}
+			}
+			exprConds = append(exprConds, expr)
+			if p.peekTokenIs(token.COMMA) {
+				p.nextToken()
+				p.nextToken()
+				continue
+			}
+			if !p.expectPeekIs(token.RARROW) {
+				return nil
+			} else {
+				break
 			}
 		}
-		me.Conditions = append(me.Conditions, expr)
-		if !p.expectPeekIs(token.RARROW) {
-			return nil
-		}
+		me.Conditions = append(me.Conditions, exprConds)
 		p.nextToken()
-
 		me.Consequences = append(me.Consequences, p.parseBlockStatement())
 		if p.curTokenIs(token.RBRACE) && p.peekTokenIs(token.COMMA) {
 			p.nextToken() // skip comma
@@ -1733,9 +1745,9 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	}
 	// Pre-populate default case so compiler can correctly handle scenarios where no match legs match and provide null anyways rather than crashing
 	if !foundDefaultMatchCondition {
-		defaultMatchCondition.Token.Filepath = p.curToken.Filepath
-		defaultMatchCondition.Token.LineNumber = p.curToken.LineNumber
-		defaultMatchCondition.Token.PositionInLine = p.curToken.PositionInLine
+		defaultMatchCondition[0].(*ast.Identifier).Token.Filepath = p.curToken.Filepath
+		defaultMatchCondition[0].(*ast.Identifier).Token.LineNumber = p.curToken.LineNumber
+		defaultMatchCondition[0].(*ast.Identifier).Token.PositionInLine = p.curToken.PositionInLine
 		me.Conditions = append(me.Conditions, defaultMatchCondition)
 		defaultMatchConsequence.Token.Filepath = p.curToken.Filepath
 		defaultMatchConsequence.Token.LineNumber = p.curToken.LineNumber

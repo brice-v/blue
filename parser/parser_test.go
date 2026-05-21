@@ -1826,9 +1826,9 @@ func TestMatchExpression(t *testing.T) {
 		t.Fatalf("match.Consequences has wrong length. got=%d", len(match.Consequences))
 	}
 
-	integer, ok := match.Conditions[0].(*ast.IntegerLiteral)
+	integer, ok := match.Conditions[0][0].(*ast.IntegerLiteral)
 	if !ok {
-		t.Fatalf("match.Conditions[0] is not *ast.IntegerLiteral. got=%T", match.Conditions[0])
+		t.Fatalf("match.Conditions[0][0] is not *ast.IntegerLiteral. got=%T", match.Conditions[0])
 	}
 	if integer.Value != 1 {
 		t.Errorf("match.Conditions[0].Value not 1. got=%d", integer.Value)
@@ -2724,12 +2724,12 @@ func TestMatchExpressionWithComplexConditions(t *testing.T) {
 	}
 
 	// Third condition should be an infix expression (1 + 2)
-	infix, ok := match.Conditions[2].(*ast.InfixExpression)
+	infix, ok := match.Conditions[2][0].(*ast.InfixExpression)
 	if !ok {
-		t.Fatalf("match.Conditions[2] is not *ast.InfixExpression. got=%T", match.Conditions[2])
+		t.Fatalf("match.Conditions[2][0] is not *ast.InfixExpression. got=%T", match.Conditions[2])
 	}
 	if infix.Operator != "+" {
-		t.Errorf("match.Conditions[2].Operator not +. got=%s", infix.Operator)
+		t.Errorf("match.Conditions[2][0].Operator not +. got=%s", infix.Operator)
 	}
 }
 
@@ -2751,12 +2751,12 @@ func TestMatchExpressionString(t *testing.T) {
 		t.Fatalf("match.Conditions has wrong length. got=%d", len(match.Conditions))
 	}
 
-	strLit, ok := match.Conditions[0].(*ast.StringLiteral)
+	strLit, ok := match.Conditions[0][0].(*ast.StringLiteral)
 	if !ok {
-		t.Fatalf("match.Conditions[0] is not *ast.StringLiteral. got=%T", match.Conditions[0])
+		t.Fatalf("match.Conditions[0][0] is not *ast.StringLiteral. got=%T", match.Conditions[0])
 	}
 	if strLit.Value != "hello" {
-		t.Errorf("match.Conditions[0].Value not hello. got=%s", strLit.Value)
+		t.Errorf("match.Conditions[0][0].Value not hello. got=%s", strLit.Value)
 	}
 }
 

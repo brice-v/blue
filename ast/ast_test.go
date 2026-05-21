@@ -330,7 +330,7 @@ func TestIfExpressionStringSimple(t *testing.T) {
 		},
 		Consequences: []*BlockStatement{
 			{
-				Token:      token.Token{Type: token.LBRACE, Literal: "{"},
+				Token: token.Token{Type: token.LBRACE, Literal: "{"},
 				Statements: []Statement{
 					&ExpressionStatement{
 						Token:      token.Token{Type: token.IDENT, Literal: "x"},
@@ -402,9 +402,9 @@ func TestMatchExpressionTokenLiteral(t *testing.T) {
 			Token: token.Token{Type: token.IDENT, Literal: "x"},
 			Value: "x",
 		},
-		Conditions: []Expression{
+		Conditions: [][]Expression{{
 			&Boolean{Token: token.Token{Type: token.TRUE, Literal: "true"}, Value: true},
-		},
+		}},
 		Consequences: []*BlockStatement{
 			{
 				Token:      token.Token{Type: token.LBRACE, Literal: "{"},
@@ -424,9 +424,9 @@ func TestMatchExpressionString(t *testing.T) {
 			Token: token.Token{Type: token.IDENT, Literal: "x"},
 			Value: "x",
 		},
-		Conditions: []Expression{
+		Conditions: [][]Expression{{
 			&Boolean{Token: token.Token{Type: token.TRUE, Literal: "true"}, Value: true},
-		},
+		}},
 		Consequences: []*BlockStatement{
 			{
 				Token:      token.Token{Type: token.LBRACE, Literal: "{"},
@@ -1216,7 +1216,7 @@ func TestVarStatementTokenLiteral(t *testing.T) {
 		Names: []*Identifier{
 			{Token: token.Token{Type: token.IDENT, Literal: "x"}, Value: "x"},
 		},
-		Value: &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
+		Value:           &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
 		AssignmentToken: token.Token{Type: token.ASSIGN, Literal: "="},
 	}
 	if vs.TokenLiteral() != "var" {
@@ -1230,7 +1230,7 @@ func TestVarStatementStringSimple(t *testing.T) {
 		Names: []*Identifier{
 			{Token: token.Token{Type: token.IDENT, Literal: "x"}, Value: "x"},
 		},
-		Value: &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
+		Value:           &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
 		AssignmentToken: token.Token{Type: token.ASSIGN, Literal: "="},
 	}
 	expected := "var x = 1"
@@ -1246,7 +1246,7 @@ func TestVarStatementStringMultipleNames(t *testing.T) {
 			{Token: token.Token{Type: token.IDENT, Literal: "a"}, Value: "a"},
 			{Token: token.Token{Type: token.IDENT, Literal: "b"}, Value: "b"},
 		},
-		Value: &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
+		Value:           &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
 		AssignmentToken: token.Token{Type: token.ASSIGN, Literal: "="},
 	}
 	expected := "var a, b = 1"
@@ -1350,7 +1350,7 @@ func TestVarStatementWithPlusEq(t *testing.T) {
 		Names: []*Identifier{
 			{Token: token.Token{Type: token.IDENT, Literal: "x"}, Value: "x"},
 		},
-		Value: &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
+		Value:           &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
 		AssignmentToken: token.Token{Type: token.PLUSEQ, Literal: "+="},
 	}
 	expected := "var x += 1"
@@ -1474,9 +1474,9 @@ func TestValStatementVVIsListDestructor(t *testing.T) {
 
 func TestFunctionStatementTokenLiteral(t *testing.T) {
 	fs := &FunctionStatement{
-		Token:  token.Token{Type: token.FUNCTION, Literal: "fun"},
-		Name:   &Identifier{Token: token.Token{Type: token.IDENT, Literal: "foo"}, Value: "foo"},
-		Body:   &BlockStatement{Token: token.Token{Type: token.LBRACE, Literal: "{"}, Statements: []Statement{}},
+		Token: token.Token{Type: token.FUNCTION, Literal: "fun"},
+		Name:  &Identifier{Token: token.Token{Type: token.IDENT, Literal: "foo"}, Value: "foo"},
+		Body:  &BlockStatement{Token: token.Token{Type: token.LBRACE, Literal: "{"}, Statements: []Statement{}},
 	}
 	if fs.TokenLiteral() != "fun" {
 		t.Errorf("TokenLiteral() = %q, want %q", fs.TokenLiteral(), "fun")
@@ -1485,9 +1485,9 @@ func TestFunctionStatementTokenLiteral(t *testing.T) {
 
 func TestFunctionStatementString(t *testing.T) {
 	fs := &FunctionStatement{
-		Token:  token.Token{Type: token.FUNCTION, Literal: "fun"},
-		Name:   &Identifier{Token: token.Token{Type: token.IDENT, Literal: "foo"}, Value: "foo"},
-		Body:   &BlockStatement{Token: token.Token{Type: token.LBRACE, Literal: "{"}, Statements: []Statement{}},
+		Token: token.Token{Type: token.FUNCTION, Literal: "fun"},
+		Name:  &Identifier{Token: token.Token{Type: token.IDENT, Literal: "foo"}, Value: "foo"},
+		Body:  &BlockStatement{Token: token.Token{Type: token.LBRACE, Literal: "{"}, Statements: []Statement{}},
 	}
 	result := fs.String()
 	if result == "" {
@@ -1809,7 +1809,7 @@ func TestContinueStatementString(t *testing.T) {
 
 func TestForStatementTokenLiteral(t *testing.T) {
 	fs := &ForStatement{
-		Token: token.Token{Type: token.FOR, Literal: "for"},
+		Token:     token.Token{Type: token.FOR, Literal: "for"},
 		Condition: &Boolean{Token: token.Token{Type: token.TRUE, Literal: "true"}, Value: true},
 		Consequence: &BlockStatement{
 			Token:      token.Token{Type: token.LBRACE, Literal: "{"},
@@ -1823,7 +1823,7 @@ func TestForStatementTokenLiteral(t *testing.T) {
 
 func TestForStatementStringSimple(t *testing.T) {
 	fs := &ForStatement{
-		Token: token.Token{Type: token.FOR, Literal: "for"},
+		Token:     token.Token{Type: token.FOR, Literal: "for"},
 		Condition: &Boolean{Token: token.Token{Type: token.TRUE, Literal: "true"}, Value: true},
 		Consequence: &BlockStatement{
 			Token:      token.Token{Type: token.LBRACE, Literal: "{"},
@@ -1840,9 +1840,9 @@ func TestForStatementStringWithVar(t *testing.T) {
 	fs := &ForStatement{
 		Token: token.Token{Type: token.FOR, Literal: "for"},
 		Initializer: &VarStatement{
-			Token: token.Token{Type: token.VAR, Literal: "var"},
-			Names: []*Identifier{{Token: token.Token{Type: token.IDENT, Literal: "i"}, Value: "i"}},
-			Value: &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "0"}, Value: 0},
+			Token:           token.Token{Type: token.VAR, Literal: "var"},
+			Names:           []*Identifier{{Token: token.Token{Type: token.IDENT, Literal: "i"}, Value: "i"}},
+			Value:           &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "0"}, Value: 0},
 			AssignmentToken: token.Token{Type: token.ASSIGN, Literal: "="},
 		},
 		Condition: &InfixExpression{
