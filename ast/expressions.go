@@ -192,7 +192,9 @@ func (me *MatchExpression) String() string {
 	var out bytes.Buffer
 
 	out.WriteString("match ")
-	out.WriteString(me.OptionalValue.String())
+	if me.OptionalValue != nil {
+		out.WriteString(me.OptionalValue.String())
+	}
 	out.WriteString(" { ")
 	for i, e := range me.Conditions {
 		for ii, ee := range e {

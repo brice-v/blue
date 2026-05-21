@@ -2760,6 +2760,139 @@ func TestMatchExpressionString(t *testing.T) {
 	}
 }
 
+func TestMatchExpressionMultipleConditions(t *testing.T) {
+	input := `match x {
+		1, 2 => { "one or two" },
+		3, 4, 5 => { "three to five" },
+		_ => { "other" },
+	}`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	match := stmt.Expression.(*ast.MatchExpression)
+
+	if len(match.Conditions) != 3 {
+		t.Fatalf("match.Conditions has wrong length. got=%d", len(match.Conditions))
+	}
+	if len(match.Consequences) != 3 {
+		t.Fatalf("match.Consequences has wrong length. got=%d", len(match.Consequences))
+	}
+
+	if len(match.Conditions[0]) != 2 {
+		t.Fatalf("match.Conditions[0] has wrong length. got=%d", len(match.Conditions[0]))
+	}
+
+	intLit, ok := match.Conditions[0][0].(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("match.Conditions[0][0] is not *ast.IntegerLiteral. got=%T", match.Conditions[0][0])
+	}
+	if intLit.Value != 1 {
+		t.Errorf("match.Conditions[0][0].Value not 1. got=%d", intLit.Value)
+	}
+
+	intLit2, ok := match.Conditions[0][1].(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("match.Conditions[0][1] is not *ast.IntegerLiteral. got=%T", match.Conditions[0][1])
+	}
+	if intLit2.Value != 2 {
+		t.Errorf("match.Conditions[0][1].Value not 2. got=%d", intLit2.Value)
+	}
+
+	if len(match.Conditions[1]) != 3 {
+		t.Fatalf("match.Conditions[1] has wrong length. got=%d", len(match.Conditions[1]))
+	}
+
+	for i, expected := range []int{3, 4, 5} {
+		val, ok := match.Conditions[1][i].(*ast.IntegerLiteral)
+		if !ok {
+			t.Fatalf("match.Conditions[1][%d] is not *ast.IntegerLiteral. got=%T", i, match.Conditions[1][i])
+		}
+		if val.Value != int64(expected) {
+			t.Errorf("match.Conditions[1][%d].Value not %d. got=%d", i, expected, val.Value)
+		}
+	}
+
+	if len(match.Conditions[2]) != 1 {
+		t.Fatalf("match.Conditions[2] has wrong length. got=%d", len(match.Conditions[2]))
+	}
+	ident, ok := match.Conditions[2][0].(*ast.Identifier)
+	if !ok {
+		t.Fatalf("match.Conditions[2][0] is not *ast.Identifier. got=%T", match.Conditions[2][0])
+	}
+	if ident.Value != "_" {
+		t.Errorf("match.Conditions[2][0].Value not '_'. got=%s", ident.Value)
+	}
+}
+
+func TestMatchExpressionMultipleConditionsWithoutValue(t *testing.T) {
+	input := `match {
+		x > 0, y < 10 => { "positive and less than 10" },
+		_ => { "else" },
+	}`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	match := stmt.Expression.(*ast.MatchExpression)
+
+	if match.OptionalValue != nil {
+		t.Fatalf("expected no optional value in match expression")
+	}
+	if len(match.Conditions) != 2 {
+		t.Fatalf("match.Conditions has wrong length. got=%d", len(match.Conditions))
+	}
+
+	if len(match.Conditions[0]) != 2 {
+		t.Fatalf("match.Conditions[0] has wrong length. got=%d", len(match.Conditions[0]))
+	}
+
+	infix1, ok := match.Conditions[0][0].(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("match.Conditions[0][0] is not *ast.InfixExpression. got=%T", match.Conditions[0][0])
+	}
+	if infix1.Operator != ">" {
+		t.Errorf("match.Conditions[0][0].Operator not >. got=%s", infix1.Operator)
+	}
+
+	infix2, ok := match.Conditions[0][1].(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("match.Conditions[0][1] is not *ast.InfixExpression. got=%T", match.Conditions[0][1])
+	}
+	if infix2.Operator != "<" {
+		t.Errorf("match.Conditions[0][1].Operator not <. got=%s", infix2.Operator)
+	}
+}
+
+func TestMatchExpressionMultipleConditionsString(t *testing.T) {
+	input := `match x {
+		"a", "b", "c" => { "abc" },
+		_ => { "other" },
+	}`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	match := stmt.Expression.(*ast.MatchExpression)
+
+	str := match.String()
+	if !strings.Contains(str, `"a","b","c"`) {
+		t.Errorf("match.String() should contain comma-separated string literals. got=%s", str)
+	}
+	if !strings.Contains(str, " => ") {
+		t.Errorf("match.String() should contain ' => '. got=%s", str)
+	}
+}
+
 func TestCallExpressionWithDefaultArgs(t *testing.T) {
 	input := `foo(a=1, b=2);`
 
