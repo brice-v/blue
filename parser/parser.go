@@ -1251,6 +1251,11 @@ func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression)
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
+
+		if p.curTokenIs(token.RPAREN) {
+			break
+		}
+
 		val := p.parseExpression(LOWEST)
 		switch val.(type) {
 		case *ast.AssignmentExpression:
@@ -1272,7 +1277,7 @@ func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression)
 		}
 	}
 
-	if !p.expectPeekIs(token.RPAREN) {
+	if !p.curTokenIs(token.RPAREN) && !p.expectPeekIs(token.RPAREN) {
 		return nil, nil
 	}
 
@@ -1320,14 +1325,18 @@ func (p *Parser) parseLambdaParameters() []*ast.Identifier {
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
+
+		if p.curTokenIs(token.PIPE) {
+			break
+		}
+
 		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 		identifiers = append(identifiers, ident)
 	}
 
-	if !p.expectPeekIs(token.PIPE) {
-		return nil
-	}
-	if !p.expectPeekIs(token.RARROW) {
+	if p.curTokenIs(token.PIPE) {
+		p.nextToken()
+	} else if !p.expectPeekIs(token.PIPE) || !p.expectPeekIs(token.RARROW) {
 		return nil
 	}
 
@@ -1400,6 +1409,9 @@ func (p *Parser) parseSetLiteral(firstTok token.Token, firstExp ast.Expression) 
 		// need to skip ahead
 		p.nextToken()
 		p.nextToken()
+		if p.curTokenIs(token.RBRACE) {
+			return exp
+		}
 	} else if p.peekTokenIs(token.RBRACE) {
 		// This is the case where first expression is valid and next element is not there
 		// so 1 element sets
@@ -1791,8 +1803,7 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
-		if p.curTokenIs(token.RBRACKET) && end == token.RBRACKET {
-			// To allow trailing comma in list literal
+		if (p.curTokenIs(token.RBRACKET) && end == token.RBRACKET) || (p.curTokenIs(token.RPAREN) && end == token.RPAREN) {
 			skipEndPeek = true
 			break
 		}

@@ -596,7 +596,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
 	case *ast.FunctionStatement:
 		helpStr := object.CreateHelpStringFromBodyTokensAstFun(node.Name.Value, node, node.Body.HelpStrTokens)
-		symbol := c.symbolTable.DefineWithHelpStr(c.getName(node.Name.Value), true, helpStr)
+		symbol := c.symbolTable.DefineFun(c.getName(node.Name.Value), true, node.Parameters, node.ParameterExpressions, helpStr)
 		c.enterScope()
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
 		compiledFun.HelpStr = symbol.HelpStr

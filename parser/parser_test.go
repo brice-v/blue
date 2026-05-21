@@ -2942,3 +2942,236 @@ func TestNestedIndexExpressions(t *testing.T) {
 		t.Errorf("innerIndex.Left.Value not arr. got=%s", ident.Value)
 	}
 }
+
+func TestTrailingCommaFunctionParameters(t *testing.T) {
+	tests := []struct {
+		input          string
+		expectedParams []string
+	}{
+		{input: "fun(a,) { a }", expectedParams: []string{"a"}},
+		{input: "fun(a,b,) { a+b }", expectedParams: []string{"a", "b"}},
+		{input: "fun(a,b,c,) { a+b+c }", expectedParams: []string{"a", "b", "c"}},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input, "<internal:test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		function := stmt.Expression.(*ast.FunctionLiteral)
+
+		if len(function.Parameters) != len(tt.expectedParams) {
+			t.Errorf("trailing comma: expected %d params, got %d", len(tt.expectedParams), len(function.Parameters))
+		}
+
+		for i, ident := range tt.expectedParams {
+			testLiteralExpression(t, function.Parameters[i], ident)
+		}
+	}
+}
+
+func TestTrailingCommaFunctionStatementParameters(t *testing.T) {
+	input := "fun hello(a,b,c,) { a+b+c }"
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.FunctionStatement)
+	if !ok {
+		t.Fatalf("expected FunctionStatement, got %T", program.Statements[0])
+	}
+
+	if stmt.Name.Value != "hello" {
+		t.Errorf("function name = %q, want %q", stmt.Name.Value, "hello")
+	}
+
+	if len(stmt.Parameters) != 3 {
+		t.Fatalf("expected 3 parameters, got %d", len(stmt.Parameters))
+	}
+
+	testIdentifier(t, stmt.Parameters[0], "a")
+	testIdentifier(t, stmt.Parameters[1], "b")
+	testIdentifier(t, stmt.Parameters[2], "c")
+}
+
+func TestTrailingCommaCallExpression(t *testing.T) {
+	tests := []struct {
+		input           string
+		expectedNumArgs int
+		expectedArgs    []int64
+	}{
+		{input: "f(1,);", expectedNumArgs: 1, expectedArgs: []int64{1}},
+		{input: "f(1,2,);", expectedNumArgs: 2, expectedArgs: []int64{1, 2}},
+		{input: "f(1,2,3,);", expectedNumArgs: 3, expectedArgs: []int64{1, 2, 3}},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input, "<internal:test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		callExp := stmt.Expression.(*ast.CallExpression)
+
+		fnIdent, fnOk := callExp.Function.(*ast.Identifier)
+		if !fnOk {
+			t.Fatalf("callExp.Function not *ast.Identifier, got %T", callExp.Function)
+		}
+		if fnIdent.Value != "f" {
+			t.Errorf("function name = %q, want 'f'", fnIdent.Value)
+		}
+
+		if len(callExp.Arguments) != tt.expectedNumArgs {
+			t.Errorf("trailing comma call: expected %d args, got %d", tt.expectedNumArgs, len(callExp.Arguments))
+		} else {
+			for i, expected := range tt.expectedArgs {
+				testIntegerLiteral(t, callExp.Arguments[i], expected)
+			}
+		}
+	}
+}
+
+func TestTrailingCommaListLiteral(t *testing.T) {
+	tests := []struct {
+		input    string
+		numElems int
+	}{
+		{input: "[1,]", numElems: 1},
+		{input: "[1,2,]", numElems: 2},
+		{input: "[1,2,3,]", numElems: 3},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input, "<internal:test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		list := stmt.Expression.(*ast.ListLiteral)
+
+		if len(list.Elements) != tt.numElems {
+			t.Errorf("trailing comma list: expected %d elems, got %d", tt.numElems, len(list.Elements))
+		}
+	}
+}
+
+func TestTrailingCommaSetLiteral(t *testing.T) {
+	tests := []struct {
+		input    string
+		numElems int
+	}{
+		{input: "{1,}", numElems: 1},
+		{input: "{1,2,}", numElems: 2},
+		{input: "{1,2,3,}", numElems: 3},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input, "<internal:test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		set, ok := stmt.Expression.(*ast.SetLiteral)
+		if !ok {
+			t.Fatalf("expected SetLiteral, got %T. AST: %s", stmt.Expression, program.String())
+		}
+
+		if len(set.Elements) != tt.numElems {
+			t.Errorf("trailing comma set: expected %d elems, got %d", tt.numElems, len(set.Elements))
+		}
+	}
+}
+
+func TestTrailingCommaMapLiteral(t *testing.T) {
+	tests := []struct {
+		input    string
+		numPairs int
+	}{
+		{input: `@{a: 1,}`, numPairs: 1},
+		{input: `@{a: 1, b: 2,}`, numPairs: 2},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input, "<internal:test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		mapLit, ok := stmt.Expression.(*ast.StructLiteral)
+		if !ok {
+			t.Fatalf("expected StructLiteral for @{} syntax, got %T. AST: %s", stmt.Expression, program.String())
+		}
+
+		if len(mapLit.Values) != tt.numPairs {
+			t.Errorf("trailing comma struct/map: expected %d values, got %d", tt.numPairs, len(mapLit.Values))
+		}
+	}
+}
+
+func TestTrailingCommaLambdaParameters(t *testing.T) {
+	tests := []struct {
+		input          string
+		expectedParams []string
+	}{
+		{input: "|a,| => a", expectedParams: []string{"a"}},
+		{input: "|a,b,| => a+b", expectedParams: []string{"a", "b"}},
+		{input: "|a,b,c,| => a+b+c", expectedParams: []string{"a", "b", "c"}},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input, "<internal:test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		function := stmt.Expression.(*ast.FunctionLiteral)
+
+		if len(function.Parameters) != len(tt.expectedParams) {
+			t.Errorf("trailing comma lambda: expected %d params, got %d", len(tt.expectedParams), len(function.Parameters))
+		}
+
+		for i, ident := range tt.expectedParams {
+			testLiteralExpression(t, function.Parameters[i], ident)
+		}
+	}
+}
+
+func TestTrailingCommaDefaultParameter(t *testing.T) {
+	input := "fun(a,b=10,) { a+b }"
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	function := stmt.Expression.(*ast.FunctionLiteral)
+
+	if len(function.Parameters) != 2 {
+		t.Fatalf("expected 2 parameters, got %d", len(function.Parameters))
+	}
+
+	testIdentifier(t, function.Parameters[0], "a")
+	testIdentifier(t, function.Parameters[1], "b")
+
+	if len(function.ParameterExpressions) != 2 {
+		t.Fatalf("expected 2 parameter expressions, got %d", len(function.ParameterExpressions))
+	}
+	_, ok := function.ParameterExpressions[1].(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("parameter 1 default should be IntegerLiteral, got %T", function.ParameterExpressions[1])
+	}
+}

@@ -576,6 +576,27 @@ func TestAnotherVmScopeIssue(t *testing.T) {
 	vmString(t, s)
 }
 
+func TestTrailingCommas(t *testing.T) {
+	s := `fun hello(a,b,c,) {
+		a + b + c
+	}
+
+	assert(hello(1,2,3) == 6);
+
+	val x = [1,2,];
+	assert(x == [1,2]);
+	val y = {3,4,};
+	assert(y == {3,4});
+	val z = @{hello: 'world',};
+	assert(z == @{hello: 'world'});
+	println('hello = #{hello(1,2,3)}');
+	println('z = #{z}');
+	println(z.hello);
+	val a = {aa: 'world',};
+	assert(a == {aa: 'world'});`
+	vmString(t, s)
+}
+
 func vmStringWithCore(t *testing.T, s string) {
 	program := parseString(t, s)
 	c := compiler.NewFromCore()

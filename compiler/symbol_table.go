@@ -81,10 +81,6 @@ func (s *SymbolTable) Define(name string, isImmutable bool) Symbol {
 	return s.defineActual(name, isImmutable, nil, nil, "")
 }
 
-func (s *SymbolTable) DefineWithHelpStr(name string, isImmutable bool, helpStr string) Symbol {
-	return s.defineActual(name, isImmutable, nil, nil, helpStr)
-}
-
 func (s *SymbolTable) DefineFun(name string, isImmutable bool, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
 	return s.defineActual(name, isImmutable, parameters, parameterExpressions, helpStr)
 }
