@@ -350,6 +350,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.PIPE, p.parseLambdaLiteral)
+	p.registerPrefix(token.OR, p.parseLambdaLiteralWithEmptyArgs)
 	p.registerPrefix(token.STRING_DOUBLE_QUOTE, p.parseStringLiteral)
 	p.registerPrefix(token.STRING_SINGLE_QUOTE, p.parseStringLiteral)
 	p.registerPrefix(token.RAW_STRING, p.parseRawStringLiteral)
@@ -1299,6 +1300,25 @@ func (p *Parser) parseLambdaLiteral() ast.Expression {
 	if !p.curTokenIs(token.RARROW) {
 		p.error(fmt.Sprintf("expected %s got %s instead", token.RARROW.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 		return nil
+	}
+	p.nextToken()
+	// Otherwise only parse the next statement
+	lit.Body = &ast.BlockStatement{Statements: []ast.Statement{}}
+	stmt := p.parseStatement()
+	lit.Body.Statements = append(lit.Body.Statements, stmt)
+	return lit
+}
+
+func (p *Parser) parseLambdaLiteralWithEmptyArgs() ast.Expression {
+	if !p.expectPeekIs(token.RARROW) {
+		return nil
+	}
+	lit := &ast.FunctionLiteral{Token: p.curToken, Parameters: []*ast.Identifier{}}
+	// If the next token is lbrace, parse the block statement as a body and return
+	if p.peekTokenIs(token.LBRACE) {
+		p.nextToken()
+		lit.Body = p.parseBlockStatement()
+		return lit
 	}
 	p.nextToken()
 	// Otherwise only parse the next statement

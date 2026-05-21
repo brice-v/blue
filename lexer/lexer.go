@@ -158,7 +158,7 @@ func (l *Lexer) peekChar() rune {
 	return l.inputAsRunes[l.readPosition]
 }
 
-// peekSecondChar will return the rune right after the readPosition without consuming any input
+// peekSecondChar will return the rune right after the readPosition+1 without consuming any input
 func (l *Lexer) peekSecondChar() rune {
 	if l.readPosition >= len(l.inputAsRunes) || l.readPosition+1 >= len(l.inputAsRunes) {
 		return 0
