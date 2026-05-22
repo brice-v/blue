@@ -13,6 +13,11 @@ type Frame struct {
 	deferFuns []*object.Closure
 
 	lastInstruction code.Opcode
+
+	// per-frame try-catch context
+	inTry      bool
+	inCatch    bool
+	catchError string
 }
 
 func (f *Frame) Clone() *Frame {
@@ -32,6 +37,9 @@ func (f *Frame) Clone() *Frame {
 		bp:              f.bp,
 		deferFuns:       newDeferFuns,
 		lastInstruction: f.lastInstruction,
+		inTry:           f.inTry,
+		inCatch:         f.inCatch,
+		catchError:      f.catchError,
 	}
 }
 

@@ -549,6 +549,23 @@ func TestMatchExpressionWithDefaultNull(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestVmErrorTryCatchScenario1(t *testing.T) {
+	s := `fun riskyOperation(shouldFail) {
+		try {
+			if (shouldFail) {
+				error("operation failed")
+			}
+			return "success"
+		} catch (e) {
+			return "failed: #{e}"
+		}
+	}
+
+	println("riskyOperation = #{riskyOperation(true)}")
+	assert(riskyOperation(true) == "failed: operation failed")`
+	vmStringWithCore(t, s)
+}
+
 func TestExpectedVmErrorForMapCompAddAndNoPanic(t *testing.T) {
 	s := `val m1 = {a: 1, b: 2}
 	val m2 = {c: 3, d: 4}

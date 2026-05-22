@@ -35,10 +35,6 @@ type VM struct {
 	frames      []*Frame
 	framesIndex int
 
-	inTry      bool
-	inCatch    bool
-	catchError string
-
 	TokensForErrorTrace []*token.Token
 
 	// Process things
@@ -96,8 +92,6 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 		globals:     make([]object.Object, GlobalsSize),
 		frames:      frames,
 		framesIndex: 1,
-		inTry:       false,
-		inCatch:     false,
 		PID:         object.PidCount.Load(),
 		NodeName:    nodeName,
 	}
@@ -149,7 +143,7 @@ func (vm *VM) StackTop() object.Object {
 }
 
 func (vm *VM) PushAndReturnError(err error) error {
-	if vm.inTry {
+	if vm.currentFrame().inTry {
 		vm.push(newError("%s", err.Error()))
 		return nil
 	}
@@ -397,6 +391,13 @@ func (vm *VM) Run() error {
 			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
 			returnValue := vm.pop()
 			frame := vm.popFrame()
+			// Clear catch state when returning from a closure. The catch
+			// context belongs to the closure's execution scope and must not
+			// leak into the caller or subsequent operations.
+			if frame != nil && vm.currentFrame() != nil {
+				vm.currentFrame().inCatch = false
+				vm.currentFrame().catchError = ""
+			}
 			if frame != nil {
 				vm.sp = frame.bp - 1
 			}
@@ -426,6 +427,11 @@ func (vm *VM) Run() error {
 		case code.OpReturn:
 			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
 			frame := vm.popFrame()
+			// Clear catch state when returning from a closure.
+			if frame != nil && vm.currentFrame() != nil {
+				vm.currentFrame().inCatch = false
+				vm.currentFrame().catchError = ""
+			}
 			if frame != nil {
 				vm.sp = frame.bp - 1
 			}
@@ -560,24 +566,29 @@ func (vm *VM) Run() error {
 				vm.push(object.NULL)
 			}
 		case code.OpTry:
-			vm.inTry = true
+			// Reset catch state when entering a try block. This is important
+			// because inCatch/catchError are process-level flags and must be
+			// clean for each new try-catch scope.
+			if !vm.currentFrame().inCatch {
+				vm.currentFrame().catchError = ""
+			}
+			vm.currentFrame().inTry = true
 		case code.OpCatch:
-			if vm.catchError == "" {
+			if vm.currentFrame().catchError == "" {
 				vm.gotoCatchEnd()
 			} else {
-				vm.inCatch = true
+				vm.currentFrame().inCatch = true
 			}
 		case code.OpFinallyEnd:
-			if vm.catchError != "" {
-				return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", vm.catchError))
+			if vm.currentFrame().catchError != "" {
+				return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", vm.currentFrame().catchError))
 			}
-			vm.inTry = false
-			vm.inCatch = false
+			vm.currentFrame().inTry = false
+			vm.currentFrame().inCatch = false
 		case code.OpCatchEnd:
-			// If we were in catch, set catch error back to empty
-			vm.catchError = ""
-			vm.inTry = false
-			vm.inCatch = false
+			vm.currentFrame().catchError = ""
+			vm.currentFrame().inTry = false
+			vm.currentFrame().inCatch = false
 		case code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
 			// Do nothing
 		case code.OpExecString:
@@ -763,9 +774,9 @@ func (vm *VM) Run() error {
 				}
 			}
 		case code.OpNotInTry:
-			vm.inTry = false
+			vm.currentFrame().inTry = false
 		case code.OpNotInCatch:
-			vm.inCatch = false
+			vm.currentFrame().inCatch = false
 		}
 		if ip != 0 {
 			vm.currentFrame().lastInstruction = op
@@ -843,9 +854,22 @@ func (vm *VM) prepareStackTraceAndReturnError(err error) error {
 	return err
 }
 
+// pushNoCatchCheck pushes an object directly onto the stack without
+// triggering gotoNextCatchOrFinally. This is used internally when we need
+// to place a marker on the stack (like errorMessage) but must avoid
+// recursive catch detection.
+func (vm *VM) pushNoCatchCheck(o object.Object) error {
+	if vm.sp >= StackSize {
+		return fmt.Errorf("stack overflow")
+	}
+	vm.stack[vm.sp] = o
+	vm.sp++
+	return nil
+}
+
 func (vm *VM) push(o object.Object) error {
 	if isError(o) {
-		if vm.inTry || vm.inCatch {
+		if vm.currentFrame().inTry || vm.currentFrame().inCatch {
 			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
 			return nil
 		}
@@ -897,9 +921,9 @@ func (vm *VM) LastPoppedStackElem() object.Object {
 }
 
 func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
-	vm.inTry = false
-	wasInCatch := vm.inCatch && !vm.inTry
-	vm.inCatch = false
+	vm.currentFrame().inTry = false
+	wasInCatch := vm.currentFrame().inCatch && !vm.currentFrame().inTry
+	vm.currentFrame().inCatch = false
 	frameIndex := vm.framesIndex - 1
 	for frameIndex >= 0 {
 		frame := vm.frames[frameIndex]
@@ -909,8 +933,9 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 			break
 		}
 		if frameIndex-1 < 0 {
-			// TODO: Error out here?
-			break
+			// No catch handler found - clear error and let it propagate.
+			vm.currentFrame().catchError = ""
+			return
 		}
 		frameIndex--
 	}
@@ -932,11 +957,15 @@ func (vm *VM) isOpCatchOrFinallyFoundInFrame(frame *Frame, errorMessage string) 
 		_, read := code.ReadOperands(def, ins[i+1:])
 		switch def.Name {
 		case "OpCatch":
-			vm.catchError = errorMessage
-			vm.push(&object.Stringo{Value: errorMessage})
+			vm.currentFrame().catchError = errorMessage
+			// Use pushNoCatchCheck to avoid recursive catch detection.
+			// This errorMessage is a marker placed by gotoNextCatchOrFinally,
+			// not a real error that should trigger another catch handler.
+			_ = vm.pushNoCatchCheck(&object.Stringo{Value: errorMessage})
 			return i - 1, true
 		case "OpFinally":
-			vm.catchError = errorMessage
+			vm.currentFrame().catchError = errorMessage
+			// Don't push errorMessage for finally blocks (no variable binding)
 			return i - 1, true
 		}
 		i += read
