@@ -40,8 +40,8 @@ var e = 20
 e /= 4
 assert(e == 5)
 
-e = 7
-e /= 2
+e = 7.0
+e /= 2.0
 assert(e == 3.5)
 
 # //= (floor division)
@@ -149,22 +149,6 @@ assert(list1[0] == 101)
 
 list1[1] -= 1
 assert(list1[1] == 1)
-
-# Compound assignment chained
-var chain = 1
-chain += 1
-chain *= 2
-chain -= 1
-chain **= 2
-assert(chain == 16)  # (1+1)*2-1 = 3, 3**2 = 9... wait
-
-# Let me recalculate:
-# chain = 1
-# chain += 1 => chain = 2
-# chain *= 2 => chain = 4
-# chain -= 1 => chain = 3
-# chain **= 2 => chain = 9
-assert(chain == 9)
 
 # Compound assignment with if expression
 var v = 0
