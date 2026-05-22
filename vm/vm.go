@@ -870,13 +870,13 @@ func (vm *VM) push(o object.Object) error {
 	return nil
 }
 
-func (vm *VM) pushNoErrorChecking(o object.Object) error {
+func (vm *VM) pushNoErrorChecking(o object.Object) {
 	if vm.sp >= StackSize {
-		return vm.prepareStackTraceAndReturnError(fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o))
+		err := vm.prepareStackTraceAndReturnError(fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o))
+		log.Fatalf("vm.pushNoErrorChecking: error: %s", err.Error())
 	}
 	vm.stack[vm.sp] = o
 	vm.sp++
-	return nil
 }
 
 func (vm *VM) pop() object.Object {
