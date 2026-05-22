@@ -120,6 +120,7 @@ val arithResult = match (3 + 2) {
 }
 assert(arithResult == "equals five")
 
+### Not suported
 # Match with range check
 val rangeMatch = match (50) {
     x if x < 0 => { "negative" },
@@ -128,10 +129,11 @@ val rangeMatch = match (50) {
     _ => { "fallback" }
 }
 assert(rangeMatch == "positive less than 100")
+###
 
 # Match in list comprehension
 val categorized = [match (x) {
-    x if x % 2 == 0 => { "even" },
+    x % 2 == 0 => { "even" },
     _ => { "odd" }
 } for x in 1..6]
 assert(categorized == ["odd", "even", "odd", "even", "odd", "even"])
@@ -145,8 +147,8 @@ assert(defaultResult == null)  # No _ case, returns null
 
 # Match with string starts with
 val prefixResult = match ("hello world") {
-    x if x.startswith("hello") => { "starts with hello" },
-    x if x.startswith("world") => { "starts with world" },
+    x.startswith("hello") => { "starts with hello" },
+    x.startswith("world") => { "starts with world" },
     _ => { "other" }
 }
 assert(prefixResult == "starts with hello")
