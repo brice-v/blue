@@ -854,19 +854,6 @@ func (vm *VM) prepareStackTraceAndReturnError(err error) error {
 	return err
 }
 
-// pushNoCatchCheck pushes an object directly onto the stack without
-// triggering gotoNextCatchOrFinally. This is used internally when we need
-// to place a marker on the stack (like errorMessage) but must avoid
-// recursive catch detection.
-func (vm *VM) pushNoCatchCheck(o object.Object) error {
-	if vm.sp >= StackSize {
-		return fmt.Errorf("stack overflow")
-	}
-	vm.stack[vm.sp] = o
-	vm.sp++
-	return nil
-}
-
 func (vm *VM) push(o object.Object) error {
 	if isError(o) {
 		if vm.currentFrame().inTry || vm.currentFrame().inCatch {
@@ -957,14 +944,11 @@ func (vm *VM) isOpCatchOrFinallyFoundInFrame(frame *Frame, errorMessage string) 
 		_, read := code.ReadOperands(def, ins[i+1:])
 		switch def.Name {
 		case "OpCatch":
-			vm.currentFrame().catchError = errorMessage
-			// Use pushNoCatchCheck to avoid recursive catch detection.
-			// This errorMessage is a marker placed by gotoNextCatchOrFinally,
-			// not a real error that should trigger another catch handler.
-			_ = vm.pushNoCatchCheck(&object.Stringo{Value: errorMessage})
+			frame.catchError = errorMessage
+			vm.pushNoErrorChecking(&object.Stringo{Value: errorMessage})
 			return i - 1, true
 		case "OpFinally":
-			vm.currentFrame().catchError = errorMessage
+			frame.catchError = errorMessage
 			// Don't push errorMessage for finally blocks (no variable binding)
 			return i - 1, true
 		}
@@ -1230,6 +1214,10 @@ func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
 	}
 
 	frame := NewFrame(cl, vm.sp-newArgCount)
+	if cf := vm.currentFrame(); cf != nil {
+		frame.inTry = cf.inTry
+		frame.inCatch = cf.inCatch
+	}
 	// CurrentFrame looks at frameIndex-1
 	vm.frames[vm.framesIndex-1] = frame
 	vm.sp = frame.bp + cl.Fun.NumLocals
@@ -1243,6 +1231,10 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 	}
 
 	frame := NewFrame(cl, vm.sp-newArgCount)
+	if cf := vm.currentFrame(); cf != nil {
+		frame.inTry = cf.inTry
+		frame.inCatch = cf.inCatch
+	}
 	vm.pushFrame(frame)
 	vm.sp = frame.bp + cl.Fun.NumLocals
 	return nil
