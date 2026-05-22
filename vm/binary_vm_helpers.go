@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"blue/blueutil"
 	"blue/code"
 	"blue/object"
 	"blue/util"
@@ -87,10 +88,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			if rightVal == 0 {
 				return vm.push(newError("floor division by zero is not allowed"))
 			}
-			if rightVal > leftVal {
-				return vm.push(&object.Integer{Value: 0})
-			}
-			return vm.push(&object.Integer{Value: int64(leftVal / rightVal)})
+			return vm.push(&object.Integer{Value: blueutil.FloorDiv(leftVal, rightVal)})
 		case code.OpPercent:
 			if rightVal == 0 {
 				return vm.push(newError("Modulus by zero is not allowed"))
@@ -158,6 +156,9 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		case code.OpPow:
 			return vm.push(&object.BigInteger{Value: result.Exp(leftVal, rightVal, nil)})
 		case code.OpFlDiv:
+			if rightVal.Cmp(blueutil.BigIntZero) == 0 {
+				return vm.push(newError("Floor Division by zero is not allowed"))
+			}
 			maybeWanted := new(big.Int)
 			floored, _ := result.DivMod(leftVal, rightVal, maybeWanted)
 			// Note: Ignoring the modulus here
@@ -205,6 +206,9 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		case code.OpPow:
 			return vm.push(&object.Float{Value: math.Pow(leftVal, rightVal)})
 		case code.OpFlDiv:
+			if rightVal == 0 {
+				return vm.push(newError("Floor Division by zero is not allowed"))
+			}
 			return vm.push(&object.Float{Value: math.Floor(leftVal / rightVal)})
 		case code.OpPercent:
 			return vm.push(&object.Float{Value: math.Mod(leftVal, rightVal)})
@@ -252,6 +256,9 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		case code.OpPow:
 			return vm.push(&object.BigFloat{Value: leftVal.Pow(rightVal)})
 		case code.OpFlDiv:
+			if rightVal.Cmp(blueutil.DecimalZero) == 0 {
+				return vm.push(newError("Floor Division by zero is not allowed"))
+			}
 			return vm.push(&object.BigFloat{Value: leftVal.Div(rightVal).Floor()})
 		case code.OpPercent:
 			return vm.push(&object.BigFloat{Value: leftVal.Mod(rightVal)})
@@ -302,6 +309,9 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		case code.OpPow:
 			return vm.push(&object.UInteger{Value: uint64(math.Pow(float64(leftVal), float64(rightVal)))})
 		case code.OpFlDiv:
+			if rightVal == 0 {
+				return vm.push(newError("Floor Division by zero is not allowed"))
+			}
 			return vm.push(&object.UInteger{Value: uint64(math.Floor(float64(leftVal) / float64(rightVal)))})
 		case code.OpPercent:
 			return vm.push(&object.UInteger{Value: uint64(math.Mod(float64(leftVal), float64(rightVal)))})

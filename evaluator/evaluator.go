@@ -2833,6 +2833,9 @@ func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right obj
 	case "**":
 		return &object.BigFloat{Value: leftVal.Pow(rightVal)}
 	case "//":
+		if rightVal.Cmp(blueutil.DecimalZero) == 0 {
+			return newError("Floor Division by zero is not allowed")
+		}
 		return &object.BigFloat{Value: leftVal.Div(rightVal).Floor()}
 	case "%":
 		return &object.BigFloat{Value: leftVal.Mod(rightVal)}
@@ -2891,6 +2894,9 @@ func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right o
 	case "**":
 		return &object.BigInteger{Value: result.Exp(leftVal, rightVal, nil)}
 	case "//":
+		if rightVal.Cmp(blueutil.BigIntZero) == 0 {
+			return newError("Floor Division by zero is not allowed")
+		}
 		maybeWanted := new(big.Int)
 		floored, _ := result.DivMod(leftVal, rightVal, maybeWanted)
 		// Note: Ignoring the modulus here
@@ -2988,6 +2994,9 @@ func (e *Evaluator) evalUintegerInfixExpression(operator string, left, right obj
 	case "**":
 		return &object.UInteger{Value: uint64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "//":
+		if rightVal == 0 {
+			return newError("Floor Division by zero is not allowed")
+		}
 		return &object.UInteger{Value: uint64(math.Floor(float64(leftVal) / float64(rightVal)))}
 	case "%":
 		return &object.UInteger{Value: uint64(math.Mod(float64(leftVal), float64(rightVal)))}
@@ -3045,6 +3054,9 @@ func (e *Evaluator) evalFloatInfixExpression(operator string, left, right object
 	case "**":
 		return &object.Float{Value: math.Pow(leftVal, rightVal)}
 	case "//":
+		if rightVal == 0 {
+			return newError("Floor Division by zero is not allowed")
+		}
 		return &object.Float{Value: math.Floor(leftVal / rightVal)}
 	case "%":
 		return &object.Float{Value: math.Mod(leftVal, rightVal)}
@@ -3223,10 +3235,7 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		if rightVal == 0 {
 			return newError("Floor Division by zero is not allowed")
 		}
-		if rightVal > leftVal {
-			return &object.Integer{Value: 0}
-		}
-		return &object.Integer{Value: int64(leftVal / rightVal)}
+		return &object.Integer{Value: blueutil.FloorDiv(leftVal, rightVal)}
 	case "%":
 		if rightVal == 0 {
 			return newError("Modulus by zero is not allowed")

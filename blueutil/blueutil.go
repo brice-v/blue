@@ -8,8 +8,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
+	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 var ENABLE_VM_CACHING = true
@@ -186,3 +190,10 @@ func PrintCustomError(out io.Writer, errPrefix, errStr string, lineNumber int, p
 
 	fmt.Fprintln(out)
 }
+
+func FloorDiv(a, b int64) int64 {
+	return int64(math.Floor(float64(a) / float64(b)))
+}
+
+var DecimalZero = decimal.NewFromInt(0)
+var BigIntZero = big.NewInt(0)
