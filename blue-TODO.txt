@@ -6,25 +6,9 @@ TODO:
     - for instance: var x = 90; var y = [x ** 2 for x in 1..5]; y will be [] here because x is not in 1..5, its 90
     - more specifically, when theres a variable in use for a for statement, that must allowed to shadow if there is no 
 - [ ] Fix up error handling for vm, all try-catch stuff is sort of broken
-    - [ ] Make nested try-catch-finally work
+    - [x] Make nested try-catch-finally work
     - [ ] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
         - put errors into certain places, with comments in place, make sure it is picked up correctly
-- [ ] Nested try catch causes vm to spin forever
-    ```
-    # Nested try-catch
-    var outerCaught = false
-    var innerCaught = false
-    try {
-        try {
-            error("inner error")
-        } catch (e) {
-            innerCaught = true
-            assert(e == "inner error")
-        }
-    } catch (e) {
-        outerCaught = true
-    }
-    ```
 - [ ] Floor division and modulo with negative going to 0 mistakenly? (check what another lang does here)
     ```
     # Floor division with negatives (floor toward -inf)
@@ -35,27 +19,6 @@ TODO:
     assert(-7 % 2 == 1) # this just gives wrong answer when compared to python
     assert(7 % -2 == -1)
     assert(-7 % -2 == -1)
-    ```
-- [ ] This causes panic
-    ```
-    # Closure with try-catch
-    fun makeSafeAdder() {
-        var safe = true
-        return fun(a, b) {
-            try {
-                a + b
-            } catch (e) {
-                if (safe) {
-                    0
-                } else {
-                    error(e)
-                }
-            }
-        }
-    }
-
-    val safeAdder = makeSafeAdder()
-    assert(safeAdder(1, 2) == 3)
     ```
 - [ ] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
 - [ ] Would be good to have an error hint for this pattern
@@ -664,4 +627,41 @@ COMPLETED TASKS:
         }
     }
     assert(riskyOperation(true) == "failed: operation failed")
+    ```
+- [x] Nested try catch causes vm to spin forever
+    ```
+    # Nested try-catch
+    var outerCaught = false
+    var innerCaught = false
+    try {
+        try {
+            error("inner error")
+        } catch (e) {
+            innerCaught = true
+            assert(e == "inner error")
+        }
+    } catch (e) {
+        outerCaught = true
+    }
+    ```
+- [x] This causes panic
+    ```
+    # Closure with try-catch
+    fun makeSafeAdder() {
+        var safe = true
+        return fun(a, b) {
+            try {
+                a + b
+            } catch (e) {
+                if (safe) {
+                    0
+                } else {
+                    error(e)
+                }
+            }
+        }
+    }
+
+    val safeAdder = makeSafeAdder()
+    assert(safeAdder(1, 2) == 3)
     ```

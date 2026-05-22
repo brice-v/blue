@@ -960,7 +960,7 @@ func (vm *VM) isOpCatchOrFinallyFoundInFrame(frame *Frame, errorMessage string) 
 func (vm *VM) gotoCatchEnd() {
 	frame := vm.currentFrame()
 	ins := frame.Instructions()
-	for i := frame.ip - 1; i < len(ins); i++ {
+	for i := frame.ip; i < len(ins); i++ {
 		def, err := code.Lookup(ins[i])
 		if err != nil {
 			continue

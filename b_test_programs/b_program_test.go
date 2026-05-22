@@ -566,6 +566,25 @@ func TestVmErrorTryCatchScenario1(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestInfiniteLoopInTryCatchScenario(t *testing.T) {
+	s := `var outerCaught = false
+	var innerCaught = false
+	try {
+		try {
+			error("inner error")
+		} catch (e) {
+			println("caught inner")
+			innerCaught = true
+			assert(e == "inner error")
+		}
+	} catch (e) {
+		println("caught outer")
+		outerCaught = true
+	}
+	println('a')`
+	vmStringWithCore(t, s)
+}
+
 func TestExpectedVmErrorForMapCompAddAndNoPanic(t *testing.T) {
 	s := `val m1 = {a: 1, b: 2}
 	val m2 = {c: 3, d: 4}
