@@ -2838,7 +2838,15 @@ func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right obj
 		}
 		return &object.BigFloat{Value: leftVal.Div(rightVal).Floor()}
 	case "%":
-		return &object.BigFloat{Value: leftVal.Mod(rightVal)}
+		if rightVal.Cmp(blueutil.DecimalZero) == 0 {
+			return newError("Modulus by zero is not allowed")
+		}
+		leftVal = leftVal.Abs()
+		result := leftVal.Mod(rightVal)
+		if rightVal.IsNegative() {
+			result = result.Neg()
+		}
+		return &object.BigFloat{Value: result}
 	case "<":
 		compared := leftVal.Cmp(rightVal)
 		return nativeToBooleanObject(compared == -1)
@@ -2902,7 +2910,15 @@ func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right o
 		// Note: Ignoring the modulus here
 		return &object.BigInteger{Value: floored}
 	case "%":
-		return &object.BigInteger{Value: result.Mod(leftVal, rightVal)}
+		if rightVal.Cmp(blueutil.BigIntZero) == 0 {
+			return newError("Modulus by zero is not allowed")
+		}
+		leftVal = leftVal.Abs(leftVal)
+		r := result.Mod(leftVal, rightVal)
+		if rightVal.Cmp(blueutil.BigIntZero) == -1 {
+			r = new(big.Int).Neg(r)
+		}
+		return &object.BigInteger{Value: r}
 	case "<":
 		compared := leftVal.Cmp(rightVal)
 		return nativeToBooleanObject(compared == -1)
@@ -2999,6 +3015,9 @@ func (e *Evaluator) evalUintegerInfixExpression(operator string, left, right obj
 		}
 		return &object.UInteger{Value: uint64(math.Floor(float64(leftVal) / float64(rightVal)))}
 	case "%":
+		if rightVal == 0 {
+			return newError("Modulus by zero is not allowed")
+		}
 		return &object.UInteger{Value: uint64(math.Mod(float64(leftVal), float64(rightVal)))}
 	case "&":
 		return &object.UInteger{Value: leftVal & rightVal}
@@ -3059,7 +3078,15 @@ func (e *Evaluator) evalFloatInfixExpression(operator string, left, right object
 		}
 		return &object.Float{Value: math.Floor(leftVal / rightVal)}
 	case "%":
-		return &object.Float{Value: math.Mod(leftVal, rightVal)}
+		if rightVal == 0 {
+			return newError("Modulus by zero is not allowed")
+		}
+		leftVal = math.Abs(leftVal)
+		result := math.Mod(leftVal, rightVal)
+		if rightVal < 0 {
+			result *= -1
+		}
+		return &object.Float{Value: result}
 	case "<":
 		return nativeToBooleanObject(leftVal < rightVal)
 	case ">":
@@ -3240,13 +3267,12 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		if rightVal == 0 {
 			return newError("Modulus by zero is not allowed")
 		}
-		if leftVal < 0 || rightVal < 0 {
-			left := new(big.Int).SetInt64(leftVal)
-			right := new(big.Int).SetInt64(rightVal)
-			result := big.NewInt(0)
-			return &object.BigInteger{Value: result.Mod(left, right)}
+		lv := math.Abs(float64(leftVal))
+		result := math.Mod(lv, float64(rightVal))
+		if rightVal < 0 {
+			result *= -1
 		}
-		return &object.Integer{Value: int64(math.Mod(float64(leftVal), float64(rightVal)))}
+		return &object.Integer{Value: int64(result)}
 	case "<":
 		return nativeToBooleanObject(leftVal < rightVal)
 	case ">":

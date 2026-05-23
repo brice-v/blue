@@ -93,13 +93,12 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			if rightVal == 0 {
 				return vm.push(newError("Modulus by zero is not allowed"))
 			}
-			if leftVal < 0 || rightVal < 0 {
-				left := new(big.Int).SetInt64(leftVal)
-				right := new(big.Int).SetInt64(rightVal)
-				result := big.NewInt(0)
-				return vm.push(&object.BigInteger{Value: result.Mod(left, right)})
+			lv := math.Abs(float64(leftVal))
+			result := math.Mod(lv, float64(rightVal))
+			if rightVal < 0 {
+				result *= -1
 			}
-			return vm.push(&object.Integer{Value: int64(math.Mod(float64(leftVal), float64(rightVal)))})
+			return vm.push(&object.Integer{Value: int64(result)})
 		case code.OpGreaterThan:
 			return vm.push(nativeToBooleanObject(leftVal > rightVal))
 		case code.OpGreaterThanOrEqual:
@@ -164,7 +163,15 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			// Note: Ignoring the modulus here
 			return vm.push(&object.BigInteger{Value: floored})
 		case code.OpPercent:
-			return vm.push(&object.BigInteger{Value: result.Mod(leftVal, rightVal)})
+			if rightVal.Cmp(blueutil.BigIntZero) == 0 {
+				return vm.push(newError("Modulus by zero is not allowed"))
+			}
+			leftVal = leftVal.Abs(leftVal)
+			r := result.Mod(leftVal, rightVal)
+			if rightVal.Cmp(blueutil.BigIntZero) == -1 {
+				r = new(big.Int).Neg(r)
+			}
+			return vm.push(&object.BigInteger{Value: r})
 		case code.OpGreaterThan:
 			compared := leftVal.Cmp(rightVal)
 			return vm.push(nativeToBooleanObject(compared == 1))
@@ -211,7 +218,15 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			}
 			return vm.push(&object.Float{Value: math.Floor(leftVal / rightVal)})
 		case code.OpPercent:
-			return vm.push(&object.Float{Value: math.Mod(leftVal, rightVal)})
+			if rightVal == 0 {
+				return vm.push(newError("Modulus by zero is not allowed"))
+			}
+			leftVal = math.Abs(leftVal)
+			result := math.Mod(leftVal, rightVal)
+			if rightVal < 0 {
+				result *= -1
+			}
+			return vm.push(&object.Float{Value: result})
 		case code.OpGreaterThan:
 			return vm.push(nativeToBooleanObject(leftVal > rightVal))
 		case code.OpGreaterThanOrEqual:
@@ -261,7 +276,15 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			}
 			return vm.push(&object.BigFloat{Value: leftVal.Div(rightVal).Floor()})
 		case code.OpPercent:
-			return vm.push(&object.BigFloat{Value: leftVal.Mod(rightVal)})
+			if rightVal.Cmp(blueutil.DecimalZero) == 0 {
+				return vm.push(newError("Modulus by zero is not allowed"))
+			}
+			leftVal = leftVal.Abs()
+			result := leftVal.Mod(rightVal)
+			if rightVal.IsNegative() {
+				result = result.Neg()
+			}
+			return vm.push(&object.BigFloat{Value: result})
 		case code.OpGreaterThan:
 			compared := leftVal.Cmp(rightVal)
 			return vm.push(nativeToBooleanObject(compared == 1))
