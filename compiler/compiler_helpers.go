@@ -802,6 +802,11 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 		} else if ss, ok := keyName.(*ast.Identifier); ok {
 			key = ss.Value
 		}
+		if c.importNestLevel == -1 {
+			if existing, ok := c.symbolTable.LookupInCurrentBlockLevel(c.getName(newName.Value)); ok && (existing.Scope == GlobalScope || existing.Scope == LocalScope) {
+				return c.addNodeToErrorTrace(fmt.Errorf("'%s' is already defined in current scope", newName.Value), node.VVToken())
+			}
+		}
 		c.emit(code.OpConstant, c.addConstant(&object.Stringo{Value: key}))
 		c.emit(code.OpGetMapKey)
 		symbol, immutable := c.defineSymbolForVarValStatement(node, newName.Value)
@@ -809,9 +814,9 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 		c.emit(code.OpPop)
 	}
 	for i, name := range names {
-		if _, ok := c.inTry[c.symbolTable.BlockNestLevel]; ok {
-			if c.symbolTable.IsDefinedInCurrentStore(name.Value) {
-				return fmt.Errorf("'%s' is already defined in current scope", name.Value)
+		if c.importNestLevel == -1 {
+			if existing, ok := c.symbolTable.LookupInCurrentBlockLevel(c.getName(name.Value)); ok && (existing.Scope == GlobalScope || existing.Scope == LocalScope) {
+				return c.addNodeToErrorTrace(fmt.Errorf("'%s' is already defined in current scope", name.Value), node.VVToken())
 			}
 		}
 		if node.VVIsListDestructor() {

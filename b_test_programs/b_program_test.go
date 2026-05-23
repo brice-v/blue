@@ -703,3 +703,109 @@ func parseString(t *testing.T, s string) *ast.Program {
 	}
 	return program
 }
+
+func compileStringWithCoreExpectCompilerErrorContaining(t *testing.T, s, expectedErrorString string) {
+	t.Helper()
+	program := parseString(t, s)
+	c := compiler.NewFromCore()
+	err := c.Compile(program)
+	if err == nil {
+		t.Fatalf("expected compiler error containing %q but got none", expectedErrorString)
+	}
+	if !strings.Contains(err.Error(), expectedErrorString) {
+		t.Fatalf("compiler error %q does not contain expected %q", err.Error(), expectedErrorString)
+	}
+}
+
+func compileStringWithCoreExpectSuccess(t *testing.T, s string) {
+	t.Helper()
+	program := parseString(t, s)
+	c := compiler.NewFromCore()
+	err := c.Compile(program)
+	if err != nil {
+		t.Fatalf("unexpected compiler error: %s", err.Error())
+	}
+}
+
+func TestVarRedeclarationSameScope(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		errMatch string
+	}{
+		{"var then var", `var x = 0; var x = 1`, "already defined"},
+		{"var then val", `var x = 0; val x = 1`, "already defined"},
+		{"val then var", `val x = 0; var x = 1`, "already defined"},
+		{"val then val", `val x = 0; val x = 1`, "already defined"},
+		{"in nested block same level", `if true { var y = 1; var y = 2 }`, "already defined"},
+		{"triple redeclaration", `var x = 0; var x = 1; var x = 2`, "already defined"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			compileStringWithCoreExpectCompilerErrorContaining(t, tt.input, tt.errMatch)
+		})
+	}
+}
+
+func TestVarShadowingDifferentScopes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"var then var in if", `var x = 0; if true { var x = 1 }`},
+		{"var then val in if", `var x = 0; if true { val x = 1 }`},
+		{"val then var in if", `val x = 0; if true { var x = 1 }`},
+		{"val then val in if", `val x = 0; if true { val x = 1 }`},
+		{"deeply nested", `var x = 0; if true { if true { var x = 1 } }`},
+		{"for loop body", `for (var i = 0; i < 1; i += 1) { var i = 2 }`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			compileStringWithCoreExpectSuccess(t, tt.input)
+		})
+	}
+}
+
+func TestVarBuiltinShadowing(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"shadow input", `val input = "test"`},
+		{"shadow print", `var print = 42`},
+		{"shadow type", `val type = "text"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			compileStringWithCoreExpectSuccess(t, tt.input)
+		})
+	}
+}
+
+func TestVarShadowingAtRuntime(t *testing.T) {
+	s := `var x = "outer"
+	if true {
+		var x = "inner"
+		assert(x == "inner")
+	}
+	assert(x == "outer")
+
+	var a = 1
+	if true {
+		var a = 2
+		if true {
+			var a = 3
+			assert(a == 3)
+		}
+		assert(a == 2)
+	}
+	assert(a == 1)
+
+	var mutable = "mutable"
+	if true {
+		val mutable = "immutable inside"
+		assert(mutable == "immutable inside")
+	}
+	assert(mutable == "mutable")`
+	vmStringWithCore(t, s)
+}

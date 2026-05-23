@@ -166,9 +166,14 @@ func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 	return obj, ok
 }
 
-func (s *SymbolTable) IsDefinedInCurrentStore(name string) bool {
-	_, ok := s.store[name]
-	return ok
+func (s *SymbolTable) LookupInCurrentBlockLevel(name string) (Symbol, bool) {
+	if s.BlockNestLevel == -1 {
+		sym, ok := s.store[name]
+		return sym, ok
+	}
+	prefixedName := fmt.Sprintf("%d:%s", s.BlockNestLevel, name)
+	sym, ok := s.store[prefixedName]
+	return sym, ok
 }
 
 func (s *SymbolTable) defineFree(original Symbol) Symbol {

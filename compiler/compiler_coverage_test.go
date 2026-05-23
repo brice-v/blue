@@ -7,6 +7,7 @@ import (
 	"blue/object"
 	"blue/parser"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -1525,5 +1526,66 @@ for (true) {
 	bc := compiler.Bytecode()
 	if len(bc.Instructions) == 0 {
 		t.Error("expected non-empty instructions")
+	}
+}
+
+func TestVarValRedeclaration(t *testing.T) {
+	tests := []struct {
+		input       string
+		expectError bool
+		errContains string
+	}{
+		// Same scope redeclarations should error
+		{`var x = 0; val x = 1`, true, "already defined"},
+		{`val x = 0; var x = 1`, true, "already defined"},
+		{`var x = 0; var x = 1`, true, "already defined"},
+		{`val x = 0; val x = 1`, true, "already defined"},
+		{`var x = 0; var x = 1; var x = 2`, true, "already defined"},
+
+		// Nested block shadowing is allowed
+		{`var x = 0; if true { val x = 1 }`, false, ""},
+		{`var x = 0; if true { var x = 1 }`, false, ""},
+		{`val x = 0; if true { var x = 1 }`, false, ""},
+		{`val x = 0; if true { val x = 1 }`, false, ""},
+
+		// Deeply nested shadowing
+		{`var x = 0; if true { if true { var x = 1 } }`, false, ""},
+		{`var x = 0; if true { if true { if true { var x = 1 } } }`, false, ""},
+
+		// Redeclaration inside a nested block (same block level)
+		{`if true { var y = 1; var y = 2 }`, true, "already defined"},
+		{`if true { val y = 1; val y = 2 }`, true, "already defined"},
+		{`if true { var y = 1; val y = 2 }`, true, "already defined"},
+
+		// Shadowing in for loop body
+		{`for (var i = 0; i < 1; i += 1) { var i = 2 }`, false, ""},
+
+		// Different names are fine
+		{`var x = 1; var y = 2`, false, ""},
+		{`val a = 1; val b = 2`, false, ""},
+
+		// Builtins can be shadowed
+		{`val input = "test"`, false, ""},
+		{`var print = 42`, false, ""},
+		{`val type = "text"`, false, ""},
+	}
+
+	for i, tt := range tests {
+		program := parse(tt.input)
+		compiler := New()
+		err := compiler.Compile(program)
+		if tt.expectError {
+			if err == nil {
+				t.Errorf("tc %d: expected error but got none\ninput: %s", i, tt.input)
+				continue
+			}
+			if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("tc %d: error %q does not contain %q\ninput: %s", i, err.Error(), tt.errContains, tt.input)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("tc %d: unexpected compiler error: %s\ninput: %s", i, err, tt.input)
+			}
+		}
 	}
 }
