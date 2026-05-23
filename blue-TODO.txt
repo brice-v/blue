@@ -1,5 +1,8 @@
 TODO:
 
+- [ ] Fix redefinition of variable in the same scope for vm
+    - var x = 1; val x = 2; (no error)
+    - This will likely have to come after imports are properly handled (currently multiple things are redefined in current scope all the time)
 - [ ] Fix up c.inMatch thats in compiler as that feels error prone
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] When a variable is used in list comp, it needs to be allowed to shadow any others

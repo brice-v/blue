@@ -108,10 +108,10 @@ try {
 }
 
 # Complex expression with floor division and modulo
-val x = 123
-val y = 17
-val quotient = x // y
-val remainder = x % y
+val xx = 123
+val yy = 17
+val quotient = xx // yy
+val remainder = xx % yy
 assert(quotient == 7)
 assert(remainder == 4)
-assert(quotient * y + remainder == x)
+assert(quotient * yy + remainder == xx)
