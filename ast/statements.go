@@ -353,7 +353,7 @@ func (bs *BlockStatement) ExpressionString() string {
 		out.WriteString(s.String())
 		// We use the semicolon here to make it clear how its being broken up (all other areas should not be using the ;)
 		out.WriteByte(';')
-		if i+1 != len(bs.Statements) {
+		if i != len(bs.Statements)-1 {
 			out.WriteString(", ")
 		}
 	}

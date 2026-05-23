@@ -525,7 +525,7 @@ func createUIFormBuiltin(vm *VM) *object.Builtin {
 				return newError("`form` error: labels and widget ids must be the same length. len(labels)=%d, len(widgetIds)=%d", len(labels), len(widgetIds))
 			}
 			fn := args[2].(*object.Closure)
-			for i := 0; i < len(labels); i++ {
+			for i := range labels {
 				if labels[i].Type() != object.STRING_OBJ {
 					return newError("`form` error: labels were not all STRINGs. found=%s", labels[i].Type())
 				}

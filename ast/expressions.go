@@ -152,7 +152,7 @@ func (ie *IfExpression) TokenToken() token.Token { return ie.Token }
 func (ie *IfExpression) String() string {
 	var out bytes.Buffer
 
-	for i := 0; i < len(ie.Conditions); i++ {
+	for i := range ie.Conditions {
 		if i == 0 {
 			out.WriteString("if (")
 		} else {
@@ -199,13 +199,16 @@ func (me *MatchExpression) String() string {
 	for i, e := range me.Conditions {
 		for ii, ee := range e {
 			out.WriteString(ee.String())
-			if ii != len(e) {
+			if ii != len(e)-1 {
 				out.WriteByte(',')
 			}
 		}
 		out.WriteString(" => { ")
 		out.WriteString(me.Consequences[i].ExpressionString())
-		out.WriteString(" }, ")
+		out.WriteString(" }")
+		if i != len(me.Conditions)-1 {
+			out.WriteString(", ")
+		}
 	}
 	out.WriteString(" } ")
 

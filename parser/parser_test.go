@@ -1110,8 +1110,7 @@ func TestFunctionParameterParsing(t *testing.T) {
 		function := stmt.Expression.(*ast.FunctionLiteral)
 
 		if len(function.Parameters) != len(tt.expectedParams) {
-			t.Errorf("length parameters wrong. want %d, got=%d\n",
-				len(tt.expectedParams), len(function.Parameters))
+			t.Errorf("length parameters wrong. want %d, got=%d\n", len(tt.expectedParams), len(function.Parameters))
 		}
 
 		for i, ident := range tt.expectedParams {
@@ -1625,7 +1624,7 @@ func TestParsingStructLiteralsIdentifierKeys(t *testing.T) {
 		"three": 3,
 	}
 
-	for i := 0; i < len(myStruct.Fields); i++ {
+	for i := range myStruct.Fields {
 		expectedValue := expected[myStruct.Fields[i]]
 		value := myStruct.Values[i]
 

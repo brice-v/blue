@@ -557,7 +557,7 @@ var Builtins = []*Builtin{
 			l := args[0].(*List)
 			length := len(l.Elements)
 			newl := make([]Object, length)
-			for i := 0; i < len(l.Elements); i++ {
+			for i := range l.Elements {
 				newl[length-i-1] = l.Elements[i]
 			}
 			return &List{Elements: newl}
