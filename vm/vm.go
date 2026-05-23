@@ -857,8 +857,9 @@ func (vm *VM) prepareStackTraceAndReturnError(err error) error {
 func (vm *VM) push(o object.Object) error {
 	if isError(o) {
 		if vm.currentFrame().inTry || vm.currentFrame().inCatch {
-			vm.gotoNextCatchOrFinally(o.(*object.Error).Message)
-			return nil
+			if vm.gotoNextCatchOrFinally(o.(*object.Error).Message) {
+				return nil
+			}
 		}
 		return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", o.(*object.Error).Message))
 	}
@@ -907,9 +908,8 @@ func (vm *VM) LastPoppedStackElem() object.Object {
 	return vm.stack[vm.sp]
 }
 
-func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
+func (vm *VM) gotoNextCatchOrFinally(errorMessage string) bool {
 	vm.currentFrame().inTry = false
-	wasInCatch := vm.currentFrame().inCatch && !vm.currentFrame().inTry
 	vm.currentFrame().inCatch = false
 	frameIndex := vm.framesIndex - 1
 	for frameIndex >= 0 {
@@ -917,18 +917,14 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) {
 		if newip, ok := vm.isOpCatchOrFinallyFoundInFrame(frame, errorMessage); ok {
 			vm.framesIndex = frameIndex + 1
 			vm.currentFrame().ip = newip
-			break
+			return true
 		}
 		if frameIndex-1 < 0 {
-			// No catch handler found - clear error and let it propagate.
-			vm.currentFrame().catchError = ""
-			return
+			break
 		}
 		frameIndex--
 	}
-	if wasInCatch {
-		vm.pushNoErrorChecking(newError("%s", errorMessage))
-	}
+	return false
 }
 
 func (vm *VM) isOpCatchOrFinallyFoundInFrame(frame *Frame, errorMessage string) (int, bool) {
@@ -1203,7 +1199,7 @@ func (vm *VM) executeCall(numArgs int) error {
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
-		return vm.prepareStackTraceAndReturnError(fmt.Errorf("calling non-closure and non-builtin %T", callee))
+		return vm.prepareStackTraceAndReturnError(fmt.Errorf("calling non-closure and non-builtin. got=%s", callee.Type()))
 	}
 }
 

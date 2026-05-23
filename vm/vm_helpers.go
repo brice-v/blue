@@ -1013,7 +1013,7 @@ func (vm *VM) pushSpecialFunctionParameter2(name string) error {
 func (vm *VM) executeEvalOperation(strToEval object.Object) error {
 	str, ok := strToEval.(*object.Stringo)
 	if !ok {
-		err := vm.push(newError("OpEval did not get string to eval. got=%T", strToEval))
+		err := vm.push(newError("value after `eval` must be STRING. got %s", strToEval.Type()))
 		if err != nil {
 			return err
 		}
