@@ -24,46 +24,37 @@ func (hsa helpStrArgs) String() string {
 
 // Core Builtins
 
-var toNumBuiltin *object.Builtin = nil
+var toNumBuiltinFun func(args ...object.Object) object.Object = nil
 
-func createToNumBuiltin() *object.Builtin {
-	if toNumBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		toNumBuiltin = &object.Builtin{
-			Name: "to_num",
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 1 {
-					return newInvalidArgCountError("to_num", len(args), 1, "")
-				}
-				if args[0].Type() != object.STRING_OBJ {
-					return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
-				}
-				s := args[0].(*object.Stringo).Value
-				if strings.Contains(s, "+Inf") {
-					return &object.Float{Value: math.Inf(1)}
-				} else if strings.Contains(s, "-Inf") {
-					return &object.Float{Value: math.Inf(-1)}
-				}
-				obj := vmStr(s)
-				if isError(obj) {
-					return obj
-				}
-				if obj.Type() != object.INTEGER_OBJ && obj.Type() != object.UINTEGER_OBJ && obj.Type() != object.FLOAT_OBJ && obj.Type() != object.BIG_FLOAT_OBJ && obj.Type() != object.BIG_INTEGER_OBJ {
-					return newError("`to_num` error: failed to get number type from string '%s'. got=%s", s, obj.Type())
-				}
+func createToNumBuiltinFun() func(args ...object.Object) object.Object {
+	if toNumBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		toNumBuiltinFun = func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("to_num", len(args), 1, "")
+			}
+			if args[0].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("to_num", 1, object.STRING_OBJ, args[0].Type())
+			}
+			s := args[0].(*object.Stringo).Value
+			if strings.Contains(s, "+Inf") {
+				return &object.Float{Value: math.Inf(1)}
+			} else if strings.Contains(s, "-Inf") {
+				return &object.Float{Value: math.Inf(-1)}
+			}
+			obj := vmStr(s)
+			if isError(obj) {
 				return obj
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`to_num` returns the NUM value of the given STRING (int, uint, float, bigint, bigfloat)",
-				signature:   "to_num(arg: str) -> num",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "to_num('1') => 1",
-			}.String(),
+			}
+			if obj.Type() != object.INTEGER_OBJ && obj.Type() != object.UINTEGER_OBJ && obj.Type() != object.FLOAT_OBJ && obj.Type() != object.BIG_FLOAT_OBJ && obj.Type() != object.BIG_INTEGER_OBJ {
+				return newError("`to_num` error: failed to get number type from string '%s'. got=%s", s, obj.Type())
+			}
+			return obj
 		}
 	}
-	return toNumBuiltin
+	return toNumBuiltinFun
 }
 
-var sortBuiltin *object.Builtin = nil
+var sortBuiltinFun func(args ...object.Object) object.Object = nil
 
 func simpleKeyErrorPrint(obj object.Object) {
 	err := obj.(*object.Error)
@@ -296,338 +287,275 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 	return &object.List{Elements: newObjs}
 }
 
-func createSortBuiltin(vm *VM) *object.Builtin {
-	if sortBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		sortBuiltin = &object.Builtin{
-			Name: "sort",
-			Fun: func(args ...object.Object) object.Object {
-				return getSortedListHelper(vm, args...)
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`sort` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int)",
-				signature:   "sort(l: list[int|float|str|any], reverse: bool=false, key: null|fun(e: list[any])=>int|str|float=null) -> list[int|float|str|any] (sorted)",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "sort(['c','b','a']) => ['a','b','c']",
-			}.String(),
+func createSortBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if sortBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		sortBuiltinFun = func(args ...object.Object) object.Object {
+			return getSortedListHelper(vm, args...)
 		}
 	}
-	return sortBuiltin
+	return sortBuiltinFun
 }
 
-var sortedBuiltin *object.Builtin = nil
+var sortedBuiltinFun func(args ...object.Object) object.Object = nil
 
-func createSortedBuiltin(vm *VM) *object.Builtin {
-	if sortedBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		sortedBuiltin = &object.Builtin{
-			Name: "sorted",
-			Fun: func(args ...object.Object) object.Object {
-				o := getSortedListHelper(vm, args...)
-				if isError(o) {
+func createSortedBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if sortedBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		sortedBuiltinFun = func(args ...object.Object) object.Object {
+			o := getSortedListHelper(vm, args...)
+			if isError(o) {
+				return o
+			}
+			l, ok := o.(*object.List)
+			if !ok {
+				return l
+			}
+			args[0].(*object.List).Elements = l.Elements
+			return object.NULL
+		}
+	}
+	return sortedBuiltinFun
+}
+
+var allBuiltinFun func(args ...object.Object) object.Object = nil
+
+func createAllBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if allBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		allBuiltinFun = func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("all", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("all", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("all", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			l := args[0].(*object.List)
+			allTrue := true
+			if args[1].Type() == object.CLOSURE {
+				fn := args[1].(*object.Closure)
+				if len(fn.Fun.Parameters) != 1 {
+					return newError("`all` error: function must have 1 parameter")
+				}
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`all` error: %s", errMsg)
+					}
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`all` error: function must return boolean")
+					}
+					allTrue = allTrue && obj.(*object.Boolean).Value
+				}
+			} else {
+				fn := args[1].(*object.Builtin)
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`all` error: %s", errMsg)
+					}
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`all` error: function must return boolean")
+					}
+					allTrue = allTrue && obj.(*object.Boolean).Value
+				}
+			}
+			return nativeToBooleanObject(allTrue)
+		}
+	}
+	return allBuiltinFun
+}
+
+var anyBuiltinFun func(args ...object.Object) object.Object = nil
+
+func createAnyBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if anyBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		anyBuiltinFun = func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("any", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("any", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("any", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			l := args[0].(*object.List)
+			anyTrue := false
+			if args[1].Type() == object.CLOSURE {
+				fn := args[1].(*object.Closure)
+				if len(fn.Fun.Parameters) != 1 {
+					return newError("`any` error: function must have 1 parameter")
+				}
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`any` error: %s", errMsg)
+					}
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`any` error: function must return boolean")
+					}
+					anyTrue = anyTrue || obj.(*object.Boolean).Value
+				}
+			} else {
+				fn := args[1].(*object.Builtin)
+				for _, elem := range l.Elements {
+					obj := vm.applyFunctionFast(fn, elem)
+					if isError(obj) {
+						errMsg := obj.(*object.Error).Message
+						return newError("`any` error: %s", errMsg)
+					}
+					if obj.Type() != object.BOOLEAN_OBJ {
+						return newError("`any` error: function must return boolean")
+					}
+					anyTrue = anyTrue || obj.(*object.Boolean).Value
+				}
+			}
+			return nativeToBooleanObject(anyTrue)
+		}
+	}
+	return anyBuiltinFun
+}
+
+var mapBuiltinFun func(args ...object.Object) object.Object = nil
+
+func createMapBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if mapBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		mapBuiltinFun = func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("map", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("map", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("map", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			l := args[0].(*object.List)
+			newElements := make([]object.Object, len(l.Elements))
+			for i, elem := range l.Elements {
+				obj := vm.applyFunctionFast(args[1], elem)
+				if isError(obj) {
+					errMsg := obj.(*object.Error).Message
+					return newError("`map` error: %s", errMsg)
+				}
+				newElements[i] = obj
+			}
+			return &object.List{Elements: newElements}
+		}
+	}
+	return mapBuiltinFun
+}
+
+var filterBuiltinFun func(args ...object.Object) object.Object = nil
+
+func createFilterBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if filterBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		filterBuiltinFun = func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("filter", len(args), 2, "")
+			}
+			if args[0].Type() != object.LIST_OBJ {
+				return newPositionalTypeError("filter", 1, object.LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
+				return newPositionalTypeError("filter", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
+			}
+			l := args[0].(*object.List)
+			newElements := []object.Object{}
+			for _, elem := range l.Elements {
+				obj := vm.applyFunctionFast(args[1], elem)
+				if isError(obj) {
+					errMsg := obj.(*object.Error).Message
+					return newError("`filter` error: %s", errMsg)
+				}
+				if isTruthy(obj) {
+					newElements = append(newElements, elem)
+				}
+			}
+			return &object.List{Elements: newElements}
+		}
+	}
+	return filterBuiltinFun
+}
+
+var loadBuiltinFun func(args ...object.Object) object.Object = nil
+
+func createLoadBuiltinFun(_ *VM) func(args ...object.Object) object.Object {
+	if loadBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		loadBuiltinFun = func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("load", len(args), 1, "")
+			}
+			if args[0].Type() != object.BYTES_OBJ {
+				return newPositionalTypeError("load", 1, object.BYTES_OBJ, args[0].Type())
+			}
+			obj, err := object.Decode(args[0].(*object.Bytes).Value)
+			if err != nil {
+				return newError("`load` error: %s", err.Error())
+			}
+			switch o := obj.(type) {
+			case *object.Boolean:
+				return nativeToBooleanObject(o.Value)
+			case *object.Null:
+				return object.NULL
+			case *object.StringFunction:
+				obj := vmStr(o.Value)
+				if isError(obj) {
+					return newError("`load` error: %s", obj.(*object.Error).Message)
+				}
+				if o, ok := obj.(*object.Function); ok {
 					return o
 				}
-				l, ok := o.(*object.List)
-				if !ok {
-					return l
-				}
-				args[0].(*object.List).Elements = l.Elements
-				return object.NULL
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`sorted` sorts the given list, if its ints, floats, or strings no custom key is needed, otherwise a function returning the key to sort should be returned (ie. a str, float, or int). This function Mutates the underlying List",
-				signature:   "sorted(l: list[int|float|str|any], reverse: bool=false, key: null|fun(e: list[any])=>int|str|float=null) -> list[int|float|str|any] (sorted)",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "sorted(['c','b','a']) => null => side effect ['a','b','c']",
-			}.String(),
+				return newError("`load` error: failed to decode function %s", o.Value)
+			case *object.GoObjectGob:
+				// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
+				// log.Printf("GO OBJECT = %#+v", o)
+				// decoder := goObjDecoders[o.T].(func([]byte) (any, error))
+				// log.Printf("%T", decoder)
+				// a, err := decoder(o.Value)
+				// if err != nil {
+				// 	return newError("`load` error: %s", err)
+				// }
+				// log.Printf("t = %T, a = %+#v", a, a)
+				// switch o := a.(type) {
+				// case object.GoObj[color.RGBA]:
+				// 	return &o
+				// case *object.GoObj[*os.File]:
+				// 	return o
+				// default:
+				// 	return newError("`load` error: %T is not handled", a)
+				// }
+				return newError("`load` error: Go Object %T not enabled for decoding", o)
+			default:
+				return obj
+			}
 		}
 	}
-	return sortedBuiltin
+	return loadBuiltinFun
 }
 
-var allBuiltin *object.Builtin = nil
-
-func createAllBuiltin(vm *VM) *object.Builtin {
-	if allBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		allBuiltin = &object.Builtin{
-			Name: "all",
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("all", len(args), 2, "")
-				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("all", 1, object.LIST_OBJ, args[0].Type())
-				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("all", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
-				}
-				l := args[0].(*object.List)
-				allTrue := true
-				if args[1].Type() == object.CLOSURE {
-					fn := args[1].(*object.Closure)
-					if len(fn.Fun.Parameters) != 1 {
-						return newError("`all` error: function must have 1 parameter")
-					}
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`all` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`all` error: function must return boolean")
-						}
-						allTrue = allTrue && obj.(*object.Boolean).Value
-					}
-				} else {
-					fn := args[1].(*object.Builtin)
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`all` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`all` error: function must return boolean")
-						}
-						allTrue = allTrue && obj.(*object.Boolean).Value
-					}
-				}
-				return nativeToBooleanObject(allTrue)
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`all` returns the true if all the elements in the list return true for the given function",
-				signature:   "all(arg: list[any], f: fun(e: any)=>bool) -> bool",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "all([1,2,3], |e| => e > 0) => true",
-			}.String(),
-		}
-	}
-	return allBuiltin
-}
-
-var anyBuiltin *object.Builtin = nil
-
-func createAnyBuiltin(vm *VM) *object.Builtin {
-	if anyBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		anyBuiltin = &object.Builtin{
-			Name: "any",
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("any", len(args), 2, "")
-				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("any", 1, object.LIST_OBJ, args[0].Type())
-				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("any", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
-				}
-				l := args[0].(*object.List)
-				anyTrue := false
-				if args[1].Type() == object.CLOSURE {
-					fn := args[1].(*object.Closure)
-					if len(fn.Fun.Parameters) != 1 {
-						return newError("`any` error: function must have 1 parameter")
-					}
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`any` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`any` error: function must return boolean")
-						}
-						anyTrue = anyTrue || obj.(*object.Boolean).Value
-					}
-				} else {
-					fn := args[1].(*object.Builtin)
-					for _, elem := range l.Elements {
-						obj := vm.applyFunctionFast(fn, elem)
-						if isError(obj) {
-							errMsg := obj.(*object.Error).Message
-							return newError("`any` error: %s", errMsg)
-						}
-						if obj.Type() != object.BOOLEAN_OBJ {
-							return newError("`any` error: function must return boolean")
-						}
-						anyTrue = anyTrue || obj.(*object.Boolean).Value
-					}
-				}
-				return nativeToBooleanObject(anyTrue)
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`any` returns the true if any of the elements in the list return true for the given function",
-				signature:   "any(arg: list[any], f: fun(e: any)=>bool) -> bool",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "any([1,2,3], |e| => e > 0) => true",
-			}.String(),
-		}
-	}
-	return anyBuiltin
-}
-
-var mapBuiltin *object.Builtin = nil
-
-func createMapBuiltin(vm *VM) *object.Builtin {
-	if mapBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		mapBuiltin = &object.Builtin{
-			Name: "map",
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("map", len(args), 2, "")
-				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("map", 1, object.LIST_OBJ, args[0].Type())
-				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("map", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
-				}
-				l := args[0].(*object.List)
-				newElements := make([]object.Object, len(l.Elements))
-				for i, elem := range l.Elements {
-					obj := vm.applyFunctionFast(args[1], elem)
-					if isError(obj) {
-						errMsg := obj.(*object.Error).Message
-						return newError("`map` error: %s", errMsg)
-					}
-					newElements[i] = obj
-				}
-				return &object.List{Elements: newElements}
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`map` returns the a new list with the given function mapped to each element",
-				signature:   "map(arg: list[any], f: fun(e: any)=>any) -> list[any]",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "map([1,2,3], |e| => e + 1) => [2,3,4]",
-			}.String(),
-		}
-	}
-	return mapBuiltin
-}
-
-var filterBuiltin *object.Builtin = nil
-
-func createFilterBuiltin(vm *VM) *object.Builtin {
-	if filterBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		filterBuiltin = &object.Builtin{
-			Name: "filter",
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 2 {
-					return newInvalidArgCountError("filter", len(args), 2, "")
-				}
-				if args[0].Type() != object.LIST_OBJ {
-					return newPositionalTypeError("filter", 1, object.LIST_OBJ, args[0].Type())
-				}
-				if args[1].Type() != object.CLOSURE && args[1].Type() != object.BUILTIN_OBJ {
-					return newPositionalTypeError("filter", 2, object.CLOSURE+" or BUILTIN", args[1].Type())
-				}
-				l := args[0].(*object.List)
-				newElements := []object.Object{}
-				for _, elem := range l.Elements {
-					obj := vm.applyFunctionFast(args[1], elem)
-					if isError(obj) {
-						errMsg := obj.(*object.Error).Message
-						return newError("`filter` error: %s", errMsg)
-					}
-					if isTruthy(obj) {
-						newElements = append(newElements, elem)
-					}
-				}
-				return &object.List{Elements: newElements}
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`filter` returns the a new list with the elements that return true on the given function",
-				signature:   "filter(arg: list[any], f: fun(e: any)=>bool|any) -> list[any]",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "filter([1,2,3], |e| => e > 1) => [2,3]",
-			}.String(),
-		}
-	}
-	return filterBuiltin
-}
-
-var loadBuiltin *object.Builtin = nil
-
-func createLoadBuiltin(_ *VM) *object.Builtin {
-	if loadBuiltin == nil || !blueutil.ENABLE_VM_CACHING {
-		loadBuiltin = &object.Builtin{
-			Name: "load",
-			Fun: func(args ...object.Object) object.Object {
-				if len(args) != 1 {
-					return newInvalidArgCountError("load", len(args), 1, "")
-				}
-				if args[0].Type() != object.BYTES_OBJ {
-					return newPositionalTypeError("load", 1, object.BYTES_OBJ, args[0].Type())
-				}
-				obj, err := object.Decode(args[0].(*object.Bytes).Value)
-				if err != nil {
-					return newError("`load` error: %s", err.Error())
-				}
-				switch o := obj.(type) {
-				case *object.Boolean:
-					return nativeToBooleanObject(o.Value)
-				case *object.Null:
-					return object.NULL
-				case *object.StringFunction:
-					obj := vmStr(o.Value)
-					if isError(obj) {
-						return newError("`load` error: %s", obj.(*object.Error).Message)
-					}
-					if o, ok := obj.(*object.Function); ok {
-						return o
-					}
-					return newError("`load` error: failed to decode function %s", o.Value)
-				case *object.GoObjectGob:
-					// Note: This is disabled for now due to the complexity of handling all Go Object Types supported by blue
-					// log.Printf("GO OBJECT = %#+v", o)
-					// decoder := goObjDecoders[o.T].(func([]byte) (any, error))
-					// log.Printf("%T", decoder)
-					// a, err := decoder(o.Value)
-					// if err != nil {
-					// 	return newError("`load` error: %s", err)
-					// }
-					// log.Printf("t = %T, a = %+#v", a, a)
-					// switch o := a.(type) {
-					// case object.GoObj[color.RGBA]:
-					// 	return &o
-					// case *object.GoObj[*os.File]:
-					// 	return o
-					// default:
-					// 	return newError("`load` error: %T is not handled", a)
-					// }
-					return newError("`load` error: Go Object %T not enabled for decoding", o)
-				default:
-					return obj
-				}
-			},
-			HelpStr: helpStrArgs{
-				explanation: "`load` returns the object decoded from bytes",
-				signature:   "load(arg: bytes) -> any",
-				errors:      "InvalidArgCount,PositionalTypeError,CustomError",
-				example:     "load('82001904d2'.to_bytes(is_hex=true)) => 1234",
-			}.String(),
-		}
-	}
-	return loadBuiltin
-}
-
-func GetBuiltinWithVm(name string, vm *VM) func(args ...object.Object) object.Object {
+func GetBuiltinFunWithVm(name string, vm *VM) func(args ...object.Object) object.Object {
 	switch name {
 	case "to_num":
-		return createToNumBuiltin().Fun
+		return createToNumBuiltinFun()
 	case "_sort":
-		return createSortBuiltin(vm).Fun
+		return createSortBuiltinFun(vm)
 	case "_sorted":
-		return createSortedBuiltin(vm).Fun
+		return createSortedBuiltinFun(vm)
 	case "all":
-		return createAllBuiltin(vm).Fun
+		return createAllBuiltinFun(vm)
 	case "any":
-		return createAnyBuiltin(vm).Fun
+		return createAnyBuiltinFun(vm)
 	case "map":
-		return createMapBuiltin(vm).Fun
+		return createMapBuiltinFun(vm)
 	case "filter":
-		return createFilterBuiltin(vm).Fun
+		return createFilterBuiltinFun(vm)
 	case "load":
-		return createLoadBuiltin(vm).Fun
+		return createLoadBuiltinFun(vm)
 	default:
 		panic(name + " is not supported in GetBuiltinWithVm")
 	}

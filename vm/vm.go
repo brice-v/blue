@@ -517,12 +517,12 @@ func (vm *VM) Run() error {
 					} else {
 						if blueutil.ENABLE_VM_CACHING {
 							// Lazy Evaluate Builtin that needs to use vm
-							definition.Fun = GetBuiltinWithVm(definition.Name, vm)
+							definition.Fun = GetBuiltinFunWithVm(definition.Name, vm)
 							builtin = definition
 						} else {
 							builtin = &object.Builtin{
 								Name:    definition.Name,
-								Fun:     GetBuiltinWithVm(definition.Name, vm),
+								Fun:     GetBuiltinFunWithVm(definition.Name, vm),
 								HelpStr: definition.HelpStr,
 								Mutates: definition.Mutates,
 							}

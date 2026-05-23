@@ -37,6 +37,8 @@ TODO:
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
 - [ ] Support nested comprehensions
+    - [ ] Add multi for support in comprehensions (see test_flatten)
+        - https://www.learndatasci.com/solutions/python-list-comprehension/
 - Struct Improvements/Fixes
     - [ ] Allow structs to be matched against
     - [ ] Allow blue struct with int/float/etc. field names?
@@ -45,8 +47,6 @@ TODO:
 
 - [ ] Cache Empty string object and small ints maybe?
 - [ ] Add dis() builtin function to disassemble function inline
-- [ ] Dont necessarily need to return builtin for builtins that require vm reference
-    - could just return func(args...) object.Object
 - [ ] Default to using VM as default once everything is implemented
 - [ ] Write up full docs in html
 - [ ] Integrate with --no-exec for vm (make sure exec strings included)
@@ -83,8 +83,6 @@ TODO:
 - [ ] Expand blueObjectToGoObject and goObjectToBlueObject to support all nested variations as well
 - [ ] Add a fix for interface maps to use ordered so we can translate back and forth from blue <-> go <-> blue objects
     - Assuming this doesnt break any existing areas its much more consistent for sorting objects
-- [ ] Add multi for support in comprehensions (see test_flatten)
-    - https://www.learndatasci.com/solutions/python-list-comprehension/
 - Shell Supoort:
     - [x] Using `` to call cmd on computer - returning the output of that command
     - [ ] Add support for piped output
@@ -93,9 +91,7 @@ TODO:
     - [x] map
     - [x] filter
 - [ ] Add select statement?
-- [ ] Optimize List/Set/Map comps so they execute go code?
 - [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
-- [ ] If for loop returns list in expression it needs to be ordered, otherwise it wont work
 - [ ] Add catch with a block to expressions to handle errors?
 - [ ] Add some sort of package management with a file like blue.json (or blue.toml)
     - This will allow us to also add a script runner
@@ -153,7 +149,6 @@ TODO:
 - [ ] add to_fixed() similar to js
 - [ ] open syscall?
 - [ ] make `wait` allow you to return values to process calling `wait`
-- [ ] add helper to quit/exit pid?
 - [ ] make process errors bubble up if they are waited on?
 - [ ] add supervisor builtin which can restart a pid if it errors out (this can all be done in go)
 - [ ] allow docs to be served/transformed to md or html
@@ -195,12 +190,9 @@ func main() {
 ```
 - go test ./... -coverprofile=c.out
 - go tool cover -html=c.out
-- [ ] See if we can add go -coverage for tests (including the b_test_programs dir)
-    - Try to get coverage as high as we can
 - [ ] Performance testing and high level optimizations first
     - Then try to optimize further (we can still obviously use a VM if we wanted to)
 - [ ] Add code for CLI arg parser
-- [ ] Support unicode throughout
 - [ ] TESTS! Lots of them covering a variety of scenarios
     - [ ] Add test cases to cover all the basic functions
     - Test all math casting and max and min working
@@ -212,8 +204,6 @@ func main() {
 - [ ] Add way to print out ast by node name rather than strings
 - [ ] Look into the performance benefits of different hashing algorthims
 - [ ] Look into the performance benefits of enum of types rather than strings
-- [ ] Think about compiling to go
-    - Still could try this out - but definitely a future thing
 - [ ] Tagged Unions/ enums working properly with match
 - [ ] See if we can add streams properly as its own object type?
     - Use go generator pattern maybe?
@@ -688,3 +678,13 @@ COMPLETED TASKS:
     assert(-7 % -2 == -1)
     ```
 - [x] Support > < for strings
+- [x] add helper to quit/exit pid?
+- [x] If for loop returns list in expression it needs to be ordered, otherwise it wont work
+- [-] Optimize List/Set/Map comps so they execute go code?
+- [x] See if we can add go -coverage for tests (including the b_test_programs dir)
+    - Try to get coverage as high as we can
+- [-] Think about compiling to go
+    - Still could try this out - but definitely a future thing
+- [-] Support unicode throughout
+- [x] Dont necessarily need to return builtin for builtins that require vm reference
+    - could just return func(args...) object.Object
