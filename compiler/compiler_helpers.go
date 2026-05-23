@@ -637,7 +637,7 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 				if err != nil {
 					return err
 				}
-				if node.OptionalValue != nil {
+				if node.OptionalValue != nil && !c.lastInstructionReturnsBool() {
 					err = c.Compile(node.OptionalValue)
 					if err != nil {
 						return err

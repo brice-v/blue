@@ -234,6 +234,14 @@ func (c *Compiler) lastInstructionIsSet() bool {
 	return currentOp == code.OpSetGlobal || currentOp == code.OpSetGlobalImm || currentOp == code.OpSetLocal || currentOp == code.OpSetLocalImm
 }
 
+func (c *Compiler) lastInstructionReturnsBool() bool {
+	if len(c.currentInstructions()) == 0 {
+		return false
+	}
+	currentOp := c.scopes[c.scopeIndex].lastInstruction.Opcode
+	return currentOp == code.OpEqual || currentOp == code.OpNotEqual || currentOp == code.OpIn || currentOp == code.OpNotin || currentOp == code.OpNot || currentOp == code.OpOr || currentOp == code.OpAnd || currentOp == code.OpGreaterThan || currentOp == code.OpGreaterThanOrEqual
+}
+
 func (c *Compiler) removeLastPop() {
 	c.removeLastInstruction()
 }

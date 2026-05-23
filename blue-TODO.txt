@@ -1,5 +1,16 @@
 TODO:
 
+- [ ] Support nesting in match:
+    ```
+    # Match with nested patterns
+    val nested = {data: [1, 2, {x: 10}]}
+    val nestedResult = match (nested) {
+        {data: [_, _, {x: 10}]} => { "matched nested" },
+        _ => { "no match" }
+    }
+    println("nestedResult = #{nestedResult}")
+    assert(nestedResult == "matched nested")
+    ```
 - [ ] Fix redefinition of variable in the same scope for vm
     - var x = 1; val x = 2; (no error)
     - This will likely have to come after imports are properly handled (currently multiple things are redefined in current scope all the time)
@@ -12,17 +23,6 @@ TODO:
     - [x] Make nested try-catch-finally work
     - [ ] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
         - put errors into certain places, with comments in place, make sure it is picked up correctly
-- [ ] Floor division and modulo with negative going to 0 mistakenly? (check what another lang does here)
-    ```
-    # Floor division with negatives (floor toward -inf)
-    assert(-7 // 2 == -4)
-    assert(7 // -2 == -4)
-    assert(-7 // -2 == 3)
-    # Modulo with negatives
-    assert(-7 % 2 == 1) # this just gives wrong answer when compared to python
-    assert(7 % -2 == -1)
-    assert(-7 % -2 == -1)
-    ```
 - [ ] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
@@ -667,4 +667,15 @@ COMPLETED TASKS:
 
     val safeAdder = makeSafeAdder()
     assert(safeAdder(1, 2) == 3)
+    ```
+- [x] Floor division and modulo with negative going to 0 mistakenly? (check what another lang does here)
+    ```
+    # Floor division with negatives (floor toward -inf)
+    assert(-7 // 2 == -4)
+    assert(7 // -2 == -4)
+    assert(-7 // -2 == 3)
+    # Modulo with negatives
+    assert(-7 % 2 == 1) # this just gives wrong answer when compared to python
+    assert(7 % -2 == -1)
+    assert(-7 % -2 == -1)
     ```
