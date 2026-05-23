@@ -176,6 +176,9 @@ func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *com
 		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex, v.Builtin.Help())
 	}
 	c := compiler.NewWithStateAndCore(symbolTable, constants)
+	if isFpath {
+		c.CompilerBasePath = filepath.Dir(inputOrFpath)
+	}
 	if err := c.Compile(program); err != nil {
 		errToPrint, _, _ := strings.Cut(err.Error(), "\n"+consts.INTERNAL_ERROR_PATTERN)
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, errToPrint)

@@ -115,11 +115,4 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		c.emit(code.OpSetLocalImm, symbol.Index)
 	}
 	return nil
-	// 	NewEvaluatorLock.Lock()
-	// 	fb.Env = newE.env.Clone()
-	// 	// TODO: See if we can cache this somehow
-	// 	pubFunHelpStr := fb.Env.GetOrderedPublicFunctionHelpString()
-	// 	fb.HelpStr = CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr)
-	// 	NewEvaluatorLock.Unlock()
-	// }
 }
