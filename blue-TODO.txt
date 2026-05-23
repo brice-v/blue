@@ -20,9 +20,18 @@ TODO:
     - for instance: var x = 90; var y = [x ** 2 for x in 1..5]; y will be [] here because x is not in 1..5, its 90
     - more specifically, when theres a variable in use for a for statement, that must allowed to shadow if there is no 
 - [ ] Fix up error handling for vm, all try-catch stuff is sort of broken
-    - [x] Make nested try-catch-finally work
+    - [ ] Make nested try-catch-finally work
     - [ ] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
         - put errors into certain places, with comments in place, make sure it is picked up correctly
+    - [ ] Example:
+        ```
+        try {
+            assert(false);
+        } catch (e) {
+            # FIX THIS: Should fail and return vm error
+            assert(e == "ASFKLJSAFJ")
+        }
+        ```
 - [ ] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
