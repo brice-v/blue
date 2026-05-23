@@ -2502,6 +2502,14 @@ func (e *Evaluator) evalStringInfixExpression(operator string, left, right objec
 			}
 			return &object.List{Elements: elements}
 		}
+	case ">":
+		return nativeToBooleanObject(leftStr > rightStr)
+	case ">=":
+		return nativeToBooleanObject(leftStr >= rightStr)
+	case "<":
+		return nativeToBooleanObject(leftStr < rightStr)
+	case "<=":
+		return nativeToBooleanObject(leftStr <= rightStr)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}

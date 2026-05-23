@@ -433,6 +433,10 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 				}
 				return vm.push(&object.List{Elements: elements})
 			}
+		case code.OpGreaterThan:
+			return vm.push(nativeToBooleanObject(leftStr > rightStr))
+		case code.OpGreaterThanOrEqual:
+			return vm.push(nativeToBooleanObject(leftStr >= rightStr))
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}

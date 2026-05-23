@@ -28,7 +28,6 @@ TODO:
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
 - [ ] Support nested comprehensions
-- [ ] Support > < for strings
 - Struct Improvements/Fixes
     - [ ] Allow structs to be matched against
     - [ ] Allow blue struct with int/float/etc. field names?
@@ -679,3 +678,4 @@ COMPLETED TASKS:
     assert(7 % -2 == -1)
     assert(-7 % -2 == -1)
     ```
+- [x] Support > < for strings
