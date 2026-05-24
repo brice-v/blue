@@ -1,18 +1,5 @@
 TODO:
 
-- [ ] Fix up error handling for vm, all try-catch stuff is sort of broken
-    - [x] Make nested try-catch-finally work
-    - [ ] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
-        - put errors into certain places, with comments in place, make sure it is picked up correctly
-    - [x] Example:
-        ```
-        try {
-            assert(false);
-        } catch (e) {
-            # FIX THIS: Should fail and return vm error
-            assert(e == "ASFKLJSAFJ")
-        }
-        ```
 - [ ] When a variable is used in list comp, it needs to be allowed to shadow any others
     - for instance: var x = 90; var y = [x ** 2 for x in 1..5]; y will be [] here because x is not in 1..5, its 90
     - more specifically, when theres a variable in use for a for statement, that must allowed to shadow if there is no 
@@ -688,3 +675,16 @@ COMPLETED TASKS:
 - [x] Fix redefinition of variable in the same scope for vm
     - var x = 1; val x = 2; (no error)
     - This will likely have to come after imports are properly handled (currently multiple things are redefined in current scope all the time)
+- [x] Fix up error handling for vm, all try-catch stuff is sort of broken
+    - [x] Make nested try-catch-finally work
+    - [x] Make error tokens point at the right thing (maybe just use test_error_handling_combinations.b as example)
+        - put errors into certain places, with comments in place, make sure it is picked up correctly
+    - [x] Example:
+        ```
+        try {
+            assert(false);
+        } catch (e) {
+            # FIX THIS: Should fail and return vm error
+            assert(e == "ASFKLJSAFJ")
+        }
+        ```

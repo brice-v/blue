@@ -340,6 +340,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpPop)
 		}
 	case *ast.InfixExpression:
+		c.emitNode(node)
 		switch node.Operator {
 		case "<", "<=":
 			err := c.Compile(node.Right)
@@ -395,6 +396,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.PrefixExpression:
+		c.emitNode(node)
 		err := c.Compile(node.Right)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -412,6 +414,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return fmt.Errorf("unknown operator %s", node.Operator)
 		}
 	case *ast.PostfixExpression:
+		c.emitNode(node)
 		err := c.Compile(node.Left)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -481,6 +484,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpSet, len(node.Elements))
 		}
 	case *ast.MapLiteral:
+		c.emitNode(node)
 		indices := make([]int, 0, len(node.PairsIndex))
 		for k := range node.PairsIndex {
 			indices = append(indices, k)
@@ -517,6 +521,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.Null:
 		c.emit(code.OpNull)
 	case *ast.IfExpression:
+		c.emitNode(node)
 		err := c.compileIfExpression(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -541,11 +546,13 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 	case *ast.AssignmentExpression:
+		c.emitNode(node)
 		err := c.compileAssignmentExpression(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.Identifier:
+		c.emitNode(node)
 		if c.inMatch && node.Value == "_" {
 			c.emit(code.OpMatchAny)
 		} else {
@@ -635,6 +642,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpSetLocalImm, symbol.Index)
 		}
 	case *ast.ReturnStatement:
+		c.emitNode(node)
 		err := c.Compile(node.ReturnValue)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -646,6 +654,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.ForStatement:
+		c.emitNode(node)
 		c.enterBlock()
 		err := c.compileForStatement(node)
 		if err != nil {
@@ -671,6 +680,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.contPos[c.forIndex] = append(c.contPos[c.forIndex], pos)
 	case *ast.TryCatchStatement:
+		c.emitNode(node)
 		c.currentPos = len(c.currentInstructions())
 		c.enterBlock()
 		c.inTry[c.symbolTable.BlockNestLevel] = struct{}{}
@@ -738,6 +748,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.MatchExpression:
+		c.emitNode(node)
 		err := c.compileMatchExpression(node)
 		if err != nil {
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -750,6 +761,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emitNode(node)
 		c.emit(code.OpEval)
 	case *ast.ExecStringLiteral:
+		c.emitNode(node)
 		if node.Value == "" {
 			err := fmt.Errorf("exec string must not be empty")
 			return c.addNodeToErrorTrace(err, node.Token)
@@ -757,6 +769,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		literal := &object.ExecString{Value: node.Value}
 		c.emit(code.OpExecString, c.addConstant(literal))
 	case *ast.StructLiteral:
+		c.emitNode(node)
 		c.emit(code.OpConstant, c.addConstant(object.NewGoObj(node.Fields)))
 		for _, exp := range node.Values {
 			err := c.Compile(exp)
@@ -766,6 +779,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.emit(code.OpStruct, len(node.Fields))
 	case *ast.DeferExpression:
+		c.emitNode(node)
 		for _, arg := range node.Arguments {
 			err := c.Compile(arg)
 			if err != nil {
@@ -774,6 +788,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		c.emit(code.OpDefer, len(node.Arguments))
 	case *ast.SelfExpression:
+		c.emitNode(node)
 		c.emit(code.OpSelf)
 	case *ast.SpawnExpression:
 		argLen := len(node.Arguments)

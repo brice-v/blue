@@ -826,30 +826,27 @@ func (vm *VM) printStackInfo() {
 
 func (vm *VM) prepareStackTraceAndReturnError(err error) error {
 	vm.TokensForErrorTrace = []*token.Token{}
-	ip := vm.lastNodePos
-	// vm.printStackInfo()
-	for vm.framesIndex >= 1 {
-		ins := vm.currentFrame().Instructions()
+	readOpNode := func(ip int, ins code.Instructions) bool {
 		if ip < 0 || ip >= len(ins) {
-			// Prevent panic when preparing stack trace (ip can be -1 if no OpNode was hit)
-			// Note: I saw this occur when dealing with stack overflow
-			break
+			return false
 		}
-		op := code.Opcode(ins[ip])
-		if op != code.OpNode {
-			break
+		if code.Opcode(ins[ip]) != code.OpNode {
+			return false
 		}
 		tokenPos := code.ReadUint16(ins[ip+1:])
 		if int(tokenPos) > len(vm.tokens) {
-			break
+			return false
 		}
 		vm.TokensForErrorTrace = append(vm.TokensForErrorTrace, vm.tokens[tokenPos])
-		if vm.framesIndex == 1 {
-			// allow capture of call in main closure then exit (popFrame will return the same main)
+		return true
+	}
+	readOpNode(vm.lastNodePos, vm.currentFrame().Instructions())
+	for vm.framesIndex > 1 {
+		cf := vm.currentFrame()
+		vm.popFrame()
+		if !readOpNode(cf.callerLastNodePos, vm.currentFrame().Instructions()) {
 			break
 		}
-		vm.popFrame()
-		ip = vm.currentFrame().ip - 4 // Move back to OpNode of calling function
 	}
 	return err
 }
@@ -1210,6 +1207,7 @@ func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
 	}
 
 	frame := NewFrame(cl, vm.sp-newArgCount)
+	frame.callerLastNodePos = vm.lastNodePos
 	if cf := vm.currentFrame(); cf != nil {
 		frame.inTry = cf.inTry
 		frame.inCatch = cf.inCatch
@@ -1227,9 +1225,11 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 	}
 
 	frame := NewFrame(cl, vm.sp-newArgCount)
+	frame.callerLastNodePos = vm.lastNodePos
 	if cf := vm.currentFrame(); cf != nil {
 		frame.inTry = cf.inTry
 		frame.inCatch = cf.inCatch
+		frame.catchError = cf.catchError
 	}
 	vm.pushFrame(frame)
 	vm.sp = frame.bp + cl.Fun.NumLocals

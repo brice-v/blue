@@ -482,6 +482,7 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 }
 
 func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
+	c.emitNode(node)
 	if infixExpr, isInfix := node.Index.(*ast.InfixExpression); isInfix {
 		if infixExpr.Operator == ".." || infixExpr.Operator == "..<" {
 			return c.compileSliceExpression(node)

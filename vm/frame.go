@@ -14,10 +14,12 @@ type Frame struct {
 
 	lastInstruction code.Opcode
 
-	// per-frame try-catch context
+	// per-frame context
 	inTry      bool
 	inCatch    bool
 	catchError string
+	// last node position for error trace
+	callerLastNodePos int
 }
 
 func (f *Frame) Clone() *Frame {
@@ -32,19 +34,20 @@ func (f *Frame) Clone() *Frame {
 		}
 	}
 	return &Frame{
-		cl:              f.cl.Clone().(*object.Closure),
-		ip:              f.ip,
-		bp:              f.bp,
-		deferFuns:       newDeferFuns,
-		lastInstruction: f.lastInstruction,
-		inTry:           f.inTry,
-		inCatch:         f.inCatch,
-		catchError:      f.catchError,
+		cl:                f.cl.Clone().(*object.Closure),
+		ip:                f.ip,
+		bp:                f.bp,
+		deferFuns:         newDeferFuns,
+		lastInstruction:   f.lastInstruction,
+		inTry:             f.inTry,
+		inCatch:           f.inCatch,
+		catchError:        f.catchError,
+		callerLastNodePos: f.callerLastNodePos,
 	}
 }
 
 func NewFrame(fn *object.Closure, bp int) *Frame {
-	return &Frame{cl: fn, ip: -1, bp: bp, lastInstruction: code.OpInvalid}
+	return &Frame{cl: fn, ip: -1, bp: bp, lastInstruction: code.OpInvalid, callerLastNodePos: -1}
 }
 
 func (f *Frame) Instructions() code.Instructions {
