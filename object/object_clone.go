@@ -180,11 +180,14 @@ func (x *CompiledFunction) Clone() Object {
 	copy(parameters, x.Parameters)
 	parametersHasDefault := make([]bool, len(x.ParameterHasDefault))
 	copy(parametersHasDefault, x.ParameterHasDefault)
-	posAlreadyIncremented := xsync.NewMapOf[int, struct{}]()
-	x.PosAlreadyIncremented.Range(func(key int, value struct{}) bool {
-		posAlreadyIncremented.Store(key, value)
-		return true
-	})
+	var posAlreadyIncremented *xsync.MapOf[int, struct{}]
+	if x.PosAlreadyIncremented != nil {
+		posAlreadyIncremented = xsync.NewMapOf[int, struct{}]()
+		x.PosAlreadyIncremented.Range(func(key int, value struct{}) bool {
+			posAlreadyIncremented.Store(key, value)
+			return true
+		})
+	}
 	specialFunctionParameters := make(map[NameIndexKey]map[NameIndexKey]Object)
 	for k, v := range x.SpecialFunctionParameters {
 		m := make(map[NameIndexKey]Object)

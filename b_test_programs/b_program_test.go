@@ -612,6 +612,15 @@ func TestForInShadowsOuterVariable(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestOffByOneFloorDivAndModulo(t *testing.T) {
+	s := `val c = -17
+	val d = 5
+	val result = (c // d) * d + (c % d);
+	println(result);
+	assert(c == (c // d) * d + (c % d))`
+	vmStringWithCore(t, s)
+}
+
 func TestExpectedVmErrorForMapCompAddAndNoPanic(t *testing.T) {
 	s := `val m1 = {a: 1, b: 2}
 	val m2 = {c: 3, d: 4}

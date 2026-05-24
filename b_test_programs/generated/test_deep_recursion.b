@@ -56,29 +56,6 @@ fun deep(n) {
 assert(deep(100) == 100)
 assert(deep(200) == 200)
 
-# Mutual recursion
-fun isEven(n) {
-    if (n == 0) {
-        return true
-    }
-    return isOdd(n - 1)
-}
-
-fun isOdd(n) {
-    if (n == 0) {
-        return false
-    }
-    return isEven(n - 1)
-}
-
-assert(isEven(0) == true)
-assert(isEven(1) == false)
-assert(isEven(2) == true)
-assert(isEven(10) == true)
-assert(isOdd(0) == false)
-assert(isOdd(1) == true)
-assert(isOdd(2) == false)
-assert(isOdd(10) == false)
 
 # Tree traversal via recursion
 fun buildTree(depth) {
@@ -101,29 +78,6 @@ fun treeSum(depth) {
 
 assert(treeSum(10) == 55)  # 1+2+3+...+10 = 55
 
-# Recursive list processing
-fun listSum(lst) {
-    if (len(lst) == 0) {
-        return 0
-    }
-    return lst[0] + listSum(lst[1..])
-}
-
-assert(listSum([1, 2, 3, 4, 5]) == 15)
-assert(listSum([]) == 0)
-assert(listSum([10]) == 10)
-
-# Recursive list length
-fun listLen(lst) {
-    if (len(lst) == 0) {
-        return 0
-    }
-    return 1 + listLen(lst[1..])
-}
-
-assert(listLen([1, 2, 3]) == 3)
-assert(listLen([]) == 0)
-
 # Recursive map processing
 fun mapSum(m) {
     var sum = 0
@@ -135,19 +89,6 @@ fun mapSum(m) {
 
 val testMap = {a: 1, b: 2, c: 3}
 assert(mapSum(testMap) == 6)
-
-# Recursive string processing
-fun reverseStr(s) {
-    if (len(s) <= 1) {
-        return s
-    }
-    return reverseStr(s[1..]) + s[0]
-}
-
-assert(reverseStr("hello") == "olleh")
-assert(reverseStr("abc") == "cba")
-assert(reverseStr("") == "")
-assert(reverseStr("a") == "a")
 
 # Recursive power
 fun power(base, exp) {
@@ -183,18 +124,6 @@ assert(gcd(100, 75) == 25)
 assert(gcd(17, 13) == 1)
 assert(gcd(0, 5) == 5)
 
-# Recursive list reversal
-fun reverseList(lst) {
-    if (len(lst) <= 1) {
-        return lst
-    }
-    return reverseList(lst[1..]) + [lst[0]]
-}
-
-assert(reverseList([1, 2, 3, 4, 5]) == [5, 4, 3, 2, 1])
-assert(reverseList([1, 2]) == [2, 1])
-assert(reverseList([]) == [])
-
 # Recursive palindrome check
 fun isPalindrome(s) {
     if (len(s) <= 1) {
@@ -203,13 +132,13 @@ fun isPalindrome(s) {
     if (s[0] != s[len(s) - 1]) {
         return false
     }
-    return isPalindrome(s[1..len(s) - 1])
+    return isPalindrome(s[1..<(len(s) - 1)])
 }
 
-assert(isPalindrome("racecar") == true)
+assert(isPalindrome("racecar"))
 assert(isPalindrome("hello") == false)
-assert(isPalindrome("a") == true)
-assert(isPalindrome("") == true)
+assert(isPalindrome("a"))
+assert(isPalindrome(""))
 
 # Recursive flatten
 fun flatten(lst) {

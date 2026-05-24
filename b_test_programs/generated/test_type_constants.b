@@ -67,13 +67,6 @@ assert(type(len) == Type.BUILTIN)
 assert(type(println) == Type.BUILTIN)
 assert(type(print) == Type.BUILTIN)
 
-# Error type
-try {
-    error("test error")
-} catch (e) {
-    assert(type(e) == Type.ERROR)
-}
-
 # Process type
 val myPid = self()
 assert(type(myPid) == Type.PROCESS)

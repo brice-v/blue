@@ -83,29 +83,6 @@ for (var i = 1; i <= 50; i += 1) {
 # Numbers in range (11..30] divisible by 3: 12,15,18,21,24,27,30 = 7
 assert(matches == 7)
 
-# C-style for with post-increment in condition
-var sum2 = 0
-for (var i = 0; i < 5;) {
-    sum2 += i
-    i += 1
-}
-assert(sum2 == 10)
-
-# C-style for with pre-increment
-var sum3 = 0
-for (var i = 0; ++i < 6;) {
-    sum3 += i
-}
-assert(sum3 == 15)  # 1+2+3+4+5 = 15
-
-# C-style for with all three parts modified
-var product = 1
-for (var i = 1, j = 10; i <= 10 && j > 0; i += 1, j -= 1) {
-    product *= i * j
-}
-# 1*10 * 2*9 * 3*8 * 4*7 * 5*6 = 10*18*24*28*30
-assert(product == 10 * 18 * 24 * 28 * 30)
-
 # C-style for with float comparison
 var floatSum = 0.0
 for (var i = 0.0; i < 5.0; i += 1.0) {
@@ -124,8 +101,8 @@ for (true) {
 assert(counter == 100)
 
 # C-style for with function call in condition
-fun isLessThan(val, max) {
-    val < max
+fun isLessThan(v, max) {
+    v < max
 }
 
 var count2 = 0

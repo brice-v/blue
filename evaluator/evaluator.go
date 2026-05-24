@@ -2849,10 +2849,9 @@ func (e *Evaluator) evalBigFloatInfixExpression(operator string, left, right obj
 		if rightVal.Cmp(blueutil.DecimalZero) == 0 {
 			return newError("Modulus by zero is not allowed")
 		}
-		leftVal = leftVal.Abs()
 		result := leftVal.Mod(rightVal)
-		if rightVal.IsNegative() {
-			result = result.Neg()
+		if result.Cmp(blueutil.DecimalZero) != 0 && ((result.IsNegative() && !rightVal.IsNegative()) || (!result.IsNegative() && rightVal.IsNegative())) {
+			result = result.Add(rightVal)
 		}
 		return &object.BigFloat{Value: result}
 	case "<":
@@ -2921,10 +2920,9 @@ func (e *Evaluator) evalBigIntegerInfixExpression(operator string, left, right o
 		if rightVal.Cmp(blueutil.BigIntZero) == 0 {
 			return newError("Modulus by zero is not allowed")
 		}
-		leftVal = leftVal.Abs(leftVal)
-		r := result.Mod(leftVal, rightVal)
-		if rightVal.Cmp(blueutil.BigIntZero) == -1 {
-			r = new(big.Int).Neg(r)
+		r := new(big.Int).Rem(leftVal, rightVal)
+		if r.Sign() != 0 && ((r.Sign() < 0) != (rightVal.Sign() < 0)) {
+			r.Add(r, rightVal)
 		}
 		return &object.BigInteger{Value: r}
 	case "<":
@@ -3089,10 +3087,9 @@ func (e *Evaluator) evalFloatInfixExpression(operator string, left, right object
 		if rightVal == 0 {
 			return newError("Modulus by zero is not allowed")
 		}
-		leftVal = math.Abs(leftVal)
 		result := math.Mod(leftVal, rightVal)
-		if rightVal < 0 {
-			result *= -1
+		if result != 0 && ((result < 0) != (rightVal < 0)) {
+			result += rightVal
 		}
 		return &object.Float{Value: result}
 	case "<":
@@ -3275,12 +3272,11 @@ func (e *Evaluator) evalIntegerInfixExpression(operator string, left, right obje
 		if rightVal == 0 {
 			return newError("Modulus by zero is not allowed")
 		}
-		lv := math.Abs(float64(leftVal))
-		result := math.Mod(lv, float64(rightVal))
-		if rightVal < 0 {
-			result *= -1
+		result := leftVal % rightVal
+		if result != 0 && ((result < 0) != (rightVal < 0)) {
+			result += rightVal
 		}
-		return &object.Integer{Value: int64(result)}
+		return &object.Integer{Value: result}
 	case "<":
 		return nativeToBooleanObject(leftVal < rightVal)
 	case ">":

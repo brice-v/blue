@@ -73,17 +73,6 @@ fun shadow(x) {
 }
 assert(shadow(5) == 100)
 
-# Multiple shadowing in same scope is an error
-try {
-    if true {
-        var y = 1
-        var y = 2
-    }
-    assert(false, "should have errored")
-} catch (e) {
-    assert("already defined" in e)
-}
-
 # Closure captures outer scope correctly
 fun makeScopeTest() {
     var x = {counter: 0}

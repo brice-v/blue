@@ -2,6 +2,7 @@ package vm
 
 import (
 	"blue/blueutil"
+	"blue/code"
 	"blue/consts"
 	"blue/object"
 	"bytes"
@@ -566,6 +567,7 @@ func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object
 	existingFrameIndex := vm.framesIndex
 	existingStackPointer := vm.sp
 	vm.frames = make([]*Frame, MaxFrames)
+	vm.frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	vm.framesIndex = 2
 	vm.push(fun)
 	argCount := 0
@@ -593,7 +595,8 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
 		existingStackPointer := vm.sp
-		vm.frames = []*Frame{nil, nil, nil}
+		vm.frames = make([]*Frame, 3)
+		vm.frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 		vm.framesIndex = 2
 		vm.push(fun)
 		if arg != nil {
