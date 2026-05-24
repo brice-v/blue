@@ -37,7 +37,7 @@ The commands are:
                                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
                                                                                               
-             --no-exec             do not allow exec'ing programs
+             --no-exec             do not allow executing programs or scripts
 
     compile  compiles the given string or file to bytecode
                                                                                               

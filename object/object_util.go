@@ -399,7 +399,7 @@ func execCommand(arg0 string, args ...string) (string, string, error) {
 	execCmd.Stdout = &stdout
 	execCmd.Stderr = &stderr
 	err := execCmd.Run()
-	return stdout.String(), stderr.String(), err
+	return stdout.String() + stderr.String(), stderr.String(), err
 }
 
 func getListOfProcesses(arg Object) ([]*Process, bool) {
