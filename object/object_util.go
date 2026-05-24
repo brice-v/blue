@@ -354,11 +354,14 @@ func ExecStringCommand(str string) Object {
 		return newError("unable to exec the string `%s`", str)
 	}
 	if len(splitStr) == 1 {
-		output, err := execCommand(splitStr[0]).Output()
+		stdout, stderr, err := execCommand(splitStr[0])
 		if err != nil {
-			return newError("unable to exec the string `%s`. Error: %s", str, err)
+			return newExecCmdError(str, err.Error(), stderr)
 		}
-		return &Stringo{Value: string(output[:])}
+		if len(stdout) == 0 {
+			return NULL
+		}
+		return &Stringo{Value: stdout}
 	}
 	cleanedStrings := []string{}
 	for _, v := range splitStr {
@@ -370,23 +373,33 @@ func ExecStringCommand(str string) Object {
 	first := cleanedStrings[0]
 	rest := cleanedStrings[1:]
 
-	output, err := execCommand(first, rest...).CombinedOutput()
+	stdout, stderr, err := execCommand(first, rest...)
 	if err != nil {
-		return newError("unable to exec the string `%s`. Error: %s", str, err)
+		return newExecCmdError(str, err.Error(), stderr)
 	}
-	if len(output) == 0 {
+	if len(stdout) == 0 {
 		return NULL
 	}
-	return &Stringo{Value: string(output[:])}
+	return &Stringo{Value: stdout}
 }
 
-func execCommand(arg0 string, args ...string) *exec.Cmd {
+func newExecCmdError(commandStr, err, stderr string) Object {
+	return newError("unable to exec the string `%s`. error: %s, stderr: %s", commandStr, err, stderr)
+}
+
+func execCommand(arg0 string, args ...string) (string, string, error) {
+	var execCmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmdArgs := append([]string{"cmd", "/c", arg0}, args...)
-		return exec.Command(cmdArgs[0], cmdArgs...)
+		execCmd = exec.Command(cmdArgs[0], cmdArgs...)
 	} else {
-		return exec.Command(arg0, args...)
+		execCmd = exec.Command(arg0, args...)
 	}
+	var stdout, stderr bytes.Buffer
+	execCmd.Stdout = &stdout
+	execCmd.Stderr = &stderr
+	err := execCmd.Run()
+	return stdout.String(), stderr.String(), err
 }
 
 func getListOfProcesses(arg Object) ([]*Process, bool) {

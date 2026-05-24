@@ -11,7 +11,6 @@ TODO:
     println("nestedResult = #{nestedResult}")
     assert(nestedResult == "matched nested")
     ```
-- [ ] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
 - [ ] Fix up c.inMatch thats in compiler as that feels error prone
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] Would be good to have an error hint for this pattern
@@ -688,3 +687,4 @@ COMPLETED TASKS:
 - [x] When a variable is used in list comp, it needs to be allowed to shadow any others
     - for instance: var x = 90; var y = [x ** 2 for x in 1..5]; y will be [] here because x is not in 1..5, its 90
     - more specifically, when theres a variable in use for a for statement, that must allowed to shadow if there is no 
+- [x] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
