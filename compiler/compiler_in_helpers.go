@@ -21,10 +21,6 @@ func (c *Compiler) isIdentOnLeftInIterableOnRight(cond ast.Expression) (bool, Sy
 	if !ok1 {
 		return false, emptySym, nil
 	}
-	_, ok = c.symbolTable.Resolve(ident.Value)
-	if ok {
-		return false, emptySym, nil
-	}
 	sym := c.symbolTable.Define(ident.Value, false)
 	return true, sym, infix.Right
 }
@@ -94,14 +90,6 @@ func (c *Compiler) isListIdentsOnLeftInIterableOnRight(cond ast.Expression) (boo
 	}
 	ident2, ok := l.Elements[1].(*ast.Identifier)
 	if !ok {
-		return false, emptySym, emptySym, nil
-	}
-	_, ok = c.symbolTable.Resolve(ident1.Value)
-	if ok {
-		return false, emptySym, emptySym, nil
-	}
-	_, ok = c.symbolTable.Resolve(ident2.Value)
-	if ok {
 		return false, emptySym, emptySym, nil
 	}
 	sym1 := c.symbolTable.Define(ident1.Value, false)

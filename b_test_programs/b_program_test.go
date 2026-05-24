@@ -585,6 +585,33 @@ func TestInfiniteLoopInTryCatchScenario(t *testing.T) {
 	vmStringWithCore(t, s)
 }
 
+func TestShadowingIssueWithListComprehension(t *testing.T) {
+	s := `var x = 90;
+	var __internal1__ = [];
+	for (x in 1..5) {
+		var __result__ = x ** 2;
+		__internal1__ << __result__;
+	}
+	assert(__internal1__ == [1, 4, 9, 16, 25]);`
+	vmStringWithCore(t, s)
+}
+
+func TestForInShadowsOuterVariable(t *testing.T) {
+	s := `var x = "outer";
+	fun test() {
+		assert(x == "outer");
+		var results = [];
+		for (x in 1..3) {
+			results << x;
+		}
+		assert(x == "outer");
+		assert(results == [1, 2, 3]);
+	}
+	test();
+	assert(x == "outer");`
+	vmStringWithCore(t, s)
+}
+
 func TestExpectedVmErrorForMapCompAddAndNoPanic(t *testing.T) {
 	s := `val m1 = {a: 1, b: 2}
 	val m2 = {c: 3, d: 4}
