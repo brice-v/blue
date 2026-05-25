@@ -16,9 +16,6 @@ TODO:
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
-- [ ] Support nested comprehensions
-    - [ ] Add multi for support in comprehensions (see test_flatten)
-        - https://www.learndatasci.com/solutions/python-list-comprehension/
 - Struct Improvements/Fixes
     - [ ] Allow structs to be matched against
     - [ ] Allow blue struct with int/float/etc. field names?
@@ -688,3 +685,6 @@ COMPLETED TASKS:
     - for instance: var x = 90; var y = [x ** 2 for x in 1..5]; y will be [] here because x is not in 1..5, its 90
     - more specifically, when theres a variable in use for a for statement, that must allowed to shadow if there is no 
 - [x] ExecStringCommand should have capture stderr properly if command retuns non-0 exit code
+- [x] Support nested comprehensions
+    - [x] Add multi for support in comprehensions (see test_flatten)
+        - https://www.learndatasci.com/solutions/python-list-comprehension/

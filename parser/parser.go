@@ -1859,77 +1859,88 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 	return list, defaultArgs
 }
 
+type comprehensionClause struct {
+	condStr string
+	ifCond  ast.Expression
+}
+
 func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expression {
-	// Skip over the for
 	p.nextToken()
-	// current token is for, expect next to be lparen
-	shouldExpectRPAREN := false
-	if p.peekTokenIs(token.LPAREN) {
-		p.nextToken()
-		shouldExpectRPAREN = true
-	}
-	if p.curTokenIs(token.FOR) {
-		p.nextToken()
-	}
-
-	skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
-	parseNewFor := p.curTokenIs(token.VAR) || skipLparen
-	condStr := ""
-	if parseNewFor {
-		if skipLparen {
+	clauses := []comprehensionClause{}
+	for {
+		shouldExpectRPAREN := false
+		if p.peekTokenIs(token.LPAREN) {
+			p.nextToken()
+			shouldExpectRPAREN = true
+		}
+		if p.curTokenIs(token.FOR) {
 			p.nextToken()
 		}
-		varStmt := p.parseVarStatement()
-		if !p.curTokenIs(token.SEMICOLON) {
-			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+		skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
+		parseNewFor := p.curTokenIs(token.VAR) || skipLparen
+		condStr := ""
+		if parseNewFor {
+			if skipLparen {
+				p.nextToken()
+			}
+			varStmt := p.parseVarStatement()
+			if !p.curTokenIs(token.SEMICOLON) {
+				p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+				return nil
+			}
+			p.nextToken()
+			cond := p.parseExpression(LOWEST)
+			if !p.expectPeekIs(token.SEMICOLON) {
+				return nil
+			}
+			if !p.curTokenIs(token.SEMICOLON) {
+				p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+				return nil
+			}
+			p.nextToken()
+			postExp := p.parseExpression(LOWEST)
+			condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
+			if skipLparen {
+				p.nextToken()
+			}
+		} else {
+			expCond := p.parseExpression(LOWEST)
+			condStr = expCond.String()
+		}
+		if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
+			p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+			return nil
+		} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
-		p.nextToken()
-		cond := p.parseExpression(LOWEST)
-		if !p.expectPeekIs(token.SEMICOLON) {
-			return nil
-		}
-		if !p.curTokenIs(token.SEMICOLON) {
-			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-			return nil
-		}
-		p.nextToken()
-		postExp := p.parseExpression(LOWEST)
-		condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
-		if skipLparen {
+		if p.peekTokenIs(token.RPAREN) {
 			p.nextToken()
 		}
-	} else {
-		expCond := p.parseExpression(LOWEST)
-		condStr = expCond.String()
+		var ifCond ast.Expression
+		if p.peekTokenIs(token.IF) {
+			p.nextToken()
+			p.nextToken()
+			ifCond = p.parseExpression(LOWEST)
+		}
+		clauses = append(clauses, comprehensionClause{condStr, ifCond})
+		if p.peekTokenIs(token.FOR) {
+			p.nextToken()
+			continue
+		}
+		break
 	}
 
-	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
-		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-		return nil
-	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
-		p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-		return nil
+	body := fmt.Sprintf("__internal__ << %s;", valueToBind.String())
+	for i := len(clauses) - 1; i >= 0; i-- {
+		c := clauses[i]
+		if c.ifCond != nil {
+			body = fmt.Sprintf("if (!!(%s)) { %s }", c.ifCond.String(), body)
+		}
+		body = fmt.Sprintf("for %s { %s }", c.condStr, body)
 	}
-	if p.peekTokenIs(token.RPAREN) {
-		p.nextToken()
-	}
+	program := fmt.Sprintf("var __internal__ = []; %s", body)
 
-	var ifCond ast.Expression
-	if p.peekTokenIs(token.IF) {
-		// skip expression ending/RPAREN
-		p.nextToken()
-		// skip IF
-		p.nextToken()
-		ifCond = p.parseExpression(LOWEST)
-	}
-
-	var program string
-	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { var __result__ = %s; __internal__ << __result__; } };", condStr, ifCond, valueToBind.String())
-	} else {
-		program = fmt.Sprintf("var __internal__ = []; for %s { var __result__ = %s; __internal__ << __result__; };", condStr, valueToBind.String())
-	}
 	if !p.expectPeekIs(token.RBRACKET) {
 		return nil
 	}
@@ -1937,158 +1948,164 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 }
 
 func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expression) ast.Expression {
-	// Skip over the for
 	p.nextToken()
-	// current token is for, expect next to be lparen
-	shouldExpectRPAREN := false
-	if p.peekTokenIs(token.LPAREN) {
-		p.nextToken()
-		shouldExpectRPAREN = true
-	}
-	if p.curTokenIs(token.FOR) {
-		p.nextToken()
-	}
-
-	skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
-	parseNewFor := p.curTokenIs(token.VAR) || skipLparen
-	condStr := ""
-	if parseNewFor {
-		if skipLparen {
+	clauses := []comprehensionClause{}
+	for {
+		shouldExpectRPAREN := false
+		if p.peekTokenIs(token.LPAREN) {
+			p.nextToken()
+			shouldExpectRPAREN = true
+		}
+		if p.curTokenIs(token.FOR) {
 			p.nextToken()
 		}
-		varStmt := p.parseVarStatement()
-		if !p.curTokenIs(token.SEMICOLON) {
-			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+		skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
+		parseNewFor := p.curTokenIs(token.VAR) || skipLparen
+		condStr := ""
+		if parseNewFor {
+			if skipLparen {
+				p.nextToken()
+			}
+			varStmt := p.parseVarStatement()
+			if !p.curTokenIs(token.SEMICOLON) {
+				p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+				return nil
+			}
+			p.nextToken()
+			cond := p.parseExpression(LOWEST)
+			if !p.expectPeekIs(token.SEMICOLON) {
+				return nil
+			}
+			if !p.curTokenIs(token.SEMICOLON) {
+				p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+				return nil
+			}
+			p.nextToken()
+			postExp := p.parseExpression(LOWEST)
+			condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
+			if skipLparen {
+				p.nextToken()
+			}
+		} else {
+			expCond := p.parseExpression(LOWEST)
+			condStr = expCond.String()
+		}
+		if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
+			p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+			return nil
+		} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
-		p.nextToken()
-		cond := p.parseExpression(LOWEST)
-		if !p.expectPeekIs(token.SEMICOLON) {
-			return nil
-		}
-		if !p.curTokenIs(token.SEMICOLON) {
-			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-			return nil
-		}
-		p.nextToken()
-		postExp := p.parseExpression(LOWEST)
-		condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
-		if skipLparen {
+		if p.peekTokenIs(token.RPAREN) {
 			p.nextToken()
 		}
-	} else {
-		expCond := p.parseExpression(LOWEST)
-		condStr = expCond.String()
+		var ifCond ast.Expression
+		if p.peekTokenIs(token.IF) {
+			p.nextToken()
+			p.nextToken()
+			ifCond = p.parseExpression(LOWEST)
+		}
+		clauses = append(clauses, comprehensionClause{condStr, ifCond})
+		if p.peekTokenIs(token.FOR) {
+			p.nextToken()
+			continue
+		}
+		break
 	}
-
-	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
-		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-		return nil
-	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
-		p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-		return nil
+	body := fmt.Sprintf("__internal__[%s] = %s", key.String(), value.String())
+	for i := len(clauses) - 1; i >= 0; i-- {
+		c := clauses[i]
+		if c.ifCond != nil {
+			body = fmt.Sprintf("if (!!(%s)) { %s }", c.ifCond.String(), body)
+		}
+		body = fmt.Sprintf("for %s { %s }", c.condStr, body)
 	}
-	if p.peekTokenIs(token.RPAREN) {
-		p.nextToken()
-	}
-
-	var ifCond ast.Expression
-	if p.peekTokenIs(token.IF) {
-		// skip RPAREN/ending exp
-		p.nextToken()
-		// skip IF
-		p.nextToken()
-		ifCond = p.parseExpression(LOWEST)
-	}
-
-	var program string
-	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = {}; for %s { if %s { __internal__[%s] = %s } };", condStr, ifCond, key.String(), value.String())
-	} else {
-		program = fmt.Sprintf("var __internal__ = {}; for %s { __internal__[%s] = %s };", condStr, key.String(), value.String())
-	}
+	program := fmt.Sprintf("var __internal__ = {}; %s;", body)
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil
 	}
-
 	return &ast.MapCompLiteral{Token: tok, NonEvaluatedProgram: program}
 }
 
 func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) ast.Expression {
-	// Skip over the for
 	p.nextToken()
-	// current token is for, expect next to be lparen
-	shouldExpectRPAREN := false
-	if p.peekTokenIs(token.LPAREN) {
-		p.nextToken()
-		shouldExpectRPAREN = true
-	}
-	if p.curTokenIs(token.FOR) {
-		p.nextToken()
-	}
-
-	skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
-	parseNewFor := p.curTokenIs(token.VAR) || skipLparen
-	condStr := ""
-	if parseNewFor {
-		if skipLparen {
+	clauses := []comprehensionClause{}
+	for {
+		shouldExpectRPAREN := false
+		if p.peekTokenIs(token.LPAREN) {
+			p.nextToken()
+			shouldExpectRPAREN = true
+		}
+		if p.curTokenIs(token.FOR) {
 			p.nextToken()
 		}
-		varStmt := p.parseVarStatement()
-		if !p.curTokenIs(token.SEMICOLON) {
-			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+		skipLparen := p.curTokenIs(token.LPAREN) && p.peekTokenIs(token.VAR)
+		parseNewFor := p.curTokenIs(token.VAR) || skipLparen
+		condStr := ""
+		if parseNewFor {
+			if skipLparen {
+				p.nextToken()
+			}
+			varStmt := p.parseVarStatement()
+			if !p.curTokenIs(token.SEMICOLON) {
+				p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+				return nil
+			}
+			p.nextToken()
+			cond := p.parseExpression(LOWEST)
+			if !p.expectPeekIs(token.SEMICOLON) {
+				return nil
+			}
+			if !p.curTokenIs(token.SEMICOLON) {
+				p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+				return nil
+			}
+			p.nextToken()
+			postExp := p.parseExpression(LOWEST)
+			condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
+			if skipLparen {
+				p.nextToken()
+			}
+		} else {
+			expCond := p.parseExpression(LOWEST)
+			condStr = expCond.String()
+		}
+		if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
+			p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
+			return nil
+		} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
+			p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
 			return nil
 		}
-		p.nextToken()
-		cond := p.parseExpression(LOWEST)
-		if !p.expectPeekIs(token.SEMICOLON) {
-			return nil
-		}
-		if !p.curTokenIs(token.SEMICOLON) {
-			p.error(fmt.Sprintf("expected %s here got %s instead", token.SEMICOLON.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-			return nil
-		}
-		p.nextToken()
-		postExp := p.parseExpression(LOWEST)
-		condStr = fmt.Sprintf("(%s; %s; %s)", varStmt, cond, postExp)
-		if skipLparen {
+		if p.peekTokenIs(token.RPAREN) {
 			p.nextToken()
 		}
-	} else {
-		expCond := p.parseExpression(LOWEST)
-		condStr = expCond.String()
+		var ifCond ast.Expression
+		if p.peekTokenIs(token.IF) {
+			p.nextToken()
+			p.nextToken()
+			ifCond = p.parseExpression(LOWEST)
+		}
+		clauses = append(clauses, comprehensionClause{condStr, ifCond})
+		if p.peekTokenIs(token.FOR) {
+			p.nextToken()
+			continue
+		}
+		break
 	}
-
-	if shouldExpectRPAREN && !p.curTokenIs(token.RPAREN) {
-		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-		return nil
-	} else if !shouldExpectRPAREN && p.peekTokenIs(token.RPAREN) {
-		p.error(fmt.Sprintf("expected %s here got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-		return nil
+	body := fmt.Sprintf("__internal__ << %s", value.String())
+	for i := len(clauses) - 1; i >= 0; i-- {
+		c := clauses[i]
+		if c.ifCond != nil {
+			body = fmt.Sprintf("if (!!(%s)) { %s }", c.ifCond.String(), body)
+		}
+		body = fmt.Sprintf("for %s { %s }", c.condStr, body)
 	}
-	if p.peekTokenIs(token.RPAREN) {
-		p.nextToken()
-	}
-
-	var ifCond ast.Expression
-	if p.peekTokenIs(token.IF) {
-		// skip RPAREN/ending exp
-		p.nextToken()
-		// skip IF
-		p.nextToken()
-		ifCond = p.parseExpression(LOWEST)
-	}
-
-	var program string
-	if ifCond != nil {
-		program = fmt.Sprintf("var __internal__ = []; for %s { if %s { __internal__ << %s } }; __internal__ = set(__internal__);", condStr, ifCond, value.String())
-	} else {
-		program = fmt.Sprintf("var __internal__ = []; for %s { __internal__ << %s }; __internal__ = set(__internal__);", condStr, value.String())
-	}
+	program := fmt.Sprintf("var __internal__ = []; %s; __internal__ = set(__internal__);", body)
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil
 	}
-
 	return &ast.SetCompLiteral{Token: tok, NonEvaluatedProgram: program}
 }
 
