@@ -17,8 +17,4 @@ for (i in 1..<10) {
 
 y[10] = "HELLO";
 
-if (x != y) {
-    return false;
-}
-
-return true;
+assert(x == y);

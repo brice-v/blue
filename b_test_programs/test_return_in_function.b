@@ -3,4 +3,4 @@ fun main() {
 }
 
 
-return main();
+assert(main());

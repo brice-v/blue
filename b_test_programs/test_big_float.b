@@ -4,8 +4,4 @@ var z = 2_000_000_306_438.77540597754;
 println(x);
 println(y);
 println(x + y)
-if (x + y != z) {
-    return false;
-} else {
-    return true;
-}
+assert(x + y == z);

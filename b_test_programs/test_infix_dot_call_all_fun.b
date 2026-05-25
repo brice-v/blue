@@ -2,29 +2,22 @@ fun hello() {
     "HELLO"
 }
 
-if (hello() != "HELLO") {
-    return false;
-}
+assert(hello() == "HELLO");
 
 fun hello_a(a) {
     "HELLO #{a}"
 }
 
-if ("A".hello_a() != "HELLO A") {
-    return false;
-}
+assert("A".hello_a() == "HELLO A")
 
 fun hello_b(b, c) {
     "HELLO #{b} #{c}"
 }
 
-if ("3".hello_b("C") != "HELLO 3 C") {
-    return false;
-}
+assert("3".hello_b("C") == "HELLO 3 C")
 
 try {
-    (1 + 2).hello_b("3")
-    return false;
-} catch (e) {}
-
-return true;
+    assert((1 + 2).hello_b("3") == "HELLO 3 3")
+} catch (e) {
+    assert(false, "UNREACHABLE");
+}

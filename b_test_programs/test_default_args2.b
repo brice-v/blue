@@ -5,15 +5,5 @@ var main = {
 }
 
 println(main.some(z=200, 1, 2))
-if (main.some(1,2, z=200) != 203) {
-    return false;
-} else {
-    println("Hey its true")
-    return true;
-}
-
-if (main.other(b=1, x=1, 3) != 5) {
-    return false;
-} else {
-    return true;
-}
+assert(main.some(1,2, z=200) == 203);
+assert(main.other(b=1, x=1, 3) == 5);

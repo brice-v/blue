@@ -1,6 +1,5 @@
 var expected = {'a': {'b': {'a': {}}}};
 println("expected = #{expected}")
-#return true;
 
 var x = {'a': {}};
 

@@ -25,9 +25,7 @@ for (i in 1..5) {
     }
 }
 println("Count is #{count}");
-if (count != 10) {
-    return false;
-}
+assert(count == 10);
 # You only append to the List (x) when both the if condition and for condition are true
 var x = [x for (x in 1..4) if (x % 2 == 0)];
 println("x is #{x}");

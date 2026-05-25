@@ -89,21 +89,27 @@ func (vars *VarStatement) String() string {
 func (vars *VarStatement) VVToken() token.Token {
 	return vars.Token
 }
+
 func (vars *VarStatement) VVKeyValueNames() map[Expression]*Identifier {
 	return vars.KeyValueNames
 }
+
 func (vars *VarStatement) VVNames() []*Identifier {
 	return vars.Names
 }
+
 func (vars *VarStatement) VVValue() Expression {
 	return vars.Value
 }
+
 func (vars *VarStatement) VVIsMapDestructor() bool {
 	return vars.IsMapDestructor
 }
+
 func (vars *VarStatement) VVIsListDestructor() bool {
 	return vars.IsListDestructor
 }
+
 func (vars *VarStatement) IsValStatement() bool {
 	return false
 }
