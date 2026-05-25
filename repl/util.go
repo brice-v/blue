@@ -9,8 +9,6 @@ import (
 	"strings"
 )
 
-// This util file contains helpers for the dot commands in the evaluator repl
-
 func handleVmDotCommand(line string, out io.Writer, fileBuf *bytes.Buffer, vm *vm.VM) error {
 	cmdAndArg := strings.Split(line, " ")
 	if len(cmdAndArg) == 1 {

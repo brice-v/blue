@@ -48,7 +48,7 @@ The commands are:
 
     version  prints the current version
 
-The default behavior for no command/arguments will start an evaluator repl. (If given a file, the file will be evaluated)
+The default behavior for no command/arguments will start an vm repl. (If given a file, the file will be evaluated with the vm)
 
 Environment Variables:
 
@@ -71,7 +71,7 @@ func Run(args ...string) {
 	if argc == 0 {
 		// This means there was no command given
 		// so perform the default behavior of starting
-		// an evaluator repl.
+		// an vm repl.
 		repl.StartVmRepl()
 		os.Exit(0)
 	}

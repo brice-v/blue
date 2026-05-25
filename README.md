@@ -176,7 +176,7 @@ The commands are:
 
     version  prints the current version
 
-The default behavior for no command/arguments will start an evaluator repl. (If given a file, the file will be evaluated)
+The default behavior for no command/arguments will start an vm repl. (If given a file, the file will be evaluated with the vm)
 
 Environment Variables:
 
