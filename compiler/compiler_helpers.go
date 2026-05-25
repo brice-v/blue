@@ -239,7 +239,10 @@ func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operat
 	}
 	sym, ok := c.symbolTable.Resolve(c.getName(rootIdent.Value))
 	if !ok {
-		return fmt.Errorf("identifier not found: %s", rootIdent.Value)
+		sym, ok = c.symbolTable.Resolve(rootIdent.Value)
+		if !ok {
+			return fmt.Errorf("identifier not found: %s", rootIdent.Value)
+		}
 	}
 	if sym.Immutable {
 		return fmt.Errorf("'%s' is immutable", rootIdent.Value)
@@ -393,7 +396,7 @@ func (c *Compiler) createFilePathFromImportPath(importPath string) string {
 
 func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	name := node.Path.Value
-	if c.IsStd(name) {
+	if IsStd(name) {
 		if node.Alias != nil {
 			return fmt.Errorf("alias for std module not supported")
 		}

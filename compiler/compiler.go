@@ -136,6 +136,15 @@ func NewFromCore() *Compiler {
 	return newFromCore()
 }
 
+func (c *Compiler) SetDocModName(name string) {
+	c.importNestLevel = 0
+	c.modName = []string{name}
+}
+
+func (c *Compiler) GetDocOrderedPublicFunctionHelpString(modName string) string {
+	return c.symbolTable.GetOrderedPublicFunctionHelpString(modName)
+}
+
 type Bytecode struct {
 	Instructions code.Instructions
 	Constants    []object.Object

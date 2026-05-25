@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"blue/ast"
 	"blue/blueutil"
 	"blue/code"
 	"blue/compiler"
@@ -16,6 +17,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -58,54 +60,14 @@ func lexFile(fpath string) {
 
 // parseFile parses the given file
 func parseFile(fpath string, allErrors bool) {
-	data, err := os.ReadFile(fpath)
-	if err != nil {
-		consts.ErrorPrinter("`parseFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
-		os.Exit(1)
-	}
-
-	l := lexer.New(string(data), fpath)
-
-	var p *parser.Parser
-	if allErrors {
-		p = parser.New(l)
-	} else {
-		p = parser.NewWithStopAfterFirst(l)
-	}
-	program := p.ParseProgram()
-	if p.HasErrors() {
-		p.PrintParserErrors(out)
-		os.Exit(1)
-	}
-
+	program := lexAndParse(fpath, false, allErrors)
 	io.WriteString(out, program.String())
 	io.WriteString(out, "\n")
 }
 
 // evalFileOrString evaluates the given file or string if isFpath is false
 func evalFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
-	var l *lexer.Lexer
-	if isFpath {
-		data, err := os.ReadFile(inputOrFpath)
-		if err != nil {
-			consts.ErrorPrinter("`evalFile` error trying to read file `%s`. error: %s\n", inputOrFpath, err.Error())
-			os.Exit(1)
-		}
-		l = lexer.New(string(data), inputOrFpath)
-	} else {
-		l = lexer.New(inputOrFpath, "<stdin>")
-	}
-	var p *parser.Parser
-	if allErrors {
-		p = parser.New(l)
-	} else {
-		p = parser.NewWithStopAfterFirst(l)
-	}
-	program := p.ParseProgram()
-	if p.HasErrors() {
-		p.PrintParserErrors(out)
-		os.Exit(1)
-	}
+	program := lexAndParse(inputOrFpath, isFpath, allErrors)
 	object.NoExec = noExec
 	e := evaluator.New()
 	if isFpath {
@@ -143,12 +105,12 @@ func evalFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool)
 	// }
 }
 
-func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *compiler.Compiler {
+func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) *ast.Program {
 	var l *lexer.Lexer
 	if isFpath {
 		data, err := os.ReadFile(inputOrFpath)
 		if err != nil {
-			consts.ErrorPrinter("`vm` error trying to read file `%s`. error: %s\n", inputOrFpath, err.Error())
+			consts.ErrorPrinter("error trying to read file `%s`. error: %s\n", inputOrFpath, err.Error())
 			os.Exit(1)
 		}
 		l = lexer.New(string(data), inputOrFpath)
@@ -167,6 +129,10 @@ func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *com
 		p.PrintParserErrors(out)
 		os.Exit(1)
 	}
+	return program
+}
+
+func newCompiler(isFpath bool, fpath string) *compiler.Compiler {
 	constants := object.NewObjectConstants()
 	symbolTable := compiler.NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {
@@ -177,15 +143,35 @@ func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *com
 	}
 	c := compiler.NewWithStateAndCore(symbolTable, constants)
 	if isFpath {
-		c.CompilerBasePath = filepath.Dir(inputOrFpath)
+		c.CompilerBasePath = filepath.Dir(fpath)
 	}
+	return c
+}
+
+func compileProgram(c *compiler.Compiler, program *ast.Program) {
 	if err := c.Compile(program); err != nil {
 		errToPrint, _, _ := strings.Cut(err.Error(), "\n"+consts.INTERNAL_ERROR_PATTERN)
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, errToPrint)
 		c.PrintStackTrace()
 		os.Exit(1)
 	}
+}
+
+func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *compiler.Compiler {
+	program := lexAndParse(inputOrFpath, isFpath, allErrors)
+	c := newCompiler(isFpath, inputOrFpath)
+	compileProgram(c, program)
 	return c
+}
+
+func instantiateCompilerForDoc(fpath string) string {
+	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
+	program := lexAndParse(fpath, true, false)
+	c := newCompiler(true, fpath)
+	c.SetDocModName(modName)
+	compileProgram(c, program)
+	pubFunHelpStr := c.GetDocOrderedPublicFunctionHelpString(modName)
+	return object.CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr) + "\n"
 }
 
 func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) {
@@ -248,7 +234,7 @@ func getBuiltinHelpIfExists(name string) string {
 	for _, builtins := range object.AllBuiltins {
 		if builtins.Name == name {
 			found = true
-			fmt.Fprintf(&out, "MODULE: %s", name)
+			fmt.Fprintf(&out, "MODULE: %s\n", name)
 			for _, b := range builtins.Builtins {
 				fmt.Fprintf(&out, "%s\n", b.HelpStr)
 			}
@@ -272,31 +258,25 @@ func getDocStringFor(name string) string {
 	if builtinHelpStr != "" {
 		return builtinHelpStr
 	}
-	e := evaluator.New()
 	if name == "std" {
-		// Get all std modules public function help strings
-		return e.GetAllStdPublicFunctionHelpStrings()
+		mods := compiler.StdModuleNames()
+		sort.Strings(mods)
+		var out bytes.Buffer
+		for i, mod := range mods {
+			c := compiler.NewFromCore()
+			out.WriteString(c.GetStdModuleDocString(mod))
+			if i != len(mods)-1 {
+				out.WriteByte('\n')
+			}
+		}
+		return out.String()
 	}
-	if e.IsStd(name) {
-		// Get module's public function help string
-		return e.GetStdModPublicFunctionHelpString(name)
+	if compiler.IsStd(name) {
+		c := compiler.NewFromCore()
+		return c.GetStdModuleDocString(name)
 	}
 	if isFile(name) {
-		fdata, err := os.ReadFile(name)
-		if err != nil {
-			consts.ErrorPrinter("`doc` error trying to read file `%s`. error: %s\n", name, err.Error())
-			os.Exit(1)
-		}
-		l := lexer.New(string(fdata), name)
-		p := parser.New(l)
-		program := p.ParseProgram()
-		if p.HasErrors() {
-			p.PrintParserErrors(os.Stdout)
-			os.Exit(1)
-		}
-		e.Eval(program)
-		pubFunHelpStr := e.GetPublicFunctionHelpString()
-		return object.CreateHelpStringFromProgramTokens(name, program.HelpStrTokens, pubFunHelpStr) + "\n"
+		return instantiateCompilerForDoc(name)
 	}
 	return ""
 }

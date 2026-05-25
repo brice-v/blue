@@ -39,13 +39,33 @@ var _std_mods = map[string]*StdModFile{
 	"gg":     {File: lib.ReadStdFileToString("gg-static.b")},
 }
 
-func (c *Compiler) IsStd(name string) bool {
+func IsStd(name string) bool {
 	_, ok := _std_mods[name]
 	return ok
 }
 
+func StdModuleNames() []string {
+	names := make([]string, 0, len(_std_mods))
+	for n := range _std_mods {
+		names = append(names, n)
+	}
+	return names
+}
+
+func (c *Compiler) GetStdModuleDocString(name string) string {
+	if err := c.CompileStdModule(name, nil, false); err != nil {
+		return ""
+	}
+	for i := len(c.constants) - 1; i >= 0; i-- {
+		if mod, ok := c.constants[i].(*object.Module); ok && mod.Name == name {
+			return mod.Help() + "\n"
+		}
+	}
+	return ""
+}
+
 func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Identifier, shouldImportAll bool) error {
-	if !c.IsStd(name) {
+	if !IsStd(name) {
 		return fmt.Errorf("failed to compile std module: '%s' is not in std lib map", name)
 	}
 	fb := _std_mods[name]
