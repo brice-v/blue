@@ -1049,7 +1049,7 @@ func HashObject(obj Object) uint64 {
 		// come back and fix this or make it smarter if possible
 		hasher.WriteString(obj.(*Function).Inspect())
 	case CLOSURE:
-		hasher.Write(obj.(*Closure).Fun.Instructions)
+		hasher.WriteString(obj.(*Closure).Fun.DisplayString)
 	case ERROR_OBJ:
 		// Although i dont think this should happen, lets give it a hash anyways
 		hasher.WriteString(obj.(*Error).Message)
