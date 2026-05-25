@@ -3,7 +3,6 @@ package repl
 import (
 	"blue/compiler"
 	"blue/consts"
-	"blue/evaluator"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
@@ -32,58 +31,12 @@ func StartParserRepl() {
 	startParserRepl(os.Stdin, os.Stdout, getUsername())
 }
 
-// StartEvalRepl start the read eval print loop for the parser
-func StartEvalRepl() {
-	startEvalRepl(os.Stdin, os.Stdout, getUsername(), "", "")
-}
-
 // StartVmRepl start the read Vm print loop for the parser
 func StartVmRepl() {
 	startVmRepl(os.Stdin, os.Stdout, getUsername(), "", "")
 }
 
-// startEvalRepl is the entry point of the repl with an io.Reader as
-// an input and io.Writer as an output
-func startEvalRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
-	rl := NewReadline(in, out, "EVAL", username)
-	fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
-	var filebuf bytes.Buffer
-	replVarIndx := 1
-	e := evaluator.NewNode(nodeName, address)
-	for {
-		line := readLine(rl)
-		if strings.HasPrefix(line, ".") {
-			if strings.HasPrefix(line, ".exit") {
-				io.WriteString(out, "\n")
-				break
-			}
-			err := handleDotCommand(line, out, &filebuf, e)
-			if err != nil {
-				fmt.Fprintf(out, "repl command error: %s\n", err.Error())
-			}
-			continue
-		}
-
-		l := lexer.New(line, "<repl>")
-		p := parser.New(l)
-		program := p.ParseProgram()
-		if p.HasErrors() {
-			p.PrintParserErrors(out)
-			continue
-		}
-		evaluated := e.Eval(program)
-
-		if evaluated != nil {
-			replVar := fmt.Sprintf("_%d", replVarIndx)
-			e.ReplEnvAdd(replVar, evaluated)
-			replVarIndx++
-			fmt.Fprintf(out, "%s => %s\n", replVar, evaluated.Inspect())
-		}
-		fmt.Fprintf(&filebuf, "%s\n", line)
-	}
-}
-
-// startEvalRepl is the entry point of the repl with an io.Reader as
+// startVmRepl is the entry point of the repl with an io.Reader as
 // an input and io.Writer as an output
 func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
 	rl := NewReadline(in, out, "VM", username)

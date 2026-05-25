@@ -42,6 +42,7 @@ var out = os.Stderr
 var files embed.FS
 `
 
+// TODO: Rewrite to support using the vm instead
 const mainFunc = `func main() {
 	cmd.RunAgentIfEnabled()
 	entryPoint, err := files.ReadFile("embed_files/" + entryPointPath)

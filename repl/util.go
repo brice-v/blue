@@ -1,9 +1,6 @@
 package repl
 
 import (
-	"blue/evaluator"
-	"blue/lexer"
-	"blue/parser"
 	"blue/vm"
 	"bytes"
 	"fmt"
@@ -13,21 +10,6 @@ import (
 )
 
 // This util file contains helpers for the dot commands in the evaluator repl
-
-func handleDotCommand(line string, out io.Writer, fileBuf *bytes.Buffer, e *evaluator.Evaluator) error {
-	cmdAndArg := strings.Split(line, " ")
-	if len(cmdAndArg) == 1 {
-		handleHelpCommand(out)
-	}
-	cmd := cmdAndArg[0]
-	switch cmd {
-	case ".save":
-		return handleSaveCommand(out, fileBuf, cmdAndArg[1])
-	case ".load":
-		return handleLoadCommand(out, fileBuf, cmdAndArg[1], e)
-	}
-	return nil
-}
 
 func handleVmDotCommand(line string, out io.Writer, fileBuf *bytes.Buffer, vm *vm.VM) error {
 	cmdAndArg := strings.Split(line, " ")
@@ -61,29 +43,6 @@ func handleSaveCommand(out io.Writer, filebuf *bytes.Buffer, filename string) er
 		return err
 	}
 	fmt.Fprintf(out, "file `%s` saved\n", filename)
-	return nil
-}
-
-func handleLoadCommand(out io.Writer, filebuf *bytes.Buffer, filename string, e *evaluator.Evaluator) error {
-	bs, err := os.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-	data := string(bs)
-	l := lexer.New(data, filename)
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if p.HasErrors() {
-		p.PrintParserErrors(out)
-	}
-	evaluated := e.Eval(program)
-
-	fmt.Fprintf(out, "file `%s` loaded\n", filename)
-	if evaluated != nil {
-		fmt.Fprintf(out, "=> %s\n", evaluated.Inspect())
-	}
-	filebuf.WriteString(data)
-	filebuf.WriteByte('\n')
 	return nil
 }
 

@@ -21,14 +21,12 @@ show all parser errors instead of stopping at the first one
 .TP
 bundle
 bundle the given file into a go executable with the runtime included (bundle accepts a '\-d' flag for debugging)
-.TP
-eval
-eval the given string
+(NOTE: currently non\-functional)
 .TP
 doc
 print the help strings of all publicly accesible functions in the given filepath or module
 .IP
-note: the file/module will be evaluated to gather all functions \- so any side effects may take place
+note: the file/module will be compiled to gather all functions
 .TP
 vm
 run the given string or file through the VM
@@ -38,6 +36,9 @@ show all parser errors instead of stopping at the first one
 .TP
 \fB\-\-no\-exec\fR
 do not allow executing programs or scripts
+.TP
+\fB\-e\fR, e, eval
+alternative ways to trigger the vm evaluation
 .TP
 compile
 compiles the given string or file to bytecode
@@ -79,14 +80,12 @@ show all parser errors instead of stopping at the first one
 .TP
 bundle
 bundle the given file into a go executable with the runtime included (bundle accepts a '\-d' flag for debugging)
-.TP
-eval
-eval the given string
+(NOTE: currently non\-functional)
 .TP
 doc
 print the help strings of all publicly accesible functions in the given filepath or module
 .IP
-note: the file/module will be evaluated to gather all functions \- so any side effects may take place
+note: the file/module will be compiled to gather all functions
 .TP
 vm
 run the given string or file through the VM
@@ -96,6 +95,9 @@ show all parser errors instead of stopping at the first one
 .TP
 \fB\-\-no\-exec\fR
 do not allow executing programs or scripts
+.TP
+\fB\-e\fR, e, eval
+alternative ways to trigger the vm evaluation
 .TP
 compile
 compiles the given string or file to bytecode

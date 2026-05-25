@@ -154,18 +154,19 @@ The commands are:
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     bundle   bundle the given file into a go executable with the runtime included (bundle accepts a '-d' flag for debugging)
-
-    eval     eval the given string
+             (NOTE: currently non-functional)
 
     doc      print the help strings of all publicly accesible functions in the given filepath or module
                                                                                               
-             note: the file/module will be evaluated to gather all functions - so any side effects may take place
+             note: the file/module will be compiled to gather all functions
 
     vm       run the given string or file through the VM
                                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
                                                                                               
              --no-exec             do not allow executing programs or scripts
+                                                                                              
+             -e, e, eval           alternative ways to trigger the vm evaluation
 
     compile  compiles the given string or file to bytecode
                                                                                               

@@ -6,7 +6,6 @@ import (
 	"blue/code"
 	"blue/compiler"
 	"blue/consts"
-	"blue/evaluator"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
@@ -63,46 +62,6 @@ func parseFile(fpath string, allErrors bool) {
 	program := lexAndParse(fpath, false, allErrors)
 	io.WriteString(out, program.String())
 	io.WriteString(out, "\n")
-}
-
-// evalFileOrString evaluates the given file or string if isFpath is false
-func evalFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
-	program := lexAndParse(inputOrFpath, isFpath, allErrors)
-	object.NoExec = noExec
-	e := evaluator.New()
-	if isFpath {
-		e.CurrentFile = filepath.Clean(inputOrFpath)
-		e.EvalBasePath = filepath.Dir(inputOrFpath)
-	}
-	val := e.Eval(program)
-	if val.Type() == object.ERROR_OBJ {
-		errorObj := val.(*object.Error)
-		var buf bytes.Buffer
-		buf.WriteString(errorObj.Message)
-		buf.WriteByte('\n')
-		for e.ErrorTokens.Len() > 0 {
-			buf.WriteString(lexer.GetErrorLineMessage(e.ErrorTokens.PopBack()))
-			buf.WriteByte('\n')
-		}
-		msg := fmt.Sprintf("%s%s", consts.EVAL_ERROR_PREFIX, buf.String())
-		splitMsg := strings.Split(msg, "\n")
-		for i, s := range splitMsg {
-			if i == 0 {
-				consts.ErrorPrinter(s + "\n")
-				continue
-			}
-			delimeter := ""
-			if i != len(splitMsg)-1 {
-				delimeter = "\n"
-			}
-			fmt.Fprintf(out, "%s%s", s, delimeter)
-		}
-		os.Exit(1)
-	}
-	// NOTE: This could be used for debugging programs return values
-	// if evaluated != nil {
-	// 	os.Stdout.WriteString(evaluated.Inspect() + "\n")
-	// }
 }
 
 func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) *ast.Program {

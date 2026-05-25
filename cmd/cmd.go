@@ -26,18 +26,19 @@ The commands are:
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     bundle   bundle the given file into a go executable with the runtime included (bundle accepts a '-d' flag for debugging)
-
-    eval     eval the given string
+             (NOTE: currently non-functional)
 
     doc      print the help strings of all publicly accesible functions in the given filepath or module
                                                                                               
-             note: the file/module will be evaluated to gather all functions - so any side effects may take place
+             note: the file/module will be compiled to gather all functions
 
     vm       run the given string or file through the VM
                                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
                                                                                               
              --no-exec             do not allow executing programs or scripts
+                                                                                              
+             -e, e, eval           alternative ways to trigger the vm evaluation
 
     compile  compiles the given string or file to bytecode
                                                                                               
@@ -71,7 +72,7 @@ func Run(args ...string) {
 		// This means there was no command given
 		// so perform the default behavior of starting
 		// an evaluator repl.
-		repl.StartEvalRepl()
+		repl.StartVmRepl()
 		os.Exit(0)
 	}
 	command := strings.ToLower(arguments[0])
@@ -86,9 +87,7 @@ func Run(args ...string) {
 		handleParseCommand(argc, arguments)
 	case "bundle":
 		handleBundleCommand(argc, arguments)
-	case "eval", "-e", "e":
-		handleEvalCommand(argc, arguments)
-	case "vm":
+	case "vm", "eval", "-e", "e":
 		handleVmCommand(argc, arguments)
 	case "compile", "-c", "c":
 		handleCompileCommand(argc, arguments)
@@ -109,7 +108,7 @@ func Run(args ...string) {
 			}
 		}
 		if isFile(fpath) {
-			evalFileOrString(fpath, true, noExec, allErrors)
+			vmFileOrString(fpath, true, noExec, allErrors)
 		} else {
 			printUsage()
 		}
@@ -224,28 +223,6 @@ func handleBundleCommand(argc int, arguments []string) {
 		}
 	} else {
 		consts.ErrorPrinter("unexpected `bundle` arguments. got=%+v\n", arguments)
-		os.Exit(1)
-	}
-}
-
-func handleEvalCommand(argc int, arguments []string) {
-	if argc == 2 || argc == 3 {
-		strToEval := ""
-		flagNoExec := false
-		allErrors := false
-		for _, arg := range arguments[1:] {
-			switch arg {
-			case "--no-exec":
-				flagNoExec = true
-			case "--all-parser-errors":
-				allErrors = true
-			default:
-				strToEval = arg
-			}
-		}
-		evalFileOrString(strToEval, isFile(strToEval), flagNoExec, allErrors)
-	} else {
-		consts.ErrorPrinter("unexpected `eval` arguments. got=%+v\n", arguments)
 		os.Exit(1)
 	}
 }
