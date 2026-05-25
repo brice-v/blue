@@ -150,10 +150,13 @@ func matches(left, right object.Object) bool {
 	if left.Type() != right.Type() {
 		return false
 	}
-	// TODO: Support other types that can have an _ to signify ignore
 	switch left.Type() {
 	case object.MAP_OBJ:
 		return matchMap(left.(*object.Map), right.(*object.Map))
+	case object.LIST_OBJ:
+		return matchList(left.(*object.List), right.(*object.List))
+	case object.SET_OBJ:
+		return matchSet(left.(*object.Set), right.(*object.Set))
 	default:
 		if isPrimitive(left.Type()) {
 			return matchPrimitive(left, right)
@@ -193,9 +196,64 @@ func matchMap(left, right *object.Map) bool {
 			continue
 		} else if leftPair.Value.Type() == object.MAP_OBJ && matchMap(leftPair.Value.(*object.Map), rightPair.Value.(*object.Map)) {
 			continue
+		} else if leftPair.Value.Type() == object.LIST_OBJ && matchList(leftPair.Value.(*object.List), rightPair.Value.(*object.List)) {
+			continue
+		} else if leftPair.Value.Type() == object.SET_OBJ && matchSet(leftPair.Value.(*object.Set), rightPair.Value.(*object.Set)) {
+			continue
 		} else if object.HashObject(leftPair.Value) == object.HashObject(rightPair.Value) {
 			continue
 		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func matchList(left, right *object.List) bool {
+	if len(left.Elements) != len(right.Elements) {
+		return false
+	}
+	for i := range left.Elements {
+		leftElem := left.Elements[i]
+		rightElem := right.Elements[i]
+		if leftElem == object.VM_IGNORE {
+			continue
+		}
+		if leftElem.Type() != rightElem.Type() {
+			return false
+		}
+		if isPrimitive(leftElem.Type()) && matchPrimitive(leftElem, rightElem) {
+			continue
+		} else if leftElem.Type() == object.MAP_OBJ && matchMap(leftElem.(*object.Map), rightElem.(*object.Map)) {
+			continue
+		} else if leftElem.Type() == object.LIST_OBJ && matchList(leftElem.(*object.List), rightElem.(*object.List)) {
+			continue
+		} else if leftElem.Type() == object.SET_OBJ && matchSet(leftElem.(*object.Set), rightElem.(*object.Set)) {
+			continue
+		} else if object.HashObject(leftElem) == object.HashObject(rightElem) {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func matchSet(left, right *object.Set) bool {
+	for _, lk := range left.Elements.Keys {
+		leftPair, _ := left.Elements.Get(lk)
+		if leftPair.Value == object.VM_IGNORE {
+			continue
+		}
+		found := false
+		for _, rk := range right.Elements.Keys {
+			rightPair, _ := right.Elements.Get(rk)
+			if matches(leftPair.Value, rightPair.Value) {
+				found = true
+				break
+			}
+		}
+		if !found {
 			return false
 		}
 	}

@@ -1057,6 +1057,8 @@ func HashObject(obj Object) uint64 {
 		maphash.WriteComparable(hasher, obj.(*List).hashList())
 	case SET_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Set).hashSet())
+	case IGNORE_OBJ:
+		hasher.WriteString("##IGNORE##")
 	case MAP_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Map).hashMap())
 	case DEFAULT_ARGS_OBJ:
@@ -1101,6 +1103,7 @@ func IsHashable(obj Object) bool {
 		t == ERROR_OBJ ||
 		t == LIST_OBJ ||
 		t == SET_OBJ ||
+		t == IGNORE_OBJ ||
 		t == MAP_OBJ ||
 		t == BYTES_OBJ ||
 		t == BIG_FLOAT_OBJ ||
