@@ -1,23 +1,12 @@
 TODO:
 
-- [ ] Support nesting in match:
-    ```
-    # Match with nested patterns
-    val nested = {data: [1, 2, {x: 10}]}
-    val nestedResult = match (nested) {
-        {data: [_, _, {x: 10}]} => { "matched nested" },
-        _ => { "no match" }
-    }
-    println("nestedResult = #{nestedResult}")
-    assert(nestedResult == "matched nested")
-    ```
 - [ ] Fix up c.inMatch thats in compiler as that feels error prone
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
 - Struct Improvements/Fixes
-    - [ ] Allow structs to be matched against
+    - [x] Allow structs to be matched against
     - [ ] Allow blue struct with int/float/etc. field names?
     - [ ] When blue struct field name matches a var that is used in scope, can this work?
     - [ ] Support Struct in list comprehension?
@@ -688,3 +677,14 @@ COMPLETED TASKS:
 - [x] Support nested comprehensions
     - [x] Add multi for support in comprehensions (see test_flatten)
         - https://www.learndatasci.com/solutions/python-list-comprehension/
+- [x] Support nesting in match:
+    ```
+    # Match with nested patterns
+    val nested = {data: [1, 2, {x: 10}]}
+    val nestedResult = match (nested) {
+        {data: [_, _, {x: 10}]} => { "matched nested" },
+        _ => { "no match" }
+    }
+    println("nestedResult = #{nestedResult}")
+    assert(nestedResult == "matched nested")
+    ```

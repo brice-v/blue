@@ -684,13 +684,6 @@ func TestCloneNull(t *testing.T) {
 	}
 }
 
-func TestCloneIgnore(t *testing.T) {
-	clone := IGNORE.Clone()
-	if clone != IGNORE {
-		t.Error("IGNORE Clone should return the singleton IGNORE")
-	}
-}
-
 func TestCloneBreak(t *testing.T) {
 	clone := BREAK.Clone()
 	if clone != BREAK {

@@ -12,7 +12,7 @@ func (x *Null) Clone() Object {
 }
 
 func (x *Ignore) Clone() Object {
-	return IGNORE
+	return VM_IGNORE
 }
 
 func (x *BreakStatement) Clone() Object {

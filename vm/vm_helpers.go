@@ -157,6 +157,8 @@ func matches(left, right object.Object) bool {
 		return matchList(left.(*object.List), right.(*object.List))
 	case object.SET_OBJ:
 		return matchSet(left.(*object.Set), right.(*object.Set))
+	case object.BLUE_STRUCT_OBJ:
+		return matchStruct(left.(*object.BlueStruct), right.(*object.BlueStruct))
 	default:
 		if isPrimitive(left.Type()) {
 			return matchPrimitive(left, right)
@@ -200,6 +202,8 @@ func matchMap(left, right *object.Map) bool {
 			continue
 		} else if leftPair.Value.Type() == object.SET_OBJ && matchSet(leftPair.Value.(*object.Set), rightPair.Value.(*object.Set)) {
 			continue
+		} else if leftPair.Value.Type() == object.BLUE_STRUCT_OBJ && matchStruct(leftPair.Value.(*object.BlueStruct), rightPair.Value.(*object.BlueStruct)) {
+			continue
 		} else if object.HashObject(leftPair.Value) == object.HashObject(rightPair.Value) {
 			continue
 		} else {
@@ -230,6 +234,8 @@ func matchList(left, right *object.List) bool {
 			continue
 		} else if leftElem.Type() == object.SET_OBJ && matchSet(leftElem.(*object.Set), rightElem.(*object.Set)) {
 			continue
+		} else if leftElem.Type() == object.BLUE_STRUCT_OBJ && matchStruct(leftElem.(*object.BlueStruct), rightElem.(*object.BlueStruct)) {
+			continue
 		} else if object.HashObject(leftElem) == object.HashObject(rightElem) {
 			continue
 		} else {
@@ -254,6 +260,26 @@ func matchSet(left, right *object.Set) bool {
 			}
 		}
 		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func matchStruct(left, right *object.BlueStruct) bool {
+	for i, field := range left.Fields {
+		leftVal := left.Values[i]
+		if leftVal == object.VM_IGNORE {
+			continue
+		}
+		rightVal, _ := right.Get(field)
+		if rightVal == nil {
+			return false
+		}
+		if leftVal.Type() != rightVal.Type() {
+			return false
+		}
+		if !matches(leftVal, rightVal) {
 			return false
 		}
 	}

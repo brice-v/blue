@@ -113,8 +113,6 @@ var (
 	FALSE = &Boolean{Value: false}
 	// NULL is the null object which should be the same everywhere
 	NULL = &Null{}
-	// IGNORE is the object which is used to ignore variables when necessary
-	IGNORE = &Null{}
 	// VM_IGNORE is the object with is used to ignore things in match expressions
 	VM_IGNORE = &Ignore{}
 
@@ -133,7 +131,7 @@ const USE_PARAM_STR = "___USE_PARAM___"
 var OBJECT_CONSTANTS = NewObjectConstants()
 
 func NewObjectConstants() []Object {
-	return []Object{TRUE, FALSE, NULL, IGNORE, VM_IGNORE, BREAK, CONTINUE, USE_PARAM_STR_OBJ}
+	return []Object{TRUE, FALSE, NULL, VM_IGNORE, BREAK, CONTINUE, USE_PARAM_STR_OBJ}
 }
 
 // Maybe replace with switch or map if this is really a problem

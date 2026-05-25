@@ -101,3 +101,92 @@ val setResult9 = match (mixed) {
     _ => { "no match" }
 }
 assert(setResult9 == "deeply nested match")
+
+# --- Struct pattern matching ---
+
+# Basic struct match
+val st = @{one: 1, hello: "world"}
+val structResult1 = match (st) {
+    @{one: 1, hello: "world"} => { "matched struct" },
+    _ => { "no match" }
+}
+assert(structResult1 == "matched struct")
+
+# Struct match should fail on wrong values
+val st2 = @{one: 2, hello: "world"}
+val structResult2 = match (st2) {
+    @{one: 1, hello: "world"} => { "wrong" },
+    _ => { "correct - no match" }
+}
+assert(structResult2 == "correct - no match")
+
+# Struct match with wildcard
+val structResult3 = match (st) {
+    @{one: _, hello: "world"} => { "matched with wildcard" },
+    _ => { "no match" }
+}
+assert(structResult3 == "matched with wildcard")
+
+# Struct match with all wildcards
+val structResult4 = match (st) {
+    @{one: _, hello: _} => { "matched any struct" },
+    _ => { "no match" }
+}
+assert(structResult4 == "matched any struct")
+
+# Struct with nested map
+val stWithMap = @{data: {x: 10, y: 20}, label: "point"}
+val structResult5 = match (stWithMap) {
+    @{data: {x: 10, y: _}, label: _} => { "matched nested map in struct" },
+    _ => { "no match" }
+}
+assert(structResult5 == "matched nested map in struct")
+
+# Struct with nested list
+val stWithList = @{items: [1, 2, 3], name: "test"}
+val structResult6 = match (stWithList) {
+    @{items: [_, 2, _], name: _} => { "matched nested list in struct" },
+    _ => { "no match" }
+}
+assert(structResult6 == "matched nested list in struct")
+
+# Struct with nested set
+val stWithSet = @{tags: {"a", "b", "c"}, id: 42}
+val structResult7 = match (stWithSet) {
+    @{tags: {"a", _, _}, id: _} => { "matched nested set in struct" },
+    _ => { "no match" }
+}
+assert(structResult7 == "matched nested set in struct")
+
+# Nested structs
+val inner = @{x: 10, y: 20}
+val outer = @{point: inner, desc: "nested"}
+val structResult8 = match (outer) {
+    @{point: @{x: 10, y: _}, desc: _} => { "matched nested struct" },
+    _ => { "no match" }
+}
+assert(structResult8 == "matched nested struct")
+
+# List of structs
+val structList = [@{name: "Alice", age: 30}, @{name: "Bob", age: 25}]
+val structResult9 = match (structList) {
+    [@{name: "Alice", age: _}, _] => { "found Alice in list" },
+    _ => { "no match" }
+}
+assert(structResult9 == "found Alice in list")
+
+# Map with struct values
+val structMap = {first: @{a: 1}, second: @{a: 2}}
+val structResult10 = match (structMap) {
+    {first: @{a: 1}, second: _} => { "matched struct value in map" },
+    _ => { "no match" }
+}
+assert(structResult10 == "matched struct value in map")
+
+# Set of structs
+val structSet = {@{x: 1}, @{x: 2}, @{x: 3}}
+val structResult11 = match (structSet) {
+    {@{x: 1}, @{x: 2}, _} => { "matched struct in set" },
+    _ => { "no match" }
+}
+assert(structResult11 == "matched struct in set")
