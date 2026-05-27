@@ -30,6 +30,8 @@ fun parse(data, delimeter=',', named_fields=false, comment=null, lazy_quotes=fal
     __parse(data, delimeter, named_fields, comment, lazy_quotes, trim_leading_space)
 }
 
+val load = parse;
+
 fun dump(data, comma=',', use_crlf=false) {
     ##std:this,__dump
     ## `dump` will take the data and dump it to a string formatted as a csv

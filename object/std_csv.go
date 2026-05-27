@@ -2,9 +2,33 @@ package object
 
 import (
 	"encoding/csv"
+	"io"
+	"net/http"
+	"os"
 	"strings"
 	"unicode/utf8"
 )
+
+func downloadUrlAsCsv(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func readFile(fpath string) (string, error) {
+	data, err := os.ReadFile(fpath)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
 
 var CsvBuiltins = []*Builtin{
 	{
@@ -34,6 +58,22 @@ var CsvBuiltins = []*Builtin{
 			}
 			data := args[0].(*Stringo).Value
 			delimeter := args[1].(*Stringo).Value
+			if strings.HasPrefix(data, "http://") || strings.HasPrefix(data, "https://") {
+				d, err := downloadUrlAsCsv(data)
+				if err != nil {
+					return newError("`parse` error: failed to download `%s`: %s", data, err.Error())
+				}
+				data = d
+			} else if strings.HasSuffix(strings.TrimSpace(data), ".csv") || strings.HasSuffix(strings.TrimSpace(data), ".tsv") {
+				if strings.HasSuffix(strings.TrimSpace(data), ".tsv") {
+					delimeter = "\t"
+				}
+				d, err := readFile(data)
+				if err != nil {
+					return newError("`parse` error: failed to read file `%s`: %s", data, err.Error())
+				}
+				data = d
+			}
 			namedFields := args[2].(*Boolean).Value
 			useComment := false
 			var comment rune

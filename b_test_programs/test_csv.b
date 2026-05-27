@@ -6,6 +6,12 @@ var rows = csv.parse(fdata);
 for (row in rows) {
     println("row = #{row}")
 }
+var expected1 = [['id', 'name', 'salary', 'department'],
+['1', 'john', '2000', 'sales'],
+['2', 'Andrew', '5000', 'finance'],
+['3', 'Mark', '8000', 'hr'],
+['4', 'Rey', '5000', 'marketing'],
+['5', 'Tan', '4000', 'IT']];
 var expected = [['id', 'name', 'salary', 'department'],
 ['1', 'john', '2000', 'sales'],
 ['2', 'Andrew', '5000', 'finance'],
@@ -48,3 +54,16 @@ expected = """id,name,salary,department
 5,Tan,4000,IT
 """.replace("\r", "");
 assert(dumped == expected);
+
+# load is the same as parse
+val load_from_url = csv.load("https://blog.bricev.xyz/assets/example.csv")
+val load_from_file = csv.load('example.csv')
+for (row in load_from_url) {
+    println("load_from_url row = #{row}")
+}
+for (row in load_from_file) {
+    println("load_from_file row = #{row}")
+}
+
+assert(load_from_url == expected1);
+assert(load_from_file == expected1);
