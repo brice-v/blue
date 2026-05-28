@@ -30,7 +30,6 @@ import (
 
 	"github.com/gobuffalo/plush"
 	"github.com/google/uuid"
-	"github.com/gookit/color"
 	"github.com/huandu/xstrings"
 	"github.com/shopspring/decimal"
 )
@@ -149,29 +148,7 @@ var Builtins = []*Builtin{
 	},
 	{
 		Name: "println",
-		Fun: func(args ...Object) Object {
-			useColorPrinter := false
-			var style color.Style
-			for i, arg := range args {
-				if i == 0 {
-					t, s, ok := getBasicObjectForGoObj[color.Style](arg)
-					if ok && t == "color" {
-						// Use color printer
-						useColorPrinter = true
-						style = s
-						continue
-					} else {
-						useColorPrinter = false
-					}
-				}
-				if useColorPrinter {
-					style.Println(arg.Inspect())
-				} else {
-					fmt.Println(arg.Inspect())
-				}
-			}
-			return NULL
-		},
+		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`println` returns NULL and prints each of args on a new line",
 			signature:   "println(args... : any...) -> null",
@@ -181,29 +158,7 @@ var Builtins = []*Builtin{
 	},
 	{
 		Name: "print",
-		Fun: func(args ...Object) Object {
-			useColorPrinter := false
-			var style color.Style
-			for i, arg := range args {
-				if i == 0 {
-					t, s, ok := getBasicObjectForGoObj[color.Style](arg)
-					if ok && t == "color" {
-						// Use color printer
-						useColorPrinter = true
-						style = s
-						continue
-					} else {
-						useColorPrinter = false
-					}
-				}
-				if useColorPrinter {
-					style.Print(arg.Inspect())
-				} else {
-					fmt.Print(arg.Inspect())
-				}
-			}
-			return NULL
-		},
+		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`print` returns NULL and prints each of args",
 			signature:   "print(args... : any...) -> null",
@@ -1220,15 +1175,7 @@ var Builtins = []*Builtin{
 	},
 	{
 		Name: "str",
-		Fun: func(args ...Object) Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("str", len(args), 1, "")
-			}
-			if args[0].Type() == BYTES_OBJ {
-				return &Stringo{Value: string(args[0].(*Bytes).Value)}
-			}
-			return &Stringo{Value: args[0].Inspect()}
-		},
+		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`str` returns the STRING representation of the given BYTES or the inspected object",
 			signature:   "str(arg: any) -> str",
@@ -1546,7 +1493,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != MAP_OBJ {
 				return newPositionalTypeError("add_topic", 1, MAP_OBJ, args[0].Type())
 			}
-			t, sub, ok := getBasicObjectForGoObj[*Subscriber](args[0])
+			t, sub, ok := GetBasicObjectForGoObj[*Subscriber](args[0])
 			if t != "sub" {
 				return newError("`add_topic` error: argument 1 should be in the format {t: 'sub', v: uint}")
 			}
@@ -1577,7 +1524,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != MAP_OBJ {
 				return newPositionalTypeError("remove_topic", 1, MAP_OBJ, args[0].Type())
 			}
-			t, sub, ok := getBasicObjectForGoObj[*Subscriber](args[0])
+			t, sub, ok := GetBasicObjectForGoObj[*Subscriber](args[0])
 			if t != "sub" {
 				return newError("`remove_topic` error: argument 1 should be in the format {t: 'sub', v: GO_OBJ[*Subscriber]}")
 			}
@@ -1630,7 +1577,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != MAP_OBJ {
 				return newPositionalTypeError("unsubscribe", 1, MAP_OBJ, args[0].Type())
 			}
-			t, sub, ok := getBasicObjectForGoObj[*Subscriber](args[0])
+			t, sub, ok := GetBasicObjectForGoObj[*Subscriber](args[0])
 			if t != "sub" {
 				return newError("`unsubscribe` error: argument 1 should be in the format {t: 'sub', v: GO_OBJ[*Subscriber]}")
 			}
@@ -3113,7 +3060,7 @@ func GetIndexAndBuiltinsOf(name string) (int, []*Builtin) {
 	return -1, nil
 }
 
-func getBasicObjectForGoObj[T any](arg Object) (string, T, bool) {
+func GetBasicObjectForGoObj[T any](arg Object) (string, T, bool) {
 	var zero T
 	if arg == nil {
 		return "", zero, false

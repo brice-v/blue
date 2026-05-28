@@ -1149,7 +1149,7 @@ func (vm *VM) buildStringWithInterp(startIndex, endIndex, stringIndex int) objec
 	for i := startIndex; i < endIndex; i += 2 {
 		exp := vm.stack[i]
 		orig := vm.stack[i+1]
-		newStr = strings.Replace(newStr, orig.Inspect(), exp.Inspect(), 1)
+		newStr = strings.Replace(newStr, orig.Inspect(), vm.CustomInspect(exp), 1)
 	}
 	return &object.Stringo{Value: newStr}
 }

@@ -1107,3 +1107,18 @@ func (vm *VM) executeEvalOperation(strToEval object.Object) error {
 	}
 	return nil
 }
+
+func (vm *VM) CustomInspect(arg object.Object) string {
+	var inspectedStr string
+	if fn, ok := object.HasDunderStrFun(arg); ok {
+		resultObj := vm.applyFunctionFast(fn, nil)
+		if resultObj == nil || resultObj.Type() != object.STRING_OBJ {
+			inspectedStr = arg.Inspect()
+		} else {
+			inspectedStr = resultObj.(*object.Stringo).Value
+		}
+	} else {
+		inspectedStr = arg.Inspect()
+	}
+	return inspectedStr
+}

@@ -53,9 +53,6 @@ TODO:
     - [x] Using `` to call cmd on computer - returning the output of that command
     - [ ] Add support for piped output
     - [ ] Parse command with strings, pipes, &&, etc so this can work more like a proper shell?
-- [ ] Put zip, reduce, etc. into actual builtins
-    - [x] map
-    - [x] filter
 - [ ] Add select statement?
 - [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] Add catch with a block to expressions to handle errors?
@@ -75,7 +72,6 @@ TODO:
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
 - [ ] Add plotting lib like matplot lib?
 - [ ] transform read and write to support using file descriptors instead?
-- [ ] Decorators?
 - [ ] Add filepath.walk type function
 - [ ] Replace println with just print and pass endln char to builtin (simplifies things a bit)
 - STD Updates:
@@ -175,7 +171,6 @@ func main() {
     - Use go generator pattern maybe?
     - Until go has yielding functions I think this will wait
 - [ ] DNS resolver function? like the dig cmd
-- [ ] Use swiss map if its better? https://github.com/dolthub/swiss
 - [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
 - allow ! onto function names so that I can name methods that mutate with an !
 - [ ] BUG: maybe bug in for loop using var and len of split lines (failing in d4 when I didnt subtract 1 [it shoudlve ended at 140 ])
@@ -688,3 +683,8 @@ COMPLETED TASKS:
     println("nestedResult = #{nestedResult}")
     assert(nestedResult == "matched nested")
     ```
+- [-] Use swiss map if its better? https://github.com/dolthub/swiss
+- [-] Decorators?
+- [x] Put zip, reduce, etc. into actual builtins
+    - [x] map
+    - [x] filter

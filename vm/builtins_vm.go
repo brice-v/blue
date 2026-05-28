@@ -10,6 +10,8 @@ import (
 	"math"
 	"sort"
 	"strings"
+
+	"github.com/gookit/color"
 )
 
 type helpStrArgs struct {
@@ -24,6 +26,78 @@ func (hsa helpStrArgs) String() string {
 }
 
 // Core Builtins
+
+var strBuiltinFun func(args ...object.Object) object.Object = nil
+
+func createStrBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if strBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		strBuiltinFun = func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("str", len(args), 1, "")
+			}
+			if args[0].Type() == object.BYTES_OBJ {
+				return &object.Stringo{Value: string(args[0].(*object.Bytes).Value)}
+			}
+			return &object.Stringo{Value: vm.CustomInspect(args[0])}
+		}
+	}
+	return strBuiltinFun
+}
+
+var printBuiltinFun func(args ...object.Object) object.Object = nil
+
+func printHelper(vm *VM, useLn bool, args ...object.Object) object.Object {
+	useColorPrinter := false
+	var style color.Style
+	for i, arg := range args {
+		if i == 0 {
+			t, s, ok := object.GetBasicObjectForGoObj[color.Style](arg)
+			if ok && t == "color" {
+				// Use color printer
+				useColorPrinter = true
+				style = s
+				continue
+			} else {
+				useColorPrinter = false
+			}
+		}
+		inspectedStr := vm.CustomInspect(arg)
+		if useColorPrinter {
+			if useLn {
+				style.Println(inspectedStr)
+			} else {
+				style.Print(inspectedStr)
+			}
+		} else {
+			if useLn {
+				fmt.Println(inspectedStr)
+			} else {
+				fmt.Print(inspectedStr)
+			}
+		}
+	}
+	return object.NULL
+}
+
+func createPrintBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if printBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		printBuiltinFun = func(args ...object.Object) object.Object {
+			return printHelper(vm, false, args...)
+		}
+	}
+	return printBuiltinFun
+}
+
+var printLnBuiltinFun func(args ...object.Object) object.Object = nil
+
+func createPrintLnBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
+	if printLnBuiltinFun == nil || !blueutil.ENABLE_VM_CACHING {
+		printLnBuiltinFun = func(args ...object.Object) object.Object {
+			return printHelper(vm, true, args...)
+		}
+	}
+	return printLnBuiltinFun
+}
 
 var toNumBuiltinFun func(args ...object.Object) object.Object = nil
 
@@ -541,6 +615,12 @@ func createLoadBuiltinFun(_ *VM) func(args ...object.Object) object.Object {
 
 func GetBuiltinFunWithVm(name string, vm *VM) func(args ...object.Object) object.Object {
 	switch name {
+	case "str":
+		return createStrBuiltinFun(vm)
+	case "print":
+		return createPrintBuiltinFun(vm)
+	case "println":
+		return createPrintLnBuiltinFun(vm)
 	case "to_num":
 		return createToNumBuiltinFun()
 	case "_sort":

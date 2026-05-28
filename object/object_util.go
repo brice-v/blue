@@ -784,3 +784,26 @@ func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, p
 	}
 	return fmt.Sprintf("MODULE `%s`: %s\n\ntype(%s) = '%s'\n\nPUBLIC FUNCTIONS:%s", modName, explanation, modName, MODULE_OBJ, pubFunHelpStr)
 }
+
+var _dunderStr = &Stringo{Value: "__str"}
+var _hashedDunderStr = HashObject(_dunderStr)
+var _dunderStrHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderStr}
+
+func HasDunderStrFun(o Object) (*Closure, bool) {
+	if o == nil {
+		return nil, false
+	}
+	m, ok := o.(*Map)
+	if !ok {
+		return nil, false
+	}
+	mp, ok := m.Pairs.Get(_dunderStrHashKey)
+	if !ok {
+		return nil, false
+	}
+	fn, ok := mp.Value.(*Closure)
+	if !ok {
+		return nil, false
+	}
+	return fn, true
+}
