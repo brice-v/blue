@@ -10,6 +10,7 @@ TODO:
     - [ ] Allow blue struct with int/float/etc. field names?
     - [ ] When blue struct field name matches a var that is used in scope, can this work?
     - [ ] Support Struct in list comprehension?
+    - [ ] See if can be used with class pattern
 
 - [ ] Cache Empty string object and small ints maybe?
 - [ ] Add dis() builtin function to disassemble function inline
@@ -688,3 +689,4 @@ COMPLETED TASKS:
 - [x] Put zip, reduce, etc. into actual builtins
     - [x] map
     - [x] filter
+- [x] Look at builtins_vm caching, with potential data races, may not be able to cache with global var but rather on the vm itself

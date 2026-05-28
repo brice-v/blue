@@ -40,6 +40,9 @@ type VM struct {
 	// Process things
 	NodeName string
 	PID      uint64
+
+	// Builtins that use vm
+	builtinFuns map[string]func(args ...object.Object) object.Object
 }
 
 func (vm *VM) currentFrame() *Frame {
