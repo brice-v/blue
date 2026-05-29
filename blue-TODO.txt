@@ -1,5 +1,6 @@
 TODO:
 
+- [ ] Update cmd/cli so that when file is not found that error is printed to user instead of usage
 - [ ] Fix up c.inMatch thats in compiler as that feels error prone
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] Would be good to have an error hint for this pattern

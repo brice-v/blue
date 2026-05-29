@@ -8,6 +8,9 @@ fun o() {
     this.__str = fun() {
         "{x: #{this._x}}";
     }
+    this.__add = fun(other) {
+        this._x + other._x;
+    }
     return this;
 }
 
@@ -25,3 +28,6 @@ println(o1);
 val expected = "{x: 5}"
 assert(abc == expected);
 assert(abc1 == expected);
+val o2 = o();
+o2.incr();
+assert(o1 + o2 == 6);

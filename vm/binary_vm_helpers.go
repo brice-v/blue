@@ -6,6 +6,7 @@ import (
 	"blue/object"
 	"blue/util"
 	"bytes"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
@@ -35,8 +36,10 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 	return nil
 }
 
-var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left, right object.Object) error{
-	object.INTEGER_OBJ: func(vm *VM, op code.Opcode, leftObj, rightObj object.Object) error {
+var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left, right object.Object) error{}
+
+func init() {
+	binaryOperationFunctions[object.INTEGER_OBJ] = func(vm *VM, op code.Opcode, leftObj, rightObj object.Object) error {
 		leftVal := leftObj.(*object.Integer).Value
 		rightVal := rightObj.(*object.Integer).Value
 		switch op {
@@ -124,8 +127,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 			log.Printf("HERE")
 			return vm.push(newError("unknown operator: %s %s %s", leftObj.Type(), code.GetOpName(op), rightObj.Type()))
 		}
-	},
-	object.BIG_INTEGER_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.BIG_INTEGER_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		var leftVal, rightVal *big.Int
 		if lBI, ok := left.(*object.BigInteger); ok {
 			leftVal = lBI.Value
@@ -185,8 +188,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
-	},
-	object.FLOAT_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.FLOAT_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		// Only Integers and Floats should be passed into this
 		var leftVal, rightVal float64
 		if lF, ok := left.(*object.Float); ok {
@@ -235,8 +238,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
-	},
-	object.BIG_FLOAT_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.BIG_FLOAT_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		var leftVal, rightVal decimal.Decimal
 		if lBF, ok := left.(*object.BigFloat); ok {
 			leftVal = lBF.Value
@@ -296,8 +299,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
-	},
-	object.UINTEGER_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.UINTEGER_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		var leftVal, rightVal uint64
 		if lUI, ok := left.(*object.UInteger); ok {
 			leftVal = lUI.Value
@@ -355,8 +358,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
-	},
-	object.STRING_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.STRING_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		leftStr := left.(*object.Stringo).Value
 		rightStr := right.(*object.Stringo).Value
 		switch op {
@@ -436,8 +439,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
-	},
-	object.SET_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.SET_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		newSet := &object.Set{Elements: object.NewSetElements()}
 		if op == code.OpAdd {
 			var s *object.Set
@@ -572,8 +575,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
-	},
-	object.LIST_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.LIST_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		leftListObj := left.(*object.List)
 		rightListObj := right.(*object.List)
 		leftElements := leftListObj.Elements
@@ -591,11 +594,11 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
 		}
-	},
-	object.MAP_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
-		return vm.executeDefaultBinaryOperation(op, left, right)
-	},
-	object.BYTES_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.MAP_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
+		return vm.executeMapBinaryOperation(op, left, right)
+	}
+	binaryOperationFunctions[object.BYTES_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		leftBs := left.(*object.Bytes).Value
 		rightBs := right.(*object.Bytes).Value
 		switch op {
@@ -629,8 +632,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.executeDefaultBinaryOperation(op, left, right)
 		}
-	},
-	object.BOOLEAN_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.BOOLEAN_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		leftB := left.(*object.Boolean).Value
 		rightB := right.(*object.Boolean).Value
 		switch op {
@@ -641,8 +644,8 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.executeDefaultBinaryOperation(op, left, right)
 		}
-	},
-	object.NULL_OBJ: func(vm *VM, op code.Opcode, left, right object.Object) error {
+	}
+	binaryOperationFunctions[object.NULL_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
 		switch op {
 		case code.OpEqual:
 			return vm.push(object.TRUE)
@@ -651,8 +654,7 @@ var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left
 		default:
 			return vm.executeDefaultBinaryOperation(op, left, right)
 		}
-	},
-	// TODO: Handle other defaults when type matches (list, set, map)
+	}
 }
 
 func (vm *VM) executeBinaryOperationDifferentTypes(op code.Opcode, left, right object.Object, leftType, rightType object.Type) error {
@@ -871,4 +873,21 @@ func (vm *VM) executeSpecialLshiftForListAndSet(left, right object.Object) error
 		s.Elements.Set(key, object.SetPair{Value: right, Present: struct{}{}})
 	}
 	return nil
+}
+
+func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Object) error {
+	switch op {
+	case code.OpAdd:
+		// Make sure both have the function
+		if fn, ok := object.HasDunderFun(object.DunderAdd, left); ok {
+			if _, ok := object.HasDunderFun(object.DunderAdd, right); ok {
+				resultObj := vm.applyFunctionFast(fn, right)
+				if resultObj == nil {
+					return fmt.Errorf("failed to execute __add on %s and %s", left.Inspect(), right.Inspect())
+				}
+				return vm.push(resultObj)
+			}
+		}
+	}
+	return vm.executeDefaultBinaryOperation(op, left, right)
 }
