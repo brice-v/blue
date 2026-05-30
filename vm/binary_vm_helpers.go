@@ -876,17 +876,30 @@ func (vm *VM) executeSpecialLshiftForListAndSet(left, right object.Object) error
 }
 
 func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Object) error {
+	t := object.DunderInvalid
 	switch op {
 	case code.OpAdd:
-		// Make sure both have the function
-		if fn, ok := object.HasDunderFun(object.DunderAdd, left); ok {
-			if _, ok := object.HasDunderFun(object.DunderAdd, right); ok {
-				resultObj := vm.applyFunctionFast(fn, right)
-				if resultObj == nil {
-					return fmt.Errorf("failed to execute __add on %s and %s", left.Inspect(), right.Inspect())
-				}
-				return vm.push(resultObj)
+		t = object.DunderAdd
+	case code.OpMinus:
+		t = object.DunderSub
+	case code.OpStar:
+		t = object.DunderMul
+	case code.OpDiv:
+		t = object.DunderDiv
+	case code.OpPercent:
+		t = object.DunderMod
+	case code.OpFlDiv:
+		t = object.DunderFdiv
+	case code.OpPow:
+		t = object.DunderPow
+	}
+	if fn, ok := object.HasDunderFun(t, left); ok {
+		if _, ok := object.HasDunderFun(t, right); ok {
+			resultObj := vm.applyFunctionFast(fn, right)
+			if resultObj == nil {
+				return fmt.Errorf("failed to execute __add on %s and %s", left.Inspect(), right.Inspect())
 			}
+			return vm.push(resultObj)
 		}
 	}
 	return vm.executeDefaultBinaryOperation(op, left, right)

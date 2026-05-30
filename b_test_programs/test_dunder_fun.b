@@ -11,6 +11,24 @@ fun o() {
     this.__add = fun(other) {
         this._x + other._x;
     }
+    this.__sub = fun(other) {
+        this._x - other._x;
+    }
+    this.__mul = fun(other) {
+        this._x * other._x;
+    }
+    this.__div = fun(other) {
+        this._x / other._x;
+    }
+    this.__mod = fun(other) {
+        this._x % other._x;
+    }
+    this.__fdiv = fun(other) {
+        this._x // other._x;
+    }
+    this.__pow = fun(other) {
+        this._x ** other._x;
+    }
     return this;
 }
 
@@ -31,3 +49,15 @@ assert(abc1 == expected);
 val o2 = o();
 o2.incr();
 assert(o1 + o2 == 6);
+println("o1 - o2 = #{o1 - o2}");
+assert(o1 - o2 == 4)
+println("o1 * o2 = #{o1 * o2}");
+assert(o1 * o2 == 5)
+println("o1 / o2 = #{o1 / o2}")
+assert(o1 / o2 == 5)
+println("o1 % o2 = #{o1 % o2}")
+assert(o1 % o2 == 0)
+println("o1 // o2 = #{o1 // o2}")
+assert(o1 // o2 == 5)
+println("o1 ** o2 = #{o1 ** o2}")
+assert(o1 ** o2 == 5)
