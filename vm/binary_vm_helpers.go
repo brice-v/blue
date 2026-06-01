@@ -892,6 +892,16 @@ func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Objec
 		t = object.DunderFdiv
 	case code.OpPow:
 		t = object.DunderPow
+	case code.OpAmpersand:
+		t = object.DunderAnd
+	case code.OpPipe:
+		t = object.DunderOr
+	case code.OpCarat:
+		t = object.DunderXor
+	case code.OpRshift:
+		t = object.DunderRshift
+	case code.OpLshift:
+		t = object.DunderLshift
 	}
 	if fn, ok := object.HasDunderFun(t, left); ok {
 		if _, ok := object.HasDunderFun(t, right); ok {

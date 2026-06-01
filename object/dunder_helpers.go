@@ -12,6 +12,11 @@ const (
 	DunderMod
 	DunderFdiv
 	DunderPow
+	DunderAnd
+	DunderOr
+	DunderXor
+	DunderRshift
+	DunderLshift
 )
 
 var (
@@ -46,6 +51,26 @@ var (
 	_dunderPow        = &Stringo{Value: "__pow"}
 	_hashedDunderPow  = HashObject(_dunderPow)
 	_dunderPowHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderPow}
+
+	_dunderAnd        = &Stringo{Value: "__and"}
+	_hashedDunderAnd  = HashObject(_dunderAnd)
+	_dunderAndHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderAnd}
+
+	_dunderOr        = &Stringo{Value: "__or"}
+	_hashedDunderOr  = HashObject(_dunderOr)
+	_dunderOrHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderOr}
+
+	_dunderXor        = &Stringo{Value: "__xor"}
+	_hashedDunderXor  = HashObject(_dunderXor)
+	_dunderXorHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderXor}
+
+	_dunderRshift        = &Stringo{Value: "__rshift"}
+	_hashedDunderRshift  = HashObject(_dunderRshift)
+	_dunderRshiftHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderRshift}
+
+	_dunderLshift        = &Stringo{Value: "__lshift"}
+	_hashedDunderLshift  = HashObject(_dunderLshift)
+	_dunderLshiftHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderLshift}
 )
 
 func getDunderHashKey(t DunderType) *HashKey {
@@ -68,6 +93,16 @@ func getDunderHashKey(t DunderType) *HashKey {
 		return &_dunderFdivHashKey
 	case DunderPow:
 		return &_dunderPowHashKey
+	case DunderAnd:
+		return &_dunderAndHashKey
+	case DunderOr:
+		return &_dunderOrHashKey
+	case DunderXor:
+		return &_dunderXorHashKey
+	case DunderRshift:
+		return &_dunderRshiftHashKey
+	case DunderLshift:
+		return &_dunderLshiftHashKey
 	default:
 		return nil
 	}

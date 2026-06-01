@@ -29,6 +29,21 @@ fun o() {
     this.__pow = fun(other) {
         this._x ** other._x;
     }
+    this.__and = fun(other) {
+        "#{this} #{other} __and"
+    }
+    this.__or = fun(other) {
+        "#{this} #{other} __or"
+    }
+    this.__xor = fun(other) {
+        "#{this} #{other} __xor"
+    }
+    this.__rshift = fun(other) {
+        "#{this} #{other} __rshift"
+    }
+    this.__lshift = fun(other) {
+        "#{this} #{other} __lshift"
+    }
     return this;
 }
 
@@ -61,3 +76,15 @@ println("o1 // o2 = #{o1 // o2}")
 assert(o1 // o2 == 5)
 println("o1 ** o2 = #{o1 ** o2}")
 assert(o1 ** o2 == 5)
+
+println("---------")
+println(o1 & o2)
+assert((o1 & o2) == "{x: 5} {x: 1} __and")
+println(o1 | o2)
+assert((o1 | o2) == "{x: 5} {x: 1} __or")
+println(o1 ^ o2)
+assert((o1 ^ o2) == "{x: 5} {x: 1} __xor")
+println(o1 >> o2)
+assert((o1 >> o2) == "{x: 5} {x: 1} __rshift")
+println(o1 << o2)
+assert((o1 << o2) == "{x: 5} {x: 1} __lshift")
