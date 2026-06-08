@@ -17,6 +17,12 @@ const (
 	DunderXor
 	DunderRshift
 	DunderLshift
+	DunderNeg
+	DunderInv
+	DunderEq
+	DunderNotEq
+	DunderGt
+	DunderGte
 )
 
 var (
@@ -71,6 +77,30 @@ var (
 	_dunderLshift        = &Stringo{Value: "__lshift"}
 	_hashedDunderLshift  = HashObject(_dunderLshift)
 	_dunderLshiftHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderLshift}
+
+	_dunderNeg        = &Stringo{Value: "__neg"}
+	_hashedDunderNeg  = HashObject(_dunderNeg)
+	_dunderNegHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderNeg}
+
+	_dunderInv        = &Stringo{Value: "__inv"}
+	_hashedDunderInv  = HashObject(_dunderInv)
+	_dunderInvHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderInv}
+
+	_dunderEq        = &Stringo{Value: "__eq"}
+	_hashedDunderEq  = HashObject(_dunderEq)
+	_dunderEqHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderEq}
+
+	_dunderNotEq        = &Stringo{Value: "__ne"}
+	_hashedDunderNotEq  = HashObject(_dunderNotEq)
+	_dunderNotEqHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderNotEq}
+
+	_dunderGt        = &Stringo{Value: "__gt"}
+	_hashedDunderGt  = HashObject(_dunderGt)
+	_dunderGtHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderGt}
+
+	_dunderGte        = &Stringo{Value: "__gte"}
+	_hashedDunderGte  = HashObject(_dunderGte)
+	_dunderGteHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderGte}
 )
 
 func getDunderHashKey(t DunderType) *HashKey {
@@ -103,6 +133,18 @@ func getDunderHashKey(t DunderType) *HashKey {
 		return &_dunderRshiftHashKey
 	case DunderLshift:
 		return &_dunderLshiftHashKey
+	case DunderNeg:
+		return &_dunderNegHashKey
+	case DunderInv:
+		return &_dunderInvHashKey
+	case DunderEq:
+		return &_dunderEqHashKey
+	case DunderNotEq:
+		return &_dunderNotEqHashKey
+	case DunderGt:
+		return &_dunderGtHashKey
+	case DunderGte:
+		return &_dunderGteHashKey
 	default:
 		return nil
 	}

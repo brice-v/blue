@@ -1005,6 +1005,16 @@ func (vm *VM) executeNegOperation() error {
 		value := operand.(*object.BigFloat).Value
 		return vm.push(&object.BigFloat{Value: value.Neg()})
 	}
+	if operand.Type() == object.MAP_OBJ {
+		t := object.DunderNeg
+		if fn, ok := object.HasDunderFun(t, operand); ok {
+			resultObj := vm.applyFunctionFast(fn, nil)
+			if resultObj == nil {
+				return fmt.Errorf("failed to execute -%s", operand.Inspect())
+			}
+			return vm.push(resultObj)
+		}
+	}
 
 	return vm.push(newError("unknown operator: -%s", operand.Type()))
 }
@@ -1025,6 +1035,16 @@ func (vm *VM) executeBitwiseNotOperation() error {
 			buf[i] = ^b
 		}
 		return vm.push(&object.Bytes{Value: buf})
+	case object.MAP_OBJ:
+		t := object.DunderInv
+		if fn, ok := object.HasDunderFun(t, operand); ok {
+			resultObj := vm.applyFunctionFast(fn, nil)
+			if resultObj == nil {
+				return fmt.Errorf("failed to execute ~%s", operand.Inspect())
+			}
+			return vm.push(resultObj)
+		}
+		return vm.push(newError("unknown operator: ~%s", operand.Type()))
 	default:
 		return vm.push(newError("unknown operator: ~%s", operand.Type()))
 	}

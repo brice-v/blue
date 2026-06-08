@@ -44,6 +44,24 @@ fun o() {
     this.__lshift = fun(other) {
         "#{this} #{other} __lshift"
     }
+    this.__neg = fun() {
+        return -this._x;
+    }
+    this.__inv = fun() {
+        return ~this._x;
+    }
+    this.__eq = fun(other) {
+        return this._x == other._x;
+    }
+    this.__ne = fun(other) {
+        return this._x != other._x;
+    }
+    this.__gt = fun(other) {
+        return this._x > other._x;
+    }
+    this.__gte = fun(other) {
+        return this._x >= other._x;
+    }
     return this;
 }
 
@@ -88,3 +106,24 @@ println(o1 >> o2)
 assert((o1 >> o2) == "{x: 5} {x: 1} __rshift")
 println(o1 << o2)
 assert((o1 << o2) == "{x: 5} {x: 1} __lshift")
+
+
+println("o1 = #{o1}");
+println("o2 = #{o2}");
+println("o1 == o2 = #{o1 == o2}");
+assert((o1 == o2) == false)
+println("o1 != o2 = #{o1 != o2}");
+assert((o1 != o2))
+println("o1 > o2 = #{o1 > o2}");
+assert((o1 > o2))
+println("o1 >= o2 = #{o1 >= o2}");
+assert((o1 >= o2))
+println("o1 < o2 = #{o1 < o2}");
+assert((o1 < o2) == false)
+println("o1 <= o2 = #{o1 <= o2}");
+assert((o1 <= o2) == false)
+
+println("-o1 = #{-o1}");
+assert(-o1 == -5)
+println("~o1 = #{~o1}");
+assert(~o1 == -6)

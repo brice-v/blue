@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
+- [ ] Add tests to test_dunder_fun for += and associated functions
 - [ ] Update cmd/cli so that when file is not found that error is printed to user instead of usage
 - [ ] Fix up c.inMatch thats in compiler as that feels error prone
 - [ ] Potentially Optimize new match arms conds, if first is true skip second

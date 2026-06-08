@@ -902,12 +902,20 @@ func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Objec
 		t = object.DunderRshift
 	case code.OpLshift:
 		t = object.DunderLshift
+	case code.OpEqual:
+		t = object.DunderEq
+	case code.OpNotEqual:
+		t = object.DunderNotEq
+	case code.OpGreaterThan:
+		t = object.DunderGt
+	case code.OpGreaterThanOrEqual:
+		t = object.DunderGte
 	}
 	if fn, ok := object.HasDunderFun(t, left); ok {
 		if _, ok := object.HasDunderFun(t, right); ok {
 			resultObj := vm.applyFunctionFast(fn, right)
 			if resultObj == nil {
-				return fmt.Errorf("failed to execute __add on %s and %s", left.Inspect(), right.Inspect())
+				return fmt.Errorf("failed to execute function on %s and %s", left.Inspect(), right.Inspect())
 			}
 			return vm.push(resultObj)
 		}
