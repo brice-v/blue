@@ -693,3 +693,4 @@ COMPLETED TASKS:
     - [x] map
     - [x] filter
 - [x] Look at builtins_vm caching, with potential data races, may not be able to cache with global var but rather on the vm itself
+- [x] Update REPL so that _1, _2, ... is included

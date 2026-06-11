@@ -52,6 +52,7 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
 	var filebuf bytes.Buffer
 	replVarIndx := 1
+	var c *compiler.Compiler = nil
 	for {
 		line := readLine(rl)
 		if strings.HasPrefix(line, ".") {
@@ -74,7 +75,9 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 			p.PrintParserErrors(out)
 			continue
 		}
-		c := compiler.NewWithStateAndCore(symbolTable, constants)
+		if c == nil {
+			c = compiler.NewWithStateAndCore(symbolTable, constants)
+		}
 		err := c.Compile(program)
 		if err != nil {
 			errToPrint, _, _ := strings.Cut(err.Error(), "\n"+consts.INTERNAL_ERROR_PATTERN)
@@ -88,7 +91,8 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		err = v.Run()
 		if err == nil {
 			replVar := fmt.Sprintf("_%d", replVarIndx)
-			// TODO: Add var to environment
+			symbol := symbolTable.Define(replVar, true)
+			globals[symbol.Index] = v.LastPoppedStackElem()
 			replVarIndx++
 			fmt.Fprintf(out, "%s => %s\n", replVar, v.LastPoppedStackElem().Inspect())
 		} else {
