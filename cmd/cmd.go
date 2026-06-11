@@ -110,7 +110,8 @@ func Run(args ...string) {
 		if isFile(fpath) {
 			vmFileOrString(fpath, true, noExec, allErrors)
 		} else {
-			printUsage()
+			consts.ErrorPrinter("error: file not found: %s (run 'blue help' for usage)\n", fpath)
+			os.Exit(1)
 		}
 	}
 }

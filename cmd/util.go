@@ -22,14 +22,10 @@ import (
 
 var out = os.Stdout
 
-// isFile is a helper function to check if the fpath given
-// exists and if not return false
+// isFile checks whether fpath exists and is not a directory.
 func isFile(fpath string) bool {
 	info, err := os.Stat(fpath)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
+	return !os.IsNotExist(err) && !info.IsDir()
 }
 
 // isDir is a helper function to check if the dirPath given
@@ -59,7 +55,7 @@ func lexFile(fpath string) {
 
 // parseFile parses the given file
 func parseFile(fpath string, allErrors bool) {
-	program := lexAndParse(fpath, false, allErrors)
+	program := lexAndParse(fpath, true, allErrors)
 	io.WriteString(out, program.String())
 	io.WriteString(out, "\n")
 }

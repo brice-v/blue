@@ -35,8 +35,8 @@ a = 555;
 assert(a != 555);
 `
 
-func TestAllProgramsInDirectoryWithVm(t *testing.T) {
-	files, err := os.ReadDir("./")
+func testDirectoryWithVm(t *testing.T, path string) {
+	files, err := os.ReadDir(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,18 +49,23 @@ func TestAllProgramsInDirectoryWithVm(t *testing.T) {
 		if f.Name() == "test_http.b" {
 			continue
 		}
-		executeBlueTestFileWithVm(f, t)
+		executeBlueTestFileWithVm(path, f, t)
 	}
 }
 
-func executeBlueTestFileWithVm(f fs.DirEntry, t *testing.T) {
+func TestAllProgramsInDirectoryWithVm(t *testing.T) {
+	testDirectoryWithVm(t, "./")
+}
+
+func TestAllGeneratedProgramsInDirectoryWithVm(t *testing.T) {
+	testDirectoryWithVm(t, "./generated")
+}
+
+func executeBlueTestFileWithVm(dir string, f fs.DirEntry, t *testing.T) {
 	if !strings.HasSuffix(f.Name(), ".b") {
 		return
 	}
-	fpath, err := filepath.Abs(f.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	fpath := filepath.Join(dir, f.Name())
 	// Note: Comment out this defered func to see what the panic trace is
 	// defer func() {
 	// 	// recover from panic if one occured. Set err to nil otherwise.
