@@ -2901,7 +2901,98 @@ var GgBuiltins = []*Builtin{
 			explanation: "`load_texture` loads a 2d texture image resource and returns an object referencing it",
 			signature:   "load_texture(path: str) -> GoObj[rl.Texture2D]",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "load_texture(key.Q) => GoObj[rl.Texture2D]",
+			example:     "load_texture('test') => GoObj[rl.Texture2D]",
+		}.String(),
+	},
+	{
+		Name: "_load_image",
+		Fun: func(args ...Object) Object {
+			argLen := len(args)
+			switch argLen {
+			case 0:
+				return NewGoObj(rl.LoadImageFromScreen())
+			case 1:
+				if args[0].Type() == STRING_OBJ {
+					return NewGoObj(rl.LoadImage(args[0].(*Stringo).Value))
+				}
+				texture, ok := args[0].(*GoObj[rl.Texture2D])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("load_image", 1, "GoObj[rl.Texture2D]", args[0])
+				}
+				return NewGoObj(rl.LoadImageFromTexture(texture.Value))
+			case 2:
+				if args[0].Type() == STRING_OBJ && args[1].Type() == INTEGER_OBJ {
+					i := int32(args[1].(*Integer).Value)
+					return NewGoObj(rl.LoadImageAnim(args[0].(*Stringo).Value, &i))
+				} else if args[0].Type() == STRING_OBJ && args[1].Type() == BYTES_OBJ {
+					bs := args[1].(*Bytes).Value
+					return NewGoObj(rl.LoadImageFromMemory(args[0].(*Stringo).Value, bs, int32(len(bs))))
+				}
+				return newPositionalTypeError("load_image", 1, STRING_OBJ, args[0].Type())
+			default:
+				return newInvalidArgCountError("load_image", argLen, 0, "or 1 or 2")
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_image` loads an image from a filepath",
+			signature: "load_image(path: str) -> GoObj[*rl.Image]\n" +
+				"// Load image from file into CPU memory (RAM)\n" +
+				"Image LoadImage(const char *fileName);\n" +
+				"// Load image sequence from file (frames appended to image.data)\n" +
+				"Image LoadImageAnim(const char *fileName, int *frames);\n" +
+				"// Load image from memory buffer, fileType refers to extension: i.e. '.png'\n" +
+				"Image LoadImageFromMemory(const char *fileType, const unsigned char *fileData, int dataSize);\n" +
+				"// Load image from GPU texture data\n" +
+				"Image LoadImageFromTexture(Texture2D texture);\n" +
+				"// Load image from screen buffer and (screenshot)\n" +
+				"Image LoadImageFromScreen(void);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "load_image('image.png') => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_is_image_ready",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("is_image_ready", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("is_image_ready", 1, "rl.Image", args[0])
+			}
+			return nativeToBooleanObject(rl.IsImageReady(img.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`is_image_ready` returns true if image is ready",
+			signature:   "is_image_ready(img: GoObj[*rl.Image]) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "is_image_ready(GoObj[*rl.Image]) => true",
+		}.String(),
+	},
+	{
+		Name: "_image_export",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_export", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_export", 1, "rl.Image", args[0])
+			}
+			err = checkArgType("image_export", 2, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			rl.ExportImage(*img.Value, args[1].(*Stringo).Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_export` exports the image as a .png to the given filepath",
+			signature:   "image_export(img: GoObj[*rl.Image], fpath: str) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_export(GoObj[*rl.Image], 'test.png') => null",
 		}.String(),
 	},
 	{
@@ -4884,6 +4975,9 @@ func unloadFromRaylib(arg Object, pos int) Object {
 	} else if modelAnimation, ok := arg.(*GoObj[rl.ModelAnimation]); ok {
 		// Note: there is a version for []rl.ModelAnimation that may be more efficient
 		rl.UnloadModelAnimation(modelAnimation.Value)
+		return nil
+	} else if img, ok := arg.(*GoObj[*rl.Image]); ok {
+		rl.UnloadImage(img.Value)
 		return nil
 	}
 	return newError("`unload` error: Failed to find gg object to unload, expected any GO_OBJ of rl.* that has an unload function")

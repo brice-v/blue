@@ -76,6 +76,11 @@ val stop_sound = _stop_sound;
 val resume_sound = _resume_sound;
 val pause_sound = _pause_sound;
 
+# Image
+val __load_image = _load_image;
+val __is_image_ready = _is_image_ready;
+val __image_export = _image_export;
+
 val set_exit_key = _set_exit_key;
 val is_key_up = _is_key_up;
 val is_key_down = _is_key_down;
@@ -278,6 +283,12 @@ val model = {
     'update_animation': __update_model_animation,
     'is_animation_valid': __is_model_animation_valid,
     'set_mesh_material': __set_model_mesh_material,
+};
+
+val image = {
+    'load': __load_image,
+    'is_ready': __is_image_ready,
+    'export': __image_export,
 };
 
 # Input Constants
