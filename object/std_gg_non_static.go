@@ -2996,6 +2996,294 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_image_gen_cellular",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_cellular", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_cellular", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_cellular", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_cellular", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenImageCellular(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), int(args[2].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_cellular` return image generated with cellular algorithm. Bigger tileSize means bigger cells",
+			signature:   "image_gen_cellular(width: int, height: int, tile_size: int) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_cellular(10, 10, 10) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_checked",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_checked", 6, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_checked", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_checked", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_checked", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_checked", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color1, ok := args[4].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_checked", 5, "rl.Color", args[4])
+			}
+			color2, ok := args[5].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_checked", 6, "rl.Color", args[5])
+			}
+			return NewGoObj(rl.GenImageChecked(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), int(args[2].(*Integer).Value), int(args[3].(*Integer).Value), color1.Value, color2.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_checked` return image generated with checks",
+			signature:   "image_gen_checked(width: int, height: int, checks_x: int, checks_y: int, color1: GoObj[rl.Color], color2: GoObj[rl.Color]) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_checked(10, 10, 10, 10, gg.color.red, gg.color.blue) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_color",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_color", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_color", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_color", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, ok := args[2].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_color", 3, "rl.Color", args[2])
+			}
+			return NewGoObj(rl.GenImageColor(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), color.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_ccolor` return image generated with color",
+			signature:   "image_gen_ccolor(width: int, height: int, color: GoObj[rl.Color]) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_ccolor(10, 10, gg.color.red) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_gradient_h",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_gradient_h", 4, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_gradient_h", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_gradient_h", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color1, ok := args[2].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_gradient_h", 3, "rl.Color", args[2])
+			}
+			color2, ok := args[3].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_gradient_h", 4, "rl.Color", args[3])
+			}
+			return NewGoObj(rl.GenImageGradientH(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), color1.Value, color2.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_gradient_h` return image generated with horizontal gradient",
+			signature:   "image_gen_gradient_h(width: int, height: int, left_color: GoObj[rl.Color], right_color: GoObj[rl.Color]) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_gradient_h(10, 10, gg.color.red, gg.color.blue) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_gradient_v",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_gradient_v", 4, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_gradient_v", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_gradient_v", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color1, ok := args[2].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_gradient_v", 3, "rl.Color", args[2])
+			}
+			color2, ok := args[3].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_gradient_v", 4, "rl.Color", args[3])
+			}
+			return NewGoObj(rl.GenImageGradientV(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), color1.Value, color2.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_gradient_v` return image generated with vertical gradient",
+			signature:   "image_gen_gradient_v(width: int, height: int, top_color: GoObj[rl.Color], bottom_color: GoObj[rl.Color]) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_gradient_v(10, 10, gg.color.red, gg.color.blue) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_gradient_radial",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_gradient_radial", 5, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_gradient_radial", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_gradient_radial", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_gradient_radial", 3, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color1, ok := args[3].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_gradient_radial", 4, "rl.Color", args[3])
+			}
+			color2, ok := args[4].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_gen_gradient_radial", 5, "rl.Color", args[4])
+			}
+			return NewGoObj(rl.GenImageGradientRadial(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), float32(args[2].(*Float).Value), color1.Value, color2.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_gradient_radial` return image generated with radial gradient",
+			signature:   "image_gen_gradient_radial(width: int, height: int, left_color: GoObj[rl.Color], right_color: GoObj[rl.Color]) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_gradient_radial(10, 10, gg.color.red, gg.color.blue) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_perlin_noise",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_perlin_noise", 5, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_perlin_noise", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_perlin_noise", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_perlin_noise", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_perlin_noise", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_perlin_noise", 5, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenImagePerlinNoise(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), int(args[2].(*Integer).Value), int(args[3].(*Integer).Value), float32(args[4].(*Float).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_perlin_noise` return image generated with perlin noise",
+			signature:   "image_gen_perlin_noise(width: int, height: int, offset_x: int, offset_y: int, scale: float) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_perlin_noise(10, 10, 10, 10, 1.0) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_white_noise",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_white_noise", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_white_noise", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_white_noise", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_white_noise", 3, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenImageWhiteNoise(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), float32(args[2].(*Float).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_white_noise` return image generated with white noise",
+			signature:   "image_gen_white_noise(width: int, height: int, factor: float) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_white_noise(10, 10, 1.0) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_gen_text",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_gen_text", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_text", 1, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_text", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_gen_text", 3, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GenImageText(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), args[2].(*Stringo).Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_gen_text` return image generated with grayscale image from text data",
+			signature:   "image_gen_text(width: int, height: int, text: str) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_gen_text(10, 10, 'Hello World') => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
 		Name: "_rectangle",
 		Fun: func(args ...Object) Object {
 			if len(args) != 4 {

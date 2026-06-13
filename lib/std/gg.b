@@ -80,6 +80,15 @@ val pause_sound = _pause_sound;
 val __load_image = _load_image;
 val __is_image_ready = _is_image_ready;
 val __image_export = _image_export;
+val __image_gen_cellular = _image_gen_cellular;
+val __image_gen_checked = _image_gen_checked;
+val __image_gen_color = _image_gen_color;
+val __image_gen_gradient_h = _image_gen_gradient_h;
+val __image_gen_gradient_v = _image_gen_gradient_v;
+val __image_gen_gradient_radial = _image_gen_gradient_radial;
+val __image_gen_perlin_noise = _image_gen_perlin_noise;
+val __image_gen_text = _image_gen_text;
+val __image_gen_white_noise = _image_gen_white_noise;
 
 val set_exit_key = _set_exit_key;
 val is_key_up = _is_key_up;
@@ -289,6 +298,17 @@ val image = {
     'load': __load_image,
     'is_ready': __is_image_ready,
     'export': __image_export,
+    'gen': {
+        'cellular': __image_gen_cellular,
+        'checked': __image_gen_checked,
+        'color': __image_gen_color,
+        'gradient_h': __image_gen_gradient_h,
+        'gradient_v': __image_gen_gradient_v,
+        'gradient_radial': __image_gen_gradient_radial,
+        'perlin_noise': __image_gen_perlin_noise,
+        'text': __image_gen_text,
+        'white_noise': __image_gen_white_noise,
+    };
 };
 
 # Input Constants
