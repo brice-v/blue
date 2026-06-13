@@ -77,9 +77,9 @@ func Run(args ...string) {
 	}
 	command := strings.ToLower(arguments[0])
 	switch command {
-	case "version":
+	case "version", "--version", "-version":
 		printVersion()
-	case "help":
+	case "help", "--help", "-h":
 		printUsage()
 	case "lex":
 		handleLexCommand(argc, arguments)
