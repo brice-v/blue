@@ -5,6 +5,8 @@ import (
 	"blue/lexer"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -3458,5 +3460,29 @@ func TestLambdaWithEmptyArgsMissingArrow(t *testing.T) {
 	}
 	if !errFound {
 		t.Fatalf("expected error mentioning '=>', got: %s", p.errors[0].Message)
+	}
+}
+
+func TestParseStdLibFiles(t *testing.T) {
+	matches, err := filepath.Glob("../lib/std/*.b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) == 0 {
+		t.Fatal("no .b files found in ../lib/std/")
+	}
+
+	for _, path := range matches {
+		name := filepath.Base(path)
+		t.Run(name, func(t *testing.T) {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			l := lexer.New(string(data), path)
+			p := New(l)
+			p.ParseProgram()
+			checkParserErrors(t, p)
+		})
 	}
 }

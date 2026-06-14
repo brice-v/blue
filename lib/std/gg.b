@@ -89,6 +89,33 @@ val __image_gen_gradient_radial = _image_gen_gradient_radial;
 val __image_gen_perlin_noise = _image_gen_perlin_noise;
 val __image_gen_text = _image_gen_text;
 val __image_gen_white_noise = _image_gen_white_noise;
+val __image_copy = _image_copy;
+val __image_text = _image_text;
+val __image_format = _image_format;
+val __image_to_pot = _image_to_pot;
+val __image_crop = _image_crop;
+val __image_alpha_crop = _image_alpha_crop;
+val __image_alpha_clear = _image_alpha_clear;
+val __image_alpha_mask = _image_alpha_mask;
+val __image_alpha_premultiply = _image_alpha_premultiply;
+val __image_blur_gaussian = _image_blur_gaussian;
+val __image_resize = _image_resize;
+val __image_resize_nn = _image_resize_nn;
+val __image_resize_canvas = _image_resize_canvas;
+val __image_mipmaps = _image_mipmaps;
+val __image_dither = _image_dither;
+val __image_flip_vertical = _image_flip_vertical;
+val __image_flip_horizontal = _image_flip_horizontal;
+val __image_rotate_cw = _image_rotate_cw;
+val __image_rotate_ccw = _image_rotate_ccw;
+val __image_color_tint = _image_color_tint;
+val __image_color_invert = _image_color_invert;
+val __image_color_grayscale = _image_color_grayscale;
+val __image_color_contrast = _image_color_contrast;
+val __image_color_brightness = _image_color_brightness;
+val __image_color_replace = _image_color_replace;
+val __load_image_colors = _load_image_colors;
+val __get_image_color = _get_image_color;
 
 val set_exit_key = _set_exit_key;
 val is_key_up = _is_key_up;
@@ -295,9 +322,6 @@ val model = {
 };
 
 val image = {
-    'load': __load_image,
-    'is_ready': __is_image_ready,
-    'export': __image_export,
     'gen': {
         'cellular': __image_gen_cellular,
         'checked': __image_gen_checked,
@@ -308,7 +332,9 @@ val image = {
         'perlin_noise': __image_gen_perlin_noise,
         'text': __image_gen_text,
         'white_noise': __image_gen_white_noise,
-    };
+    },
+    'text': __image_text,
+    'pixel_format': _pixel_format_map(),
 };
 
 # Input Constants
@@ -601,16 +627,16 @@ fun Rectangle(x=0.0, y=0.0, width=0.0, height=0.0) {
     };
     this.obj = fun() {
         return rectangle(float(this['x']), float(this['y']), float(this['width']), float(this['height']));
-    }
+    };
     this.draw = fun(c=color.red) {
         __draw_rectangle(int(this.x), int(this.y), int(this.width), int(this.height), c);
-    }
+    };
     this.check_collision = fun(rec) {
         if ('obj' notin rec) {
             return error("rec must have obj() function on its map");
         }
         return check_collision(this.obj(), rec.obj());
-    }
+    };
     return this;
 }
 
@@ -677,7 +703,7 @@ fun Camera2D(offset=Vector(), target=Vector(), rotation=0.0, zoom=1.0) {
     };
     this.obj = fun() {
         return __camera2d(this['offset']['obj'](), this['target']['obj'](), float(this['rotation']), float(this['zoom']));
-    }
+    };
     return this;
 }
 
@@ -721,7 +747,7 @@ fun Camera3D(position=Vector(z=0.0), target=Vector(z=0.0), up=Vector(z=0.0), fov
     };
     this.obj = fun() {
         return __camera3d(this['position']['obj'](), this['target']['obj'](), this['up']['obj'](), float(this['fovy']), int(this['projection']));
-    }
+    };
     return this;
 }
 
@@ -856,4 +882,98 @@ fun begin_mode3d(cam=Camera3D()) {
         return error("cam must have obj() function on its map");
     }
     __begin_mode3d(cam.obj())
+}
+
+fun Image(fpath=null) {
+    ##std:this
+    ## `Image` returns an object with functions that can operate on images
+    ##
+    ## Image(fpath: str=null) -> Image
+
+    # TODO: Support image as first param so it can be used here
+    if fpath != null && type(fpath) != Type.STRING {
+        return error('`new_image` error: fpath must be null or string. got=#{type(fpath)}');
+    }
+    var this = {};
+    this._img = if fpath == null { null } else { __load_image(fpath) };
+    this.load = __load_image;
+    this.is_ready = __is_image_ready;
+    this.export = __image_export;
+    this.copy = __image_copy;
+    this.image_format = fun(new_format) {
+        return __image_format(this._img, new_format);
+    };
+    this.to_pot = fun(fill) {
+        return __image_to_pot(this._img, fill);
+    };
+    this.crop = fun(crop) {
+        return __image_crop(this._img, crop);
+    };
+    this.alpha_crop = fun(threshold) {
+        return __image_alpha_crop(this._img, threshold);
+    };
+    this.alpha_clear = fun(color, threshold) {
+        return __image_alpha_clear(this._img, color, threshold);
+    };
+    this.alpha_mask = fun(alpha_mask) {
+        return __image_alpha_mask(this._img, alpha_mask);
+    };
+    this.alpha_premultiply = fun() {
+        return __image_alpha_premultiply(this._img);
+    };
+    this.blur_gaussian = fun(blur_size) {
+        return __image_blur_gaussian(this._img, blur_size);
+    };
+    this.resize = fun(new_width, new_height) {
+        return __image_resize(this._img, new_width, new_height);
+    };
+    this.resize_nn = fun(new_width, new_height) {
+        return __image_resize_nn(this._img, new_width, new_height);
+    };
+    this.resize_canvas = fun(new_width, new_height, offset_x, offset_y, fill) {
+        return __image_resize_canvas(this._img, new_width, new_height, offset_x, offset_y, fill);
+    };
+    this.mipmaps = fun() {
+        return __image_mipmaps(this._img);
+    };
+    this.dither = fun(r_bpp, g_bpp, b_bpp, a_bpp) {
+        return __image_dither(this._img, r_bpp, g_bpp, b_bpp, a_bpp);
+    };
+    this.flip_vertical = fun() {
+        return __image_flip_vertical(this._img);
+    };
+    this.flip_horizontal = fun() {
+        return __image_flip_horizontal(this._img);
+    };
+    this.rotate_cw = fun() {
+        return __image_rotate_cw(this._img);
+    };
+    this.rotate_ccw = fun() {
+        return __image_rotate_ccw(this._img);
+    };
+    this.color_tint = fun(color) {
+        return __image_color_tint(this._img, color);
+    };
+    this.color_invert = fun() {
+        return __image_color_invert(this._img);
+    };
+    this.color_grayscale = fun() {
+        return __image_color_grayscale(this._img);
+    };
+    this.color_contrast = fun(contrast) {
+        return __image_color_contrast(this._img, contrast);
+    };
+    this.color_brightness = fun(brightness) {
+        return __image_color_brightness(this._img, brightness);
+    };
+    this.color_replace = fun(color, replace) {
+        return __image_color_replace(this._img, color, replace);
+    };
+    this.load_colors = fun() {
+        return __load_image_colors(this._img);
+    };
+    this.get_color = fun(x, y) {
+        return __get_image_color(this._img, x, y);
+    };
+    return this;
 }

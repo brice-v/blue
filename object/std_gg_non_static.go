@@ -3284,6 +3284,764 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_image_copy",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_copy", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_copy", 1, "rl.Image", args[0])
+			}
+			return NewGoObj(rl.ImageCopy(img.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_copy` return image copy",
+			signature:   "image_copy(img: GoObj[rl.GoObj]) -> GoObj[*rl.Image]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_copy(GoObj[rl.GoObj]) => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_image_text",
+		Fun: func(args ...Object) Object {
+			err := checkArgsCount("image_text", []int{3, 5}, args)
+			if err != nil {
+				return err
+			}
+			if len(args) == 3 {
+				err = checkArgType("image_text", 1, STRING_OBJ, args)
+				if err != nil {
+					return err
+				}
+				err = checkArgType("image_text", 2, INTEGER_OBJ, args)
+				if err != nil {
+					return err
+				}
+				color, ok := args[2].(*GoObj[rl.Color])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("image_text", 3, "rl.Color", args[2])
+				}
+				return NewGoObj(rl.ImageText(args[0].(*Stringo).Value, int32(args[1].(*Integer).Value), color.Value))
+			}
+			font, ok := args[0].(*GoObj[rl.Font])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_text", 1, "rl.Font", args[0])
+			}
+			err = checkArgType("image_text", 2, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_text", 3, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_text", 4, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, ok := args[4].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_text", 5, "rl.Color", args[4])
+			}
+			return NewGoObj(rl.ImageTextEx(font.Value, args[1].(*Stringo).Value, float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), color.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_text` return image from text",
+			signature: "image_text() -> GoObj[*rl.Image] (seebelow)\n" +
+				"// Create an image from text (default font)\n" +
+				"Image ImageText(const char *text, int fontSize, Color color);\n" +
+				"// Create an image from text (custom sprite font)\n" +
+				"Image ImageTextEx(Font font, const char *text, float fontSize, float spacing, Color tint);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "image_text() => GoObj[*rl.Image]",
+		}.String(),
+	},
+	{
+		Name: "_pixel_format_map",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("pixel_format_map", len(args), 0, "")
+			}
+			mapObj := NewOrderedMap[string, Object]()
+			// 8 bit per pixel (no alpha)
+			mapObj.Set("uncompressed_grayscale", NewGoObj(rl.UncompressedGrayscale))
+			mapObj.Set("uncompressed_greyscale", NewGoObj(rl.UncompressedGrayscale))
+			// 8*2 bpp (2 channels)
+			mapObj.Set("uncompressed_gray_alpha", NewGoObj(rl.UncompressedGrayAlpha))
+			mapObj.Set("uncompressed_grey_alpha", NewGoObj(rl.UncompressedGrayAlpha))
+			// 16 bpp
+			mapObj.Set("uncompressed_r5g6b5", NewGoObj(rl.UncompressedR5g6b5))
+			// 24 bpp
+			mapObj.Set("uncompressed_r8g8b8", NewGoObj(rl.UncompressedR8g8b8))
+			// 16 bpp (1 bit alpha)
+			mapObj.Set("uncompressed_r5g5b5a1", NewGoObj(rl.UncompressedR5g5b5a1))
+			// 16 bpp (4 bit alpha)
+			mapObj.Set("uncompressed_r4g4b4a4", NewGoObj(rl.UncompressedR4g4b4a4))
+			// 32 bpp
+			mapObj.Set("uncompressed_r8g8b8a8", NewGoObj(rl.UncompressedR8g8b8a8))
+			// 32 bpp (1 channel - float)
+			mapObj.Set("uncompressed_r32", NewGoObj(rl.UncompressedR32))
+			// 32*3 bpp (3 channels - float)
+			mapObj.Set("uncompressed_r32g32b32", NewGoObj(rl.UncompressedR32g32b32))
+			// 32*4 bpp (4 channels - float)
+			mapObj.Set("uncompressed_r32g32b32a32", NewGoObj(rl.UncompressedR32g32b32a32))
+			// 4 bpp (no alpha)
+			mapObj.Set("compressed_dxt1_rgb", NewGoObj(rl.CompressedDxt1Rgb))
+			// 4 bpp (1 bit alpha)
+			mapObj.Set("compressed_dxt1_rgba", NewGoObj(rl.CompressedDxt1Rgba))
+			// 8 bpp
+			mapObj.Set("compressed_dxt3_rgba", NewGoObj(rl.CompressedDxt3Rgba))
+			// 8 bpp
+			mapObj.Set("compressed_dxt5_rgba", NewGoObj(rl.CompressedDxt5Rgba))
+			// 4 bpp
+			mapObj.Set("compressed_etc1_rgb", NewGoObj(rl.CompressedEtc1Rgb))
+			// 4 bpp
+			mapObj.Set("compressed_etc2_rgb", NewGoObj(rl.CompressedEtc2Rgb))
+			// 8 bpp
+			mapObj.Set("compressed_etc2_eac_rgba", NewGoObj(rl.CompressedEtc2EacRgba))
+			// 4 bpp
+			mapObj.Set("compressed_pvrt_rgb", NewGoObj(rl.CompressedPvrtRgb))
+			// 4 bpp
+			mapObj.Set("compressed_pvrt_rgba", NewGoObj(rl.CompressedPvrtRgba))
+			// 8 bpp
+			mapObj.Set("compressed_astc_4x4_rgba", NewGoObj(rl.CompressedAstc4x4Rgba))
+			// 2 bpp
+			mapObj.Set("compressed_astc_8x8_rgba", NewGoObj(rl.CompressedAstc8x8Rgba))
+			return CreateMapObjectForGoMap(*mapObj)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`pixel_format_map` returns a map with all the pixel formats",
+			signature:   "pixel_format_map() -> map[str:GoObj[rl.PixelFormat",
+			errors:      "InvalidArgCount",
+			example:     "pixel_format_map() => map[str:GoObj[rl.PixelFormat]",
+		}.String(),
+	},
+	{
+		Name: "_image_format",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_format", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_format", 1, "rl.Image", args[0])
+			}
+			pf, ok := args[1].(*GoObj[rl.PixelFormat])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_format", 2, "rl.PixelFormat", args[1])
+			}
+			rl.ImageFormat(img.Value, pf.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_format` coverts image data to desired format",
+			signature:   "image_format(img: GoObj[rl.Image], pixel_format: GoObj[rl.PixelFormat]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_format(GoObj[rl.Image], GoObj[rl.PixelFormat]) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_to_pot",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_to_pot", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_to_pot", 1, "rl.Image", args[0])
+			}
+			fill, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_to_pot", 2, "rl.Color", args[1])
+			}
+			rl.ImageToPOT(img.Value, fill.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_to_pot` coverts image to POT (power-of-two)",
+			signature:   "image_to_pot(img: GoObj[*rl.Image], fill: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_to_pot(img, fill) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_crop",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_crop", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_crop", 1, "rl.Image", args[0])
+			}
+			crop, ok := args[1].(*GoObj[rl.Rectangle])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_crop", 2, "rl.Rectangle", args[1])
+			}
+			rl.ImageCrop(img.Value, crop.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_crop` crops an image to a defined rectangle",
+			signature:   "image_crop(img: GoObj[*rl.Image], crop: GoObj[rl.Rectangle]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_crop(img, crop) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_alpha_crop",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_alpha_crop", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_alpha_crop", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("image_alpha_crop", 2, FLOAT_OBJ, args[1].Type())
+			}
+			rl.ImageAlphaCrop(img.Value, float32(args[1].(*Float).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_alpha_crop` crops image depending on alpha value",
+			signature:   "image_alpha_crop(img: GoObj[*rl.Image], threshold: float) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_alpha_crop(img, threshold) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_alpha_clear",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_alpha_clear", 3, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_alpha_clear", 1, "rl.Image", args[0])
+			}
+			col, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_alpha_clear", 2, "rl.Color", args[1])
+			}
+			if args[2].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("image_alpha_clear", 3, FLOAT_OBJ, args[2].Type())
+			}
+			rl.ImageAlphaClear(img.Value, col.Value, float32(args[2].(*Float).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_alpha_clear` clears alpha channel to desired color",
+			signature:   "image_alpha_clear(img: GoObj[*rl.Image], col: GoObj[rl.Color], threshold: float) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_alpha_clear(img, col, threshold) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_alpha_mask",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_alpha_mask", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_alpha_mask", 1, "rl.Image", args[0])
+			}
+			mask, ok := args[1].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_alpha_mask", 2, "rl.Image", args[1])
+			}
+			rl.ImageAlphaMask(img.Value, mask.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_alpha_mask` applies alpha mask to image",
+			signature:   "image_alpha_mask(img: GoObj[*rl.Image], mask: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_alpha_mask(img, mask) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_alpha_premultiply",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_alpha_premultiply", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_alpha_premultiply", 1, "rl.Image", args[0])
+			}
+			rl.ImageAlphaPremultiply(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_alpha_premultiply` premultiplies alpha channel",
+			signature:   "image_alpha_premultiply(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_alpha_premultiply(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_blur_gaussian",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_blur_gaussian", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_blur_gaussian", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_blur_gaussian", 2, INTEGER_OBJ, args[1].Type())
+			}
+			rl.ImageBlurGaussian(img.Value, int32(args[1].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_blur_gaussian` applies Gaussian blur using a box blur approximation",
+			signature:   "image_blur_gaussian(img: GoObj[*rl.Image], blur_size: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_blur_gaussian(img, blur_size) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_resize",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_resize", 3, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_resize", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize", 3, INTEGER_OBJ, args[2].Type())
+			}
+			rl.ImageResize(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_resize` resizes image (bicubic scaling algorithm)",
+			signature:   "image_resize(img: GoObj[*rl.Image], new_width: int, new_height: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_resize(img, new_width, new_height) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_resize_nn",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_resize_nn", 3, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_resize_nn", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize_nn", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize_nn", 3, INTEGER_OBJ, args[2].Type())
+			}
+			rl.ImageResizeNN(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_resize_nn` resizes image (nearest-neighbor scaling algorithm)",
+			signature:   "image_resize_nn(img: GoObj[*rl.Image], new_width: int, new_height: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_resize_nn(img, new_width, new_height) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_resize_canvas",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_resize_canvas", 6, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_resize_canvas", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize_canvas", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize_canvas", 3, INTEGER_OBJ, args[2].Type())
+			}
+			if args[3].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize_canvas", 4, INTEGER_OBJ, args[3].Type())
+			}
+			if args[4].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_resize_canvas", 5, INTEGER_OBJ, args[4].Type())
+			}
+			fill, ok := args[5].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_resize_canvas", 6, "rl.Color", args[5])
+			}
+			rl.ImageResizeCanvas(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), int32(args[4].(*Integer).Value), fill.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_resize_canvas` resizes canvas and fill with color",
+			signature:   "image_resize_canvas(img: GoObj[*rl.Image], new_width: int, new_height: int, offset_x: int, offset_y: int, fill: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_resize_canvas(img, new_width, new_height, offset_x, offset_y, fill) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_mipmaps",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_mipmaps", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_mipmaps", 1, "rl.Image", args[0])
+			}
+			rl.ImageMipmaps(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_mipmaps` computes all mipmap levels for a provided image",
+			signature:   "image_mipmaps(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_mipmaps(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_dither",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_dither", 5, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_dither", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_dither", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_dither", 3, INTEGER_OBJ, args[2].Type())
+			}
+			if args[3].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_dither", 4, INTEGER_OBJ, args[3].Type())
+			}
+			if args[4].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_dither", 5, INTEGER_OBJ, args[4].Type())
+			}
+			rl.ImageDither(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), int32(args[4].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_dither` dithers image data to 16bpp or lower (floyd-steinberg dithering)",
+			signature:   "image_dither(img: GoObj[*rl.Image], r_bpp: int, g_bpp: int, b_bpp: int, a_bpp: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_dither(img, r_bpp, g_bpp, b_bpp, a_bpp) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_flip_vertical",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_flip_vertical", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_flip_vertical", 1, "rl.Image", args[0])
+			}
+			rl.ImageFlipVertical(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_flip_vertical` flips image vertically",
+			signature:   "image_flip_vertical(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_flip_vertical(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_flip_horizontal",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_flip_horizontal", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_flip_horizontal", 1, "rl.Image", args[0])
+			}
+			rl.ImageFlipHorizontal(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_flip_horizontal` flips image horizontally",
+			signature:   "image_flip_horizontal(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_flip_horizontal(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_rotate_cw",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_rotate_cw", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_rotate_cw", 1, "rl.Image", args[0])
+			}
+			rl.ImageRotateCW(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_rotate_cw` rotates image clockwise 90deg",
+			signature:   "image_rotate_cw(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_rotate_cw(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_rotate_ccw",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_rotate_ccw", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_rotate_ccw", 1, "rl.Image", args[0])
+			}
+			rl.ImageRotateCCW(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_rotate_ccw` rotates image counter-clockwise 90deg",
+			signature:   "image_rotate_ccw(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_rotate_ccw(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_color_tint",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_color_tint", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_tint", 1, "rl.Image", args[0])
+			}
+			col, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_tint", 2, "rl.Color", args[1])
+			}
+			rl.ImageColorTint(img.Value, col.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_color_tint` modifies image color: tint",
+			signature:   "image_color_tint(img: GoObj[*rl.Image], col: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_color_tint(img, col) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_color_invert",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_color_invert", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_invert", 1, "rl.Image", args[0])
+			}
+			rl.ImageColorInvert(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_color_invert` modifies image color: invert",
+			signature:   "image_color_invert(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_color_invert(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_color_grayscale",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_color_grayscale", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_grayscale", 1, "rl.Image", args[0])
+			}
+			rl.ImageColorGrayscale(img.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_color_grayscale` modifies image color: grayscale",
+			signature:   "image_color_grayscale(img: GoObj[*rl.Image]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_color_grayscale(img) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_color_contrast",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_color_contrast", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_contrast", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("image_color_contrast", 2, FLOAT_OBJ, args[1].Type())
+			}
+			rl.ImageColorContrast(img.Value, float32(args[1].(*Float).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_color_contrast` modifies image color: contrast (-100 to 100)",
+			signature:   "image_color_contrast(img: GoObj[*rl.Image], contrast: float) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_color_contrast(img, contrast) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_color_brightness",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_color_brightness", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_brightness", 1, "rl.Image", args[0])
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("image_color_brightness", 2, INTEGER_OBJ, args[1].Type())
+			}
+			rl.ImageColorBrightness(img.Value, int32(args[1].(*Integer).Value))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_color_brightness` modifies image color: brightness (-255 to 255)",
+			signature:   "image_color_brightness(img: GoObj[*rl.Image], brightness: int) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_color_brightness(img, brightness) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_color_replace",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_color_replace", 3, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_replace", 1, "rl.Image", args[0])
+			}
+			col, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_replace", 2, "rl.Color", args[1])
+			}
+			replace, ok := args[2].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_color_replace", 3, "rl.Color", args[2])
+			}
+			rl.ImageColorReplace(img.Value, col.Value, replace.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_color_replace` modifies image color: replace color",
+			signature:   "image_color_replace(img: GoObj[*rl.Image], col: GoObj[rl.Color], replace: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_color_replace(img, col, replace) => null",
+		}.String(),
+	},
+	{
+		Name: "_load_image_colors",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("load_image_colors", 1, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("load_image_colors", 1, "rl.Image", args[0])
+			}
+			colors := rl.LoadImageColors(img.Value)
+			colorList := make([]Object, len(colors))
+			for i := range colors {
+				colorList[i] = NewGoObj(colors[i])
+			}
+			return &List{Elements: colorList}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_image_colors` returns pixel data from image as a Color slice",
+			signature:   "load_image_colors(img: GoObj[*rl.Image]) -> list[GoObj[rl.Color]]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "load_image_colors(img) => [color.red,color.blue]",
+		}.String(),
+	},
+	{
+		Name: "_get_image_color",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("get_image_color", 3, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("get_image_color", 1, "rl.Image", args[0])
+			}
+			err = checkArgType("get_image_color", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("get_image_color", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return NewGoObj(rl.GetImageColor(*img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value)))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get_image_color` returns image pixel color at (x, y) position",
+			signature:   "get_image_color(img: GoObj[*rl.Image], x: int, y: int) -> GoObj[rl.Color]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "get_image_color(img, 0, 0) => color.red",
+		}.String(),
+	},
+	{
 		Name: "_rectangle",
 		Fun: func(args ...Object) Object {
 			if len(args) != 4 {

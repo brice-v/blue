@@ -1278,7 +1278,11 @@ func (p *Parser) parseFunctionParameters() ([]*ast.Identifier, []ast.Expression)
 		}
 	}
 
-	if !p.curTokenIs(token.RPAREN) && !p.expectPeekIs(token.RPAREN) {
+	if p.curTokenIs(token.RPAREN) {
+		if p.peekTokenIs(token.RPAREN) {
+			p.nextToken()
+		}
+	} else if !p.expectPeekIs(token.RPAREN) {
 		return nil, nil
 	}
 
