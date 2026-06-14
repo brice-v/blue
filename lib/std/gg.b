@@ -884,18 +884,19 @@ fun begin_mode3d(cam=Camera3D()) {
     __begin_mode3d(cam.obj())
 }
 
-fun Image(fpath=null) {
+fun Image(fpath_or_img=null) {
     ##std:this
     ## `Image` returns an object with functions that can operate on images
     ##
-    ## Image(fpath: str=null) -> Image
-
-    # TODO: Support image as first param so it can be used here
-    if fpath != null && type(fpath) != Type.STRING {
-        return error('`new_image` error: fpath must be null or string. got=#{type(fpath)}');
+    ## Image(fpath_or_img: str|GoObj[rl.Image]=null) -> Image
+    if fpath_or_img != null && type(fpath_or_img) != Type.STRING && type(fpath_or_img) != Type.GO_OBJ {
+        if type(fpath_or_img) == Type.GO_OBJ && "raylib.Image" notin raw_type(fpath_or_img) {
+            return error('`Image` error: fpath_or_img must be a rl.Image, got=#{raw_type(fpath_or_img)}');
+        }
+        return error('`Image` error: fpath_or_img must be null or string or GoObj[rl.Image]. got=#{type(fpath_or_img)}');
     }
     var this = {};
-    this._img = if fpath == null { null } else { __load_image(fpath) };
+    this._img = if fpath_or_img == null { null } else if "raylib.Image" in raw_type(fpath_or_img) { fpath_or_img } else  { __load_image(fpath_or_img) };
     this.load = __load_image;
     this.is_ready = __is_image_ready;
     this.export = __image_export;
