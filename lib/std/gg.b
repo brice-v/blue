@@ -1,7 +1,6 @@
 ## `gg` is the module that contains functions needed to
 ## run the games graphics library (Raylib)
 
-
 val __init_window = _init_window;
 val __window_should_close = _window_should_close;
 val __close_window = _close_window;
@@ -59,6 +58,8 @@ val unload = _unload;
 val __draw_text = _draw_text;
 val __draw_texture = _draw_texture;
 val load_texture = _load_texture;
+val __n_patch_layout_map = _n_patch_layout_map;
+val __new_n_patch_info = _new_n_patch_info;
 
 # Audio/Music/Sound
 val init_audio_device = _init_audio_device;
@@ -350,6 +351,11 @@ val image = {
     },
     'text': __image_text,
     'pixel_format': _pixel_format_map(),
+};
+
+val n_patch_info = {
+    'new': __new_n_patch_info,
+    'layout': __n_patch_layout_map(),
 };
 
 # Input Constants

@@ -1064,6 +1064,81 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_new_n_patch_info",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("new_n_patch_info", 6, args)
+			if err != nil {
+				return err
+			}
+			rec, err := checkGoObjType[rl.Rectangle]("new_n_patch_info", 1, "rl.Rectangle", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("new_n_patch_info", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("new_n_patch_info", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("new_n_patch_info", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("new_n_patch_info", 5, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			layout, err := checkGoObjType[rl.NPatchLayout]("new_n_patch_info", 6, "rl.NPatchLayout", args)
+			if err != nil {
+				return err
+			}
+			// Texture source rectangle
+			// Left border offset
+			// Top border offset
+			// Right border offset
+			// Bottom border offset
+			// Layout of the n-patch: 3x3, 1x3 or 3x1
+			return NewGoObj(rl.NPatchInfo{
+				Source: rec.Value,
+				Left:   int32(args[1].(*Integer).Value),
+				Top:    int32(args[2].(*Integer).Value),
+				Right:  int32(args[3].(*Integer).Value),
+				Bottom: int32(args[4].(*Integer).Value),
+				Layout: layout.Value,
+			})
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`new_n_patch_info` returns a new rl.NPatchInfo object",
+			signature:   "new_n_patch_info(source: GoObj[rl.Rectangle], left: int, top: int, right: int, bottom: int, layout: rl.NPatchLayout) -> GoObj[rl.NPatchInfo]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "new_n_patch_info() => GoObj[rl.NPatchInfo]",
+		}.String(),
+	},
+	{
+		Name: "_n_patch_layout_map",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("n_patch_layout_map", len(args), 0, "")
+			}
+			mapObj := NewOrderedMap[string, Object]()
+			// Npatch layout: 3x3 tiles
+			mapObj.Set("nine_patch", NewGoObj(rl.NPatchNinePatch))
+			// Npatch layout: 1x3 tiles
+			mapObj.Set("three_patch_vertical", NewGoObj(rl.NPatchThreePatchVertical))
+			// Npatch layout: 3x1 tiles
+			mapObj.Set("three_patch_horizontal", NewGoObj(rl.NPatchThreePatchHorizontal))
+			return CreateMapObjectForGoMap(*mapObj)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`n_patch_layout_map` returns a map with all the pixel formats",
+			signature:   "n_patch_layout_map() -> map[str:GoObj[rl.NPatchLayout]]",
+			errors:      "InvalidArgCount",
+			example:     "n_patch_layout_map() => map[str:GoObj[rl.NPatchLayout]",
+		}.String(),
+	},
+	{
 		Name: "_draw_pixel",
 		Fun: func(args ...Object) Object {
 			if len(args) != 3 && len(args) != 2 {
@@ -3451,7 +3526,7 @@ var GgBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`pixel_format_map` returns a map with all the pixel formats",
-			signature:   "pixel_format_map() -> map[str:GoObj[rl.PixelFormat",
+			signature:   "pixel_format_map() -> map[str:GoObj[rl.PixelFormat]]",
 			errors:      "InvalidArgCount",
 			example:     "pixel_format_map() => map[str:GoObj[rl.PixelFormat]",
 		}.String(),
