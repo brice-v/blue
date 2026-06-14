@@ -130,6 +130,7 @@ fun update_enemy_heights_and_speeds() {
 fun move_enemies() {
     var original_speed = G.enemy_speed;
     var original_direction = G.enemy_direction;
+    var hit_wall = false;
     for ([i, row] in G.enemies) {
         for ([j, enemy] in row) {
             if enemy {
@@ -139,16 +140,17 @@ fun move_enemies() {
                     enemy.x -= original_speed;
                 }
                 if enemy.x >= SCREEN_WIDTH-enemy.width {
-                    enemy.x = SCREEN_WIDTH-enemy.width;
                     G.enemy_direction = 'left';
-                    update_enemy_heights_and_speeds();
+                    hit_wall = true;
                 } else if enemy.x <= 0 {
-                    enemy.x = 0;
                     G.enemy_direction = 'right';
-                    update_enemy_heights_and_speeds();
+                    hit_wall = true;
                 }
             }
         }
+    }
+    if hit_wall {
+        update_enemy_heights_and_speeds();
     }
 }
 
