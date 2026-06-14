@@ -116,6 +116,22 @@ val __image_color_brightness = _image_color_brightness;
 val __image_color_replace = _image_color_replace;
 val __load_image_colors = _load_image_colors;
 val __get_image_color = _get_image_color;
+val __image_clear_background = _image_clear_background;
+val __image_draw_pixel = _image_draw_pixel;
+val __image_draw_pixel_v = _image_draw_pixel_v;
+val __image_draw_line = _image_draw_line;
+val __image_draw_line_v = _image_draw_line_v;
+val __image_draw_circle = _image_draw_circle;
+val __image_draw_circle_v = _image_draw_circle_v;
+val __image_draw_circle_lines = _image_draw_circle_lines;
+val __image_draw_circle_lines_v = _image_draw_circle_lines_v;
+val __image_draw_rectangle = _image_draw_rectangle;
+val __image_draw_rectangle_v = _image_draw_rectangle_v;
+val __image_draw_rectangle_rec = _image_draw_rectangle_rec;
+val __image_draw_rectangle_lines = _image_draw_rectangle_lines;
+val __image_draw_image = _image_draw_image;
+val __image_draw_text = _image_draw_text;
+val __image_draw_text_ex = _image_draw_text_ex;
 
 val set_exit_key = _set_exit_key;
 val is_key_up = _is_key_up;
@@ -976,5 +992,55 @@ fun Image(fpath_or_img=null) {
     this.get_color = fun(x, y) {
         return __get_image_color(this._img, x, y);
     };
+    this.draw = {
+        'clear_background': fun(ds, col) {
+            return __image_clear_background(this._img, ds, col)
+        },
+        'pixel': fun(pos_x, pos_y, col) {
+            return __image_draw_pixel(this._img, pos_x, pos_y, col)
+        },
+        'pixel_v': fun(position, col) {
+            return __image_draw_pixel_v(this._img, position, col)
+        },
+        'line': fun(start_pos_x, start_pos_y, end_pos_x, end_pos_y, col) {
+            return __image_draw_line(this._img, start_pos_x, start_pos_y, end_pos_x, end_pos_y, col)
+        },
+        'line_v': fun(start, end, col) {
+            return __image_draw_line_v(this._img, start, end, col)
+        },
+        'circle': fun(center_x, center_y, radius, col) {
+            return __image_draw_circle(this._img, center_x, center_y, radius, col)
+        },
+        'circle_v': fun(center, radius, col) {
+            return __image_draw_circle_v(this._img, center, radius, col)
+        },
+        'circle_lines': fun(center_x, center_y, radius, col) {
+            return __image_draw_circle_lines(this._img, center_x, center_y, radius, col)
+        },
+        'circle_lines_v': fun(center, radius, col) {
+            return __image_draw_circle_lines_v(this._img, center, radius, col)
+        },
+        'rectangle': fun(x, y, width, height, col) {
+            return __image_draw_rectangle(this._img, x, y, width, height, col)
+        },
+        'rectangle_v': fun(position, size, col) {
+            return __image_draw_rectangle_v(this._img, position, size, col)
+        },
+        'rectangle_rec': fun(rec, col) {
+            return __image_draw_rectangle_rec(this._img, rec, col)
+        },
+        'rectangle_lines': fun(rec, thick, col) {
+            return __image_draw_rectangle_lines(this._img, rec, thick, col)
+        },
+        'image': fun(src, src_rec, dst_rec, tint) {
+            return __image_draw_image(this._img, src, src_rec, dst_rec, tint)
+        },
+        'text': fun(pos_x, pos_y, text, font_size, col) {
+            return __image_draw_text(this._img, pos_x, pos_y, text, font_size, col)
+        },
+        'text_ex': fun(position, font, text, font_size, spacing, col) {
+            return __image_draw_text_ex(this._img, position, font, text, font_size, spacing, col)
+        },
+    }
     return this;
 }

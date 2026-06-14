@@ -4042,6 +4042,567 @@ var GgBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_image_clear_background",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_clear_background", 2, args)
+			if err != nil {
+				return err
+			}
+			img, ok := args[0].(*GoObj[*rl.Image])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_clear_background", 1, "rl.Image", args[0])
+			}
+			color, ok := args[1].(*GoObj[rl.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("image_clear_background", 2, "rl.Color", args[1])
+			}
+			rl.ImageClearBackground(img.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_clear_background` clears image background with given color",
+			signature:   "image_clear_background(img: GoObj[*rl.Image], color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_clear_background(img, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_pixel",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_pixel", 4, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_pixel", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_pixel", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_pixel", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_pixel", 4, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawPixel(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_pixel` draw a pixel within an image",
+			signature:   "image_draw_pixel(img: GoObj[*rl.Image], pos_x: int, pos_y: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_pixel(img, 10, 10, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_pixel_v",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_pixel_v", 3, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_pixel_v", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			position, err := checkGoObjType[rl.Vector2]("image_draw_pixel_v", 2, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_pixel_v", 3, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawPixelV(img.Value, position.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_pixel_v` draw a pixel within an image (Vector version)",
+			signature:   "image_draw_pixel_v(img: GoObj[*rl.Image], position: GoObj[rl.Vector2], color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_pixel_v(img, Vector2(10, 10), color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_line",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_line", 6, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_line", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_line", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_line", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_line", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_line", 5, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_line", 6, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawLine(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), int32(args[4].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_line` draw a line within an image",
+			signature:   "image_draw_line(img: GoObj[*rl.Image], start_x: int, start_y: int, end_x: int, end_y: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_line(img, 0, 0, 100, 100, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_line_v",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_line_v", 4, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_line_v", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			start, err := checkGoObjType[rl.Vector2]("image_draw_line_v", 2, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			end, err := checkGoObjType[rl.Vector2]("image_draw_line_v", 3, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_line_v", 4, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawLineV(img.Value, start.Value, end.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_line_v` draw a line within an image (Vector version)",
+			signature:   "image_draw_line_v(img: GoObj[*rl.Image], start: GoObj[rl.Vector2], end: GoObj[rl.Vector2], color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_line_v(img, Vector2(0,0), Vector2(100,100), color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_circle",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_circle", 5, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_circle", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_circle", 5, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawCircle(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_circle` draw a filled circle within an image",
+			signature:   "image_draw_circle(img: GoObj[*rl.Image], center_x: int, center_y: int, radius: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_circle(img, 50, 50, 25, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_circle_v",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_circle_v", 4, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_circle_v", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			center, err := checkGoObjType[rl.Vector2]("image_draw_circle_v", 2, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle_v", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_circle_v", 4, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawCircleV(img.Value, center.Value, int32(args[2].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_circle_v` draw a filled circle within an image (Vector version)",
+			signature:   "image_draw_circle_v(img: GoObj[*rl.Image], center: GoObj[rl.Vector2], radius: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_circle_v(img, Vector2(50,50), 25, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_circle_lines",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_circle_lines", 5, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_circle_lines", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle_lines", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle_lines", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle_lines", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_circle_lines", 5, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawCircleLines(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_circle_lines` draw circle outline within an image",
+			signature:   "image_draw_circle_lines(img: GoObj[*rl.Image], center_x: int, center_y: int, radius: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_circle_lines(img, 50, 50, 25, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_circle_lines_v",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_circle_lines_v", 4, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_circle_lines_v", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			center, err := checkGoObjType[rl.Vector2]("image_draw_circle_lines_v", 2, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_circle_lines_v", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_circle_lines_v", 4, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawCircleLinesV(img.Value, center.Value, int32(args[2].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_circle_lines_v` draw circle outline within an image (Vector version)",
+			signature:   "image_draw_circle_lines_v(img: GoObj[*rl.Image], center: GoObj[rl.Vector2], radius: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_circle_lines_v(img, Vector2(50,50), 25, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_rectangle",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_rectangle", 6, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_rectangle", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_rectangle", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_rectangle", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_rectangle", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_rectangle", 5, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_rectangle", 6, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawRectangle(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), int32(args[3].(*Integer).Value), int32(args[4].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_rectangle` draw a rectangle within an image",
+			signature:   "image_draw_rectangle(img: GoObj[*rl.Image], x: int, y: int, width: int, height: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_rectangle(img, 10, 10, 100, 50, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_rectangle_v",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_rectangle_v", 4, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_rectangle_v", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			position, err := checkGoObjType[rl.Vector2]("image_draw_rectangle_v", 2, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			size, err := checkGoObjType[rl.Vector2]("image_draw_rectangle_v", 3, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_rectangle_v", 4, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawRectangleV(img.Value, position.Value, size.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_rectangle_v` draw a rectangle within an image (Vector version)",
+			signature:   "image_draw_rectangle_v(img: GoObj[*rl.Image], position: GoObj[rl.Vector2], size: GoObj[rl.Vector2], color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_rectangle_v(img, Vector2(10,10), Vector2(100,50), color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_rectangle_rec",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_rectangle_rec", 3, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_rectangle_rec", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			rec, err := checkGoObjType[rl.Rectangle]("image_draw_rectangle_rec", 2, "rl.Rectangle", args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_rectangle_rec", 3, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawRectangleRec(img.Value, rec.Value, color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_rectangle_rec` draw a rectangle within an image using a Rectangle struct",
+			signature:   "image_draw_rectangle_rec(img: GoObj[*rl.Image], rec: GoObj[rl.Rectangle], color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_rectangle_rec(img, Rectangle(10,10,100,50), color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_rectangle_lines",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_rectangle_lines", 4, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_rectangle_lines", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			rec, err := checkGoObjType[rl.Rectangle]("image_draw_rectangle_lines", 2, "rl.Rectangle", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_rectangle_lines", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_rectangle_lines", 4, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawRectangleLines(img.Value, rec.Value, int(args[2].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_rectangle_lines` draw rectangle outline within an image",
+			signature:   "image_draw_rectangle_lines(img: GoObj[*rl.Image], rec: GoObj[rl.Rectangle], thick: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_rectangle_lines(img, Rectangle(10,10,100,50), 2, color.red) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_image",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_image", 5, args)
+			if err != nil {
+				return err
+			}
+			dst, err := checkGoObjType[*rl.Image]("image_draw_image", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			src, err := checkGoObjType[*rl.Image]("image_draw_image", 2, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			srcRec, err := checkGoObjType[rl.Rectangle]("image_draw_image", 3, "rl.Rectangle", args)
+			if err != nil {
+				return err
+			}
+			dstRec, err := checkGoObjType[rl.Rectangle]("image_draw_image", 4, "rl.Rectangle", args)
+			if err != nil {
+				return err
+			}
+			tint, err := checkGoObjType[rl.Color]("image_draw_image", 5, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDraw(dst.Value, src.Value, srcRec.Value, dstRec.Value, tint.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_image` draw a source image within a destination image",
+			signature:   "image_draw_image(dst: GoObj[*rl.Image], src: GoObj[*rl.Image], src_rec: GoObj[rl.Rectangle], dst_rec: GoObj[rl.Rectangle], tint: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_image(dst, src, Rectangle(0,0,50,50), Rectangle(0,0,50,50), color.white) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_text",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_text", 6, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_text", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_text", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_text", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_text", 4, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_text", 5, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_text", 6, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawText(img.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), args[3].(*Stringo).Value, int32(args[4].(*Integer).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_text` draw text within an image using default font",
+			signature:   "image_draw_text(img: GoObj[*rl.Image], pos_x: int, pos_y: int, text: string, font_size: int, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_text(img, 10, 10, \"Hello\", 20, color.black) => null",
+		}.String(),
+	},
+	{
+		Name: "_image_draw_text_ex",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("image_draw_text_ex", 7, args)
+			if err != nil {
+				return err
+			}
+			img, err := checkGoObjType[*rl.Image]("image_draw_text_ex", 1, "rl.Image", args)
+			if err != nil {
+				return err
+			}
+			position, err := checkGoObjType[rl.Vector2]("image_draw_text_ex", 2, "rl.Vector2", args)
+			if err != nil {
+				return err
+			}
+			font, err := checkGoObjType[rl.Font]("image_draw_text_ex", 3, "rl.Font", args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_text_ex", 4, STRING_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_text_ex", 5, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("image_draw_text_ex", 6, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			color, err := checkGoObjType[rl.Color]("image_draw_text_ex", 7, "rl.Color", args)
+			if err != nil {
+				return err
+			}
+			rl.ImageDrawTextEx(img.Value, position.Value, font.Value, args[3].(*Stringo).Value, float32(args[4].(*Float).Value), float32(args[5].(*Float).Value), color.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`image_draw_text_ex` draw text within an image using custom font and spacing",
+			signature:   "image_draw_text_ex(img: GoObj[*rl.Image], position: GoObj[rl.Vector2], font: GoObj[rl.Font], text: string, font_size: float, spacing: float, color: GoObj[rl.Color]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "image_draw_text_ex(img, Vector2(10,10), font, \"Hello\", 20.0, 1.0, color.black) => null",
+		}.String(),
+	},
+
+	{
 		Name: "_rectangle",
 		Fun: func(args ...Object) Object {
 			if len(args) != 4 {
