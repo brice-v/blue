@@ -935,94 +935,132 @@ var GgBuiltins = []*Builtin{
 	{
 		Name: "_draw_texture",
 		Fun: func(args ...Object) Object {
-			if len(args) != 4 {
-				return newInvalidArgCountError("draw_texture", len(args), 4, "")
+			err := checkArgsCount("draw_texture", []int{3, 4, 5, 6}, args)
+			if err != nil {
+				return err
 			}
-			if args[0].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_texture", 1, GO_OBJ, args[0].Type())
+			tex, err := checkGoObjType[rl.Texture2D]("draw_texture", 1, "rl.Texture2D", args)
+			if err != nil {
+				return err
 			}
-			tex, ok := args[0].(*GoObj[rl.Texture2D])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture", 1, "rl.Texture2D", args[0])
+			switch len(args) {
+			case 3:
+				pos, err := checkGoObjType[rl.Vector2]("draw_texture", 2, "rl.Vector2", args)
+				if err != nil {
+					return err
+				}
+				col, err := checkGoObjType[rl.Color]("draw_texture", 3, "rl.Color", args)
+				if err != nil {
+					return err
+				}
+				rl.DrawTextureV(tex.Value, pos.Value, col.Value)
+			case 4:
+				if args[1].Type() == INTEGER_OBJ {
+					err = checkArgType("draw_texture", 3, INTEGER_OBJ, args)
+					if err != nil {
+						return err
+					}
+					col, err := checkGoObjType[rl.Color]("draw_texture", 4, "rl.Color", args)
+					if err != nil {
+						return err
+					}
+					rl.DrawTexture(tex.Value, int32(args[1].(*Integer).Value), int32(args[2].(*Integer).Value), col.Value)
+				} else {
+					rec, err := checkGoObjType[rl.Rectangle]("draw_texture", 2, "rl.Rectangle", args)
+					if err != nil {
+						return err
+					}
+					pos, err := checkGoObjType[rl.Vector2]("draw_texture", 3, "rl.Vector2", args)
+					if err != nil {
+						return err
+					}
+					col, err := checkGoObjType[rl.Color]("draw_texture", 4, "rl.Color", args)
+					if err != nil {
+						return err
+					}
+					rl.DrawTextureRec(tex.Value, rec.Value, pos.Value, col.Value)
+				}
+			case 5:
+				pos, err := checkGoObjType[rl.Vector2]("draw_texture", 2, "rl.Vector2", args)
+				if err != nil {
+					return err
+				}
+				err = checkArgType("draw_texture", 3, FLOAT_OBJ, args)
+				if err != nil {
+					return err
+				}
+				err = checkArgType("draw_texture", 4, FLOAT_OBJ, args)
+				if err != nil {
+					return err
+				}
+				col, err := checkGoObjType[rl.Color]("draw_texture", 5, "rl.Color", args)
+				if err != nil {
+					return err
+				}
+				rl.DrawTextureEx(tex.Value, pos.Value, float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), col.Value)
+			case 6:
+				rec, err := checkGoObjType[rl.Rectangle]("draw_texture", 2, "rl.Rectangle", args)
+				if err == nil {
+					rec1, err := checkGoObjType[rl.Rectangle]("draw_texture", 3, "rl.Rectangle", args)
+					if err != nil {
+						return err
+					}
+					pos, err := checkGoObjType[rl.Vector2]("draw_texture", 4, "rl.Vector2", args)
+					if err != nil {
+						return err
+					}
+					err = checkArgType("draw_texture", 5, FLOAT_OBJ, args)
+					if err != nil {
+						return err
+					}
+					col, err := checkGoObjType[rl.Color]("draw_texture", 6, "rl.Color", args)
+					if err != nil {
+						return err
+					}
+					rl.DrawTexturePro(tex.Value, rec.Value, rec1.Value, pos.Value, float32(args[4].(*Float).Value), col.Value)
+				} else {
+					nPatchInfo, err := checkGoObjType[rl.NPatchInfo]("draw_texture", 2, "rl.NPatchInfo", args)
+					if err != nil {
+						return err
+					}
+					rec1, err := checkGoObjType[rl.Rectangle]("draw_texture", 3, "rl.Rectangle", args)
+					if err != nil {
+						return err
+					}
+					pos, err := checkGoObjType[rl.Vector2]("draw_texture", 4, "rl.Vector2", args)
+					if err != nil {
+						return err
+					}
+					err = checkArgType("draw_texture", 5, FLOAT_OBJ, args)
+					if err != nil {
+						return err
+					}
+					col, err := checkGoObjType[rl.Color]("draw_texture", 6, "rl.Color", args)
+					if err != nil {
+						return err
+					}
+					rl.DrawTextureNPatch(tex.Value, nPatchInfo.Value, rec1.Value, pos.Value, float32(args[4].(*Float).Value), col.Value)
+				}
 			}
-			if args[1].Type() != INTEGER_OBJ {
-				return newPositionalTypeError("draw_texture", 2, INTEGER_OBJ, args[1].Type())
-			}
-			if args[2].Type() != INTEGER_OBJ {
-				return newPositionalTypeError("draw_texture", 3, INTEGER_OBJ, args[2].Type())
-			}
-			if args[3].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_texture", 4, GO_OBJ, args[3].Type())
-			}
-			tint, ok := args[3].(*GoObj[rl.Color])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture", 4, "rl.Color", args[3])
-			}
-			posX := int32(args[1].(*Integer).Value)
-			posY := int32(args[2].(*Integer).Value)
-			rl.DrawTexture(tex.Value, posX, posY, tint.Value)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`draw_texture` draws the 2d texture on the canvas at (x,y) with given tint tint",
-			signature:   "draw_texture(texture: GO_OBJ[rl.Texture2D], pos_x: int=0, pos_y: int=0, tint: GO_OBJ[rl.Color]=color.white) -> null",
-			errors:      "InvalidArgCount,PositionalType",
-			example:     "draw_texture(texture) => null",
-		}.String(),
-	},
-	{
-		Name: "_draw_texture_pro",
-		Fun: func(args ...Object) Object {
-			if len(args) != 6 {
-				return newInvalidArgCountError("draw_texture_pro", len(args), 6, "")
-			}
-			if args[0].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_texture_pro", 1, GO_OBJ, args[0].Type())
-			}
-			tex, ok := args[0].(*GoObj[rl.Texture2D])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 1, "rl.Texture2D", args[0])
-			}
-			if args[1].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_texture_pro", 2, GO_OBJ, args[1].Type())
-			}
-			srcRect, ok := args[1].(*GoObj[rl.Rectangle])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 2, "rl.Rectangle", args[1])
-			}
-			if args[2].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_texture_pro", 3, GO_OBJ, args[2].Type())
-			}
-			dstRect, ok := args[2].(*GoObj[rl.Rectangle])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 3, "rl.Rectangle", args[2])
-			}
-			if args[3].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_texture_pro", 4, GO_OBJ, args[3].Type())
-			}
-			origin, ok := args[3].(*GoObj[rl.Vector2])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 4, "rl.Rectangle", args[3])
-			}
-			if args[4].Type() != FLOAT_OBJ {
-				return newPositionalTypeError("draw_texture_pro", 5, FLOAT_OBJ, args[4].Type())
-			}
-			rotation := float32(args[4].(*Float).Value)
-			if args[5].Type() != GO_OBJ {
-				return newPositionalTypeError("draw_texture_pro", 6, GO_OBJ, args[5].Type())
-			}
-			tint, ok := args[5].(*GoObj[rl.Color])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("draw_texture_pro", 6, "rl.Color", args[5])
-			}
-			rl.DrawTexturePro(tex.Value, srcRect.Value, dstRect.Value, origin.Value, rotation, tint.Value)
-			return NULL
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`draw_texture_pro` draws a part of the 2d texture on the canvas with the given source_rec, dest_rec, origin, rotation, and tint",
-			signature:   "draw_texture_pro(texture: GO_OBJ[rl.Texture2D], source_rec: GO_OBJ[rl.Rectangle]=Rectangle(), dest_rec: GO_OBJ[rl.Rectangle]=Rectangle(), origin: GO_OBJ[rl.Vector2]=Vector2(), rotation: float=0.0, tint=color.white) -> null",
-			errors:      "InvalidArgCount,PositionalType",
-			example:     "draw_texture_pro(texture) => null",
+			signature: "draw_texture(texture: GO_OBJ[rl.Texture2D], ...) -> null\n" +
+				"// Draw a Texture2D\n" +
+				"void DrawTexture(Texture2D texture, int posX, int posY, Color tint);\n" +
+				"// Draw a Texture2D with position defined as Vector2\n" +
+				"void DrawTextureV(Texture2D texture, Vector2 position, Color tint);\n" +
+				"// Draw a Texture2D with extended parameters\n" +
+				"void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);\n" +
+				"// Draw a part of a texture defined by a rectangle\n" +
+				"void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color tint);\n" +
+				"// Draw a part of a texture defined by a rectangle with 'pro' parameters\n" +
+				"void DrawTexturePro(Texture2D texture, Rectangle source, Rectangle dest, Vector2 origin, float rotation, Color tint);\n" +
+				"// Draws a texture (or part of it) that stretches or shrinks nicely\n" +
+				"void DrawTextureNPatch(Texture2D texture, NPatchInfo nPatchInfo, Rectangle dest, Vector2 origin, float rotation, Color tint);",
+			errors:  "InvalidArgCount,PositionalType",
+			example: "draw_texture(texture) => null",
 		}.String(),
 	},
 	{

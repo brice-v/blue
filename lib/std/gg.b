@@ -58,7 +58,6 @@ val get_time = _get_time;
 val unload = _unload;
 val __draw_text = _draw_text;
 val __draw_texture = _draw_texture;
-val __draw_texture_pro = _draw_texture_pro;
 val load_texture = _load_texture;
 
 # Audio/Music/Sound
@@ -856,7 +855,7 @@ fun draw_texture(texture, pos_x=0, pos_y=0, tint=color.white) {
 }
 
 fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle().obj(), origin=Vector().obj(), rotation=0.0, tint=color.white) {
-    ##std:this,__draw_texture_pro
+    ##std:this,__draw_texture
     ## `draw_texture_pro` will draw the given 2D texture to the raylib window with the given parameters defined
     ## by a rectangle with 'pro' parameters
     ##
@@ -875,7 +874,7 @@ fun draw_texture_pro(texture, source_rec=Rectangle().obj(), dest_rec=Rectangle()
     var src_rec = if (type(source_rec) == Type.MAP && source_rec['obj'] != null) { source_rec.obj() } else { source_rec };
     var dst_rec = if (type(dest_rec) == Type.MAP && dest_rec['obj'] != null) { dest_rec.obj() } else { dest_rec };
     var org_vec2 = if (type(origin) == Type.MAP && origin['obj'] != null) { origin.obj() } else { origin };
-    __draw_texture_pro(texture, src_rec, dst_rec, org_vec2, float(rotation), tint)
+    __draw_texture(texture, src_rec, dst_rec, org_vec2, float(rotation), tint)
 }
 
 fun begin_mode2d(cam=Camera2D()) {
