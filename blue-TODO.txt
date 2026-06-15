@@ -1,6 +1,6 @@
 TODO:
 
-- [ ] Replace fyne with golang stdlib
+- [ ] Replace fiber with golang stdlib
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
 - [ ] Update cmd/cli so that when file is not found that error is printed to user instead of usage
