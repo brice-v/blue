@@ -15,6 +15,7 @@ TODO:
     - [ ] When blue struct field name matches a var that is used in scope, can this work?
     - [ ] Support Struct in list comprehension?
     - [ ] See if can be used with class pattern
+        - [ ] Support dunder methods with structs
 
 - [ ] Cache Empty string object and small ints maybe?
 - [ ] Add dis() builtin function to disassemble function inline
