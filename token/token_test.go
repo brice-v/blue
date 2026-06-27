@@ -396,26 +396,6 @@ func TestTokenStringRepresentation(t *testing.T) {
 	}
 }
 
-func TestTokenKeywordsNotOperators(t *testing.T) {
-	// Verify no keyword string conflicts with operator strings
-	keywordStrings := []string{
-		"fun", "var", "val", "true", "false", "if", "else", "return",
-		"for", "in", "notin", "and", "or", "not", "const", "match",
-		"null", "import", "from", "as", "try", "catch", "finally",
-		"eval", "spawn", "defer", "self", "break", "continue",
-	}
-
-	for _, ks := range keywordStrings {
-		tok := LookupIdent(ks)
-		if tok != IDENT {
-			// It's a keyword, verify it's not a single-char operator
-			if len(ks) == 1 && ks != "in" && ks != "as" {
-				// single-char keyword is fine as long as it's a keyword
-			}
-		}
-	}
-}
-
 // UserFriendlyName tests
 
 func TestUserFriendlyNameDelimiters(t *testing.T) {

@@ -173,22 +173,40 @@ func PrintCustomError(out io.Writer, errPrefix, errStr string, lineNumber int, p
 		err.Message = ""
 	}
 	if err.FileLineColumn != "" {
-		fmt.Fprintf(out, "   %s\n", err.FileLineColumn)
+		_, errr := fmt.Fprintf(out, "   %s\n", err.FileLineColumn)
+		if errr != nil {
+			log.Printf("Failed to print to writer, error: %s", errr.Error())
+		}
 	}
 	if err.SourceLine != "" {
-		fmt.Fprintf(out, "    %d │ %s\n", err.LineNumber, err.SourceLine)
+		_, errr := fmt.Fprintf(out, "    %d │ %s\n", err.LineNumber, err.SourceLine)
+		if errr != nil {
+			log.Printf("Failed to print to writer, error: %s", errr.Error())
+		}
 		// Compute the line number prefix width so the pointer line
 		// aligns with the source content (not the line number)
 		lineNumWidth := len(fmt.Sprintf("%d", err.LineNumber))
 		prefix := "    " + strings.Repeat(" ", lineNumWidth) + " │ "
-		fmt.Fprintf(out, "%s%s", prefix, err.PointerPos)
-		if err.Message != "" {
-			fmt.Fprintf(out, " %s", err.Message)
+		_, errr = fmt.Fprintf(out, "%s%s", prefix, err.PointerPos)
+		if errr != nil {
+			log.Printf("Failed to print to writer, error: %s", errr.Error())
 		}
-		fmt.Fprintln(out)
+		if err.Message != "" {
+			_, errr = fmt.Fprintf(out, " %s", err.Message)
+			if errr != nil {
+				log.Printf("Failed to print to writer, error: %s", errr.Error())
+			}
+		}
+		_, errr = fmt.Fprintln(out)
+		if errr != nil {
+			log.Printf("Failed to print to writer, error: %s", errr.Error())
+		}
 	}
 
-	fmt.Fprintln(out)
+	_, errr := fmt.Fprintln(out)
+	if errr != nil {
+		log.Printf("Failed to print to writer, error: %s", errr.Error())
+	}
 }
 
 func FloorDiv(a, b int64) int64 {

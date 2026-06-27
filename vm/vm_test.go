@@ -608,26 +608,6 @@ func TestRangeOperations(t *testing.T) {
 	}
 }
 
-func testStringListObject(expected []string, actual object.Object) error {
-	list, ok := actual.(*object.List)
-	if !ok {
-		return fmt.Errorf("object not List: %T (%+v)", actual, actual)
-	}
-	if len(list.Elements) != len(expected) {
-		return fmt.Errorf("wrong num of elements. want=%d, got=%d", len(expected), len(list.Elements))
-	}
-	for i, exp := range expected {
-		str, ok := list.Elements[i].(*object.Stringo)
-		if !ok {
-			return fmt.Errorf("element %d is not String: %T", i, list.Elements[i])
-		}
-		if str.Value != exp {
-			return fmt.Errorf("element %d wrong. want=%q, got=%q", i, exp, str.Value)
-		}
-	}
-	return nil
-}
-
 func TestAllAnyBuiltins(t *testing.T) {
 	tests := []vmTestCase{
 		{`all([true, true, true], |e| => e)`, true},
@@ -657,17 +637,6 @@ func TestToNumBuiltin(t *testing.T) {
 	runVmTests(t, tests)
 }
 
-func testFloatObject(expected float64, actual object.Object) error {
-	result, ok := actual.(*object.Float)
-	if !ok {
-		return fmt.Errorf("object is not Float. got=%T (%+v)", actual, actual)
-	}
-	if result.Value != expected {
-		return fmt.Errorf("object has wrong value. got=%f, want=%f", result.Value, expected)
-	}
-	return nil
-}
-
 func TestNegationOperations(t *testing.T) {
 	tests := []vmTestCase{
 		{`-5`, -5},
@@ -684,26 +653,6 @@ func TestComprehensions(t *testing.T) {
 		{`[x * 2 for x in [1, 2, 3]]`, []int{2, 4, 6}},
 	}
 	runVmTests(t, tests)
-}
-
-func testIntegerListObject(expected []int64, actual object.Object) error {
-	list, ok := actual.(*object.List)
-	if !ok {
-		return fmt.Errorf("object not List: %T (%+v)", actual, actual)
-	}
-	if len(list.Elements) != len(expected) {
-		return fmt.Errorf("wrong num of elements. want=%d, got=%d", len(expected), len(list.Elements))
-	}
-	for i, exp := range expected {
-		integer, ok := list.Elements[i].(*object.Integer)
-		if !ok {
-			return fmt.Errorf("element %d is not Integer: %T", i, list.Elements[i])
-		}
-		if integer.Value != exp {
-			return fmt.Errorf("element %d wrong. want=%d, got=%d", i, exp, integer.Value)
-		}
-	}
-	return nil
 }
 
 func TestIfElseExpressions(t *testing.T) {

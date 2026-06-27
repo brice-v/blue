@@ -603,14 +603,23 @@ func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object
 	vm.frames = make([]*Frame, MaxFrames)
 	vm.frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	vm.framesIndex = 2
-	vm.push(fun)
+	err := vm.push(fun)
+	if err != nil {
+		return newError("error: %s", err.Error())
+	}
 	argCount := 0
 	for _, arg := range args {
-		vm.push(arg)
+		err = vm.push(arg)
+		if err != nil {
+			return newError("error: %s", err.Error())
+		}
 		argCount++
 	}
-	vm.executeCallFastFrame(argCount)
-	err := vm.Run()
+	err = vm.executeCallFastFrame(argCount)
+	if err != nil {
+		return newError("error: %s", err.Error())
+	}
+	err = vm.Run()
 	var returnValue object.Object
 	if err != nil && err.Error() != consts.NORMAL_EXIT_ON_RETURN {
 		returnValue = &object.Error{Message: err.Error()}
@@ -632,16 +641,25 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		vm.frames = make([]*Frame, 3)
 		vm.frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 		vm.framesIndex = 2
-		vm.push(fun)
+		err := vm.push(fun)
+		if err != nil {
+			return newError("error: %s", err.Error())
+		}
 		if arg != nil {
-			vm.push(arg)
+			err = vm.push(arg)
+			if err != nil {
+				return newError("error: %s", err.Error())
+			}
 		}
 		argCount := 0
 		if arg != nil {
 			argCount++
 		}
-		vm.executeCallFastFrame(argCount)
-		err := vm.Run()
+		err = vm.executeCallFastFrame(argCount)
+		if err != nil {
+			return newError("error: %s", err.Error())
+		}
+		err = vm.Run()
 		if err != nil && err.Error() != consts.NORMAL_EXIT_ON_RETURN {
 			returnValue = &object.Error{Message: err.Error()}
 		} else {
@@ -651,9 +669,18 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		vm.framesIndex = existingFrameIndex
 		vm.sp = existingStackPointer
 	} else if _, isBuiltin := fun.(*object.Builtin); isBuiltin {
-		vm.push(fun)
-		vm.push(arg)
-		vm.executeCall(1)
+		err := vm.push(fun)
+		if err != nil {
+			return newError("error: %s", err.Error())
+		}
+		err = vm.push(arg)
+		if err != nil {
+			return newError("error: %s", err.Error())
+		}
+		err = vm.executeCall(1)
+		if err != nil {
+			return newError("error: %s", err.Error())
+		}
 		returnValue = vm.pop()
 	} else {
 		return newError("%T (%s) is not callable", fun, fun)

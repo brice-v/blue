@@ -320,15 +320,6 @@ func (c *Compiler) PrintStackTrace() {
 	}
 }
 
-func existsInTokens(t token.Token, toks []token.Token) bool {
-	for _, tok := range toks {
-		if tok.LineNumber == t.LineNumber && tok.PositionInLine == t.PositionInLine {
-			return true
-		}
-	}
-	return false
-}
-
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
@@ -360,7 +351,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if err != nil {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
-			c.compileInfixExpression(node.Operator)
+			err = c.compileInfixExpression(node.Operator)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
+			}
 			return nil
 		case "or", "||":
 			// Handle Shortcut 'or' compiling
@@ -568,7 +562,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			var dontEmitSymbol bool
 			// Always try to resolve for local scope first, then try all the others
 			symbol, ok := c.symbolTable.Resolve(node.Value)
-			if !(ok && symbol.Scope == LocalScope) {
+			if !ok || symbol.Scope != LocalScope {
 				symbol, ok = c.symbolTable.Resolve(c.getName(node.Value))
 				if !ok {
 					// Due to the way compiling works, if its a builtin we need to try again

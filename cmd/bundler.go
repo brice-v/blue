@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -84,7 +85,12 @@ const mainFunc = `func main() {
 func bundleFile(fpath string, isStatic bool, oos, arch, outputFileName string) error {
 	entryPointPath := fmt.Sprintf("const entryPointPath = `%s`\n", fpath)
 	gomain := fmt.Sprintf("%s\n%s\n%s", header, entryPointPath, mainFunc)
-	defer color.Reset()
+	defer func() {
+		_, err := color.Reset()
+		if err != nil {
+			log.Printf("Failed to reset colors, errors: %s", err.Error())
+		}
+	}()
 
 	// save current directory
 	savedCurrentDir, err := os.Getwd()
@@ -342,14 +348,24 @@ func copyFileToSavedDir(exeName, savedCurrentDir string) error {
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer func() {
+		err := src.Close()
+		if err != nil {
+			log.Printf("Failed to close source of exe, error: %s", err.Error())
+		}
+	}()
 
 	dstFile := savedCurrentDir + string(os.PathSeparator) + exeName
 	dst, err := os.Create(dstFile)
 	if err != nil {
 		return err
 	}
-	defer dst.Close()
+	defer func() {
+		err := dst.Close()
+		if err != nil {
+			log.Printf("Failed to close source dst, error: %s", err.Error())
+		}
+	}()
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
@@ -379,7 +395,10 @@ func tryToStrip(dirPath, exeName string) {
 		return
 	}
 	consts.InfoPrinter("Trying to strip exe `%s`\n", exeName)
-	execBundleCmd("strip "+exeName, dirPath)
+	_, err := execBundleCmd("strip "+exeName, dirPath)
+	if err != nil {
+		log.Printf("did not strip, error: %s", err.Error())
+	}
 }
 
 func tryToPack(dirPath, exeName string) {
@@ -387,7 +406,10 @@ func tryToPack(dirPath, exeName string) {
 		return
 	}
 	consts.InfoPrinter("Trying to pack exe `%s` with UPX\n", exeName)
-	execBundleCmd("upx --best "+exeName, dirPath)
+	_, err := execBundleCmd("upx --best "+exeName, dirPath)
+	if err != nil {
+		log.Printf("did not pack, error: %s", err.Error())
+	}
 }
 
 func removeMainGoFile() error {

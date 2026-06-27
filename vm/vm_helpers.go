@@ -136,16 +136,6 @@ func isError(obj object.Object) bool {
 	return false
 }
 
-func (vm *VM) stackString() string {
-	var out bytes.Buffer
-	for i, o := range vm.stack {
-		if o != nil {
-			fmt.Fprintf(&out, "%d: %s\n", i, o.Inspect())
-		}
-	}
-	return out.String()
-}
-
 func matches(left, right object.Object) bool {
 	if left.Type() != right.Type() {
 		return false
@@ -822,7 +812,6 @@ func decodeBodyToMap(contentType string, body io.Reader) (map[string]object.Obje
 		xmld := xml.NewDecoder(body)
 		err := xmld.Decode(&v)
 		if err != nil {
-			err = nil
 			for {
 				mv, err := mxj.NewMapXmlReader(body)
 				if err != nil {

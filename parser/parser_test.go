@@ -620,7 +620,7 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 		t.Errorf("integ.Value not %d. got=%d", value, integ.Value)
 		return false
 	}
-	tokenLiteral := strings.Replace(integ.TokenLiteral(), "_", "", -1)
+	tokenLiteral := strings.ReplaceAll(integ.TokenLiteral(), "_", "")
 	if tokenLiteral != fmt.Sprintf("%d", value) {
 		t.Errorf("integ.TokenLiteral() not %d. got=%s", value, integ.TokenLiteral())
 		return false

@@ -213,9 +213,8 @@ func (l *Lexer) readNumber() (token.Type, string) {
 			// Skip over 0 and u
 			l.readChar()
 			l.readChar()
-			tok, uis := l.readNumber()
-			tok = token.UINT
-			return tok, uis
+			_, uis := l.readNumber()
+			return token.UINT, uis
 		}
 	}
 	dotFlag := false

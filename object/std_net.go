@@ -131,19 +131,28 @@ var NetBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("net_close", 1, "*net.UDPConn", args[0])
 				}
-				c.Value.Close()
-			case "net/tcp":
-				listener, ok := args[0].(*GoObj[net.Listener])
-				if !ok {
-					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Listener", args[0])
-				}
-				listener.Value.Close()
-			case "net":
-				conn, ok := args[0].(*GoObj[net.Conn])
-				if !ok {
-					return newPositionalTypeErrorForGoObj("net_close", 1, "net.Conn", args[0])
-				}
-				conn.Value.Close()
+			err := c.Value.Close()
+			if err != nil {
+				return newError("`net_close` error: %s", err.Error())
+			}
+		case "net/tcp":
+			listener, ok := args[0].(*GoObj[net.Listener])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("net_close", 1, "net.Listener", args[0])
+			}
+			err := listener.Value.Close()
+			if err != nil {
+				return newError("`net_close` error: %s", err.Error())
+			}
+		case "net":
+			conn, ok := args[0].(*GoObj[net.Conn])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("net_close", 1, "net.Conn", args[0])
+			}
+			err := conn.Value.Close()
+			if err != nil {
+				return newError("`net_close` error: %s", err.Error())
+			}
 			default:
 				return newError("`net_close` expects type of 'net/tcp', 'net/udp', or 'net'")
 			}

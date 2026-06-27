@@ -2,6 +2,7 @@ package object
 
 import (
 	"database/sql"
+	"log"
 
 	_ "modernc.org/sqlite"
 )
@@ -208,7 +209,12 @@ var DbBuiltins = []*Builtin{
 				rows, err = db.Value.Query(s)
 			}
 			if rows != nil {
-				defer rows.Close()
+				defer func() {
+					err := rows.Close()
+					if err != nil {
+						log.Printf("Failed to close rows, error: %s", err.Error())
+					}
+				}()
 			}
 			if err != nil {
 				return newError("`db_query` error: %s", err.Error())

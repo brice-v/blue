@@ -539,10 +539,8 @@ func TestBrokerPublish(t *testing.T) {
 
 	received := make(chan *Message, 1)
 	go func() {
-		select {
-		case msg := <-s.messages:
-			received <- msg
-		}
+		msg := <-s.messages
+		received <- msg
 	}()
 
 	select {

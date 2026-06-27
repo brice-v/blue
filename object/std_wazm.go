@@ -4,6 +4,7 @@ import (
 	"blue/consts"
 	"blue/object/wazm"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -59,8 +60,8 @@ var WazmBuiltins = []*Builtin{
 			if args[3].Type() != GO_OBJ && args[3].Type() != NULL_OBJ {
 				return newPositionalTypeError("wasm_init", 4, "GO_OBJ[*os.File] or null", args[3].Type())
 			}
-			var stdout io.Writer = nil
-			var stdin io.Reader = nil
+			var stdout io.Writer
+			var stdin io.Reader
 			var stderr *os.File
 			if args[3].Type() == GO_OBJ {
 				sout, ok := args[3].(*GoObj[*os.File])
@@ -317,7 +318,12 @@ var WazmBuiltins = []*Builtin{
 			if wm.Value.CancelFun != nil {
 				defer wm.Value.CancelFun()
 			}
-			defer wm.Value.Runtime.Close(wm.Value.Ctx)
+			defer func() {
+				err := wm.Value.Runtime.Close(wm.Value.Ctx)
+				if err != nil {
+					log.Printf("Failed to close wasm runtime, error: %s", err.Error())
+				}
+			}()
 			module, rc, err := wazm.WazmRun(wm.Value)
 			if err != nil {
 				return newError("`wasm_run` error: %s", err.Error())

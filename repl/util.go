@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 )
@@ -32,7 +33,10 @@ const helpCommandUsage = `.exit           exits the repl
 `
 
 func handleHelpCommand(out io.Writer) {
-	io.WriteString(out, helpCommandUsage)
+	_, err := io.WriteString(out, helpCommandUsage)
+	if err != nil {
+		log.Printf("Failed to write help to repl output, error: %s", err.Error())
+	}
 }
 
 func handleSaveCommand(out io.Writer, filebuf *bytes.Buffer, filename string) error {
@@ -40,7 +44,10 @@ func handleSaveCommand(out io.Writer, filebuf *bytes.Buffer, filename string) er
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "file `%s` saved\n", filename)
+	_, errr := fmt.Fprintf(out, "file `%s` saved\n", filename)
+	if errr != nil {
+		log.Printf("Failed to write to repl output, error: %s", errr.Error())
+	}
 	return nil
 }
 

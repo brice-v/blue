@@ -11,29 +11,12 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
-
-const fibEx = `fun fib(n) {
-    if n < 2 {
-        return n;
-    }
-
-    return fib(n-1) + fib(n-2);
-}
-
-fib(10);`
-
-const vmScopes = `
-if true {
-	var a = 123;
-}
-a = 555;
-assert(a != 555);
-`
 
 func testDirectoryWithVm(t *testing.T, path string) {
 	files, err := os.ReadDir(path)
@@ -78,7 +61,12 @@ func executeBlueTestFileWithVm(dir string, f fs.DirEntry, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer openFile.Close()
+	defer func() {
+		err = openFile.Close()
+		if err != nil {
+			log.Printf("Failed to close file with path: %s, error: %s", fpath, err.Error())
+		}
+	}()
 
 	data, err := io.ReadAll(openFile)
 	if err != nil {
@@ -129,10 +117,6 @@ func executeBlueTestFileWithVm(dir string, f fs.DirEntry, t *testing.T) {
 	// 	t.Errorf("File `%s`: Did not return true as last statement. Failed", f.Name())
 	// }
 	object.ClearGlobalState()
-}
-
-func testVmScopes(t *testing.T) {
-	vmString(t, vmScopes)
 }
 
 func TestVmStackOverflowForIn(t *testing.T) {
@@ -390,8 +374,7 @@ func TestBrokenLogicInFetchVm(t *testing.T) {
 
 }
 
-// TODO: Test this and fix then re-enable test
-func testBrokenVmStackOverflowIssue(t *testing.T) {
+func TestBrokenVmStackOverflowIssue(t *testing.T) {
 	s := `val input = """[[1],[2,3,4]]
 	[[1],4]""";
 	var lines = input.split("\n");

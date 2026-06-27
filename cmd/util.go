@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -56,8 +57,14 @@ func lexFile(fpath string) {
 // parseFile parses the given file
 func parseFile(fpath string, allErrors bool) {
 	program := lexAndParse(fpath, true, allErrors)
-	io.WriteString(out, program.String())
-	io.WriteString(out, "\n")
+	_, err := io.WriteString(out, program.String())
+	if err != nil {
+		log.Printf("Failed to write string to out parameter, error: %s", err.Error())
+	}
+	_, err = io.WriteString(out, "\n")
+	if err != nil {
+		log.Printf("Failed to write string to out parameter, error: %s", err.Error())
+	}
 }
 
 func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) *ast.Program {
@@ -176,7 +183,10 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
 			if i != len(splitMsg)-1 {
 				delimeter = "\n"
 			}
-			fmt.Fprintf(out, "%s%s", s, delimeter)
+			_, errr := fmt.Fprintf(out, "%s%s", s, delimeter)
+			if errr != nil {
+				log.Printf("Failed to write to output, error: %s", errr.Error())
+			}
 		}
 		os.Exit(1)
 	}

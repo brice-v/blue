@@ -26,7 +26,7 @@ func TestLookupAllOpcodes(t *testing.T) {
 		if def == nil {
 			t.Errorf("Lookup(%d) returned nil definition", op)
 		}
-		if def.Name == "" {
+		if def != nil && def.Name == "" {
 			t.Errorf("Lookup(%d) returned empty name", op)
 		}
 	}
@@ -335,8 +335,6 @@ func TestInstructionsString(t *testing.T) {
 		t.Error("String() should not be empty")
 	}
 }
-
-
 
 func TestFmtInstructionNoOperands(t *testing.T) {
 	def := &Definition{Name: "OpTrue", OperandWidths: []int{}}

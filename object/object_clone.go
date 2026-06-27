@@ -109,7 +109,7 @@ func (x *Builtin) Clone() Object {
 }
 
 func (x *BuiltinObj) Clone() Object {
-	return &BuiltinObj{Obj: x.Clone(), HelpStr: x.HelpStr}
+	return &BuiltinObj{Obj: x.Obj.Clone(), HelpStr: x.HelpStr}
 }
 
 func (x *List) Clone() Object {

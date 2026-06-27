@@ -374,34 +374,6 @@ func TestNextTokenMulti1(t *testing.T) {
 	}
 }
 
-func testNextTokenBacktick(t *testing.T) {
-	input := "`"
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.BACKTICK, "`"},
-		{token.EOF, ""},
-	}
-
-	l := New(input, "<internal:test>")
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-
-		if tok.Type != tt.expectedType {
-			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
-				i, tt.expectedType, tok.Type)
-		}
-
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
-				i, tt.expectedLiteral, tok.Literal)
-		}
-	}
-}
-
 func TestNextTokenNumbers(t *testing.T) {
 	input := `0x1234_1234
 	0o777_777

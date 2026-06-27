@@ -147,7 +147,7 @@ func (vm *VM) StackTop() object.Object {
 
 func (vm *VM) PushAndReturnError(err error) error {
 	if vm.currentFrame().inTry {
-		vm.push(newError("%s", err.Error()))
+		_ = vm.push(newError("%s", err.Error()))
 		return nil
 	}
 	return err
@@ -183,11 +183,29 @@ func (vm *VM) Run() error {
 				}
 			}
 		case code.OpTrue:
-			vm.push(object.TRUE)
+			err := vm.push(object.TRUE)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpFalse:
-			vm.push(object.FALSE)
+			err := vm.push(object.FALSE)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpNull:
-			vm.push(object.NULL)
+			err := vm.push(object.NULL)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpPop:
 			vm.pop()
 		case code.OpAdd, code.OpMinus, code.OpStar, code.OpPow, code.OpDiv,
@@ -268,14 +286,23 @@ func (vm *VM) Run() error {
 				condition := vm.pop()
 				if !isTruthy(condition) {
 					vm.currentFrame().ip = pos - 1
-					vm.push(object.TRUE)
+					err := vm.push(object.TRUE)
+					if err != nil {
+						err = vm.PushAndReturnError(err)
+						if err != nil {
+							return err
+						}
+					}
 				} else {
 					// Execute Not on the Condition to reverse OpNotIfNotNull which is always called prior
 					err := vm.push(condition)
 					if err != nil {
 						return err
 					}
-					vm.executeNotOperation()
+					err = vm.executeNotOperation()
+					if err != nil {
+						return err
+					}
 				}
 			}
 		case code.OpJumpNotTruthyAndPushFalse:
@@ -284,7 +311,13 @@ func (vm *VM) Run() error {
 			condition := vm.pop()
 			if !isTruthy(condition) {
 				vm.currentFrame().ip = pos - 1
-				vm.push(object.FALSE)
+				err := vm.push(object.FALSE)
+				if err != nil {
+					err = vm.PushAndReturnError(err)
+					if err != nil {
+						return err
+					}
+				}
 			} else {
 				err := vm.push(condition)
 				if err != nil {
@@ -438,7 +471,13 @@ func (vm *VM) Run() error {
 			if frame != nil {
 				vm.sp = frame.bp - 1
 			}
-			vm.push(object.NULL)
+			err := vm.push(object.NULL)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 			if frame != nil {
 				for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
 					err := vm.callClosure(deferFun, 0)
@@ -566,7 +605,13 @@ func (vm *VM) Run() error {
 					return err
 				}
 			} else {
-				vm.push(object.NULL)
+				err := vm.push(object.NULL)
+				if err != nil {
+					err = vm.PushAndReturnError(err)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		case code.OpTry:
 			// Reset catch state when entering a try block. This is important
@@ -618,9 +663,21 @@ func (vm *VM) Run() error {
 		case code.OpMatchValue:
 			right := vm.pop()
 			left := vm.pop()
-			vm.push(nativeToBooleanObject(matches(left, right)))
+			err := vm.push(nativeToBooleanObject(matches(left, right)))
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpMatchAny:
-			vm.push(object.VM_IGNORE)
+			err := vm.push(object.VM_IGNORE)
+			if err != nil {
+				err = vm.PushAndReturnError(err)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpDefaultArgs:
 			numPairs := int(code.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
@@ -715,7 +772,7 @@ func (vm *VM) Run() error {
 			numArgs := int(code.ReadUint8(ins[ip+1:]))
 			vm.currentFrame().ip += 1
 			var args []object.Object
-			funArgIndex := -1
+			funArgIndex := 0
 			listArgIndex := -1
 			if numArgs == 0 {
 				args = []object.Object{vm.pop()}
@@ -1321,7 +1378,10 @@ func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (i
 		return 0, fmt.Errorf("wrong number of arguments: want=%d, got=%d", cl.NumParameters, numArgs)
 	}
 	for _, arg := range args {
-		vm.push(arg)
+		err := vm.push(arg)
+		if err != nil {
+			return 0, err
+		}
 	}
 	return argCountAfterWeave, nil
 }
@@ -1370,11 +1430,11 @@ func vmStr(s string) object.Object {
 
 func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) {
 	if args[funArgIndex].Type() != object.CLOSURE {
-		vm.push(newError("`spawn` error: expected function got = %s", args[funArgIndex].Type()))
+		_ = vm.push(newError("`spawn` error: expected function got = %s", args[funArgIndex].Type()))
 		return
 	}
 	if args[listArgIndex].Type() != object.LIST_OBJ {
-		vm.push(newError("`spawn` error: expected list got = %s", args[listArgIndex].Type()))
+		_ = vm.push(newError("`spawn` error: expected list got = %s", args[listArgIndex].Type()))
 		return
 	}
 	fun := args[funArgIndex].(*object.Closure)
@@ -1390,7 +1450,7 @@ func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) 
 	clonedVm := vm.Clone(pid)
 	// Dont clone args list so if processes are sent through then they will be usable by the process (channel must not be "cloned")
 	go spawnFunction(clonedVm, vm.NodeName, fun.Clone().(*object.Closure), args[listArgIndex].(*object.List))
-	vm.push(process)
+	_ = vm.push(process)
 }
 
 func spawnFunction(vm *VM, nodeName string, fun *object.Closure, arg1 object.Object) {

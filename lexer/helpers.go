@@ -67,5 +67,5 @@ func isOctalChar(ch rune) bool {
 
 // isBinaryChar will return true if the rune given is a binary character
 func isBinaryChar(ch rune) bool {
-	return '0' == ch || '1' == ch
+	return ch == '0' || ch == '1'
 }

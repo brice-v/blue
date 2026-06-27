@@ -614,7 +614,12 @@ var Builtins = []*Builtin{
 			if isFullResp {
 				return getBlueObjectFromResp(resp)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				err := resp.Body.Close()
+				if err != nil {
+					log.Printf("Failed to close response body, error: %s", err.Error())
+				}
+			}()
 			respBody, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return newError("`fetch` error: %s", err.Error())

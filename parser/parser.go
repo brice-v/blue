@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/big"
 	"strconv"
@@ -272,32 +273,56 @@ func (p *Parser) PrintParserErrors(out io.Writer) {
 
 		consts.ErrorPrinter("%s%s\n", consts.PARSER_ERROR_PREFIX, err.Message)
 		if err.FileLineColumn != "" {
-			fmt.Fprintf(out, "   %s\n", err.FileLineColumn)
+			_, errr := fmt.Fprintf(out, "   %s\n", err.FileLineColumn)
+			if errr != nil {
+				log.Printf("Failed to write parser error output, error: %s", errr.Error())
+			}
 		}
 		if err.SourceLine != "" {
-			fmt.Fprintf(out, "    %d │ %s\n", err.LineNumber, err.SourceLine)
+			_, errr := fmt.Fprintf(out, "    %d │ %s\n", err.LineNumber, err.SourceLine)
+			if errr != nil {
+				log.Printf("Failed to write parser error output, error: %s", errr.Error())
+			}
 			// Compute the line number prefix width so the pointer line
 			// aligns with the source content (not the line number)
 			lineNumWidth := len(fmt.Sprintf("%d", err.LineNumber))
 			prefix := "    " + strings.Repeat(" ", lineNumWidth) + " │ "
-			fmt.Fprintf(out, "%s%s", prefix, err.PointerPos)
-			if err.Message != "" {
-				fmt.Fprintf(out, " %s", err.Message)
+			_, errr = fmt.Fprintf(out, "%s%s", prefix, err.PointerPos)
+			if errr != nil {
+				log.Printf("Failed to write parser error output, error: %s", errr.Error())
 			}
-			fmt.Fprintln(out)
+			if err.Message != "" {
+				_, errr = fmt.Fprintf(out, " %s", err.Message)
+				if errr != nil {
+					log.Printf("Failed to write parser error output, error: %s", errr.Error())
+				}
+			}
+			_, errr = fmt.Fprintln(out)
+			if errr != nil {
+				log.Printf("Failed to write parser error output, error: %s", errr.Error())
+			}
 		}
 
 		if len(err.Hints) > 0 {
 			for _, hint := range err.Hints {
-				fmt.Fprintf(out, "  [HINT] %s\n", hint)
+				_, errr := fmt.Fprintf(out, "  [HINT] %s\n", hint)
+				if errr != nil {
+					log.Printf("Failed to write parser error output, error: %s", errr.Error())
+				}
 			}
 		}
 
 		if count > 1 && isLast {
-			fmt.Fprintf(out, "  [%d more similar error(s) omitted]\n", count-1)
+			_, errr := fmt.Fprintf(out, "  [%d more similar error(s) omitted]\n", count-1)
+			if errr != nil {
+				log.Printf("Failed to write parser error output, error: %s", errr.Error())
+			}
 		}
 
-		fmt.Fprintln(out)
+		_, errr := fmt.Fprintln(out)
+		if errr != nil {
+			log.Printf("Failed to write parser error output, error: %s", errr.Error())
+		}
 	}
 }
 
@@ -2163,10 +2188,7 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 		if sl.ch == '#' && sl.peekChar() == '{' {
 			sl.readStringChar()
 			sl.readStringChar()
-			for {
-				if sl.ch == '}' {
-					break
-				}
+			for sl.ch != '}' {
 				toLex.WriteRune(sl.ch)
 				sl.readStringChar()
 			}

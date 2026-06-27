@@ -271,12 +271,6 @@ func handleCompileCommand(argc int, arguments []string) {
 	}
 }
 
-func printNodeErrorUsageAndExit() {
-	consts.ErrorPrinter("`node` incorrect usage: example: `node --name \"n1@localhost\"`\n" +
-		"                                 (name here requires identifier and address separated with @)")
-	os.Exit(1)
-}
-
 func handleDocCommand(argc int, arguments []string) {
 	if argc != 2 {
 		consts.ErrorPrinter("unexpected `doc` arguments. got=%+v\n", arguments)

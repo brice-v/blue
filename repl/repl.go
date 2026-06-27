@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/user"
 	"strings"
@@ -49,7 +50,10 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	for i, v := range object.BuiltinobjsList {
 		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex, v.Builtin.Help())
 	}
-	fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
+	_, err := fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
+	if err != nil {
+		log.Printf("Failed to write to repl output, error: %s", err.Error())
+	}
 	var filebuf bytes.Buffer
 	replVarIndx := 1
 	var c *compiler.Compiler = nil
@@ -57,13 +61,19 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		line := readLine(rl)
 		if strings.HasPrefix(line, ".") {
 			if strings.HasPrefix(line, ".exit") {
-				io.WriteString(out, "\n")
+				_, err = io.WriteString(out, "\n")
+				if err != nil {
+					log.Printf("Failed to write to repl output, error: %s", err.Error())
+				}
 				break
 			}
 			// TODO: Need to be able to pass something here to store loaded file
 			err := handleVmDotCommand(line, out, &filebuf, nil)
 			if err != nil {
-				fmt.Fprintf(out, "repl command error: %s\n", err.Error())
+				_, errr := fmt.Fprintf(out, "repl command error: %s\n", err.Error())
+				if errr != nil {
+					log.Printf("Failed to write to repl output, error: %s", errr.Error())
+				}
 			}
 			continue
 		}
@@ -94,11 +104,20 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 			symbol := symbolTable.Define(replVar, true)
 			globals[symbol.Index] = v.LastPoppedStackElem()
 			replVarIndx++
-			fmt.Fprintf(out, "%s => %s\n", replVar, v.LastPoppedStackElem().Inspect())
+			_, errr := fmt.Fprintf(out, "%s => %s\n", replVar, v.LastPoppedStackElem().Inspect())
+			if errr != nil {
+				log.Printf("Failed to write to repl output, error: %s", errr.Error())
+			}
 		} else {
-			fmt.Fprintf(out, "%s\n", err.Error())
+			_, errr := fmt.Fprintf(out, "%s\n", err.Error())
+			if errr != nil {
+				log.Printf("Failed to write to repl output, error: %s", errr.Error())
+			}
 		}
-		fmt.Fprintf(&filebuf, "%s\n", line)
+		_, errr := fmt.Fprintf(&filebuf, "%s\n", line)
+		if errr != nil {
+			log.Printf("Failed to write to repl output, error: %s", errr.Error())
+		}
 	}
 }
 
@@ -110,7 +129,10 @@ func startLexerRepl(in io.ReadCloser, out io.Writer, username string) {
 		line := readLine(rl)
 		l := lexer.New(line, "<repl>")
 		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			fmt.Fprintf(out, "%+v\n", tok)
+			_, errr := fmt.Fprintf(out, "%+v\n", tok)
+			if errr != nil {
+				log.Printf("Failed to write to repl output, error: %s", errr.Error())
+			}
 		}
 	}
 }
@@ -128,12 +150,18 @@ func startParserRepl(in io.ReadCloser, out io.Writer, username string) {
 			p.PrintParserErrors(out)
 			continue
 		}
-		fmt.Fprintf(out, "%s\n", program.String())
+		_, errr := fmt.Fprintf(out, "%s\n", program.String())
+		if errr != nil {
+			log.Printf("Failed to write to repl output, error: %s", errr.Error())
+		}
 	}
 }
 
 func NewReadline(in io.ReadCloser, out io.Writer, mode, username string) *readline.Instance {
-	fmt.Fprintf(out, "blue | v%s | REPL | MODE: %s | User: %s\n", consts.VERSION, mode, username)
+	_, errr := fmt.Fprintf(out, "blue | v%s | REPL | MODE: %s | User: %s\n", consts.VERSION, mode, username)
+	if errr != nil {
+		log.Printf("Failed to write to repl output, error: %s", errr.Error())
+	}
 	rl, err := readline.NewEx(&readline.Config{Stdin: in, Stdout: out, Prompt: PROMPT})
 	if err != nil {
 		consts.ErrorPrinter("Failed to instantiate readline. error: %s\n", err.Error())

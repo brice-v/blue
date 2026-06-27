@@ -3,6 +3,7 @@ package object
 import (
 	"encoding/csv"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -14,7 +15,12 @@ func downloadUrlAsCsv(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Printf("Failed to close response body, error: %s", err.Error())
+		}
+	}()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err

@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -260,7 +261,10 @@ func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operat
 		if !ok {
 			return fmt.Errorf("invalid assignment operator: %s", operator)
 		}
-		c.compileInfixExpression(op)
+		err = c.compileInfixExpression(op)
+		if err != nil {
+			return err
+		}
 	} else {
 		err := c.Compile(v)
 		if err != nil {
@@ -414,7 +418,12 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 		if err != nil {
 			return fmt.Errorf("failed to import '%s'. Could not open file '%s' for reading", name, file)
 		}
-		defer ofile.Close()
+		defer func() {
+			err := ofile.Close()
+			if err != nil {
+				log.Printf("Failed to close embed file %s, error: %s", fpath, err.Error())
+			}
+		}()
 		fileData, err := io.ReadAll(ofile)
 		if err != nil {
 			return fmt.Errorf("failed to import '%s'. Could not read the file", name)
@@ -797,7 +806,7 @@ func (c *Compiler) compileVarValStatements(node ast.VarValStatement) error {
 	}
 	names := node.VVNames()
 	if len(names) > 255 {
-		return c.addNodeToErrorTrace(fmt.Errorf("Destructor does not support more than 255 names"), node.VVToken())
+		return c.addNodeToErrorTrace(fmt.Errorf("destructor does not support more than 255 names"), node.VVToken())
 	}
 	for keyName, newName := range node.VVKeyValueNames() {
 		var key string

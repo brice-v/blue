@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -194,14 +195,27 @@ var HttpBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`download` error: %s", err.Error())
 			}
-			defer resp.Body.Close()
+			defer func() {
+				err := resp.Body.Close()
+				if err != nil {
+					log.Printf("Failed to close response body, error: %s", err.Error())
+				}
+			}()
 			f, err := os.Create(fname)
 			if err != nil {
 				return newError("`download` error: %s", err.Error())
 			}
-			defer f.Close()
+			defer func() {
+				err := f.Close()
+				if err != nil {
+					log.Printf("Failed to close file %s, error: %s", fname, err.Error())
+				}
+			}()
 
-			io.Copy(f, resp.Body)
+			_, err = io.Copy(f, resp.Body)
+			if err != nil {
+				log.Printf("Failed to copy response body to file, error: %s", err.Error())
+			}
 			return NULL
 		},
 		HelpStr: helpStrArgs{
@@ -647,7 +661,7 @@ var HttpBuiltins = []*Builtin{
 			bs := []byte(args[0].(*Stringo).Value)
 			shouldSanitize := args[1].(*Boolean).Value
 			shouldMinify := args[2].(*Boolean).Value
-			var htmlContent []byte = bs
+			htmlContent := bs
 			if shouldSanitize {
 				p := bluemonday.UGCPolicy()
 				// allow code to still get syntax highlighting

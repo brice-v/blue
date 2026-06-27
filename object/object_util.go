@@ -260,7 +260,12 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Printf("Failed to close response body, error: %s", err.Error())
+		}
+	}()
 	body := &Stringo{Value: string(_body)}
 	contentLength := &Integer{Value: resp.ContentLength}
 	headersToMapObj := func(header http.Header) Object {

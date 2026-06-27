@@ -67,23 +67,29 @@ var ConfigBuiltins = []*Builtin{
 			}
 			c := config.New("config")
 			configAsJson := args[0].(*Stringo).Value
-			c.LoadStrings(config.JSON, configAsJson)
+			err := c.LoadStrings(config.JSON, configAsJson)
+			if err != nil {
+				return newError("`dump_config` error: failed to load config, error: %s", err.Error())
+			}
 			fpath := args[1].(*Stringo).Value
 			format := args[2].(*Stringo).Value
 			out := new(bytes.Buffer)
 			switch format {
 			case "JSON":
-				config.DumpTo(out, config.JSON)
+				_, err = config.DumpTo(out, config.JSON)
 			case "TOML":
-				config.DumpTo(out, config.Toml)
+				_, err = config.DumpTo(out, config.Toml)
 			case "YAML":
-				config.DumpTo(out, config.Yaml)
+				_, err = config.DumpTo(out, config.Yaml)
 			case "INI":
-				config.DumpTo(out, config.Ini)
+				_, err = config.DumpTo(out, config.Ini)
 			case "PROPERTIES":
-				config.DumpTo(out, config.Prop)
+				_, err = config.DumpTo(out, config.Prop)
 			}
-			err := os.WriteFile(fpath, out.Bytes(), 0755)
+			if err != nil {
+				return newError("`dump_config` error: failed to dump to output, error: %s", err.Error())
+			}
+			err = os.WriteFile(fpath, out.Bytes(), 0755)
 			if err != nil {
 				return newError("`dump_config` error: %s", err.Error())
 			}
