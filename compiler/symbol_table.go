@@ -253,7 +253,7 @@ func (s *SymbolTable) GetOrderedPublicFunctionHelpString(modName string) string 
 		// if v == "" {
 		// 	continue
 		// }
-		vSplit := strings.Split(v, "\ntype(")[0]
+		vSplit, _, _ := strings.Cut(v, "\ntype(")
 		// remove the trailing \n
 		vSplit = vSplit[:len(vSplit)-1]
 		vSplitFurther := strings.Split(vSplit, "\n")

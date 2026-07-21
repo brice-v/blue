@@ -256,7 +256,7 @@ func (f *logScopesFlag) String() string {
 }
 
 func (f *logScopesFlag) Set(input string) error {
-	for _, s := range strings.Split(input, ",") {
+	for s := range strings.SplitSeq(input, ",") {
 		switch s {
 		case "":
 			continue
@@ -284,7 +284,7 @@ func (f *logScopesFlag) Set(input string) error {
 }
 
 func ParseHostLogging(input string) (f logScopesFlag, err error) {
-	for _, s := range strings.Split(input, ",") {
+	for s := range strings.SplitSeq(input, ",") {
 		switch s {
 		case "":
 			continue

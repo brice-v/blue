@@ -11,6 +11,7 @@ import (
 	"blue/parser"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -56,8 +57,8 @@ func (c *Compiler) GetStdModuleDocString(name string) string {
 	if err := c.CompileStdModule(name, nil, false); err != nil {
 		return ""
 	}
-	for i := len(c.constants) - 1; i >= 0; i-- {
-		if mod, ok := c.constants[i].(*object.Module); ok && mod.Name == name {
+	for _, v := range slices.Backward(c.constants) {
+		if mod, ok := v.(*object.Module); ok && mod.Name == name {
 			return mod.Help() + "\n"
 		}
 	}

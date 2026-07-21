@@ -217,7 +217,7 @@ func (e *Environment) GetOrderedPublicFunctionHelpString() string {
 	for _, k := range orderedKeys {
 		value, _ := e.store.Load(k)
 		v := value.HelpStr
-		vSplit := strings.Split(v, "\ntype(")[0]
+		vSplit, _, _ := strings.Cut(v, "\ntype(")
 		// remove the trailing \n
 		vSplit = vSplit[:len(vSplit)-1]
 		vSplitFurther := strings.Split(vSplit, "\n")

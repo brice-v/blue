@@ -319,7 +319,7 @@ func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string, isStatic 
 	if err != nil {
 		return "", err
 	}
-	for _, o := range strings.Split(oo, "\n") {
+	for o := range strings.SplitSeq(oo, "\n") {
 		if o == "" {
 			continue
 		}

@@ -574,7 +574,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 	prefixTests := []struct {
 		input    string
 		operator string
-		value    interface{}
+		value    any
 	}{
 		{"not 5;", "not", 5},
 		{"-15;", "-", 15},
@@ -838,7 +838,7 @@ func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
 func testLiteralExpression(
 	t *testing.T,
 	exp ast.Expression,
-	expected interface{},
+	expected any,
 ) bool {
 	switch v := expected.(type) {
 	case int:
@@ -857,9 +857,9 @@ func testLiteralExpression(
 func testInfixExpression(
 	t *testing.T,
 	exp ast.Expression,
-	left interface{},
+	left any,
 	operator string,
-	right interface{},
+	right any,
 ) bool {
 	opExp, ok := exp.(*ast.InfixExpression)
 	if !ok {

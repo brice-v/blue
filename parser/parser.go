@@ -11,6 +11,7 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -1961,8 +1962,8 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 	}
 
 	body := fmt.Sprintf("__internal__ << %s;", valueToBind.String())
-	for i := len(clauses) - 1; i >= 0; i-- {
-		c := clauses[i]
+	for _, c := range slices.Backward(clauses) {
+
 		if c.ifCond != nil {
 			body = fmt.Sprintf("if (!!(%s)) { %s }", c.ifCond.String(), body)
 		}
@@ -2043,8 +2044,8 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 		break
 	}
 	body := fmt.Sprintf("__internal__[%s] = %s", key.String(), value.String())
-	for i := len(clauses) - 1; i >= 0; i-- {
-		c := clauses[i]
+	for _, c := range slices.Backward(clauses) {
+
 		if c.ifCond != nil {
 			body = fmt.Sprintf("if (!!(%s)) { %s }", c.ifCond.String(), body)
 		}
@@ -2124,8 +2125,8 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 		break
 	}
 	body := fmt.Sprintf("__internal__ << %s", value.String())
-	for i := len(clauses) - 1; i >= 0; i-- {
-		c := clauses[i]
+	for _, c := range slices.Backward(clauses) {
+
 		if c.ifCond != nil {
 			body = fmt.Sprintf("if (!!(%s)) { %s }", c.ifCond.String(), body)
 		}
