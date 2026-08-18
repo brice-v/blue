@@ -306,7 +306,11 @@ func buildExeAndWriteToSavedDir(fpath, tmpDir, savedCurrentDir string, isStatic 
 	if isStatic {
 		buildCmd = append(buildCmd, []string{"-tags=static", "-ldflags=-s -w -extldflags static"}...)
 	} else {
-		buildCmd = append(buildCmd, "-ldflags=-s -w")
+		ldflags := "-s -w"
+		if oos == "darwin" {
+			ldflags += " -extldflags=-Wl,-no_warn_duplicate_libraries"
+		}
+		buildCmd = append(buildCmd, "-ldflags="+ldflags)
 	}
 	env := []string{goos, goarch}
 	if isStatic {
