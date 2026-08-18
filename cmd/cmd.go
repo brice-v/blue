@@ -108,7 +108,7 @@ func Run(args ...string) {
 			}
 		}
 		if isFile(fpath) {
-			vmFileOrString(fpath, true, noExec, allErrors)
+			vmFileOrString(fpath, true, noExec, allErrors, false)
 		} else {
 			consts.ErrorPrinter("error: file not found: %s (run 'blue help' for usage)\n", fpath)
 			os.Exit(1)
@@ -246,7 +246,7 @@ func handleVmCommand(argc int, arguments []string) {
 				strToEval = arg
 			}
 		}
-		vmFileOrString(strToEval, isFile(strToEval), flagNoExec, allErrors)
+		vmFileOrString(strToEval, isFile(strToEval), flagNoExec, allErrors, true)
 	default:
 		consts.ErrorPrinter("unexpected `vm` arguments. got=%+v\n", arguments)
 		os.Exit(1)

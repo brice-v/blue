@@ -148,7 +148,7 @@ func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) {
 	os.Exit(0)
 }
 
-func vmFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
+func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult bool) {
 	c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
 	globals := make([]object.Object, vm.GlobalsSize)
 	bc := c.Bytecode()
@@ -189,6 +189,12 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec bool, allErrors bool) {
 			}
 		}
 		os.Exit(1)
+	}
+	if printResult {
+		_, err := fmt.Fprintf(out, "%s\n", val.Inspect())
+		if err != nil {
+			log.Printf("Failed to write to output, error: %s", err.Error())
+		}
 	}
 }
 
