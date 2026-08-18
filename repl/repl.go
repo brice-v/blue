@@ -41,7 +41,7 @@ func StartVmRepl() {
 // an input and io.Writer as an output
 func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
 	rl := NewReadline(in, out, "VM", username)
-	constants := []object.Object{}
+	constants := object.NewObjectConstants()
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
 	for i, v := range object.AllBuiltins[0].Builtins {
