@@ -11,14 +11,15 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/clbanning/mxj/v2"
-	"github.com/gofiber/fiber/v2"
 )
 
 func executeIntegerRangeOperator(leftVal, rightVal int64) object.Object {
@@ -749,7 +750,7 @@ func generateJsonStringFromOtherValidTypes(buf bytes.Buffer, element object.Obje
 	return buf
 }
 
-func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) (bool, object.Object, []string) {
+func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c *object.Ctx, method string) (bool, object.Object, []string) {
 	isGet := method == "GET"
 	isDelete := method == "DELETE"
 	methodLower := strings.ToLower(method)
@@ -761,7 +762,7 @@ func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c *fiber.Ctx, metho
 	return true, vm.applyFunctionFastWithMultipleArgs(fn, fnArgs), []string{}
 }
 
-func handleSpecialFunctionArgs2(fn *object.Closure, varName string, c *fiber.Ctx) {
+func handleSpecialFunctionArgs2(fn *object.Closure, varName string, c *object.Ctx) {
 	if fn.Fun.SpecialFunctionParameters == nil {
 		return
 	}
@@ -877,7 +878,7 @@ func decodeInterfaceToObject(value any) object.Object {
 	return object.NULL
 }
 
-func getAndSetHttpParams(fn *object.Closure, c *fiber.Ctx) []object.Object {
+func getAndSetHttpParams(fn *object.Closure, c *object.Ctx) []object.Object {
 	fnArgs := make([]object.Object, len(fn.Fun.Parameters))
 	for i, v := range fn.Fun.Parameters {
 		switch v {
@@ -885,15 +886,19 @@ func getAndSetHttpParams(fn *object.Closure, c *fiber.Ctx) []object.Object {
 			// Handle headers
 			fnArgs[i] = getReqHeaderMapObj(c)
 		case "request":
-			req := c.Request()
+			r := c.R
 			mapObj := object.NewOrderedMap[string, object.Object]()
 			mapObj.Set("method", &object.Stringo{Value: c.Method()})
 			mapObj.Set("proto", &object.Stringo{Value: c.Protocol()})
-			mapObj.Set("uri", &object.Stringo{Value: string(req.URI().FullURI())})
-			mapObj.Set("scheme", &object.Stringo{Value: string(req.URI().Scheme())})
-			mapObj.Set("host", &object.Stringo{Value: string(req.URI().Host())})
-			mapObj.Set("request_uri", &object.Stringo{Value: string(req.URI().RequestURI())})
-			mapObj.Set("hash", &object.Stringo{Value: string(req.URI().Hash())})
+			scheme := "http"
+			if r.TLS != nil {
+				scheme = "https"
+			}
+			mapObj.Set("uri", &object.Stringo{Value: scheme + "://" + r.Host + r.URL.RequestURI()})
+			mapObj.Set("scheme", &object.Stringo{Value: scheme})
+			mapObj.Set("host", &object.Stringo{Value: r.Host})
+			mapObj.Set("request_uri", &object.Stringo{Value: r.URL.RequestURI()})
+			mapObj.Set("hash", &object.Stringo{Value: r.URL.Fragment})
 			headersMapObj := getReqHeaderMapObj(c)
 			mapObj.Set("headers", headersMapObj)
 			mapObj.Set("ip", &object.Stringo{Value: c.IP()})
@@ -909,7 +914,7 @@ func getAndSetHttpParams(fn *object.Closure, c *fiber.Ctx) []object.Object {
 	return fnArgs
 }
 
-func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
+func getReqHeaderMapObj(c *object.Ctx) object.Object {
 	headers := c.GetReqHeaders()
 	mapObj := object.NewOrderedMap[string, object.Object]()
 	headerKeys := make([]string, len(headers))
@@ -926,7 +931,34 @@ func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
 	return object.CreateMapObjectForGoMap(*mapObj)
 }
 
-func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
+// httpCookie is the JSON shape blue sends to set_cookie. It mirrors the fiber
+// Cookie struct with its lowercase json tags so existing blue maps still parse.
+type httpCookie struct {
+	Name     string    `json:"name"`
+	Value    string    `json:"value"`
+	Path     string    `json:"path"`
+	Domain   string    `json:"domain"`
+	MaxAge   int       `json:"max_age"`
+	Expires  time.Time `json:"expires"`
+	Secure   bool      `json:"secure"`
+	HTTPOnly bool      `json:"http_only"`
+	SameSite string    `json:"same_site"`
+}
+
+func httpCookieSameSite(s string) http.SameSite {
+	switch strings.ToLower(s) {
+	case "lax":
+		return http.SameSiteLaxMode
+	case "strict":
+		return http.SameSiteStrictMode
+	case "none":
+		return http.SameSiteNoneMode
+	default:
+		return http.SameSiteDefaultMode
+	}
+}
+
+func getCtxFunctionMapObj(c *object.Ctx) object.Object {
 	mapObj := object.NewOrderedMap[string, object.Object]()
 	mapObj.Set("clear_cookie", &object.Builtin{
 		Name: "clear_cookie",
@@ -960,7 +992,7 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 				return newError("`set_cookie` error: %s", jsonO.(*object.Error).Message)
 			}
 			if jj, ok := jsonO.(*object.Stringo); ok {
-				cookie := new(fiber.Cookie)
+				cookie := new(httpCookie)
 				err := json.Unmarshal([]byte(jj.Value), cookie)
 				if err != nil {
 					return newError("`set_cookie` error: %s", err.Error())
@@ -968,7 +1000,17 @@ func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
 				if cookie.Domain == "" {
 					cookie.Domain = strings.Split(c.Hostname(), ":")[0]
 				}
-				c.Cookie(cookie)
+				http.SetCookie(c.W, &http.Cookie{
+					Name:     cookie.Name,
+					Value:    cookie.Value,
+					Path:     cookie.Path,
+					Domain:   cookie.Domain,
+					MaxAge:   cookie.MaxAge,
+					Expires:  cookie.Expires,
+					Secure:   cookie.Secure,
+					HttpOnly: cookie.HTTPOnly,
+					SameSite: httpCookieSameSite(cookie.SameSite),
+				})
 			}
 			return object.NULL
 		},

@@ -52,7 +52,7 @@ The default behavior for no command/arguments will start an vm repl. (If given a
 
 Environment Variables:
 
-BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the gofiber http route path printing and message
+BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the http server route path printing and message
 
 BLUE_INSTALL_PATH                set to the path where the blue src is installed. ie. ~/.blue/src
 

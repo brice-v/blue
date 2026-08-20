@@ -11,8 +11,6 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.1
 	github.com/gen2brain/raylib-go/raylib v0.55.1
 	github.com/gobuffalo/plush v3.8.3+incompatible
-	github.com/gofiber/fiber/v2 v2.52.12
-	github.com/gofiber/websocket/v2 v2.2.1
 	github.com/golang-module/carbon/v2 v2.6.9
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.6.0
@@ -40,14 +38,11 @@ require (
 	fyne.io/systray v1.12.0 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
-	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/antchfx/xpath v1.3.6 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dromara/carbon/v2 v2.6.9 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fasthttp/websocket v1.5.12 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fredbi/uri v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -80,23 +75,17 @@ require (
 	github.com/huandu/go-clone v1.7.3 // indirect
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade // indirect
 	github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25 // indirect
-	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
-	github.com/mattn/go-runewidth v0.0.22 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
-	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rymdport/portal v0.4.2 // indirect
-	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
-	github.com/savsgio/gotils v0.0.0-20250924091648-bce9a52d7761 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/shoenig/go-m1cpu v0.2.1 // indirect
 	github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d // indirect
@@ -105,11 +94,8 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tdewolff/parse/v2 v2.8.11 // indirect
-	github.com/tinylib/msgp v1.6.3 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.69.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
@@ -124,7 +110,5 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/opt v0.2.0 // indirect
 )
-
-replace github.com/gofiber/fiber/v2 => ./ws_vendor/fiber
 
 replace github.com/gen2brain/raylib-go/raylib => ./ws_vendor/raylib

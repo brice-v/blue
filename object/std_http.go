@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,16 +15,13 @@ import (
 	"os/signal"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/gofiber/websocket/v2"
 	ws "github.com/gorilla/websocket"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
 
@@ -36,6 +34,73 @@ import (
 
 // Used to catch interrupt to shutdown server
 var interruptCh = make(chan os.Signal, 1)
+
+// createMonitorHandler returns a handler serving the self contained monitor
+// dashboard. When shouldShow is false the handler falls through to the next
+// handler so the dashboard is hidden.
+func createMonitorHandler(path string, shouldShow bool) func(*Ctx) {
+	dataPath := strings.TrimSuffix(path, "/") + "/data"
+	return func(c *Ctx) {
+		if !shouldShow {
+			_ = c.Next()
+			return
+		}
+		html := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blue HTTP Monitor</title>
+<style>
+body { font-family: sans-serif; margin: 2rem; }
+pre { background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+h1 { font-size: 1.4rem; }
+</style>
+</head>
+<body>
+<h1>Blue HTTP Monitor</h1>
+<pre id="stats">loading...</pre>
+<script>
+async function refresh() {
+  try {
+    const r = await fetch('%s');
+    const data = await r.json();
+    document.getElementById('stats').textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    document.getElementById('stats').textContent = 'error fetching stats: ' + e;
+  }
+}
+refresh();
+setInterval(refresh, 1000);
+</script>
+</body>
+</html>`, dataPath)
+		c.Set("Content-Type", "text/html; charset=utf-8")
+		_ = c.SendString(html)
+	}
+}
+
+// collectMonitorStats gathers runtime plus gopsutil cpu and memory stats for
+// the monitor json endpoint.
+func collectMonitorStats() map[string]any {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	stats := map[string]any{
+		"goroutines": runtime.NumGoroutine(),
+		"mem_alloc":  memStats.Alloc,
+		"mem_total":  memStats.TotalAlloc,
+		"num_gc":     memStats.NumGC,
+	}
+	cpuPercents, err := cpu.Percent(0, false)
+	if err == nil && len(cpuPercents) > 0 {
+		stats["cpu_percent"] = cpuPercents[0]
+	}
+	if vm, err := mem.VirtualMemory(); err == nil {
+		stats["mem_used"] = vm.Used
+		stats["mem_total_bytes"] = vm.Total
+		stats["mem_used_percent"] = vm.UsedPercent
+	}
+	return stats
+}
 
 var HttpBuiltins = []*Builtin{
 	{
@@ -235,23 +300,13 @@ var HttpBuiltins = []*Builtin{
 				return newPositionalTypeError("new_server", 1, STRING_OBJ, args[0].Type())
 			}
 			network := args[0].(*Stringo).Value
-			var disableStartupDebug bool
-			disableStartupMessageStr := os.Getenv(consts.BLUE_DISABLE_HTTP_SERVER_DEBUG)
-			disableStartupDebug, err := strconv.ParseBool(disableStartupMessageStr)
-			if err != nil {
-				disableStartupDebug = false
-			}
-			app := fiber.New(fiber.Config{
-				Immutable:             true,
-				EnablePrintRoutes:     !disableStartupDebug,
-				DisableStartupMessage: disableStartupDebug,
-				Network:               network,
-			})
+			app := NewServer()
+			app.Network = network
 			return NewGoObj(app)
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`new_server` returns a new server object",
-			signature:   "new_server(network: str('tcp','tcp4','tcp6')='tcp4') -> GoObj[*fiber.App]",
+			signature:   "new_server(network: str('tcp','tcp4','tcp6')='tcp4') -> GoObj[*Server]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "new_server() => server obj",
 		}.String(),
@@ -265,9 +320,9 @@ var HttpBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("serve", 1, GO_OBJ, args[0].Type())
 			}
-			app, ok := args[0].(*GoObj[*fiber.App])
+			app, ok := args[0].(*GoObj[*Server])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("serve", 1, "*fiber.App", args[0])
+				return newPositionalTypeErrorForGoObj("serve", 1, "*Server", args[0])
 			}
 			if args[1].Type() != STRING_OBJ {
 				return newPositionalTypeError("serve", 2, STRING_OBJ, args[1].Type())
@@ -288,18 +343,21 @@ var HttpBuiltins = []*Builtin{
 				if err != nil {
 					return newError("`serve` error: %s", err.Error())
 				}
-				app.Value.Use(filesystem.New(filesystem.Config{Root: http.FS(sub)}))
+				addStaticFiles(app.Value, "/", http.FS(sub), false)
 			}
-			// nil here means use the default server mux (ie. things that were http.HandleFunc's)
-			err := app.Value.Listen(addrPort)
+			ln, err := net.Listen(app.Value.Network, addrPort)
 			if err != nil {
+				return newError("`serve` error: %s", err.Error())
+			}
+			err = app.Value.Serve(ln)
+			if err != nil && err != http.ErrServerClosed {
 				return newError("`serve` error: %s", err.Error())
 			}
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`serve` starts the http server listener at the given address/port with the embedded lib web files included if set to true",
-			signature:   "serve(server: GoObj[*fiber.App], addr_port: str='localhost:3001', use_embedded_lib_web: bool=true) -> null",
+			signature:   "serve(server: GoObj[*Server], addr_port: str='localhost:3001', use_embedded_lib_web: bool=true) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "serve() => null => starts server",
 		}.String(),
@@ -329,9 +387,9 @@ var HttpBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("static", 1, GO_OBJ, args[0].Type())
 			}
-			app, ok := args[0].(*GoObj[*fiber.App])
+			app, ok := args[0].(*GoObj[*Server])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("static", 1, "*fiber.App", args[0])
+				return newPositionalTypeErrorForGoObj("static", 1, "*Server", args[0])
 			}
 			if args[1].Type() != STRING_OBJ {
 				return newPositionalTypeError("static", 2, STRING_OBJ, args[1].Type())
@@ -353,20 +411,15 @@ var HttpBuiltins = []*Builtin{
 				if err != nil {
 					return newError("`static` error: %s", err.Error())
 				}
-				app.Value.Use(prefix, filesystem.New(filesystem.Config{
-					Root:   http.FS(sub),
-					Browse: shouldBrowse,
-				}))
+				addStaticFiles(app.Value, prefix, http.FS(sub), shouldBrowse)
 			} else {
-				app.Value.Static(prefix, fpath, fiber.Static{
-					Browse: shouldBrowse,
-				})
+				addStaticFiles(app.Value, prefix, http.Dir(fpath), shouldBrowse)
 			}
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`static` serves the given directory as static files for the http server",
-			signature:   "static(server: GoObj[*fiber.App], prefix: str='/', dir_path: str='.', browse: bool=false) -> null",
+			signature:   "static(server: GoObj[*Server], prefix: str='/', dir_path: str='.', browse: bool=false) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "static() => null => current directory served at addr:port/",
 		}.String(),
@@ -380,18 +433,18 @@ var HttpBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("ws_send", 1, GO_OBJ, args[0].Type())
 			}
-			c, ok := args[0].(*GoObj[*websocket.Conn])
+			c, ok := args[0].(*GoObj[*ws.Conn])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", args[0])
+				return newPositionalTypeErrorForGoObj("ws_send", 1, "*ws.Conn", args[0])
 			}
 			if args[1].Type() != STRING_OBJ && args[1].Type() != BYTES_OBJ {
 				return newPositionalTypeError("ws_send", 2, "STRING or BYTES", args[1].Type())
 			}
 			var err error
 			if args[1].Type() == STRING_OBJ {
-				err = c.Value.WriteMessage(websocket.TextMessage, []byte(args[1].(*Stringo).Value))
+				err = c.Value.WriteMessage(ws.TextMessage, []byte(args[1].(*Stringo).Value))
 			} else {
-				err = c.Value.WriteMessage(websocket.BinaryMessage, args[1].(*Bytes).Value)
+				err = c.Value.WriteMessage(ws.BinaryMessage, args[1].(*Bytes).Value)
 			}
 			if err != nil {
 				return newError("`ws_send` error: %s", err.Error())
@@ -400,7 +453,7 @@ var HttpBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ws_send` sends the given value on the websocket connection, if the value is a string the websocket message type is TextMessage, otherwise if bytes BinaryMessage",
-			signature:   "ws_send(c: GoObj[*websocket.Conn], value: str|bytes) -> null",
+			signature:   "ws_send(c: GoObj[*ws.Conn], value: str|bytes) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "ws_send(c, '1') => null",
 		}.String(),
@@ -414,9 +467,9 @@ var HttpBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("ws_recv", 1, GO_OBJ, args[0].Type())
 			}
-			c, ok := args[0].(*GoObj[*websocket.Conn])
+			c, ok := args[0].(*GoObj[*ws.Conn])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", args[0])
+				return newPositionalTypeErrorForGoObj("ws_send", 1, "*ws.Conn", args[0])
 			}
 			mt, msg, err := c.Value.ReadMessage()
 			if err != nil {
@@ -424,13 +477,13 @@ var HttpBuiltins = []*Builtin{
 				return newError("`ws_recv` error: %s", err.Error())
 			}
 			switch mt {
-			case websocket.BinaryMessage:
+			case ws.BinaryMessage:
 				return &Bytes{Value: msg}
-			case websocket.TextMessage:
+			case ws.TextMessage:
 				return &Stringo{Value: string(msg)}
-			case websocket.PingMessage:
+			case ws.PingMessage:
 				return newError("`ws_recv` error: ping message type not supported.")
-			case websocket.PongMessage:
+			case ws.PongMessage:
 				return newError("`ws_recv` error: pong message type not supported.")
 			default:
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
@@ -439,7 +492,7 @@ var HttpBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ws_recv` receives a websocket message on the given websocket connection",
-			signature:   "ws_recv(c: GoObj[*websocket.Conn]) -> str|bytes",
+			signature:   "ws_recv(c: GoObj[*ws.Conn]) -> str|bytes",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "ws_recv(c) => str|bytes",
 		}.String(),
@@ -485,9 +538,9 @@ var HttpBuiltins = []*Builtin{
 			}
 			var err error
 			if args[1].Type() == STRING_OBJ {
-				err = c.Value.WriteMessage(websocket.TextMessage, []byte(args[1].(*Stringo).Value))
+				err = c.Value.WriteMessage(ws.TextMessage, []byte(args[1].(*Stringo).Value))
 			} else {
-				err = c.Value.WriteMessage(websocket.BinaryMessage, args[1].(*Bytes).Value)
+				err = c.Value.WriteMessage(ws.BinaryMessage, args[1].(*Bytes).Value)
 			}
 			if err != nil {
 				return newError("`ws_send` error: %s", err.Error())
@@ -520,13 +573,13 @@ var HttpBuiltins = []*Builtin{
 				return newError("`ws_client_recv` error: %s", err.Error())
 			}
 			switch mt {
-			case websocket.BinaryMessage:
+			case ws.BinaryMessage:
 				return &Bytes{Value: msg}
-			case websocket.TextMessage:
+			case ws.TextMessage:
 				return &Stringo{Value: string(msg)}
-			case websocket.PingMessage:
+			case ws.PingMessage:
 				return newError("`ws_client_recv` error: ping message type not supported.")
-			case websocket.PongMessage:
+			case ws.PongMessage:
 				return newError("`ws_client_recv` error: pong message type not supported.")
 			default:
 				// If its closed we still want to return an error so that the handler fn wont try to send NULL
@@ -549,9 +602,9 @@ var HttpBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("handle_monitor", 1, GO_OBJ, args[0].Type())
 			}
-			app, ok := args[0].(*GoObj[*fiber.App])
+			app, ok := args[0].(*GoObj[*Server])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("handle_monitor", 1, "*fiber.App", args[0])
+				return newPositionalTypeErrorForGoObj("handle_monitor", 1, "*Server", args[0])
 			}
 			if args[1].Type() != STRING_OBJ {
 				return newPositionalTypeError("handle_monitor", 2, STRING_OBJ, args[1].Type())
@@ -561,16 +614,22 @@ var HttpBuiltins = []*Builtin{
 			}
 			path := args[1].(*Stringo).Value
 			shouldShow := args[2].(*Boolean).Value
-			app.Value.Get(path, monitor.New(monitor.Config{
-				Next: func(c *fiber.Ctx) bool {
-					return !shouldShow
-				},
-			}))
+			monitor := createMonitorHandler(path, shouldShow)
+			app.Value.Add("GET", path, func(c *Ctx) {
+				monitor(c)
+			}, false)
+			app.Value.Add("GET", strings.TrimSuffix(path, "/")+"/data", func(c *Ctx) {
+				if !shouldShow {
+					_ = c.Next()
+					return
+				}
+				c.JSON(collectMonitorStats())
+			}, false)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`handle_monitor` creates a monitor handler on the given http server at the given path a boolean that determines when it should show",
-			signature:   "handle_monitor(s: GoObj[*fiber.App], path: str, should_show: bool) -> null",
+			signature:   "handle_monitor(s: GoObj[*Server], path: str, should_show: bool) -> null",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "handle_monitor(s, '/monitor', true) => null",
 		}.String(),
@@ -704,9 +763,9 @@ var HttpBuiltins = []*Builtin{
 			t := args[1].(*Stringo).Value
 			switch t {
 			case "ws":
-				c, ok := args[0].(*GoObj[*websocket.Conn])
+				c, ok := args[0].(*GoObj[*ws.Conn])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("inspect", 1, "*websocket.Conn", args[0])
+					return newPositionalTypeErrorForGoObj("inspect", 1, "*ws.Conn", args[0])
 				}
 				mapObj := NewOrderedMap[string, Object]()
 				mapObj.Set("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
@@ -774,7 +833,7 @@ var HttpBuiltins = []*Builtin{
 		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`handle` puts a handler on the server for a given pattern and method, `handle_use` also can use this function if no method is provided",
-			signature:   "handle(server: GoObj[*fiber.App], pattern: str, fn: fun, method: str='GET') -> null",
+			signature:   "handle(server: GoObj[*Server], pattern: str, fn: fun, method: str='GET') -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "handle(s, '/', fn) => null",
 		}.String(),
@@ -784,7 +843,7 @@ var HttpBuiltins = []*Builtin{
 		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`handle` puts a handler on the server for a given pattern and method, `handle_use` also can use this function if no method is provided",
-			signature:   "handle(server: GoObj[*fiber.App], pattern: str, fn: fun, method: str='GET') -> null",
+			signature:   "handle(server: GoObj[*Server], pattern: str, fn: fun, method: str='GET') -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "handle(s, '/', fn) => null",
 		}.String(),
@@ -794,7 +853,7 @@ var HttpBuiltins = []*Builtin{
 		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`handle_ws` puts a websocket handler on the server for a given pattern and method",
-			signature:   "handle_ws(server: GoObj[*fiber.App], pattern: str, fn: fun) -> null",
+			signature:   "handle_ws(server: GoObj[*Server], pattern: str, fn: fun) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "handle_ws(s, '/ws', fn) => null",
 		}.String(),
