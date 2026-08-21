@@ -8,6 +8,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/gookit/color"
 )
@@ -560,27 +561,52 @@ func GetBuiltinFunWithVm(name string, vm *VM) func(args ...object.Object) object
 	return builtinFun
 }
 
+// isolatedFramesPool lends full-depth frame arrays to applyFunctionFast and
+// applyFunctionFastWithMultipleArgs so repeated callback invocations (map /
+// filter / sort keys / dunder calls / ws handlers / spawned processes) do not
+// allocate a fresh array per call. The arrays are MaxFrames long because the
+// invoked function runs on this array like on a real vm: it can call other
+// blue functions, which push more frames (a small fixed-size array here used
+// to overflow and panic for callbacks that make nested calls). Slots are
+// never read before being written during a run, so reuse across vms is safe.
+var isolatedFramesPool = sync.Pool{
+	New: func() any {
+		return make([]Frame, MaxFrames)
+	},
+}
+
 func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object.Object) object.Object {
 	existingFrames := vm.frames
 	existingFrameIndex := vm.framesIndex
 	existingStackPointer := vm.sp
-	vm.frames = make([]Frame, MaxFrames)
+	frames := isolatedFramesPool.Get().([]Frame)
+	defer isolatedFramesPool.Put(frames)
+	vm.frames = frames
 	vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	vm.framesIndex = 2
 	err := vm.push(fun)
 	if err != nil {
+		vm.frames = existingFrames
+		vm.framesIndex = existingFrameIndex
+		vm.sp = existingStackPointer
 		return newError("error: %s", err.Error())
 	}
 	argCount := 0
 	for _, arg := range args {
 		err = vm.push(arg)
 		if err != nil {
+			vm.frames = existingFrames
+			vm.framesIndex = existingFrameIndex
+			vm.sp = existingStackPointer
 			return newError("error: %s", err.Error())
 		}
 		argCount++
 	}
 	err = vm.executeCallFastFrame(argCount)
 	if err != nil {
+		vm.frames = existingFrames
+		vm.framesIndex = existingFrameIndex
+		vm.sp = existingStackPointer
 		return newError("error: %s", err.Error())
 	}
 	err = vm.Run()
@@ -602,16 +628,24 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
 		existingStackPointer := vm.sp
-		vm.frames = make([]Frame, 3)
+		frames := isolatedFramesPool.Get().([]Frame)
+		defer isolatedFramesPool.Put(frames)
+		vm.frames = frames
 		vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 		vm.framesIndex = 2
 		err := vm.push(fun)
 		if err != nil {
+			vm.frames = existingFrames
+			vm.framesIndex = existingFrameIndex
+			vm.sp = existingStackPointer
 			return newError("error: %s", err.Error())
 		}
 		if arg != nil {
 			err = vm.push(arg)
 			if err != nil {
+				vm.frames = existingFrames
+				vm.framesIndex = existingFrameIndex
+				vm.sp = existingStackPointer
 				return newError("error: %s", err.Error())
 			}
 		}
@@ -621,6 +655,9 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		}
 		err = vm.executeCallFastFrame(argCount)
 		if err != nil {
+			vm.frames = existingFrames
+			vm.framesIndex = existingFrameIndex
+			vm.sp = existingStackPointer
 			return newError("error: %s", err.Error())
 		}
 		err = vm.Run()

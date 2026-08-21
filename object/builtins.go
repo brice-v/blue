@@ -300,15 +300,15 @@ var Builtins = []*Builtin{
 
 			switch arg := args[0].(type) {
 			case *Stringo:
-				return &Integer{Value: int64(utf8.RuneCountInString(arg.Value))}
+				return NewInteger(int64(utf8.RuneCountInString(arg.Value)))
 			case *List:
-				return &Integer{Value: int64(len(arg.Elements))}
+				return NewInteger(int64(len(arg.Elements)))
 			case *Map:
-				return &Integer{Value: int64(arg.Pairs.Len())}
+				return NewInteger(int64(arg.Pairs.Len()))
 			case *Set:
-				return &Integer{Value: int64(arg.Elements.Len())}
+				return NewInteger(int64(arg.Elements.Len()))
 			case *Bytes:
-				return &Integer{Value: int64(len(arg.Value))}
+				return NewInteger(int64(len(arg.Value)))
 			default:
 				return newPositionalTypeError("len", 1, "STRING, LIST, MAP, SET, or BYTES", args[0].Type())
 			}

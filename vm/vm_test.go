@@ -608,6 +608,64 @@ func TestRangeOperations(t *testing.T) {
 	}
 }
 
+func TestRangeOrdering(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []int
+	}{
+		{`1..5`, []int{1, 2, 3, 4, 5}},
+		{`5..1`, []int{5, 4, 3, 2, 1}},
+		{`0..<4`, []int{0, 1, 2, 3}},
+		{`4..<0`, []int{4, 3, 2, 1}},
+		{`3..3`, []int{3}},
+		{`3..<3`, []int{}},
+	}
+	for _, tt := range tests {
+		program := parse(tt.input)
+		comp := compiler.New()
+		err := comp.Compile(program)
+		if err != nil {
+			t.Fatalf("compiler error for %s: %s", tt.input, err)
+		}
+		vm := New(comp.Bytecode())
+		err = vm.Run()
+		if err != nil {
+			t.Fatalf("vm error for %s: %s", tt.input, err)
+		}
+		testExpectedObject(t, tt.expected, vm.LastPoppedStackElem())
+	}
+}
+
+// Regression test: applyFunctionFast used to run callbacks on a fixed-size
+// frames array, so a callback that itself called another blue function
+// panicked with an index-out-of-range. Callbacks must support full call
+// depth like any other execution context.
+func TestHigherOrderCallbackWithNestedCalls(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			fun g(x) { return x * 2; }
+			fun f(x) { return g(x) + 1; }
+			val l = [1, 2, 3].map(|x| => f(x));
+			var total = 0;
+			for v in l { total += v; }
+			total
+			`,
+			expected: 15,
+		},
+		{
+			input: `
+			fun double(x) { return x * 2; }
+			val l = [1, 2, 3];
+			val mapped = l.map(|x| => double(x));
+			mapped.filter(|x| => x > 2)[0]
+			`,
+			expected: 4,
+		},
+	}
+	runVmTests(t, tests)
+}
+
 func TestAllAnyBuiltins(t *testing.T) {
 	tests := []vmTestCase{
 		{`all([true, true, true], |e| => e)`, true},

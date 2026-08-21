@@ -61,7 +61,9 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 
 // intObject returns an object.Integer for common small values from a shared
 // read-only cache, avoiding an allocation per arithmetic result. Integers are
-// immutable values in blue so sharing is safe.
+// immutable values in blue so sharing is safe. Kept local to the vm package
+// (mirroring object.NewInteger) so the binary-op fast path stays a direct
+// table load without a cross-package call.
 var smallInts []*object.Integer
 
 func init() {

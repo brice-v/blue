@@ -105,6 +105,33 @@ type Integer struct {
 	Value int64 // Value is the internal rep. of an integer, it is stored as an int64
 }
 
+// Integers are immutable values in blue, so common small values can share
+// read-only Integer objects instead of allocating one per operation result
+// (arithmetic results, len(), range elements, ...). The vm's binary-op fast
+// path shares this cache too.
+const (
+	smallIntLow  = -512
+	smallIntHigh = 512
+)
+
+var smallIntegers []*Integer
+
+func init() {
+	smallIntegers = make([]*Integer, smallIntHigh-smallIntLow)
+	for i := range smallIntegers {
+		smallIntegers[i] = &Integer{Value: int64(i + smallIntLow)}
+	}
+}
+
+// NewInteger returns an Integer holding v, reusing the shared read-only
+// object for values in [-512, 512).
+func NewInteger(v int64) *Integer {
+	if v >= smallIntLow && v < smallIntHigh {
+		return smallIntegers[v-smallIntLow]
+	}
+	return &Integer{Value: v}
+}
+
 var (
 	// TRUE is the true object which should be the same everywhere
 	TRUE = &Boolean{Value: true}

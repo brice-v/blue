@@ -25,22 +25,22 @@ func executeIntegerRangeOperator(leftVal, rightVal int64) object.Object {
 	var i int64
 
 	if leftVal < rightVal {
-		size := rightVal - leftVal
-		listElems := make([]object.Object, 0, size)
+		size := rightVal - leftVal + 1
+		listElems := make([]object.Object, size)
 		for i = leftVal; i <= rightVal; i++ {
-			listElems = append(listElems, &object.Integer{Value: i})
+			listElems[i-leftVal] = object.NewInteger(i)
 		}
 		return &object.List{Elements: listElems}
 	} else if rightVal < leftVal {
-		size := leftVal - rightVal
-		listElems := make([]object.Object, 0, size)
+		size := leftVal - rightVal + 1
+		listElems := make([]object.Object, size)
 		for i = leftVal; i >= rightVal; i-- {
-			listElems = append(listElems, &object.Integer{Value: i})
+			listElems[leftVal-i] = object.NewInteger(i)
 		}
 		return &object.List{Elements: listElems}
 	}
 	// When they are equal just return a value (leftVal in this case)
-	return &object.List{Elements: []object.Object{&object.Integer{Value: leftVal}}}
+	return &object.List{Elements: []object.Object{object.NewInteger(leftVal)}}
 }
 
 func executeIntegerNonInclusiveRangeOperator(leftVal, rightVal int64) object.Object {
@@ -48,16 +48,16 @@ func executeIntegerNonInclusiveRangeOperator(leftVal, rightVal int64) object.Obj
 
 	if leftVal < rightVal {
 		size := rightVal - leftVal
-		listElems := make([]object.Object, 0, size-1)
+		listElems := make([]object.Object, size)
 		for i = leftVal; i < rightVal; i++ {
-			listElems = append(listElems, &object.Integer{Value: i})
+			listElems[i-leftVal] = object.NewInteger(i)
 		}
 		return &object.List{Elements: listElems}
 	} else if rightVal < leftVal {
 		size := leftVal - rightVal
-		listElems := make([]object.Object, 0, size-1)
+		listElems := make([]object.Object, size)
 		for i = leftVal; i > rightVal; i-- {
-			listElems = append(listElems, &object.Integer{Value: i})
+			listElems[leftVal-i] = object.NewInteger(i)
 		}
 		return &object.List{Elements: listElems}
 	}
