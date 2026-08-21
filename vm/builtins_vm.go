@@ -4,7 +4,6 @@ import (
 	"blue/code"
 	"blue/consts"
 	"blue/object"
-	"bytes"
 	"fmt"
 	"math"
 	"sort"
@@ -108,18 +107,6 @@ func createToNumBuiltinFun() func(args ...object.Object) object.Object {
 	}
 }
 
-func simpleKeyErrorPrint(obj object.Object) {
-	err := obj.(*object.Error)
-	var buf bytes.Buffer
-	buf.WriteString(err.Message)
-	buf.WriteByte('\n')
-	// for e.ErrorTokens.Len() > 0 {
-	// 	tok := e.ErrorTokens.PopBack()
-	// 	buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
-	// }
-	fmt.Printf("%s`sort` key error: %s\n", consts.VM_ERROR_PREFIX, buf.String())
-}
-
 func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 	if len(args) != 3 {
 		return newInvalidArgCountError("sort", len(args), 3, "")
@@ -213,130 +200,107 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 			return newError("`sort` key error: key function must take 1 arg. got=%d", len(fun.Fun.Parameters))
 		}
 	}
-	// Using custom comparator
-	anys := make([]any, len(l.Elements))
+	// Using custom comparator.
+	//
+	// Decorate-sort-undecorate: evaluate every key function exactly ONCE
+	// per element up front, then sort by the precomputed keys. The previous
+	// implementation re-invoked the key functions (each a full vm call with
+	// its own frame allocation) and round-tripped both elements through Go
+	// objects on EVERY comparison — O(n log n) vm invocations instead of n.
+	type keyedElem struct {
+		goObj any
+		keys  []object.Object
+	}
+	elems := make([]keyedElem, len(l.Elements))
 	for i, e := range l.Elements {
 		obj, err := blueObjectToGoObject(e)
 		if err != nil {
 			return newError("`sort` key error: %s", err.Error())
 		}
-		anys[i] = obj
+		// Key functions receive a converted copy of the element, matching
+		// the old per-comparison copy semantics (mutations by the key fn
+		// are not visible in the output).
+		blueCopy, err := goObjectToBlueObject(obj)
+		if err != nil {
+			return newError("`sort` key error: %s", err.Error())
+		}
+		keys := make([]object.Object, len(funs))
+		for k := range funs {
+			keyObj := vm.applyFunctionFast(funs[k], blueCopy)
+			if isError(keyObj) {
+				errMsg := keyObj.(*object.Error).Message
+				return newError("`sort` key error: %s", errMsg)
+			}
+			if keyObj.Type() != object.FLOAT_OBJ && keyObj.Type() != object.INTEGER_OBJ && keyObj.Type() != object.STRING_OBJ {
+				return newError("`sort` key error: key function must return INTEGER, STRING, or FLOAT. got = %T (%s)", keyObj, keyObj.Inspect())
+			}
+			keys[k] = keyObj
+		}
+		elems[i] = keyedElem{goObj: obj, keys: keys}
 	}
 
-	sorter := func(i, j int) bool {
-		ai := anys[i]
-		aj := anys[j]
-		aib, err := goObjectToBlueObject(ai)
-		if err != nil {
-			fmt.Printf("%s`sort` key error: %s\n", consts.VM_ERROR_PREFIX, err.Error())
-			return false
+	sort.SliceStable(elems, func(i, j int) bool {
+		a := elems[i].keys
+		b := elems[j].keys
+		for k := range a {
+			c := compareSortKeys(a[k], b[k])
+			if c == 0 && k != len(a)-1 {
+				continue
+			}
+			if shouldReverse {
+				return c > 0
+			}
+			return c < 0
 		}
-		ajb, err := goObjectToBlueObject(aj)
-		if err != nil {
-			fmt.Printf("%s`sort` key error: %s\n", consts.VM_ERROR_PREFIX, err.Error())
-			return false
-		}
-		for k := 0; k < len(funs); k++ {
-			biObj := vm.applyFunctionFast(funs[k], aib)
-			if isError(biObj) {
-				simpleKeyErrorPrint(biObj)
-				return false
-			}
-			if biObj.Type() != object.FLOAT_OBJ && biObj.Type() != object.INTEGER_OBJ && biObj.Type() != object.STRING_OBJ {
-				fmt.Printf("%s`sort` ||| key error: key function must return INTEGER, STRING, or FLOAT. got = %T (%s)\n", consts.VM_ERROR_PREFIX, biObj, biObj.Inspect())
-				return false
-			}
-			bjObj := vm.applyFunctionFast(funs[k], ajb)
-			if isError(bjObj) {
-				simpleKeyErrorPrint(bjObj)
-				return false
-			}
-			if bjObj.Type() != object.FLOAT_OBJ && bjObj.Type() != object.INTEGER_OBJ && bjObj.Type() != object.STRING_OBJ {
-				fmt.Printf("%s`sort` key error: key function must return INTEGER, STRING, or FLOAT. got = %T (%s)\n", consts.VM_ERROR_PREFIX, bjObj, bjObj.Inspect())
-				return false
-			}
-			left, err := blueObjectToGoObject(biObj)
-			if err != nil {
-				fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.VM_ERROR_PREFIX, err.Error())
-				return false
-			}
-			right, err := blueObjectToGoObject(bjObj)
-			if err != nil {
-				fmt.Printf("%s`sort` key error: key function returned error: %s\n", consts.VM_ERROR_PREFIX, err.Error())
-				return false
-			}
-			if leftO, ok := left.(int64); ok {
-				if rightO, ok := right.(int64); ok {
-					if shouldReverse {
-						if leftO == rightO && k != len(funs)-1 {
-							continue
-						}
-						return leftO > rightO
-					}
-					if leftO == rightO && k != len(funs)-1 {
-						continue
-					}
-					return leftO < rightO
-				}
-			}
-			if leftO, ok := left.(int); ok {
-				if rightO, ok := right.(int); ok {
-					if shouldReverse {
-						if leftO == rightO && k != len(funs)-1 {
-							continue
-						}
-						return leftO > rightO
-					}
-					if leftO == rightO && k != len(funs)-1 {
-						continue
-					}
-					return leftO < rightO
-				}
-			}
-			if leftO, ok := left.(float64); ok {
-				if rightO, ok := right.(float64); ok {
-					if shouldReverse {
-						if leftO == rightO && k != len(funs)-1 {
-							continue
-						}
-						return leftO > rightO
-					}
-					if leftO == rightO && k != len(funs)-1 {
-						continue
-					}
-					return leftO < rightO
-				}
-			}
-			if leftO, ok := left.(string); ok {
-				if rightO, ok := right.(string); ok {
-					if shouldReverse {
-						if leftO == rightO && k != len(funs)-1 {
-							continue
-						}
-						return leftO > rightO
-					}
-					if leftO == rightO && k != len(funs)-1 {
-						continue
-					}
-					return leftO < rightO
-				}
-			}
-			fmt.Printf("%s`sort` key error: key function returned mismatched types: i = %d (%T), j = %d (%T)\n", consts.VM_ERROR_PREFIX, i, left, j, right)
-			return false
-		}
-		fmt.Printf("%s`sort` key error: reached end of for loop, this should not happen\n", consts.VM_ERROR_PREFIX)
 		return false
-	}
-	sort.SliceStable(anys, sorter)
+	})
+
 	newObjs := make([]object.Object, len(l.Elements))
-	for i, e := range anys {
-		obj, err := goObjectToBlueObject(e)
+	for i := range elems {
+		obj, err := goObjectToBlueObject(elems[i].goObj)
 		if err != nil {
 			return newError("`sort` key error: %s", err.Error())
 		}
 		newObjs[i] = obj
 	}
 	return &object.List{Elements: newObjs}
+}
+
+// compareSortKeys compares two precomputed sort keys that have already been
+// validated as INTEGER, FLOAT, or STRING. Keys of different kinds (including
+// int vs float) are treated as equal, mirroring the old comparator's
+// mismatch fall-through which returned false for such pairs.
+func compareSortKeys(a, b object.Object) int {
+	switch left := a.(type) {
+	case *object.Integer:
+		if right, ok := b.(*object.Integer); ok {
+			switch {
+			case left.Value < right.Value:
+				return -1
+			case left.Value > right.Value:
+				return 1
+			}
+		}
+	case *object.Float:
+		if right, ok := b.(*object.Float); ok {
+			switch {
+			case left.Value < right.Value:
+				return -1
+			case left.Value > right.Value:
+				return 1
+			}
+		}
+	case *object.Stringo:
+		if right, ok := b.(*object.Stringo); ok {
+			switch {
+			case left.Value < right.Value:
+				return -1
+			case left.Value > right.Value:
+				return 1
+			}
+		}
+	}
+	return 0
 }
 
 func createSortBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
