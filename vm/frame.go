@@ -18,6 +18,9 @@ type Frame struct {
 	inTry      bool
 	inCatch    bool
 	catchError string
+	// methodCallPending marks that the previous OpIndex pushed a callable
+	// plus its receiver, so the next OpCall takes one extra argument.
+	methodCallPending bool
 	// last node position for error trace
 	callerLastNodePos int
 }

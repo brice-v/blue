@@ -25,8 +25,16 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 		case "_handle_use":
 			return createHttpHandleBuiltin(vm, true).Fun
 		case "_handle_ws":
-			newVm := vm.Clone(vm.PID)
-			return createHttpHandleWSBuiltin(newVm).Fun
+			// The template snapshot is created once, on the first resolution,
+			// while the source vm is still young and safe to deep clone.
+			// Later resolutions (inlined `from http import` statements
+			// re-execute on every ws message, including on connection vms)
+			// must reuse it: cloning here would copy a live vm and retain
+			// megabytes per message.
+			if vm.wsTemplate == nil {
+				vm.wsTemplate = vm.Clone(vm.PID)
+			}
+			return createHttpHandleWSBuiltin(vm.wsTemplate).Fun
 		default:
 			panic("GetStdBuiltinWithVm called with incorrect builtin function name '" + name + "' for module: " + mod)
 		}
@@ -278,16 +286,25 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 
 			var returnObj object.Object = object.NULL
 			wsHandler := websocket.New(func(c *websocket.Conn) {
-				handleSpecialFunctionArgs(fn, c)
-				fnArgs := make([]object.Object, len(fn.Fun.Parameters))
-				for i, v := range fn.Fun.Parameters {
+				// Each connection runs blue code for its whole lifetime, so
+				// it gets its own vm and its own copy of the handler closure.
+				// Sharing one vm (or the closure's special parameter maps)
+				// between concurrent connections corrupts vm state. The
+				// connection vm shares immutable program data with the
+				// registration-time snapshot instead of deep cloning it, and
+				// is made from that snapshot, never from the live vm.
+				connVm := vm.CloneForConnection(vm.PID)
+				connFn := cloneHandlerClosure(fn)
+				handleSpecialFunctionArgs(connFn, c)
+				fnArgs := make([]object.Object, len(connFn.Fun.Parameters))
+				for i, v := range connFn.Fun.Parameters {
 					if i == 0 {
 						fnArgs[i] = object.CreateBasicMapObjectForGoObj("ws", NewGoObj(c))
 					} else {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v)}
 					}
 				}
-				returnObj = vm.applyFunctionFastWithMultipleArgs(fn, fnArgs)
+				returnObj = connVm.applyFunctionFastWithMultipleArgs(connFn, fnArgs)
 				if isError(returnObj) {
 					// var buf bytes.Buffer
 					// buf.WriteString(returnObj.(*object.Error).Message)
@@ -341,6 +358,36 @@ func handleSpecialFunctionArgs(fn *object.Closure, c *websocket.Conn) {
 			}
 		}
 	}
+}
+
+// cloneHandlerClosure returns a copy of fn whose compiled function carries a
+// private copy of SpecialFunctionParameters so concurrent handlers never write
+// to the same default parameter maps. Bytecode is immutable at runtime and
+// shared safely; free variables are shared as well.
+func cloneHandlerClosure(fn *object.Closure) *object.Closure {
+	var sfp map[object.NameIndexKey]map[object.NameIndexKey]object.Object
+	if fn.Fun.SpecialFunctionParameters != nil {
+		sfp = make(map[object.NameIndexKey]map[object.NameIndexKey]object.Object, len(fn.Fun.SpecialFunctionParameters))
+		for k, v := range fn.Fun.SpecialFunctionParameters {
+			inner := make(map[object.NameIndexKey]object.Object, len(v))
+			for kk, vv := range v {
+				inner[kk] = vv
+			}
+			sfp[k] = inner
+		}
+	}
+	fun := &object.CompiledFunction{
+		Instructions:              fn.Fun.Instructions,
+		NumLocals:                 fn.Fun.NumLocals,
+		NumParameters:             fn.Fun.NumParameters,
+		Parameters:                fn.Fun.Parameters,
+		ParameterHasDefault:       fn.Fun.ParameterHasDefault,
+		NumDefaultParams:          fn.Fun.NumDefaultParams,
+		DisplayString:             fn.Fun.DisplayString,
+		SpecialFunctionParameters: sfp,
+		HelpStr:                   fn.Fun.HelpStr,
+	}
+	return &object.Closure{Fun: fun, Free: fn.Free}
 }
 
 func createUIButtonBuiltin(vm *VM) *object.Builtin {

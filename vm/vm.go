@@ -13,8 +13,7 @@ import (
 	"log"
 	"math/big"
 	"strings"
-
-	"github.com/puzpuzpuz/xsync/v3"
+	"sync"
 )
 
 const (
@@ -32,6 +31,11 @@ type VM struct {
 
 	globals []object.Object
 
+	// globalsOwned reports whether this vm may write to vm.globals directly.
+	// Connection vms start out sharing their parent's globals slice and copy
+	// it on first write (see ensureOwnGlobals).
+	globalsOwned bool
+
 	frames      []*Frame
 	framesIndex int
 
@@ -43,28 +47,22 @@ type VM struct {
 
 	// Builtins that use vm
 	builtinFuns map[string]func(args ...object.Object) object.Object
+
+	// Cached vm bound builtin objects, keyed by builtin name. The global
+	// builtin definitions are shared across vms and must never be written to.
+	builtinObjs map[string]*object.Builtin
+
+	// wsTemplate is the snapshot source for ws connection vms, created on the
+	// first _handle_ws resolution and shared by every vm in the lineage.
+	wsTemplate *VM
+
+	// execMu serializes http handler execution. The stack, frames, globals
+	// and closure special parameter maps are not safe for concurrent runs.
+	execMu sync.Mutex
 }
 
 func (vm *VM) currentFrame() *Frame {
 	return vm.frames[vm.framesIndex-1]
-}
-
-func (vm *VM) incrementOpCallArgCount() bool {
-	cf := vm.frames[vm.framesIndex-1]
-	nextPos := blueutil.GetNextOpCallPos(cf.cl.Fun.Instructions, cf.ip)
-	if nextPos != -1 {
-		pos := nextPos + 1
-		// When this function is called in a loop such as
-		// split_lines.len(), then ensure we do not end up incrementing
-		// the same byte position more then once.
-		if _, ok := cf.cl.Fun.PosAlreadyIncremented.Load(pos); ok {
-			return true
-		}
-		cf.cl.Fun.PosAlreadyIncremented.Store(pos, struct{}{})
-		cf.cl.Fun.Instructions[pos]++
-		return true
-	}
-	return false
 }
 
 func (vm *VM) pushFrame(f *Frame) {
@@ -81,22 +79,23 @@ func (vm *VM) popFrame() *Frame {
 }
 
 func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
-	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions, PosAlreadyIncremented: xsync.NewMapOf[int, struct{}]()}
+	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
 	mainClosure := &object.Closure{Fun: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
 	vm := &VM{
-		constants:   bytecode.Constants,
-		tokens:      bytecode.Tokens,
-		lastNodePos: -1,
-		stack:       make([]object.Object, StackSize),
-		sp:          0,
-		globals:     make([]object.Object, GlobalsSize),
-		frames:      frames,
-		framesIndex: 1,
-		PID:         object.PidCount.Load(),
-		NodeName:    nodeName,
+		constants:    bytecode.Constants,
+		tokens:       bytecode.Tokens,
+		lastNodePos:  -1,
+		stack:        make([]object.Object, StackSize),
+		sp:           0,
+		globals:      make([]object.Object, GlobalsSize),
+		globalsOwned: true,
+		frames:       frames,
+		framesIndex:  1,
+		PID:          object.PidCount.Load(),
+		NodeName:     nodeName,
 	}
 	// Create an empty process so we can recv without spawning
 	process := &object.Process{
@@ -117,6 +116,7 @@ func New(bytecode *compiler.Bytecode) *VM {
 func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
 	vm := New(bytecode)
 	vm.globals = s
+	vm.globalsOwned = true
 	return vm
 }
 
@@ -126,16 +126,52 @@ func (vm *VM) Clone(pid uint64) *VM {
 		newFrames[i] = f.Clone()
 	}
 	newVm := &VM{
-		constants:   object.CloneSlice(vm.constants),
-		stack:       object.CloneSlice(vm.stack),
-		sp:          vm.sp,
-		globals:     object.CloneSlice(vm.globals),
-		frames:      newFrames,
-		framesIndex: vm.framesIndex,
-		NodeName:    vm.NodeName,
-		PID:         pid,
+		constants:    object.CloneSlice(vm.constants),
+		stack:        object.CloneSlice(vm.stack),
+		sp:           vm.sp,
+		globals:      object.CloneSlice(vm.globals),
+		globalsOwned: true,
+		frames:       newFrames,
+		framesIndex:  vm.framesIndex,
+		NodeName:     vm.NodeName,
+		PID:          pid,
+		wsTemplate:   vm.wsTemplate,
 	}
 	return newVm
+}
+
+// CloneForConnection returns a vm that can execute blue code concurrently
+// with vm and other connection clones. Immutable program data (constants,
+// tokens) is shared, globals are shared copy on write, and only the execution
+// state (stack, frames) is private. This keeps per connection memory flat
+// instead of deep cloning the whole program for every connection.
+func (vm *VM) CloneForConnection(pid uint64) *VM {
+	frames := make([]*Frame, MaxFrames)
+	frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+	return &VM{
+		constants:   vm.constants,
+		tokens:      vm.tokens,
+		stack:       make([]object.Object, StackSize),
+		sp:          0,
+		globals:     vm.globals,
+		frames:      frames,
+		framesIndex: 1,
+		lastNodePos: -1,
+		NodeName:    vm.NodeName,
+		PID:         pid,
+		wsTemplate:  vm.wsTemplate,
+	}
+}
+
+// ensureOwnGlobals copies the shared globals slice before the first write so
+// writes made by this vm are not visible to sibling vms sharing the slice.
+func (vm *VM) ensureOwnGlobals() {
+	if !vm.globalsOwned {
+		globals := make([]object.Object, len(vm.globals))
+		copy(globals, vm.globals)
+		vm.globals = globals
+		vm.globalsOwned = true
+	}
 }
 
 func (vm *VM) StackTop() object.Object {
@@ -327,6 +363,7 @@ func (vm *VM) Run() error {
 		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2
+			vm.ensureOwnGlobals()
 			vm.globals[globalIndex] = vm.pop()
 		case code.OpGetGlobal, code.OpGetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
@@ -395,14 +432,32 @@ func (vm *VM) Run() error {
 		case code.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
-			if (index.Type() == object.CLOSURE || index.Type() == object.BUILTIN_OBJ) && vm.incrementOpCallArgCount() {
-				err := vm.push(index)
-				if err != nil {
-					return err
-				}
-				err = vm.push(left)
-				if err != nil {
-					return err
+			if index.Type() == object.CLOSURE || index.Type() == object.BUILTIN_OBJ {
+				// Method call sugar (eg. x.len()). Mark the frame so the
+				// following OpCall passes the receiver as an extra argument.
+				// The old implementation patched the OpCall operand byte in
+				// the shared bytecode, which made bytecode unsafe to execute
+				// on more than one vm at a time. Like the old code, only
+				// take this path when a following OpCall exists in the
+				// instruction stream, otherwise treat it as a plain index.
+				if blueutil.GetNextOpCallPos(vm.currentFrame().Instructions(), vm.currentFrame().ip) != -1 {
+					vm.currentFrame().methodCallPending = true
+					err := vm.push(index)
+					if err != nil {
+						return err
+					}
+					err = vm.push(left)
+					if err != nil {
+						return err
+					}
+				} else {
+					err := vm.executeIndexExpression(left, index)
+					if err != nil {
+						err = vm.PushAndReturnError(err)
+						if err != nil {
+							return err
+						}
+					}
 				}
 			} else {
 				err := vm.executeIndexExpression(left, index)
@@ -414,9 +469,15 @@ func (vm *VM) Run() error {
 				}
 			}
 		case code.OpCall:
-			numArgs := code.ReadUint8(ins[ip+1:])
+			numArgs := int(code.ReadUint8(ins[ip+1:]))
+			if vm.currentFrame().methodCallPending {
+				// The callee was pushed via a method-call OpIndex, which also
+				// pushed the receiver as an extra argument.
+				numArgs++
+				vm.currentFrame().methodCallPending = false
+			}
 			vm.currentFrame().ip += 1
-			err := vm.executeCall(int(numArgs))
+			err := vm.executeCall(numArgs)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {
@@ -550,17 +611,44 @@ func (vm *VM) Run() error {
 				if definition.Fun == nil {
 					if builtinModuleIndex != 0 {
 						modName := object.GetNameOfModuleByIndex(int(builtinModuleIndex))
-						builtin = &object.Builtin{
-							Name:    definition.Name,
-							Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
-							HelpStr: definition.HelpStr,
-							Mutates: definition.Mutates,
+						// Per-vm cache for vm bound std builtins. Inlined
+						// `from http import` statements re-resolve these on
+						// every call, and resolving must not rebuild (or in
+						// the case of _handle_ws, re-clone) each time.
+						cacheKey := modName + "/" + definition.Name
+						var ok bool
+						builtin, ok = vm.builtinObjs[cacheKey]
+						if !ok {
+							builtin = &object.Builtin{
+								Name:    definition.Name,
+								Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
+								HelpStr: definition.HelpStr,
+								Mutates: definition.Mutates,
+							}
+							if vm.builtinObjs == nil {
+								vm.builtinObjs = make(map[string]*object.Builtin)
+							}
+							vm.builtinObjs[cacheKey] = builtin
 						}
 					} else {
 						if blueutil.ENABLE_VM_CACHING {
-							// Lazy Evaluate Builtin that needs to use vm
-							definition.Fun = GetBuiltinFunWithVm(definition.Name, vm)
-							builtin = definition
+							// Per-vm builtin cache. The builtin definition is
+							// shared across vms, so it must never be written
+							// to here: concurrent vms would race on it.
+							var ok bool
+							builtin, ok = vm.builtinObjs[definition.Name]
+							if !ok {
+								builtin = &object.Builtin{
+									Name:    definition.Name,
+									Fun:     GetBuiltinFunWithVm(definition.Name, vm),
+									HelpStr: definition.HelpStr,
+									Mutates: definition.Mutates,
+								}
+								if vm.builtinObjs == nil {
+									vm.builtinObjs = make(map[string]*object.Builtin)
+								}
+								vm.builtinObjs[definition.Name] = builtin
+							}
 						} else {
 							builtin = &object.Builtin{
 								Name:    definition.Name,

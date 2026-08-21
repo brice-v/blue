@@ -15,8 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/puzpuzpuz/xsync/v3"
 )
 
 func (c *Compiler) compileInfixExpression(operator string) error {
@@ -350,9 +348,10 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 			return err
 		}
 	}
-	if c.lastInstructionIs(code.OpPop) {
-		c.removeLastPop()
-	}
+	// NOTE: unlike if/match expressions, a for statement is never used as an
+	// expression, so the body's trailing value must be popped every
+	// iteration. Stripping this OpPop leaked one stack slot per iteration
+	// until long lived loops exhausted the vm stack.
 	if c.lastInstructionIs(code.OpNull) {
 		c.removeLastInstruction()
 	}
@@ -690,11 +689,10 @@ var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement, astStr string) *object.CompiledFunction {
 	specialFunctionParameters := c.setupFunctionParameters(parameters, parameterExpressions)
 	compiledFun := &object.CompiledFunction{
-		Parameters:            make([]string, len(parameters)),
-		ParameterHasDefault:   make([]bool, len(parameters)),
-		NumParameters:         len(parameters),
-		DisplayString:         astStr,
-		PosAlreadyIncremented: xsync.NewMapOf[int, struct{}](),
+		Parameters:          make([]string, len(parameters)),
+		ParameterHasDefault: make([]bool, len(parameters)),
+		NumParameters:       len(parameters),
+		DisplayString:       astStr,
 
 		SpecialFunctionParameters: specialFunctionParameters,
 	}

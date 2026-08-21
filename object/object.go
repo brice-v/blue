@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/shopspring/decimal"
 )
 
@@ -883,8 +882,6 @@ type CompiledFunction struct {
 	NumDefaultParams    int
 
 	DisplayString string
-
-	PosAlreadyIncremented *xsync.MapOf[int, struct{}]
 
 	SpecialFunctionParameters map[NameIndexKey]map[NameIndexKey]Object
 
