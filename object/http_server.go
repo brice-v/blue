@@ -36,27 +36,57 @@ type Route struct {
 type Server struct {
 	mu      sync.Mutex
 	srv     *http.Server
+	serveCh chan struct{}
+	once    sync.Once
 	routes  []*Route
 	Network string
 }
 
 // NewServer returns an empty Server with no routes registered.
 func NewServer() *Server {
-	return &Server{}
+	return &Server{serveCh: make(chan struct{})}
+}
+
+// setSrv records the running http server and unblocks Shutdown waiters. A nil
+// srv marks the server as never having served.
+func (s *Server) setSrv(srv *http.Server) {
+	s.mu.Lock()
+	s.srv = srv
+	s.mu.Unlock()
+	s.once.Do(func() { close(s.serveCh) })
 }
 
 // Serve starts the http server on the given listener.
 func (s *Server) Serve(ln net.Listener) error {
-	s.srv = &http.Server{Handler: s}
-	return s.srv.Serve(ln)
+	s.setSrv(&http.Server{Handler: s})
+	s.mu.Lock()
+	srv := s.srv
+	s.mu.Unlock()
+	return srv.Serve(ln)
 }
 
-// Shutdown gracefully shuts down the running server if one is active.
+// Shutdown gracefully shuts down the running server if one is active. It
+// waits for Serve to register the server so an interrupt during startup is
+// not a silent no-op.
 func (s *Server) Shutdown() error {
-	if s.srv == nil {
+	var srv *http.Server
+	s.mu.Lock()
+	srv = s.srv
+	s.mu.Unlock()
+	if srv == nil {
+		select {
+		case <-s.serveCh:
+			s.mu.Lock()
+			srv = s.srv
+			s.mu.Unlock()
+		case <-time.After(10 * time.Second):
+			return nil
+		}
+	}
+	if srv == nil {
 		return nil
 	}
-	return s.srv.Shutdown(context.Background())
+	return srv.Shutdown(context.Background())
 }
 
 // Add registers a new route. isMiddleware routes are prefix matched for all
@@ -83,7 +113,7 @@ func addStaticFiles(s *Server, prefix string, httpFS http.FileSystem, browse boo
 	if prefix != "" && prefix != "/" {
 		fileServer = http.StripPrefix(prefix, fileServer)
 	}
-	s.Add(prefix, "", func(c *Ctx) {
+	s.Add("", prefix, func(c *Ctx) {
 		rel := c.R.URL.Path
 		if prefix != "" && prefix != "/" {
 			rel = strings.TrimPrefix(rel, prefix)

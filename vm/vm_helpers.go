@@ -754,6 +754,12 @@ func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c *object.Ctx, meth
 	isGet := method == "GET"
 	isDelete := method == "DELETE"
 	methodLower := strings.ToLower(method)
+	// The vm (stack, frames, globals and the handler closure's special
+	// parameter maps) is not safe for concurrent execution, so requests are
+	// serialized here. Chain dispatch via c.Next() happens outside this lock
+	// in processHandlerFn so a middleware chain cannot self-deadlock.
+	vm.execMu.Lock()
+	defer vm.execMu.Unlock()
 	if !isGet && !isDelete {
 		handleSpecialFunctionArgs2(fn, methodLower+"_values", c)
 	}

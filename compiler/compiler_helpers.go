@@ -15,8 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/puzpuzpuz/xsync/v3"
 )
 
 func (c *Compiler) compileInfixExpression(operator string) error {
@@ -690,11 +688,10 @@ var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement, astStr string) *object.CompiledFunction {
 	specialFunctionParameters := c.setupFunctionParameters(parameters, parameterExpressions)
 	compiledFun := &object.CompiledFunction{
-		Parameters:            make([]string, len(parameters)),
-		ParameterHasDefault:   make([]bool, len(parameters)),
-		NumParameters:         len(parameters),
-		DisplayString:         astStr,
-		PosAlreadyIncremented: xsync.NewMapOf[int, struct{}](),
+		Parameters:          make([]string, len(parameters)),
+		ParameterHasDefault: make([]bool, len(parameters)),
+		NumParameters:       len(parameters),
+		DisplayString:       astStr,
 
 		SpecialFunctionParameters: specialFunctionParameters,
 	}

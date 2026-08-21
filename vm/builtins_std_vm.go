@@ -25,8 +25,11 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 		case "_handle_use":
 			return createHttpHandleBuiltin(vm, true).Fun
 		case "_handle_ws":
-			newVm := vm.Clone(vm.PID)
-			return createHttpHandleWSBuiltin(newVm).Fun
+			// Snapshot the vm once at registration time. Cloning the live vm
+			// later is not safe: called functions create closure/env reference
+			// cycles that make deep Clone recurse forever.
+			wsVm := vm.Clone(vm.PID)
+			return createHttpHandleWSBuiltin(wsVm).Fun
 		default:
 			panic("GetStdBuiltinWithVm called with incorrect builtin function name '" + name + "' for module: " + mod)
 		}
@@ -282,16 +285,25 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 				defer func() {
 					_ = conn.Close()
 				}()
-				handleSpecialFunctionArgs(fn, c.R)
-				fnArgs := make([]object.Object, len(fn.Fun.Parameters))
-				for i, v := range fn.Fun.Parameters {
+				// Each connection runs blue code for its whole lifetime, so
+				// it gets its own vm and its own copy of the handler closure.
+				// Sharing one vm (or the closure's special parameter maps)
+				// between concurrent connections corrupts vm state. The
+				// connection vm shares immutable program data with the
+				// registration-time snapshot instead of deep cloning it, and
+				// is made from that snapshot, never from the live vm.
+				connVm := vm.CloneForConnection(vm.PID)
+				connFn := cloneHandlerClosure(fn)
+				handleSpecialFunctionArgs(connFn, c.R)
+				fnArgs := make([]object.Object, len(connFn.Fun.Parameters))
+				for i, v := range connFn.Fun.Parameters {
 					if i == 0 {
 						fnArgs[i] = object.CreateBasicMapObjectForGoObj("ws", NewGoObj(conn))
 					} else {
-						fnArgs[i] = &object.Stringo{Value: c.R.PathValue(v)}
+						fnArgs[i] = &object.Stringo{Value: c.Params(v)}
 					}
 				}
-				returnObj := vm.applyFunctionFastWithMultipleArgs(fn, fnArgs)
+				returnObj := connVm.applyFunctionFastWithMultipleArgs(connFn, fnArgs)
 				if isError(returnObj) {
 					// var buf bytes.Buffer
 					// buf.WriteString(returnObj.(*object.Error).Message)
@@ -372,6 +384,36 @@ func handleSpecialFunctionArgs(fn *object.Closure, r *http.Request) {
 			}
 		}
 	}
+}
+
+// cloneHandlerClosure returns a copy of fn whose compiled function carries a
+// private copy of SpecialFunctionParameters so concurrent handlers never write
+// to the same default parameter maps. Bytecode is immutable at runtime and
+// shared safely; free variables are shared as well.
+func cloneHandlerClosure(fn *object.Closure) *object.Closure {
+	var sfp map[object.NameIndexKey]map[object.NameIndexKey]object.Object
+	if fn.Fun.SpecialFunctionParameters != nil {
+		sfp = make(map[object.NameIndexKey]map[object.NameIndexKey]object.Object, len(fn.Fun.SpecialFunctionParameters))
+		for k, v := range fn.Fun.SpecialFunctionParameters {
+			inner := make(map[object.NameIndexKey]object.Object, len(v))
+			for kk, vv := range v {
+				inner[kk] = vv
+			}
+			sfp[k] = inner
+		}
+	}
+	fun := &object.CompiledFunction{
+		Instructions:              fn.Fun.Instructions,
+		NumLocals:                 fn.Fun.NumLocals,
+		NumParameters:             fn.Fun.NumParameters,
+		Parameters:                fn.Fun.Parameters,
+		ParameterHasDefault:       fn.Fun.ParameterHasDefault,
+		NumDefaultParams:          fn.Fun.NumDefaultParams,
+		DisplayString:             fn.Fun.DisplayString,
+		SpecialFunctionParameters: sfp,
+		HelpStr:                   fn.Fun.HelpStr,
+	}
+	return &object.Closure{Fun: fun, Free: fn.Free}
 }
 
 func createUIButtonBuiltin(vm *VM) *object.Builtin {

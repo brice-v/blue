@@ -347,6 +347,8 @@ var HttpBuiltins = []*Builtin{
 			}
 			ln, err := net.Listen(app.Value.Network, addrPort)
 			if err != nil {
+				// Unblock Shutdown waiters since nothing will ever serve.
+				app.Value.setSrv(nil)
 				return newError("`serve` error: %s", err.Error())
 			}
 			err = app.Value.Serve(ln)

@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	clone "github.com/huandu/go-clone/generic"
-	"github.com/puzpuzpuz/xsync/v3"
 )
 
 func (x *Null) Clone() Object {
@@ -180,14 +179,6 @@ func (x *CompiledFunction) Clone() Object {
 	copy(parameters, x.Parameters)
 	parametersHasDefault := make([]bool, len(x.ParameterHasDefault))
 	copy(parametersHasDefault, x.ParameterHasDefault)
-	var posAlreadyIncremented *xsync.MapOf[int, struct{}]
-	if x.PosAlreadyIncremented != nil {
-		posAlreadyIncremented = xsync.NewMapOf[int, struct{}]()
-		x.PosAlreadyIncremented.Range(func(key int, value struct{}) bool {
-			posAlreadyIncremented.Store(key, value)
-			return true
-		})
-	}
 	specialFunctionParameters := make(map[NameIndexKey]map[NameIndexKey]Object)
 	for k, v := range x.SpecialFunctionParameters {
 		m := make(map[NameIndexKey]Object)
@@ -209,7 +200,6 @@ func (x *CompiledFunction) Clone() Object {
 		ParameterHasDefault:       parametersHasDefault,
 		NumDefaultParams:          x.NumDefaultParams,
 		DisplayString:             x.DisplayString,
-		PosAlreadyIncremented:     posAlreadyIncremented,
 		SpecialFunctionParameters: specialFunctionParameters,
 	}
 }
