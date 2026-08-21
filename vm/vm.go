@@ -52,6 +52,10 @@ type VM struct {
 	// builtin definitions are shared across vms and must never be written to.
 	builtinObjs map[string]*object.Builtin
 
+	// wsTemplate is the snapshot source for ws connection vms, created on the
+	// first _handle_ws resolution and shared by every vm in the lineage.
+	wsTemplate *VM
+
 	// execMu serializes http handler execution. The stack, frames, globals
 	// and closure special parameter maps are not safe for concurrent runs.
 	execMu sync.Mutex
@@ -131,6 +135,7 @@ func (vm *VM) Clone(pid uint64) *VM {
 		framesIndex:  vm.framesIndex,
 		NodeName:     vm.NodeName,
 		PID:          pid,
+		wsTemplate:   vm.wsTemplate,
 	}
 	return newVm
 }
@@ -154,6 +159,7 @@ func (vm *VM) CloneForConnection(pid uint64) *VM {
 		lastNodePos: -1,
 		NodeName:    vm.NodeName,
 		PID:         pid,
+		wsTemplate:  vm.wsTemplate,
 	}
 }
 
@@ -431,15 +437,27 @@ func (vm *VM) Run() error {
 				// following OpCall passes the receiver as an extra argument.
 				// The old implementation patched the OpCall operand byte in
 				// the shared bytecode, which made bytecode unsafe to execute
-				// on more than one vm at a time.
-				vm.currentFrame().methodCallPending = true
-				err := vm.push(index)
-				if err != nil {
-					return err
-				}
-				err = vm.push(left)
-				if err != nil {
-					return err
+				// on more than one vm at a time. Like the old code, only
+				// take this path when a following OpCall exists in the
+				// instruction stream, otherwise treat it as a plain index.
+				if blueutil.GetNextOpCallPos(vm.currentFrame().Instructions(), vm.currentFrame().ip) != -1 {
+					vm.currentFrame().methodCallPending = true
+					err := vm.push(index)
+					if err != nil {
+						return err
+					}
+					err = vm.push(left)
+					if err != nil {
+						return err
+					}
+				} else {
+					err := vm.executeIndexExpression(left, index)
+					if err != nil {
+						err = vm.PushAndReturnError(err)
+						if err != nil {
+							return err
+						}
+					}
 				}
 			} else {
 				err := vm.executeIndexExpression(left, index)
@@ -593,11 +611,24 @@ func (vm *VM) Run() error {
 				if definition.Fun == nil {
 					if builtinModuleIndex != 0 {
 						modName := object.GetNameOfModuleByIndex(int(builtinModuleIndex))
-						builtin = &object.Builtin{
-							Name:    definition.Name,
-							Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
-							HelpStr: definition.HelpStr,
-							Mutates: definition.Mutates,
+						// Per-vm cache for vm bound std builtins. Inlined
+						// `from http import` statements re-resolve these on
+						// every call, and resolving must not rebuild (or in
+						// the case of _handle_ws, re-clone) each time.
+						cacheKey := modName + "/" + definition.Name
+						var ok bool
+						builtin, ok = vm.builtinObjs[cacheKey]
+						if !ok {
+							builtin = &object.Builtin{
+								Name:    definition.Name,
+								Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
+								HelpStr: definition.HelpStr,
+								Mutates: definition.Mutates,
+							}
+							if vm.builtinObjs == nil {
+								vm.builtinObjs = make(map[string]*object.Builtin)
+							}
+							vm.builtinObjs[cacheKey] = builtin
 						}
 					} else {
 						if blueutil.ENABLE_VM_CACHING {

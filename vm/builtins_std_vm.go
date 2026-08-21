@@ -25,11 +25,16 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 		case "_handle_use":
 			return createHttpHandleBuiltin(vm, true).Fun
 		case "_handle_ws":
-			// Snapshot the vm once at registration time. Cloning the live vm
-			// later is not safe: called functions create closure/env reference
-			// cycles that make deep Clone recurse forever.
-			wsVm := vm.Clone(vm.PID)
-			return createHttpHandleWSBuiltin(wsVm).Fun
+			// The template snapshot is created once, on the first resolution,
+			// while the source vm is still young and safe to deep clone.
+			// Later resolutions (inlined `from http import` statements
+			// re-execute on every ws message, including on connection vms)
+			// must reuse it: cloning here would copy a live vm and retain
+			// megabytes per message.
+			if vm.wsTemplate == nil {
+				vm.wsTemplate = vm.Clone(vm.PID)
+			}
+			return createHttpHandleWSBuiltin(vm.wsTemplate).Fun
 		default:
 			panic("GetStdBuiltinWithVm called with incorrect builtin function name '" + name + "' for module: " + mod)
 		}

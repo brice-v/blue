@@ -348,9 +348,10 @@ func (c *Compiler) compileForStatement(node *ast.ForStatement) error {
 			return err
 		}
 	}
-	if c.lastInstructionIs(code.OpPop) {
-		c.removeLastPop()
-	}
+	// NOTE: unlike if/match expressions, a for statement is never used as an
+	// expression, so the body's trailing value must be popped every
+	// iteration. Stripping this OpPop leaked one stack slot per iteration
+	// until long lived loops exhausted the vm stack.
 	if c.lastInstructionIs(code.OpNull) {
 		c.removeLastInstruction()
 	}
