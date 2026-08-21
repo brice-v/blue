@@ -600,8 +600,8 @@ func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object
 	existingFrames := vm.frames
 	existingFrameIndex := vm.framesIndex
 	existingStackPointer := vm.sp
-	vm.frames = make([]*Frame, MaxFrames)
-	vm.frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+	vm.frames = make([]Frame, MaxFrames)
+	vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	vm.framesIndex = 2
 	err := vm.push(fun)
 	if err != nil {
@@ -638,8 +638,8 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
 		existingStackPointer := vm.sp
-		vm.frames = make([]*Frame, 3)
-		vm.frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+		vm.frames = make([]Frame, 3)
+		vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 		vm.framesIndex = 2
 		err := vm.push(fun)
 		if err != nil {

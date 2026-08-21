@@ -85,11 +85,14 @@ for (i in 1..5) {
 }
 
 time.sleep(500)
-# Results are sent to the parent via channel
+# Results are sent to the parent via channel. Workers run concurrently, so
+# values may arrive in any order: compare as a sorted collection instead of
+# assuming completion order matches spawn order.
+var received = []
 for (i in 1..5) {
-    val result = me.recv()
-    assert(result == i * 10)
+    received << me.recv()
 }
+assert(sort(received) == [10, 20, 30, 40, 50])
 
 # Self in nested spawn
 fun nestedWorker(parentPid) {

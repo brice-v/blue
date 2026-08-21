@@ -144,7 +144,7 @@ func IsConstantObject(obj Object) int {
 }
 
 // Inspect returns the string value of the integer object
-func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
+func (i *Integer) Inspect() string { return strconv.FormatInt(i.Value, 10) }
 
 // Type returns the object type of integer
 func (i *Integer) Type() Type { return INTEGER_OBJ }
@@ -175,7 +175,12 @@ type Boolean struct {
 }
 
 // Inspect returns the string value of the boolean object
-func (b *Boolean) Inspect() string { return fmt.Sprintf("%t", b.Value) }
+func (b *Boolean) Inspect() string {
+	if b.Value {
+		return "true"
+	}
+	return "false"
+}
 
 // Type returns the object type of boolean
 func (b *Boolean) Type() Type { return BOOLEAN_OBJ }
@@ -243,7 +248,7 @@ type UInteger struct {
 func (ui *UInteger) Type() Type { return UINTEGER_OBJ }
 
 // Inspect returns the string value of the uint
-func (ui *UInteger) Inspect() string { return fmt.Sprintf("%d", ui.Value) }
+func (ui *UInteger) Inspect() string { return strconv.FormatUint(ui.Value, 10) }
 
 func (ui *UInteger) Help() string {
 	desc := "is the object that represents numerical values 0 to 18446744073709551615"

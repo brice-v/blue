@@ -36,7 +36,13 @@ type VM struct {
 	// it on first write (see ensureOwnGlobals).
 	globalsOwned bool
 
-	frames      []*Frame
+	// Frames are stored by value in a preallocated array. currentFrame
+	// returns a pointer into the array, so frame access in the interpreter
+	// loop does not allocate (a *Frame was previously heap allocated per
+	// function call). The slice header is swapped out by applyFunctionFast
+	// and restored afterwards; the array itself is never reallocated or
+	// grown, so pointers into it stay valid for the vm's lifetime.
+	frames      []Frame
 	framesIndex int
 
 	TokensForErrorTrace []*token.Token
@@ -62,28 +68,63 @@ type VM struct {
 }
 
 func (vm *VM) currentFrame() *Frame {
-	return vm.frames[vm.framesIndex-1]
+	return &vm.frames[vm.framesIndex-1]
 }
 
 func (vm *VM) pushFrame(f *Frame) {
-	vm.frames[vm.framesIndex] = f
+	vm.frames[vm.framesIndex] = *f
 	vm.framesIndex++
 }
 
 func (vm *VM) popFrame() *Frame {
+	var f *Frame
 	if vm.framesIndex-1 == 0 {
-		return vm.frames[vm.framesIndex]
+		f = &vm.frames[vm.framesIndex]
+	} else {
+		vm.framesIndex--
+		f = &vm.frames[vm.framesIndex]
 	}
+	// Slots that were never initialized have a nil closure; report them as
+	// a nil frame so callers keep their previous "no frame here" behavior
+	// (eg. the NORMAL_EXIT_ON_RETURN escape in Run).
+	if f.cl == nil {
+		return nil
+	}
+	return f
+}
+
+// newCallFrame initializes the next frame slot in place and returns a pointer
+// to it, avoiding a heap allocation per function call. The caller must bump
+// framesIndex (via pushFrame) or overwrite the current slot (fast-frame call).
+func (vm *VM) newCallFrame(cl *object.Closure, bp int) *Frame {
+	f := &vm.frames[vm.framesIndex]
+	f.cl = cl
+	f.ip = -1
+	f.bp = bp
+	f.lastInstruction = code.OpInvalid
+	f.callerLastNodePos = -1
+	f.deferFuns = nil
+	f.inTry = false
+	f.inCatch = false
+	f.catchError = ""
+	f.methodCallPending = false
+	return f
+}
+
+// newCallFrameReplaceTop initializes the current top slot in place, replacing
+// whatever frame is there without growing the frame stack (fast-frame calls).
+func (vm *VM) newCallFrameReplaceTop(cl *object.Closure, bp int) *Frame {
 	vm.framesIndex--
-	return vm.frames[vm.framesIndex]
+	f := vm.newCallFrame(cl, bp)
+	vm.framesIndex++
+	return f
 }
 
 func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
 	mainClosure := &object.Closure{Fun: mainFn}
-	mainFrame := NewFrame(mainClosure, 0)
-	frames := make([]*Frame, MaxFrames)
-	frames[0] = mainFrame
+	frames := make([]Frame, MaxFrames)
+	frames[0] = *NewFrame(mainClosure, 0)
 	vm := &VM{
 		constants:    bytecode.Constants,
 		tokens:       bytecode.Tokens,
@@ -120,24 +161,30 @@ func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
 	return vm
 }
 
+// Clone returns a vm suitable for running blue code concurrently with this
+// one (process spawn, ws registration snapshot). Immutable program data
+// (constants, tokens) is shared instead of deep cloned, globals are deep
+// copied so the clone sees a spawn-time snapshot that later writes by either
+// side do not affect, and execution state (stack, frames) starts fresh —
+// callers immediately run a function on the clone via applyFunctionFast*,
+// which swaps in its own frames and never reads stack contents below sp.
 func (vm *VM) Clone(pid uint64) *VM {
-	newFrames := make([]*Frame, len(vm.frames))
-	for i, f := range vm.frames {
-		newFrames[i] = f.Clone()
-	}
-	newVm := &VM{
-		constants:    object.CloneSlice(vm.constants),
-		stack:        object.CloneSlice(vm.stack),
-		sp:           vm.sp,
+	frames := make([]Frame, MaxFrames)
+	frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+	return &VM{
+		constants:    vm.constants,
+		tokens:       vm.tokens,
+		stack:        make([]object.Object, StackSize),
+		sp:           0,
 		globals:      object.CloneSlice(vm.globals),
 		globalsOwned: true,
-		frames:       newFrames,
-		framesIndex:  vm.framesIndex,
+		frames:       frames,
+		framesIndex:  1,
+		lastNodePos:  -1,
 		NodeName:     vm.NodeName,
 		PID:          pid,
 		wsTemplate:   vm.wsTemplate,
 	}
-	return newVm
 }
 
 // CloneForConnection returns a vm that can execute blue code concurrently
@@ -146,8 +193,8 @@ func (vm *VM) Clone(pid uint64) *VM {
 // state (stack, frames) is private. This keeps per connection memory flat
 // instead of deep cloning the whole program for every connection.
 func (vm *VM) CloneForConnection(pid uint64) *VM {
-	frames := make([]*Frame, MaxFrames)
-	frames[0] = NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+	frames := make([]Frame, MaxFrames)
+	frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	return &VM{
 		constants:   vm.constants,
 		tokens:      vm.tokens,
@@ -193,21 +240,26 @@ func (vm *VM) Run() error {
 	var ip int
 	var ins code.Instructions
 	var op code.Opcode
-	for vm.currentFrame().ip < len(vm.currentFrame().Instructions())-1 {
-		vm.currentFrame().ip++
-		ip = vm.currentFrame().ip
-		ins = vm.currentFrame().Instructions()
+	for {
+		frame := vm.currentFrame()
+		ins = frame.Instructions()
+		ip = frame.ip
+		if ip >= len(ins)-1 {
+			break
+		}
+		ip++
+		frame.ip = ip
 		op = code.Opcode(ins[ip])
 		if op == code.OpNode {
-			vm.lastNodePos = vm.currentFrame().ip
+			vm.lastNodePos = ip
 			// Skip TokenIndex of OpNode
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			continue
 		}
 		switch op {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			if int(constIndex) > len(vm.constants) {
 				return fmt.Errorf("constant index out of bounds, got=%d, len=%d", constIndex, len(vm.constants))
 			}
@@ -218,6 +270,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpTrue:
 			err := vm.push(object.TRUE)
 			if err != nil {
@@ -226,6 +279,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpFalse:
 			err := vm.push(object.FALSE)
 			if err != nil {
@@ -234,6 +288,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpNull:
 			err := vm.push(object.NULL)
 			if err != nil {
@@ -242,6 +297,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpPop:
 			vm.pop()
 		case code.OpAdd, code.OpMinus, code.OpStar, code.OpPow, code.OpDiv,
@@ -256,6 +312,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpNot:
 			err := vm.executeNotOperation()
 			if err != nil {
@@ -264,6 +321,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpNotIfNotNull:
 			err := vm.executeNotIfNotNullOperation()
 			if err != nil {
@@ -272,6 +330,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpNeg:
 			err := vm.executeNegOperation()
 			if err != nil {
@@ -280,6 +339,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpTilde:
 			err := vm.executeBitwiseNotOperation()
 			if err != nil {
@@ -288,6 +348,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpLshiftPre:
 			err := vm.executeLshiftPrefixOperation()
 			if err != nil {
@@ -296,6 +357,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpRshiftPost:
 			err := vm.executeRshiftPostfixOperation()
 			if err != nil {
@@ -304,24 +366,25 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpJump:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip = pos - 1
+			frame.ip = pos - 1
 		case code.OpJumpNotTruthy:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			condition := vm.pop()
 			if !isTruthy(condition) {
-				vm.currentFrame().ip = pos - 1
+				frame.ip = pos - 1
 			}
 		case code.OpJumpNotTruthyAndPushTrue:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			// Pass null through (as this would mean we should re-push the item on the stack)
 			if vm.peek() != object.NULL {
 				condition := vm.pop()
 				if !isTruthy(condition) {
-					vm.currentFrame().ip = pos - 1
+					frame.ip = pos - 1
 					err := vm.push(object.TRUE)
 					if err != nil {
 						err = vm.PushAndReturnError(err)
@@ -329,6 +392,7 @@ func (vm *VM) Run() error {
 							return err
 						}
 					}
+					frame = vm.currentFrame()
 				} else {
 					// Execute Not on the Condition to reverse OpNotIfNotNull which is always called prior
 					err := vm.push(condition)
@@ -343,10 +407,10 @@ func (vm *VM) Run() error {
 			}
 		case code.OpJumpNotTruthyAndPushFalse:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			condition := vm.pop()
 			if !isTruthy(condition) {
-				vm.currentFrame().ip = pos - 1
+				frame.ip = pos - 1
 				err := vm.push(object.FALSE)
 				if err != nil {
 					err = vm.PushAndReturnError(err)
@@ -354,6 +418,7 @@ func (vm *VM) Run() error {
 						return err
 					}
 				}
+				frame = vm.currentFrame()
 			} else {
 				err := vm.push(condition)
 				if err != nil {
@@ -362,12 +427,12 @@ func (vm *VM) Run() error {
 			}
 		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			vm.ensureOwnGlobals()
 			vm.globals[globalIndex] = vm.pop()
 		case code.OpGetGlobal, code.OpGetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			err := vm.push(vm.globals[globalIndex])
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -375,13 +440,14 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpGetGlobalImmOrSpecial:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			processKeyIndex := code.ReadUint8(ins[ip+3:])
-			vm.currentFrame().ip += 3
+			frame.ip += 3
 			var err error
-			if processKeyIndex != 0 && vm.safePeek().Type() == object.PROCESS_OBJ && len(ins) >= vm.currentFrame().ip+1 && ins[vm.currentFrame().ip+1] == byte(code.OpIndex) {
-				vm.currentFrame().ip += 1 // Skip over OpIndex, we are going to pop and then push the evaluated result back on the stack
+			if processKeyIndex != 0 && vm.safePeek().Type() == object.PROCESS_OBJ && len(ins) >= frame.ip+1 && ins[frame.ip+1] == byte(code.OpIndex) {
+				frame.ip += 1 // Skip over OpIndex, we are going to pop and then push the evaluated result back on the stack
 				name := object.GetProcessKeyName(processKeyIndex)
 				err = vm.executeProcessIndexExpression(vm.pop().(*object.Process), name)
 			} else {
@@ -393,9 +459,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpList:
 			numElems := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			list := vm.buildList(vm.sp-numElems, vm.sp)
 			vm.sp = vm.sp - numElems
 			err := vm.push(list)
@@ -405,9 +472,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpMap:
 			numPairs := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			m := vm.buildMap(vm.sp-numPairs, vm.sp)
 			vm.sp = vm.sp - numPairs
 			err := vm.push(m)
@@ -417,9 +485,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpSet:
 			numElems := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			set := vm.buildSet(vm.sp-numElems, vm.sp)
 			vm.sp = vm.sp - numElems
 			err := vm.push(set)
@@ -429,6 +498,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
@@ -440,8 +510,8 @@ func (vm *VM) Run() error {
 				// on more than one vm at a time. Like the old code, only
 				// take this path when a following OpCall exists in the
 				// instruction stream, otherwise treat it as a plain index.
-				if blueutil.GetNextOpCallPos(vm.currentFrame().Instructions(), vm.currentFrame().ip) != -1 {
-					vm.currentFrame().methodCallPending = true
+				if blueutil.GetNextOpCallPos(frame.Instructions(), frame.ip) != -1 {
+					frame.methodCallPending = true
 					err := vm.push(index)
 					if err != nil {
 						return err
@@ -458,6 +528,7 @@ func (vm *VM) Run() error {
 							return err
 						}
 					}
+					frame = vm.currentFrame()
 				}
 			} else {
 				err := vm.executeIndexExpression(left, index)
@@ -467,16 +538,17 @@ func (vm *VM) Run() error {
 						return err
 					}
 				}
+				frame = vm.currentFrame()
 			}
 		case code.OpCall:
 			numArgs := int(code.ReadUint8(ins[ip+1:]))
-			if vm.currentFrame().methodCallPending {
+			if frame.methodCallPending {
 				// The callee was pushed via a method-call OpIndex, which also
 				// pushed the receiver as an extra argument.
 				numArgs++
-				vm.currentFrame().methodCallPending = false
+				frame.methodCallPending = false
 			}
-			vm.currentFrame().ip += 1
+			frame.ip += 1
 			err := vm.executeCall(numArgs)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -484,19 +556,21 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpReturnValue:
-			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
+			frame.cl.Fun.ClearSpecialFunctionParameters()
 			returnValue := vm.pop()
-			frame := vm.popFrame()
+			poppedFrame := vm.popFrame()
 			// Clear catch state when returning from a closure. The catch
 			// context belongs to the closure's execution scope and must not
 			// leak into the caller or subsequent operations.
-			if frame != nil && vm.currentFrame() != nil {
-				vm.currentFrame().inCatch = false
-				vm.currentFrame().catchError = ""
+			frame = vm.currentFrame()
+			if poppedFrame != nil && frame != nil {
+				frame.inCatch = false
+				frame.catchError = ""
 			}
-			if frame != nil {
-				vm.sp = frame.bp - 1
+			if poppedFrame != nil {
+				vm.sp = poppedFrame.bp - 1
 			}
 			err := vm.push(returnValue)
 			if err != nil {
@@ -505,32 +579,40 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			if frame != nil {
-				for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
-					err := vm.callClosure(deferFun, 0)
+			frame = vm.currentFrame()
+			if poppedFrame != nil {
+				// Detach the defer list before running: callClosure
+				// reuses the popped frame's slot, which would otherwise
+				// clobber poppedFrame.deferFuns mid-iteration.
+				deferFuns := poppedFrame.deferFuns
+				poppedFrame.deferFuns = nil
+				for i := len(deferFuns) - 1; i >= 0; i-- {
+					err := vm.callClosure(deferFuns[i], 0)
 					if err != nil {
 						err = vm.PushAndReturnError(err)
 						if err != nil {
 							return err
 						}
 					}
+					frame = vm.currentFrame()
 				}
 			}
-			if vm.currentFrame() == nil {
+			if frame == nil {
 				// Break out if the current frame is actually empty
 				// Should only ever happen with applyFunction
 				return fmt.Errorf(consts.NORMAL_EXIT_ON_RETURN)
 			}
 		case code.OpReturn:
-			vm.currentFrame().cl.Fun.ClearSpecialFunctionParameters()
-			frame := vm.popFrame()
+			frame.cl.Fun.ClearSpecialFunctionParameters()
+			poppedFrame := vm.popFrame()
 			// Clear catch state when returning from a closure.
-			if frame != nil && vm.currentFrame() != nil {
-				vm.currentFrame().inCatch = false
-				vm.currentFrame().catchError = ""
+			frame = vm.currentFrame()
+			if poppedFrame != nil && frame != nil {
+				frame.inCatch = false
+				frame.catchError = ""
 			}
-			if frame != nil {
-				vm.sp = frame.bp - 1
+			if poppedFrame != nil {
+				vm.sp = poppedFrame.bp - 1
 			}
 			err := vm.push(object.NULL)
 			if err != nil {
@@ -539,31 +621,36 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			if frame != nil {
-				for deferFun := frame.PopDeferFun(); deferFun != nil; deferFun = frame.PopDeferFun() {
-					err := vm.callClosure(deferFun, 0)
+			frame = vm.currentFrame()
+			if poppedFrame != nil {
+				// Detach the defer list before running: callClosure
+				// reuses the popped frame's slot, which would otherwise
+				// clobber poppedFrame.deferFuns mid-iteration.
+				deferFuns := poppedFrame.deferFuns
+				poppedFrame.deferFuns = nil
+				for i := len(deferFuns) - 1; i >= 0; i-- {
+					err := vm.callClosure(deferFuns[i], 0)
 					if err != nil {
 						err = vm.PushAndReturnError(err)
 						if err != nil {
 							return err
 						}
 					}
+					frame = vm.currentFrame()
 				}
 			}
-			if vm.currentFrame() == nil {
+			if frame == nil {
 				// Break out if the current frame is actually empty
 				// Should only ever happen with applyFunction
 				return fmt.Errorf(consts.NORMAL_EXIT_ON_RETURN)
 			}
 		case code.OpSetLocal, code.OpSetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])
-			vm.currentFrame().ip += 1
-			frame := vm.currentFrame()
+			frame.ip += 1
 			vm.stack[frame.bp+int(localIndex)] = vm.pop()
 		case code.OpGetLocal, code.OpGetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])
-			vm.currentFrame().ip += 1
-			frame := vm.currentFrame()
+			frame.ip += 1
 			err := vm.push(vm.stack[frame.bp+int(localIndex)])
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -571,10 +658,11 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpClosure:
 			constIndex := code.ReadUint16(ins[ip+1:])
 			numFree := code.ReadUint8(ins[ip+3:])
-			vm.currentFrame().ip += 3
+			frame.ip += 3
 			err := vm.pushClosure(int(constIndex), int(numFree))
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -582,10 +670,11 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpGetFree, code.OpGetFreeImm:
 			freeIndex := code.ReadUint8(ins[ip+1:])
-			vm.currentFrame().ip += 1
-			currentClosure := vm.currentFrame().cl
+			frame.ip += 1
+			currentClosure := frame.cl
 			err := vm.push(currentClosure.Free[freeIndex])
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -593,10 +682,11 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpGetBuiltin:
 			builtinModuleIndex := code.ReadUint8(ins[ip+1:])
 			builtinIndex := code.ReadUint8(ins[ip+2:])
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			var err error
 			if builtinModuleIndex == object.BuiltinobjsModuleIndex {
 				definition := object.BuiltinobjsList[builtinIndex]
@@ -669,10 +759,11 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpStringInterp:
 			stringIndex := code.ReadUint16(ins[ip+1:])
 			numPairs := int(code.ReadUint8(ins[ip+3:]))
-			vm.currentFrame().ip += 3
+			frame.ip += 3
 			s := vm.buildStringWithInterp(vm.sp-numPairs, vm.sp, int(stringIndex))
 			vm.sp = vm.sp - numPairs - 1
 			err := vm.push(s)
@@ -682,6 +773,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpIndexSet:
 			index := vm.pop()
 			left := vm.pop()
@@ -692,6 +784,7 @@ func (vm *VM) Run() error {
 				if err != nil {
 					return err
 				}
+				frame = vm.currentFrame()
 			} else {
 				err := vm.push(object.NULL)
 				if err != nil {
@@ -700,36 +793,37 @@ func (vm *VM) Run() error {
 						return err
 					}
 				}
+				frame = vm.currentFrame()
 			}
 		case code.OpTry:
 			// Reset catch state when entering a try block. This is important
 			// because inCatch/catchError are process-level flags and must be
 			// clean for each new try-catch scope.
-			if !vm.currentFrame().inCatch {
-				vm.currentFrame().catchError = ""
+			if !frame.inCatch {
+				frame.catchError = ""
 			}
-			vm.currentFrame().inTry = true
+			frame.inTry = true
 		case code.OpCatch:
-			if vm.currentFrame().catchError == "" {
+			if frame.catchError == "" {
 				vm.gotoCatchEnd()
 			} else {
-				vm.currentFrame().inCatch = true
+				frame.inCatch = true
 			}
 		case code.OpFinallyEnd:
-			if vm.currentFrame().catchError != "" {
-				return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", vm.currentFrame().catchError))
+			if frame.catchError != "" {
+				return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", frame.catchError))
 			}
-			vm.currentFrame().inTry = false
-			vm.currentFrame().inCatch = false
+			frame.inTry = false
+			frame.inCatch = false
 		case code.OpCatchEnd:
-			vm.currentFrame().catchError = ""
-			vm.currentFrame().inTry = false
-			vm.currentFrame().inCatch = false
+			frame.catchError = ""
+			frame.inTry = false
+			frame.inCatch = false
 		case code.OpFinally, code.OpListCompLiteral, code.OpSetCompLiteral, code.OpMapCompLiteral:
 			// Do nothing
 		case code.OpExecString:
 			constIndex := code.ReadUint16(ins[ip+1:])
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			execStr := vm.constants[constIndex]
 			str, ok := execStr.(*object.ExecString)
 			if !ok {
@@ -748,6 +842,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpMatchValue:
 			right := vm.pop()
 			left := vm.pop()
@@ -758,6 +853,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpMatchAny:
 			err := vm.push(object.VM_IGNORE)
 			if err != nil {
@@ -766,9 +862,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpDefaultArgs:
 			numPairs := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			m := vm.buildDefaultArgs(vm.sp-numPairs, vm.sp)
 			vm.sp = vm.sp - numPairs
 			err := vm.push(m)
@@ -778,6 +875,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpSlice:
 			sliceIndexes := vm.pop()
 			left := vm.pop()
@@ -788,9 +886,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpStruct:
 			numFields := int(code.ReadUint16(ins[ip+1:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			// -1 to account for the fields held in go object
 			startIndex := vm.sp - numFields - 1
 			bs, err := vm.buildStruct(startIndex, vm.sp)
@@ -800,6 +899,7 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 			vm.sp = startIndex
 			err = vm.push(bs)
 			if err != nil {
@@ -807,7 +907,7 @@ func (vm *VM) Run() error {
 			}
 		case code.OpGetListIndex:
 			index := int(code.ReadUint8(ins[ip+1:]))
-			vm.currentFrame().ip += 1
+			frame.ip += 1
 			list := vm.peek() // Dont pop it off the stack
 			if list.Type() != object.LIST_OBJ {
 				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex did not find List on top of the stack. got=%T", list))
@@ -844,7 +944,7 @@ func (vm *VM) Run() error {
 				if deferFun.Type() != object.CLOSURE {
 					return vm.PushAndReturnError(fmt.Errorf("OpDefer did not find function on top of the stack. got=%T", deferFun))
 				}
-				vm.currentFrame().PushDeferFun(deferFun.(*object.Closure))
+				frame.PushDeferFun(deferFun.(*object.Closure))
 			}
 		case code.OpSelf:
 			var err error
@@ -858,7 +958,7 @@ func (vm *VM) Run() error {
 			}
 		case code.OpSpawn:
 			numArgs := int(code.ReadUint8(ins[ip+1:]))
-			vm.currentFrame().ip += 1
+			frame.ip += 1
 			var args []object.Object
 			funArgIndex := 0
 			listArgIndex := -1
@@ -874,7 +974,7 @@ func (vm *VM) Run() error {
 		case code.OpGetFunctionParameterSpecial:
 			indexParam := int(code.ReadUint8(ins[ip+1:]))
 			indexList := int(code.ReadUint8(ins[ip+2:]))
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			err := vm.pushSpecialFunctionParameter(indexParam, indexList)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -882,9 +982,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpGetFunctionParameterSpecial2:
 			constIndex := code.ReadUint16(ins[ip+1:])
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			str, ok := vm.constants[constIndex].(*object.Stringo)
 			if !ok {
 				return vm.prepareStackTraceAndReturnError(fmt.Errorf("found non-string in constant for OpGetFunctionParameterSpecial2, got = %T", vm.constants[constIndex]))
@@ -896,10 +997,11 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
+			frame = vm.currentFrame()
 		case code.OpSpecialIndexHelper:
 			maybeJumpPos := int(code.ReadUint16(ins[ip+1:]))
 			isSet := code.Opcode(ins[maybeJumpPos]) == code.OpIndexSet
-			vm.currentFrame().ip += 2
+			frame.ip += 2
 			// Should be the string constant of the 'indx'
 			indxStr := vm.peek().(*object.Stringo)
 			// Should be the the object we are trying to figure out if its being pushed
@@ -915,19 +1017,19 @@ func (vm *VM) Run() error {
 					// Leave the string on the stack to be used for indexing and skip loading the global
 					// If its an index set operation then we always want to use the string for setting
 					// when it was done via a dot call
-					vm.currentFrame().ip = maybeJumpPos - 1
+					frame.ip = maybeJumpPos - 1
 				} else {
 					// Otherwise pop off the stack and assume we are passing this map to a global function/index operation
 					vm.pop()
 				}
 			}
 		case code.OpNotInTry:
-			vm.currentFrame().inTry = false
+			frame.inTry = false
 		case code.OpNotInCatch:
-			vm.currentFrame().inCatch = false
+			frame.inCatch = false
 		}
 		if ip != 0 {
-			vm.currentFrame().lastInstruction = op
+			frame.lastInstruction = op
 		}
 	}
 	return nil
@@ -1058,7 +1160,9 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) bool {
 	vm.currentFrame().inCatch = false
 	frameIndex := vm.framesIndex - 1
 	for frameIndex >= 0 {
-		frame := vm.frames[frameIndex]
+		// Pointer into the array: isOpCatchOrFinallyFoundInFrame writes
+		// frame.catchError on the stored frame.
+		frame := &vm.frames[frameIndex]
 		if newip, ok := vm.isOpCatchOrFinallyFoundInFrame(frame, errorMessage); ok {
 			vm.framesIndex = frameIndex + 1
 			vm.currentFrame().ip = newip
@@ -1374,14 +1478,13 @@ func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
 		return err
 	}
 
-	frame := NewFrame(cl, vm.sp-newArgCount)
+	// CurrentFrame looks at frameIndex-1; replace that slot in place.
+	frame := vm.newCallFrameReplaceTop(cl, vm.sp-newArgCount)
 	frame.callerLastNodePos = vm.lastNodePos
 	if cf := vm.currentFrame(); cf != nil {
 		frame.inTry = cf.inTry
 		frame.inCatch = cf.inCatch
 	}
-	// CurrentFrame looks at frameIndex-1
-	vm.frames[vm.framesIndex-1] = frame
 	vm.sp = frame.bp + cl.Fun.NumLocals
 	return nil
 }
@@ -1392,19 +1495,30 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 		return err
 	}
 
-	frame := NewFrame(cl, vm.sp-newArgCount)
+	frame := vm.newCallFrame(cl, vm.sp-newArgCount)
 	frame.callerLastNodePos = vm.lastNodePos
 	if cf := vm.currentFrame(); cf != nil {
 		frame.inTry = cf.inTry
 		frame.inCatch = cf.inCatch
 		frame.catchError = cf.catchError
 	}
-	vm.pushFrame(frame)
+	// CurrentFrame looks at frameIndex-1; the new frame was initialized in
+	// the next slot so just advance the index (pushFrame would copy onto
+	// itself).
+	vm.framesIndex++
 	vm.sp = frame.bp + cl.Fun.NumLocals
 	return nil
 }
 
 func (vm *VM) interweaveArgsForCall(cl *object.CompiledFunction, numArgs int) (int, error) {
+	// Fast path: exact argument count and the function has no default
+	// parameters, so the arguments are already in their final positions on
+	// the stack. Avoids a slice allocation and re-push per call.
+	if cl.NumDefaultParams == 0 && numArgs == cl.NumParameters {
+		if numArgs == 0 || vm.stack[vm.sp-1].Type() != object.DEFAULT_ARGS_OBJ {
+			return numArgs, nil
+		}
+	}
 	currentArgsOnStack := vm.stack[vm.sp-numArgs : vm.sp]
 	vm.sp -= numArgs
 	if len(currentArgsOnStack) > cl.NumParameters {

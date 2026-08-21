@@ -7,7 +7,6 @@ import (
 	"blue/util"
 	"bytes"
 	"fmt"
-	"log"
 	"math"
 	"math/big"
 	"slices"
@@ -26,635 +25,701 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 	left = vm.pop()
 	rightType := right.Type()
 	if leftType == rightType {
-		if binFun, ok := binaryOperationFunctions[leftType]; ok {
-			return binFun(vm, op, left, right)
+		// Switch dispatch avoids a string-keyed map lookup on every
+		// binary operation. The map below is kept for the mixed-type
+		// re-dispatch path in executeBinaryOperationDifferentTypes.
+		switch leftType {
+		case object.INTEGER_OBJ:
+			return binaryIntegerOp(vm, op, left, right)
+		case object.FLOAT_OBJ:
+			return binaryFloatOp(vm, op, left, right)
+		case object.STRING_OBJ:
+			return binaryStringOp(vm, op, left, right)
+		case object.BOOLEAN_OBJ:
+			return binaryBooleanOp(vm, op, left, right)
+		case object.LIST_OBJ:
+			return binaryListOp(vm, op, left, right)
+		case object.MAP_OBJ:
+			return binaryMapOp(vm, op, left, right)
+		case object.SET_OBJ:
+			return binarySetOp(vm, op, left, right)
+		case object.NULL_OBJ:
+			return binaryNullOp(vm, op, left, right)
+		case object.BIG_INTEGER_OBJ:
+			return binaryBigIntegerOp(vm, op, left, right)
+		case object.BIG_FLOAT_OBJ:
+			return binaryBigFloatOp(vm, op, left, right)
+		case object.UINTEGER_OBJ:
+			return binaryUIntegerOp(vm, op, left, right)
+		case object.BYTES_OBJ:
+			return binaryBytesOp(vm, op, left, right)
 		}
 		return vm.executeDefaultBinaryOperation(op, left, right)
-	} else if leftType != rightType {
-		return vm.executeBinaryOperationDifferentTypes(op, left, right, leftType, rightType)
 	}
-	return nil
+	return vm.executeBinaryOperationDifferentTypes(op, left, right, leftType, rightType)
+}
+
+// intObject returns an object.Integer for common small values from a shared
+// read-only cache, avoiding an allocation per arithmetic result. Integers are
+// immutable values in blue so sharing is safe.
+var smallInts []*object.Integer
+
+func init() {
+	smallInts = make([]*object.Integer, 1024)
+	for i := range smallInts {
+		smallInts[i] = &object.Integer{Value: int64(i - 512)}
+	}
+}
+
+func intObject(v int64) *object.Integer {
+	if v >= -512 && v < 512 {
+		return smallInts[v+512]
+	}
+	return &object.Integer{Value: v}
+}
+
+func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) error {
+	leftVal := leftObj.(*object.Integer).Value
+	rightVal := rightObj.(*object.Integer).Value
+	switch op {
+	case code.OpAdd:
+		overflowed := util.CheckOverflow(leftVal, rightVal)
+		if overflowed {
+			left := new(big.Int).SetInt64(leftVal)
+			right := new(big.Int).SetInt64(rightVal)
+			result := big.NewInt(0)
+			return vm.push(&object.BigInteger{Value: result.Add(left, right)})
+		}
+		return vm.push(intObject(leftVal + rightVal))
+	case code.OpMinus:
+		underflowed := util.CheckUnderflow(leftVal, rightVal)
+		if underflowed {
+			left := new(big.Int).SetInt64(leftVal)
+			right := new(big.Int).SetInt64(rightVal)
+			result := big.NewInt(0)
+			return vm.push(&object.BigInteger{Value: result.Sub(left, right)})
+		}
+		return vm.push(intObject(leftVal - rightVal))
+	case code.OpDiv:
+		if rightVal == 0 {
+			return vm.push(newError("division by zero is not allowed"))
+		}
+		if rightVal > leftVal {
+			return vm.push(intObject(0))
+		}
+		return vm.push(intObject(leftVal / rightVal))
+	case code.OpStar:
+		overflowed := util.CheckOverflowMul(leftVal, rightVal)
+		if overflowed {
+			left := new(big.Int).SetInt64(leftVal)
+			right := new(big.Int).SetInt64(rightVal)
+			result := big.NewInt(0)
+			return vm.push(&object.BigInteger{Value: result.Mul(left, right)})
+		}
+		return vm.push(intObject(leftVal * rightVal))
+	case code.OpPow:
+		overflowed := util.CheckOverflowPow(leftVal, rightVal)
+		if overflowed {
+			left := new(big.Int).SetInt64(leftVal)
+			right := new(big.Int).SetInt64(rightVal)
+			result := big.NewInt(0)
+			return vm.push(&object.BigInteger{Value: result.Exp(left, right, nil)})
+		}
+		return vm.push(intObject(int64(math.Pow(float64(leftVal), float64(rightVal)))))
+	case code.OpFlDiv:
+		if rightVal == 0 {
+			return vm.push(newError("floor division by zero is not allowed"))
+		}
+		return vm.push(intObject(blueutil.FloorDiv(leftVal, rightVal)))
+	case code.OpPercent:
+		if rightVal == 0 {
+			return vm.push(newError("Modulus by zero is not allowed"))
+		}
+		result := leftVal % rightVal
+		if result != 0 && ((result < 0) != (rightVal < 0)) {
+			result += rightVal
+		}
+		return vm.push(intObject(result))
+	case code.OpGreaterThan:
+		return vm.push(nativeToBooleanObject(leftVal > rightVal))
+	case code.OpGreaterThanOrEqual:
+		return vm.push(nativeToBooleanObject(leftVal >= rightVal))
+	case code.OpEqual:
+		return vm.push(nativeToBooleanObject(leftVal == rightVal))
+	case code.OpNotEqual:
+		return vm.push(nativeToBooleanObject(leftVal != rightVal))
+	case code.OpRange:
+		return vm.push(executeIntegerRangeOperator(leftVal, rightVal))
+	case code.OpNonIncRange:
+		return vm.push(executeIntegerNonInclusiveRangeOperator(leftVal, rightVal))
+	case code.OpAmpersand:
+		return vm.push(intObject(leftVal & rightVal))
+	case code.OpPipe:
+		return vm.push(intObject(leftVal | rightVal))
+	case code.OpCarat:
+		return vm.push(intObject(leftVal ^ rightVal))
+	case code.OpLshift:
+		return vm.push(intObject(leftVal << rightVal))
+	case code.OpRshift:
+		return vm.push(intObject(leftVal >> rightVal))
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", leftObj.Type(), code.GetOpName(op), rightObj.Type()))
+	}
+}
+
+func binaryBigIntegerOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	var leftVal, rightVal *big.Int
+	if lBI, ok := left.(*object.BigInteger); ok {
+		leftVal = lBI.Value
+	} else if lI, ok := left.(*object.Integer); ok {
+		leftVal = new(big.Int).SetInt64(lI.Value)
+	} else {
+		leftVal = new(big.Int).SetUint64(left.(*object.UInteger).Value)
+	}
+	if rBI, ok := right.(*object.BigInteger); ok {
+		rightVal = rBI.Value
+	} else if rI, ok := right.(*object.Integer); ok {
+		rightVal = new(big.Int).SetInt64(rI.Value)
+	} else {
+		rightVal = new(big.Int).SetUint64(right.(*object.UInteger).Value)
+	}
+	result := big.NewInt(0)
+	switch op {
+	case code.OpAdd:
+		return vm.push(&object.BigInteger{Value: result.Add(leftVal, rightVal)})
+	case code.OpMinus:
+		return vm.push(&object.BigInteger{Value: result.Sub(leftVal, rightVal)})
+	case code.OpDiv:
+		return vm.push(&object.BigInteger{Value: result.Div(leftVal, rightVal)})
+	case code.OpStar:
+		return vm.push(&object.BigInteger{Value: result.Mul(leftVal, rightVal)})
+	case code.OpPow:
+		return vm.push(&object.BigInteger{Value: result.Exp(leftVal, rightVal, nil)})
+	case code.OpFlDiv:
+		if rightVal.Cmp(blueutil.BigIntZero) == 0 {
+			return vm.push(newError("Floor Division by zero is not allowed"))
+		}
+		maybeWanted := new(big.Int)
+		floored, _ := result.DivMod(leftVal, rightVal, maybeWanted)
+		// Note: Ignoring the modulus here
+		return vm.push(&object.BigInteger{Value: floored})
+	case code.OpPercent:
+		if rightVal.Cmp(blueutil.BigIntZero) == 0 {
+			return vm.push(newError("Modulus by zero is not allowed"))
+		}
+		r := new(big.Int).Rem(leftVal, rightVal)
+		if r.Sign() != 0 && ((r.Sign() < 0) != (rightVal.Sign() < 0)) {
+			r.Add(r, rightVal)
+		}
+		return vm.push(&object.BigInteger{Value: r})
+	case code.OpGreaterThan:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared == 1))
+	case code.OpGreaterThanOrEqual:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared == 1 || compared == 0))
+	case code.OpEqual:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared == 0))
+	case code.OpNotEqual:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared != 0))
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
+	}
+}
+
+func binaryFloatOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	// Only Integers and Floats should be passed into this
+	var leftVal, rightVal float64
+	if lF, ok := left.(*object.Float); ok {
+		leftVal = lF.Value
+	} else {
+		leftVal = float64(left.(*object.Integer).Value)
+	}
+	if rF, ok := right.(*object.Float); ok {
+		rightVal = rF.Value
+	} else {
+		rightVal = float64(right.(*object.Integer).Value)
+	}
+	switch op {
+	case code.OpAdd:
+		return vm.push(&object.Float{Value: leftVal + rightVal})
+	case code.OpMinus:
+		return vm.push(&object.Float{Value: leftVal - rightVal})
+	case code.OpDiv:
+		return vm.push(&object.Float{Value: leftVal / rightVal})
+	case code.OpStar:
+		return vm.push(&object.Float{Value: leftVal * rightVal})
+	case code.OpPow:
+		return vm.push(&object.Float{Value: math.Pow(leftVal, rightVal)})
+	case code.OpFlDiv:
+		if rightVal == 0 {
+			return vm.push(newError("Floor Division by zero is not allowed"))
+		}
+		return vm.push(&object.Float{Value: math.Floor(leftVal / rightVal)})
+	case code.OpPercent:
+		if rightVal == 0 {
+			return vm.push(newError("Modulus by zero is not allowed"))
+		}
+		result := math.Mod(leftVal, rightVal)
+		if result != 0 && ((result < 0) != (rightVal < 0)) {
+			result += rightVal
+		}
+		return vm.push(&object.Float{Value: result})
+	case code.OpGreaterThan:
+		return vm.push(nativeToBooleanObject(leftVal > rightVal))
+	case code.OpGreaterThanOrEqual:
+		return vm.push(nativeToBooleanObject(leftVal >= rightVal))
+	case code.OpEqual:
+		return vm.push(nativeToBooleanObject(leftVal == rightVal))
+	case code.OpNotEqual:
+		return vm.push(nativeToBooleanObject(leftVal != rightVal))
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
+	}
+}
+
+func binaryBigFloatOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	var leftVal, rightVal decimal.Decimal
+	if lBF, ok := left.(*object.BigFloat); ok {
+		leftVal = lBF.Value
+	} else if lF, ok := left.(*object.Float); ok {
+		leftVal = decimal.NewFromFloat(lF.Value)
+	} else if lI, ok := left.(*object.Integer); ok {
+		leftVal = decimal.NewFromInt(lI.Value)
+	} else if lBI, ok := left.(*object.BigInteger); ok {
+		leftVal = decimal.NewFromBigInt(lBI.Value, 0)
+	}
+	if rBF, ok := right.(*object.BigFloat); ok {
+		rightVal = rBF.Value
+	} else if rF, ok := right.(*object.Float); ok {
+		rightVal = decimal.NewFromFloat(rF.Value)
+	} else if rI, ok := right.(*object.Integer); ok {
+		rightVal = decimal.NewFromInt(rI.Value)
+	} else if rBI, ok := right.(*object.BigInteger); ok {
+		rightVal = decimal.NewFromBigInt(rBI.Value, 0)
+	}
+	switch op {
+	case code.OpAdd:
+		return vm.push(&object.BigFloat{Value: leftVal.Add(rightVal)})
+	case code.OpMinus:
+		return vm.push(&object.BigFloat{Value: leftVal.Sub(rightVal)})
+	case code.OpDiv:
+		return vm.push(&object.BigFloat{Value: leftVal.Div(rightVal)})
+	case code.OpStar:
+		return vm.push(&object.BigFloat{Value: leftVal.Mul(rightVal)})
+	case code.OpPow:
+		return vm.push(&object.BigFloat{Value: leftVal.Pow(rightVal)})
+	case code.OpFlDiv:
+		if rightVal.Cmp(blueutil.DecimalZero) == 0 {
+			return vm.push(newError("Floor Division by zero is not allowed"))
+		}
+		return vm.push(&object.BigFloat{Value: leftVal.Div(rightVal).Floor()})
+	case code.OpPercent:
+		if rightVal.Cmp(blueutil.DecimalZero) == 0 {
+			return vm.push(newError("Modulus by zero is not allowed"))
+		}
+		result := leftVal.Mod(rightVal)
+		if result.Cmp(blueutil.DecimalZero) != 0 && ((result.IsNegative() && !rightVal.IsNegative()) || (!result.IsNegative() && rightVal.IsNegative())) {
+			result = result.Add(rightVal)
+		}
+		return vm.push(&object.BigFloat{Value: result})
+	case code.OpGreaterThan:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared == 1))
+	case code.OpGreaterThanOrEqual:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared == 1 || compared == 0))
+	case code.OpEqual:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared == 0))
+	case code.OpNotEqual:
+		compared := leftVal.Cmp(rightVal)
+		return vm.push(nativeToBooleanObject(compared != 0))
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
+	}
+}
+
+func binaryUIntegerOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	var leftVal, rightVal uint64
+	if lUI, ok := left.(*object.UInteger); ok {
+		leftVal = lUI.Value
+	} else {
+		leftIntVal := left.(*object.Integer).Value
+		if leftIntVal < 0 {
+			return vm.push(newError("Left Integer was negative, and is not allowed for Unsigned Integer operations. %s %s %s", left.Inspect(), code.GetOpName(op), right.Inspect()))
+		}
+		leftVal = uint64(leftIntVal)
+	}
+	if rUI, ok := right.(*object.UInteger); ok {
+		rightVal = rUI.Value
+	} else {
+		rightIntVal := right.(*object.Integer).Value
+		if rightIntVal < 0 {
+			return vm.push(newError("Right Integer was negative, and is not allowed for Unsigned Integer operations. %s %s %s", left.Inspect(), code.GetOpName(op), right.Inspect()))
+		}
+	}
+	switch op {
+	case code.OpAdd:
+		return vm.push(&object.UInteger{Value: leftVal + rightVal})
+	case code.OpMinus:
+		return vm.push(&object.UInteger{Value: leftVal - rightVal})
+	case code.OpDiv:
+		return vm.push(&object.UInteger{Value: leftVal / rightVal})
+	case code.OpStar:
+		return vm.push(&object.UInteger{Value: leftVal * rightVal})
+	case code.OpPow:
+		return vm.push(&object.UInteger{Value: uint64(math.Pow(float64(leftVal), float64(rightVal)))})
+	case code.OpFlDiv:
+		if rightVal == 0 {
+			return vm.push(newError("Floor Division by zero is not allowed"))
+		}
+		return vm.push(&object.UInteger{Value: uint64(math.Floor(float64(leftVal) / float64(rightVal)))})
+	case code.OpPercent:
+		return vm.push(&object.UInteger{Value: uint64(math.Mod(float64(leftVal), float64(rightVal)))})
+	case code.OpAmpersand:
+		return vm.push(&object.UInteger{Value: leftVal & rightVal})
+	case code.OpPipe:
+		return vm.push(&object.UInteger{Value: leftVal | rightVal})
+	case code.OpCarat:
+		return vm.push(&object.UInteger{Value: leftVal ^ rightVal})
+	case code.OpRshift:
+		return vm.push(&object.UInteger{Value: leftVal >> rightVal})
+	case code.OpLshift:
+		return vm.push(&object.UInteger{Value: leftVal << rightVal})
+	case code.OpGreaterThan:
+		return vm.push(nativeToBooleanObject(leftVal > rightVal))
+	case code.OpGreaterThanOrEqual:
+		return vm.push(nativeToBooleanObject(leftVal >= rightVal))
+	case code.OpEqual:
+		return vm.push(nativeToBooleanObject(leftVal == rightVal))
+	case code.OpNotEqual:
+		return vm.push(nativeToBooleanObject(leftVal != rightVal))
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
+	}
+}
+
+func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	leftStr := left.(*object.Stringo).Value
+	rightStr := right.(*object.Stringo).Value
+	switch op {
+	case code.OpAdd:
+		return vm.push(&object.Stringo{Value: leftStr + rightStr})
+	case code.OpEqual:
+		return vm.push(nativeToBooleanObject(leftStr == rightStr))
+	case code.OpNotEqual:
+		return vm.push(nativeToBooleanObject(leftStr != rightStr))
+	case code.OpIn:
+		return vm.push(nativeToBooleanObject(strings.Contains(rightStr, leftStr)))
+	case code.OpNotin:
+		return vm.push(nativeToBooleanObject(!strings.Contains(rightStr, leftStr)))
+	case code.OpRange:
+		if runeLen(leftStr) != 1 {
+			return vm.push(newError("operator .. expects left string to be 1 rune"))
+		}
+		if runeLen(rightStr) != 1 {
+			return vm.push(newError("operator .. expects right string to be 1 rune"))
+		}
+		lr := []rune(leftStr)[0]
+		rr := []rune(rightStr)[0]
+		if lr == rr {
+			// If they are the same just return vm.push(a list with the single element)
+			// because this is the inclusive operator
+			return vm.push(&object.List{Elements: []object.Object{left}})
+		}
+		elements := []object.Object{}
+		if lr > rr {
+			// Left rune is > so we are descending
+			for i := lr; i >= rr; i-- {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return vm.push(&object.List{Elements: elements})
+		} else {
+			// Right rune is > so we are ascending
+			for i := lr; i <= rr; i++ {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return vm.push(&object.List{Elements: elements})
+		}
+	case code.OpNonIncRange:
+		if runeLen(leftStr) != 1 {
+			return vm.push(newError("operator ..< expects left string to be 1 rune"))
+		}
+		if runeLen(rightStr) != 1 {
+			return vm.push(newError("operator ..< expects right string to be 1 rune"))
+		}
+		lr := []rune(leftStr)[0]
+		rr := []rune(rightStr)[0]
+		if lr == rr {
+			// If they are the same just return vm.push(an empty list because this is non-inclusive)
+			return vm.push(&object.List{Elements: []object.Object{}})
+		}
+		elements := []object.Object{}
+		if lr > rr {
+			// Left rune is > so we are descending
+			for i := lr; i > rr; i-- {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return vm.push(&object.List{Elements: elements})
+		} else {
+			// Right rune is > so we are ascending
+			for i := lr; i < rr; i++ {
+				s := string(i)
+				elements = append(elements, &object.Stringo{Value: s})
+			}
+			return vm.push(&object.List{Elements: elements})
+		}
+	case code.OpGreaterThan:
+		return vm.push(nativeToBooleanObject(leftStr > rightStr))
+	case code.OpGreaterThanOrEqual:
+		return vm.push(nativeToBooleanObject(leftStr >= rightStr))
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
+	}
+}
+
+func binarySetOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	newSet := &object.Set{Elements: object.NewSetElements()}
+	if op == code.OpAdd {
+		var s *object.Set
+		var key uint64
+		var obj object.Object
+		if left.Type() == object.SET_OBJ {
+			// return set with right obj added
+			s = left.(*object.Set)
+			key = object.HashObject(right)
+			obj = right
+		} else {
+			// return set with left obj added
+			s = right.(*object.Set)
+			key = object.HashObject(left)
+			obj = left
+		}
+		for _, k := range s.Elements.Keys {
+			v, ok := s.Elements.Get(k)
+			if ok {
+				newSet.Elements.Set(k, v)
+			}
+		}
+		if _, ok := s.Elements.Get(key); !ok {
+			// Key does not exist, add new elem
+			newSet.Elements.Set(key, object.SetPair{Value: obj, Present: struct{}{}})
+		}
+		return vm.push(newSet)
+	}
+	leftE := left.(*object.Set).Elements
+	rightE := right.(*object.Set).Elements
+	var leftElems *object.OrderedMap2[uint64, object.SetPair]
+	var rightElems *object.OrderedMap2[uint64, object.SetPair]
+	if leftE.Len() >= rightE.Len() {
+		leftElems = leftE
+		rightElems = rightE
+	} else {
+		leftElems = rightE
+		rightElems = leftE
+	}
+	switch op {
+	case code.OpPipe:
+		// union
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			newSet.Elements.Set(k, v)
+		}
+		for _, k := range rightElems.Keys {
+			v, ok := rightElems.Get(k)
+			if !ok {
+				continue
+			}
+			newSet.Elements.Set(k, v)
+		}
+		return vm.push(newSet)
+	case code.OpAmpersand:
+		// intersect
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			_, ok = rightElems.Get(k)
+			if !ok {
+				continue
+			}
+			newSet.Elements.Set(k, v)
+		}
+		return vm.push(newSet)
+	case code.OpCarat:
+		// symmetric difference
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			_, ok = rightElems.Get(k)
+			if !ok {
+				newSet.Elements.Set(k, v)
+			}
+		}
+		for _, k := range rightElems.Keys {
+			v, ok := rightElems.Get(k)
+			if !ok {
+				continue
+			}
+			_, ok = leftElems.Get(k)
+			if !ok {
+				newSet.Elements.Set(k, v)
+			}
+		}
+		return vm.push(newSet)
+	case code.OpGreaterThanOrEqual:
+		// left is superset of right
+		for _, k := range rightE.Keys {
+			if _, ok := leftE.Get(k); !ok {
+				return vm.push(object.FALSE)
+			}
+		}
+		return vm.push(object.TRUE)
+	case code.OpMinus:
+		// difference
+		for _, k := range leftElems.Keys {
+			v, ok := leftElems.Get(k)
+			if !ok {
+				continue
+			}
+			_, ok = rightElems.Get(k)
+			if !ok {
+				newSet.Elements.Set(k, v)
+			}
+		}
+		return vm.push(newSet)
+	case code.OpEqual:
+		for _, k := range leftElems.Keys {
+			_, ok := rightElems.Get(k)
+			if !ok {
+				return vm.push(object.FALSE)
+			}
+		}
+		return vm.push(object.TRUE)
+	case code.OpNotEqual:
+		for _, k := range leftElems.Keys {
+			_, ok := rightElems.Get(k)
+			if !ok {
+				return vm.push(object.TRUE)
+			}
+		}
+		return vm.push(object.FALSE)
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
+	}
+}
+
+func binaryListOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	leftListObj := left.(*object.List)
+	rightListObj := right.(*object.List)
+	leftElements := leftListObj.Elements
+	rightElements := rightListObj.Elements
+	leftSize := len(leftElements)
+	rightSize := len(rightElements)
+	switch op {
+	case code.OpAdd:
+		newList := make([]object.Object, 0, leftSize+rightSize)
+		newList = append(newList, leftElements...)
+		newList = append(newList, rightElements...)
+		return vm.push(&object.List{Elements: newList})
+	case code.OpEqual, code.OpNotEqual, code.OpIn, code.OpNotin:
+		return vm.executeDefaultBinaryOperation(op, left, right)
+	default:
+		return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
+	}
+}
+
+func binaryMapOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	return vm.executeMapBinaryOperation(op, left, right)
+}
+
+func binaryBytesOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	leftBs := left.(*object.Bytes).Value
+	rightBs := right.(*object.Bytes).Value
+	switch op {
+	case code.OpAmpersand:
+		if len(leftBs) != len(rightBs) {
+			return vm.push(newError("length of left and right bytes must match to perform bitwise AND operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs)))
+		}
+		buf := make([]byte, len(leftBs))
+		for i := range leftBs {
+			buf[i] = leftBs[i] & rightBs[i]
+		}
+		return vm.push(&object.Bytes{Value: buf})
+	case code.OpPipe:
+		if len(leftBs) != len(rightBs) {
+			return vm.push(newError("length of left and right bytes must match to perform bitwise OR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs)))
+		}
+		buf := make([]byte, len(leftBs))
+		for i := range leftBs {
+			buf[i] = leftBs[i] | rightBs[i]
+		}
+		return vm.push(&object.Bytes{Value: buf})
+	case code.OpCarat:
+		if len(leftBs) != len(rightBs) {
+			return vm.push(newError("length of left and right bytes must match to perform bitwise XOR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs)))
+		}
+		buf := make([]byte, len(leftBs))
+		for i := range leftBs {
+			buf[i] = leftBs[i] ^ rightBs[i]
+		}
+		return vm.push(&object.Bytes{Value: buf})
+	default:
+		return vm.executeDefaultBinaryOperation(op, left, right)
+	}
+}
+
+func binaryBooleanOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	leftB := left.(*object.Boolean).Value
+	rightB := right.(*object.Boolean).Value
+	switch op {
+	case code.OpAnd:
+		return vm.push(nativeToBooleanObject(leftB && rightB))
+	case code.OpOr:
+		return vm.push(nativeToBooleanObject(leftB || rightB))
+	default:
+		return vm.executeDefaultBinaryOperation(op, left, right)
+	}
+}
+
+func binaryNullOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	switch op {
+	case code.OpEqual:
+		return vm.push(object.TRUE)
+	case code.OpNotEqual:
+		return vm.push(object.FALSE)
+	default:
+		return vm.executeDefaultBinaryOperation(op, left, right)
+	}
 }
 
 var binaryOperationFunctions = map[object.Type]func(vm *VM, op code.Opcode, left, right object.Object) error{}
 
 func init() {
-	binaryOperationFunctions[object.INTEGER_OBJ] = func(vm *VM, op code.Opcode, leftObj, rightObj object.Object) error {
-		leftVal := leftObj.(*object.Integer).Value
-		rightVal := rightObj.(*object.Integer).Value
-		switch op {
-		case code.OpAdd:
-			overflowed := util.CheckOverflow(leftVal, rightVal)
-			if overflowed {
-				left := new(big.Int).SetInt64(leftVal)
-				right := new(big.Int).SetInt64(rightVal)
-				result := big.NewInt(0)
-				return vm.push(&object.BigInteger{Value: result.Add(left, right)})
-			}
-			return vm.push(&object.Integer{Value: leftVal + rightVal})
-		case code.OpMinus:
-			underflowed := util.CheckUnderflow(leftVal, rightVal)
-			if underflowed {
-				left := new(big.Int).SetInt64(leftVal)
-				right := new(big.Int).SetInt64(rightVal)
-				result := big.NewInt(0)
-				return vm.push(&object.BigInteger{Value: result.Sub(left, right)})
-			}
-			return vm.push(&object.Integer{Value: leftVal - rightVal})
-		case code.OpDiv:
-			if rightVal == 0 {
-				return vm.push(newError("division by zero is not allowed"))
-			}
-			if rightVal > leftVal {
-				return vm.push(&object.Integer{Value: 0})
-			}
-			return vm.push(&object.Integer{Value: leftVal / rightVal})
-		case code.OpStar:
-			overflowed := util.CheckOverflowMul(leftVal, rightVal)
-			if overflowed {
-				left := new(big.Int).SetInt64(leftVal)
-				right := new(big.Int).SetInt64(rightVal)
-				result := big.NewInt(0)
-				return vm.push(&object.BigInteger{Value: result.Mul(left, right)})
-			}
-			return vm.push(&object.Integer{Value: leftVal * rightVal})
-		case code.OpPow:
-			overflowed := util.CheckOverflowPow(leftVal, rightVal)
-			if overflowed {
-				left := new(big.Int).SetInt64(leftVal)
-				right := new(big.Int).SetInt64(rightVal)
-				result := big.NewInt(0)
-				return vm.push(&object.BigInteger{Value: result.Exp(left, right, nil)})
-			}
-			return vm.push(&object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))})
-		case code.OpFlDiv:
-			if rightVal == 0 {
-				return vm.push(newError("floor division by zero is not allowed"))
-			}
-			return vm.push(&object.Integer{Value: blueutil.FloorDiv(leftVal, rightVal)})
-		case code.OpPercent:
-			if rightVal == 0 {
-				return vm.push(newError("Modulus by zero is not allowed"))
-			}
-			result := leftVal % rightVal
-			if result != 0 && ((result < 0) != (rightVal < 0)) {
-				result += rightVal
-			}
-			return vm.push(&object.Integer{Value: result})
-		case code.OpGreaterThan:
-			return vm.push(nativeToBooleanObject(leftVal > rightVal))
-		case code.OpGreaterThanOrEqual:
-			return vm.push(nativeToBooleanObject(leftVal >= rightVal))
-		case code.OpEqual:
-			return vm.push(nativeToBooleanObject(leftVal == rightVal))
-		case code.OpNotEqual:
-			return vm.push(nativeToBooleanObject(leftVal != rightVal))
-		case code.OpRange:
-			return vm.push(executeIntegerRangeOperator(leftVal, rightVal))
-		case code.OpNonIncRange:
-			return vm.push(executeIntegerNonInclusiveRangeOperator(leftVal, rightVal))
-		case code.OpAmpersand:
-			return vm.push(&object.Integer{Value: leftVal & rightVal})
-		case code.OpPipe:
-			return vm.push(&object.Integer{Value: leftVal | rightVal})
-		case code.OpCarat:
-			return vm.push(&object.Integer{Value: leftVal ^ rightVal})
-		case code.OpLshift:
-			return vm.push(&object.Integer{Value: leftVal << rightVal})
-		case code.OpRshift:
-			return vm.push(&object.Integer{Value: leftVal >> rightVal})
-		default:
-			log.Printf("HERE")
-			return vm.push(newError("unknown operator: %s %s %s", leftObj.Type(), code.GetOpName(op), rightObj.Type()))
-		}
-	}
-	binaryOperationFunctions[object.BIG_INTEGER_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		var leftVal, rightVal *big.Int
-		if lBI, ok := left.(*object.BigInteger); ok {
-			leftVal = lBI.Value
-		} else if lI, ok := left.(*object.Integer); ok {
-			leftVal = new(big.Int).SetInt64(lI.Value)
-		} else {
-			leftVal = new(big.Int).SetUint64(left.(*object.UInteger).Value)
-		}
-		if rBI, ok := right.(*object.BigInteger); ok {
-			rightVal = rBI.Value
-		} else if rI, ok := right.(*object.Integer); ok {
-			rightVal = new(big.Int).SetInt64(rI.Value)
-		} else {
-			rightVal = new(big.Int).SetUint64(right.(*object.UInteger).Value)
-		}
-		result := big.NewInt(0)
-		switch op {
-		case code.OpAdd:
-			return vm.push(&object.BigInteger{Value: result.Add(leftVal, rightVal)})
-		case code.OpMinus:
-			return vm.push(&object.BigInteger{Value: result.Sub(leftVal, rightVal)})
-		case code.OpDiv:
-			return vm.push(&object.BigInteger{Value: result.Div(leftVal, rightVal)})
-		case code.OpStar:
-			return vm.push(&object.BigInteger{Value: result.Mul(leftVal, rightVal)})
-		case code.OpPow:
-			return vm.push(&object.BigInteger{Value: result.Exp(leftVal, rightVal, nil)})
-		case code.OpFlDiv:
-			if rightVal.Cmp(blueutil.BigIntZero) == 0 {
-				return vm.push(newError("Floor Division by zero is not allowed"))
-			}
-			maybeWanted := new(big.Int)
-			floored, _ := result.DivMod(leftVal, rightVal, maybeWanted)
-			// Note: Ignoring the modulus here
-			return vm.push(&object.BigInteger{Value: floored})
-		case code.OpPercent:
-			if rightVal.Cmp(blueutil.BigIntZero) == 0 {
-				return vm.push(newError("Modulus by zero is not allowed"))
-			}
-			r := new(big.Int).Rem(leftVal, rightVal)
-			if r.Sign() != 0 && ((r.Sign() < 0) != (rightVal.Sign() < 0)) {
-				r.Add(r, rightVal)
-			}
-			return vm.push(&object.BigInteger{Value: r})
-		case code.OpGreaterThan:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared == 1))
-		case code.OpGreaterThanOrEqual:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared == 1 || compared == 0))
-		case code.OpEqual:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared == 0))
-		case code.OpNotEqual:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared != 0))
-		default:
-			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
-		}
-	}
-	binaryOperationFunctions[object.FLOAT_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		// Only Integers and Floats should be passed into this
-		var leftVal, rightVal float64
-		if lF, ok := left.(*object.Float); ok {
-			leftVal = lF.Value
-		} else {
-			leftVal = float64(left.(*object.Integer).Value)
-		}
-		if rF, ok := right.(*object.Float); ok {
-			rightVal = rF.Value
-		} else {
-			rightVal = float64(right.(*object.Integer).Value)
-		}
-		switch op {
-		case code.OpAdd:
-			return vm.push(&object.Float{Value: leftVal + rightVal})
-		case code.OpMinus:
-			return vm.push(&object.Float{Value: leftVal - rightVal})
-		case code.OpDiv:
-			return vm.push(&object.Float{Value: leftVal / rightVal})
-		case code.OpStar:
-			return vm.push(&object.Float{Value: leftVal * rightVal})
-		case code.OpPow:
-			return vm.push(&object.Float{Value: math.Pow(leftVal, rightVal)})
-		case code.OpFlDiv:
-			if rightVal == 0 {
-				return vm.push(newError("Floor Division by zero is not allowed"))
-			}
-			return vm.push(&object.Float{Value: math.Floor(leftVal / rightVal)})
-		case code.OpPercent:
-			if rightVal == 0 {
-				return vm.push(newError("Modulus by zero is not allowed"))
-			}
-			result := math.Mod(leftVal, rightVal)
-			if result != 0 && ((result < 0) != (rightVal < 0)) {
-				result += rightVal
-			}
-			return vm.push(&object.Float{Value: result})
-		case code.OpGreaterThan:
-			return vm.push(nativeToBooleanObject(leftVal > rightVal))
-		case code.OpGreaterThanOrEqual:
-			return vm.push(nativeToBooleanObject(leftVal >= rightVal))
-		case code.OpEqual:
-			return vm.push(nativeToBooleanObject(leftVal == rightVal))
-		case code.OpNotEqual:
-			return vm.push(nativeToBooleanObject(leftVal != rightVal))
-		default:
-			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
-		}
-	}
-	binaryOperationFunctions[object.BIG_FLOAT_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		var leftVal, rightVal decimal.Decimal
-		if lBF, ok := left.(*object.BigFloat); ok {
-			leftVal = lBF.Value
-		} else if lF, ok := left.(*object.Float); ok {
-			leftVal = decimal.NewFromFloat(lF.Value)
-		} else if lI, ok := left.(*object.Integer); ok {
-			leftVal = decimal.NewFromInt(lI.Value)
-		} else if lBI, ok := left.(*object.BigInteger); ok {
-			leftVal = decimal.NewFromBigInt(lBI.Value, 0)
-		}
-		if rBF, ok := right.(*object.BigFloat); ok {
-			rightVal = rBF.Value
-		} else if rF, ok := right.(*object.Float); ok {
-			rightVal = decimal.NewFromFloat(rF.Value)
-		} else if rI, ok := right.(*object.Integer); ok {
-			rightVal = decimal.NewFromInt(rI.Value)
-		} else if rBI, ok := right.(*object.BigInteger); ok {
-			rightVal = decimal.NewFromBigInt(rBI.Value, 0)
-		}
-		switch op {
-		case code.OpAdd:
-			return vm.push(&object.BigFloat{Value: leftVal.Add(rightVal)})
-		case code.OpMinus:
-			return vm.push(&object.BigFloat{Value: leftVal.Sub(rightVal)})
-		case code.OpDiv:
-			return vm.push(&object.BigFloat{Value: leftVal.Div(rightVal)})
-		case code.OpStar:
-			return vm.push(&object.BigFloat{Value: leftVal.Mul(rightVal)})
-		case code.OpPow:
-			return vm.push(&object.BigFloat{Value: leftVal.Pow(rightVal)})
-		case code.OpFlDiv:
-			if rightVal.Cmp(blueutil.DecimalZero) == 0 {
-				return vm.push(newError("Floor Division by zero is not allowed"))
-			}
-			return vm.push(&object.BigFloat{Value: leftVal.Div(rightVal).Floor()})
-		case code.OpPercent:
-			if rightVal.Cmp(blueutil.DecimalZero) == 0 {
-				return vm.push(newError("Modulus by zero is not allowed"))
-			}
-			result := leftVal.Mod(rightVal)
-			if result.Cmp(blueutil.DecimalZero) != 0 && ((result.IsNegative() && !rightVal.IsNegative()) || (!result.IsNegative() && rightVal.IsNegative())) {
-				result = result.Add(rightVal)
-			}
-			return vm.push(&object.BigFloat{Value: result})
-		case code.OpGreaterThan:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared == 1))
-		case code.OpGreaterThanOrEqual:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared == 1 || compared == 0))
-		case code.OpEqual:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared == 0))
-		case code.OpNotEqual:
-			compared := leftVal.Cmp(rightVal)
-			return vm.push(nativeToBooleanObject(compared != 0))
-		default:
-			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
-		}
-	}
-	binaryOperationFunctions[object.UINTEGER_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		var leftVal, rightVal uint64
-		if lUI, ok := left.(*object.UInteger); ok {
-			leftVal = lUI.Value
-		} else {
-			leftIntVal := left.(*object.Integer).Value
-			if leftIntVal < 0 {
-				return vm.push(newError("Left Integer was negative, and is not allowed for Unsigned Integer operations. %s %s %s", left.Inspect(), code.GetOpName(op), right.Inspect()))
-			}
-			leftVal = uint64(leftIntVal)
-		}
-		if rUI, ok := right.(*object.UInteger); ok {
-			rightVal = rUI.Value
-		} else {
-			rightIntVal := right.(*object.Integer).Value
-			if rightIntVal < 0 {
-				return vm.push(newError("Right Integer was negative, and is not allowed for Unsigned Integer operations. %s %s %s", left.Inspect(), code.GetOpName(op), right.Inspect()))
-			}
-		}
-		switch op {
-		case code.OpAdd:
-			return vm.push(&object.UInteger{Value: leftVal + rightVal})
-		case code.OpMinus:
-			return vm.push(&object.UInteger{Value: leftVal - rightVal})
-		case code.OpDiv:
-			return vm.push(&object.UInteger{Value: leftVal / rightVal})
-		case code.OpStar:
-			return vm.push(&object.UInteger{Value: leftVal * rightVal})
-		case code.OpPow:
-			return vm.push(&object.UInteger{Value: uint64(math.Pow(float64(leftVal), float64(rightVal)))})
-		case code.OpFlDiv:
-			if rightVal == 0 {
-				return vm.push(newError("Floor Division by zero is not allowed"))
-			}
-			return vm.push(&object.UInteger{Value: uint64(math.Floor(float64(leftVal) / float64(rightVal)))})
-		case code.OpPercent:
-			return vm.push(&object.UInteger{Value: uint64(math.Mod(float64(leftVal), float64(rightVal)))})
-		case code.OpAmpersand:
-			return vm.push(&object.UInteger{Value: leftVal & rightVal})
-		case code.OpPipe:
-			return vm.push(&object.UInteger{Value: leftVal | rightVal})
-		case code.OpCarat:
-			return vm.push(&object.UInteger{Value: leftVal ^ rightVal})
-		case code.OpRshift:
-			return vm.push(&object.UInteger{Value: leftVal >> rightVal})
-		case code.OpLshift:
-			return vm.push(&object.UInteger{Value: leftVal << rightVal})
-		case code.OpGreaterThan:
-			return vm.push(nativeToBooleanObject(leftVal > rightVal))
-		case code.OpGreaterThanOrEqual:
-			return vm.push(nativeToBooleanObject(leftVal >= rightVal))
-		case code.OpEqual:
-			return vm.push(nativeToBooleanObject(leftVal == rightVal))
-		case code.OpNotEqual:
-			return vm.push(nativeToBooleanObject(leftVal != rightVal))
-		default:
-			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
-		}
-	}
-	binaryOperationFunctions[object.STRING_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		leftStr := left.(*object.Stringo).Value
-		rightStr := right.(*object.Stringo).Value
-		switch op {
-		case code.OpAdd:
-			return vm.push(&object.Stringo{Value: leftStr + rightStr})
-		case code.OpEqual:
-			return vm.push(nativeToBooleanObject(leftStr == rightStr))
-		case code.OpNotEqual:
-			return vm.push(nativeToBooleanObject(leftStr != rightStr))
-		case code.OpIn:
-			return vm.push(nativeToBooleanObject(strings.Contains(rightStr, leftStr)))
-		case code.OpNotin:
-			return vm.push(nativeToBooleanObject(!strings.Contains(rightStr, leftStr)))
-		case code.OpRange:
-			if runeLen(leftStr) != 1 {
-				return vm.push(newError("operator .. expects left string to be 1 rune"))
-			}
-			if runeLen(rightStr) != 1 {
-				return vm.push(newError("operator .. expects right string to be 1 rune"))
-			}
-			lr := []rune(leftStr)[0]
-			rr := []rune(rightStr)[0]
-			if lr == rr {
-				// If they are the same just return vm.push(a list with the single element)
-				// because this is the inclusive operator
-				return vm.push(&object.List{Elements: []object.Object{left}})
-			}
-			elements := []object.Object{}
-			if lr > rr {
-				// Left rune is > so we are descending
-				for i := lr; i >= rr; i-- {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return vm.push(&object.List{Elements: elements})
-			} else {
-				// Right rune is > so we are ascending
-				for i := lr; i <= rr; i++ {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return vm.push(&object.List{Elements: elements})
-			}
-		case code.OpNonIncRange:
-			if runeLen(leftStr) != 1 {
-				return vm.push(newError("operator ..< expects left string to be 1 rune"))
-			}
-			if runeLen(rightStr) != 1 {
-				return vm.push(newError("operator ..< expects right string to be 1 rune"))
-			}
-			lr := []rune(leftStr)[0]
-			rr := []rune(rightStr)[0]
-			if lr == rr {
-				// If they are the same just return vm.push(an empty list because this is non-inclusive)
-				return vm.push(&object.List{Elements: []object.Object{}})
-			}
-			elements := []object.Object{}
-			if lr > rr {
-				// Left rune is > so we are descending
-				for i := lr; i > rr; i-- {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return vm.push(&object.List{Elements: elements})
-			} else {
-				// Right rune is > so we are ascending
-				for i := lr; i < rr; i++ {
-					s := string(i)
-					elements = append(elements, &object.Stringo{Value: s})
-				}
-				return vm.push(&object.List{Elements: elements})
-			}
-		case code.OpGreaterThan:
-			return vm.push(nativeToBooleanObject(leftStr > rightStr))
-		case code.OpGreaterThanOrEqual:
-			return vm.push(nativeToBooleanObject(leftStr >= rightStr))
-		default:
-			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
-		}
-	}
-	binaryOperationFunctions[object.SET_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		newSet := &object.Set{Elements: object.NewSetElements()}
-		if op == code.OpAdd {
-			var s *object.Set
-			var key uint64
-			var obj object.Object
-			if left.Type() == object.SET_OBJ {
-				// return set with right obj added
-				s = left.(*object.Set)
-				key = object.HashObject(right)
-				obj = right
-			} else {
-				// return set with left obj added
-				s = right.(*object.Set)
-				key = object.HashObject(left)
-				obj = left
-			}
-			for _, k := range s.Elements.Keys {
-				v, ok := s.Elements.Get(k)
-				if ok {
-					newSet.Elements.Set(k, v)
-				}
-			}
-			if _, ok := s.Elements.Get(key); !ok {
-				// Key does not exist, add new elem
-				newSet.Elements.Set(key, object.SetPair{Value: obj, Present: struct{}{}})
-			}
-			return vm.push(newSet)
-		}
-		leftE := left.(*object.Set).Elements
-		rightE := right.(*object.Set).Elements
-		var leftElems *object.OrderedMap2[uint64, object.SetPair]
-		var rightElems *object.OrderedMap2[uint64, object.SetPair]
-		if leftE.Len() >= rightE.Len() {
-			leftElems = leftE
-			rightElems = rightE
-		} else {
-			leftElems = rightE
-			rightElems = leftE
-		}
-		switch op {
-		case code.OpPipe:
-			// union
-			for _, k := range leftElems.Keys {
-				v, ok := leftElems.Get(k)
-				if !ok {
-					continue
-				}
-				newSet.Elements.Set(k, v)
-			}
-			for _, k := range rightElems.Keys {
-				v, ok := rightElems.Get(k)
-				if !ok {
-					continue
-				}
-				newSet.Elements.Set(k, v)
-			}
-			return vm.push(newSet)
-		case code.OpAmpersand:
-			// intersect
-			for _, k := range leftElems.Keys {
-				v, ok := leftElems.Get(k)
-				if !ok {
-					continue
-				}
-				_, ok = rightElems.Get(k)
-				if !ok {
-					continue
-				}
-				newSet.Elements.Set(k, v)
-			}
-			return vm.push(newSet)
-		case code.OpCarat:
-			// symmetric difference
-			for _, k := range leftElems.Keys {
-				v, ok := leftElems.Get(k)
-				if !ok {
-					continue
-				}
-				_, ok = rightElems.Get(k)
-				if !ok {
-					newSet.Elements.Set(k, v)
-				}
-			}
-			for _, k := range rightElems.Keys {
-				v, ok := rightElems.Get(k)
-				if !ok {
-					continue
-				}
-				_, ok = leftElems.Get(k)
-				if !ok {
-					newSet.Elements.Set(k, v)
-				}
-			}
-			return vm.push(newSet)
-		case code.OpGreaterThanOrEqual:
-			// left is superset of right
-			for _, k := range rightE.Keys {
-				if _, ok := leftE.Get(k); !ok {
-					return vm.push(object.FALSE)
-				}
-			}
-			return vm.push(object.TRUE)
-		case code.OpMinus:
-			// difference
-			for _, k := range leftElems.Keys {
-				v, ok := leftElems.Get(k)
-				if !ok {
-					continue
-				}
-				_, ok = rightElems.Get(k)
-				if !ok {
-					newSet.Elements.Set(k, v)
-				}
-			}
-			return vm.push(newSet)
-		case code.OpEqual:
-			for _, k := range leftElems.Keys {
-				_, ok := rightElems.Get(k)
-				if !ok {
-					return vm.push(object.FALSE)
-				}
-			}
-			return vm.push(object.TRUE)
-		case code.OpNotEqual:
-			for _, k := range leftElems.Keys {
-				_, ok := rightElems.Get(k)
-				if !ok {
-					return vm.push(object.TRUE)
-				}
-			}
-			return vm.push(object.FALSE)
-		default:
-			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
-		}
-	}
-	binaryOperationFunctions[object.LIST_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		leftListObj := left.(*object.List)
-		rightListObj := right.(*object.List)
-		leftElements := leftListObj.Elements
-		rightElements := rightListObj.Elements
-		leftSize := len(leftElements)
-		rightSize := len(rightElements)
-		switch op {
-		case code.OpAdd:
-			newList := make([]object.Object, 0, leftSize+rightSize)
-			newList = append(newList, leftElements...)
-			newList = append(newList, rightElements...)
-			return vm.push(&object.List{Elements: newList})
-		case code.OpEqual, code.OpNotEqual, code.OpIn, code.OpNotin:
-			return vm.executeDefaultBinaryOperation(op, left, right)
-		default:
-			return vm.push(newError("unknown operator: %s %s %s", left.Type(), code.GetOpName(op), right.Type()))
-		}
-	}
-	binaryOperationFunctions[object.MAP_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		return vm.executeMapBinaryOperation(op, left, right)
-	}
-	binaryOperationFunctions[object.BYTES_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		leftBs := left.(*object.Bytes).Value
-		rightBs := right.(*object.Bytes).Value
-		switch op {
-		case code.OpAmpersand:
-			if len(leftBs) != len(rightBs) {
-				return vm.push(newError("length of left and right bytes must match to perform bitwise AND operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs)))
-			}
-			buf := make([]byte, len(leftBs))
-			for i := range leftBs {
-				buf[i] = leftBs[i] & rightBs[i]
-			}
-			return vm.push(&object.Bytes{Value: buf})
-		case code.OpPipe:
-			if len(leftBs) != len(rightBs) {
-				return vm.push(newError("length of left and right bytes must match to perform bitwise OR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs)))
-			}
-			buf := make([]byte, len(leftBs))
-			for i := range leftBs {
-				buf[i] = leftBs[i] | rightBs[i]
-			}
-			return vm.push(&object.Bytes{Value: buf})
-		case code.OpCarat:
-			if len(leftBs) != len(rightBs) {
-				return vm.push(newError("length of left and right bytes must match to perform bitwise XOR operation. got: len(l)=%d, len(r)=%d", len(leftBs), len(rightBs)))
-			}
-			buf := make([]byte, len(leftBs))
-			for i := range leftBs {
-				buf[i] = leftBs[i] ^ rightBs[i]
-			}
-			return vm.push(&object.Bytes{Value: buf})
-		default:
-			return vm.executeDefaultBinaryOperation(op, left, right)
-		}
-	}
-	binaryOperationFunctions[object.BOOLEAN_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		leftB := left.(*object.Boolean).Value
-		rightB := right.(*object.Boolean).Value
-		switch op {
-		case code.OpAnd:
-			return vm.push(nativeToBooleanObject(leftB && rightB))
-		case code.OpOr:
-			return vm.push(nativeToBooleanObject(leftB || rightB))
-		default:
-			return vm.executeDefaultBinaryOperation(op, left, right)
-		}
-	}
-	binaryOperationFunctions[object.NULL_OBJ] = func(vm *VM, op code.Opcode, left, right object.Object) error {
-		switch op {
-		case code.OpEqual:
-			return vm.push(object.TRUE)
-		case code.OpNotEqual:
-			return vm.push(object.FALSE)
-		default:
-			return vm.executeDefaultBinaryOperation(op, left, right)
-		}
-	}
+	binaryOperationFunctions[object.INTEGER_OBJ] = binaryIntegerOp
+	binaryOperationFunctions[object.BIG_INTEGER_OBJ] = binaryBigIntegerOp
+	binaryOperationFunctions[object.FLOAT_OBJ] = binaryFloatOp
+	binaryOperationFunctions[object.BIG_FLOAT_OBJ] = binaryBigFloatOp
+	binaryOperationFunctions[object.UINTEGER_OBJ] = binaryUIntegerOp
+	binaryOperationFunctions[object.STRING_OBJ] = binaryStringOp
+	binaryOperationFunctions[object.SET_OBJ] = binarySetOp
+	binaryOperationFunctions[object.LIST_OBJ] = binaryListOp
+	binaryOperationFunctions[object.MAP_OBJ] = binaryMapOp
+	binaryOperationFunctions[object.BYTES_OBJ] = binaryBytesOp
+	binaryOperationFunctions[object.BOOLEAN_OBJ] = binaryBooleanOp
+	binaryOperationFunctions[object.NULL_OBJ] = binaryNullOp
 }
 
 func (vm *VM) executeBinaryOperationDifferentTypes(op code.Opcode, left, right object.Object, leftType, rightType object.Type) error {

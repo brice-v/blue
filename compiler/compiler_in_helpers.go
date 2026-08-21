@@ -33,12 +33,25 @@ var _lenIdent = &ast.Identifier{Value: "len"}
 var _getIdent = &ast.Identifier{Value: "_get_"}
 
 func (c *Compiler) compileIdentInIterableFor(sym Symbol, node *ast.ForStatement, right ast.Expression) error {
+	// Hoist the iterable expression into its own variable so it is only
+	// evaluated once before the loop starts. Compiling it into the loop
+	// condition/setter below would rebuild things like ranges or list
+	// literals on every single iteration.
+	iterableIdent := &ast.Identifier{Value: fmt.Sprintf("__iterable_%s", sym.Name)}
+	iterableVs := &ast.VarStatement{
+		Names: []*ast.Identifier{iterableIdent},
+		Value: right,
+	}
+	err := c.Compile(iterableVs)
+	if err != nil {
+		return err
+	}
 	indexIdent := &ast.Identifier{Value: fmt.Sprintf("__index_%s", sym.Name)}
 	vs := &ast.VarStatement{
 		Names: []*ast.Identifier{indexIdent},
 		Value: _zeroAstLit,
 	}
-	err := c.Compile(vs)
+	err = c.Compile(vs)
 	if err != nil {
 		return err
 	}
@@ -47,7 +60,7 @@ func (c *Compiler) compileIdentInIterableFor(sym Symbol, node *ast.ForStatement,
 		Operator: "<",
 		Right: &ast.CallExpression{
 			Function:  _lenIdent,
-			Arguments: []ast.Expression{right},
+			Arguments: []ast.Expression{iterableIdent},
 		},
 	}
 	node.PostExp = &ast.AssignmentExpression{
@@ -62,7 +75,7 @@ func (c *Compiler) compileIdentInIterableFor(sym Symbol, node *ast.ForStatement,
 			Left:  symIdent,
 			Value: &ast.CallExpression{
 				Function:  _getIdent,
-				Arguments: []ast.Expression{right, indexIdent},
+				Arguments: []ast.Expression{iterableIdent, indexIdent},
 			},
 		},
 	}
@@ -100,12 +113,23 @@ func (c *Compiler) isListIdentsOnLeftInIterableOnRight(cond ast.Expression) (boo
 var _trueBool = &ast.Boolean{Value: true}
 
 func (c *Compiler) compileListIdentsInIterableFor(sym1 Symbol, sym2 Symbol, node *ast.ForStatement, right ast.Expression) error {
+	// Hoist the iterable expression so it is only evaluated once before the
+	// loop starts (see compileIdentInIterableFor)
+	iterableIdent := &ast.Identifier{Value: fmt.Sprintf("__iterable_%s%s", sym1.Name, sym2.Name)}
+	iterableVs := &ast.VarStatement{
+		Names: []*ast.Identifier{iterableIdent},
+		Value: right,
+	}
+	err := c.Compile(iterableVs)
+	if err != nil {
+		return err
+	}
 	indexIdent := &ast.Identifier{Value: fmt.Sprintf("__index_%s%s", sym1.Name, sym2.Name)}
 	vs := &ast.VarStatement{
 		Names: []*ast.Identifier{indexIdent},
 		Value: _zeroAstLit,
 	}
-	err := c.Compile(vs)
+	err = c.Compile(vs)
 	if err != nil {
 		return err
 	}
@@ -123,7 +147,7 @@ func (c *Compiler) compileListIdentsInIterableFor(sym1 Symbol, sym2 Symbol, node
 		Operator: "<",
 		Right: &ast.CallExpression{
 			Function:  _lenIdent,
-			Arguments: []ast.Expression{right},
+			Arguments: []ast.Expression{iterableIdent},
 		},
 	}
 	node.PostExp = &ast.AssignmentExpression{
@@ -139,7 +163,7 @@ func (c *Compiler) compileListIdentsInIterableFor(sym1 Symbol, sym2 Symbol, node
 			Left:  indexedIdent,
 			Value: &ast.CallExpression{
 				Function:  _getIdent,
-				Arguments: []ast.Expression{right, indexIdent, _trueBool},
+				Arguments: []ast.Expression{iterableIdent, indexIdent, _trueBool},
 			},
 		},
 		&ast.AssignmentExpression{
