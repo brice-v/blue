@@ -125,6 +125,12 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 	mainClosure := &object.Closure{Fun: mainFn}
 	frames := make([]Frame, MaxFrames)
 	frames[0] = *NewFrame(mainClosure, 0)
+	// Reserve the pid atomically via Add(1), like executeSpawn does. A
+	// plain Load() let two vms share a pid: spawned children take their
+	// pids from the same counter, so a main vm reading Load() could get
+	// the same pid as an in-flight child. The loser of the subsequent
+	// ProcessMap.LoadOrStore race then holds a process whose channel gets
+	// closed when the child exits (send on it panics, recv fails).
 	vm := &VM{
 		constants:    bytecode.Constants,
 		tokens:       bytecode.Tokens,
@@ -135,7 +141,7 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 		globalsOwned: true,
 		frames:       frames,
 		framesIndex:  1,
-		PID:          object.PidCount.Load(),
+		PID:          object.PidCount.Add(1),
 		NodeName:     nodeName,
 	}
 	// Create an empty process so we can recv without spawning
