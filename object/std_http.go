@@ -148,7 +148,7 @@ var HttpBuiltins = []*Builtin{
 				return newInvalidArgCountError("url_unescape", len(args), 1, "")
 			}
 			if args[0].Type() != STRING_OBJ {
-				return newPositionalTypeError("url_unescape", 1, STRING_OBJ, args[1].Type())
+				return newPositionalTypeError("url_unescape", 1, STRING_OBJ, args[0].Type())
 			}
 			s := args[0].(*Stringo).Value
 			urlUnescaped, err := url.QueryUnescape(s)

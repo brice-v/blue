@@ -244,8 +244,8 @@ var NetBuiltins = []*Builtin{
 	{
 		Name: "_net_write",
 		Fun: func(args ...Object) Object {
-			if len(args) != 3 {
-				return newInvalidArgCountError("net_write", len(args), 3, "")
+			if len(args) != 3 && len(args) != 4 {
+				return newInvalidArgCountError("net_write", len(args), 3, "or 4")
 			}
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("net_write", 1, GO_OBJ, args[0].Type())
@@ -256,7 +256,7 @@ var NetBuiltins = []*Builtin{
 			if args[2].Type() != STRING_OBJ && args[2].Type() != BYTES_OBJ {
 				return newPositionalTypeError("net_write", 3, "STRING or BYTES", args[2].Type())
 			}
-			if args[3].Type() != NULL_OBJ && args[3].Type() != STRING_OBJ {
+			if len(args) == 4 && args[3].Type() != NULL_OBJ && args[3].Type() != STRING_OBJ {
 				return newPositionalTypeError("net_write", 4, "NULL or STRING", args[3].Type())
 			}
 			t := args[1].(*Stringo).Value
@@ -275,7 +275,7 @@ var NetBuiltins = []*Builtin{
 				conn = c.Value
 			}
 			var appendByte *byte = nil
-			if args[3].Type() == STRING_OBJ {
+			if len(args) == 4 && args[3].Type() == STRING_OBJ {
 				endByteString := args[3].(*Stringo).Value
 				if len(endByteString) != 1 {
 					return newError("`net_read` error: end byte given was not length 1, got=%d", len(endByteString))

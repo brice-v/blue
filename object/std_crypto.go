@@ -217,6 +217,9 @@ var CryptoBuiltins = []*Builtin{
 			}
 			data := args[1].(*Bytes).Value
 			getDataAsBytes := args[2].(*Boolean).Value
+			if len(data) < 32 {
+				return newError("`decrypt` error: data too short to contain salt")
+			}
 
 			// Deriving key from pw as it needs to be 32 bytes
 			salt, data := data[len(data)-32:], data[:len(data)-32]
@@ -287,10 +290,10 @@ var CryptoBuiltins = []*Builtin{
 			return &Stringo{Value: encoded}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`encode_base_64_32` encodes the data given in base64 if true, else base32, bytes are returned if as_bytes is set to true. Note: this function should only be called from encode",
-			signature:   "encode_base_64_32(data: str|bytes, is_base_64: bool=false, as_bytes: bool=false) -> str|bytes",
+			explanation: "`encode_base_64_32` encodes the data given in base64 if is_base_64 is true, else base32, bytes are returned if as_bytes is set to true",
+			signature:   "encode_base_64_32(data: str|bytes, as_bytes: bool=false, is_base_64: bool=false) -> str|bytes",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "encode_base_64_32('a', true, false) => 'YQ=='",
+			example:     "encode_base_64_32('a', false, true) => 'YQ=='",
 		}.String(),
 	},
 	{
@@ -332,10 +335,10 @@ var CryptoBuiltins = []*Builtin{
 			return &Bytes{Value: decoded}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`decode_base_64_32` decodes the data given in base64 if true, else base32, bytes are returned if as_bytes is set to true. Note: this function should only be called from decode",
-			signature:   "decode_base_64_32(data: str|bytes, is_base_64: bool=false, as_bytes: bool=false) -> str|bytes",
+			explanation: "`decode_base_64_32` decodes the data given in base64 if is_base_64 is true, else base32, bytes are returned if as_bytes is set to true",
+			signature:   "decode_base_64_32(data: str|bytes, as_bytes: bool=false, is_base_64: bool=false) -> str|bytes",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "decode_base_64_32('YQ==', true, false) => 'a'",
+			example:     "decode_base_64_32('YQ==', false, true) => 'a'",
 		}.String(),
 	},
 	{
@@ -362,12 +365,8 @@ var CryptoBuiltins = []*Builtin{
 			} else if args[0].Type() == BYTES_OBJ {
 				b := args[0].(*Bytes).Value
 				bs = make([]byte, hex.DecodedLen(len(b)))
-				l, err := hex.Decode(bs, b)
-				if err != nil {
+				if _, err := hex.Decode(bs, b); err != nil {
 					return newError("`decode_hex` error: %s", err.Error())
-				}
-				if l != len(b) {
-					return newError("`decode_hex` error: length of bytes does not match bytes written. got=%d, want=%d", l, len(b))
 				}
 			}
 			if !asBytes {

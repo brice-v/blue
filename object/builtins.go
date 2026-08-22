@@ -267,12 +267,15 @@ var Builtins = []*Builtin{
 					Value: HashObject(args[1]),
 				}
 				m.Pairs.Delete(hk)
-			} else if args[1].Type() == LIST_OBJ {
+			} else if args[0].Type() == LIST_OBJ {
 				if args[1].Type() != INTEGER_OBJ {
-					return newPositionalTypeError("del", 2, LIST_OBJ, args[1].Type())
+					return newPositionalTypeError("del", 2, INTEGER_OBJ, args[1].Type())
 				}
 				l := args[0].(*List)
 				index := args[1].(*Integer).Value
+				if index < 0 || index >= int64(len(l.Elements)) {
+					return newError("`del` index %d out of bounds", index)
+				}
 				l.Elements = append(l.Elements[:index], l.Elements[index+1:]...)
 			} else {
 				hk := HashKey{
@@ -1199,7 +1202,7 @@ var Builtins = []*Builtin{
 			}
 			fpath := args[0].(*Stringo).Value
 			info, err := os.Stat(fpath)
-			if os.IsNotExist(err) {
+			if err != nil || info == nil {
 				return FALSE
 			}
 			if info.IsDir() {

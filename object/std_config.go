@@ -65,7 +65,8 @@ var ConfigBuiltins = []*Builtin{
 			if args[2].Type() != STRING_OBJ {
 				return newPositionalTypeError("dump_config", 3, STRING_OBJ, args[2].Type())
 			}
-			c := config.New("config")
+			c := config.NewWithOptions("config")
+			c.WithDriver(yamlv3.Driver, ini.Driver, toml.Driver, properties.Driver)
 			configAsJson := args[0].(*Stringo).Value
 			err := c.LoadStrings(config.JSON, configAsJson)
 			if err != nil {
@@ -76,15 +77,17 @@ var ConfigBuiltins = []*Builtin{
 			out := new(bytes.Buffer)
 			switch format {
 			case "JSON":
-				_, err = config.DumpTo(out, config.JSON)
+				_, err = c.DumpTo(out, config.JSON)
 			case "TOML":
-				_, err = config.DumpTo(out, config.Toml)
+				_, err = c.DumpTo(out, config.Toml)
 			case "YAML":
-				_, err = config.DumpTo(out, config.Yaml)
+				_, err = c.DumpTo(out, config.Yaml)
 			case "INI":
-				_, err = config.DumpTo(out, config.Ini)
+				_, err = c.DumpTo(out, config.Ini)
 			case "PROPERTIES":
-				_, err = config.DumpTo(out, config.Prop)
+				_, err = c.DumpTo(out, config.Prop)
+			default:
+				return newError("`dump_config` error: unknown format %q", format)
 			}
 			if err != nil {
 				return newError("`dump_config` error: failed to dump to output, error: %s", err.Error())
