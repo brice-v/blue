@@ -172,12 +172,21 @@ func (c *Compiler) compileAssignmentWithIdent(ident *ast.Identifier, operator st
 	// TODO: Look into why this is necessary (happens with for ident in iterable in imported file)
 	var sym Symbol
 	var ok bool
-	sym, ok = c.symbolTable.Resolve(c.getName(ident.Value))
-	if !ok {
-		// Try without qualifier to resolve local variables from imported files
-		sym, ok = c.symbolTable.Resolve(ident.Value)
+	// Resolve without the module qualifier first so that a local (such as a
+	// parameter with a default value) takes precedence over a module level
+	// symbol that happens to share its name
+	unqualifiedSym, unqualifiedOk := c.symbolTable.Resolve(ident.Value)
+	if unqualifiedOk && unqualifiedSym.Scope == LocalScope {
+		sym, ok = unqualifiedSym, true
+	} else {
+		sym, ok = c.symbolTable.Resolve(c.getName(ident.Value))
 		if !ok {
-			return fmt.Errorf("identifier not found: %s", ident.Value)
+			// Try without qualifier to resolve local variables from imported files
+			if unqualifiedOk {
+				sym, ok = unqualifiedSym, true
+			} else {
+				return fmt.Errorf("identifier not found: %s", ident.Value)
+			}
 		}
 	}
 	if sym.Immutable {
@@ -236,11 +245,22 @@ func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operat
 	if !ok {
 		return fmt.Errorf("could not find identifier for assignmenet")
 	}
-	sym, ok := c.symbolTable.Resolve(c.getName(rootIdent.Value))
-	if !ok {
-		sym, ok = c.symbolTable.Resolve(rootIdent.Value)
+	var sym Symbol
+	// Resolve without the module qualifier first so that a local (such as a
+	// parameter with a default value) takes precedence over a module level
+	// symbol that happens to share its name
+	unqualifiedSym, unqualifiedOk := c.symbolTable.Resolve(rootIdent.Value)
+	if unqualifiedOk && unqualifiedSym.Scope == LocalScope {
+		sym, ok = unqualifiedSym, true
+	} else {
+		sym, ok = c.symbolTable.Resolve(c.getName(rootIdent.Value))
 		if !ok {
-			return fmt.Errorf("identifier not found: %s", rootIdent.Value)
+			// Try without qualifier to resolve local variables from imported files
+			if unqualifiedOk {
+				sym, ok = unqualifiedSym, true
+			} else {
+				return fmt.Errorf("identifier not found: %s", rootIdent.Value)
+			}
 		}
 	}
 	if sym.Immutable {
