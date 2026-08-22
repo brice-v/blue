@@ -77,11 +77,6 @@ github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base
 github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark
 github.com/JohannesKaufmann/html-to-markdown/v2/plugin/strikethrough
 github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table
-# github.com/andybalholm/brotli v1.2.1
-## explicit; go 1.22
-github.com/andybalholm/brotli
-github.com/andybalholm/brotli/flate
-github.com/andybalholm/brotli/matchfinder
 # github.com/antchfx/htmlquery v1.3.6
 ## explicit; go 1.14
 github.com/antchfx/htmlquery
@@ -98,10 +93,6 @@ github.com/chzyer/readline
 # github.com/clbanning/mxj/v2 v2.7.0
 ## explicit; go 1.15
 github.com/clbanning/mxj/v2
-# github.com/clipperhouse/uax29/v2 v2.2.0
-## explicit; go 1.18
-github.com/clipperhouse/uax29/v2/graphemes
-github.com/clipperhouse/uax29/v2/internal/iterators
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
@@ -122,9 +113,6 @@ github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
 github.com/ebitengine/purego/internal/xreflect
-# github.com/fasthttp/websocket v1.5.12
-## explicit; go 1.21
-github.com/fasthttp/websocket
 # github.com/fatih/structs v1.1.0
 ## explicit
 github.com/fatih/structs
@@ -265,11 +253,6 @@ github.com/goccy/go-yaml/token
 github.com/godbus/dbus/v5
 github.com/godbus/dbus/v5/introspect
 github.com/godbus/dbus/v5/prop
-# github.com/gofiber/fiber/v2 v2.52.12 => ./ws_vendor/fiber
-## explicit; go 1.25.0
-# github.com/gofiber/websocket/v2 v2.2.1
-## explicit; go 1.17
-github.com/gofiber/websocket/v2
 # github.com/gofrs/uuid v4.4.0+incompatible
 ## explicit
 github.com/gofrs/uuid
@@ -364,31 +347,12 @@ github.com/jsummers/gobmp
 # github.com/jupiterrider/ffi v0.7.0
 ## explicit; go 1.18
 github.com/jupiterrider/ffi
-# github.com/klauspost/compress v1.18.5
-## explicit; go 1.24
-github.com/klauspost/compress
-github.com/klauspost/compress/flate
-github.com/klauspost/compress/fse
-github.com/klauspost/compress/gzip
-github.com/klauspost/compress/huff0
-github.com/klauspost/compress/internal/cpuinfo
-github.com/klauspost/compress/internal/le
-github.com/klauspost/compress/internal/snapref
-github.com/klauspost/compress/zlib
-github.com/klauspost/compress/zstd
-github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e
 ## explicit; go 1.21
 github.com/lufia/plan9stats
-# github.com/mattn/go-colorable v0.1.14
-## explicit; go 1.18
-github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.22
 ## explicit; go 1.21
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.22
-## explicit; go 1.20
-github.com/mattn/go-runewidth
 # github.com/microcosm-cc/bluemonday v1.0.27
 ## explicit; go 1.19
 github.com/microcosm-cc/bluemonday
@@ -412,9 +376,6 @@ github.com/otiai10/copy
 ## explicit; go 1.18
 github.com/otiai10/mint
 github.com/otiai10/mint/mquery
-# github.com/philhofer/fwd v1.2.0
-## explicit; go 1.20
-github.com/philhofer/fwd
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -441,12 +402,6 @@ github.com/rymdport/portal/notification
 github.com/rymdport/portal/openuri
 github.com/rymdport/portal/settings
 github.com/rymdport/portal/settings/appearance
-# github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94
-## explicit; go 1.13
-github.com/savsgio/dictpool
-# github.com/savsgio/gotils v0.0.0-20250924091648-bce9a52d7761
-## explicit; go 1.21
-github.com/savsgio/gotils/strconv
 # github.com/sergi/go-diff v1.4.0
 ## explicit; go 1.13
 github.com/sergi/go-diff/diffmatchpatch
@@ -536,25 +491,12 @@ github.com/tetratelabs/wazero/internal/wasm/binary
 github.com/tetratelabs/wazero/internal/wasmdebug
 github.com/tetratelabs/wazero/internal/wasmruntime
 github.com/tetratelabs/wazero/sys
-# github.com/tinylib/msgp v1.6.3
-## explicit; go 1.24
-github.com/tinylib/msgp/msgp
 # github.com/tklauser/go-sysconf v0.3.16
 ## explicit; go 1.24.0
 github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.11.0
 ## explicit; go 1.24.0
 github.com/tklauser/numcpus
-# github.com/valyala/bytebufferpool v1.0.0
-## explicit
-github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.69.0
-## explicit; go 1.24.0
-github.com/valyala/fasthttp
-github.com/valyala/fasthttp/fasthttputil
-github.com/valyala/fasthttp/reuseport
-github.com/valyala/fasthttp/stackless
-github.com/valyala/fasthttp/tcplisten
 # github.com/x448/float16 v0.8.4
 ## explicit; go 1.11
 github.com/x448/float16
@@ -598,8 +540,6 @@ golang.org/x/image/vector
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-golang.org/x/net/internal/socks
-golang.org/x/net/proxy
 # golang.org/x/sync v0.21.0
 ## explicit; go 1.25.0
 golang.org/x/sync/errgroup

@@ -1,12 +1,21 @@
 package vm
 
 import (
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"sync"
 	"testing"
 
 	"blue/compiler"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+
+	ws "github.com/gorilla/websocket"
 )
 
 func compileClosure(t *testing.T, input string) (*object.Closure, *VM) {
@@ -27,6 +36,77 @@ func compileClosure(t *testing.T, input string) (*object.Closure, *VM) {
 		t.Fatalf("expected closure, got %T", vm.LastPoppedStackElem())
 	}
 	return cl, vm
+}
+
+func TestHandleWsPassesRouteParams(t *testing.T) {
+	s := object.NewServer()
+	cl, vm := compileClosure(t, `fun(ws, room) { room }`)
+
+	builtin := createHttpHandleWSBuiltin(vm)
+	res := builtin.Fun(object.NewGoObj(s), &object.Stringo{Value: "/ws/:room"}, cl)
+	if isError(res) {
+		t.Fatalf("handle_ws error: %s", res.(*object.Error).Message)
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := &http.Server{Handler: s}
+	go func() { _ = srv.Serve(ln) }()
+	defer func() { _ = srv.Close() }()
+
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	defer func() { os.Stdout = oldStdout }()
+
+	conn, _, err := ws.DefaultDialer.Dial("ws://"+ln.Addr().String()+"/ws/lobby", nil)
+	if err != nil {
+		t.Fatalf("dial error: %s", err)
+	}
+	_, _, _ = conn.ReadMessage()
+	_ = conn.Close()
+
+	_ = w.Close()
+	os.Stdout = oldStdout
+	out, _ := io.ReadAll(r)
+	if !strings.Contains(string(out), "lobby") {
+		t.Fatalf("ws handler did not receive room param, output: %q", string(out))
+	}
+}
+
+func TestHttpRequestHandlersAreSerialized(t *testing.T) {
+	s := object.NewServer()
+	cl, vm := compileClosure(t, `fun() { 123 }`)
+
+	builtin := createHttpHandleBuiltin(vm, false)
+	res := builtin.Fun(object.NewGoObj(s), &object.Stringo{Value: "/n"}, cl, &object.Stringo{Value: "GET"})
+	if isError(res) {
+		t.Fatalf("handle error: %s", res.(*object.Error).Message)
+	}
+
+	const n = 64
+	codes := make([]int, n)
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			rec := httptest.NewRecorder()
+			s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/n", nil))
+			codes[i] = rec.Code
+		}(i)
+	}
+	wg.Wait()
+	for i, c := range codes {
+		if c != http.StatusOK {
+			t.Fatalf("request %d got code %d, want %d", i, c, http.StatusOK)
+		}
+	}
 }
 
 func TestCloneHandlerClosureIndependence(t *testing.T) {

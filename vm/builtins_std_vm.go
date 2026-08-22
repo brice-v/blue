@@ -5,14 +5,14 @@ import (
 	"blue/object"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
+	ws "github.com/gorilla/websocket"
 	"golang.org/x/net/html"
 )
 
@@ -69,9 +69,9 @@ func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 			if args[0].Type() != object.GO_OBJ {
 				return newPositionalTypeError("handle", 1, object.GO_OBJ, args[0].Type())
 			}
-			app, ok := args[0].(*object.GoObj[*fiber.App])
+			app, ok := args[0].(*object.GoObj[*object.Server])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("handle", 1, "*fiber.App", args[0])
+				return newPositionalTypeErrorForGoObj("handle", 1, "*Server", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle", 2, object.STRING_OBJ, args[1].Type())
@@ -85,30 +85,26 @@ func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 			method := strings.ToUpper(args[3].(*object.Stringo).Value)
 			pattern := args[1].(*object.Stringo).Value
 			fun := args[2].(*object.Closure)
-			goFiberFunc := func(c *fiber.Ctx) error {
-				return processHandlerFn(vm, fun, c, method)
+			handler := func(c *object.Ctx) {
+				_ = processHandlerFn(vm, fun, c, method)
 			}
 			if isHandleUse {
 				if method != "" {
 					return newError("`handle_use` error: method should be '', got=%s", method)
 				}
-				if pattern == "" {
-					app.Value.Use(goFiberFunc)
-				} else {
-					app.Value.Use(pattern, goFiberFunc)
-				}
+				app.Value.Add("", pattern, handler, true)
 			} else {
 				switch method {
 				case "GET":
-					app.Value.Get(pattern, goFiberFunc)
+					app.Value.Add("GET", pattern, handler, false)
 				case "POST":
-					app.Value.Post(pattern, goFiberFunc)
+					app.Value.Add("POST", pattern, handler, false)
 				case "PATCH":
-					app.Value.Patch(pattern, goFiberFunc)
+					app.Value.Add("PATCH", pattern, handler, false)
 				case "PUT":
-					app.Value.Put(pattern, goFiberFunc)
+					app.Value.Add("PUT", pattern, handler, false)
 				case "DELETE":
-					app.Value.Delete(pattern, goFiberFunc)
+					app.Value.Add("DELETE", pattern, handler, false)
 				}
 			}
 			return object.NULL
@@ -116,10 +112,10 @@ func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 	}
 }
 
-func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) error {
+func processHandlerFn(vm *VM, fn *object.Closure, c *object.Ctx, method string) error {
 	ok, respObj, errors := prepareAndApplyHttpHandleFn(vm, fn, c, method)
 	if !ok {
-		return c.Status(fiber.StatusInternalServerError).JSON(errors)
+		return c.Status(http.StatusInternalServerError).JSON(errors)
 	}
 	// First check if the respObj is a MAP and if its a valid http handler response action
 	if respObj.Type() == object.MAP_OBJ {
@@ -130,34 +126,34 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 				maybeCode, ok := m.Get("code")
 				if !ok {
 					err := "http/status 'code' key not found."
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				code, ok := maybeCode.(int64)
 				if !ok {
 					err := fmt.Sprintf("http/status 'code' must be INTEGER. got=%T", maybeCode)
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				return c.SendStatus(int(code))
 			case "redirect":
 				maybeLocation, ok := m.Get("location")
 				if !ok {
 					err := "http/redirect 'location' key not found."
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				location, ok := maybeLocation.(string)
 				if !ok {
 					err := fmt.Sprintf("http/redirect 'location' must be STRING. got=%T", maybeLocation)
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				maybeCode, ok := m.Get("code")
 				if !ok {
 					err := "http/redirect 'code' key not found."
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				code, ok := maybeCode.(int64)
 				if !ok {
 					err := fmt.Sprintf("http/redirect 'code' must be INTEGER. got=%T", maybeCode)
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				return c.Redirect(location, int(code))
 			case "next":
@@ -166,12 +162,12 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 				maybePath, ok := m.Get("path")
 				if !ok {
 					err := "http/send_file 'path' key not found."
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				path, ok := maybePath.(string)
 				if !ok {
 					err := fmt.Sprintf("http/send_file 'path' must be STRING. got=%T", maybePath)
-					return c.Status(fiber.StatusInternalServerError).JSON(err)
+					return c.Status(http.StatusInternalServerError).JSON(err)
 				}
 				return c.SendFile(path, false)
 			}
@@ -182,13 +178,13 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 			return c.SendString(respObj.(*object.Stringo).Value)
 		}
 		if respObj.Type() == object.NULL_OBJ {
-			return c.SendStatus(fiber.StatusOK)
+			return c.SendStatus(http.StatusOK)
 		} else {
 			obj := blueObjToJsonObject(respObj)
 			if isError(obj) {
 				errors := getErrorTokenTraceAsJsonWithError(vm, obj.(*object.Error).Message).([]string)
 				errors = append(errors, fmt.Sprintf("%s Response Type is not STRING, valid JSON, or NULL. got=%s", method, obj.Type()))
-				return c.Status(fiber.StatusInternalServerError).JSON(errors)
+				return c.Status(http.StatusInternalServerError).JSON(errors)
 			} else {
 				if respStr, ok := obj.(*object.Stringo); ok {
 					respStrBs := []byte(respStr.Value)
@@ -200,7 +196,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 			}
 			errors := getErrorTokenTraceAsJson(vm).([]string)
 			errors = append(errors, fmt.Sprintf("%s Response Type is not NULL or STRING. got=%s", method, respObj.Type()))
-			return c.Status(fiber.StatusInternalServerError).JSON(errors)
+			return c.Status(http.StatusInternalServerError).JSON(errors)
 		}
 	} else {
 		if respObj.Type() == object.STRING_OBJ {
@@ -230,7 +226,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 			if isError(obj) {
 				errors := getErrorTokenTraceAsJsonWithError(vm, obj.(*object.Error).Message).([]string)
 				errors = append(errors, "error converting object to JSON")
-				return c.Status(fiber.StatusInternalServerError).JSON(errors)
+				return c.Status(http.StatusInternalServerError).JSON(errors)
 			}
 			if respStr, ok := obj.(*object.Stringo); ok {
 				respStrBs := []byte(respStr.Value)
@@ -241,7 +237,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 			}
 			errors := getErrorTokenTraceAsJson(vm).([]string)
 			errors = append(errors, "STRING NOT RETURNED FROM JSON CONVERSION")
-			return c.Status(fiber.StatusInternalServerError).JSON(errors)
+			return c.Status(http.StatusInternalServerError).JSON(errors)
 		}
 	}
 }
@@ -262,9 +258,9 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 			if args[0].Type() != object.GO_OBJ {
 				return newPositionalTypeError("handle_ws", 1, object.GO_OBJ, args[0].Type())
 			}
-			app, ok := args[0].(*object.GoObj[*fiber.App])
+			app, ok := args[0].(*object.GoObj[*object.Server])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("handle_ws", 1, "*fiber.App", args[0])
+				return newPositionalTypeErrorForGoObj("handle_ws", 1, "*Server", args[0])
 			}
 			if args[1].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("handle_ws", 2, object.STRING_OBJ, args[1].Type())
@@ -277,15 +273,23 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 			if len(fn.Fun.Parameters) == 0 {
 				return newError("function arguments should be at least 1 to store the websocket connection")
 			}
-			app.Value.Use(pattern, func(c *fiber.Ctx) error {
-				if websocket.IsWebSocketUpgrade(c) {
-					return c.Next()
+			upgrader := ws.Upgrader{
+				CheckOrigin: func(r *http.Request) bool {
+					return true
+				},
+			}
+			app.Value.Add("GET", pattern, func(c *object.Ctx) {
+				if !isWebSocketUpgradeRequest(c.R) {
+					http.Error(c.W, "websocket: upgrade required", http.StatusUpgradeRequired)
+					return
 				}
-				return fiber.ErrUpgradeRequired
-			})
-
-			var returnObj object.Object = object.NULL
-			wsHandler := websocket.New(func(c *websocket.Conn) {
+				conn, err := upgrader.Upgrade(c.W, c.R, nil)
+				if err != nil {
+					return
+				}
+				defer func() {
+					_ = conn.Close()
+				}()
 				// Each connection runs blue code for its whole lifetime, so
 				// it gets its own vm and its own copy of the handler closure.
 				// Sharing one vm (or the closure's special parameter maps)
@@ -295,16 +299,16 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 				// is made from that snapshot, never from the live vm.
 				connVm := vm.CloneForConnection(vm.PID)
 				connFn := cloneHandlerClosure(fn)
-				handleSpecialFunctionArgs(connFn, c)
+				handleSpecialFunctionArgs(connFn, c.R)
 				fnArgs := make([]object.Object, len(connFn.Fun.Parameters))
 				for i, v := range connFn.Fun.Parameters {
 					if i == 0 {
-						fnArgs[i] = object.CreateBasicMapObjectForGoObj("ws", NewGoObj(c))
+						fnArgs[i] = object.CreateBasicMapObjectForGoObj("ws", NewGoObj(conn))
 					} else {
 						fnArgs[i] = &object.Stringo{Value: c.Params(v)}
 					}
 				}
-				returnObj = connVm.applyFunctionFastWithMultipleArgs(connFn, fnArgs)
+				returnObj := connVm.applyFunctionFastWithMultipleArgs(connFn, fnArgs)
 				if isError(returnObj) {
 					// var buf bytes.Buffer
 					// buf.WriteString(returnObj.(*object.Error).Message)
@@ -325,16 +329,38 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 						fmt.Printf("%s`handle_ws` returned with %#+v\n", consts.VM_ERROR_PREFIX, returnObj)
 					}
 				}
-			})
-			app.Value.Get(pattern, wsHandler)
+			}, false)
 
 			// Always returns NULL here
-			return returnObj
+			return object.NULL
 		},
 	}
 }
 
-func handleSpecialFunctionArgs(fn *object.Closure, c *websocket.Conn) {
+// isWebSocketUpgradeRequest reports whether the request asks for a websocket
+// upgrade, mirroring the old fiber IsWebSocketUpgrade check.
+func isWebSocketUpgradeRequest(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	if !headerContainsToken(r.Header, "Connection", "upgrade") {
+		return false
+	}
+	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
+}
+
+func headerContainsToken(header http.Header, key, token string) bool {
+	for _, line := range header.Values(key) {
+		for _, part := range strings.Split(line, ",") {
+			if strings.EqualFold(strings.TrimSpace(part), token) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func handleSpecialFunctionArgs(fn *object.Closure, r *http.Request) {
 	if fn.Fun.SpecialFunctionParameters == nil {
 		return
 	}
@@ -347,13 +373,18 @@ func handleSpecialFunctionArgs(fn *object.Closure, c *websocket.Conn) {
 		case "query_params":
 			if objectMap, ok := fn.Fun.SpecialFunctionParameters[key]; ok {
 				for k := range objectMap {
-					objectMap[k] = &object.Stringo{Value: c.Query(k.Name)}
+					objectMap[k] = &object.Stringo{Value: r.URL.Query().Get(k.Name)}
 				}
 			}
 		case "cookies":
 			if objectMap, ok := fn.Fun.SpecialFunctionParameters[key]; ok {
 				for k := range objectMap {
-					objectMap[k] = &object.Stringo{Value: c.Cookies(k.Name)}
+					c, err := r.Cookie(k.Name)
+					value := ""
+					if err == nil {
+						value = c.Value
+					}
+					objectMap[k] = &object.Stringo{Value: value}
 				}
 			}
 		}
