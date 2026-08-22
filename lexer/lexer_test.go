@@ -843,6 +843,45 @@ func TestNextTokenFromImport(t *testing.T) {
 	}
 }
 
+func TestNextTokenImportPathWithNumbers(t *testing.T) {
+	input := `import mymod2
+import foo.bar3.baz4
+from pkg5 import [thing6]
+import bang7!`
+	l := New(input, "<internal:test>")
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.IMPORT, "import"},
+		{token.IMPORT_PATH, "mymod2"},
+		{token.IMPORT, "import"},
+		{token.IMPORT_PATH, "foo.bar3.baz4"},
+		{token.FROM, "from"},
+		{token.IMPORT_PATH, "pkg5"},
+		{token.IMPORT, "import"},
+		{token.LBRACKET, "["},
+		{token.IDENT, "thing6"},
+		{token.RBRACKET, "]"},
+		{token.IMPORT, "import"},
+		{token.IMPORT_PATH, "bang7!"},
+		{token.EOF, ""},
+	}
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
 func TestNextTokenMultiLineComment(t *testing.T) {
 	input := `### this is a comment ###`
 	l := New(input, "<internal:test>")

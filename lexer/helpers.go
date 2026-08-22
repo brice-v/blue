@@ -38,16 +38,26 @@ func isLetter(ch rune) bool {
 	return unicode.IsLetter(rune(ch)) || ch == '_'
 }
 
+// isIdentifierChar will return true if the rune given is allowed as part of
+// an identifier after the first character (see readIdentifier)
+//
+// Note: the first character of an identifier must match isLetter since
+// identifiers cannot start with a number or one of the trailing chars below
+func isIdentifierChar(ch rune) bool {
+	return isLetter(ch) || unicode.IsNumber(ch) || ch == '?' || ch == '!'
+}
+
 // isImportChar will return true if the rune given is allowed as part of an import path
 //
-// Note: numbers are not allowed in the filename because they are not allowed in identifiers
-// this is a design decision and prevents issues.  The reason why '.' is allowed is because
-// that will signifiy the path separation in the import path.
+// Note: import paths allow everything that identifiers allow (see isIdentifierChar)
+// so module names such as mod2 lex consistently at import sites and usage sites.
+// The reason why '.' is allowed is because that will signifiy the path separation
+// in the import path.
 //
 // We could just use a basic string which would solve most of these problems but i like
 // the look of python's import syntax :)
 func isImportChar(ch rune) bool {
-	return isLetter(ch) || ch == '.'
+	return isIdentifierChar(ch) || ch == '.'
 }
 
 // isDigit will return true if the rune give is 0-9 or any unicode Digit
