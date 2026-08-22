@@ -537,6 +537,104 @@ match 5 {
 	}
 }
 
+// getMatchExpressionFromProgram parses a program containing a single match
+// expression statement and returns the match expression node
+func getMatchExpressionFromProgram(t *testing.T, input string) *ast.MatchExpression {
+	t.Helper()
+	prog := parse(input)
+	stmt, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected expression statement, got=%T", prog.Statements[0])
+	}
+	me, ok := stmt.Expression.(*ast.MatchExpression)
+	if !ok {
+		t.Fatalf("expected match expression, got=%T", stmt.Expression)
+	}
+	return me
+}
+
+func TestMatchExpressionCannotBeNestedInsideOfACondition(t *testing.T) {
+	// The parser cannot produce this shape today (nested matches in conditions do not parse),
+	// but hand built/eval'd ASTs could reach the compiler. '_' handling within a condition
+	// relies on there not being another match expression compiled inside of it.
+	inner := getMatchExpressionFromProgram(t, `match 1 { 1 => { 2 } }`)
+	outer := &ast.MatchExpression{
+		Token:        inner.Token,
+		OptionalValue: &ast.IntegerLiteral{Token: inner.Token, Value: 1},
+		Conditions:   [][]ast.Expression{{inner}},
+		Consequences: []*ast.BlockStatement{inner.Consequences[0]},
+	}
+	program := &ast.Program{Statements: []ast.Statement{&ast.ExpressionStatement{Token: inner.Token, Expression: outer}}}
+
+	comp := New()
+	err := comp.Compile(program)
+	if err == nil {
+		t.Fatal("expected compiler error for match expression nested inside of another match condition")
+	}
+	if !strings.Contains(err.Error(), "cannot nest") {
+		t.Fatalf("wrong compiler error: %s", err.Error())
+	}
+}
+
+func TestMatchExpressionCanBeNestedInsideOfAConsequence(t *testing.T) {
+	// Nesting is only disallowed within conditions, consequences are normal code so a
+	// nested match inside of one must still compile fine
+	inner := getMatchExpressionFromProgram(t, `match 2 { 1 => { 9 } }`)
+	consequence := &ast.BlockStatement{
+		Token:      inner.Token,
+		Statements: []ast.Statement{&ast.ExpressionStatement{Token: inner.Token, Expression: inner}},
+	}
+	condProg := parse(`99`)
+	cond := condProg.Statements[0].(*ast.ExpressionStatement).Expression
+	outer := &ast.MatchExpression{
+		Token:        inner.Token,
+		OptionalValue: cond,
+		Conditions:   [][]ast.Expression{{cond}},
+		Consequences: []*ast.BlockStatement{consequence},
+	}
+	program := &ast.Program{Statements: []ast.Statement{&ast.ExpressionStatement{Token: inner.Token, Expression: outer}}}
+
+	comp := New()
+	err := comp.Compile(program)
+	if err != nil {
+		t.Fatalf("expected nested match in consequence to compile, got error: %s", err.Error())
+	}
+}
+
+func TestWildcardInsideFunctionBodyWithinMatchConditionErrors(t *testing.T) {
+	// '_' is only a wildcard in the pattern itself, not inside of function bodies that
+	// happen to be defined within a match condition
+	program := parse(`match ([5]) {
+    [(fun(x) { return _ })(9)] => { 1 },
+    _ => { 2 },
+}`)
+	comp := New()
+	err := comp.Compile(program)
+	if err == nil {
+		t.Fatal("expected compiler error for '_' used inside of a function body within a match condition")
+	}
+	if !strings.Contains(err.Error(), "identifier not found _") {
+		t.Fatalf("wrong compiler error: %s", err.Error())
+	}
+}
+
+func TestCompilerDoesNotStayInMatchContextAfterError(t *testing.T) {
+	comp := New()
+	// Fails partway through compiling the condition ('bogus_ident' does not exist)
+	err := comp.Compile(parse(`match (1) { bogus_ident => { 2 } }`))
+	if err == nil {
+		t.Fatal("expected compiler error for unresolved identifier in match condition")
+	}
+	// The same compiler instance must not treat '_' as a wildcard after the failed compile
+	err = comp.Compile(parse(`val x = _`))
+	if err == nil {
+		t.Fatal("expected '_' to still be an unknown identifier when compiling after a failed match condition")
+	}
+	if !strings.Contains(err.Error(), "identifier not found _") {
+		t.Fatalf("wrong compiler error: %s", err.Error())
+	}
+}
+
 func TestListComprehension(t *testing.T) {
 	// Just verify compilation doesn't panic
 	program := parse("[x for x in 1..5]")

@@ -612,7 +612,12 @@ func (c *Compiler) compileCompLiteral(t, nonEvaluatedProgram string) error {
 	if p.HasErrors() {
 		return fmt.Errorf("%s error: %s", t, p.JoinedErrors())
 	}
+	// Comprehensions are self contained programs so '_' inside of them must not
+	// be treated as a match wildcard even if we are currently compiling a match condition
+	prevInMatch := c.inMatch
+	c.inMatch = false
 	err := c.Compile(rootNode)
+	c.inMatch = prevInMatch
 	if err != nil {
 		return err
 	}
@@ -652,6 +657,9 @@ func (c *Compiler) compileMapCompLiteral(node *ast.MapCompLiteral) error {
 }
 
 func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
+	if c.inMatch {
+		return fmt.Errorf("cannot nest a match expression inside of another match expression's condition\n%s", lexer.GetErrorLineMessage(node.Token))
+	}
 	conditionLen := len(node.Conditions)
 	consequenceLen := len(node.Consequences)
 	if conditionLen != consequenceLen {
@@ -664,8 +672,12 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 		for j := range node.Conditions[i] {
 			condIsDefault := node.Conditions[i][j].String() == "_"
 			if !condIsDefault {
+				// Save/restore around the condition so that an error partway through
+				// compiling it cannot leave the compiler stuck in 'match' context
+				prevInMatch := c.inMatch
 				c.inMatch = true
 				err = c.Compile(node.Conditions[i][j])
+				c.inMatch = prevInMatch
 				if err != nil {
 					return err
 				}
@@ -676,7 +688,6 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 					}
 					c.emit(code.OpMatchValue)
 				}
-				c.inMatch = false
 				jumpNotTruthyPos = c.emit(code.OpJumpNotTruthy, 9999)
 			}
 			err = c.Compile(node.Consequences[i])

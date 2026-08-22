@@ -589,11 +589,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 	case *ast.FunctionLiteral:
+		// A function body is not part of the pattern being matched so '_' inside
+		// of it must not be treated as a match wildcard
+		prevInMatch := c.inMatch
+		c.inMatch = false
 		c.enterScope()
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())
 		compiledFun.HelpStr = object.CreateHelpStringFromBodyTokens("", compiledFun, node.Body.HelpStrTokens)
 		err := c.Compile(node.Body)
 		if err != nil {
+			c.inMatch = prevInMatch
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if c.lastInstructionIs(code.OpPop) {
@@ -612,7 +617,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 		compiledFun.NumLocals = numLocals
 		funIndex := c.addConstant(compiledFun)
 		c.emit(code.OpClosure, funIndex, len(freeSymbols))
+		c.inMatch = prevInMatch
 	case *ast.FunctionStatement:
+		// A function body is not part of the pattern being matched so '_' inside
+		// of it must not be treated as a match wildcard
+		prevInMatch := c.inMatch
+		c.inMatch = false
 		helpStr := object.CreateHelpStringFromBodyTokensAstFun(node.Name.Value, node, node.Body.HelpStrTokens)
 		symbol := c.symbolTable.DefineFun(c.getName(node.Name.Value), true, node.Parameters, node.ParameterExpressions, helpStr)
 		c.enterScope()
@@ -620,6 +630,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		compiledFun.HelpStr = symbol.HelpStr
 		err := c.Compile(node.Body)
 		if err != nil {
+			c.inMatch = prevInMatch
 			return c.addNodeToErrorTrace(err, node.Token)
 		}
 		if c.lastInstructionIs(code.OpPop) {
@@ -644,6 +655,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		case LocalScope:
 			c.emit(code.OpSetLocalImm, symbol.Index)
 		}
+		c.inMatch = prevInMatch
 	case *ast.ReturnStatement:
 		c.emitNode(node)
 		err := c.Compile(node.ReturnValue)

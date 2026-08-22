@@ -4,7 +4,6 @@ TODO:
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
 - [ ] Update cmd/cli so that when file is not found that error is printed to user instead of usage
-- [ ] Fix up c.inMatch thats in compiler as that feels error prone
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
@@ -706,3 +705,9 @@ COMPLETED TASKS:
 - [x] Add .0 if float formatted as string would not have any decimal place
     - This may be needed/useful later on
     - Float Inspect now appends .0 to whole number floats (5.0 stays '5.0' instead of '5'), exponent forms like 1e+08 and Inf/NaN are left untouched, covered by TestFloatInspectFormatting and b_test_programs/test_float_to_str.b
+- [x] Fix up c.inMatch thats in compiler as that feels error prone
+    - The flag is now saved/restored around match condition compiles so an error partway through a condition can no longer leave the compiler stuck treating '_' as a wildcard (this mattered for long lived compiler instances like the REPL which reuses one compiler across lines even after errors)
+    - Function/lambda/spawn bodies defined inside of a match condition are isolated from the flag, so '_' inside of them now errors with 'identifier not found _' instead of silently compiling to OpMatchAny (previously `(fun(x) { return _ })(9)` inside of a pattern produced a wildcard that could make arms match when they should not)
+    - List/set/map comprehension sub-programs get the same isolation
+    - Nesting a match expression inside of another match expression's condition now returns a clear compiler error instead of misbehaving (the parser cannot produce this shape today anyway), while nested matches inside of consequences still compile fine
+    - Covered by TestMatchExpressionCannotBeNestedInsideOfACondition, TestMatchExpressionCanBeNestedInsideOfAConsequence, TestWildcardInsideFunctionBodyWithinMatchConditionErrors, TestCompilerDoesNotStayInMatchContextAfterError and b_test_programs/test_match_pattern_with_call.b
