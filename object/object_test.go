@@ -3,7 +3,6 @@ package object
 import (
 	"blue/ast"
 	"blue/token"
-	"log"
 	"testing"
 )
 
@@ -103,9 +102,7 @@ func TestBlueStruct(t *testing.T) {
 func TestHashObject(t *testing.T) {
 	o := &Float{Value: 0.5}
 	ho := HashObject(o)
-	log.Printf("ho = %d", HashObject(o))
 	o1 := &Integer{Value: 0}
-	log.Printf("ho1 = %d", HashObject(o1))
 	ho1 := HashObject(o1)
 	if ho == ho1 {
 		t.Errorf("These should never be equal float hash = %d, integer hash = %d", ho, ho1)

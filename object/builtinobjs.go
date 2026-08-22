@@ -52,6 +52,10 @@ var BuiltinobjsList = []struct {
 		Name:    "VERSION",
 		Builtin: &BuiltinObj{Obj: &Stringo{Value: consts.VERSION}},
 	},
+	{
+		Name:    "PATH_SEP",
+		Builtin: &BuiltinObj{Obj: &Stringo{Value: string(os.PathSeparator)}},
+	},
 }
 
 func getBuiltinobjByName(name string) *BuiltinObj {
@@ -64,15 +68,16 @@ func getBuiltinobjByName(name string) *BuiltinObj {
 }
 
 var Builtinobjs = BuiltinObjMapType{
-	"ENV":     getBuiltinobjByName("ENV"),
-	"ARGV":    getBuiltinobjByName("ARGV"),
-	"STDIN":   getBuiltinobjByName("STDIN"),
-	"STDERR":  getBuiltinobjByName("STDERR"),
-	"STDOUT":  getBuiltinobjByName("STDOUT"),
-	"FSTDIN":  getBuiltinobjByName("FSTDIN"),
-	"FSTDERR": getBuiltinobjByName("FSTDERR"),
-	"FSTDOUT": getBuiltinobjByName("FSTDOUT"),
-	"VERSION": getBuiltinobjByName("VERSION"),
+	"ENV":      getBuiltinobjByName("ENV"),
+	"ARGV":     getBuiltinobjByName("ARGV"),
+	"STDIN":    getBuiltinobjByName("STDIN"),
+	"STDERR":   getBuiltinobjByName("STDERR"),
+	"STDOUT":   getBuiltinobjByName("STDOUT"),
+	"FSTDIN":   getBuiltinobjByName("FSTDIN"),
+	"FSTDERR":  getBuiltinobjByName("FSTDERR"),
+	"FSTDOUT":  getBuiltinobjByName("FSTDOUT"),
+	"VERSION":  getBuiltinobjByName("VERSION"),
+	"PATH_SEP": getBuiltinobjByName("PATH_SEP"),
 }
 
 func PopulateENVObj() *Map {

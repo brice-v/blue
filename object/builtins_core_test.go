@@ -2,6 +2,7 @@ package object
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -688,7 +689,7 @@ func TestFileSystemBuiltins(t *testing.T) {
 		{name: "wrong arg count", args: []Object{}, err: "InvalidArgCountError"},
 	})
 	runBuiltinTests(t, "abs_path", []builtinTestCase{
-		{name: "relative becomes absolute", args: []Object{&Stringo{Value: "some_file.txt"}}, want: dir.Value + "/some_file.txt"},
+		{name: "relative becomes absolute", args: []Object{&Stringo{Value: "some_file.txt"}}, want: filepath.Join(dir.Value, "some_file.txt")},
 		{name: "wrong type", args: []Object{&Integer{Value: 1}}, err: "PositionalTypeError"},
 		{name: "wrong arg count", args: []Object{}, err: "InvalidArgCountError"},
 	})
