@@ -137,14 +137,14 @@ func TestMathBinaryFloatBuiltins(t *testing.T) {
 			t.Errorf("%s(%v,%v) = %v, want %v", tt.name, tt.x, tt.y, f.Value, want)
 		}
 	}
-	if got := mathBuiltinFn(t, "_hypot")(fl(3), fl(4)); got.Inspect() != "5" {
-		t.Errorf("_hypot(3,4) = %s, want 5", got.Inspect())
+	if got := mathBuiltinFn(t, "_hypot")(fl(3), fl(4)); got.Inspect() != "5.0" {
+		t.Errorf("_hypot(3,4) = %s, want 5.0", got.Inspect())
 	}
 }
 
 func TestMathMixedArgBuiltins(t *testing.T) {
-	if got := mathBuiltinFn(t, "_fma")(fl(2), fl(3), fl(4)); got.Inspect() != "10" {
-		t.Errorf("_fma(2,3,4) = %s, want 10", got.Inspect())
+	if got := mathBuiltinFn(t, "_fma")(fl(2), fl(3), fl(4)); got.Inspect() != "10.0" {
+		t.Errorf("_fma(2,3,4) = %s, want 10.0", got.Inspect())
 	}
 	jnRes := mathBuiltinFn(t, "_jn")(fl(1.2), in(2))
 	if f := jnRes.(*Float); f.Value != math.Jn(2, 1.2) {
@@ -154,8 +154,8 @@ func TestMathMixedArgBuiltins(t *testing.T) {
 	if f := ynRes.(*Float); f.Value != math.Yn(2, 3) {
 		t.Errorf("_yn(3,2) = %v, want %v", f.Value, math.Yn(2, 3))
 	}
-	if got := mathBuiltinFn(t, "_ldexp")(fl(0.75), in(2)); got.Inspect() != "3" {
-		t.Errorf("_ldexp(0.75,2) = %s, want 3", got.Inspect())
+	if got := mathBuiltinFn(t, "_ldexp")(fl(0.75), in(2)); got.Inspect() != "3.0" {
+		t.Errorf("_ldexp(0.75,2) = %s, want 3.0", got.Inspect())
 	}
 	if got := mathBuiltinFn(t, "_ilogb")(fl(203)); got.Inspect() != "7" {
 		t.Errorf("_ilogb(203) = %s, want 7", got.Inspect())

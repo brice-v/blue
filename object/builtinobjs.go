@@ -46,7 +46,7 @@ var BuiltinobjsList = []struct {
 	},
 	{
 		Name:    "FSTDOUT",
-		Builtin: &BuiltinObj{Obj: NewGoObj(os.Stderr)},
+		Builtin: &BuiltinObj{Obj: NewGoObj(os.Stdout)},
 	},
 	{
 		Name:    "VERSION",

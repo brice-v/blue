@@ -36,6 +36,17 @@ import (
 
 type BuiltinType string
 
+// stdinScanner is a shared scanner over os.Stdin so that consecutive `input`
+// calls do not lose data that was buffered ahead by a previous call
+var stdinScanner *bufio.Scanner
+
+func getStdinScanner() *bufio.Scanner {
+	if stdinScanner == nil {
+		stdinScanner = bufio.NewScanner(os.Stdin)
+	}
+	return stdinScanner
+}
+
 const (
 	BuiltinBaseType   BuiltinType = "BUILTIN"
 	BuiltinHttpType   BuiltinType = "HTTP"
@@ -531,35 +542,32 @@ var Builtins = []*Builtin{
 		Name: "input",
 		Fun: func(args ...Object) Object {
 			argLen := len(args)
+			var prompt string
 			switch argLen {
-			case 0:
-				// read input with no prompt
-				scanner := bufio.NewScanner(os.Stdin)
-				if ok := scanner.Scan(); ok {
-					return &Stringo{Value: scanner.Text()}
-				}
-				if err := scanner.Err(); err != nil {
-					return newError("`input` error reading standard input: %s", err.Error())
-				}
 			case 1:
 				// read input with prompt
 				if args[0].Type() != STRING_OBJ {
 					return newPositionalTypeError("input", 1, STRING_OBJ, args[0].Type())
 				}
-				scanner := bufio.NewScanner(os.Stdin)
-				fmt.Print(args[0].(*Stringo).Value)
-				if ok := scanner.Scan(); ok {
-					return &Stringo{Value: scanner.Text()}
-				}
-				if err := scanner.Err(); err != nil {
-					return newError("`input` error reading stdin: %s", err.Error())
-				}
+				prompt = args[0].(*Stringo).Value
+			case 0:
+				// read input with no prompt
+			default:
+				return newInvalidArgCountError("input", argLen, 0, "or 1")
 			}
-			return newInvalidArgCountError("input", len(args), 0, "or 1")
+			fmt.Print(prompt)
+			if ok := getStdinScanner().Scan(); ok {
+				return &Stringo{Value: getStdinScanner().Text()}
+			}
+			if err := getStdinScanner().Err(); err != nil {
+				return newError("`input` error reading standard input: %s", err.Error())
+			}
+			// stdin is exhausted so return NULL
+			return NULL
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`input` returns STRING input from STDIN and takes an optional prompt",
-			signature:   "input(prompt='') -> str",
+			explanation: "`input` returns STRING input from STDIN and takes an optional prompt, returns NULL when stdin is exhausted",
+			signature:   "input(prompt='') -> str|null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "input('enter a value') => STDOUT: enter a value STDIN: 1 => 1",
 		}.String(),

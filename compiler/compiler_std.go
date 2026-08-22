@@ -75,7 +75,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		p := parser.New(l)
 		fb.ParsedProgram = p.ParseProgram()
 		if p.HasErrors() {
-			p.PrintParserErrors(os.Stdout)
+			p.PrintParserErrors(os.Stderr)
 			return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 		}
 	}

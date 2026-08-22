@@ -27,8 +27,6 @@ TODO:
 - [ ] VM Upgrade
   - [ ] Compile bytecode to file including encoded constants
   - [ ] Create separate VM that is as small as possible (not including the rest of the blue runtime) that operates on bytecode files
-- [ ] Potentially add .0 if float formatted as string would not have any decimal place
-    - This may be needed/useful later on
 - Tmp
 - [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
     - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
@@ -68,8 +66,6 @@ TODO:
         - maybe allow it to accept some sort of template (or have options for type of project)
 - [ ] Add serialization lib (optional path for kv to write it to file? like kv in deno)
 - [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
-- [ ] Fix STDIN write and reading
-    - [ ] Make sure STDOUT and STDERR are working as expected
 - [ ] Add variadic arguments (...)
 - [ ] Add formatting options for string interpolation?
     - [ ] Support string interpolation helper to print out objects
@@ -158,17 +154,7 @@ func main() {
 ```
 - go test ./... -coverprofile=c.out
 - go tool cover -html=c.out
-- [ ] Performance testing and high level optimizations first
-    - Then try to optimize further (we can still obviously use a VM if we wanted to)
 - [ ] Add code for CLI arg parser
-- [ ] TESTS! Lots of them covering a variety of scenarios
-    - [ ] Add test cases to cover all the basic functions
-    - Test all math casting and max and min working
-    - Test lists with variety of data types
-    - Test maps with all types
-    - Test hashing and equality works on objects with lots of different types
-    - Write some more internal tests in go to cover other variety of things
-    - parser tests for newly added objects
 - [ ] Add way to print out ast by node name rather than strings
 - [ ] Look into the performance benefits of different hashing algorthims
 - [ ] Look into the performance benefits of enum of types rather than strings
@@ -704,3 +690,19 @@ COMPLETED TASKS:
       29 │ fun to_str(time_as_unix_timestamp, timezone=null) {
     - This feels like it should be fine
     - e2e coverage added in b_test_programs/test_bug_param_shadowing_module_val.b (+ shadowmod.b fixture) and time.to_str covered by b_test_programs/test_std_time_to_str.b
+- [x] TESTS! Lots of them covering a variety of scenarios
+    - [x] Add test cases to cover all the basic functions
+    - Test all math casting and max and min working
+    - Test lists with variety of data types
+    - Test maps with all types
+    - Test hashing and equality works on objects with lots of different types
+    - Write some more internal tests in go to cover other variety of things
+    - parser tests for newly added objects
+- [x] Performance testing and high level optimizations first
+    - Then try to optimize further (we can still obviously use a VM if we wanted to)
+- [x] Fix STDIN write and reading
+    - [x] Make sure STDOUT and STDERR are working as expected
+    - CLI now reads programs from STDIN: '-' in place of a file (blue -, blue vm -, blue compile -, blue lex -, blue parse -), piped/redirected stdin with no command runs it as a program (REPL still starts on a real terminal), errors print to STDERR via ErrorPrinter
+- [x] Add .0 if float formatted as string would not have any decimal place
+    - This may be needed/useful later on
+    - Float Inspect now appends .0 to whole number floats (5.0 stays '5.0' instead of '5'), exponent forms like 1e+08 and Inf/NaN are left untouched, covered by TestFloatInspectFormatting and b_test_programs/test_float_to_str.b

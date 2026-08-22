@@ -21,6 +21,7 @@ import (
 	"strings"
 )
 
+// out is where normal program and command output is written
 var out = os.Stdout
 
 // isFile checks whether fpath exists and is not a directory.
@@ -41,13 +42,21 @@ func isDir(dirPath string) bool {
 
 // lexFile tokenizes and lexically analyzes the given file
 func lexFile(fpath string) {
-	data, err := os.ReadFile(fpath)
+	var data []byte
+	var err error
+	fname := fpath
+	if fpath == STDIN_ARG {
+		data, err = io.ReadAll(os.Stdin)
+		fname = STDIN_NAME
+	} else {
+		data, err = os.ReadFile(fpath)
+	}
 	if err != nil {
 		consts.ErrorPrinter("`lexFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
 		os.Exit(1)
 	}
 
-	l := lexer.New(string(data), fpath)
+	l := lexer.New(string(data), fname)
 
 	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 		fmt.Printf("%+v\n", tok)
@@ -67,9 +76,32 @@ func parseFile(fpath string, allErrors bool) {
 	}
 }
 
+// STDIN_ARG is the conventional argument that means read the program from STDIN
+const STDIN_ARG = "-"
+
+// STDIN_NAME is the name reported in error traces for programs read from STDIN
+const STDIN_NAME = "<stdin>"
+
+// stdinIsTerminal reports whether stdin is attached to a terminal as
+// opposed to being piped or redirected
+func stdinIsTerminal() bool {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return (stat.Mode() & os.ModeCharDevice) != 0
+}
+
 func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) *ast.Program {
 	var l *lexer.Lexer
-	if isFpath {
+	if inputOrFpath == STDIN_ARG {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			consts.ErrorPrinter("error trying to read from stdin. error: %s\n", err.Error())
+			os.Exit(1)
+		}
+		l = lexer.New(string(data), STDIN_NAME)
+	} else if isFpath {
 		data, err := os.ReadFile(inputOrFpath)
 		if err != nil {
 			consts.ErrorPrinter("error trying to read file `%s`. error: %s\n", inputOrFpath, err.Error())
@@ -88,7 +120,7 @@ func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) *ast.Program
 	}
 	program := p.ParseProgram()
 	if p.HasErrors() {
-		p.PrintParserErrors(out)
+		p.PrintParserErrors(os.Stderr)
 		os.Exit(1)
 	}
 	return program
@@ -161,7 +193,7 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult
 			for i, tok := range v.TokensForErrorTrace {
 				errorLine := lexer.GetErrorLineMessage(*tok)
 				fullMsg := fmt.Sprintf("%s\n%s", err.Error(), errorLine)
-				blueutil.PrintCustomError(os.Stdout, consts.VM_ERROR_PREFIX, fullMsg, tok.LineNumber, i == 0)
+				blueutil.PrintCustomError(os.Stderr, consts.VM_ERROR_PREFIX, fullMsg, tok.LineNumber, i == 0)
 			}
 		}
 		os.Exit(1)
@@ -176,14 +208,14 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult
 		splitMsg := strings.Split(msg, "\n")
 		for i, s := range splitMsg {
 			if i == 0 {
-				consts.ErrorPrinter(s + "\n")
+				consts.ErrorPrinter("%s\n", s)
 				continue
 			}
 			delimeter := ""
 			if i != len(splitMsg)-1 {
 				delimeter = "\n"
 			}
-			_, errr := fmt.Fprintf(out, "%s%s", s, delimeter)
+			_, errr := fmt.Fprintf(os.Stderr, "%s%s", s, delimeter)
 			if errr != nil {
 				log.Printf("Failed to write to output, error: %s", errr.Error())
 			}

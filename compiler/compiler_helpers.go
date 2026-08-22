@@ -460,7 +460,7 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if p.HasErrors() {
-		p.PrintParserErrors(os.Stdout)
+		p.PrintParserErrors(os.Stderr)
 		return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 	}
 	if node.ImportAll {

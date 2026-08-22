@@ -336,8 +336,8 @@ func TestConversionBuiltins(t *testing.T) {
 		{name: "wrong arg count", args: []Object{}, err: "InvalidArgCountError"},
 	})
 	runBuiltinTests(t, "float", []builtinTestCase{
-		{name: "from int", args: []Object{&Integer{Value: 3}}, want: "3"},
-		{name: "from uint", args: []Object{&UInteger{Value: 2}}, want: "2"},
+		{name: "from int", args: []Object{&Integer{Value: 3}}, want: "3.0"},
+		{name: "from uint", args: []Object{&UInteger{Value: 2}}, want: "2.0"},
 		{name: "identity", args: []Object{&Float{Value: 1.5}}, want: "1.5"},
 		{name: "from string", args: []Object{&Stringo{Value: "2.5"}}, want: "2.5"},
 		{name: "invalid string", args: []Object{&Stringo{Value: "2.5x"}}, err: "`float` error"},

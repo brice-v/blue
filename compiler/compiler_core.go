@@ -19,7 +19,7 @@ func (c *Compiler) compileCore() {
 		p := parser.New(l)
 		program := p.ParseProgram()
 		if p.HasErrors() {
-			p.PrintParserErrors(os.Stdout)
+			p.PrintParserErrors(os.Stderr)
 			os.Exit(1)
 		}
 		err := c.Compile(program)
@@ -38,7 +38,7 @@ func newFromCore() *Compiler {
 		p := parser.New(l)
 		program := p.ParseProgram()
 		if p.HasErrors() {
-			p.PrintParserErrors(os.Stdout)
+			p.PrintParserErrors(os.Stderr)
 			os.Exit(1)
 		}
 		constants := object.NewObjectConstants()

@@ -291,7 +291,15 @@ type Float struct {
 func (f *Float) Type() Type { return FLOAT_OBJ }
 
 // Inspect returns the string value of the float
-func (f *Float) Inspect() string { return strconv.FormatFloat(f.Value, 'g', -1, 64) }
+func (f *Float) Inspect() string {
+	s := strconv.FormatFloat(f.Value, 'g', -1, 64)
+	// Ensure whole number floats stay visually distinct from integers,
+	// Inf and NaN never get a decimal place added
+	if !strings.ContainsAny(s, ".eE") && !math.IsInf(f.Value, 0) && !math.IsNaN(f.Value) {
+		s += ".0"
+	}
+	return s
+}
 
 func (f *Float) Help() string {
 	desc := fmt.Sprintf("is the object that represents numerical values %f to %f", math.SmallestNonzeroFloat64, math.MaxFloat64)

@@ -3,6 +3,7 @@ package object
 import (
 	"blue/ast"
 	"blue/token"
+	"math"
 	"testing"
 )
 
@@ -106,5 +107,30 @@ func TestHashObject(t *testing.T) {
 	ho1 := HashObject(o1)
 	if ho == ho1 {
 		t.Errorf("These should never be equal float hash = %d, integer hash = %d", ho, ho1)
+	}
+}
+
+func TestFloatInspectFormatting(t *testing.T) {
+	tests := []struct {
+		value float64
+		want  string
+	}{
+		{5.0, "5.0"},
+		{-7.0, "-7.0"},
+		{0.5, "0.5"},
+		{2.25, "2.25"},
+		{100000.0, "100000.0"},
+		// exponent forms are left alone since they already carry no
+		// ambiguity with integers
+		{1e8, "1e+08"},
+		{math.Inf(1), "+Inf"},
+		{math.Inf(-1), "-Inf"},
+		{math.NaN(), "NaN"},
+	}
+	for _, tt := range tests {
+		f := &Float{Value: tt.value}
+		if got := f.Inspect(); got != tt.want {
+			t.Errorf("Float(%v).Inspect() = %q, want %q", tt.value, got, tt.want)
+		}
 	}
 }

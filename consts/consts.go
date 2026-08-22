@@ -1,6 +1,7 @@
 package consts
 
 import (
+	"io"
 	"os"
 	"runtime/debug"
 
@@ -54,7 +55,10 @@ const EMBED_FILES_PREFIX = "embed_files/"
 
 const NORMAL_EXIT_ON_RETURN = "normal exit on return"
 
-var ErrorPrinter = color.New(color.FgRed, color.Bold).Printf
+var ErrorPrinter = func(format string, a ...any) {
+	// Errors go to STDERR so that they do not mix with program output
+	_, _ = io.WriteString(os.Stderr, color.New(color.FgRed, color.Bold).Sprintf(format, a...))
+}
 var InfoPrinter = color.New(color.FgBlue, color.Bold).Printf
 
 func DisableColorIfNoColorEnvVarSet() {

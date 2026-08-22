@@ -50,6 +50,15 @@ The commands are:
 
 The default behavior for no command/arguments will start an vm repl. (If given a file, the file will be evaluated with the vm)
 
+A '-' can be given in place of a file to read the program from STDIN. When no
+command is given and stdin is piped or redirected, the piped program is evaluated:
+
+    echo 'println(1 + 2)' | blue
+    blue - < program.b
+    cat program.b | blue vm -
+
+Errors are printed to STDERR so that program output and errors can be separated.
+
 Environment Variables:
 
 BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the http server route path printing and message
@@ -69,9 +78,13 @@ func Run(args ...string) {
 	arguments := args[1:]
 	argc := len(arguments)
 	if argc == 0 {
-		// This means there was no command given
-		// so perform the default behavior of starting
-		// an vm repl.
+		// This means there was no command given so perform the default
+		// behavior. If stdin is piped or redirected (not a terminal) then
+		// evaluate it as a program, otherwise start a vm repl.
+		if !stdinIsTerminal() {
+			vmFileOrString(STDIN_ARG, true, false, false, false)
+			os.Exit(0)
+		}
 		repl.StartVmRepl()
 		os.Exit(0)
 	}
@@ -107,7 +120,7 @@ func Run(args ...string) {
 				fpath = arg
 			}
 		}
-		if isFile(fpath) {
+		if fpath == STDIN_ARG || isFile(fpath) {
 			vmFileOrString(fpath, true, noExec, allErrors, false)
 		} else {
 			consts.ErrorPrinter("error: file not found: %s (run 'blue help' for usage)\n", fpath)
@@ -132,7 +145,7 @@ func handleLexCommand(argc int, arguments []string) {
 	} else {
 		// Check if the file exists and if so, run the lexer on it
 		fpath := arguments[1]
-		if isFile(fpath) {
+		if fpath == STDIN_ARG || isFile(fpath) {
 			lexFile(fpath)
 		} else {
 			consts.ErrorPrinter("`lex` command expects valid file as argument. got=%s\n", fpath)
@@ -155,7 +168,7 @@ func handleParseCommand(argc int, arguments []string) {
 				fpath = arg
 			}
 		}
-		if isFile(fpath) {
+		if fpath == STDIN_ARG || isFile(fpath) {
 			parseFile(fpath, allErrors)
 		} else {
 			consts.ErrorPrinter("`parse` command expects valid file as argument. got=%s\n", fpath)
@@ -231,6 +244,11 @@ func handleBundleCommand(argc int, arguments []string) {
 func handleVmCommand(argc int, arguments []string) {
 	switch argc {
 	case 1:
+		if !stdinIsTerminal() {
+			// stdin is piped or redirected so evaluate it as a program
+			vmFileOrString(STDIN_ARG, true, false, false, true)
+			return
+		}
 		repl.StartVmRepl()
 	case 2, 3:
 		strToEval := ""
@@ -246,7 +264,7 @@ func handleVmCommand(argc int, arguments []string) {
 				strToEval = arg
 			}
 		}
-		vmFileOrString(strToEval, isFile(strToEval), flagNoExec, allErrors, true)
+		vmFileOrString(strToEval, strToEval == STDIN_ARG || isFile(strToEval), flagNoExec, allErrors, true)
 	default:
 		consts.ErrorPrinter("unexpected `vm` arguments. got=%+v\n", arguments)
 		os.Exit(1)
@@ -264,7 +282,7 @@ func handleCompileCommand(argc int, arguments []string) {
 				strToEval = arg
 			}
 		}
-		compileFileOrString(strToEval, isFile(strToEval), allErrors)
+		compileFileOrString(strToEval, strToEval == STDIN_ARG || isFile(strToEval), allErrors)
 	} else {
 		consts.ErrorPrinter("unexpected `compile` arguments. got=%+v\n", arguments)
 		os.Exit(1)
