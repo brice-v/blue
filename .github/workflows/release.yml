@@ -30,6 +30,12 @@ jobs:
       - name: Tests
         run: go test -tags="rgfw" ./...
 
+      # Same as make_release_static: race detector needs cgo enabled.
+      - name: Tests Static
+        env:
+          CGO_ENABLED: 1
+        run: go test -tags="static" -race ./...
+
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         run: go build -tags="rgfw" -ldflags='-s -w -extldflags "-static"' -o blue-win.exe .
@@ -42,6 +48,27 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: go build -tags="rgfw" -ldflags='-s -w' -o blue-mac-arm64 .
 
+      # Static builds ("blues-" prefix), mirroring make_release_static:
+      # cgo off for the build so binaries are self-contained. Race tests
+      # above still run with cgo enabled, per the script's ordering.
+      - name: Build Static Windows
+        if: matrix.os == 'windows-latest'
+        env:
+          CGO_ENABLED: 0
+        run: go build -tags="static" -ldflags='-s -w -extldflags "-static"' -o blues-win.exe .
+
+      - name: Build Static Linux
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          CGO_ENABLED: 0
+        run: go build -tags="static" -ldflags='-s -w -extldflags "-static"' -o blues-linux .
+
+      - name: Build Static Macos (arm64)
+        if: matrix.os == 'macos-latest'
+        env:
+          CGO_ENABLED: 0
+        run: go build -tags="static" -ldflags='-s -w' -o blues-mac-arm64 .
+
       - name: Compress windows binaries
         if: matrix.os == 'windows-latest'
         uses: svenstaro/upx-action@v2
@@ -53,6 +80,18 @@ jobs:
         uses: svenstaro/upx-action@v2
         with:
           file: blue-linux
+
+      - name: Compress static windows binaries
+        if: matrix.os == 'windows-latest'
+        uses: svenstaro/upx-action@v2
+        with:
+          file: blues-win.exe
+
+      - name: Compress static linux binaries
+        if: matrix.os == 'ubuntu-latest'
+        uses: svenstaro/upx-action@v2
+        with:
+          file: blues-linux
 
       # This will draft a new release & will attach the binaries produced by the above outputs.
       # You still need to publish this release though after job ends.
@@ -67,6 +106,9 @@ jobs:
             ./blue-linux
             ./blue-mac-arm64
             ./blue-mac-amd64
+            ./blues-win.exe
+            ./blues-linux
+            ./blues-mac-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # You don't need to add this in secrets it's by default.
 
