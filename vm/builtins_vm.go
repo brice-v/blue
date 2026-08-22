@@ -32,9 +32,9 @@ func createStrBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
 			return newInvalidArgCountError("str", len(args), 1, "")
 		}
 		if args[0].Type() == object.BYTES_OBJ {
-			return &object.Stringo{Value: string(args[0].(*object.Bytes).Value)}
+			return object.NewString(string(args[0].(*object.Bytes).Value))
 		}
-		return &object.Stringo{Value: vm.CustomInspect(args[0])}
+		return object.NewString(vm.CustomInspect(args[0]))
 	}
 }
 

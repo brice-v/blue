@@ -77,7 +77,7 @@ func (x *Process) Clone() Object {
 }
 
 func (x *Stringo) Clone() Object {
-	return &Stringo{Value: x.Value}
+	return NewString(x.Value)
 }
 
 func (x *Bytes) Clone() Object {

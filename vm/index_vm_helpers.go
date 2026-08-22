@@ -186,7 +186,7 @@ func (vm *VM) executeStringIndexExpression(str, indx object.Object) error {
 	if idx < 0 || idx > max {
 		return vm.push(newError("index out of bounds: length=%d, index=%d", runeLen(strObj.Value), idx))
 	}
-	return vm.push(&object.Stringo{Value: string([]rune(strObj.Value)[idx])})
+	return vm.push(object.NewString(string([]rune(strObj.Value)[idx])))
 }
 
 func (vm *VM) executeProcessIndexExpression(process *object.Process, name string) error {

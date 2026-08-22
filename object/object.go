@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/shopspring/decimal"
 )
@@ -130,6 +131,35 @@ func NewInteger(v int64) *Integer {
 		return smallIntegers[v-smallIntLow]
 	}
 	return &Integer{Value: v}
+}
+
+var (
+	// EmptyString is the shared read-only "" Stringo object.
+	EmptyString = &Stringo{Value: ""}
+	// asciiStrings caches one shared read-only object per single-byte
+	// ASCII string (" ", "\n", "a", "0", ...) so results like s[i],
+	// char ranges and short concat/split results can avoid allocating.
+	asciiStrings [utf8.RuneSelf]*Stringo
+)
+
+func init() {
+	for i := range asciiStrings {
+		asciiStrings[i] = &Stringo{Value: string(rune(i))}
+	}
+}
+
+// NewString returns a Stringo holding s, reusing the shared read-only
+// objects for "" and single-byte ASCII strings.
+func NewString(s string) *Stringo {
+	switch len(s) {
+	case 0:
+		return EmptyString
+	case 1:
+		if b := s[0]; b < utf8.RuneSelf {
+			return asciiStrings[b]
+		}
+	}
+	return &Stringo{Value: s}
 }
 
 var (

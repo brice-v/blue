@@ -409,7 +409,7 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 	rightStr := right.(*object.Stringo).Value
 	switch op {
 	case code.OpAdd:
-		return vm.push(&object.Stringo{Value: leftStr + rightStr})
+		return vm.push(object.NewString(leftStr + rightStr))
 	case code.OpEqual:
 		return vm.push(nativeToBooleanObject(leftStr == rightStr))
 	case code.OpNotEqual:
@@ -437,14 +437,14 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 			// Left rune is > so we are descending
 			for i := lr; i >= rr; i-- {
 				s := string(i)
-				elements = append(elements, &object.Stringo{Value: s})
+				elements = append(elements, object.NewString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		} else {
 			// Right rune is > so we are ascending
 			for i := lr; i <= rr; i++ {
 				s := string(i)
-				elements = append(elements, &object.Stringo{Value: s})
+				elements = append(elements, object.NewString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		}
@@ -466,14 +466,14 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 			// Left rune is > so we are descending
 			for i := lr; i > rr; i-- {
 				s := string(i)
-				elements = append(elements, &object.Stringo{Value: s})
+				elements = append(elements, object.NewString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		} else {
 			// Right rune is > so we are ascending
 			for i := lr; i < rr; i++ {
 				s := string(i)
-				elements = append(elements, &object.Stringo{Value: s})
+				elements = append(elements, object.NewString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		}

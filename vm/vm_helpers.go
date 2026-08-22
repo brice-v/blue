@@ -1115,7 +1115,7 @@ func (vm *VM) pushSpecialFunctionParameter(parameterIndex, listIndex int) error 
 		}
 	}
 	// Default behavior if not found is to put empty string
-	return vm.push(&object.Stringo{Value: ""})
+	return vm.push(object.EmptyString)
 }
 
 func (vm *VM) pushSpecialFunctionParameter2(name string) error {
@@ -1128,7 +1128,7 @@ func (vm *VM) pushSpecialFunctionParameter2(name string) error {
 		}
 	}
 	// Default behavior if not found is to put empty string
-	return vm.push(&object.Stringo{Value: ""})
+	return vm.push(object.EmptyString)
 }
 
 func (vm *VM) executeEvalOperation(strToEval object.Object) error {

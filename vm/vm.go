@@ -1429,7 +1429,7 @@ func (vm *VM) buildStringWithInterp(startIndex, endIndex, stringIndex int) objec
 		orig := vm.stack[i+1]
 		newStr = strings.Replace(newStr, orig.Inspect(), vm.CustomInspect(exp), 1)
 	}
-	return &object.Stringo{Value: newStr}
+	return object.NewString(newStr)
 }
 
 func (vm *VM) executeIndexExpression(left, indx object.Object) error {

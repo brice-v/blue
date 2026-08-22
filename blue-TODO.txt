@@ -3,7 +3,6 @@ TODO:
 
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
-- [ ] Update cmd/cli so that when file is not found that error is printed to user instead of usage
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
@@ -15,8 +14,6 @@ TODO:
     - [ ] Support Struct in list comprehension?
     - [ ] See if can be used with class pattern
         - [ ] Support dunder methods with structs
-
-- [ ] Cache Empty string object and small ints maybe?
 - [ ] Add dis() builtin function to disassemble function inline
 - [ ] Default to using VM as default once everything is implemented
 - [ ] Write up full docs in html
@@ -26,6 +23,7 @@ TODO:
 - [ ] VM Upgrade
   - [ ] Compile bytecode to file including encoded constants
   - [ ] Create separate VM that is as small as possible (not including the rest of the blue runtime) that operates on bytecode files
+  - [ ] Redo bundler at this point (make it more efficient)
 - Tmp
 - [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
     - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
@@ -711,3 +709,6 @@ COMPLETED TASKS:
     - List/set/map comprehension sub-programs get the same isolation
     - Nesting a match expression inside of another match expression's condition now returns a clear compiler error instead of misbehaving (the parser cannot produce this shape today anyway), while nested matches inside of consequences still compile fine
     - Covered by TestMatchExpressionCannotBeNestedInsideOfACondition, TestMatchExpressionCanBeNestedInsideOfAConsequence, TestWildcardInsideFunctionBodyWithinMatchConditionErrors, TestCompilerDoesNotStayInMatchContextAfterError and b_test_programs/test_match_pattern_with_call.b
+- [x] Update cmd/cli so that when file is not found that error is printed to user instead of usage
+- [x] Cache Empty string object and small ints maybe?
+    - Only small ints cached for now
