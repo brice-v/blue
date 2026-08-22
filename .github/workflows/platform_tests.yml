@@ -20,12 +20,14 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Tests Static
-        run: go test -tags="static" -race ./...
-
       - name: Get dependencies Linux
         run: sudo apt-get update && sudo apt-get install gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libwayland-dev libxkbcommon-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev bc
         if: ${{ runner.os == 'Linux' }}
 
+      - name: Tests Static
+        run: go test -tags="static" -race ./...
+
+      # rgfw: raylib's windowing backend. Do NOT build raylib's bundled GLFW
+      # alongside fyne's static GLFW (duplicate symbols).
       - name: Tests
-        run: go test -race  ./...
+        run: go test -tags="rgfw" -race ./...

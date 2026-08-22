@@ -9,4 +9,4 @@ if [ "$(uname)" = "Darwin" ]; then
     PACK=false
 fi
 
-go env -w CGO_ENABLED=1 && govulncheck ./... && go clean -testcache && go test -race ./... && go build -ldflags="$LD_FLAGS" && strip blue && if [ "$PACK" = true ]; then upx blue; fi && cp blue ~/.blue/bin/ && ./gen-man.sh && sudo mkdir -p /usr/local/man/man1 && sudo cp man/blue.1 /usr/local/man/man1
+go env -w CGO_ENABLED=1 && govulncheck ./... && go clean -testcache && go test -tags="rgfw" -race ./... && go build -tags="rgfw" -ldflags="$LD_FLAGS" && strip blue && if [ "$PACK" = true ]; then upx blue; fi && cp blue ~/.blue/bin/ && ./gen-man.sh && sudo mkdir -p /usr/local/man/man1 && sudo cp man/blue.1 /usr/local/man/man1

@@ -3,5 +3,4 @@ go 1.25.0
 use (
 	.
 	./ws_vendor/fiber
-	./ws_vendor/raylib
 )

@@ -115,6 +115,13 @@ github.com/dromara/carbon/v2/calendar/persian
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize
+# github.com/ebitengine/purego v0.10.0
+## explicit; go 1.18
+github.com/ebitengine/purego
+github.com/ebitengine/purego/internal/cgo
+github.com/ebitengine/purego/internal/fakecgo
+github.com/ebitengine/purego/internal/strings
+github.com/ebitengine/purego/internal/xreflect
 # github.com/fasthttp/websocket v1.5.12
 ## explicit; go 1.21
 github.com/fasthttp/websocket
@@ -143,8 +150,15 @@ github.com/fyne-io/image/ico
 # github.com/fyne-io/oksvg v0.2.0
 ## explicit; go 1.19
 github.com/fyne-io/oksvg
-# github.com/gen2brain/raylib-go/raylib v0.55.1 => ./ws_vendor/raylib
-## explicit; go 1.19
+# github.com/gen2brain/raylib-go/raylib v0.60.1
+## explicit; go 1.21
+github.com/gen2brain/raylib-go/raylib
+github.com/gen2brain/raylib-go/raylib/external
+github.com/gen2brain/raylib-go/raylib/external/android/native_app_glue
+github.com/gen2brain/raylib-go/raylib/external/glfw/include/GLFW
+github.com/gen2brain/raylib-go/raylib/external/glfw/src
+github.com/gen2brain/raylib-go/raylib/internal/convert
+github.com/gen2brain/raylib-go/raylib/platforms
 # github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276
 ## explicit; go 1.12
 github.com/go-gl/gl/v2.1/gl
@@ -347,6 +361,9 @@ github.com/jeandeaual/go-locale
 # github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25
 ## explicit
 github.com/jsummers/gobmp
+# github.com/jupiterrider/ffi v0.7.0
+## explicit; go 1.18
+github.com/jupiterrider/ffi
 # github.com/klauspost/compress v1.18.5
 ## explicit; go 1.24
 github.com/klauspost/compress
@@ -562,6 +579,9 @@ golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/scrypt
+# golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
+## explicit; go 1.24.0
+golang.org/x/exp/slices
 # golang.org/x/image v0.43.0
 ## explicit; go 1.25.0
 golang.org/x/image/ccitt

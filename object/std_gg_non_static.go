@@ -45,7 +45,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("close_window", len(args), 0, "")
 			}
-			rl.CloseWindow()
+			closeGGWindow()
 			return NULL
 		},
 		HelpStr: helpStrArgs{
@@ -1271,7 +1271,7 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("draw_line_strip", 2, "rl.Color", args[1])
 			}
-			rl.DrawLineStrip(points, int32(len(points)), color.Value)
+			rl.DrawLineStrip(points, color.Value)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
@@ -1326,7 +1326,7 @@ var GgBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("draw_line_bezier", 5, "rl.Color", args[4])
 				}
-				rl.DrawLineBezierQuad(startPos.Value, endPos.Value, controlPos.Value, float32(args[3].(*Float).Value), color.Value)
+				rl.DrawSplineSegmentBezierQuadratic(startPos.Value, controlPos.Value, endPos.Value, float32(args[3].(*Float).Value), color.Value)
 			} else {
 				startPos, ok := args[0].(*GoObj[rl.Vector2])
 				if !ok {
@@ -1351,7 +1351,7 @@ var GgBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("draw_line_bezier", 6, "rl.Color", args[5])
 				}
-				rl.DrawLineBezierCubic(startPos.Value, endPos.Value, startControlPos.Value, endControlPos.Value, float32(args[4].(*Float).Value), color.Value)
+				rl.DrawSplineSegmentBezierCubic(startPos.Value, startControlPos.Value, endControlPos.Value, endPos.Value, float32(args[4].(*Float).Value), color.Value)
 			}
 			return NULL
 		},
@@ -1415,7 +1415,7 @@ var GgBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("draw_circle", 5, "rl.Color", args[4])
 				}
-				rl.DrawCircleGradient(int32(args[0].(*Integer).Value), int32(args[1].(*Integer).Value), float32(args[2].(*Float).Value), colorInner.Value, colorOuter.Value)
+				rl.DrawCircleGradient(rl.NewVector2(float32(args[0].(*Integer).Value), float32(args[1].(*Integer).Value)), float32(args[2].(*Float).Value), colorInner.Value, colorOuter.Value)
 			}
 			return NULL
 		},
@@ -1781,7 +1781,7 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("draw_rectangle_rounded_lines", 5, "rl.Color", args[4])
 			}
-			rl.DrawRectangleRoundedLines(rec.Value, float32(args[1].(*Float).Value), float32(args[2].(*Float).Value), float32(args[3].(*Float).Value), color.Value)
+			rl.DrawRectangleRoundedLinesEx(rec.Value, float32(args[1].(*Float).Value), int32(args[2].(*Float).Value), float32(args[3].(*Float).Value), color.Value)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
@@ -2721,7 +2721,7 @@ var GgBuiltins = []*Builtin{
 			if args[0].Type() != INTEGER_OBJ {
 				return newPositionalTypeError("is_mouse_button_pressed", 1, INTEGER_OBJ, args[0].Type())
 			}
-			return nativeToBooleanObject(rl.IsMouseButtonPressed(int32(args[0].(*Integer).Value)))
+			return nativeToBooleanObject(rl.IsMouseButtonPressed(rl.MouseButton(args[0].(*Integer).Value)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_mouse_button_pressed` returns true if mouse button has been pressed once",
@@ -2739,7 +2739,7 @@ var GgBuiltins = []*Builtin{
 			if args[0].Type() != INTEGER_OBJ {
 				return newPositionalTypeError("is_mouse_button_down", 1, INTEGER_OBJ, args[0].Type())
 			}
-			return nativeToBooleanObject(rl.IsMouseButtonDown(int32(args[0].(*Integer).Value)))
+			return nativeToBooleanObject(rl.IsMouseButtonDown(rl.MouseButton(args[0].(*Integer).Value)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_mouse_button_down` returns true if mouse button is being pressed",
@@ -2757,7 +2757,7 @@ var GgBuiltins = []*Builtin{
 			if args[0].Type() != INTEGER_OBJ {
 				return newPositionalTypeError("is_mouse_button_released", 1, INTEGER_OBJ, args[0].Type())
 			}
-			return nativeToBooleanObject(rl.IsMouseButtonReleased(int32(args[0].(*Integer).Value)))
+			return nativeToBooleanObject(rl.IsMouseButtonReleased(rl.MouseButton(args[0].(*Integer).Value)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_mouse_button_released` returns true if mouse button has been released once",
@@ -2775,7 +2775,7 @@ var GgBuiltins = []*Builtin{
 			if args[0].Type() != INTEGER_OBJ {
 				return newPositionalTypeError("is_mouse_button_up", 1, INTEGER_OBJ, args[0].Type())
 			}
-			return nativeToBooleanObject(rl.IsMouseButtonUp(int32(args[0].(*Integer).Value)))
+			return nativeToBooleanObject(rl.IsMouseButtonUp(rl.MouseButton(args[0].(*Integer).Value)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_mouse_button_up` returns true is mouse button is not being pressed",
@@ -3073,7 +3073,7 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("is_image_ready", 1, "rl.Image", args[0])
 			}
-			return nativeToBooleanObject(rl.IsImageReady(img.Value))
+			return nativeToBooleanObject(rl.IsImageValid(img.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_image_ready` returns true if image is ready",
@@ -3226,7 +3226,7 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("image_gen_gradient_h", 4, "rl.Color", args[3])
 			}
-			return NewGoObj(rl.GenImageGradientH(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), color1.Value, color2.Value))
+			return NewGoObj(rl.GenImageGradientLinear(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), 90, color1.Value, color2.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`image_gen_gradient_h` return image generated with horizontal gradient",
@@ -3258,7 +3258,7 @@ var GgBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("image_gen_gradient_v", 4, "rl.Color", args[3])
 			}
-			return NewGoObj(rl.GenImageGradientV(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), color1.Value, color2.Value))
+			return NewGoObj(rl.GenImageGradientLinear(int(args[0].(*Integer).Value), int(args[1].(*Integer).Value), 0, color1.Value, color2.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`image_gen_gradient_v` return image generated with vertical gradient",
@@ -4826,7 +4826,7 @@ var GgBuiltins = []*Builtin{
 						if args[2].Type() != INTEGER_OBJ {
 							return newPositionalTypeError("check_collision", 3, INTEGER_OBJ, args[2].Type())
 						}
-						return nativeToBooleanObject(rl.CheckCollisionPointPoly(pointOrCenter.Value, points, int32(args[2].(*Integer).Value)))
+						return nativeToBooleanObject(rl.CheckCollisionPointPoly(pointOrCenter.Value, points))
 					} else if args[1].Type() == GO_OBJ {
 						center, ok := args[1].(*GoObj[rl.Vector2])
 						if !ok {
@@ -5764,7 +5764,7 @@ var GgBuiltins = []*Builtin{
 			if err != nil {
 				return err
 			}
-			return nativeToBooleanObject(rl.IsModelReady(model.Value))
+			return nativeToBooleanObject(rl.IsModelValid(model.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_model_ready` returns true if the model is ready",
@@ -6485,7 +6485,7 @@ var GgBuiltins = []*Builtin{
 			if err != nil {
 				return err
 			}
-			return nativeToBooleanObject(rl.IsMaterialReady(material.Value))
+			return nativeToBooleanObject(rl.IsMaterialValid(material.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`is_material_ready` returns true if material is ready",
@@ -6602,7 +6602,7 @@ var GgBuiltins = []*Builtin{
 			if err != nil {
 				return err
 			}
-			rl.UpdateModelAnimation(model.Value, modelAnimation.Value, int32(args[2].(*Integer).Value))
+			rl.UpdateModelAnimation(model.Value, modelAnimation.Value, float32(args[2].(*Integer).Value))
 			return NULL
 		},
 		HelpStr: helpStrArgs{
@@ -6692,8 +6692,7 @@ func unloadFromRaylib(arg Object, pos int) Object {
 		rl.UnloadMaterial(material.Value)
 		return nil
 	} else if modelAnimation, ok := arg.(*GoObj[rl.ModelAnimation]); ok {
-		// Note: there is a version for []rl.ModelAnimation that may be more efficient
-		rl.UnloadModelAnimation(modelAnimation.Value)
+		rl.UnloadModelAnimations([]rl.ModelAnimation{modelAnimation.Value})
 		return nil
 	} else if img, ok := arg.(*GoObj[*rl.Image]); ok {
 		rl.UnloadImage(img.Value)

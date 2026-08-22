@@ -25,20 +25,22 @@ jobs:
         run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
         if: ${{ runner.os == 'Linux' }}
 
+      # rgfw: raylib's windowing backend. Do NOT build raylib's bundled GLFW
+      # alongside fyne's static GLFW (duplicate symbols).
       - name: Tests
-        run: go test ./...
+        run: go test -tags="rgfw" ./...
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
-        run: go build -ldflags='-s -w -extldflags "-static"' -o blue-win.exe .
+        run: go build -tags="rgfw" -ldflags='-s -w -extldflags "-static"' -o blue-win.exe .
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
-        run: go build -ldflags='-s -w' -o blue-linux .
+        run: go build -tags="rgfw" -ldflags='-s -w' -o blue-linux .
 
       - name: Build Macos (arm64)
         if: matrix.os == 'macos-latest'
-        run: go build -ldflags='-s -w' -o blue-mac-arm64 .
+        run: go build -tags="rgfw" -ldflags='-s -w' -o blue-mac-arm64 .
 
       - name: Compress windows binaries
         if: matrix.os == 'windows-latest'
