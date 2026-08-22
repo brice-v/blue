@@ -42,6 +42,15 @@ speed?!
 - Static build now available (with no CGO) making it much easier to cross
   compile
   - See `make_release_static.*` to see how its being built and tested locally
+- The `gg` builtins use raylib's RGFW backend via the `rgfw` build tag; without
+  it raylib's bundled glfw collides with fyne's go-gl/glfw at link time
+  (`multiple definition of _glfw...`). Set it once so all `go` commands pick it
+  up automatically:
+  - `go env -w GOFLAGS=-tags=rgfw` (undo with `go env -u GOFLAGS`)
+  - note: this applies to every Go project on the machine; alternatively pass
+    `-tags=rgfw` per command (`go build/test/vet -tags=rgfw ./...`)
+  - static builds (`static` tag) don't need it but combine fine with it, tags
+    from `GOFLAGS` and the command line are merged
 - `govulncheck` via `go install golang.org/x/vuln/cmd/govulncheck@latest`
 
 ## Notes
