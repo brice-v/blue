@@ -1275,7 +1275,7 @@ func (vm *VM) executeNegOperation() error {
 	operand := vm.pop()
 	if operand.Type() == object.INTEGER_OBJ {
 		value := operand.(*object.Integer).Value
-		return vm.push(&object.Integer{Value: -value})
+		return vm.push(intObject(-value))
 	}
 	if operand.Type() == object.FLOAT_OBJ {
 		value := operand.(*object.Float).Value
@@ -1308,7 +1308,7 @@ func (vm *VM) executeBitwiseNotOperation() error {
 	switch operand.Type() {
 	case object.INTEGER_OBJ:
 		value := operand.(*object.Integer).Value
-		return vm.push(&object.Integer{Value: ^value})
+		return vm.push(intObject(^value))
 	case object.UINTEGER_OBJ:
 		value := operand.(*object.UInteger).Value
 		return vm.push(&object.UInteger{Value: ^value})

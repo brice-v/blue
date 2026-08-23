@@ -712,3 +712,5 @@ COMPLETED TASKS:
 - [x] Update cmd/cli so that when file is not found that error is printed to user instead of usage
 - [x] Cache Empty string object and small ints maybe?
     - Only small ints cached for now
+- [x] Perf: remove []rune allocations from string index/slice/char-range paths (allocation-free UTF-8 walk in object.RuneAtIndex/RuneRange), widen small-int caches to [-2048, 2048), route negation/bitnot/sort-rebuild boxing through the caches, add bounded intern table (object.InternString/InternInt) used by str(), string indexing, char ranges and short concats
+    - Benchmarked vs baseline: char-index -27% time/-80% bytes, string-slice -21% time, hof-map-filter -42% allocs, fib20 vm allocs -52%, map-key-reuse -32% allocs

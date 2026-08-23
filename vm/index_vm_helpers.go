@@ -182,11 +182,13 @@ func (vm *VM) executeStringIndexExpression(str, indx object.Object) error {
 	default:
 		return vm.push(object.NULL)
 	}
-	max := int64(runeLen(strObj.Value) - 1)
-	if idx < 0 || idx > max {
+	// Walk bytes to the idx'th rune instead of materializing a []rune copy
+	// of the whole string (the per-index allocation profiled as a top cost).
+	sub, ok := object.RuneAtIndex(strObj.Value, idx)
+	if !ok {
 		return vm.push(newError("index out of bounds: length=%d, index=%d", runeLen(strObj.Value), idx))
 	}
-	return vm.push(object.NewString(string([]rune(strObj.Value)[idx])))
+	return vm.push(object.InternString(sub))
 }
 
 func (vm *VM) executeProcessIndexExpression(process *object.Process, name string) error {

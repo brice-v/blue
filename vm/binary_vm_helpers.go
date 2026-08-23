@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/shopspring/decimal"
 )
@@ -67,15 +68,15 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 var smallInts []*object.Integer
 
 func init() {
-	smallInts = make([]*object.Integer, 1024)
+	smallInts = make([]*object.Integer, 4096)
 	for i := range smallInts {
-		smallInts[i] = &object.Integer{Value: int64(i - 512)}
+		smallInts[i] = &object.Integer{Value: int64(i - 2048)}
 	}
 }
 
 func intObject(v int64) *object.Integer {
-	if v >= -512 && v < 512 {
-		return smallInts[v+512]
+	if v >= -2048 && v < 2048 {
+		return smallInts[v+2048]
 	}
 	return &object.Integer{Value: v}
 }
@@ -409,7 +410,10 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 	rightStr := right.(*object.Stringo).Value
 	switch op {
 	case code.OpAdd:
-		return vm.push(object.NewString(leftStr + rightStr))
+		// Short concat results repeat heavily in practice (loop-built map
+		// keys, repeated labels); interning keeps memory bounded and lets
+		// repeats share one object. Long results pass through untouched.
+		return vm.push(object.InternString(leftStr + rightStr))
 	case code.OpEqual:
 		return vm.push(nativeToBooleanObject(leftStr == rightStr))
 	case code.OpNotEqual:
@@ -425,8 +429,8 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 		if runeLen(rightStr) != 1 {
 			return vm.push(newError("operator .. expects right string to be 1 rune"))
 		}
-		lr := []rune(leftStr)[0]
-		rr := []rune(rightStr)[0]
+		lr, _ := utf8.DecodeRuneInString(leftStr)
+		rr, _ := utf8.DecodeRuneInString(rightStr)
 		if lr == rr {
 			// If they are the same just return vm.push(a list with the single element)
 			// because this is the inclusive operator
@@ -437,14 +441,14 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 			// Left rune is > so we are descending
 			for i := lr; i >= rr; i-- {
 				s := string(i)
-				elements = append(elements, object.NewString(s))
+				elements = append(elements, object.InternString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		} else {
 			// Right rune is > so we are ascending
 			for i := lr; i <= rr; i++ {
 				s := string(i)
-				elements = append(elements, object.NewString(s))
+				elements = append(elements, object.InternString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		}
@@ -455,8 +459,8 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 		if runeLen(rightStr) != 1 {
 			return vm.push(newError("operator ..< expects right string to be 1 rune"))
 		}
-		lr := []rune(leftStr)[0]
-		rr := []rune(rightStr)[0]
+		lr, _ := utf8.DecodeRuneInString(leftStr)
+		rr, _ := utf8.DecodeRuneInString(rightStr)
 		if lr == rr {
 			// If they are the same just return vm.push(an empty list because this is non-inclusive)
 			return vm.push(&object.List{Elements: []object.Object{}})
@@ -466,14 +470,14 @@ func binaryStringOp(vm *VM, op code.Opcode, left, right object.Object) error {
 			// Left rune is > so we are descending
 			for i := lr; i > rr; i-- {
 				s := string(i)
-				elements = append(elements, object.NewString(s))
+				elements = append(elements, object.InternString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		} else {
 			// Right rune is > so we are ascending
 			for i := lr; i < rr; i++ {
 				s := string(i)
-				elements = append(elements, object.NewString(s))
+				elements = append(elements, object.InternString(s))
 			}
 			return vm.push(&object.List{Elements: elements})
 		}

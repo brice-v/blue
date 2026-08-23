@@ -34,7 +34,12 @@ func createStrBuiltinFun(vm *VM) func(args ...object.Object) object.Object {
 		if args[0].Type() == object.BYTES_OBJ {
 			return object.NewString(string(args[0].(*object.Bytes).Value))
 		}
-		return object.NewString(vm.CustomInspect(args[0]))
+		if it, ok := args[0].(*object.Integer); ok {
+			// str(int) repeats heavily in practice; format through a stack
+			// buffer and intern so repeated values do not allocate.
+			return object.InternInt(it.Value)
+		}
+		return object.InternString(vm.CustomInspect(args[0]))
 	}
 }
 
@@ -161,7 +166,7 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 				sort.Ints(ints)
 			}
 			for i, e := range ints {
-				newElems[i] = &object.Integer{Value: int64(e)}
+				newElems[i] = object.NewInteger(int64(e))
 			}
 		}
 		if allFloats {

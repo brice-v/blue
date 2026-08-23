@@ -111,8 +111,8 @@ type Integer struct {
 // (arithmetic results, len(), range elements, ...). The vm's binary-op fast
 // path shares this cache too.
 const (
-	smallIntLow  = -512
-	smallIntHigh = 512
+	smallIntLow  = -2048
+	smallIntHigh = 2048
 )
 
 var smallIntegers []*Integer
@@ -125,7 +125,7 @@ func init() {
 }
 
 // NewInteger returns an Integer holding v, reusing the shared read-only
-// object for values in [-512, 512).
+// object for values in [-2048, 2048).
 func NewInteger(v int64) *Integer {
 	if v >= smallIntLow && v < smallIntHigh {
 		return smallIntegers[v-smallIntLow]

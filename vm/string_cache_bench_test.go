@@ -47,6 +47,44 @@ fun main() {
 }
 main()
 `,
+	// Slicing a string: every s[a..<b] materialized a full []rune of the
+	// source plus a rune slice for the result.
+	"string-slice": `
+fun main() {
+    val s = "the quick brown fox jumps over the lazy dog";
+    var total = 0;
+    for i in 0..20000 {
+        total += len(s[0..<4]);
+    }
+    return total;
+}
+main()
+`,
+	// str() of multi-digit ints: FormatInt allocated digits on every call
+	// and the wrapper was fresh each time; interning makes repeats free.
+	"str-counters": `
+fun main() {
+    var total = 0;
+    for i in 0..20000 {
+        total += len(str(i % 1000));
+    }
+    return total;
+}
+main()
+`,
+	// Repeated short concat keys ("user-0".."user-49"): the classic
+	// loop-built map key pattern from the profiling notes.
+	"map-key-reuse": `
+fun main() {
+    var m = {};
+    for i in 0..20000 {
+        val k = "user-" + str(i % 50);
+        m[k] = i;
+    }
+    return len(m);
+}
+main()
+`,
 }
 
 func BenchmarkBlueStringScenarios(b *testing.B) {

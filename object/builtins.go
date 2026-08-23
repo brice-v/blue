@@ -102,11 +102,11 @@ var Builtins = []*Builtin{
 			switch arg0Type {
 			case STRING_OBJ:
 				s := args[0].(*Stringo).Value
-				if iterableIndex > int64(utf8.RuneCountInString(s)) || iterableIndex < 0 {
+				if iterableIndex >= int64(utf8.RuneCountInString(s)) || iterableIndex < 0 {
 					return newError("`_get_` index %d out of bounds", iterableIndex)
 				}
-				rs := []rune(s)
-				indexed := &Stringo{Value: string(rs[iterableIndex])}
+				sub, _ := RuneAtIndex(s, iterableIndex)
+				indexed := InternString(sub)
 				if withIndex {
 					return &List{Elements: []Object{args[1], indexed}}
 				} else {

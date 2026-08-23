@@ -308,9 +308,9 @@ func goObjectToBlueObject(goObject any) (object.Object, error) {
 	case string:
 		return &object.Stringo{Value: obj}, nil
 	case int:
-		return &object.Integer{Value: int64(obj)}, nil
+		return object.NewInteger(int64(obj)), nil
 	case int64:
-		return &object.Integer{Value: obj}, nil
+		return object.NewInteger(obj), nil
 	case uint:
 		return &object.UInteger{Value: uint64(obj)}, nil
 	case uint64:
@@ -376,7 +376,7 @@ func goObjectToBlueObject(goObject any) (object.Object, error) {
 		m := &object.Map{Pairs: object.NewPairsMap()}
 		for _, k := range obj.Keys {
 			v, _ := obj.Get(k)
-			key := &object.Integer{Value: k}
+			key := object.NewInteger(k)
 			hk := object.HashKey{
 				Type:  object.INTEGER_OBJ,
 				Value: object.HashObject(key),
@@ -552,7 +552,15 @@ func (vm *VM) buildSliceFrom(maybeSliceable object.Object, sliceIndexes object.O
 		}
 		return &object.Set{Elements: result}
 	} else {
-		sliceable := []rune(maybeSliceable.(*object.Stringo).Value)
+		s := maybeSliceable.(*object.Stringo).Value
+		// Slice by byte range of the requested runes instead of copying
+		// the whole string into a []rune first.
+		if sub, ok := object.RuneRange(s, minSliceIndex, maxSliceIndex); ok {
+			return object.NewString(sub)
+		}
+		// Out-of-range indexes: reproduce the previous []rune slicing
+		// behavior (including its panic) exactly.
+		sliceable := []rune(s)
 		result := sliceable[minSliceIndex:maxSliceIndex]
 		return &object.Stringo{Value: string(result)}
 	}
