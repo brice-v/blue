@@ -30,16 +30,6 @@ func isFile(fpath string) bool {
 	return !os.IsNotExist(err) && !info.IsDir()
 }
 
-// isDir is a helper function to check if the dirPath given
-// exists and if its a dir otherwise false
-func isDir(dirPath string) bool {
-	info, err := os.Stat(dirPath)
-	if err == nil {
-		return info.IsDir()
-	}
-	return false
-}
-
 // lexFile tokenizes and lexically analyzes the given file
 func lexFile(fpath string) {
 	var data []byte

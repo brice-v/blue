@@ -5,8 +5,6 @@ import (
 	"blue/repl"
 	"fmt"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/gookit/color"
@@ -24,9 +22,6 @@ The commands are:
     parse    start the parser repl or parse the given file (converts the file to an inspectable AST without node names)
                                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
-
-    bundle   bundle the given file into a go executable with the runtime included (bundle accepts a '-d' flag for debugging)
-             (NOTE: currently non-functional)
 
     doc      print the help strings of all publicly accesible functions in the given filepath or module
                                                                                               
@@ -98,8 +93,6 @@ func Run(args ...string) {
 		handleLexCommand(argc, arguments)
 	case "parse":
 		handleParseCommand(argc, arguments)
-	case "bundle":
-		handleBundleCommand(argc, arguments)
 	case "vm", "eval", "-e", "e":
 		handleVmCommand(argc, arguments)
 	case "compile", "-c", "c":
@@ -174,70 +167,6 @@ func handleParseCommand(argc int, arguments []string) {
 			consts.ErrorPrinter("`parse` command expects valid file as argument. got=%s\n", fpath)
 			os.Exit(1)
 		}
-	}
-}
-
-func detectAllCommandsNeeded() error {
-	consts.InfoPrinter("Detecting git and go are present...\n")
-	_, err := exec.LookPath("git")
-	if err != nil {
-		return err
-	}
-	_, err = exec.LookPath("go")
-	if err != nil {
-		return err
-	}
-	if _, err = exec.LookPath("upx"); err != nil {
-		color.FgYellow.Println("    bundler::detectAllCommands: upx not present so packing will not happen")
-	}
-	if _, err = exec.LookPath("strip"); err != nil {
-		color.FgYellow.Println("    bundler::detectAllCommands: strip not present so stripping will not happen")
-	}
-	return nil
-}
-
-func handleBundleCommand(argc int, arguments []string) {
-	err := detectAllCommandsNeeded()
-	if err != nil {
-		consts.ErrorPrinter("`bundle` error: %s\n", err.Error())
-		os.Exit(1)
-	}
-	if argc == 2 || argc == 3 || argc == 4 || argc == 5 || argc == 6 {
-		isStatic := false
-		oos := runtime.GOOS
-		arch := runtime.GOARCH
-		fpath := ""
-		outputFileName := ""
-		for _, arg := range arguments[1:] {
-			if strings.HasPrefix(arg, "--static") {
-				isStatic = true
-			} else if strings.HasPrefix(arg, "--os=") {
-				newOs := strings.Split(arg, "--os=")[1]
-				if newOs != oos {
-					isStatic = true
-				}
-				oos = newOs
-			} else if strings.HasPrefix(arg, "--arch=") {
-				arch = strings.Split(arg, "--arch=")[1]
-			} else if strings.HasPrefix(arg, "--o=") {
-				outputFileName = strings.Split(arg, "--o=")[1]
-			} else {
-				fpath = arg
-			}
-		}
-		if isFile(fpath) {
-			err := bundleFile(fpath, isStatic, oos, arch, outputFileName)
-			if err != nil {
-				consts.ErrorPrinter("`bundle` error: %s\n", err.Error())
-				os.Exit(1)
-			}
-		} else {
-			consts.ErrorPrinter("`bundle` command expects valid file as argument. got=%s\n", fpath)
-			os.Exit(1)
-		}
-	} else {
-		consts.ErrorPrinter("unexpected `bundle` arguments. got=%+v\n", arguments)
-		os.Exit(1)
 	}
 }
 

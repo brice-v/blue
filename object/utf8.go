@@ -59,12 +59,13 @@ func RuneRange(s string, start, end int64) (string, bool) {
 				return "", false
 			}
 		}
-		if n == start {
+		switch n {
+		case start:
 			byteStart = off
 			if start == end {
 				return "", true
 			}
-		} else if n == end {
+		case end:
 			return s[byteStart:off], true
 		}
 		n++
