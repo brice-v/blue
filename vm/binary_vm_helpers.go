@@ -363,6 +363,7 @@ func binaryUIntegerOp(vm *VM, op code.Opcode, left, right object.Object) error {
 		if rightIntVal < 0 {
 			return vm.push(newError("Right Integer was negative, and is not allowed for Unsigned Integer operations. %s %s %s", left.Inspect(), code.GetOpName(op), right.Inspect()))
 		}
+		rightVal = uint64(rightIntVal)
 	}
 	switch op {
 	case code.OpAdd:

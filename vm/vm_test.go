@@ -4,6 +4,7 @@ import (
 	"blue/compiler"
 	"blue/object"
 	"fmt"
+	"strings"
 	"testing"
 
 	"blue/ast"
@@ -826,4 +827,75 @@ func TestTypeChecking(t *testing.T) {
 		{`type(1)`, ""},
 	}
 	runVmTests(t, tests)
+}
+
+func testUIntegerObject(expected uint64, actual object.Object) error {
+	result, ok := actual.(*object.UInteger)
+	if !ok {
+		return fmt.Errorf("object is not UInteger. got=%T (%+v)", actual, actual)
+	}
+	if result.Value != expected {
+		return fmt.Errorf("object has wrong value. got=%d, want=%d", result.Value, expected)
+	}
+	return nil
+}
+
+// Regression: binaryUIntegerOp never assigned rightVal when the right operand
+// was an Integer, so every mixed uint/int op silently computed against 0.
+func TestMixedUIntegerIntegerOperations(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected uint64
+	}{
+		{"0u10 + 5", 15},
+		{"5 + 0u10", 15},
+		{"0u10 - 4", 6},
+		{"0u10 * 3", 30},
+		{"0u9 / 2", 4},
+		{"0u10 % 3", 1},
+		{"var u = 0u10; u += 5; u", 15},
+		{"var u = 0u10; u *= 3; u", 30},
+	}
+	for _, tt := range tests {
+		program := parse(tt.input)
+		comp := compiler.New()
+		if err := comp.Compile(program); err != nil {
+			t.Fatalf("compiler error in %q: %s", tt.input, err)
+		}
+		vm := New(comp.Bytecode())
+		if err := vm.Run(); err != nil {
+			t.Fatalf("vm error in %q: %s", tt.input, err)
+		}
+		if err := testUIntegerObject(tt.expected, vm.LastPoppedStackElem()); err != nil {
+			t.Errorf("%q: %s", tt.input, err)
+		}
+	}
+}
+
+func TestMixedUIntegerComparisons(t *testing.T) {
+	tests := []vmTestCase{
+		{"0u10 == 10", true},
+		{"10 == 0u10", true},
+		{"0u10 != 10", false},
+		{"0u10 > 4", true},
+		{"0u10 >= 10", true},
+	}
+	runVmTests(t, tests)
+}
+
+func TestMixedUIntegerNegativeRightErrors(t *testing.T) {
+	program := parse(`0u10 + (-5)`)
+	comp := compiler.New()
+	if err := comp.Compile(program); err != nil {
+		t.Fatalf("compiler error: %s", err)
+	}
+	vm := New(comp.Bytecode())
+	err := vm.Run()
+	if err == nil {
+		t.Fatal("expected vm error for negative right Integer in uint op")
+	}
+	want := "Right Integer was negative, and is not allowed for Unsigned Integer operations."
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("error %q does not contain %q", err.Error(), want)
+	}
 }
