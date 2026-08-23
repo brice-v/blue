@@ -1,7 +1,6 @@
 package object
 
 import (
-	"blue/ast"
 	"blue/code"
 	"blue/consts"
 	"bytes"
@@ -398,9 +397,10 @@ func (f *StringFunction) Help() string {
 
 // Function is the function object struct
 type Function struct {
-	Parameters []*ast.Identifier   // Parameters is a slice of identifiers
-	Body       *ast.BlockStatement // Body is a block statement node
-	Env        *Environment        // Env stores the function's environment
+	Parameters []string // Parameters holds the parameter names
+	Body       string   // Body holds the display form of the function body
+
+	Env *Environment // Env stores the function's environment
 
 	DefaultParameters []Object // DefaultParameters holds the expression of the default parameter, if it exists otherwise nil
 
@@ -418,16 +418,16 @@ func (f *Function) Inspect() string {
 	for i, p := range f.Parameters {
 		dp := f.DefaultParameters[i]
 		if dp != nil {
-			params = append(params, fmt.Sprintf("%s=%s", p.String(), dp.Inspect()))
+			params = append(params, fmt.Sprintf("%s=%s", p, dp.Inspect()))
 		} else {
-			params = append(params, p.String())
+			params = append(params, p)
 		}
 	}
 
 	out.WriteString("fun(")
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") {\n")
-	out.WriteString(f.Body.String())
+	out.WriteString(f.Body)
 	out.WriteString("\n}")
 
 	return out.String()

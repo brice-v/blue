@@ -27,7 +27,7 @@ The commands are:
                                                                                               
              note: the file/module will be compiled to gather all functions
 
-    vm       run the given string or file through the VM
+    vm       run the given string or file through the VM (a .bbc binary image is run directly without recompiling)
                                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
                                                                                               
@@ -36,7 +36,22 @@ The commands are:
              -e, e, eval           alternative ways to trigger the vm evaluation
 
     compile  compiles the given string or file to bytecode
-                                                                                              
+                                                                              
+             -o <file>             write a compiled .bbc binary image instead of printing bytecode.
+                                   run it with: blue vm out.bbc, bluerun out.bbc, or pack it into an executable
+                                                                              
+             --no-tokens           strip the token table from the image (smaller file, error traces lose file/line info)
+                                                                              
+             --all-parser-errors   show all parser errors instead of stopping at the first one
+
+    pack     compile the given .b file and append it to a copy of the minimal bluerun runner template,
+             producing a single self-contained executable. the template is looked up next to this
+             executable as bluerun-<GOOS>-<GOARCH> (or bluerun); pass --go-build to build it with go instead
+                                                                              
+             -o <file>             path of the packed executable to write
+                                                                              
+             --go-build            build the template on the fly using the local go toolchain
+                                                                              
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     help     prints this help message
@@ -70,6 +85,7 @@ func Run(args ...string) {
 	if os.Getenv(consts.BLUE_NO_COLOR) != "" {
 		color.Disable()
 	}
+	installFullBuildHooks()
 	arguments := args[1:]
 	argc := len(arguments)
 	if argc == 0 {
@@ -99,6 +115,8 @@ func Run(args ...string) {
 		handleCompileCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
+	case "pack":
+		handlePackCommand(argc, arguments)
 	default:
 		// Check for flags before the filename
 		fpath := ""
@@ -201,21 +219,84 @@ func handleVmCommand(argc int, arguments []string) {
 }
 
 func handleCompileCommand(argc int, arguments []string) {
-	if argc == 2 || argc == 3 {
-		strToEval := ""
-		allErrors := false
-		for _, arg := range arguments[1:] {
-			if arg == "--all-parser-errors" {
-				allErrors = true
-			} else {
-				strToEval = arg
-			}
-		}
-		compileFileOrString(strToEval, strToEval == STDIN_ARG || isFile(strToEval), allErrors)
-	} else {
+	if argc < 2 || argc > 6 {
 		consts.ErrorPrinter("unexpected `compile` arguments. got=%+v\n", arguments)
 		os.Exit(1)
 	}
+	strToEval := ""
+	allErrors := false
+	noTokens := false
+	outPath := ""
+	for i, arg := range arguments[1:] {
+		switch arg {
+		case "--all-parser-errors":
+			allErrors = true
+		case "--no-tokens":
+			noTokens = true
+		case "-o":
+			if i+2 >= argc {
+				consts.ErrorPrinter("`compile` flag -o requires a file path\n")
+				os.Exit(1)
+			}
+			outPath = arguments[i+2]
+		default:
+			if arg == outPath && outPath != "" {
+				continue
+			}
+			strToEval = arg
+		}
+	}
+	isFpath := strToEval == STDIN_ARG || isFile(strToEval)
+	if outPath == "" {
+		// Keep the historical debug-print behavior when no -o is given
+		compileFileOrString(strToEval, isFpath, allErrors)
+		return
+	}
+	bc, err := compileFileOrStringToImage(strToEval, isFpath, allErrors)
+	if err != nil {
+		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
+		os.Exit(1)
+	}
+	saveImageFile(bc, outPath, noTokens)
+}
+
+func handlePackCommand(argc int, arguments []string) {
+	if argc < 3 || argc > 6 {
+		consts.ErrorPrinter("unexpected `pack` arguments. got=%+v\n", arguments)
+		os.Exit(1)
+	}
+	fpath := ""
+	outPath := ""
+	allErrors := false
+	goBuild := false
+	for i, arg := range arguments[1:] {
+		switch arg {
+		case "--all-parser-errors":
+			allErrors = true
+		case "--go-build":
+			goBuild = true
+		case "-o":
+			if i+2 >= argc {
+				consts.ErrorPrinter("`pack` flag -o requires a file path\n")
+				os.Exit(1)
+			}
+			outPath = arguments[i+2]
+		default:
+			if arg == outPath && outPath != "" {
+				continue
+			}
+			fpath = arg
+		}
+	}
+	if fpath == "" || !isFile(fpath) || fpath == STDIN_ARG {
+		consts.ErrorPrinter("`pack` expects a valid .b source file as argument. got=%s\n", fpath)
+		os.Exit(1)
+	}
+	if outPath == "" {
+		consts.ErrorPrinter("`pack` requires -o <output-executable>\n")
+		os.Exit(1)
+	}
+	packProgram(fpath, outPath, allErrors, goBuild)
 }
 
 func handleDocCommand(argc int, arguments []string) {

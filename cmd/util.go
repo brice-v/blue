@@ -3,12 +3,14 @@ package cmd
 import (
 	"blue/ast"
 	"blue/blueutil"
+	"blue/binc"
 	"blue/code"
 	"blue/compiler"
 	"blue/consts"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
+	"blue/runner"
 	"blue/token"
 	"blue/vm"
 	"bytes"
@@ -16,10 +18,182 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"sort"
 	"strings"
 )
+
+// ImageFileExtension is the conventional extension for compiled blue images.
+const ImageFileExtension = ".bbc"
+
+// runnerTemplateName returns the expected filename of the minimal runner
+// template for the host platform.
+func runnerTemplateName() string {
+	return "bluerun-" + runtime.GOOS + "-" + runtime.GOARCH
+}
+
+// findRunnerTemplate looks for a prebuilt bluerun template next to the blue
+// executable: first the platform-suffixed name, then a plain `bluerun`.
+func findRunnerTemplate() (string, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Dir(exePath)
+	for _, name := range []string{runnerTemplateName(), "bluerun"} {
+		candidate := filepath.Join(dir, name)
+		if isFile(candidate) {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("runner template not found: looked for %s and bluerun next to %s\nbuild one with: go build -tags \"minivm,<your-flavor-tags>\" -o %s ./cmd/bluerun\nor pass --go-build to build it with the same flavor automatically", runnerTemplateName(), dir, runnerTemplateName())
+}
+
+// runnerPackageRelPath is where the minimal runner lives inside the blue
+// source tree.
+const runnerPackageRelPath = "cmd/bluerun"
+
+// findBlueSourceDir locates the blue module root so the --go-build fallback
+// can compile the runner package no matter where blue was invoked from. It
+// walks up from the working directory, then consults BLUE_INSTALL_PATH.
+func findBlueSourceDir() (string, bool) {
+	if dir, err := os.Getwd(); err == nil {
+		for {
+			if isFile(filepath.Join(dir, "go.mod")) && isDir(filepath.Join(dir, runnerPackageRelPath)) {
+				return dir, true
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+	if install := os.Getenv(consts.BLUE_INSTALL_PATH); install != "" {
+		if isDir(filepath.Join(install, runnerPackageRelPath)) {
+			return install, true
+		}
+	}
+	return "", false
+}
+
+func isDir(fpath string) bool {
+	info, err := os.Stat(fpath)
+	return err == nil && info.IsDir()
+}
+
+// runningBuildTags returns the -tags value the CURRENT executable was
+// built with (from build info), so the --go-build template fallback can
+// reproduce the exact same runtime flavor.
+func runningBuildTags() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "-tags" {
+				return setting.Value
+			}
+		}
+	}
+	return ""
+}
+
+// buildRunnerWithGo shells out to the go toolchain as a fallback way of
+// obtaining a runner template. The template is built with the same flavor
+// tags as the running blue binary (plus the structural minivm tag) so that
+// packed images match the packer's fingerprint.
+func buildRunnerWithGo(outPath string) error {
+	sourceDir, ok := findBlueSourceDir()
+	if !ok {
+		return fmt.Errorf("cannot find the blue source tree (looked up from the working directory and $BLUE_INSTALL_PATH); place a %s template next to the blue executable or run pack from inside the blue repository", runnerTemplateName())
+	}
+	tags := []string{"minivm"}
+	if t := runningBuildTags(); t != "" {
+		tags = append(tags, strings.Split(t, ",")...)
+	}
+	cmd := exec.Command("go", "build", "-ldflags=-s -w", "-tags", strings.Join(tags, ","), "-o", outPath, "./"+runnerPackageRelPath)
+	cmd.Dir = sourceDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to build runner template with go: %w", err)
+	}
+	return nil
+}
+
+// packProgram compiles source through the normal pipeline, encodes it as a
+// binary image, and appends it to a copy of the minimal runner template,
+// producing a single self-contained executable.
+func packProgram(sourcePath string, outPath string, allErrors bool, useGoBuild bool) {
+	bc, err := compileFileOrStringToImage(sourcePath, true, allErrors)
+	if err != nil {
+		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
+		os.Exit(1)
+	}
+	payload, err := binc.Encode(bc, binc.EncodeOptions{})
+	if err != nil {
+		consts.ErrorPrinter("error encoding program: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	var templateBytes []byte
+	if useGoBuild {
+		tmpTemplate := outPath + ".bluerun-tmp"
+		if err := buildRunnerWithGo(tmpTemplate); err != nil {
+			consts.ErrorPrinter("%s\n", err.Error())
+			os.Exit(1)
+		}
+		defer os.Remove(tmpTemplate)
+		templateBytes, err = os.ReadFile(tmpTemplate)
+	} else {
+		templatePath, terr := findRunnerTemplate()
+		if terr != nil {
+			consts.ErrorPrinter("error packing: %s\n", terr.Error())
+			os.Exit(1)
+		}
+		templateBytes, err = os.ReadFile(templatePath)
+	}
+	if err != nil {
+		consts.ErrorPrinter("error reading runner template: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	out := make([]byte, 0, len(templateBytes)+len(payload))
+	out = append(out, templateBytes...)
+	out = append(out, payload...)
+	if err := os.WriteFile(outPath, out, 0o755); err != nil {
+		consts.ErrorPrinter("error trying to write `%s`. error: %s\n", outPath, err.Error())
+		os.Exit(1)
+	}
+	fmt.Printf("packed %s into %s (%d bytes)\nrun it with ./%s\n", sourcePath, outPath, len(out), outPath)
+}
+
+// installFullBuildHooks wires up runtime features that require the full
+// lexer/parser/compiler toolchain (the `eval` keyword and builtins like
+// `to_num`). Minimal VM-only builds never call this.
+func installFullBuildHooks() {
+	vm.EvalHook = evalSourceString
+}
+
+// evalSourceString is the production implementation of vm.EvalHook.
+func evalSourceString(src string) object.Object {
+	l := lexer.New(src, "<internal:string>")
+	p := parser.New(l)
+	prog := p.ParseProgram()
+	if p.HasErrors() {
+		return &object.Error{Message: fmt.Sprintf("failed to `eval` string, found '%d' parser errors", len(p.ErrorMessages()))}
+	}
+	c := compiler.New()
+	if err := c.Compile(prog); err != nil {
+		return &object.Error{Message: "compiler error in `eval` string: " + err.Error()}
+	}
+	vmInstance := vm.New(c.Bytecode())
+	if err := vmInstance.Run(); err != nil {
+		return &object.Error{Message: "vm error in `eval` string: " + err.Error()}
+	}
+	return vmInstance.LastPoppedStackElem()
+}
 
 // out is where normal program and command output is written
 var out = os.Stdout
@@ -170,54 +344,80 @@ func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) {
 	os.Exit(0)
 }
 
-func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult bool) {
+// compileFileOrStringToImage compiles like compileFileOrString and returns
+// the merged program image ready to be encoded into a .bbc container.
+func compileFileOrStringToImage(inputOrFpath string, isFpath bool, allErrors bool) (*binc.Bytecode, error) {
 	c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
-	globals := make([]object.Object, vm.GlobalsSize)
 	bc := c.Bytecode()
-	v := vm.NewWithGlobalsStore(bc, globals)
-	object.NoExec = noExec
-	if err := v.Run(); err != nil {
-		if v.TokensForErrorTrace == nil {
-			consts.ErrorPrinter("%s%s\n", consts.VM_ERROR_PREFIX, err.Error())
-		} else {
-			for i, tok := range v.TokensForErrorTrace {
-				errorLine := lexer.GetErrorLineMessage(*tok)
-				fullMsg := fmt.Sprintf("%s\n%s", err.Error(), errorLine)
-				blueutil.PrintCustomError(os.Stderr, consts.VM_ERROR_PREFIX, fullMsg, tok.LineNumber, i == 0)
-			}
-		}
+	if idx, err := object.FindUnserializableConstant(bc.Constants); err != nil {
+		return nil, fmt.Errorf("constant %d cannot be stored in a binary image: %w\n%s", idx, err, object.DebugDumpConstants(bc.Constants))
+	}
+	return bc, nil
+}
+
+// saveImageFile encodes an image and writes it to fpath.
+func saveImageFile(bc *binc.Bytecode, fpath string, noTokens bool) {
+	data, err := binc.Encode(bc, binc.EncodeOptions{NoTokens: noTokens})
+	if err != nil {
+		consts.ErrorPrinter("error encoding `%s`: %s\n", fpath, err.Error())
 		os.Exit(1)
 	}
-	val := v.LastPoppedStackElem()
-	if val.Type() == object.ERROR_OBJ {
-		errorObj := val.(*object.Error)
-		var buf bytes.Buffer
-		buf.WriteString(errorObj.Message)
-		buf.WriteByte('\n')
-		msg := fmt.Sprintf("%s%s", consts.VM_ERROR_PREFIX, buf.String())
-		splitMsg := strings.Split(msg, "\n")
-		for i, s := range splitMsg {
-			if i == 0 {
-				consts.ErrorPrinter("%s\n", s)
-				continue
-			}
-			delimeter := ""
-			if i != len(splitMsg)-1 {
-				delimeter = "\n"
-			}
-			_, errr := fmt.Fprintf(os.Stderr, "%s%s", s, delimeter)
-			if errr != nil {
-				log.Printf("Failed to write to output, error: %s", errr.Error())
-			}
-		}
+	if err := os.WriteFile(fpath, data, 0o755); err != nil {
+		consts.ErrorPrinter("error trying to write file `%s`. error: %s\n", fpath, err.Error())
 		os.Exit(1)
 	}
-	if printResult {
-		_, err := fmt.Fprintf(out, "%s\n", val.Inspect())
+}
+
+// loadImageFile reads a .bbc container from disk. It sniffs the magic so
+// files with any extension (or none) are supported.
+func loadImageFile(fpath string) (*binc.Bytecode, error) {
+	data, err := os.ReadFile(fpath)
+	if err != nil {
+		return nil, err
+	}
+	return binc.Decode(data, true)
+}
+
+// looksLikeImage reports whether input should be treated as a compiled
+// binary image rather than blue source.
+func looksLikeImage(inputOrFpath string) bool {
+	if !isFile(inputOrFpath) && inputOrFpath != STDIN_ARG {
+		return false
+	}
+	if strings.HasSuffix(strings.ToLower(inputOrFpath), ImageFileExtension) {
+		return true
+	}
+	f, err := os.Open(inputOrFpath)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	header := make([]byte, len(binc.Magic))
+	n, _ := io.ReadFull(f, header)
+	return n == len(header) && binc.SniffMagic(header[:n])
+}
+
+func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult bool) {
+	var bc *binc.Bytecode
+	if looksLikeImage(inputOrFpath) {
+		img, err := loadImageFile(inputOrFpath)
 		if err != nil {
-			log.Printf("Failed to write to output, error: %s", err.Error())
+			consts.ErrorPrinter("error loading binary image `%s`:\n%s\n", inputOrFpath, err.Error())
+			os.Exit(1)
 		}
+		bc = img
+	} else {
+		c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+		bc = c.Bytecode()
 	}
+	runBytecode(bc, noExec, printResult)
+}
+
+// runBytecode runs a program image and handles exit-code/error semantics.
+// It delegates to the shared runner package so the minimal standalone
+// runner behaves identically.
+func runBytecode(bc *binc.Bytecode, noExec, printResult bool) {
+	os.Exit(runner.RunBytecode(bc, noExec, printResult))
 }
 
 func getBuiltinHelpIfExists(name string) string {

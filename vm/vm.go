@@ -1,13 +1,11 @@
 package vm
 
 import (
+	"blue/binc"
 	"blue/blueutil"
 	"blue/code"
-	"blue/compiler"
 	"blue/consts"
-	"blue/lexer"
 	"blue/object"
-	"blue/parser"
 	"blue/token"
 	"fmt"
 	"log"
@@ -145,7 +143,7 @@ func (vm *VM) newCallFrameReplaceTop(cl *object.Closure, bp int) *Frame {
 	return f
 }
 
-func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
+func NewNode(nodeName string, bytecode *binc.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
 	mainClosure := &object.Closure{Fun: mainFn}
 	frames := make([]Frame, lazyFramesFloor)
@@ -180,11 +178,11 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 	return vm
 }
 
-func New(bytecode *compiler.Bytecode) *VM {
+func New(bytecode *binc.Bytecode) *VM {
 	return NewNode("vm-node", bytecode)
 }
 
-func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
+func NewWithGlobalsStore(bytecode *binc.Bytecode, s []object.Object) *VM {
 	vm := New(bytecode)
 	vm.globals = s
 	vm.globalsOwned = true
@@ -1645,24 +1643,20 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 	return vm.push(result)
 }
 
+// EvalHook, when non-nil, evaluates blue source strings at runtime (the
+// `eval` keyword plus builtins like `to_num`/`load` that can evaluate a
+// string). Full builds (the main `blue` binary, the wasm entrypoint)
+// install the real lexer/parser/compiler implementation from their own glue
+// code; minimal VM-only builds leave it nil and evaluation attempts return
+// a clear runtime error instead.
+var EvalHook func(src string) object.Object
+
+// vmStr evaluates a source string through the installed EvalHook.
 func vmStr(s string) object.Object {
-	l := lexer.New(s, "<internal:string>")
-	p := parser.New(l)
-	prog := p.ParseProgram()
-	if p.HasErrors() {
-		return newError("failed to `eval` string, found '%d' parser errors", len(p.ErrorMessages()))
+	if EvalHook == nil {
+		return newError("`eval` is not available in this build: it requires the full blue toolchain (rebuild the standard binary or run via the full blue executable)")
 	}
-	c := compiler.New()
-	err := c.Compile(prog)
-	if err != nil {
-		return newError("compiler error in `eval` string: %s", err.Error())
-	}
-	vm := New(c.Bytecode())
-	err = vm.Run()
-	if err != nil {
-		return newError("vm error in `eval` string: %s", err.Error())
-	}
-	return vm.LastPoppedStackElem()
+	return EvalHook(s)
 }
 
 func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) {

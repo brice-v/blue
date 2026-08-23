@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"hash/fnv"
+	"sort"
 )
 
 type Instructions []byte
@@ -292,4 +294,22 @@ func ReadUint16(ins Instructions) uint16 {
 
 func ReadUint8(ins Instructions) uint8 {
 	return uint8(ins[0])
+}
+
+// OpcodeSetFingerprint returns a stable hash of the opcode set (every
+// opcode's numeric value, name and operand widths). It is used by the binary
+// container fingerprint so that images compiled by a build with a different
+// instruction set are rejected at load time instead of misexecuting.
+func OpcodeSetFingerprint() uint64 {
+	names := make([]string, 0, len(definitions))
+	for op := range definitions {
+		names = append(names, fmt.Sprintf("%d:%s:%v", byte(op), definitions[op].Name, definitions[op].OperandWidths))
+	}
+	sort.Strings(names)
+	h := fnv.New64a()
+	for _, n := range names {
+		_, _ = h.Write([]byte(n))
+		_, _ = h.Write([]byte{0})
+	}
+	return h.Sum64()
 }

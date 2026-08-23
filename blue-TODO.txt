@@ -20,10 +20,6 @@ TODO:
 - [ ] Integrate with --no-exec for vm (make sure exec strings included)
   - [ ] Make sure eval() can be disabled as well
 - [ ] See if its possible to remove *ast.StringLiteral and just directly use *object.Stringo
-- [ ] VM Upgrade
-  - [ ] Compile bytecode to file including encoded constants
-  - [ ] Create separate VM that is as small as possible (not including the rest of the blue runtime) that operates on bytecode files
-  - [ ] Redo bundler at this point (make it more efficient)
 - Tmp
 - [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
     - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
@@ -714,3 +710,7 @@ COMPLETED TASKS:
     - Only small ints cached for now
 - [x] Perf: remove []rune allocations from string index/slice/char-range paths (allocation-free UTF-8 walk in object.RuneAtIndex/RuneRange), widen small-int caches to [-2048, 2048), route negation/bitnot/sort-rebuild boxing through the caches, add bounded intern table (object.InternString/InternInt) used by str(), string indexing, char ranges and short concats
     - Benchmarked vs baseline: char-index -27% time/-80% bytes, string-slice -21% time, hof-map-filter -42% allocs, fib20 vm allocs -52%, map-key-reuse -32% allocs
+- [x] VM Upgrade
+  - [x] Compile bytecode to file including encoded constants
+  - [x] Create separate VM that is as small as possible (not including the rest of the blue runtime) that operates on bytecode files
+  - [x] Redo bundler at this point (make it more efficient)

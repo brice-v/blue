@@ -84,6 +84,27 @@ func safeRunProgram(src string) (errMsg string, resultVal string) {
 	return runProgram(src)
 }
 
+// evalSourceString is the wasm build's implementation of vm.EvalHook. It
+// mirrors the original vm.Str behavior: lex, parse, compile and run the
+// source on a fresh VM, returning its last stack value.
+func evalSourceString(src string) object.Object {
+	l := lexer.New(src, "<internal:string>")
+	p := parser.New(l)
+	prog := p.ParseProgram()
+	if p.HasErrors() {
+		return &object.Error{Message: fmt.Sprintf("failed to `eval` string, found '%d' parser errors", len(p.ErrorMessages()))}
+	}
+	c := compiler.New()
+	if err := c.Compile(prog); err != nil {
+		return &object.Error{Message: "compiler error in `eval` string: " + err.Error()}
+	}
+	vmInstance := vm.New(c.Bytecode())
+	if err := vmInstance.Run(); err != nil {
+		return &object.Error{Message: "vm error in `eval` string: " + err.Error()}
+	}
+	return vmInstance.LastPoppedStackElem()
+}
+
 // runProgram lexes, parses, compiles and runs the given source. Program
 // output flows to stdout/stderr where the page collects it. It mirrors
 // cmd.vmFileOrString but never exits or writes to the real terminal.
@@ -114,6 +135,10 @@ func runProgram(src string) (errMsg string, resultVal string) {
 	}
 
 	v := vm.NewWithGlobalsStore(c.Bytecode(), make([]object.Object, vm.GlobalsSize))
+	// The wasm build ships the full toolchain, so runtime evaluation
+	// (`eval`, `to_num`, `load`) keeps working: install the hook before
+	// running, mirroring what cmd does for the desktop binary.
+	vm.EvalHook = evalSourceString
 	if err := v.Run(); err != nil {
 		if v.TokensForErrorTrace == nil {
 			return consts.VM_ERROR_PREFIX + err.Error() + "\n", ""

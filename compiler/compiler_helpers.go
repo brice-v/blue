@@ -874,12 +874,31 @@ func (c *Compiler) defineSymbolForVarValStatement(node ast.VarValStatement, name
 	var symbol Symbol
 	immutable := node.IsValStatement()
 	if fun, isFun := node.VVValue().(*ast.FunctionLiteral); isFun {
-		helpStr := object.CreateHelpStringFromBodyTokensAstFun(name, fun, fun.Body.HelpStrTokens)
+		helpStr := createHelpStringFromAstFunction(name, fun.String(), fun.Body.HelpStrTokens)
 		symbol = c.symbolTable.DefineFun(c.getName(name), immutable, fun.Parameters, fun.ParameterExpressions, helpStr)
 	} else {
 		symbol = c.symbolTable.Define(c.getName(name), immutable)
 	}
 	return symbol, immutable
+}
+
+// createHelpStringFromAstFunction builds the doc/help string for a function
+// from its AST node. It used to live in package object but only the
+// compiler consumes it, and object must stay free of ast dependencies.
+func createHelpStringFromAstFunction(functionName string, funObjString string, helpStrTokens []string) string {
+	explanation := ""
+	if len(helpStrTokens) > 0 && helpStrTokens[0] == "core:ignore" {
+		return ""
+	}
+	if len(helpStrTokens) == 1 {
+		explanation = helpStrTokens[0]
+	} else if len(helpStrTokens) == 0 {
+		explanation = ""
+	} else {
+		explanation = strings.Join(helpStrTokens, "\n")
+	}
+	helpStr := fmt.Sprintf("%s\n\ntype(%s) = '%s'\ninspect(%s) = '%s'", explanation, functionName, object.FUNCTION_OBJ, functionName, funObjString)
+	return helpStr
 }
 
 func (c *Compiler) emitSetSymbolOpcode(symbol Symbol, immutable bool) {

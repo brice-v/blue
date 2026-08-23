@@ -112,3 +112,23 @@ func populateARGVObj() *List {
 	}
 	return l
 }
+
+// SetProgramArgs replaces the contents of the shared ARGV builtin object.
+// The standalone runner uses this to forward its command line arguments to
+// the program (the default is populated from os.Args at init time, before a
+// runner has decided which arguments belong to the program).
+func SetProgramArgs(args []string) {
+	argvBuiltin, ok := Builtinobjs["ARGV"]
+	if !ok {
+		return
+	}
+	listObj, ok := argvBuiltin.Obj.(*List)
+	if !ok {
+		return
+	}
+	newElems := make([]Object, len(args))
+	for i, e := range args {
+		newElems[i] = &Stringo{Value: e}
+	}
+	listObj.Elements = newElems
+}

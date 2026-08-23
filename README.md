@@ -178,7 +178,22 @@ The commands are:
              -e, e, eval           alternative ways to trigger the vm evaluation
 
     compile  compiles the given string or file to bytecode
-                                                                                              
+                                                                              
+             -o <file>             write a compiled .bbc binary image instead of printing bytecode.
+                                   run it with: blue vm out.bbc, bluerun out.bbc, or pack it into an executable
+                                                                              
+             --no-tokens           strip the token table from the image (smaller file, error traces lose file/line info)
+                                                                              
+             --all-parser-errors   show all parser errors instead of stopping at the first one
+
+    pack     compile the given .b file and append it to a copy of the minimal bluerun runner template,
+             producing a single self-contained executable. the template is looked up next to this
+             executable as bluerun-<GOOS>-<GOARCH> (or bluerun); pass --go-build to build it with go instead
+                                                                              
+             -o <file>             path of the packed executable to write
+                                                                              
+             --go-build            build the template on the fly using the local go toolchain
+                                                                              
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     help     prints this help message
@@ -197,3 +212,39 @@ NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string) to disabl
 
 PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it
 ```
+
+### Compiled programs (.bbc) and single executables
+
+Programs can be precompiled once and reused, skipping the lexer/parser/compiler on
+every subsequent run:
+
+```sh
+blue compile -o out.bbc main.b   # compile core + std + main.b into one binary image
+blue vm out.bbc                  # run it with the full binary (no recompilation)
+```
+
+The `bluerun` runner is a minimal build that embeds NO lexer/parser/compiler and can
+only execute `.bbc` images. It comes in two modes:
+
+```sh
+bluerun out.bbc arg1 arg2        # run a sidecar image, forwarding args to the program
+```
+
+Packing produces a single self-contained executable by appending the compiled image
+to a copy of the `bluerun` template:
+
+```sh
+blue pack -o myapp main.b        # needs a bluerun-<GOOS>-<GOARCH> template next to blue
+./myapp                          # run; all argv is forwarded to the program
+```
+
+Notes and limitations:
+
+- images are fingerprinted: they only load into a binary built from the same source
+  version, opcode set and flavor tags (`static`/`rgfw`). A mismatch prints an
+  actionable error instead of misexecuting
+- `eval(...)` requires the full toolchain, so it is unavailable inside `bluerun` or
+  packed executables (it returns a clear runtime error). The full `blue` binary is
+  unaffected
+- images compiled with `--no-tokens` are smaller but runtime error traces cannot show
+  file/line pointers

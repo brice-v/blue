@@ -1,10 +1,11 @@
 package object
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"regexp"
+	"sort"
+
+	"blue/code"
 
 	"github.com/fxamacker/cbor/v2"
 )
@@ -46,6 +47,13 @@ const (
 	i_EXEC_STRING_OBJ
 	i_IGNORE_OBJ
 	i_DEFAULT_ARGS_OBJ
+
+	// i_STRUCT_FIELDS_OBJ is the faithful serializable form of the
+	// GoObj[[]string] constants the compiler emits for struct literals
+	// (field name lists). Generic GoObj values otherwise decode lossily
+	// as GoObjectGob, which would break struct matching after an image
+	// round-trip. Appended at the end so existing encodings stay valid.
+	i_STRUCT_FIELDS_OBJ
 )
 
 type ObjectWrapper struct {
@@ -53,7 +61,79 @@ type ObjectWrapper struct {
 	Data cbor.RawMessage `cbor:"data"`
 }
 
-func decodeFromType(t iType, data []byte) (Object, error) {
+// maxSerializeDepth bounds recursion when marshaling/unmarshaling nested
+// objects (lists of maps of lists ...). Constant pools are expected to be
+// acyclic, this turns a cycle (or absurdly deep nesting) into an error
+// instead of a stack overflow.
+const maxSerializeDepth = 512
+
+// errTooDeep is returned when the serialization depth limit is exceeded.
+var errTooDeep = fmt.Errorf("object nesting too deep (possible cycle), aborting serialization at depth %d", maxSerializeDepth)
+
+// encNameIndexEntry is the serializable form of one entry of a
+// CompiledFunction's SpecialFunctionParameters inner map.
+type encNameIndexEntry struct {
+	Name  string        `cbor:"n"`
+	Index int           `cbor:"i"`
+	Value ObjectWrapper `cbor:"v"`
+}
+
+// encNameIndexKey is the serializable mirror of NameIndexKey.
+type encNameIndexKey struct {
+	Name  string `cbor:"n"`
+	Index int    `cbor:"i"`
+}
+
+// encSFPGroup is one outer entry of SpecialFunctionParameters:
+// a key plus its inner name/index -> object entries.
+type encSFPGroup struct {
+	Key     encNameIndexKey     `cbor:"k"`
+	Entries []encNameIndexEntry `cbor:"e"`
+}
+
+// encCompiledFunction is the serializable mirror of CompiledFunction. It
+// exists because CompiledFunction contains a sync.Mutex which must not be
+// serialized, and its SpecialFunctionParameters map needs restructuring.
+type encCompiledFunction struct {
+	Instructions     []byte        `cbor:"ins"`
+	NumLocals        int           `cbor:"nl"`
+	NumParameters    int           `cbor:"np"`
+	Parameters       []string      `cbor:"ps"`
+	ParamHasDefault  []bool        `cbor:"phd"`
+	NumDefaultParams int           `cbor:"ndp"`
+	DisplayString    string        `cbor:"ds"`
+	HelpStr          string        `cbor:"hs"`
+	SFP              []encSFPGroup `cbor:"sfp"`
+}
+
+// encKV is a serializable string-keyed entry, used by DefaultArgs.
+type encKV struct {
+	Key   string        `cbor:"k"`
+	Value ObjectWrapper `cbor:"v"`
+}
+
+// encDefaultArgs is the serializable mirror of DefaultArgs.
+type encDefaultArgs struct {
+	Entries []encKV `cbor:"e"`
+}
+
+// encModule is the serializable mirror of Module (Name + HelpStr only, the
+// environment is nil at compile time).
+type encModule struct {
+	Name    string `cbor:"name"`
+	HelpStr string `cbor:"hs"`
+}
+
+// encBlueStruct is the serializable mirror of BlueStruct.
+type encBlueStruct struct {
+	Fields []string        `cbor:"f"`
+	Values []ObjectWrapper `cbor:"v"`
+}
+
+func decodeFromType(t iType, data []byte, depth int) (Object, error) {
+	if depth > maxSerializeDepth {
+		return nil, errTooDeep
+	}
 	switch t {
 	case i_INTEGER_OBJ:
 		var x *Integer
@@ -145,7 +225,7 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 		elems := make([]Object, len(ows))
 		for i, e := range ows {
 			diag("IN LOOP", e.Data)
-			obj, err := decodeFromType(e.Type, e.Data)
+			obj, err := decodeFromType(e.Type, e.Data, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -162,7 +242,7 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 		elems := NewSetElementsWithSize(len(ows))
 		for _, e := range ows {
 			diag("IN SET LOOP", e.Data)
-			obj, err := decodeFromType(e.Type, e.Data)
+			obj, err := decodeFromType(e.Type, e.Data, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -184,11 +264,11 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			vow := ows[i+1]
 			diag("IN MAP KOW", kow.Data)
 			diag("IN MAP VOW", vow.Data)
-			kobj, err := decodeFromType(kow.Type, kow.Data)
+			kobj, err := decodeFromType(kow.Type, kow.Data, depth+1)
 			if err != nil {
 				return nil, err
 			}
-			vobj, err := decodeFromType(vow.Type, vow.Data)
+			vobj, err := decodeFromType(vow.Type, vow.Data, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -220,7 +300,7 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 		elems := make([]Object, len(ows))
 		for i, e := range ows {
 			diag("IN LOOP", e.Data)
-			obj, err := decodeFromType(e.Type, e.Data)
+			obj, err := decodeFromType(e.Type, e.Data, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -230,6 +310,93 @@ func decodeFromType(t iType, data []byte) (Object, error) {
 			T:     elems[0].(*Stringo).Value,
 			Value: elems[1].(*Bytes).Value,
 		}, nil
+	case i_STRUCT_FIELDS_OBJ:
+		var fields []string
+		if cerr := cbor.Unmarshal(data, &fields); cerr != nil {
+			return nil, cerr
+		}
+		return NewGoObj(fields), nil
+	case i_COMPILED_FUNCTION_OBJ:
+		var x encCompiledFunction
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			return nil, err
+		}
+		sfp := make(map[NameIndexKey]map[NameIndexKey]Object, len(x.SFP))
+		for _, group := range x.SFP {
+			inner := make(map[NameIndexKey]Object, len(group.Entries))
+			for _, e := range group.Entries {
+				vobj, derr := decodeFromType(e.Value.Type, e.Value.Data, depth+1)
+				if derr != nil {
+					return nil, derr
+				}
+				inner[NameIndexKey{Name: e.Name, Index: e.Index}] = vobj
+			}
+			sfp[NameIndexKey{Name: group.Key.Name, Index: group.Key.Index}] = inner
+		}
+		return &CompiledFunction{
+			Instructions:             code.Instructions(x.Instructions),
+			NumLocals:                x.NumLocals,
+			NumParameters:            x.NumParameters,
+			Parameters:               x.Parameters,
+			ParameterHasDefault:      x.ParamHasDefault,
+			NumDefaultParams:         x.NumDefaultParams,
+			DisplayString:            x.DisplayString,
+			HelpStr:                  x.HelpStr,
+			SpecialFunctionParameters: sfp,
+		}, nil
+	case i_MODULE_OBJ:
+		var x encModule
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			return nil, err
+		}
+		// Env is always nil for serialized modules: at compile time a
+		// module constant carries no live environment.
+		return &Module{Name: x.Name, HelpStr: x.HelpStr}, nil
+	case i_BLUE_STRUCT_OBJ:
+		var x encBlueStruct
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			return nil, err
+		}
+		values := make([]Object, len(x.Values))
+		for i, v := range x.Values {
+			vobj, derr := decodeFromType(v.Type, v.Data, depth+1)
+			if derr != nil {
+				return nil, derr
+			}
+			values[i] = vobj
+		}
+		return &BlueStruct{Fields: x.Fields, Values: values}, nil
+	case i_EXEC_STRING_OBJ:
+		var x string
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			return nil, err
+		}
+		return &ExecString{Value: x}, nil
+	case i_IGNORE_OBJ:
+		return VM_IGNORE, nil
+	case i_DEFAULT_ARGS_OBJ:
+		var x encDefaultArgs
+		err := cbor.Unmarshal(data, &x)
+		if err != nil {
+			return nil, err
+		}
+		value := make(map[string]Object, len(x.Entries))
+		for _, e := range x.Entries {
+			vobj, derr := decodeFromType(e.Value.Type, e.Value.Data, depth+1)
+			if derr != nil {
+				return nil, derr
+			}
+			value[e.Key] = vobj
+		}
+		return &DefaultArgs{Value: value}, nil
+	case i_BREAK_OBJ:
+		return BREAK, nil
+	case i_CONTINUE_OBJ:
+		return CONTINUE, nil
 	default:
 		return nil, fmt.Errorf("decodeFromType: handle %d", t)
 	}
@@ -251,12 +418,31 @@ func Decode(data []byte) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decodeFromType(a.Type, a.Data)
+	return decodeFromType(a.Type, a.Data, 0)
 }
 
 var EmptyOW = ObjectWrapper{}
 
 func marshalObject(obj Object) (ObjectWrapper, error) {
+	return marshalObjectDepth(obj, 0)
+}
+
+func marshalObjectDepth(obj Object, depth int) (ObjectWrapper, error) {
+	if obj == nil {
+		return EmptyOW, fmt.Errorf("cannot encode nil object")
+	}
+	if depth > maxSerializeDepth {
+		return EmptyOW, errTooDeep
+	}
+	// The compiler emits GoObj[[]string] constants for struct literals;
+	// they serialize under their own type tag for a faithful round trip.
+	if fields, isFields := obj.(*GoObj[[]string]); isFields {
+		fieldData, ferr := cbor.Marshal(fields.Value)
+		if ferr != nil {
+			return EmptyOW, ferr
+		}
+		return ObjectWrapper{Type: i_STRUCT_FIELDS_OBJ, Data: fieldData}, nil
+	}
 	var data []byte
 	var err error
 	switch obj.IType() {
@@ -270,7 +456,7 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 		elems := obj.(*List).Elements
 		ows := make([]ObjectWrapper, len(elems))
 		for i, e := range elems {
-			ow, err := marshalObject(e)
+			ow, err := marshalObjectDepth(e, depth+1)
 			if err != nil {
 				return EmptyOW, err
 			}
@@ -282,7 +468,7 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 		ows := make([]ObjectWrapper, elems.Len())
 		for i, key := range elems.Keys {
 			v, _ := elems.Get(key)
-			ow, err := marshalObject(v.Value)
+			ow, err := marshalObjectDepth(v.Value, depth+1)
 			if err != nil {
 				return EmptyOW, err
 			}
@@ -296,11 +482,11 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 		ows := make([]ObjectWrapper, 0, pairs.Len()*2)
 		for _, key := range pairs.Keys {
 			v, _ := pairs.Get(key)
-			kow, err := marshalObject(v.Key)
+			kow, err := marshalObjectDepth(v.Key, depth+1)
 			if err != nil {
 				return EmptyOW, err
 			}
-			vow, err := marshalObject(v.Value)
+			vow, err := marshalObjectDepth(v.Value, depth+1)
 			if err != nil {
 				return EmptyOW, err
 			}
@@ -313,31 +499,86 @@ func marshalObject(obj Object) (ObjectWrapper, error) {
 		data, err = cbor.Marshal(s)
 	case i_CLOSURE_OBJ:
 		err = fmt.Errorf("TODO: Closure unsupported for marshaling currently")
+	case i_COMPILED_FUNCTION_OBJ:
+		cf := obj.(*CompiledFunction)
+		sfp := make([]encSFPGroup, 0, len(cf.SpecialFunctionParameters))
+		for ok, inner := range cf.SpecialFunctionParameters {
+			group := encSFPGroup{
+				Key:     encNameIndexKey{Name: ok.Name, Index: ok.Index},
+				Entries: make([]encNameIndexEntry, 0, len(inner)),
+			}
+			for ik, iv := range inner {
+				vow, merr := marshalObjectDepth(iv, depth+1)
+				if merr != nil {
+					return EmptyOW, merr
+				}
+				group.Entries = append(group.Entries, encNameIndexEntry{Name: ik.Name, Index: ik.Index, Value: vow})
+			}
+			sort.Slice(group.Entries, func(a, b int) bool {
+				if group.Entries[a].Name != group.Entries[b].Name {
+					return group.Entries[a].Name < group.Entries[b].Name
+				}
+				return group.Entries[a].Index < group.Entries[b].Index
+			})
+			sfp = append(sfp, group)
+		}
+		sort.Slice(sfp, func(a, b int) bool {
+			if sfp[a].Key.Name != sfp[b].Key.Name {
+				return sfp[a].Key.Name < sfp[b].Key.Name
+			}
+			return sfp[a].Key.Index < sfp[b].Key.Index
+		})
+		data, err = cbor.Marshal(encCompiledFunction{
+			Instructions:     []byte(cf.Instructions),
+			NumLocals:        cf.NumLocals,
+			NumParameters:    cf.NumParameters,
+			Parameters:       cf.Parameters,
+			ParamHasDefault:  cf.ParameterHasDefault,
+			NumDefaultParams: cf.NumDefaultParams,
+			DisplayString:    cf.DisplayString,
+			HelpStr:          cf.HelpStr,
+			SFP:              sfp,
+		})
+	case i_MODULE_OBJ:
+		m := obj.(*Module)
+		data, err = cbor.Marshal(encModule{Name: m.Name, HelpStr: m.HelpStr})
+	case i_BLUE_STRUCT_OBJ:
+		bs := obj.(*BlueStruct)
+		values := make([]ObjectWrapper, len(bs.Values))
+		for i, v := range bs.Values {
+			vow, merr := marshalObjectDepth(v, depth+1)
+			if merr != nil {
+				return EmptyOW, merr
+			}
+			values[i] = vow
+		}
+		data, err = cbor.Marshal(encBlueStruct{Fields: bs.Fields, Values: values})
+	case i_EXEC_STRING_OBJ:
+		data, err = cbor.Marshal(obj.(*ExecString).Value)
+	case i_IGNORE_OBJ:
+		data, err = cbor.Marshal(nil)
+	case i_DEFAULT_ARGS_OBJ:
+		da := obj.(*DefaultArgs)
+		entries := make([]encKV, 0, len(da.Value))
+		for k, v := range da.Value {
+			vow, merr := marshalObjectDepth(v, depth+1)
+			if merr != nil {
+				return EmptyOW, merr
+			}
+			entries = append(entries, encKV{Key: k, Value: vow})
+		}
+		// Sorted so encoding is deterministic (map iteration is not)
+		sort.Slice(entries, func(a, b int) bool { return entries[a].Key < entries[b].Key })
+		data, err = cbor.Marshal(encDefaultArgs{Entries: entries})
+	case i_BREAK_OBJ:
+		data, err = cbor.Marshal(nil)
+	case i_CONTINUE_OBJ:
+		data, err = cbor.Marshal(nil)
 	case i_GO_OBJ:
-		// Note: this is unused due to the complexity of handling serializing all go object types
-		// It may be re-enabled later for a subset of supported go object types
-		var buf bytes.Buffer
-		err := gob.NewEncoder(&buf).Encode(obj)
-		if err != nil {
-			return EmptyOW, err
-		}
-		// First ObjectWrapper will be type in Stringo object
-		// 2nd will be ObjectWrapper with gob encoded Bytes object
-		ows := make([]ObjectWrapper, 2)
-		tow, err := marshalObject(&Stringo{Value: fmt.Sprintf("%T", obj)})
-		if err != nil {
-			return EmptyOW, err
-		}
-		gow, err := marshalObject(&Bytes{Value: buf.Bytes()})
-		if err != nil {
-			return EmptyOW, err
-		}
-		ows[0] = tow
-		ows[1] = gow
-		data, err = cbor.Marshal(ows)
-		if err != nil {
-			return EmptyOW, err
-		}
+		// GoObj[[]string] struct field lists are handled before the
+		// switch (i_STRUCT_FIELDS_OBJ). Live Go objects cannot be stored
+		// in a binary image, so anything else here is rejected.
+		return EmptyOW, fmt.Errorf("%T holds live Go state and cannot be serialized", obj)
 	default:
 		data, err = cbor.Marshal(obj)
 	}
@@ -471,15 +712,17 @@ func (x *Set) IType() iType {
 }
 
 func (x *BlueStruct) Encode() ([]byte, error) {
-	// return marshalObjectWrapper(x)
-	// TODO: Can probably support this
-	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+	return marshalObjectWrapper(x)
 }
 
 func (x *BlueStruct) IType() iType {
 	return i_BLUE_STRUCT_OBJ
 }
 
+// Encode stays unavailable for the runtime `save` builtin: a live module
+// holds an Environment that cannot be serialized. Compile-time module
+// CONSTANTS (Name + HelpStr only, Env always nil) ARE serialized by the
+// binary container via marshalObjectDepth.
 func (x *Module) Encode() ([]byte, error) {
 	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
 }
@@ -498,9 +741,7 @@ func (x *GoObj[T]) IType() iType {
 }
 
 func (x *CompiledFunction) Encode() ([]byte, error) {
-	// return marshalObjectWrapper(x)
-	// TODO: Can probably support this
-	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+	return marshalObjectWrapper(x)
 }
 
 func (x *CompiledFunction) IType() iType {
@@ -516,9 +757,7 @@ func (x *Closure) IType() iType {
 }
 
 func (x *ExecString) Encode() ([]byte, error) {
-	// return marshalObjectWrapper(x)
-	// TODO: Can probably support this
-	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+	return marshalObjectWrapper(x)
 }
 
 func (x *ExecString) IType() iType {
@@ -526,9 +765,7 @@ func (x *ExecString) IType() iType {
 }
 
 func (x *Ignore) Encode() ([]byte, error) {
-	// return marshalObjectWrapper(x)
-	// TODO: Can probably support this
-	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+	return marshalObjectWrapper(x)
 }
 
 func (x *Ignore) IType() iType {
@@ -536,9 +773,7 @@ func (x *Ignore) IType() iType {
 }
 
 func (x *DefaultArgs) Encode() ([]byte, error) {
-	// return marshalObjectWrapper(x)
-	// TODO: Can probably support this
-	return nil, fmt.Errorf("%s is not supported for encoding", x.Type())
+	return marshalObjectWrapper(x)
 }
 
 func (x *DefaultArgs) IType() iType {

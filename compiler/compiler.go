@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"blue/ast"
+	"blue/binc"
 	"blue/blueutil"
 	"blue/code"
 	"blue/consts"
@@ -145,11 +146,10 @@ func (c *Compiler) GetDocOrderedPublicFunctionHelpString(modName string) string 
 	return c.symbolTable.GetOrderedPublicFunctionHelpString(modName)
 }
 
-type Bytecode struct {
-	Instructions code.Instructions
-	Constants    []object.Object
-	Tokens       []*token.Token
-}
+// Bytecode is an alias of binc.Bytecode: the struct lives in package binc
+// so that packages which must not import the compiler (vm, minimal runners)
+// can share the exact same type. See binc.Bytecode.
+type Bytecode = binc.Bytecode
 
 func (c *Compiler) Bytecode() *Bytecode {
 	return &Bytecode{
@@ -623,7 +623,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// of it must not be treated as a match wildcard
 		prevInMatch := c.inMatch
 		c.inMatch = false
-		helpStr := object.CreateHelpStringFromBodyTokensAstFun(node.Name.Value, node, node.Body.HelpStrTokens)
+		helpStr := createHelpStringFromAstFunction(node.Name.Value, node.String(), node.Body.HelpStrTokens)
 		symbol := c.symbolTable.DefineFun(c.getName(node.Name.Value), true, node.Parameters, node.ParameterExpressions, helpStr)
 		c.enterScope()
 		compiledFun := c.setupFunction(node.Parameters, node.ParameterExpressions, node.Body, node.String())

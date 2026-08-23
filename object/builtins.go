@@ -1,10 +1,7 @@
 package object
 
 import (
-	"blue/ast"
 	"blue/consts"
-	"blue/lexer"
-	"blue/parser"
 	"blue/util"
 	"bufio"
 	"bytes"
@@ -1381,25 +1378,9 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("from_json", 1, STRING_OBJ, args[0].Type())
 			}
 			s := args[0].(*Stringo).Value
-			if !json.Valid([]byte(s)) {
-				return newError("`from_json` error: invalid json: %q", s)
-			}
-			l := lexer.New(s, "<internal:json>")
-			p := parser.New(l)
-			program := p.ParseProgram()
-			// Should be no errors once float parsing supported
-			if p.HasErrors() {
-				return newError("`from_json` error: failed to parse json string `%s`", s)
-			}
-			// Should only be 1 statement
-			if len(program.Statements) > 1 {
-				return newError("`from_json` error: too many statements found")
-			}
-			stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
-			if !ok {
-				return newError("`from_json` error: unexpected statement type %T", program.Statements[0])
-			}
-			return ParseJson(stmt.Expression)
+			// Dedicated converter (object/json.go): no lexer/parser
+			// needed, so from_json works in minimal VM-only builds too.
+			return FromJsonString(s)
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`from_json` checks if the json is valid and returns an object",

@@ -1,8 +1,6 @@
 package object
 
 import (
-	"blue/ast"
-	"blue/token"
 	"math"
 	"testing"
 )
@@ -28,18 +26,10 @@ func TestStringHashKey(t *testing.T) {
 }
 
 func TestFunctionString(t *testing.T) {
-	a := &ast.Identifier{
-		Token: token.Token{},
-		Value: "a",
-	}
-	b := &ast.Identifier{
-		Token: token.Token{},
-		Value: "b",
-	}
 	f := &Function{
-		Parameters:        []*ast.Identifier{a, b},
+		Parameters:        []string{"a", "b"},
 		DefaultParameters: []Object{nil, &Null{}},
-		Body:              &ast.BlockStatement{},
+		Body:              "",
 	}
 	expectedInspect := "fun(a, b=null) {\n\n}"
 	if f.Inspect() != expectedInspect {
