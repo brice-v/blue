@@ -221,3 +221,41 @@ func CloneSlice(elements []Object) []Object {
 	}
 	return newElements
 }
+
+// immutableGlobalTypes reports object types whose values can never be
+// observed to change, so a spawned vm may share the parent's object
+// instead of cloning it (numbers, strings, bools, null, functions,
+// builtins). Everything else (lists, maps, sets, structs, bytes,
+// processes, ...) is mutable state that must be deep cloned for the
+// spawn-time snapshot semantics.
+func immutableGlobalType(o Object) bool {
+	switch o.IType() {
+	case i_INTEGER_OBJ, i_BIG_INTEGER_OBJ, i_BOOLEAN_OBJ, i_NULL_OBJ,
+		i_UINTEGER_OBJ, i_FLOAT_OBJ, i_BIG_FLOAT_OBJ, i_STRING_OBJ,
+		i_FUNCTION_OBJ, i_COMPILED_FUNCTION_OBJ, i_CLOSURE_OBJ,
+		i_BUILTIN_OBJ:
+		return true
+	}
+	return false
+}
+
+// CloneGlobals returns an isolated snapshot of a globals store for a
+// spawned vm. Only slots below highWater were ever written, so the clone
+// is sized to just that prefix regardless of how large the parent's store
+// is; immutable values are shared and mutable containers are deep cloned
+// so later writes by either vm cannot affect the other. Writes beyond the
+// cloned length grow the child's store on demand (see the vm's
+// ensureGlobalWritable).
+func CloneGlobals(elements []Object, highWater int) []Object {
+	if highWater > len(elements) {
+		highWater = len(elements)
+	}
+	newElements := make([]Object, highWater)
+	copy(newElements, elements[:highWater])
+	for i := range newElements {
+		if e := newElements[i]; e != nil && !immutableGlobalType(e) {
+			newElements[i] = e.Clone()
+		}
+	}
+	return newElements
+}

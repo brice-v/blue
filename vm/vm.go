@@ -33,8 +33,14 @@ type VM struct {
 
 	// globalsOwned reports whether this vm may write to vm.globals directly.
 	// Connection vms start out sharing their parent's globals slice and copy
-	// it on first write (see ensureOwnGlobals).
+	// it on first write (see ensureGlobalWritable).
 	globalsOwned bool
+
+	// globalsHighWater is one past the highest global index ever written by
+	// this vm. Globals are only ever appended to (symbol table indices are
+	// assigned at compile time), so slots at or above it are still nil; the
+	// spawn-time snapshot in Clone only needs to visit the used prefix.
+	globalsHighWater int
 
 	// Frames are stored by value in a preallocated array. currentFrame
 	// returns a pointer into the array, so frame access in the interpreter
@@ -71,11 +77,6 @@ func (vm *VM) currentFrame() *Frame {
 	return &vm.frames[vm.framesIndex-1]
 }
 
-func (vm *VM) pushFrame(f *Frame) {
-	vm.frames[vm.framesIndex] = *f
-	vm.framesIndex++
-}
-
 func (vm *VM) popFrame() *Frame {
 	var f *Frame
 	if vm.framesIndex-1 == 0 {
@@ -93,10 +94,34 @@ func (vm *VM) popFrame() *Frame {
 	return f
 }
 
+// lazyFramesFloor is the initial capacity of a vm's frame array. Frames
+// grow geometrically up to MaxFrames on demand (see growFramesIfNeeded),
+// so short scripts never pay for a 1024-slot array (~80 KB) up front.
+const lazyFramesFloor = 32
+
+// growFramesIfNeeded doubles the frame array when the next slot would fall
+// off the end. Growth copies the live prefix; callers must not hold *Frame
+// pointers across operations that can push frames — the interpreter already
+// re-fetches via currentFrame() after every such operation (the same
+// discipline that makes applyFunctionFast's array swapping safe).
+func (vm *VM) growFramesIfNeeded() {
+	if vm.framesIndex < len(vm.frames) || len(vm.frames) >= MaxFrames {
+		return
+	}
+	newSize := len(vm.frames) * 2
+	if newSize > MaxFrames {
+		newSize = MaxFrames
+	}
+	newFrames := make([]Frame, newSize)
+	copy(newFrames, vm.frames[:vm.framesIndex])
+	vm.frames = newFrames
+}
+
 // newCallFrame initializes the next frame slot in place and returns a pointer
 // to it, avoiding a heap allocation per function call. The caller must bump
-// framesIndex (via pushFrame) or overwrite the current slot (fast-frame call).
+// framesIndex or overwrite the current slot (fast-frame call).
 func (vm *VM) newCallFrame(cl *object.Closure, bp int) *Frame {
+	vm.growFramesIfNeeded()
 	f := &vm.frames[vm.framesIndex]
 	f.cl = cl
 	f.ip = -1
@@ -123,7 +148,7 @@ func (vm *VM) newCallFrameReplaceTop(cl *object.Closure, bp int) *Frame {
 func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
 	mainClosure := &object.Closure{Fun: mainFn}
-	frames := make([]Frame, MaxFrames)
+	frames := make([]Frame, lazyFramesFloor)
 	frames[0] = *NewFrame(mainClosure, 0)
 	// Reserve the pid atomically via Add(1), like executeSpawn does. A
 	// plain Load() let two vms share a pid: spawned children take their
@@ -137,7 +162,6 @@ func NewNode(nodeName string, bytecode *compiler.Bytecode) *VM {
 		lastNodePos:  -1,
 		stack:        make([]object.Object, StackSize),
 		sp:           0,
-		globals:      make([]object.Object, GlobalsSize),
 		globalsOwned: true,
 		frames:       frames,
 		framesIndex:  1,
@@ -175,14 +199,14 @@ func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
 // callers immediately run a function on the clone via applyFunctionFast*,
 // which swaps in its own frames and never reads stack contents below sp.
 func (vm *VM) Clone(pid uint64) *VM {
-	frames := make([]Frame, MaxFrames)
+	frames := make([]Frame, lazyFramesFloor)
 	frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	return &VM{
 		constants:    vm.constants,
 		tokens:       vm.tokens,
 		stack:        make([]object.Object, StackSize),
 		sp:           0,
-		globals:      object.CloneSlice(vm.globals),
+		globals:      object.CloneGlobals(vm.globals, vm.globalsHighWater),
 		globalsOwned: true,
 		frames:       frames,
 		framesIndex:  1,
@@ -199,7 +223,7 @@ func (vm *VM) Clone(pid uint64) *VM {
 // state (stack, frames) is private. This keeps per connection memory flat
 // instead of deep cloning the whole program for every connection.
 func (vm *VM) CloneForConnection(pid uint64) *VM {
-	frames := make([]Frame, MaxFrames)
+	frames := make([]Frame, lazyFramesFloor)
 	frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	return &VM{
 		constants:   vm.constants,
@@ -216,15 +240,54 @@ func (vm *VM) CloneForConnection(pid uint64) *VM {
 	}
 }
 
-// ensureOwnGlobals copies the shared globals slice before the first write so
-// writes made by this vm are not visible to sibling vms sharing the slice.
-func (vm *VM) ensureOwnGlobals() {
-	if !vm.globalsOwned {
-		globals := make([]object.Object, len(vm.globals))
-		copy(globals, vm.globals)
-		vm.globals = globals
-		vm.globalsOwned = true
+// ensureGlobalWritable makes vm.globals safe to write at index. Globals are
+// lazily sized: fresh vms start with no backing store and grow geometrically
+// up to GlobalsSize on first write, so short scripts never pay for a full
+// 64k-slot table (allocation + GC scanning of 1 MB of pointers). Slices
+// shared with sibling vms are copied first (copy-on-write).
+func (vm *VM) ensureGlobalWritable(index int) {
+	if index < len(vm.globals) && vm.globalsOwned {
+		return // hot path: already owned and big enough
 	}
+	newSize := len(vm.globals)
+	if index >= newSize {
+		// Grow geometrically; indices are uint16 operands so they always
+		// fit within GlobalsSize.
+		newSize *= 2
+		if newSize <= index {
+			newSize = index + 1
+		}
+		if newSize < lazyGlobalsFloor {
+			newSize = lazyGlobalsFloor
+		}
+		if newSize > GlobalsSize {
+			newSize = GlobalsSize
+		}
+	}
+	newGlobals := make([]object.Object, newSize)
+	copy(newGlobals, vm.globals)
+	vm.globals = newGlobals
+	vm.globalsOwned = true
+}
+
+// lazyGlobalsFloor is the initial size of a vm's lazily allocated globals
+// store, large enough that typical scripts never reallocate.
+const lazyGlobalsFloor = 128
+
+// SetGlobalsHighWater records that global slots below n hold values written
+// outside of the interpreter loop (the repl stores per-line results
+// directly into the shared store between runs), so spawn-time snapshots
+// include them.
+func (vm *VM) SetGlobalsHighWater(n int) {
+	if n > vm.globalsHighWater {
+		vm.globalsHighWater = n
+	}
+}
+
+// GlobalsHighWater returns one past the highest global index ever written
+// through this vm (or seeded via SetGlobalsHighWater).
+func (vm *VM) GlobalsHighWater() int {
+	return vm.globalsHighWater
 }
 
 func (vm *VM) StackTop() object.Object {
@@ -434,13 +497,23 @@ func (vm *VM) Run() error {
 		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			frame.ip += 2
-			vm.ensureOwnGlobals()
+			vm.ensureGlobalWritable(int(globalIndex))
 			vm.globals[globalIndex] = vm.pop()
+			if int(globalIndex) >= vm.globalsHighWater {
+				vm.globalsHighWater = int(globalIndex) + 1
+			}
 		case code.OpGetGlobal, code.OpGetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			frame.ip += 2
-			err := vm.push(vm.globals[globalIndex])
-			if err != nil {
+			if int(globalIndex) < len(vm.globals) {
+				err := vm.push(vm.globals[globalIndex])
+				if err != nil {
+					err = vm.PushAndReturnError(err)
+					if err != nil {
+						return err
+					}
+				}
+			} else if err := vm.push(nil); err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {
 					return err
@@ -457,7 +530,11 @@ func (vm *VM) Run() error {
 				name := object.GetProcessKeyName(processKeyIndex)
 				err = vm.executeProcessIndexExpression(vm.pop().(*object.Process), name)
 			} else {
-				err = vm.push(vm.globals[globalIndex])
+				if int(globalIndex) < len(vm.globals) {
+					err = vm.push(vm.globals[globalIndex])
+				} else {
+					err = vm.push(nil)
+				}
 			}
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -727,31 +804,22 @@ func (vm *VM) Run() error {
 							vm.builtinObjs[cacheKey] = builtin
 						}
 					} else {
-						if blueutil.ENABLE_VM_CACHING {
-							// Per-vm builtin cache. The builtin definition is
-							// shared across vms, so it must never be written
-							// to here: concurrent vms would race on it.
-							var ok bool
-							builtin, ok = vm.builtinObjs[definition.Name]
-							if !ok {
-								builtin = &object.Builtin{
-									Name:    definition.Name,
-									Fun:     GetBuiltinFunWithVm(definition.Name, vm),
-									HelpStr: definition.HelpStr,
-									Mutates: definition.Mutates,
-								}
-								if vm.builtinObjs == nil {
-									vm.builtinObjs = make(map[string]*object.Builtin)
-								}
-								vm.builtinObjs[definition.Name] = builtin
-							}
-						} else {
+						// Per-vm builtin cache. The builtin definition is
+						// shared across vms, so it must never be written
+						// to here: concurrent vms would race on it.
+						var ok bool
+						builtin, ok = vm.builtinObjs[definition.Name]
+						if !ok {
 							builtin = &object.Builtin{
 								Name:    definition.Name,
 								Fun:     GetBuiltinFunWithVm(definition.Name, vm),
 								HelpStr: definition.HelpStr,
 								Mutates: definition.Mutates,
 							}
+							if vm.builtinObjs == nil {
+								vm.builtinObjs = make(map[string]*object.Builtin)
+							}
+							vm.builtinObjs[definition.Name] = builtin
 						}
 					}
 				} else {
@@ -1039,45 +1107,6 @@ func (vm *VM) Run() error {
 		}
 	}
 	return nil
-}
-
-func (vm *VM) printMiniStack(slots int) {
-	for i := range slots {
-		obj := vm.stack[i]
-		if obj != nil {
-			s := obj.Inspect()
-			if runeLen(s) > 10000 {
-				s = s[:100] + "..."
-			}
-			log.Printf("stack[%d] = %q (%T)\n", i, s, obj)
-		}
-	}
-}
-
-func (vm *VM) printStackInfo() {
-	normalItems := 0
-	nilItems := 0
-	typeMapCount := map[string]int{}
-	for _, e := range vm.stack {
-		if e != nil {
-			normalItems++
-			t := fmt.Sprintf("%T", e)
-			_, ok := typeMapCount[t]
-			if !ok {
-				typeMapCount[t] = 1
-			} else {
-				typeMapCount[t]++
-			}
-		} else {
-			nilItems++
-		}
-	}
-	log.Printf("normalItems = %d, nilItems = %d", normalItems, nilItems)
-	log.Printf("typeMapCount --------------------------")
-	for k, v := range typeMapCount {
-		log.Printf("%s %d", k, v)
-	}
-	log.Printf("------------ --------------------------")
 }
 
 func (vm *VM) prepareStackTraceAndReturnError(err error) error {

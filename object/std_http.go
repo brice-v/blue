@@ -625,7 +625,9 @@ var HttpBuiltins = []*Builtin{
 					_ = c.Next()
 					return
 				}
-				c.JSON(collectMonitorStats())
+				if jsonErr := c.JSON(collectMonitorStats()); jsonErr != nil {
+					log.Printf("Failed to write monitor stats response, error: %s", jsonErr.Error())
+				}
 			}, false)
 			return NULL
 		},

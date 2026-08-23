@@ -569,9 +569,12 @@ func GetBuiltinFunWithVm(name string, vm *VM) func(args ...object.Object) object
 // blue functions, which push more frames (a small fixed-size array here used
 // to overflow and panic for callbacks that make nested calls). Slots are
 // never read before being written during a run, so reuse across vms is safe.
+// The pool holds *[]Frame because putting a slice value would box a new
+// interface allocation on every Put.
 var isolatedFramesPool = sync.Pool{
 	New: func() any {
-		return make([]Frame, MaxFrames)
+		frames := make([]Frame, MaxFrames)
+		return &frames
 	},
 }
 
@@ -579,8 +582,9 @@ func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object
 	existingFrames := vm.frames
 	existingFrameIndex := vm.framesIndex
 	existingStackPointer := vm.sp
-	frames := isolatedFramesPool.Get().([]Frame)
-	defer isolatedFramesPool.Put(frames)
+	framesPtr := isolatedFramesPool.Get().(*[]Frame)
+	frames := *framesPtr
+	defer isolatedFramesPool.Put(framesPtr)
 	vm.frames = frames
 	vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 	vm.framesIndex = 2
@@ -628,8 +632,9 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		existingFrames := vm.frames
 		existingFrameIndex := vm.framesIndex
 		existingStackPointer := vm.sp
-		frames := isolatedFramesPool.Get().([]Frame)
-		defer isolatedFramesPool.Put(frames)
+		framesPtr := isolatedFramesPool.Get().(*[]Frame)
+		frames := *framesPtr
+		defer isolatedFramesPool.Put(framesPtr)
 		vm.frames = frames
 		vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
 		vm.framesIndex = 2

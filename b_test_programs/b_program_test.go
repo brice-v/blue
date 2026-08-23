@@ -2,7 +2,6 @@ package b_program_test
 
 import (
 	"blue/ast"
-	"blue/blueutil"
 	"blue/compiler"
 	"blue/lexer"
 	"blue/object"
@@ -23,9 +22,6 @@ func testDirectoryWithVm(t *testing.T, path string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Disable caching that breaks tests
-	blueutil.ENABLE_VM_CACHING = false
 
 	for _, f := range files {
 		// test_http is still not setup to work yet

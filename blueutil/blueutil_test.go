@@ -354,36 +354,3 @@ func TestFmtInstructionMismatchedOperandCount(t *testing.T) {
 		t.Error("expected error message for mismatched operand count")
 	}
 }
-
-// ENABLE_VM_CACHING tests
-
-func TestEnableVMCachingDefault(t *testing.T) {
-	original := ENABLE_VM_CACHING
-	defer func() { ENABLE_VM_CACHING = original }()
-
-	// Default should be true
-	if !ENABLE_VM_CACHING {
-		t.Error("expected ENABLE_VM_CACHING to be true by default")
-	}
-}
-
-func TestEnableVMCachingSetFalse(t *testing.T) {
-	original := ENABLE_VM_CACHING
-	defer func() { ENABLE_VM_CACHING = original }()
-
-	ENABLE_VM_CACHING = false
-	if ENABLE_VM_CACHING {
-		t.Error("expected ENABLE_VM_CACHING to be false after setting")
-	}
-}
-
-func TestEnableVMCachingSetTrue(t *testing.T) {
-	original := ENABLE_VM_CACHING
-	defer func() { ENABLE_VM_CACHING = original }()
-
-	ENABLE_VM_CACHING = false
-	ENABLE_VM_CACHING = true
-	if !ENABLE_VM_CACHING {
-		t.Error("expected ENABLE_VM_CACHING to be true after setting")
-	}
-}

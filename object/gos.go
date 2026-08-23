@@ -42,7 +42,10 @@ var Files embed.FS
 var NoExec = false
 
 func ClearGlobalState() {
-	PidCount.Store(0)
+	// PidCount is intentionally NOT reset: pids must stay monotonic so a
+	// still-running spawned vm from a previous program can never share a
+	// process-map key with (and close the channel of) a new program's
+	// process after the map is cleared.
 	ProcessMap.Clear()
 	SubscriberCount.Store(0)
 	PubSubBroker.Clear()

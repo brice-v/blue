@@ -1,6 +1,7 @@
 package object
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -113,7 +114,9 @@ func TestDownloadBuiltin(t *testing.T) {
 
 	payload := "blue download payload"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(payload))
+		if _, writeErr := w.Write([]byte(payload)); writeErr != nil {
+			log.Printf("Failed to write test payload, error: %s", writeErr.Error())
+		}
 	}))
 	defer srv.Close()
 

@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"blue/blueutil"
 	"blue/code"
 	"blue/compiler"
 	"blue/lexer"
@@ -246,7 +245,6 @@ main()
 
 func compileAndRunBench(b *testing.B, src string) object.Object {
 	b.Helper()
-	blueutil.ENABLE_VM_CACHING = true
 	l := lexer.New(src, "<bench>")
 	p := parser.New(l)
 	prog := p.ParseProgram()

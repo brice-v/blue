@@ -1,6 +1,7 @@
 package object
 
 import (
+	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -58,11 +59,17 @@ func TestConnectBuiltin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer l.Close()
+	defer func() {
+		if closeErr := l.Close(); closeErr != nil {
+			log.Printf("Failed to close listener, error: %s", closeErr.Error())
+		}
+	}()
 	go func() {
 		c, aerr := l.Accept()
 		if aerr == nil {
-			c.Close()
+			if closeErr := c.Close(); closeErr != nil {
+				log.Printf("Failed to close accepted connection, error: %s", closeErr.Error())
+			}
 		}
 	}()
 	host, port, _ := net.SplitHostPort(l.Addr().String())
@@ -131,8 +138,12 @@ func TestListenAcceptReadWriteCloseTcp(t *testing.T) {
 	serverConn := goObjValue[net.Conn](t, acceptRes)
 	clientConn := goObjValue[net.Conn](t, clientRes)
 	deadline := time.Now().Add(10 * time.Second)
-	serverConn.SetDeadline(deadline)
-	clientConn.SetDeadline(deadline)
+	if err := serverConn.SetDeadline(deadline); err != nil {
+		log.Printf("Failed to set server deadline, error: %s", err.Error())
+	}
+	if err := clientConn.SetDeadline(deadline); err != nil {
+		log.Printf("Failed to set client deadline, error: %s", err.Error())
+	}
 
 	if res := writeFn(NewGoObj(clientConn), &Stringo{Value: "net"}, &Stringo{Value: "hello"}, &Stringo{Value: "\n"}); res != NULL {
 		t.Errorf("net_write with end byte = %s, want NULL", res.Inspect())
@@ -231,15 +242,23 @@ func TestUdpListenReadWriteClose(t *testing.T) {
 	if ts := mapGetString(t, lMap.(*Map), "t").(*Stringo).Value; ts != "net/udp" {
 		t.Errorf("udp listen 't' field = %q, want 'net/udp'", ts)
 	}
-	serverUDP.SetDeadline(time.Now().Add(10 * time.Second))
+	if err := serverUDP.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		log.Printf("Failed to set udp server deadline, error: %s", err.Error())
+	}
 	udpAddr := serverUDP.LocalAddr().(*net.UDPAddr)
 
 	clientUDP, err := net.DialUDP("udp", nil, udpAddr)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer clientUDP.Close()
-	clientUDP.SetDeadline(time.Now().Add(10 * time.Second))
+	defer func() {
+		if closeErr := clientUDP.Close(); closeErr != nil {
+			log.Printf("Failed to close udp client, error: %s", closeErr.Error())
+		}
+	}()
+	if err := clientUDP.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		log.Printf("Failed to set udp client deadline, error: %s", err.Error())
+	}
 
 	winfo := inspectFn(NewGoObj(clientUDP), &Stringo{Value: "net/udp"}).(*Map)
 	ra := mapGetString(t, winfo, "remote_addr").(*Stringo).Value

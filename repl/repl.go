@@ -56,6 +56,10 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	}
 	var filebuf bytes.Buffer
 	replVarIndx := 1
+	// replGlobalsHwm tracks one past the highest global index ever written
+	// in this session (by any line's vm or by the repl result vars), so new
+	// per-line vms seed their spawn snapshots correctly.
+	replGlobalsHwm := 0
 	var c *compiler.Compiler = nil
 	for {
 		line := readLine(rl)
@@ -98,11 +102,21 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		bc := c.Bytecode()
 		constants = bc.Constants
 		v := vm.NewWithGlobalsStore(bc, globals)
+		// Globals written by earlier lines (vm sets and repl result vars)
+		// must be visible to spawn-time snapshots taken by this vm.
+		v.SetGlobalsHighWater(replGlobalsHwm)
 		err = v.Run()
 		if err == nil {
 			replVar := fmt.Sprintf("_%d", replVarIndx)
 			symbol := symbolTable.Define(replVar, true)
 			globals[symbol.Index] = v.LastPoppedStackElem()
+			// Written outside the vm loop; keep future spawn snapshots
+			// correct. The result var index and anything this line's vm
+			// wrote both raise the watermark.
+			replGlobalsHwm = symbol.Index + 1
+			if hw := v.GlobalsHighWater(); hw > replGlobalsHwm {
+				replGlobalsHwm = hw
+			}
 			replVarIndx++
 			_, errr := fmt.Fprintf(out, "%s => %s\n", replVar, v.LastPoppedStackElem().Inspect())
 			if errr != nil {

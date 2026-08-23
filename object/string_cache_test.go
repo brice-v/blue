@@ -1,7 +1,6 @@
 package object
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -11,12 +10,13 @@ func TestNewStringCachesShortStrings(t *testing.T) {
 		t.Fatal("expected NewString(\"\") to return EmptyString")
 	}
 	for _, c := range []byte{' ', '\n', '\t', 'a', '0', '~', '\x00'} {
-		s := string(c)
-		if NewString(s) != NewString(s) {
-			t.Fatalf("expected shared object for %q", s)
+		first, second := NewString(string(c)), NewString(string(c))
+		if first != second {
+			t.Fatalf("expected shared object for %q", string(c))
 		}
 	}
-	if NewString(" ") != NewString(strings.ToLower(" ")) {
+	space := " "
+	if NewString(" ") != NewString(space) {
 		t.Fatal("expected ' ' cache hit from any source string")
 	}
 
@@ -28,7 +28,8 @@ func TestNewStringCachesShortStrings(t *testing.T) {
 		}
 	}
 	// Multi-byte and longer strings must not alias each other
-	if NewString("\u00e9") == NewString("\u00e9") {
+	e1, e2 := NewString("\u00e9"), NewString("\u00e9")
+	if e1 == e2 {
 		t.Fatal("non-ASCII single-rune string should not be cached/shared")
 	}
 }

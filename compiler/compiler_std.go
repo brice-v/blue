@@ -2,7 +2,6 @@ package compiler
 
 import (
 	"blue/ast"
-	"blue/blueutil"
 	"blue/code"
 	"blue/consts"
 	"blue/lexer"
@@ -16,11 +15,10 @@ import (
 )
 
 type StdModFile struct {
-	File          string            // File is the actual code used for the module
-	Index         int               // Index is the builtins index in AllBuiltins
-	Builtins      []*object.Builtin // Builtins is the builtins for the std module
-	HelpStr       string            // HelpStr is the help string for the std lib program
-	ParsedProgram *ast.Program
+	File     string            // File is the actual code used for the module
+	Index    int               // Index is the builtins index in AllBuiltins
+	Builtins []*object.Builtin // Builtins is the builtins for the std module
+	HelpStr  string            // HelpStr is the help string for the std lib program
 }
 
 var _std_mods = map[string]*StdModFile{
@@ -70,16 +68,19 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		return fmt.Errorf("failed to compile std module: '%s' is not in std lib map", name)
 	}
 	fb := _std_mods[name]
-	if fb.ParsedProgram == nil || !blueutil.ENABLE_VM_CACHING {
-		l := lexer.New(fb.File, "<std/"+name+".b>")
-		p := parser.New(l)
-		fb.ParsedProgram = p.ParseProgram()
-		if p.HasErrors() {
-			p.PrintParserErrors(os.Stderr)
-			return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
-		}
+	// Note: the parsed program is intentionally NOT cached across
+	// compilations. Compiling mutates AST nodes (for-in desugaring rewrites
+	// Condition/PostExp/IterableSetters), so a shared program would already
+	// be desugared for the second importer and fail to compile. Only the
+	// builtin definitions are cached; the (cheap) lex+parse runs per import.
+	l := lexer.New(fb.File, "<std/"+name+".b>")
+	p := parser.New(l)
+	programToCompile := p.ParseProgram()
+	if p.HasErrors() {
+		p.PrintParserErrors(os.Stderr)
+		return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 	}
-	if fb.Builtins == nil || !blueutil.ENABLE_VM_CACHING {
+	if fb.Builtins == nil {
 		i, b := object.GetIndexAndBuiltinsOf(name)
 		fb.Index = i
 		fb.Builtins = b
@@ -94,7 +95,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	}(fb.Builtins)
 	if shouldImportAll {
 		// Import All acts as if everything is in the current file
-		return c.Compile(fb.ParsedProgram)
+		return c.Compile(programToCompile)
 	}
 	checkNodeIdentsToImport := len(nodeIdentsToImport) > 0
 	if checkNodeIdentsToImport {
@@ -108,7 +109,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	}
 	c.importNestLevel++
 	c.modName = append(c.modName, name)
-	err := c.Compile(fb.ParsedProgram)
+	err := c.Compile(programToCompile)
 	if err != nil {
 		return err
 	}
@@ -126,7 +127,7 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	// So the problem now is that index operator, needs to work based off available modules
 	// while compiling, if we encounter a identifier that is a module, we must pull it in
 	pubFunHelpStr := c.symbolTable.GetOrderedPublicFunctionHelpString(name)
-	literal := &object.Module{Name: name, Env: nil, HelpStr: object.CreateHelpStringFromProgramTokens(name, fb.ParsedProgram.HelpStrTokens, pubFunHelpStr)}
+	literal := &object.Module{Name: name, Env: nil, HelpStr: object.CreateHelpStringFromProgramTokens(name, programToCompile.HelpStrTokens, pubFunHelpStr)}
 	c.emit(code.OpConstant, c.addConstant(literal))
 	symbol := c.symbolTable.Define(name, true)
 	switch symbol.Scope {

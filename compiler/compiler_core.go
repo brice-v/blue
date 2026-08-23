@@ -1,7 +1,6 @@
 package compiler
 
 import (
-	"blue/blueutil"
 	"blue/code"
 	"blue/consts"
 	"blue/lexer"
@@ -14,7 +13,7 @@ import (
 )
 
 func (c *Compiler) compileCore() {
-	if !c.coreCompiled || !blueutil.ENABLE_VM_CACHING {
+	if !c.coreCompiled {
 		l := lexer.New(lib.CoreFile, consts.CORE_FILE_PATH)
 		p := parser.New(l)
 		program := p.ParseProgram()
@@ -33,7 +32,7 @@ func (c *Compiler) compileCore() {
 var _coreCompiler *Compiler = nil
 
 func newFromCore() *Compiler {
-	if _coreCompiler == nil || !blueutil.ENABLE_VM_CACHING {
+	if _coreCompiler == nil {
 		l := lexer.New(lib.CoreFile, consts.CORE_FILE_PATH)
 		p := parser.New(l)
 		program := p.ParseProgram()
@@ -59,23 +58,13 @@ func newFromCore() *Compiler {
 		// log.Printf("COMPILER: %s", c.DebugString())
 		_coreCompiler = c
 	}
-	var (
-		compilerConstants []object.Object
-		constantFolds     map[uint64]int
-		symbolTable       *SymbolTable
-		scopes            []CompilationScope
-	)
-	if blueutil.ENABLE_VM_CACHING {
-		compilerConstants = clone.Clone(_coreCompiler.constants)
-		constantFolds = clone.Clone(_coreCompiler.constantFolds)
-		symbolTable = clone.Clone(_coreCompiler.symbolTable)
-		scopes = clone.Clone(_coreCompiler.scopes)
-	} else {
-		compilerConstants = _coreCompiler.constants
-		constantFolds = _coreCompiler.constantFolds
-		symbolTable = _coreCompiler.symbolTable
-		scopes = _coreCompiler.scopes
-	}
+	// Cloned (not shared) so every compilation gets isolated state: sharing
+	// the cached compiler's mutable slices/maps would let one compilation's
+	// symbols, constants and fold indices leak into another's.
+	compilerConstants := clone.Clone(_coreCompiler.constants)
+	constantFolds := clone.Clone(_coreCompiler.constantFolds)
+	symbolTable := clone.Clone(_coreCompiler.symbolTable)
+	scopes := clone.Clone(_coreCompiler.scopes)
 	return &Compiler{
 		constants:        compilerConstants,
 		constantFolds:    constantFolds,
@@ -97,7 +86,9 @@ func newFromCore() *Compiler {
 		coreCompiled:               true,
 		inMatch:                    false,
 
-		tokens:     _coreCompiler.tokens,
-		tokenFolds: _coreCompiler.tokenFolds,
+		// Cloned (not shared) so compilations of different files cannot
+		// observe or pollute each other's token streams and fold indices.
+		tokens:     clone.Clone(_coreCompiler.tokens),
+		tokenFolds: clone.Clone(_coreCompiler.tokenFolds),
 	}
 }

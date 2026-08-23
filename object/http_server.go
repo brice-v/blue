@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -123,22 +124,32 @@ func addStaticFiles(s *Server, prefix string, httpFS http.FileSystem, browse boo
 		}
 		f, err := httpFS.Open(rel)
 		if err != nil {
-			c.Next()
+			if nextErr := c.Next(); nextErr != nil {
+				log.Printf("Failed to advance to next handler, error: %s", nextErr.Error())
+			}
 			return
 		}
 		stat, err := f.Stat()
-		f.Close()
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("Failed to close file %s, error: %s", rel, closeErr.Error())
+		}
 		if err != nil {
-			c.Next()
+			if nextErr := c.Next(); nextErr != nil {
+				log.Printf("Failed to advance to next handler, error: %s", nextErr.Error())
+			}
 			return
 		}
 		if stat.IsDir() && !browse {
 			index, err := httpFS.Open(strings.TrimSuffix(rel, "/") + "/index.html")
 			if err != nil {
-				c.Next()
+				if nextErr := c.Next(); nextErr != nil {
+					log.Printf("Failed to advance to next handler, error: %s", nextErr.Error())
+				}
 				return
 			}
-			index.Close()
+			if closeErr := index.Close(); closeErr != nil {
+				log.Printf("Failed to close index file, error: %s", closeErr.Error())
+			}
 		}
 		fileServer.ServeHTTP(c.W, c.R)
 	}, true)
@@ -191,8 +202,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	c := &Ctx{W: w, R: r, params: params, locals: make(map[any]any)}
 	i := 0
-	var next func()
-	next = func() {
+	next := func() {
 		if i >= len(handlers) {
 			return
 		}

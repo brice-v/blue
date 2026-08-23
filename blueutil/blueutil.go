@@ -16,8 +16,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var ENABLE_VM_CACHING = true
-
 func IfNameInMapSetEnv(env *object.Environment, m object.OrderedMap2[object.HashKey, object.MapPair], name string) bool {
 	for _, k := range m.Keys {
 		mp, _ := m.Get(k)
