@@ -1,0 +1,218 @@
+/* blue playground - minimal, dependency free */
+
+:root {
+	--bg: #16181d;
+	--panel: #1e2128;
+	--border: #2c313a;
+	--text: #d7dae0;
+	--muted: #7c8494;
+	--accent: #4f9cf9;
+	--error: #f97066;
+	--ok: #4fbf7a;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: ui-sans-serif, system-ui, sans-serif;
+	display: flex;
+	flex-direction: column;
+}
+
+header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.6rem 1rem;
+	border-bottom: 1px solid var(--border);
+	background: var(--panel);
+}
+
+h1 {
+	font-size: 1.1rem;
+	font-weight: 600;
+	margin: 0;
+}
+
+.accent {
+	color: var(--accent);
+}
+
+.muted {
+	color: var(--muted);
+	font-weight: 400;
+}
+
+.spacer {
+	flex: 1;
+}
+
+button#run-btn {
+	background: var(--accent);
+	color: #fff;
+	border: none;
+	border-radius: 6px;
+	padding: 0.45rem 1.4rem;
+	font-size: 0.95rem;
+	cursor: pointer;
+}
+
+button#run-btn:disabled {
+	opacity: 0.4;
+	cursor: wait;
+}
+
+button#run-btn:not(:disabled):hover {
+	filter: brightness(1.1);
+}
+
+main {
+	flex: 1;
+	display: flex;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	min-height: 0;
+}
+
+#editor-wrap,
+#output-wrap {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--panel);
+	overflow: hidden;
+}
+
+/* --- two layer editor ---------------------------------------------- */
+
+#editor-stack {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+
+/* Both layers must share identical font metrics, padding and wrapping so
+ * the highlighted copy stays aligned under the caret. Only color changes
+ * between tokens (never weight or style) to keep glyph widths identical. */
+#highlight,
+#editor {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+	padding: 0.9rem;
+	font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+	font-size: 0.88rem;
+	line-height: 1.5;
+	white-space: pre;
+	overflow-wrap: normal;
+	tab-size: 4;
+}
+
+#highlight {
+	pointer-events: none;
+	overflow: hidden;
+	color: var(--text);
+	z-index: 0;
+}
+
+#highlight code {
+	display: block;
+	min-width: max-content;
+}
+
+#editor {
+	z-index: 1;
+	width: 100%;
+	height: 100%;
+	resize: none;
+	border: none;
+	outline: none;
+	background: transparent;
+	color: transparent;
+	caret-color: var(--text);
+	overflow: auto;
+}
+
+#editor::selection {
+	background: rgba(79, 156, 249, 0.35);
+}
+
+/* --- token colors ---------------------------------------------------- */
+
+.tok-comment {
+	color: #6a737d;
+}
+
+.tok-string {
+	color: #8ec07c;
+}
+
+.tok-number {
+	color: #d19a66;
+}
+
+.tok-keyword {
+	color: #61afef;
+}
+
+.pane-title {
+	padding: 0.35rem 0.9rem 0.25rem;
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	border-top: 1px solid var(--border);
+}
+
+.pane-title:first-child {
+	border-top: none;
+}
+
+.error-title:not(.muted) {
+	color: var(--error);
+}
+
+pre.pane {
+	flex: 1;
+	margin: 0;
+	padding: 0.2rem 0.9rem 0.7rem;
+	overflow: auto;
+	font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+	font-size: 0.85rem;
+	line-height: 1.45;
+	white-space: pre-wrap;
+	word-break: break-word;
+	min-height: 3em;
+}
+
+#result.small {
+	flex: 0 0 auto;
+	max-height: 5em;
+	color: var(--ok);
+}
+
+#stderr.error-pane {
+	flex: 0 0 auto;
+	max-height: 30%;
+	color: var(--error);
+}
+
+footer {
+	padding: 0.45rem 1rem;
+	border-top: 1px solid var(--border);
+	font-size: 0.74rem;
+	text-align: center;
+}
+
+footer code {
+	color: var(--muted);
+}

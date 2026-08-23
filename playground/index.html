@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<!-- Sandboxing: no remote origins, scripts only from this origin, wasm
+	     compilation allowed explicitly. No eval, no inline handlers. -->
+	<meta http-equiv="Content-Security-Policy"
+	      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'" />
+	<title>blue playground</title>
+	<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+	<header>
+		<h1>blue <span class="accent">playground</span></h1>
+		<span id="version" class="muted">loading runtime...</span>
+		<div class="spacer"></div>
+		<button id="run-btn" title="Ctrl/Cmd + Enter" disabled>Run ▶</button>
+	</header>
+
+	<main>
+		<section id="editor-wrap">
+			<!-- Two layer editor: highlighted code behind a transparent text
+			     textarea. Both layers share identical font metrics and scroll
+			     in sync (see app.js). -->
+			<div id="editor-stack">
+				<pre id="highlight" aria-hidden="true"><code id="highlight-code"></code></pre>
+				<textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="blue source code"></textarea>
+			</div>
+		</section>
+
+		<section id="output-wrap">
+			<div class="pane-title muted">output</div>
+			<pre id="stdout" class="pane" aria-live="polite"></pre>
+			<div class="pane-title muted">result</div>
+			<pre id="result" class="pane small"></pre>
+			<div class="pane-title error-title muted">errors</div>
+			<pre id="stderr" class="pane error-pane" aria-live="polite"></pre>
+		</section>
+	</main>
+
+	<footer class="muted">
+		runs entirely in your browser via WebAssembly, sandboxed: no filesystem,
+		no processes, no shell. a runaway loop will freeze the tab (just reload).
+		docs: <code>help(OBJECT)</code> in the blue repl · modules: math, http, time, search, crypto, csv, color...
+	</footer>
+
+	<script src="wasm_exec.js"></script>
+	<script src="app.js"></script>
+</body>
+</html>
