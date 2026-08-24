@@ -83,10 +83,7 @@ func CheckEnvironment(fingerprint, blueVersion string) error {
 		return fmt.Errorf("%w: image was compiled with blue v%s, running v%s", ErrFingerprintMismatch, blueVersion, consts.VERSION)
 	}
 	if fingerprint != Fingerprint() {
-		return fmt.Errorf(`%w: image fingerprint
-  image: %s
-  build: %s
-The image was compiled for a different build flavor (build tags like static/rgfw change the builtin and opcode surface). Recompile the program with this same binary/flavor.`, ErrFingerprintMismatch, fingerprint, Fingerprint())
+		return fmt.Errorf("%w: image fingerprint mismatch (image: %s, build: %s). The image was compiled for a different build flavor (build tags like static/rgfw change the builtin and opcode surface), recompile the program with this same binary/flavor", ErrFingerprintMismatch, fingerprint, Fingerprint())
 	}
 	return nil
 }

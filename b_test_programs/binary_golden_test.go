@@ -1,9 +1,11 @@
 package b_program_test
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -48,11 +50,24 @@ func buildBlueBinary(t *testing.T) string {
 	return blueBinPath
 }
 
+// logTimestampRe matches the date/time prefix the Go `log` package puts on
+// every line (e.g. fyne's startup locale logging on C/POSIX-locale systems).
+// These prefixes legitimately differ between two runs, so they are stripped
+// before golden comparisons.
+var logTimestampRe = regexp.MustCompile(`(?m)^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} `)
+
+func stripLogTimestamps(s string) string {
+	return logTimestampRe.ReplaceAllString(s, "")
+}
+
 func runCmd(bin string, args ...string) (string, int) {
 	cmd := exec.Command(bin, args...)
-	out, _ := cmd.CombinedOutput()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	_ = cmd.Run()
 	code := cmd.ProcessState.ExitCode()
-	return string(out), code
+	return stripLogTimestamps(stdout.String()) + stripLogTimestamps(stderr.String()), code
 }
 
 // nondeterministicFiles print output that legitimately varies between two

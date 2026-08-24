@@ -504,7 +504,7 @@ func marshalObjectDepth(obj Object, depth int) (ObjectWrapper, error) {
 		sfp := make([]encSFPGroup, 0, len(cf.SpecialFunctionParameters))
 		for ok, inner := range cf.SpecialFunctionParameters {
 			group := encSFPGroup{
-				Key:     encNameIndexKey{Name: ok.Name, Index: ok.Index},
+				Key:     encNameIndexKey(ok),
 				Entries: make([]encNameIndexEntry, 0, len(inner)),
 			}
 			for ik, iv := range inner {

@@ -144,7 +144,12 @@ func packProgram(sourcePath string, outPath string, allErrors bool, useGoBuild b
 			consts.ErrorPrinter("%s\n", err.Error())
 			os.Exit(1)
 		}
-		defer os.Remove(tmpTemplate)
+		defer func() {
+			err := os.Remove(tmpTemplate)
+			if err != nil {
+				log.Printf("Failed to remove temporary bluerun template, error: %s", err.Error())
+			}
+		}()
 		templateBytes, err = os.ReadFile(tmpTemplate)
 	} else {
 		templatePath, terr := findRunnerTemplate()
@@ -391,7 +396,12 @@ func looksLikeImage(inputOrFpath string) bool {
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			log.Printf("Failed to close file with path: %s, error: %s", inputOrFpath, err.Error())
+		}
+	}()
 	header := make([]byte, len(binc.Magic))
 	n, _ := io.ReadFull(f, header)
 	return n == len(header) && binc.SniffMagic(header[:n])
