@@ -111,6 +111,9 @@ func buildBluerunBinary(t *testing.T) string {
 		if envTags != "" {
 			tags = tags + "," + envTags
 		}
+		if runTags := runningBuildTags(); runTags != "" {
+			tags = tags + "," + runTags
+		}
 		out, err := exec.Command("go", "build", "-ldflags=-s -w", "-tags", tags, "-o", bin, "../cmd/bluerun").CombinedOutput()
 		if err != nil {
 			bluerunErr = err

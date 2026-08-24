@@ -2,6 +2,7 @@ package importguard
 
 import (
 	"os/exec"
+	"runtime/debug"
 	"strings"
 	"testing"
 )
@@ -35,14 +36,36 @@ var strictPackages = []string{
 
 var runnerPackages = []string{"./runner"}
 
+// runningBuildTags returns the -tags the test binary itself was built with
+// so the child go command evaluates the same build configuration. Without
+// this, listing e.g. blue/object under -tags static would still pick up the
+// non-static fyne/raylib imports and fail when cgo is disabled.
+func runningBuildTags() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	for _, setting := range info.Settings {
+		if setting.Key == "-tags" {
+			return setting.Value
+		}
+	}
+	return ""
+}
+
 func deps(t *testing.T, pkg string) []string {
 	t.Helper()
 	// Use the module-qualified import path so the command works from the
 	// test's own directory anywhere inside the module.
 	importPath := "blue/" + strings.TrimPrefix(pkg, "./")
-	out, err := exec.Command("go", "list", "-deps", importPath).Output()
+	args := []string{"list", "-deps"}
+	if tags := runningBuildTags(); tags != "" {
+		args = append(args, "-tags="+tags)
+	}
+	args = append(args, importPath)
+	out, err := exec.Command("go", args...).Output()
 	if err != nil {
-		t.Fatalf("go list -deps %s failed: %v\n%s", importPath, err, out)
+		t.Fatalf("go %s failed: %v\n%s", strings.Join(args, " "), err, out)
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	deps := make([]string, 0, len(lines))

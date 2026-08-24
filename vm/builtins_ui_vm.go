@@ -1,4 +1,4 @@
-//go:build !wasm
+//go:build !static && !wasm
 
 package vm
 

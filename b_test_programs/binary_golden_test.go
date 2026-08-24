@@ -32,7 +32,9 @@ func buildBlueBinary(t *testing.T) string {
 			return
 		}
 		bin := filepath.Join(dir, "blue-golden")
-		out, err := exec.Command("go", "build", "-ldflags=-s -w", "-o", bin, "..").CombinedOutput()
+		args := withRunningTags([]string{"build", "-ldflags=-s -w"})
+		args = append(args, "-o", bin, "..")
+		out, err := exec.Command("go", args...).CombinedOutput()
 		if err != nil {
 			blueBinErr = err
 			t.Logf("go build output:\n%s", out)
@@ -57,13 +59,13 @@ func runCmd(bin string, args ...string) (string, int) {
 // runs (network payloads, timings, pids, metrics). We still require both
 // runs to exit identically.
 var nondeterministicFiles = map[string]bool{
-	"test_metrics.b":            true,
-	"test_crypto.b":             true, // bcrypt uses a random salt
-	"test_import_std.b":         true, // fetches a random fact over the network
-	"test_db.b":                 true,
-	"test_psutil.b":             true,
-	"test_pids.b":               true,
-	"test_lots_of_processes.b":  true,
+	"test_metrics.b":           true,
+	"test_crypto.b":            true, // bcrypt uses a random salt
+	"test_import_std.b":        true, // fetches a random fact over the network
+	"test_db.b":                true,
+	"test_psutil.b":            true,
+	"test_pids.b":              true,
+	"test_lots_of_processes.b": true,
 	"test_recv_from_same_pid_but_with_pubsub_instead.b": true,
 	"test_return_on_list_of_obj.b":                      true,
 	"test_time_parse_and_to_str.b":                      true,
