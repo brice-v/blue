@@ -28,7 +28,7 @@
 //	  payloadSize    u64       size of header + sections + trailer
 //	  reverseMagic   8 bytes   "BLUEBC\x00" reversed
 //
-// The trailer lets a packed executable locate its payload by seeking to the
+// The trailer lets a bundled executable locate its payload by seeking to the
 // end of the file and reading backwards, without scanning the whole binary.
 //
 // Version bump policy: ANY change to the opcode set semantics, the constant

@@ -10,14 +10,14 @@ import (
 	"testing"
 )
 
-// End-to-end pack test (Phase 6): compile a demo program, append it to a
-// freshly built bluerun template, run the packed executable and compare its
+// End-to-end bundle test (Phase 6): compile a demo program, append it to a
+// freshly built bluerun template, run the bundled executable and compare its
 // output against running the same program through `blue vm`.
 //
 // Skipped in -short mode because it shells out to `go build` twice.
-func TestPackProducesWorkingSingleExecutable(t *testing.T) {
+func TestBundleProducesWorkingSingleExecutable(t *testing.T) {
 	if testing.Short() {
-		t.Skip("pack end-to-end skipped in -short mode")
+		t.Skip("bundle end-to-end skipped in -short mode")
 	}
 	bin := buildBlueBinary(t)
 	bluerun := buildBluerunBinary(t)
@@ -50,37 +50,37 @@ assert(results[1] == 15)
 		t.Fatal(err)
 	}
 
-	// Must carry .exe on Windows: the packed file is executed directly by
+	// Must carry .exe on Windows: the bundled file is executed directly by
 	// this test, and os/exec refuses extensionless absolute paths there.
-	packed := filepath.Join(tmpDir, "myapp"+exeSuffix())
-	if out, code := runCmd(bin, "pack", "--go-build", "-o", packed, src); code != 0 {
-		t.Fatalf("pack failed (exit %d):\n%s", code, out)
+	bundled := filepath.Join(tmpDir, "myapp"+exeSuffix())
+	if out, code := runCmd(bin, "bundle", "--go-build", "-o", bundled, src); code != 0 {
+		t.Fatalf("bundle failed (exit %d):\n%s", code, out)
 	}
-	info, err := os.Stat(packed)
+	info, err := os.Stat(bundled)
 	if err != nil {
-		t.Fatalf("packed executable missing: %v", err)
+		t.Fatalf("bundled executable missing: %v", err)
 	}
 	// Windows stat never reports execute bits (regular files are 0666 or
 	// 0444); executability there comes from the PE format and is proven
-	// below by actually running packed.
+	// below by actually running bundled.
 	if runtime.GOOS != "windows" && info.Mode()&0o111 == 0 {
-		t.Fatalf("packed executable is not executable: %v", info.Mode())
+		t.Fatalf("bundled executable is not executable: %v", info.Mode())
 	}
 
-	packedOut, packedCode := runCmd(packed)
+	bundledOut, bundledCode := runCmd(bundled)
 	// The default `blue prog.b` path does not print the last expression's
-	// value, and neither does the packed runner; compare like-for-like.
+	// value, and neither does the bundled runner; compare like-for-like.
 	vmOut, vmCode := runCmd(bin, src)
 
-	if packedCode != vmCode {
-		t.Fatalf("exit code mismatch: packed=%d vm=%d\nsource stdout:\n%s\npacked stdout:\n%s",
-			packedCode, vmCode, vmOut, packedOut)
+	if bundledCode != vmCode {
+		t.Fatalf("exit code mismatch: bundled=%d vm=%d\nsource stdout:\n%s\nbundled stdout:\n%s",
+			bundledCode, vmCode, vmOut, bundledOut)
 	}
-	if packedOut != vmOut {
-		t.Fatalf("output mismatch:\n--- packed ---\n%s\n--- vm ---\n%s", packedOut, vmOut)
+	if bundledOut != vmOut {
+		t.Fatalf("output mismatch:\n--- bundled ---\n%s\n--- vm ---\n%s", bundledOut, vmOut)
 	}
-	if !strings.Contains(packedOut, "[8, 15, caught, done]") {
-		t.Fatalf("unexpected program output: %q", packedOut)
+	if !strings.Contains(bundledOut, "[8, 15, caught, done]") {
+		t.Fatalf("unexpected program output: %q", bundledOut)
 	}
 
 	// Running with no embedded payload must print an actionable error.

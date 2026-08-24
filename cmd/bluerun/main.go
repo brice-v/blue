@@ -7,7 +7,7 @@
 //
 //	bluerun app.bluec [args...]   run a sidecar binary image
 //	bluerun [args...]           run an image APPENDED to this executable
-//	                            (produced by: blue pack -o myapp main.b)
+//	                            (produced by: blue bundle -o myapp main.b)
 package main
 
 import (
@@ -25,7 +25,7 @@ func main() {
 	consts.DisableColorIfNoColorEnvVarSet()
 
 	// If this executable carries an APPENDED payload (it was produced by
-	// `blue pack`), always run that payload and forward every argument to
+	// `blue bundle`), always run that payload and forward every argument to
 	// the program. Otherwise behave as a plain image runner where the
 	// first argument is the path of a sidecar .bluec image.
 	if exeBytes, err := readOwnExecutable(); err == nil {
@@ -42,7 +42,7 @@ func main() {
 
 	args := os.Args[1:]
 	if len(args) == 0 {
-		consts.ErrorPrinter("no compiled blue program found.\nusage:\n  %s app.bluec        run a sidecar image\n  pack one into an executable with: blue pack -o <name> main.b\n", os.Args[0])
+		consts.ErrorPrinter("no compiled blue program found.\nusage:\n  %s app.bluec        run a sidecar image\n  bundle one into an executable with: blue bundle -o <name> main.b\n", os.Args[0])
 		os.Exit(1)
 	}
 

@@ -38,17 +38,17 @@ The commands are:
     compile  compiles the given string or file to bytecode
                                                                               
              -o <file>             write a compiled .bluec binary image instead of printing bytecode.
-                                   run it with: blue vm out.bluec, bluerun out.bluec, or pack it into an executable
+                                   run it with: blue vm out.bluec, bluerun out.bluec, or bundle it into an executable
                                                                               
              --no-tokens           strip the token table from the image (smaller file, error traces lose file/line info)
                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
-    pack     compile the given .b file and append it to a copy of the minimal bluerun runner template,
+    bundle   compile the given .b file and append it to a copy of the minimal bluerun runner template,
              producing a single self-contained executable. the template is looked up next to this
              executable as bluerun-<GOOS>-<GOARCH> (or bluerun); pass --go-build to build it with go instead
                                                                               
-             -o <file>             path of the packed executable to write
+              -o <file>             path of the bundled executable to write
                                                                               
              --go-build            build the template on the fly using the local go toolchain
                                                                               
@@ -115,8 +115,8 @@ func Run(args ...string) {
 		handleCompileCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
-	case "pack":
-		handlePackCommand(argc, arguments)
+	case "bundle":
+		handleBundleCommand(argc, arguments)
 	default:
 		// Check for flags before the filename
 		fpath := ""
@@ -260,9 +260,9 @@ func handleCompileCommand(argc int, arguments []string) {
 	saveImageFile(bc, outPath, noTokens)
 }
 
-func handlePackCommand(argc int, arguments []string) {
+func handleBundleCommand(argc int, arguments []string) {
 	if argc < 3 || argc > 6 {
-		consts.ErrorPrinter("unexpected `pack` arguments. got=%+v\n", arguments)
+		consts.ErrorPrinter("unexpected `bundle` arguments. got=%+v\n", arguments)
 		os.Exit(1)
 	}
 	fpath := ""
@@ -277,7 +277,7 @@ func handlePackCommand(argc int, arguments []string) {
 			goBuild = true
 		case "-o":
 			if i+2 >= argc {
-				consts.ErrorPrinter("`pack` flag -o requires a file path\n")
+				consts.ErrorPrinter("`bundle` flag -o requires a file path\n")
 				os.Exit(1)
 			}
 			outPath = arguments[i+2]
@@ -289,14 +289,14 @@ func handlePackCommand(argc int, arguments []string) {
 		}
 	}
 	if fpath == "" || !isFile(fpath) || fpath == STDIN_ARG {
-		consts.ErrorPrinter("`pack` expects a valid .b source file as argument. got=%s\n", fpath)
+		consts.ErrorPrinter("`bundle` expects a valid .b source file as argument. got=%s\n", fpath)
 		os.Exit(1)
 	}
 	if outPath == "" {
-		consts.ErrorPrinter("`pack` requires -o <output-executable>\n")
+		consts.ErrorPrinter("`bundle` requires -o <output-executable>\n")
 		os.Exit(1)
 	}
-	packProgram(fpath, outPath, allErrors, goBuild)
+	bundleProgram(fpath, outPath, allErrors, goBuild)
 }
 
 func handleDocCommand(argc int, arguments []string) {

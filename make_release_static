@@ -4,8 +4,8 @@ set -o nounset
 
 go env -w CGO_ENABLED=1 && go env -w GOFLAGS=-tags=rgfw && govulncheck ./... && go clean -testcache && go test -tags="static" -race ./... && go env -w CGO_ENABLED=0 && go build -ldflags='-s -w -extldflags="static"' -tags="static" -o blues && strip blues && upx blues && cp blues ~/.blue/bin/
 
-# Build the minimal runner template next to blues so `blue pack` can find it
+# Build the minimal runner template next to blues so `blue bundle` can find it
 # (see cmd/bluerun and package bluec). The template name must match what
-# `blue pack` searches for (bluerun-<GOOS>-<GOARCH>).
+# `blue bundle` searches for (bluerun-<GOOS>-<GOARCH>).
 go build -ldflags='-s -w -extldflags="static"' -tags="minivm,static" -o "bluerun-$(go env GOOS)-$(go env GOARCH)" ./cmd/bluerun
 

@@ -102,11 +102,11 @@ func runningBuildTags() string {
 // buildRunnerWithGo shells out to the go toolchain as a fallback way of
 // obtaining a runner template. The template is built with the same flavor
 // tags as the running blue binary (plus the structural minivm tag) so that
-// packed images match the packer's fingerprint.
+// bundled images match the bundler's fingerprint.
 func buildRunnerWithGo(outPath string) error {
 	sourceDir, ok := findBlueSourceDir()
 	if !ok {
-		return fmt.Errorf("cannot find the blue source tree (looked up from the working directory and $BLUE_INSTALL_PATH); place a %s template next to the blue executable or run pack from inside the blue repository", runnerTemplateName())
+		return fmt.Errorf("cannot find the blue source tree (looked up from the working directory and $BLUE_INSTALL_PATH); place a %s template next to the blue executable or run bundle from inside the blue repository", runnerTemplateName())
 	}
 	tags := []string{"minivm"}
 	if t := runningBuildTags(); t != "" {
@@ -122,10 +122,10 @@ func buildRunnerWithGo(outPath string) error {
 	return nil
 }
 
-// packProgram compiles source through the normal pipeline, encodes it as a
+// bundleProgram compiles source through the normal pipeline, encodes it as a
 // binary image, and appends it to a copy of the minimal runner template,
 // producing a single self-contained executable.
-func packProgram(sourcePath string, outPath string, allErrors bool, useGoBuild bool) {
+func bundleProgram(sourcePath string, outPath string, allErrors bool, useGoBuild bool) {
 	bc, err := compileFileOrStringToImage(sourcePath, true, allErrors)
 	if err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
@@ -154,7 +154,7 @@ func packProgram(sourcePath string, outPath string, allErrors bool, useGoBuild b
 	} else {
 		templatePath, terr := findRunnerTemplate()
 		if terr != nil {
-			consts.ErrorPrinter("error packing: %s\n", terr.Error())
+			consts.ErrorPrinter("error bundling: %s\n", terr.Error())
 			os.Exit(1)
 		}
 		templateBytes, err = os.ReadFile(templatePath)
@@ -171,7 +171,7 @@ func packProgram(sourcePath string, outPath string, allErrors bool, useGoBuild b
 		consts.ErrorPrinter("error trying to write `%s`. error: %s\n", outPath, err.Error())
 		os.Exit(1)
 	}
-	fmt.Printf("packed %s into %s (%d bytes)\nrun it with ./%s\n", sourcePath, outPath, len(out), outPath)
+	fmt.Printf("bundled %s into %s (%d bytes)\nrun it with ./%s\n", sourcePath, outPath, len(out), outPath)
 }
 
 // installFullBuildHooks wires up runtime features that require the full

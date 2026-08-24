@@ -180,17 +180,17 @@ The commands are:
     compile  compiles the given string or file to bytecode
                                                                               
              -o <file>             write a compiled .bluec binary image instead of printing bytecode.
-                                   run it with: blue vm out.bluec, bluerun out.bluec, or pack it into an executable
+                                   run it with: blue vm out.bluec, bluerun out.bluec, or bundle it into an executable
                                                                               
              --no-tokens           strip the token table from the image (smaller file, error traces lose file/line info)
                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
-    pack     compile the given .b file and append it to a copy of the minimal bluerun runner template,
+    bundle   compile the given .b file and append it to a copy of the minimal bluerun runner template,
              producing a single self-contained executable. the template is looked up next to this
              executable as bluerun-<GOOS>-<GOARCH> (or bluerun); pass --go-build to build it with go instead
                                                                               
-             -o <file>             path of the packed executable to write
+              -o <file>             path of the bundled executable to write
                                                                               
              --go-build            build the template on the fly using the local go toolchain
                                                                               
@@ -230,11 +230,11 @@ only execute `.bluec` images. It comes in two modes:
 bluerun out.bluec arg1 arg2        # run a sidecar image, forwarding args to the program
 ```
 
-Packing produces a single self-contained executable by appending the compiled image
+Bundling produces a single self-contained executable by appending the compiled image
 to a copy of the `bluerun` template:
 
 ```sh
-blue pack -o myapp main.b        # needs a bluerun-<GOOS>-<GOARCH> template next to blue
+blue bundle -o myapp main.b       # needs a bluerun-<GOOS>-<GOARCH> template next to blue
 ./myapp                          # run; all argv is forwarded to the program
 ```
 
@@ -244,7 +244,7 @@ Notes and limitations:
   version, opcode set and flavor tags (`static`/`rgfw`). A mismatch prints an
   actionable error instead of misexecuting
 - `eval(...)` requires the full toolchain, so it is unavailable inside `bluerun` or
-  packed executables (it returns a clear runtime error). The full `blue` binary is
+  bundled executables (it returns a clear runtime error). The full `blue` binary is
   unaffected
 - images compiled with `--no-tokens` are smaller but runtime error traces cannot show
   file/line pointers
