@@ -49,7 +49,9 @@ assert(results[1] == 15)
 		t.Fatal(err)
 	}
 
-	packed := filepath.Join(tmpDir, "myapp")
+	// Must carry .exe on Windows: the packed file is executed directly by
+	// this test, and os/exec refuses extensionless absolute paths there.
+	packed := filepath.Join(tmpDir, "myapp"+exeSuffix())
 	if out, code := runCmd(bin, "pack", "--go-build", "-o", packed, src); code != 0 {
 		t.Fatalf("pack failed (exit %d):\n%s", code, out)
 	}
@@ -94,7 +96,7 @@ func buildBluerunBinary(t *testing.T) string {
 			bluerunErr = err
 			return
 		}
-		bin := filepath.Join(dir, "bluerun-golden")
+		bin := filepath.Join(dir, "bluerun-golden"+exeSuffix())
 		// Merge the ambient GOFLAGS tags (flavors like rgfw are often set
 		// machine-wide, see README) with the required minivm tag. A
 		// command-line -tags REPLACES GOFLAGS tags, so both must be

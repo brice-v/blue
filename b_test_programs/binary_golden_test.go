@@ -2,6 +2,7 @@ package b_program_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,13 +34,21 @@ func buildBlueBinary(t *testing.T) string {
 			blueBinErr = err
 			return
 		}
-		bin := filepath.Join(dir, "blue-golden")
+		bin := filepath.Join(dir, "blue-golden"+exeSuffix())
 		args := withRunningTags([]string{"build", "-ldflags=-s -w"})
 		args = append(args, "-o", bin, "..")
 		out, err := exec.Command("go", args...).CombinedOutput()
 		if err != nil {
 			blueBinErr = err
 			t.Logf("go build output:\n%s", out)
+			return
+		}
+		// Smoke-check that the binary actually starts. Without this, a
+		// non-startable binary makes every runCmd return a start error
+		// (exit -1, empty output), which the golden suite below would
+		// silently turn into per-program skips.
+		if out, err := exec.Command(bin, "version").CombinedOutput(); err != nil {
+			blueBinErr = fmt.Errorf("built blue binary does not run: %w\noutput:\n%s", err, out)
 			return
 		}
 		blueBinPath = bin
