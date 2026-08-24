@@ -3,7 +3,7 @@ package cmd
 import (
 	"blue/ast"
 	"blue/blueutil"
-	"blue/binc"
+	"blue/bluec"
 	"blue/code"
 	"blue/compiler"
 	"blue/consts"
@@ -27,7 +27,7 @@ import (
 )
 
 // ImageFileExtension is the conventional extension for compiled blue images.
-const ImageFileExtension = ".bbc"
+const ImageFileExtension = ".bluec"
 
 // runnerTemplateName returns the expected filename of the minimal runner
 // template for the host platform.
@@ -131,7 +131,7 @@ func packProgram(sourcePath string, outPath string, allErrors bool, useGoBuild b
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
 		os.Exit(1)
 	}
-	payload, err := binc.Encode(bc, binc.EncodeOptions{})
+	payload, err := bluec.Encode(bc, bluec.EncodeOptions{})
 	if err != nil {
 		consts.ErrorPrinter("error encoding program: %s\n", err.Error())
 		os.Exit(1)
@@ -350,8 +350,8 @@ func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) {
 }
 
 // compileFileOrStringToImage compiles like compileFileOrString and returns
-// the merged program image ready to be encoded into a .bbc container.
-func compileFileOrStringToImage(inputOrFpath string, isFpath bool, allErrors bool) (*binc.Bytecode, error) {
+// the merged program image ready to be encoded into a .bluec container.
+func compileFileOrStringToImage(inputOrFpath string, isFpath bool, allErrors bool) (*bluec.Bytecode, error) {
 	c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
 	bc := c.Bytecode()
 	if idx, err := object.FindUnserializableConstant(bc.Constants); err != nil {
@@ -361,8 +361,8 @@ func compileFileOrStringToImage(inputOrFpath string, isFpath bool, allErrors boo
 }
 
 // saveImageFile encodes an image and writes it to fpath.
-func saveImageFile(bc *binc.Bytecode, fpath string, noTokens bool) {
-	data, err := binc.Encode(bc, binc.EncodeOptions{NoTokens: noTokens})
+func saveImageFile(bc *bluec.Bytecode, fpath string, noTokens bool) {
+	data, err := bluec.Encode(bc, bluec.EncodeOptions{NoTokens: noTokens})
 	if err != nil {
 		consts.ErrorPrinter("error encoding `%s`: %s\n", fpath, err.Error())
 		os.Exit(1)
@@ -373,14 +373,14 @@ func saveImageFile(bc *binc.Bytecode, fpath string, noTokens bool) {
 	}
 }
 
-// loadImageFile reads a .bbc container from disk. It sniffs the magic so
+// loadImageFile reads a .bluec container from disk. It sniffs the magic so
 // files with any extension (or none) are supported.
-func loadImageFile(fpath string) (*binc.Bytecode, error) {
+func loadImageFile(fpath string) (*bluec.Bytecode, error) {
 	data, err := os.ReadFile(fpath)
 	if err != nil {
 		return nil, err
 	}
-	return binc.Decode(data, true)
+	return bluec.Decode(data, true)
 }
 
 // looksLikeImage reports whether input should be treated as a compiled
@@ -402,13 +402,13 @@ func looksLikeImage(inputOrFpath string) bool {
 			log.Printf("Failed to close file with path: %s, error: %s", inputOrFpath, err.Error())
 		}
 	}()
-	header := make([]byte, len(binc.Magic))
+	header := make([]byte, len(bluec.Magic))
 	n, _ := io.ReadFull(f, header)
-	return n == len(header) && binc.SniffMagic(header[:n])
+	return n == len(header) && bluec.SniffMagic(header[:n])
 }
 
 func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult bool) {
-	var bc *binc.Bytecode
+	var bc *bluec.Bytecode
 	if looksLikeImage(inputOrFpath) {
 		img, err := loadImageFile(inputOrFpath)
 		if err != nil {
@@ -426,7 +426,7 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult
 // runBytecode runs a program image and handles exit-code/error semantics.
 // It delegates to the shared runner package so the minimal standalone
 // runner behaves identically.
-func runBytecode(bc *binc.Bytecode, noExec, printResult bool) {
+func runBytecode(bc *bluec.Bytecode, noExec, printResult bool) {
 	os.Exit(runner.RunBytecode(bc, noExec, printResult))
 }
 

@@ -5,7 +5,7 @@
 // compare both implementations on a corpus.
 //
 // It lives in its own subpackage because it imports blue/ast, which the
-// core runtime packages (object, vm, binc) must not depend on.
+// core runtime packages (object, vm, bluec) must not depend on.
 package astjson
 
 import (

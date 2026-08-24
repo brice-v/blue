@@ -10,11 +10,11 @@ import (
 // This test guards the minimal VM build (see blue-binary-plan.md, Phase 4):
 // the runtime packages must form a closed set with NO imports of the
 // lexing/parsing/compiling toolchain, so `cmd/bluerun` (built with
-// -tags minivm) can execute precompiled .bbc images without embedding the
+// -tags minivm) can execute precompiled .bluec images without embedding the
 // whole toolchain. If this test fails, a heavy import crept back in.
 //
 // Two tiers:
-//   - strict: code, token, consts, util, binc, object, vm, blueutil may not
+//   - strict: code, token, consts, util, bluec, object, vm, blueutil may not
 //     import lexer/parser/compiler/ast/repl/cmd at all
 //   - runner: package runner additionally formats error traces via
 //     lexer.GetErrorLineMessage (pure data embeds), so only
@@ -31,7 +31,7 @@ var forbiddenForAll = []string{
 var forbiddenExtraStrict = []string{"blue/lexer"}
 
 var strictPackages = []string{
-	"./code", "./token", "./consts", "./util", "./binc", "./object", "./vm", "./blueutil",
+	"./code", "./token", "./consts", "./util", "./bluec", "./object", "./vm", "./blueutil",
 }
 
 var runnerPackages = []string{"./runner"}

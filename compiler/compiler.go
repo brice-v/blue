@@ -2,7 +2,7 @@ package compiler
 
 import (
 	"blue/ast"
-	"blue/binc"
+	"blue/bluec"
 	"blue/blueutil"
 	"blue/code"
 	"blue/consts"
@@ -146,10 +146,10 @@ func (c *Compiler) GetDocOrderedPublicFunctionHelpString(modName string) string 
 	return c.symbolTable.GetOrderedPublicFunctionHelpString(modName)
 }
 
-// Bytecode is an alias of binc.Bytecode: the struct lives in package binc
+// Bytecode is an alias of bluec.Bytecode: the struct lives in package bluec
 // so that packages which must not import the compiler (vm, minimal runners)
-// can share the exact same type. See binc.Bytecode.
-type Bytecode = binc.Bytecode
+// can share the exact same type. See bluec.Bytecode.
+type Bytecode = bluec.Bytecode
 
 func (c *Compiler) Bytecode() *Bytecode {
 	return &Bytecode{

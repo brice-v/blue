@@ -179,8 +179,8 @@ The commands are:
 
     compile  compiles the given string or file to bytecode
                                                                               
-             -o <file>             write a compiled .bbc binary image instead of printing bytecode.
-                                   run it with: blue vm out.bbc, bluerun out.bbc, or pack it into an executable
+             -o <file>             write a compiled .bluec binary image instead of printing bytecode.
+                                   run it with: blue vm out.bluec, bluerun out.bluec, or pack it into an executable
                                                                               
              --no-tokens           strip the token table from the image (smaller file, error traces lose file/line info)
                                                                               
@@ -213,21 +213,21 @@ NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string) to disabl
 PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it
 ```
 
-### Compiled programs (.bbc) and single executables
+### Compiled programs (.bluec) and single executables
 
 Programs can be precompiled once and reused, skipping the lexer/parser/compiler on
 every subsequent run:
 
 ```sh
-blue compile -o out.bbc main.b   # compile core + std + main.b into one binary image
-blue vm out.bbc                  # run it with the full binary (no recompilation)
+blue compile -o out.bluec main.b   # compile core + std + main.b into one binary image
+blue vm out.bluec                  # run it with the full binary (no recompilation)
 ```
 
 The `bluerun` runner is a minimal build that embeds NO lexer/parser/compiler and can
-only execute `.bbc` images. It comes in two modes:
+only execute `.bluec` images. It comes in two modes:
 
 ```sh
-bluerun out.bbc arg1 arg2        # run a sidecar image, forwarding args to the program
+bluerun out.bluec arg1 arg2        # run a sidecar image, forwarding args to the program
 ```
 
 Packing produces a single self-contained executable by appending the compiled image

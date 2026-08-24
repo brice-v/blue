@@ -27,7 +27,7 @@ The commands are:
                                                                                               
              note: the file/module will be compiled to gather all functions
 
-    vm       run the given string or file through the VM (a .bbc binary image is run directly without recompiling)
+    vm       run the given string or file through the VM (a .bluec binary image is run directly without recompiling)
                                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
                                                                                               
@@ -37,8 +37,8 @@ The commands are:
 
     compile  compiles the given string or file to bytecode
                                                                               
-             -o <file>             write a compiled .bbc binary image instead of printing bytecode.
-                                   run it with: blue vm out.bbc, bluerun out.bbc, or pack it into an executable
+             -o <file>             write a compiled .bluec binary image instead of printing bytecode.
+                                   run it with: blue vm out.bluec, bluerun out.bluec, or pack it into an executable
                                                                               
              --no-tokens           strip the token table from the image (smaller file, error traces lose file/line info)
                                                                               

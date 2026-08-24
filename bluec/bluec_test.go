@@ -1,11 +1,11 @@
-package binc_test
+package bluec_test
 
 import (
 	"bytes"
 	"strings"
 	"testing"
 
-	"blue/binc"
+	"blue/bluec"
 	"blue/compiler"
 	"blue/consts"
 	"blue/lexer"
@@ -13,7 +13,7 @@ import (
 	"blue/parser"
 )
 
-func compileSource(t *testing.T, src string) *binc.Bytecode {
+func compileSource(t *testing.T, src string) *bluec.Bytecode {
 	t.Helper()
 	l := lexer.New(src, "<test>")
 	p := parser.New(l)
@@ -59,12 +59,12 @@ try {
 func TestEncodeDecodeRoundTrip(t *testing.T) {
 	bc := compileSource(t, sampleProgram)
 
-	data, err := binc.Encode(bc, binc.EncodeOptions{})
+	data, err := bluec.Encode(bc, bluec.EncodeOptions{})
 	if err != nil {
 		t.Fatalf("Encode failed: %s", err.Error())
 	}
 
-	decoded, err := binc.Decode(data, false)
+	decoded, err := bluec.Decode(data, false)
 	if err != nil {
 		t.Fatalf("Decode failed: %s", err.Error())
 	}
@@ -100,11 +100,11 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 
 func TestReservedConstantsPreserved(t *testing.T) {
 	bc := compileSource(t, sampleProgram)
-	data, err := binc.Encode(bc, binc.EncodeOptions{})
+	data, err := bluec.Encode(bc, bluec.EncodeOptions{})
 	if err != nil {
 		t.Fatalf("Encode failed: %s", err.Error())
 	}
-	decoded, err := binc.Decode(data, false)
+	decoded, err := bluec.Decode(data, false)
 	if err != nil {
 		t.Fatalf("Decode failed: %s", err.Error())
 	}
@@ -118,15 +118,15 @@ func TestReservedConstantsPreserved(t *testing.T) {
 
 func TestNoTokensOption(t *testing.T) {
 	bc := compileSource(t, sampleProgram)
-	data, err := binc.Encode(bc, binc.EncodeOptions{NoTokens: true})
+	data, err := bluec.Encode(bc, bluec.EncodeOptions{NoTokens: true})
 	if err != nil {
 		t.Fatalf("Encode failed: %s", err.Error())
 	}
-	fullData, _ := binc.Encode(bc, binc.EncodeOptions{})
+	fullData, _ := bluec.Encode(bc, bluec.EncodeOptions{})
 	if len(data) >= len(fullData) {
 		t.Errorf("--no-tokens image should be smaller")
 	}
-	decoded, err := binc.Decode(data, false)
+	decoded, err := bluec.Decode(data, false)
 	if err != nil {
 		t.Fatalf("Decode failed: %s", err.Error())
 	}
@@ -140,7 +140,7 @@ func TestNoTokensOption(t *testing.T) {
 
 func TestDecodeRejectsMalformedInput(t *testing.T) {
 	bc := compileSource(t, "println(1)")
-	valid, err := binc.Encode(bc, binc.EncodeOptions{})
+	valid, err := bluec.Encode(bc, bluec.EncodeOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestDecodeRejectsMalformedInput(t *testing.T) {
 	}
 	for name, data := range cases {
 		t.Run(name, func(t *testing.T) {
-			got, err := binc.Decode(data, false)
+			got, err := bluec.Decode(data, false)
 			if err == nil {
 				t.Fatalf("expected error decoding malformed container, got image with %d constants", len(got.Constants))
 			}
@@ -168,18 +168,18 @@ func TestDecodeRejectsMalformedInput(t *testing.T) {
 // crcFieldOffset computes where the CRC lives inside an encoded container:
 // after magic(8) + version(2) + flags(2) + two length-prefixed strings.
 func crcFieldOffset() int {
-	return 8 + 2 + 2 + 4 + len(consts.VERSION) + 4 + len(binc.Fingerprint())
+	return 8 + 2 + 2 + 4 + len(consts.VERSION) + 4 + len(bluec.Fingerprint())
 }
 
 func TestFindAppendedPayload(t *testing.T) {
 	bc := compileSource(t, sampleProgram)
-	payload, err := binc.Encode(bc, binc.EncodeOptions{})
+	payload, err := bluec.Encode(bc, bluec.EncodeOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	exe := append([]byte("fake mach-o / elf executable bytes \x00\x01\x02"), payload...)
 
-	found, ok := binc.FindAppendedPayload(exe)
+	found, ok := bluec.FindAppendedPayload(exe)
 	if !ok {
 		t.Fatalf("payload not found in fake executable")
 	}
@@ -187,26 +187,26 @@ func TestFindAppendedPayload(t *testing.T) {
 		t.Fatalf("found payload does not match original")
 	}
 
-	if _, ok := binc.FindAppendedPayload([]byte("short")); ok {
+	if _, ok := bluec.FindAppendedPayload([]byte("short")); ok {
 		t.Errorf("should not find payload in short data")
 	}
-	if _, ok := binc.FindAppendedPayload(nil); ok {
+	if _, ok := bluec.FindAppendedPayload(nil); ok {
 		t.Errorf("should not find payload in empty data")
 	}
 }
 
 func TestFingerprintIsStableAndDescriptive(t *testing.T) {
-	fp1 := binc.Fingerprint()
-	fp2 := binc.Fingerprint()
+	fp1 := bluec.Fingerprint()
+	fp2 := bluec.Fingerprint()
 	if fp1 != fp2 {
 		t.Fatalf("fingerprint not stable within one process:\n%s\n%s", fp1, fp2)
 	}
-	desc := binc.DescribeFingerprintMismatch(fp1, fp2)
+	desc := bluec.DescribeFingerprintMismatch(fp1, fp2)
 	if desc != "" {
 		t.Fatalf("identical fingerprints reported a difference: %s", desc)
 	}
 	mutated := strings.Replace(fp1, "tags:", "tags:x", 1)
-	desc = binc.DescribeFingerprintMismatch(fp1, mutated)
+	desc = bluec.DescribeFingerprintMismatch(fp1, mutated)
 	if desc == "" {
 		t.Fatalf("no difference reported for mutated fingerprint")
 	}
@@ -221,14 +221,14 @@ func flipBit(b []byte, pos int) []byte {
 
 // FuzzDecode asserts that arbitrary input never panics the loader: every
 // failure must surface as an error return. Seed with a small valid
-// container; run via `go test -fuzz FuzzDecode ./binc/`.
+// container; run via `go test -fuzz FuzzDecode ./bluec/`.
 func FuzzDecode(f *testing.F) {
-	bc := &binc.Bytecode{
+	bc := &bluec.Bytecode{
 		Instructions: []byte{byte(0)},
 		Constants:    object.NewObjectConstants(),
 		Tokens:       nil,
 	}
-	valid, err := binc.Encode(bc, binc.EncodeOptions{})
+	valid, err := bluec.Encode(bc, bluec.EncodeOptions{})
 	if err != nil {
 		f.Fatal(err)
 	}
@@ -236,7 +236,7 @@ func FuzzDecode(f *testing.F) {
 	f.Add(valid[:len(valid)/2])
 	f.Add([]byte("BLUEBC\x00garbage"))
 	f.Fuzz(func(t *testing.T, data []byte) {
-		_, _ = binc.Decode(data, false)
+		_, _ = bluec.Decode(data, false)
 	})
 }
 

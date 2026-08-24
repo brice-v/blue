@@ -6,7 +6,7 @@
 // only non-trivial dependency is lexer.GetErrorLineMessage, which formats
 // token positions against source files (including embedded core/std sources)
 // and pulls in nothing heavier than data embeds. Everything else comes from
-// the closed runtime set: binc, vm, object, consts, blueutil.
+// the closed runtime set: bluec, vm, object, consts, blueutil.
 package runner
 
 import (
@@ -15,7 +15,7 @@ import (
 	"os"
 	"strings"
 
-	"blue/binc"
+	"blue/bluec"
 	"blue/blueutil"
 	"blue/consts"
 	"blue/lexer"
@@ -29,7 +29,7 @@ import (
 // printed to stderr using the same colored trace formatting as the full
 // binary. When printResult is set (the `vm` command behavior), the value of
 // the last evaluated expression is written to stdout.
-func RunBytecode(bc *binc.Bytecode, noExec, printResult bool) int {
+func RunBytecode(bc *bluec.Bytecode, noExec, printResult bool) int {
 	globals := make([]object.Object, vm.GlobalsSize)
 	v := vm.NewWithGlobalsStore(bc, globals)
 	object.NoExec = noExec

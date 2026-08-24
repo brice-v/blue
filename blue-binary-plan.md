@@ -22,10 +22,10 @@ Current state notes (from exploring the code):
 
 ## Phase 1: Design the container format
 
-- [x] Create new package `binc` (name TBD) that depends only on `code`, `token`, `object` (no compiler import) and owns:
+- [x] Create new package `bluec` (name TBD) that depends only on `code`, `token`, `object` (no compiler import) and owns:
   - format constants (magic bytes, e.g. `BLUEBC\x00`, format version u16)
   - `Image` struct mirroring what the VM needs: instructions blob, constants blob, tokens blob, metadata
-  - `Encode(img *binc.Image) ([]byte, error)` and `Decode(data []byte) (*binc.Image, error)`
+  - `Encode(img *bluec.Image) ([]byte, error)` and `Decode(data []byte) (*bluec.Image, error)`
 - [x] Define layout (all little-endian unless noted, opcodes already big-endian operands, keep as-is):
   - header: magic, format version, blue version string (`consts.VERSION`), build-flavor fingerprint (build tags + opcode-set hash + builtin count), CRC32 (or SHA256) of payload, flags (e.g. tokens-stripped bit)
   - payload sections, each length-prefixed u32: instructions, constants, tokens, trailer
@@ -34,10 +34,10 @@ Current state notes (from exploring the code):
   - Option A: reuse existing CBOR `ObjectWrapper` infra in `object/encoding.go`
   - Option B: custom compact binary writer (smaller, faster, more work)
   - Recommendation: start with A (reuse + free fuzzing via cbor), keep interface narrow enough to swap later
-  - CHOSEN: Option A. Pool encoding lives in `object/constpool.go` (`EncodeConstantPool` / `DecodeConstantPool` / `FindUnserializableConstant`) on top of the existing CBOR wrappers; `binc` just length-prefixes blobs so the codec can be swapped later without touching the envelope.
+  - CHOSEN: Option A. Pool encoding lives in `object/constpool.go` (`EncodeConstantPool` / `DecodeConstantPool` / `FindUnserializableConstant`) on top of the existing CBOR wrappers; `bluec` just length-prefixes blobs so the codec can be swapped later without touching the envelope.
 - [x] Add `Fingerprint()` helper covering: opcode count/names hash, reserved-constant count, build tags, blue version. Loader refuses mismatched images.
 
-Note: the struct is named `binc.Bytecode` (not `Image`) since it doubles as the neutral home for the compiler's old Bytecode type; see Phase 3.
+Note: the struct is named `bluec.Bytecode` (not `Image`) since it doubles as the neutral home for the compiler's old Bytecode type; see Phase 3.
 
 ## Phase 2: Complete object serialization for the constant pool
 
@@ -51,19 +51,19 @@ Note: the struct is named `binc.Bytecode` (not `Image`) since it doubles as the 
 - [x] Preserve reserved constant slots: decoder reconstructs `object.NewObjectConstants()` first, then decodes remaining entries in order so indices match exactly. Encoder validates the prefix via `ValidateReservedPrefix` (identity check) and skips writing it.
 - [x] Handle nested objects inside List/Map/Set/DefaultArgs/SpecialFunctionParameters recursively with cycle safety (constants should be acyclic, assert anyway): depth limit of 512 returns an error instead of overflowing the stack.
 - [x] Token table codec: serialize `token.Token{Type, Literal, Filepath, LineNumber, PositionInLine}` compactly (intern filepath strings, delta-encoded line numbers optional): all three strings interned into one table; per token five varints with zigzag line deltas.
-- [x] Round-trip unit tests: compile sample programs, assert before/after equality of Instructions byte-for-byte, constants Inspect()-equal type-by-type, tokens equal (`binc/binc_test.go`)
+- [x] Round-trip unit tests: compile sample programs, assert before/after equality of Instructions byte-for-byte, constants Inspect()-equal type-by-type, tokens equal (`bluec/binc_test.go`)
 - [x] Fuzz or property-test Decode against malformed input (must return error, never panic): `FuzzDecode` plus a table of hand-made corruptions (bad magic, truncated header/body, flipped bit, corrupt CRC, bad version). One real bounds bug found and fixed by fuzzing (sections slice when trailer offset underflows).
 
 ## Phase 3: Write and run compiled files from the CLI
 
 - [x] Extend `handleCompileCommand` in `cmd/cmd.go` / `cmd/util.go`:
-  - `blue compile -o out.bbc file.b` writes the container file (keep current debug-print behavior when no `-o`)
+  - `blue compile -o out.bluec file.b` writes the container file (keep current debug-print behavior when no `-o`)
   - optional `--no-tokens` flag to strip token section (smaller file, degraded error traces)
   - optional `--split-core` later: emit core image separately for caching (stretch goal) - NOT DONE, deferred as planned
-- [x] New loader used by `vm` command: if input ends in `.bbc` (or magic sniff), skip lexer/parser/compiler entirely, decode, construct `compiler.Bytecode` equivalent, `vm.NewWithGlobalsStore(...)` and run (`cmd/util.go looksLikeImage/loadImageFile`)
-- [x] Keep a neutral home for the Bytecode struct decision: either move `Bytecode` out of package `compiler` into `code` or `binc` so the minimal runner does not import `compiler` (decision point, recommend moving to `binc` and aliasing in compiler for compatibility). DONE: `type Bytecode = binc.Bytecode` alias in compiler; vm takes `*binc.Bytecode`.
-- [x] Golden tests: for each program in `b_test_programs`, running source vs running `.bbc` must produce identical stdout and exit codes (`b_test_programs/binary_golden_test.go`). Runs each program in its own subprocess via the real CLI (in-process capture was polluted by leftover spawned goroutines between files). Deterministic files compare stdout + exit code exactly; network/pid/metrics files compare exit codes only.
-- [x] Benchmark startup: time `blue vm file.b` vs `blue vm file.bbc` to prove reuse value (document numbers in this file when done):
+- [x] New loader used by `vm` command: if input ends in `.bluec` (or magic sniff), skip lexer/parser/compiler entirely, decode, construct `compiler.Bytecode` equivalent, `vm.NewWithGlobalsStore(...)` and run (`cmd/util.go looksLikeImage/loadImageFile`)
+- [x] Keep a neutral home for the Bytecode struct decision: either move `Bytecode` out of package `compiler` into `code` or `bluec` so the minimal runner does not import `compiler` (decision point, recommend moving to `bluec` and aliasing in compiler for compatibility). DONE: `type Bytecode = bluec.Bytecode` alias in compiler; vm takes `*bluec.Bytecode`.
+- [x] Golden tests: for each program in `b_test_programs`, running source vs running `.bluec` must produce identical stdout and exit codes (`b_test_programs/binary_golden_test.go`). Runs each program in its own subprocess via the real CLI (in-process capture was polluted by leftover spawned goroutines between files). Deterministic files compare stdout + exit code exactly; network/pid/metrics files compare exit codes only.
+- [x] Benchmark startup: time `blue vm file.b` vs `blue vm file.bluec` to prove reuse value (document numbers in this file when done):
   - Measured on darwin/arm64, rgfw flavor, warm cache, best-of-5 style:
     - trivial program: source ~20ms vs image ~20ms per run (both dominated by process startup)
     - program importing math+crypto+search: 10 runs source 0.264s (~26ms) vs image 0.199s (~20ms), ~25% faster startup
@@ -80,7 +80,7 @@ This is the enabling refactor for the minimal build. Strategy: dependency invers
   - Option A (recommended): write a small dedicated JSON-to-Object converter (JSON is much simpler than blue); keep `ParseJson(ast)` for parity tests comparing outputs on a corpus
   - Option B: move `from_json` behind the same hook pattern as eval (unavailable in minimal builds)
   - CHOSEN: Option A. `object/json.go FromJsonString` uses encoding/json tokens with UseNumber. Number semantics mirror the parser's ExactFloat64 rule: floats that survive the float64 round-trip exactly stay Float, otherwise they promote to BigFloat (this parity was caught by test_from_json_and_is_valid.b). The historical AST path moved to `object/astjson` for corpus comparison.
-- [x] Audit remaining imports so the following packages form a closed set with NO imports of lexer/parser/compiler/ast: `code`, `token`(data only), `object`, `vm`, `binc`, `consts`, `util`
+- [x] Audit remaining imports so the following packages form a closed set with NO imports of lexer/parser/compiler/ast: `code`, `token`(data only), `object`, `vm`, `bluec`, `consts`, `util`
   - `object/object_util.go ParseJson` and related ast-dependent helpers move to a separate file/package excluded from the minimal build (moved to package `object/astjson`)
   - check `object/object.go ast usage and remove/relocate`: `Function.Parameters/Body` were ast nodes used ONLY by Inspect(); replaced with plain strings. `CreateHelpStringFromBodyTokensAstFun` moved into the compiler (its only consumer).
   - DEVIATION: new package `runner` (shared run/error-print path used by cmd AND bluerun) imports `lexer.GetErrorLineMessage`, which reads embedded core/std data files but pulls in no parser/compiler/ast. Documented in its package doc; the guard below encodes this two-tier rule.
@@ -90,9 +90,9 @@ This is the enabling refactor for the minimal build. Strategy: dependency invers
 ## Phase 5: Minimal runner executable template
 
 - [x] New main package, e.g. `cmd/bluerun/main.go` built with `-tags minivm`:
-  - imports ONLY the closed set above (vm, object, code, binc, consts)
+  - imports ONLY the closed set above (vm, object, code, bluec, consts)
   - behavior:
-    - `bluerun app.bbc` : load sidecar image and run
+    - `bluerun app.bluec` : load sidecar image and run
     - `bluerun` with no args: look for appended payload in own executable (`os.Executable()`, seek to trailer, validate fingerprint), run it
     - forward os.Args[1:] to the program (match current `args`/`os.args()` builtin behavior), honor BLUE_NO_COLOR etc.
     - REFINEMENT: if an appended payload exists (packed exe) ALL args are forwarded to the program and the payload always wins; sidecar mode (first arg = image path) applies only when there is no embedded payload. ARGV forwarding is implemented via `object.SetProgramArgs` because ARGV is populated from os.Args during package init, before main can adjust it.
@@ -106,22 +106,22 @@ This is the enabling refactor for the minimal build. Strategy: dependency invers
 
 - [x] `blue pack -o myapp main.b` command:
   1. compile main.b through the normal pipeline (core+std+user merged image)
-  2. encode via binc, append to a copy of the bluerun template for HOST os/arch
+  2. encode via bluec, append to a copy of the bluerun template for HOST os/arch
   3. append trailer (size + reverse magic), chmod +x
 - [x] Template acquisition strategy (decision point):
   - Option A: release process builds per-platform `bluerun` templates next to `blue` (make_release.sh gains a step); pack uses matching template, errors if missing/cross-target
   - Option B: pack shells out to `go build` requiring a toolchain (portable but needs Go installed)
   - Recommendation: A for releases, B as fallback flag `--go-build`. BOTH IMPLEMENTED: make_release/make_release_static gained template steps (`bluerun-<GOOS>-<GOARCH>` next to blue, same flavor tags); `--go-build` locates the blue source tree (walks up from cwd, then $BLUE_INSTALL_PATH) and rebuilds the template with the RUNNING binary's own flavor tags so fingerprints match. Template lookup order next to the blue executable: bluerun-<GOOS>-<GOARCH>, then bluerun.
 - [x] Document cross-compilation caveat: template must match target GOOS/GOARCH; CGO-enabled flavors complicate cross targets, prefer static template for packing (README + fingerprint errors make mismatches loud rather than silent)
-- [x] Self-check on startup: bluerun validates magic + CRC + fingerprint, prints actionable error on mismatch (distinct errors for bad magic, bad version, truncation, CRC, fingerprint; decode failures suggest recompiling with `blue compile -o out.bbc main.b`)
+- [x] Self-check on startup: bluerun validates magic + CRC + fingerprint, prints actionable error on mismatch (distinct errors for bad magic, bad version, truncation, CRC, fingerprint; decode failures suggest recompiling with `blue compile -o out.bluec main.b`)
 - [x] End-to-end test in CI: pack a demo program on mac/linux, run, compare output; ensure upx step still works on packed output (or document skipping upx): `TestPackProducesWorkingSingleExecutable` builds both binaries, packs, runs and compares output/exit codes against `blue demo.b`. upx note: upx recompression of packed executables has NOT been re-verified here (no upx on this machine); release scripts should keep packing AFTER any upx step or verify separately.
 
 ## Phase 7: Versioning, compatibility, docs
 
-- [x] Format version bump policy documented in binc package doc (any opcode/constant-layout change bumps)
+- [x] Format version bump policy documented in bluec package doc (any opcode/constant-layout change bumps)
 - [x] Loader error messages distinguish: bad magic, unknown version, fingerprint mismatch, CRC failure, truncated payload
 - [x] Update `USAGE` text in `cmd/cmd.go` for new commands/flags (`compile -o`, `pack`)
-- [x] README/manual section: compiling to .bbc, packing single executables, supported flags (README "Compiled programs (.bbc) and single executables"; man page regenerates from --help via gen-man.sh at release time)
+- [x] README/manual section: compiling to .bluec, packing single executables, supported flags (README "Compiled programs (.bluec) and single executables"; man page regenerates from --help via gen-man.sh at release time)
 - [x] Record final limitation list below in manual once implementation landed (kept here + README summary)
 
 ---
@@ -134,21 +134,21 @@ This is the enabling refactor for the minimal build. Strategy: dependency invers
 4. Nice error traces depend on the Tokens section. If an image is compiled with `--no-tokens`, runtime errors print messages without file/line pointers.
 5. Compile-time-only concerns are safe: user module imports (`import foo.bar`), std module imports, and doc/help strings are baked into the image at pack time; `BLUE_INSTALL_PATH` style dynamic source resolution has no meaning in a packed program (there is no compiler to consume it).
 6. Build-flavor lock-in: an image is tied to the build tags/flavor (static vs rgfw, ui/gg static vs non-static) used when compiling it; the packer/loader fingerprint check rejects mismatches. The structural `minivm` tag itself is filtered out of the fingerprint (it selects which main package builds, not what the runtime can do).
-7. Anything returning live Go objects (GoObj values held by builtins, Process handles, open servers) obviously cannot appear in serialized constants; they only exist at runtime, which is fine, but default-arg constants referencing such values would fail compilation to .bbc with a clear error (constant index included).
+7. Anything returning live Go objects (GoObj values held by builtins, Process handles, open servers) obviously cannot appear in serialized constants; they only exist at runtime, which is fine, but default-arg constants referencing such values would fail compilation to .bluec with a clear error (constant index included).
 
 ## Open decisions recap (resolve before/during implementation)
 
 ALL RESOLVED:
 
 - Constant encoding: CBOR reuse (Option A), pool codec isolated in `object/constpool.go`
-- Bytecode struct relocation: moved to `binc.Bytecode`, aliased as `compiler.Bytecode`
+- Bytecode struct relocation: moved to `bluec.Bytecode`, aliased as `compiler.Bytecode`
 - `from_json` strategy: dedicated converter (`object/json.go`), AST path kept in `object/astjson` for parity tests
 - Template distribution for `pack`: shipped per-platform templates (release scripts) PLUS `--go-build` fallback that reproduces the running binary's flavor
-- Package name for the format: `binc`
+- Package name for the format: `bluec`
 
 ## Implementation notes, numbers and caveats (added while implementing)
 
-- Container layout v1 (see binc.go doc for the authoritative description): header (magic `BLUEBC\x00`, u16 version=1, u16 flags, lp-string blue version, lp-string fingerprint, u32 CRC32) then four length-prefixed sections (instructions, constants, tokens, meta-reserved) then a 16-byte trailer (u64 total size + reversed magic). Sidecar files and appended payloads are byte-identical layouts.
+- Container layout v1 (see bluec.go doc for the authoritative description): header (magic `BLUEBC\x00`, u16 version=1, u16 flags, lp-string blue version, lp-string fingerprint, u32 CRC32) then four length-prefixed sections (instructions, constants, tokens, meta-reserved) then a 16-byte trailer (u64 total size + reversed magic). Sidecar files and appended payloads are byte-identical layouts.
 - Fingerprint string: `v<version>|ops:<hash64>|rc:<reserved-count>|tags:<sorted-tags>|<goos>/<goarch>`, where tags come from build info `-tags` minus `minivm`.
 - Machine caveat discovered: building ANY desktop binary without the `rgfw` tag links raylib's bundled glfw AND fyne's glfw -> duplicate-symbol link failure (pre-existing, documented in README). Consequences encoded here: command-line `-tags` REPLACES GOFLAGS tags, so scripts/tests that build bluerun must merge ambient GOFLAGS tags with minivm. `pack --go-build` handles this by copying the running binary's own recorded tags.
 - Startup benchmark numbers recorded under Phase 3 above; packed-executable startup measured ~89ms/run for a 59MB packed binary (page-cache dependent), vs ~20ms sidecar.

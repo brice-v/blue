@@ -1,4 +1,4 @@
-// Package binc defines and implements the blue binary container format
+// Package bluec defines and implements the blue binary container format
 // ("BLUEBC"): a versioned, checksummed envelope for compiled blue programs
 // so compiled output can be reused instead of re-running the lexer, parser
 // and compiler.
@@ -35,7 +35,7 @@
 // pool layout, or this envelope must bump FormatVersion. Loaders reject
 // containers whose FormatVersion they do not implement, and reject
 // containers whose fingerprint does not match the running build.
-package binc
+package bluec
 
 import (
 	"bytes"
@@ -75,24 +75,24 @@ const (
 
 // ErrBadMagic is returned when the container magic (or trailing reverse
 // magic) does not match.
-var ErrBadMagic = errors.New("binc: not a blue binary container (bad magic)")
+var ErrBadMagic = errors.New("bluec: not a blue binary container (bad magic)")
 
 // ErrBadVersion is returned when the container was written by a different
 // (usually newer or older) version of the format.
-var ErrBadVersion = errors.New("binc: unsupported container format version")
+var ErrBadVersion = errors.New("bluec: unsupported container format version")
 
 // ErrFingerprintMismatch is returned when the image was compiled for a
 // different build flavor (build tags, opcode set, blue version).
-var ErrFingerprintMismatch = errors.New("binc: build fingerprint mismatch")
+var ErrFingerprintMismatch = errors.New("bluec: build fingerprint mismatch")
 
 // ErrBadCRC is returned when the payload does not match its checksum.
-var ErrBadCRC = errors.New("binc: checksum mismatch (corrupted container)")
+var ErrBadCRC = errors.New("bluec: checksum mismatch (corrupted container)")
 
 // ErrTruncated is returned when the container ends unexpectedly.
-var ErrTruncated = errors.New("binc: truncated container")
+var ErrTruncated = errors.New("bluec: truncated container")
 
 // Bytecode is the neutral home of what the VM needs to run a program.
-// Package compiler aliases this type (compiler.Bytecode = binc.Bytecode) so
+// Package compiler aliases this type (compiler.Bytecode = bluec.Bytecode) so
 // existing call sites keep working, while packages that must not import the
 // compiler (vm, minimal runners) use it directly.
 type Bytecode struct {
@@ -112,11 +112,11 @@ type EncodeOptions struct {
 // constants prefix is validated before writing.
 func Encode(bc *Bytecode, opts EncodeOptions) ([]byte, error) {
 	if bc == nil {
-		return nil, errors.New("binc: cannot encode nil bytecode")
+		return nil, errors.New("bluec: cannot encode nil bytecode")
 	}
 	constantsBlob, err := object.EncodeConstantPool(bc.Constants)
 	if err != nil {
-		return nil, fmt.Errorf("binc: %w", err)
+		return nil, fmt.Errorf("bluec: %w", err)
 	}
 	flags := uint16(0)
 	tokensBlob := []byte{}
@@ -125,7 +125,7 @@ func Encode(bc *Bytecode, opts EncodeOptions) ([]byte, error) {
 	} else {
 		tokensBlob, err = encodeTokens(bc.Tokens)
 		if err != nil {
-			return nil, fmt.Errorf("binc: %w", err)
+			return nil, fmt.Errorf("bluec: %w", err)
 		}
 	}
 	meta := []byte{} // reserved for future metadata
@@ -226,13 +226,13 @@ func Decode(data []byte, checkEnv bool) (*Bytecode, error) {
 
 	constants, err := object.DecodeConstantPool(constantsBlob)
 	if err != nil {
-		return nil, fmt.Errorf("binc: %w", err)
+		return nil, fmt.Errorf("bluec: %w", err)
 	}
 	var tokens []*token.Token
 	if flags&FlagNoTokens == 0 && len(tokensBlob) > 0 {
 		tokens, err = decodeTokens(tokensBlob)
 		if err != nil {
-			return nil, fmt.Errorf("binc: %w", err)
+			return nil, fmt.Errorf("bluec: %w", err)
 		}
 	}
 	return &Bytecode{

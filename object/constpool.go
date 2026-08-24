@@ -8,7 +8,7 @@ import (
 )
 
 // This file owns the constant-pool slice of the blue binary container
-// (see package binc). It encodes the pool as a cbor array of
+// (see package bluec). It encodes the pool as a cbor array of
 // ObjectWrapper values and preserves the reserved constant slots
 // (OBJECT_CONSTANTS, indices 0..len-1) by never writing them: the decoder
 // reconstructs them with NewObjectConstants() first so constant indices in

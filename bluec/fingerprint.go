@@ -1,4 +1,4 @@
-package binc
+package bluec
 
 import (
 	"fmt"

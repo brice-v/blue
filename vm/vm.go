@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"blue/binc"
+	"blue/bluec"
 	"blue/blueutil"
 	"blue/code"
 	"blue/consts"
@@ -143,7 +143,7 @@ func (vm *VM) newCallFrameReplaceTop(cl *object.Closure, bp int) *Frame {
 	return f
 }
 
-func NewNode(nodeName string, bytecode *binc.Bytecode) *VM {
+func NewNode(nodeName string, bytecode *bluec.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
 	mainClosure := &object.Closure{Fun: mainFn}
 	frames := make([]Frame, lazyFramesFloor)
@@ -178,11 +178,11 @@ func NewNode(nodeName string, bytecode *binc.Bytecode) *VM {
 	return vm
 }
 
-func New(bytecode *binc.Bytecode) *VM {
+func New(bytecode *bluec.Bytecode) *VM {
 	return NewNode("vm-node", bytecode)
 }
 
-func NewWithGlobalsStore(bytecode *binc.Bytecode, s []object.Object) *VM {
+func NewWithGlobalsStore(bytecode *bluec.Bytecode, s []object.Object) *VM {
 	vm := New(bytecode)
 	vm.globals = s
 	vm.globalsOwned = true

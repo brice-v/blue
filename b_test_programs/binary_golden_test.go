@@ -14,8 +14,8 @@ import (
 
 // Golden equivalence (Phase 3 of blue-binary-plan.md): every program must
 // behave IDENTICALLY when run through the real CLI from source
-// (`blue vm prog.b`) and from a compiled image (`blue compile -o prog.bbc`
-// then `blue vm prog.bbc`). Stdout and exit codes are compared.
+// (`blue vm prog.b`) and from a compiled image (`blue compile -o prog.bluec`
+// then `blue vm prog.bluec`). Stdout and exit codes are compared.
 //
 // Each program runs in its own subprocess so spawned processes from earlier
 // files cannot pollute later captures.
@@ -137,7 +137,7 @@ func TestSourceAndBinaryImageProduceIdenticalOutput(t *testing.T) {
 
 				sourceOut, sourceCode := runCmd(bin, "vm", fpath)
 
-				bbcPath := filepath.Join(tmpDir, strings.TrimSuffix(f.Name(), ".b")+".bbc")
+				bbcPath := filepath.Join(tmpDir, strings.TrimSuffix(f.Name(), ".b")+".bluec")
 				compileOut, compileCode := runCmd(bin, "compile", "-o", bbcPath, fpath)
 				if compileCode != 0 {
 					t.Skipf("program does not compile to an image: %s", compileOut)

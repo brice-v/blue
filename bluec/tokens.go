@@ -1,4 +1,4 @@
-package binc
+package bluec
 
 import (
 	"encoding/binary"
@@ -40,7 +40,7 @@ func encodeTokens(tokens []*token.Token) ([]byte, error) {
 	prevLine := 0
 	for _, t := range tokens {
 		if t == nil {
-			return nil, fmt.Errorf("binc: nil token in token table")
+			return nil, fmt.Errorf("bluec: nil token in token table")
 		}
 		body = binary.AppendUvarint(body, intern(string(t.Type)))
 		body = binary.AppendUvarint(body, intern(t.Literal))
@@ -64,7 +64,7 @@ func decodeTokens(data []byte) ([]*token.Token, error) {
 	readUvarint := func() (uint64, error) {
 		v, n := binary.Uvarint(data)
 		if n <= 0 {
-			return 0, fmt.Errorf("binc: malformed token table")
+			return 0, fmt.Errorf("bluec: malformed token table")
 		}
 		data = data[n:]
 		return v, nil
@@ -72,7 +72,7 @@ func decodeTokens(data []byte) ([]*token.Token, error) {
 	readVarint := func() (int64, error) {
 		v, n := binary.Varint(data)
 		if n <= 0 {
-			return 0, fmt.Errorf("binc: malformed token table")
+			return 0, fmt.Errorf("bluec: malformed token table")
 		}
 		data = data[n:]
 		return v, nil
@@ -83,7 +83,7 @@ func decodeTokens(data []byte) ([]*token.Token, error) {
 			return "", err
 		}
 		if n > uint64(len(data)) {
-			return "", fmt.Errorf("binc: malformed token table")
+			return "", fmt.Errorf("bluec: malformed token table")
 		}
 		s := string(data[:n])
 		data = data[n:]
@@ -104,7 +104,7 @@ func decodeTokens(data []byte) ([]*token.Token, error) {
 	}
 	get := func(i uint64) (string, error) {
 		if i >= uint64(len(stringTable)) {
-			return "", fmt.Errorf("binc: token table string index %d out of range (%d strings)", i, len(stringTable))
+			return "", fmt.Errorf("bluec: token table string index %d out of range (%d strings)", i, len(stringTable))
 		}
 		return stringTable[i], nil
 	}
@@ -114,7 +114,7 @@ func decodeTokens(data []byte) ([]*token.Token, error) {
 		return nil, err
 	}
 	if numTokens > uint64(len(data)) { // every token needs at least 5 bytes
-		return nil, fmt.Errorf("binc: malformed token table")
+		return nil, fmt.Errorf("bluec: malformed token table")
 	}
 	tokens := make([]*token.Token, 0, numTokens)
 	prevLine := int64(0)
