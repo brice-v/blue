@@ -60,6 +60,14 @@ The commands are:
 
 The default behavior for no command/arguments will start an vm repl. (If given a file, the file will be evaluated with the vm)
 
+Run Cache:
+
+    running a program file (blue prog.b or blue vm prog.b) caches its compiled image
+    in a __blue_cache folder next to the program so later runs skip lexing, parsing
+    and compiling while the sources stay unchanged. imported module files are tracked,
+    editing any of them invalidates the entry automatically. set BLUE_NO_CACHE to any
+    non empty value to disable the cache entirely.
+
 A '-' can be given in place of a file to read the program from STDIN. When no
 command is given and stdin is piped or redirected, the piped program is evaluated:
 
@@ -76,6 +84,9 @@ BLUE_DISABLE_HTTP_SERVER_DEBUG   set to true to disable the http server route pa
 BLUE_INSTALL_PATH                set to the path where the blue src is installed. ie. ~/.blue/src
 
 NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string) to disable colored printing
+
+BLUE_NO_CACHE                    set to true (or any non empty string) to disable the run cache
+                                 (__blue_cache folders next to run programs)
 
 PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it
 `

@@ -50,6 +50,11 @@ const INTERNAL_ERROR_PATTERN = "Filepath: \"<internal:"
 const BLUE_INSTALL_PATH = "BLUE_INSTALL_PATH"
 const BLUE_NO_COLOR = "BLUE_NO_COLOR"
 const BLUE_DISABLE_HTTP_SERVER_DEBUG = "BLUE_DISABLE_HTTP_SERVER_DEBUG"
+const BLUE_NO_CACHE = "BLUE_NO_CACHE"
+
+// CACHE_DIR_NAME is the name of the folder created next to a run .b file to
+// hold its compiled program image so later runs skip lexing/parsing/compiling.
+const CACHE_DIR_NAME = "__blue_cache"
 
 const EMBED_FILES_PREFIX = "embed_files/"
 

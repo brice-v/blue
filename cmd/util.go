@@ -416,8 +416,11 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult
 			os.Exit(1)
 		}
 		bc = img
+	} else if cached := lookupCachedProgram(inputOrFpath, allErrors); cached != nil {
+		bc = cached
 	} else {
 		c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+		storeCachedProgram(c, inputOrFpath, allErrors)
 		bc = c.Bytecode()
 	}
 	runBytecode(bc, noExec, printResult)

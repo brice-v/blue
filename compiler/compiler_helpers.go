@@ -442,6 +442,7 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 			return fmt.Errorf("failed to import '%s'. Could not read the file", name)
 		}
 		inputStr = string(fileData)
+		c.ReadFiles = append(c.ReadFiles, file)
 	} else {
 		fileData, err := object.Files.ReadFile(consts.EMBED_FILES_PREFIX + fpath)
 		if err != nil {

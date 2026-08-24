@@ -210,8 +210,29 @@ BLUE_INSTALL_PATH                set to the path where the blue src is installed
 
 NO_COLOR or BLUE_NO_COLOR        set to true (or any non empty string) to disable colored printing
 
+BLUE_NO_CACHE                    set to true (or any non empty string) to disable the run cache
+                                 (__blue_cache folders next to run programs)
+
 PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it
 ```
+
+### Run cache (__blue_cache)
+
+Running a program file (`blue prog.b` or `blue vm prog.b`) automatically caches its
+compiled image in a `__blue_cache` folder created next to the program, so later runs
+skip lexing, parsing and compiling entirely and only pay the VM startup cost:
+
+```sh
+blue prog.b    # first run: compiles and fills __blue_cache/prog.b.<key>.bluec
+blue prog.b    # later runs: loads the cached image (much faster startup)
+```
+
+- entries are keyed by the binary's build fingerprint, the CLI path, parser flags and
+  the SHA-256 of the main source; a rebuilt blue invalidates everything automatically
+- imported module files are tracked too: editing any of them invalidates the entry on
+  the next run
+- a corrupt or stale entry is silently recompiled, caching can never break a run
+- set `BLUE_NO_CACHE=1` to disable, or just delete `__blue_cache` to clear it
 
 ### Compiled programs (.bluec) and single executables
 

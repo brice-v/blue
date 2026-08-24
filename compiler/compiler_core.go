@@ -86,8 +86,9 @@ func newFromCore() *Compiler {
 		coreCompiled:               true,
 		inMatch:                    false,
 
-		// Cloned (not shared) so compilations of different files cannot
-		// observe or pollute each other's token streams and fold indices.
+		// Per-compilation dependency tracking, always fresh: core.b is
+		// embedded so no file reads belong to the cached core compiler.
+		ReadFiles:  []string{},
 		tokens:     clone.Clone(_coreCompiler.tokens),
 		tokenFolds: clone.Clone(_coreCompiler.tokenFolds),
 	}

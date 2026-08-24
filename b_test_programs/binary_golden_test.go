@@ -110,6 +110,10 @@ func TestSourceAndBinaryImageProduceIdenticalOutput(t *testing.T) {
 	if testing.Short() {
 		t.Skip("golden subprocess suite skipped in -short mode")
 	}
+	// Keep this suite hermetic: it must compare a FRESH compile against an
+	// image, never a run-cache entry (which could predate local uncommitted
+	// compiler changes sharing the same build fingerprint).
+	t.Setenv("BLUE_NO_CACHE", "1")
 	bin := buildBlueBinary(t)
 
 	tmpDir := t.TempDir()

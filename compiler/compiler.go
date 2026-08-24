@@ -47,6 +47,12 @@ type Compiler struct {
 	CompilerBasePath string
 	ValidModuleNames []string // TODO: Maybe eventually use map[string]struct{}
 
+	// ReadFiles records the absolute paths of every user module file read
+	// during this compilation (see compileImportStatement). It lets callers
+	// such as the run cache know which sources the compiled image depends
+	// on. It is per-compilation state, never shared between compilers.
+	ReadFiles []string
+
 	listSetMapCompLiteralIndex int
 
 	coreCompiled bool
