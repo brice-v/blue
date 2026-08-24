@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -55,8 +56,15 @@ assert(results[1] == 15)
 	if out, code := runCmd(bin, "pack", "--go-build", "-o", packed, src); code != 0 {
 		t.Fatalf("pack failed (exit %d):\n%s", code, out)
 	}
-	if info, err := os.Stat(packed); err != nil || info.Mode()&0o111 == 0 {
-		t.Fatalf("packed executable missing or not executable: %v", err)
+	info, err := os.Stat(packed)
+	if err != nil {
+		t.Fatalf("packed executable missing: %v", err)
+	}
+	// Windows stat never reports execute bits (regular files are 0666 or
+	// 0444); executability there comes from the PE format and is proven
+	// below by actually running packed.
+	if runtime.GOOS != "windows" && info.Mode()&0o111 == 0 {
+		t.Fatalf("packed executable is not executable: %v", info.Mode())
 	}
 
 	packedOut, packedCode := runCmd(packed)
