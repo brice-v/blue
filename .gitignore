@@ -19,7 +19,7 @@ abc.b
 blues
 blues.exe
 playground/*.wasm
-bluerun
+/bluerun
 bluerun-darwin-*
 bluerun-linux-*
 bluerun-windows-*
