@@ -702,8 +702,8 @@ func TestCloneInteger(t *testing.T) {
 	if clone.Value != 42 {
 		t.Errorf("expected cloned value 42, got %d", clone.Value)
 	}
-	if clone == orig {
-		t.Error("clone should be a different pointer")
+	if clone != orig {
+		t.Error("immutable integer clone should share the receiver pointer")
 	}
 }
 
@@ -738,8 +738,8 @@ func TestCloneUInteger(t *testing.T) {
 	if clone.Value != 18446744073709551615 {
 		t.Errorf("expected cloned value 18446744073709551615, got %d", clone.Value)
 	}
-	if clone == orig {
-		t.Error("clone should be a different pointer")
+	if clone != orig {
+		t.Error("immutable uinteger clone should share the receiver pointer")
 	}
 }
 
@@ -749,8 +749,8 @@ func TestCloneFloat(t *testing.T) {
 	if clone.Value != 3.14159 {
 		t.Errorf("expected cloned value 3.14159, got %f", clone.Value)
 	}
-	if clone == orig {
-		t.Error("clone should be a different pointer")
+	if clone != orig {
+		t.Error("immutable float clone should share the receiver pointer")
 	}
 }
 
@@ -793,8 +793,8 @@ func TestCloneStringo(t *testing.T) {
 	if clone.Value != "hello world" {
 		t.Errorf("expected cloned value 'hello world', got %q", clone.Value)
 	}
-	if clone == orig {
-		t.Error("clone should be a different pointer")
+	if clone != orig {
+		t.Error("immutable string clone should share the receiver pointer")
 	}
 }
 
@@ -1020,8 +1020,8 @@ func TestCloneSlice(t *testing.T) {
 		t.Errorf("expected cloned slice length 3, got %d", len(clone))
 	}
 	for i, elem := range clone {
-		if elem == orig[i] {
-			t.Errorf("clone[%d] should be a different pointer", i)
+		if elem != orig[i] {
+			t.Errorf("clone[%d] of an immutable scalar should share the pointer", i)
 		}
 	}
 }

@@ -205,7 +205,7 @@ func NewWithGlobalsStore(bytecode *bluec.Bytecode, s []object.Object) *VM {
 // which swaps in its own frames and never reads stack contents below sp.
 func (vm *VM) Clone(pid uint64) *VM {
 	frames := make([]Frame, lazyFramesFloor)
-	frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+	frames[0] = *NewFrame(emptyMainClosure, 0)
 	return &VM{
 		constants:    vm.constants,
 		tokens:       vm.tokens,
@@ -229,7 +229,7 @@ func (vm *VM) Clone(pid uint64) *VM {
 // instead of deep cloning the whole program for every connection.
 func (vm *VM) CloneForConnection(pid uint64) *VM {
 	frames := make([]Frame, lazyFramesFloor)
-	frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+	frames[0] = *NewFrame(emptyMainClosure, 0)
 	return &VM{
 		constants:   vm.constants,
 		tokens:      vm.tokens,
@@ -1636,11 +1636,14 @@ func (vm *VM) pushClosure(constIndex, numFree int) error {
 	if !ok {
 		return fmt.Errorf("not a function: %+v", constant)
 	}
-	free := make([]object.Object, numFree)
-	for i := range numFree {
-		free[i] = vm.stack[vm.sp-numFree+i]
+	var free []object.Object
+	if numFree > 0 {
+		free = make([]object.Object, numFree)
+		for i := range numFree {
+			free[i] = vm.stack[vm.sp-numFree+i]
+		}
+		vm.sp = vm.sp - numFree
 	}
-	vm.sp = vm.sp - numFree
 	closure := &object.Closure{Fun: function, Free: free}
 	return vm.push(closure)
 }

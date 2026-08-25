@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"blue/code"
 	"blue/consts"
 	"blue/object"
 	"fmt"
@@ -209,30 +208,34 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 	// Using custom comparator.
 	//
 	// Decorate-sort-undecorate: evaluate every key function exactly ONCE
-	// per element up front, then sort by the precomputed keys. The previous
-	// implementation re-invoked the key functions (each a full vm call with
-	// its own frame allocation) and round-tripped both elements through Go
-	// objects on EVERY comparison — O(n log n) vm invocations instead of n.
+	// per element up front, then sort by the precomputed keys. Key
+	// functions receive the original elements (matching Python's sorted
+	// key semantics) and the result list reuses those same objects, so no
+	// blue <-> Go conversion round-trips are needed. The single-key case
+	// (the common one) stores its key inline to avoid a per-element slice.
 	type keyedElem struct {
-		goObj any
-		keys  []object.Object
+		obj  object.Object
+		key  object.Object
+		keys []object.Object
 	}
+	singleKey := len(funs) == 1
 	elems := make([]keyedElem, len(l.Elements))
 	for i, e := range l.Elements {
-		obj, err := blueObjectToGoObject(e)
-		if err != nil {
-			return newError("`sort` key error: %s", err.Error())
-		}
-		// Key functions receive a converted copy of the element, matching
-		// the old per-comparison copy semantics (mutations by the key fn
-		// are not visible in the output).
-		blueCopy, err := goObjectToBlueObject(obj)
-		if err != nil {
-			return newError("`sort` key error: %s", err.Error())
+		if singleKey {
+			keyObj := vm.applyFunctionFast(funs[0], e)
+			if isError(keyObj) {
+				errMsg := keyObj.(*object.Error).Message
+				return newError("`sort` key error: %s", errMsg)
+			}
+			if keyObj.Type() != object.FLOAT_OBJ && keyObj.Type() != object.INTEGER_OBJ && keyObj.Type() != object.STRING_OBJ {
+				return newError("`sort` key error: key function must return INTEGER, STRING, or FLOAT. got = %T (%s)", keyObj, keyObj.Inspect())
+			}
+			elems[i] = keyedElem{obj: e, key: keyObj}
+			continue
 		}
 		keys := make([]object.Object, len(funs))
 		for k := range funs {
-			keyObj := vm.applyFunctionFast(funs[k], blueCopy)
+			keyObj := vm.applyFunctionFast(funs[k], e)
 			if isError(keyObj) {
 				errMsg := keyObj.(*object.Error).Message
 				return newError("`sort` key error: %s", errMsg)
@@ -242,32 +245,38 @@ func getSortedListHelper(vm *VM, args ...object.Object) object.Object {
 			}
 			keys[k] = keyObj
 		}
-		elems[i] = keyedElem{goObj: obj, keys: keys}
+		elems[i] = keyedElem{obj: e, keys: keys}
 	}
 
 	sort.SliceStable(elems, func(i, j int) bool {
-		a := elems[i].keys
-		b := elems[j].keys
-		for k := range a {
-			c := compareSortKeys(a[k], b[k])
-			if c == 0 && k != len(a)-1 {
-				continue
+		a := elems[i].key
+		b := elems[j].key
+		var ak, bk []object.Object
+		if a == nil {
+			ak = elems[i].keys
+			bk = elems[j].keys
+			for k := range ak {
+				c := compareSortKeys(ak[k], bk[k])
+				if c == 0 && k != len(ak)-1 {
+					continue
+				}
+				if shouldReverse {
+					return c > 0
+				}
+				return c < 0
 			}
-			if shouldReverse {
-				return c > 0
-			}
-			return c < 0
+			return false
 		}
-		return false
+		c := compareSortKeys(a, b)
+		if shouldReverse {
+			return c > 0
+		}
+		return c < 0
 	})
 
 	newObjs := make([]object.Object, len(l.Elements))
 	for i := range elems {
-		obj, err := goObjectToBlueObject(elems[i].goObj)
-		if err != nil {
-			return newError("`sort` key error: %s", err.Error())
-		}
-		newObjs[i] = obj
+		newObjs[i] = elems[i].obj
 	}
 	return &object.List{Elements: newObjs}
 }
@@ -591,7 +600,7 @@ func (vm *VM) applyFunctionFastWithMultipleArgs(fun object.Object, args []object
 	frames := *framesPtr
 	defer isolatedFramesPool.Put(framesPtr)
 	vm.frames = frames
-	vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+	vm.frames[0] = *NewFrame(emptyMainClosure, 0)
 	vm.framesIndex = 2
 	err := vm.push(fun)
 	if err != nil {
@@ -641,7 +650,7 @@ func (vm *VM) applyFunctionFast(fun, arg object.Object) object.Object {
 		frames := *framesPtr
 		defer isolatedFramesPool.Put(framesPtr)
 		vm.frames = frames
-		vm.frames[0] = *NewFrame(&object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}, 0)
+		vm.frames[0] = *NewFrame(emptyMainClosure, 0)
 		vm.framesIndex = 2
 		err := vm.push(fun)
 		if err != nil {

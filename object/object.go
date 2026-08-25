@@ -110,8 +110,8 @@ type Integer struct {
 // (arithmetic results, len(), range elements, ...). The vm's binary-op fast
 // path shares this cache too.
 const (
-	smallIntLow  = -2048
-	smallIntHigh = 2048
+	smallIntLow  = -65536
+	smallIntHigh = 65536
 )
 
 var smallIntegers []*Integer

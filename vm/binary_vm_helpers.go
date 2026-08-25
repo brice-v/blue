@@ -68,15 +68,15 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 var smallInts []*object.Integer
 
 func init() {
-	smallInts = make([]*object.Integer, 4096)
+	smallInts = make([]*object.Integer, 131072)
 	for i := range smallInts {
-		smallInts[i] = &object.Integer{Value: int64(i - 2048)}
+		smallInts[i] = &object.Integer{Value: int64(i - 65536)}
 	}
 }
 
 func intObject(v int64) *object.Integer {
-	if v >= -2048 && v < 2048 {
-		return smallInts[v+2048]
+	if v >= -65536 && v < 65536 {
+		return smallInts[v+65536]
 	}
 	return &object.Integer{Value: v}
 }

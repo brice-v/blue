@@ -23,7 +23,9 @@ func (x *ContinueStatement) Clone() Object {
 }
 
 func (x *Integer) Clone() Object {
-	return &Integer{Value: x.Value}
+	// Integers are immutable and already shared via the small-int caches,
+	// so cloning can share the receiver.
+	return x
 }
 
 func (x *BigInteger) Clone() Object {
@@ -43,11 +45,13 @@ func (x *DefaultArgs) Clone() Object {
 }
 
 func (x *UInteger) Clone() Object {
-	return &UInteger{Value: x.Value}
+	// Immutable, safe to share.
+	return x
 }
 
 func (x *Float) Clone() Object {
-	return &Float{Value: x.Value}
+	// Immutable, safe to share.
+	return x
 }
 
 func (x BigFloat) Clone() Object {
@@ -77,7 +81,9 @@ func (x *Process) Clone() Object {
 }
 
 func (x *Stringo) Clone() Object {
-	return NewString(x.Value)
+	// Immutable value semantics; strings are already shared via the
+	// intern tables, so cloning can share the receiver.
+	return x
 }
 
 func (x *Bytes) Clone() Object {

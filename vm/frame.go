@@ -53,6 +53,11 @@ func NewFrame(fn *object.Closure, bp int) *Frame {
 	return &Frame{cl: fn, ip: -1, bp: bp, lastInstruction: code.OpInvalid, callerLastNodePos: -1}
 }
 
+// emptyMainClosure is the read-only sentinel closure installed as frames[0]
+// by applyFunctionFast* and Clone: it carries no instructions and never
+// gains special function parameters, so every caller can share one value.
+var emptyMainClosure = &object.Closure{Fun: &object.CompiledFunction{Instructions: code.Instructions{}}}
+
 func (f *Frame) Instructions() code.Instructions {
 	return f.cl.Fun.Instructions
 }
