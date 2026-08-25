@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// This test guards the minimal VM build (see blue-binary-plan.md, Phase 4):
+// This test guards the minimal VM build:
 // the runtime packages must form a closed set with NO imports of the
 // lexing/parsing/compiling toolchain, so `cmd/bluerun` (built with
 // -tags minivm) can execute precompiled .bluec images without embedding the

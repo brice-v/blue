@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// Golden equivalence (Phase 3 of blue-binary-plan.md): every program must
+// Golden equivalence: every program must
 // behave IDENTICALLY when run through the real CLI from source
 // (`blue vm prog.b`) and from a compiled image (`blue compile -o prog.bluec`
 // then `blue vm prog.bluec`). Stdout and exit codes are compared.
