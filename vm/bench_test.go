@@ -241,6 +241,162 @@ fun main() {
 }
 main()
 `,
+	// Broad mixed workload covering most language features in one program:
+	// recursion, match dispatch with default args, closures over struct
+	// state, struct field get/set, map insert/lookup/key-iteration with
+	// interpolated keys, set literals/add/membership, list append/index/
+	// slice, list comprehension with filter, HOF map/filter lambdas,
+	// char-range iteration, string interpolation/concat/slice/index, float
+	// math, bigint promotion, try/catch/finally unwinding, defer callbacks,
+	// record sort with key lambda, and all three loop forms.
+	"mixed-workload": `
+fun warm(n) {
+    if n < 2 {
+        return n;
+    }
+    return warm(n-1) + warm(n-2);
+}
+
+fun classify(ch, base=1000) {
+    return match ch {
+        0 => { base + 1 },
+        1 => { base + 2 },
+        2 => { base + 4 },
+        _ => { base + 8 },
+    };
+}
+
+fun makeCounter(start) {
+    var state = @{count: start, steps: 0};
+    return fun(step) {
+        state.count += step;
+        state.steps += 1;
+        return state.count;
+    };
+}
+
+fun withDefer(acc, n) {
+    val dfun = fun() {
+        acc(n);
+    };
+    defer(dfun);
+    return n * 2;
+}
+
+fun processBatch(items) {
+    val doubled = items.map(|x| => x * 2);
+    val filtered = doubled.filter(|x| => x % 3 != 0);
+    var total = 0;
+    for v in filtered {
+        total += v;
+    }
+    return total;
+}
+
+fun main() {
+    var checksum = 0;
+
+    checksum += warm(13);
+
+    val counter = makeCounter(0);
+    for i in 0..2999 {
+        checksum += classify(i % 5);
+        checksum += counter(1) % 7;
+    }
+
+    val records = [];
+    var seed = 12345;
+    for i in 0..1499 {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        var r = @{id: i, score: seed % 1000, name: "u#{i}"};
+        r.score = r.score + i % 10;
+        records << r;
+        checksum += r.score % 13;
+    }
+
+    var byName = {};
+    for r in records {
+        byName[r.name] = r.score;
+    }
+    for k in byName.keys() {
+        checksum += byName[k] % 11;
+    }
+
+    val unique = {1, 1, 2, 3};
+    for r in records[100..200] {
+        unique << r.id % 50;
+        if (r.id % 50) in unique {
+            checksum += 1;
+        }
+    }
+    for v in unique {
+        checksum += v;
+    }
+
+    checksum += processBatch([x for (x in 0..999) if (x % 2 == 0)]);
+
+    var s = "";
+    for ch in 'a'..'f' {
+        s = s + ch;
+    }
+    checksum += len(s);
+    checksum += len(s[1..<4]);
+    if s[2] == 'c' {
+        checksum += 1;
+    }
+
+    var fsum = 0.0;
+    var i = 0;
+    for i < 2000 {
+        fsum += i * 0.5;
+        i += 1;
+    }
+    if fsum > 0.0 {
+        checksum += 1;
+    }
+
+    var caught = 0;
+    for i in 0..49 {
+        try {
+            val z = 100 / (i - 25);
+            checksum += z % 3;
+        } catch (e) {
+            caught += 1;
+        } finally {
+            checksum += 1;
+        }
+    }
+    checksum += caught;
+
+    var big = 9223372036854775807;
+    for i in 0..99 {
+        big = big + big;
+        if big % 1000000007 >= 0 {
+            checksum += 1;
+        }
+    }
+
+    val rows = [];
+    for r in records {
+        rows << {sid: r.id, sc: r.score};
+    }
+    val sorted = _sort(rows, false, |r| => r.sc);
+    checksum += sorted[750].sc;
+
+    var ctotal = 0;
+    for (var j = 0; j < 3000; j += 1) {
+        ctotal += j % 17;
+    }
+    checksum += ctotal;
+
+    for i in 0..299 {
+        checksum += withDefer(counter, i % 7);
+    }
+
+    return checksum;
+}
+main()
+`,
 }
 
 func compileAndRunBench(b *testing.B, src string) object.Object {
@@ -267,7 +423,7 @@ func BenchmarkBlueEndToEnd(b *testing.B) {
 	for name, src := range benchPrograms {
 		b.Run(name, func(b *testing.B) {
 			b.ReportAllocs()
-			for range b.N {
+			for b.Loop() {
 				_ = compileAndRunBench(b, src)
 			}
 		})
@@ -278,7 +434,7 @@ func BenchmarkBlueFrontendOnly(b *testing.B) {
 	for name, src := range benchPrograms {
 		b.Run(name, func(b *testing.B) {
 			b.ReportAllocs()
-			for range b.N {
+			for b.Loop() {
 				l := lexer.New(src, "<bench>")
 				p := parser.New(l)
 				prog := p.ParseProgram()
@@ -305,7 +461,7 @@ func BenchmarkBlueVmRunOnly(b *testing.B) {
 			bc := c.Bytecode()
 			b.ResetTimer()
 			b.ReportAllocs()
-			for range b.N {
+			for b.Loop() {
 				globals := make([]object.Object, GlobalsSize)
 				v := NewWithGlobalsStore(bc, globals)
 				if err := v.Run(); err != nil {
@@ -320,7 +476,7 @@ func BenchmarkLexerOnly(b *testing.B) {
 	for name, src := range benchPrograms {
 		b.Run(name, func(b *testing.B) {
 			b.ReportAllocs()
-			for range b.N {
+			for b.Loop() {
 				l := lexer.New(src, "<bench>")
 				for {
 					tok := l.NextToken()
@@ -342,9 +498,9 @@ func BenchmarkOpcodePushPop(b *testing.B) {
 	}
 	mainFn := &object.CompiledFunction{Instructions: ins}
 	cl := &object.Closure{Fun: mainFn}
-	b.ResetTimer()
+
 	b.ReportAllocs()
-	for range b.N {
+	for b.Loop() {
 		v := &VM{
 			stack:       make([]object.Object, StackSize),
 			frames:      make([]Frame, MaxFrames),
@@ -356,24 +512,18 @@ func BenchmarkOpcodePushPop(b *testing.B) {
 	}
 }
 
-// BenchmarkFib25 measures the classic call/arith heavy workload with a
-// correctness check on the result.
-func BenchmarkFib25(b *testing.B) {
-	src := `
-fun fib(n) {
-    if n < 2 {
-        return n;
-    }
-    return fib(n-1) + fib(n-2);
-}
-fib(25)
-`
-	b.ResetTimer()
+// BenchmarkMixedWorkload is the primary end-to-end benchmark: one program
+// exercising recursion, calls, closures, structs, maps, sets, lists, slices,
+// comprehensions, HOFs, strings, floats, bigints, try/catch/finally unwinding,
+// defer and all loop forms, with a pinned checksum to catch miscompiles.
+func BenchmarkMixedWorkload(b *testing.B) {
+	src := benchPrograms["mixed-workload"]
+
 	b.ReportAllocs()
-	for range b.N {
+	for b.Loop() {
 		r := compileAndRunBench(b, src)
 		i, ok := r.(*object.Integer)
-		if !ok || i.Value != 75025 {
+		if !ok || i.Value != 4432407 {
 			b.Fatalf("bad result %v", r)
 		}
 	}
@@ -414,9 +564,9 @@ main()
 		b.Fatal(err)
 	}
 	bc := c.Bytecode()
-	b.ResetTimer()
+
 	b.ReportAllocs()
-	for range b.N {
+	for b.Loop() {
 		v := New(bc)
 		if err := v.Run(); err != nil {
 			b.Fatal(err)

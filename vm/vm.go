@@ -69,6 +69,13 @@ type VM struct {
 	// execMu serializes http handler execution. The stack, frames, globals
 	// and closure special parameter maps are not safe for concurrent runs.
 	execMu sync.Mutex
+
+	// framesChanged is set when catch/finally unwinding rewrites
+	// framesIndex or a frame's ip outside of the interpreter loop's local
+	// tracking (see gotoNextCatchOrFinally and gotoCatchEnd). The Run loop
+	// caches frame/ins/ip in locals across instructions and consults this
+	// flag to resync from vm state instead of refetching every iteration.
+	framesChanged bool
 }
 
 func (vm *VM) currentFrame() *Frame {
@@ -304,13 +311,15 @@ func (vm *VM) PushAndReturnError(err error) error {
 }
 
 func (vm *VM) Run() error {
-	var ip int
-	var ins code.Instructions
 	var op code.Opcode
+	// frame/ins/ip are cached across instructions and only resynced from vm
+	// state when frames change (calls, returns, catch unwinding). frame.ip
+	// is stored before each dispatch because handlers and exception
+	// scanning read it mid-handler.
+	frame := vm.currentFrame()
+	ins := frame.Instructions()
+	ip := frame.ip
 	for {
-		frame := vm.currentFrame()
-		ins = frame.Instructions()
-		ip = frame.ip
 		if ip >= len(ins)-1 {
 			break
 		}
@@ -320,13 +329,14 @@ func (vm *VM) Run() error {
 		if op == code.OpNode {
 			vm.lastNodePos = ip
 			// Skip TokenIndex of OpNode
-			frame.ip += 2
+			ip += 2
 			continue
 		}
+		opPos := ip
 		switch op {
 		case code.OpConstant:
 			constIndex := code.ReadUint16(ins[ip+1:])
-			frame.ip += 2
+			ip += 2
 			if int(constIndex) > len(vm.constants) {
 				return fmt.Errorf("constant index out of bounds, got=%d, len=%d", constIndex, len(vm.constants))
 			}
@@ -337,7 +347,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpTrue:
 			err := vm.push(object.TRUE)
 			if err != nil {
@@ -346,7 +355,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpFalse:
 			err := vm.push(object.FALSE)
 			if err != nil {
@@ -355,7 +363,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpNull:
 			err := vm.push(object.NULL)
 			if err != nil {
@@ -364,7 +371,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpPop:
 			vm.pop()
 		case code.OpAdd, code.OpMinus, code.OpStar, code.OpPow, code.OpDiv,
@@ -379,7 +385,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpNot:
 			err := vm.executeNotOperation()
 			if err != nil {
@@ -388,7 +393,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpNotIfNotNull:
 			err := vm.executeNotIfNotNullOperation()
 			if err != nil {
@@ -397,7 +401,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpNeg:
 			err := vm.executeNegOperation()
 			if err != nil {
@@ -406,7 +409,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpTilde:
 			err := vm.executeBitwiseNotOperation()
 			if err != nil {
@@ -415,7 +417,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpLshiftPre:
 			err := vm.executeLshiftPrefixOperation()
 			if err != nil {
@@ -424,7 +425,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpRshiftPost:
 			err := vm.executeRshiftPostfixOperation()
 			if err != nil {
@@ -433,25 +433,25 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpJump:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip = pos - 1
+			ip = pos - 1
 		case code.OpJumpNotTruthy:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
 			condition := vm.pop()
 			if !isTruthy(condition) {
-				frame.ip = pos - 1
+				ip = pos - 1
 			}
 		case code.OpJumpNotTruthyAndPushTrue:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			// Pass null through (as this would mean we should re-push the item on the stack)
 			if vm.peek() != object.NULL {
 				condition := vm.pop()
 				if !isTruthy(condition) {
-					frame.ip = pos - 1
+					ip = pos - 1
 					err := vm.push(object.TRUE)
 					if err != nil {
 						err = vm.PushAndReturnError(err)
@@ -459,7 +459,6 @@ func (vm *VM) Run() error {
 							return err
 						}
 					}
-					frame = vm.currentFrame()
 				} else {
 					// Execute Not on the Condition to reverse OpNotIfNotNull which is always called prior
 					err := vm.push(condition)
@@ -474,10 +473,11 @@ func (vm *VM) Run() error {
 			}
 		case code.OpJumpNotTruthyAndPushFalse:
 			pos := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			condition := vm.pop()
 			if !isTruthy(condition) {
-				frame.ip = pos - 1
+				ip = pos - 1
 				err := vm.push(object.FALSE)
 				if err != nil {
 					err = vm.PushAndReturnError(err)
@@ -485,7 +485,6 @@ func (vm *VM) Run() error {
 						return err
 					}
 				}
-				frame = vm.currentFrame()
 			} else {
 				err := vm.push(condition)
 				if err != nil {
@@ -494,7 +493,7 @@ func (vm *VM) Run() error {
 			}
 		case code.OpSetGlobal, code.OpSetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
-			frame.ip += 2
+			ip += 2
 			vm.ensureGlobalWritable(int(globalIndex))
 			vm.globals[globalIndex] = vm.pop()
 			if int(globalIndex) >= vm.globalsHighWater {
@@ -502,7 +501,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpGetGlobal, code.OpGetGlobalImm:
 			globalIndex := code.ReadUint16(ins[ip+1:])
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			if int(globalIndex) < len(vm.globals) {
 				err := vm.push(vm.globals[globalIndex])
 				if err != nil {
@@ -517,14 +517,15 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpGetGlobalImmOrSpecial:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			processKeyIndex := code.ReadUint8(ins[ip+3:])
-			frame.ip += 3
+			ip += 3
+			frame.ip = ip
 			var err error
-			if processKeyIndex != 0 && vm.safePeek().Type() == object.PROCESS_OBJ && len(ins) >= frame.ip+1 && ins[frame.ip+1] == byte(code.OpIndex) {
-				frame.ip += 1 // Skip over OpIndex, we are going to pop and then push the evaluated result back on the stack
+			if processKeyIndex != 0 && vm.safePeek().Type() == object.PROCESS_OBJ && len(ins) >= ip+1 && ins[ip+1] == byte(code.OpIndex) {
+				ip += 1 // Skip over OpIndex, we are going to pop and then push the evaluated result back on the stack
+				frame.ip = ip
 				name := object.GetProcessKeyName(processKeyIndex)
 				err = vm.executeProcessIndexExpression(vm.pop().(*object.Process), name)
 			} else {
@@ -540,10 +541,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpList:
 			numElems := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			list := vm.buildList(vm.sp-numElems, vm.sp)
 			vm.sp = vm.sp - numElems
 			err := vm.push(list)
@@ -553,10 +554,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpMap:
 			numPairs := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			m := vm.buildMap(vm.sp-numPairs, vm.sp)
 			vm.sp = vm.sp - numPairs
 			err := vm.push(m)
@@ -566,10 +567,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpSet:
 			numElems := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			set := vm.buildSet(vm.sp-numElems, vm.sp)
 			vm.sp = vm.sp - numElems
 			err := vm.push(set)
@@ -579,7 +580,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
@@ -591,7 +591,7 @@ func (vm *VM) Run() error {
 				// on more than one vm at a time. Like the old code, only
 				// take this path when a following OpCall exists in the
 				// instruction stream, otherwise treat it as a plain index.
-				if blueutil.GetNextOpCallPos(frame.Instructions(), frame.ip) != -1 {
+				if blueutil.GetNextOpCallPos(ins, ip) != -1 {
 					frame.methodCallPending = true
 					err := vm.push(index)
 					if err != nil {
@@ -609,7 +609,6 @@ func (vm *VM) Run() error {
 							return err
 						}
 					}
-					frame = vm.currentFrame()
 				}
 			} else {
 				err := vm.executeIndexExpression(left, index)
@@ -619,7 +618,6 @@ func (vm *VM) Run() error {
 						return err
 					}
 				}
-				frame = vm.currentFrame()
 			}
 		case code.OpCall:
 			numArgs := int(code.ReadUint8(ins[ip+1:]))
@@ -629,7 +627,8 @@ func (vm *VM) Run() error {
 				numArgs++
 				frame.methodCallPending = false
 			}
-			frame.ip += 1
+			ip += 1
+			frame.ip = ip
 			err := vm.executeCall(numArgs)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -638,6 +637,8 @@ func (vm *VM) Run() error {
 				}
 			}
 			frame = vm.currentFrame()
+			ins = frame.Instructions()
+			ip = frame.ip
 		case code.OpReturnValue:
 			frame.cl.Fun.ClearSpecialFunctionParameters()
 			returnValue := vm.pop()
@@ -660,7 +661,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 			if poppedFrame != nil {
 				// Detach the defer list before running: callClosure
 				// reuses the popped frame's slot, which would otherwise
@@ -683,6 +683,8 @@ func (vm *VM) Run() error {
 				// Should only ever happen with applyFunction
 				return fmt.Errorf(consts.NORMAL_EXIT_ON_RETURN)
 			}
+			ins = frame.Instructions()
+			ip = frame.ip
 		case code.OpReturn:
 			frame.cl.Fun.ClearSpecialFunctionParameters()
 			poppedFrame := vm.popFrame()
@@ -702,7 +704,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 			if poppedFrame != nil {
 				// Detach the defer list before running: callClosure
 				// reuses the popped frame's slot, which would otherwise
@@ -725,13 +726,16 @@ func (vm *VM) Run() error {
 				// Should only ever happen with applyFunction
 				return fmt.Errorf(consts.NORMAL_EXIT_ON_RETURN)
 			}
+			ins = frame.Instructions()
+			ip = frame.ip
 		case code.OpSetLocal, code.OpSetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])
-			frame.ip += 1
+			ip += 1
 			vm.stack[frame.bp+int(localIndex)] = vm.pop()
 		case code.OpGetLocal, code.OpGetLocalImm:
 			localIndex := code.ReadUint8(ins[ip+1:])
-			frame.ip += 1
+			ip += 1
+			frame.ip = ip
 			err := vm.push(vm.stack[frame.bp+int(localIndex)])
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -739,11 +743,11 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpClosure:
 			constIndex := code.ReadUint16(ins[ip+1:])
 			numFree := code.ReadUint8(ins[ip+3:])
-			frame.ip += 3
+			ip += 3
+			frame.ip = ip
 			err := vm.pushClosure(int(constIndex), int(numFree))
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -751,10 +755,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpGetFree, code.OpGetFreeImm:
 			freeIndex := code.ReadUint8(ins[ip+1:])
-			frame.ip += 1
+			ip += 1
+			frame.ip = ip
 			currentClosure := frame.cl
 			err := vm.push(currentClosure.Free[freeIndex])
 			if err != nil {
@@ -763,11 +767,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpGetBuiltin:
 			builtinModuleIndex := code.ReadUint8(ins[ip+1:])
 			builtinIndex := code.ReadUint8(ins[ip+2:])
-			frame.ip += 2
+			ip += 2
 			var err error
 			if builtinModuleIndex == object.BuiltinobjsModuleIndex {
 				definition := object.BuiltinobjsList[builtinIndex]
@@ -831,11 +834,11 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpStringInterp:
 			stringIndex := code.ReadUint16(ins[ip+1:])
 			numPairs := int(code.ReadUint8(ins[ip+3:]))
-			frame.ip += 3
+			ip += 3
+			frame.ip = ip
 			s := vm.buildStringWithInterp(vm.sp-numPairs, vm.sp, int(stringIndex))
 			vm.sp = vm.sp - numPairs - 1
 			err := vm.push(s)
@@ -845,7 +848,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpIndexSet:
 			index := vm.pop()
 			left := vm.pop()
@@ -856,7 +858,6 @@ func (vm *VM) Run() error {
 				if err != nil {
 					return err
 				}
-				frame = vm.currentFrame()
 			} else {
 				err := vm.push(object.NULL)
 				if err != nil {
@@ -865,7 +866,6 @@ func (vm *VM) Run() error {
 						return err
 					}
 				}
-				frame = vm.currentFrame()
 			}
 		case code.OpTry:
 			// Reset catch state when entering a try block. This is important
@@ -895,7 +895,8 @@ func (vm *VM) Run() error {
 			// Do nothing
 		case code.OpExecString:
 			constIndex := code.ReadUint16(ins[ip+1:])
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			execStr := vm.constants[constIndex]
 			str, ok := execStr.(*object.ExecString)
 			if !ok {
@@ -914,7 +915,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpMatchValue:
 			right := vm.pop()
 			left := vm.pop()
@@ -925,7 +925,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpMatchAny:
 			err := vm.push(object.VM_IGNORE)
 			if err != nil {
@@ -934,10 +933,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpDefaultArgs:
 			numPairs := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			m := vm.buildDefaultArgs(vm.sp-numPairs, vm.sp)
 			vm.sp = vm.sp - numPairs
 			err := vm.push(m)
@@ -947,7 +946,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpSlice:
 			sliceIndexes := vm.pop()
 			left := vm.pop()
@@ -958,10 +956,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpStruct:
 			numFields := int(code.ReadUint16(ins[ip+1:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			// -1 to account for the fields held in go object
 			startIndex := vm.sp - numFields - 1
 			bs, err := vm.buildStruct(startIndex, vm.sp)
@@ -971,7 +969,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 			vm.sp = startIndex
 			err = vm.push(bs)
 			if err != nil {
@@ -979,7 +976,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpGetListIndex:
 			index := int(code.ReadUint8(ins[ip+1:]))
-			frame.ip += 1
+			ip += 1
+			frame.ip = ip
 			list := vm.peek() // Dont pop it off the stack
 			if list.Type() != object.LIST_OBJ {
 				return vm.PushAndReturnError(fmt.Errorf("OpGetListIndex did not find List on top of the stack. got=%T", list))
@@ -1011,6 +1009,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpDefer:
 			numDefers := int(code.ReadUint8(ins[ip+1:]))
+			ip += 1
+			frame.ip = ip
 			for range numDefers {
 				deferFun := vm.pop()
 				if deferFun.Type() != object.CLOSURE {
@@ -1030,7 +1030,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpSpawn:
 			numArgs := int(code.ReadUint8(ins[ip+1:]))
-			frame.ip += 1
+			ip += 1
+			frame.ip = ip
 			var args []object.Object
 			funArgIndex := 0
 			listArgIndex := -1
@@ -1046,7 +1047,8 @@ func (vm *VM) Run() error {
 		case code.OpGetFunctionParameterSpecial:
 			indexParam := int(code.ReadUint8(ins[ip+1:]))
 			indexList := int(code.ReadUint8(ins[ip+2:]))
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			err := vm.pushSpecialFunctionParameter(indexParam, indexList)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
@@ -1054,10 +1056,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpGetFunctionParameterSpecial2:
 			constIndex := code.ReadUint16(ins[ip+1:])
-			frame.ip += 2
+			ip += 2
+			frame.ip = ip
 			str, ok := vm.constants[constIndex].(*object.Stringo)
 			if !ok {
 				return vm.prepareStackTraceAndReturnError(fmt.Errorf("found non-string in constant for OpGetFunctionParameterSpecial2, got = %T", vm.constants[constIndex]))
@@ -1069,11 +1071,10 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-			frame = vm.currentFrame()
 		case code.OpSpecialIndexHelper:
 			maybeJumpPos := int(code.ReadUint16(ins[ip+1:]))
 			isSet := code.Opcode(ins[maybeJumpPos]) == code.OpIndexSet
-			frame.ip += 2
+			ip += 2
 			// Should be the string constant of the 'indx'
 			indxStr := vm.peek().(*object.Stringo)
 			// Should be the the object we are trying to figure out if its being pushed
@@ -1089,7 +1090,7 @@ func (vm *VM) Run() error {
 					// Leave the string on the stack to be used for indexing and skip loading the global
 					// If its an index set operation then we always want to use the string for setting
 					// when it was done via a dot call
-					frame.ip = maybeJumpPos - 1
+					ip = maybeJumpPos - 1
 				} else {
 					// Otherwise pop off the stack and assume we are passing this map to a global function/index operation
 					vm.pop()
@@ -1100,7 +1101,13 @@ func (vm *VM) Run() error {
 		case code.OpNotInCatch:
 			frame.inCatch = false
 		}
-		if ip != 0 {
+		if vm.framesChanged {
+			vm.framesChanged = false
+			frame = vm.currentFrame()
+			ins = frame.Instructions()
+			ip = frame.ip
+		}
+		if opPos != 0 {
 			frame.lastInstruction = op
 		}
 	}
@@ -1199,6 +1206,7 @@ func (vm *VM) gotoNextCatchOrFinally(errorMessage string) bool {
 		if newip, ok := vm.isOpCatchOrFinallyFoundInFrame(frame, errorMessage); ok {
 			vm.framesIndex = frameIndex + 1
 			vm.currentFrame().ip = newip
+			vm.framesChanged = true
 			return true
 		}
 		if frameIndex-1 < 0 {
@@ -1246,6 +1254,7 @@ func (vm *VM) gotoCatchEnd() {
 		_, read := code.ReadOperands(def, ins[i+1:])
 		if def.Name == "OpCatchEnd" {
 			vm.currentFrame().ip = i
+			vm.framesChanged = true
 			break
 		}
 		i += read
