@@ -1032,3 +1032,64 @@ func TestToTitleCaseMixed(t *testing.T) {
 		t.Errorf("ToTitleCase(%q) = %q, want %q", input, result, "Go Go Go")
 	}
 }
+
+func TestCheckOverflowDetectsOverflow(t *testing.T) {
+	cases := [][2]int64{
+		{math.MaxInt64, 1},
+		{math.MaxInt64, math.MaxInt64},
+		{math.MinInt64, -1},
+		{math.MinInt64, math.MinInt64},
+	}
+	for _, c := range cases {
+		if !CheckOverflow(c[0], c[1]) {
+			t.Errorf("CheckOverflow(%d, %d) = false, want true", c[0], c[1])
+		}
+	}
+	if CheckOverflow(math.MaxInt64-1, 1) {
+		t.Error("MaxInt64-1 + 1 should not overflow")
+	}
+}
+
+func TestCheckUnderflowDetectsUnderflow(t *testing.T) {
+	cases := []struct {
+		left, right int64
+		want        bool
+	}{
+		{math.MinInt64, 1, true},
+		{math.MinInt64, 2, true},
+		{math.MaxInt64, -1, true},
+		{math.MaxInt64, math.MinInt64, true},
+		{math.MinInt64, math.MinInt64, false},
+		{math.MinInt64, -1, false},
+	}
+	for _, c := range cases {
+		if got := CheckUnderflow(c.left, c.right); got != c.want {
+			t.Errorf("CheckUnderflow(%d, %d) = %v, want %v", c.left, c.right, got, c.want)
+		}
+	}
+}
+
+func TestCheckOverflowPowDetection(t *testing.T) {
+	cases := []struct {
+		base, exp int64
+		want      bool
+	}{
+		{2, 62, false},
+		{2, 63, true},
+		{-2, 63, false},
+		{-2, 62, false},
+		{10, 19, true},
+		{10, 18, false},
+		{3, 39, false},
+		{3, 40, true},
+		{-3, 40, true},
+		{-3, 39, false},
+		{2, -1, false},
+		{2, 1000000, true},
+	}
+	for _, c := range cases {
+		if got := CheckOverflowPow(c.base, c.exp); got != c.want {
+			t.Errorf("CheckOverflowPow(%d, %d) = %v, want %v", c.base, c.exp, got, c.want)
+		}
+	}
+}

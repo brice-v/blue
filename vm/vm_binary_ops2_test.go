@@ -16,7 +16,7 @@ func TestIntegerBitwiseAndArithmetic(t *testing.T) {
 		{`1 << 4`, "16"},
 		{`16 >> 2`, "4"},
 		{`2 ** 10`, "1024"},
-		{`var a = 9223372036854775807; var b = a + 1; b`, "-9223372036854775808"},
+		{`var a = 9223372036854775807; var b = a + 1; b`, "9223372036854775808"},
 		{`-9223372036854775808 - 1`, "-9223372036854775809"},
 		{`3037000500 * 2`, "6074001000"},
 		{`7 // 2`, "3"},
@@ -153,6 +153,26 @@ func TestNullCoalescingAndBooleanOps(t *testing.T) {
 func TestTypeMismatchErrors(t *testing.T) {
 	runExpectVmError(t, `"a" > 1`, "type mismatch: STRING OpGreaterThan INTEGER")
 	runExpectVmError(t, `{1} & [2]`, "type mismatch")
+}
+
+func TestRuntimeIntegerOverflowPromotion(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`var a = 9223372036854775807; var b = a + 1; b`, "9223372036854775808"},
+		{`var a = -9223372036854775808; var b = a - 2; b`, "-9223372036854775810"},
+		{`var a = 3037000500; var b = a * a; b`, "9223372037000250000"},
+		{`var a = 2; var b = a ** 63; b`, "9223372036854775808"},
+		{`var a = -2; var b = a ** 63; b`, "-9223372036854775808"},
+		{`var a = 10; var b = a ** 19; b`, "10000000000000000000"},
+		{`var a = 2; var b = a ** 62; b`, "4611686018427387904"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
 }
 
 func TestENVIndexAssignment(t *testing.T) {
