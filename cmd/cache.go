@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -102,12 +103,18 @@ func writeFileAtomic(fpath string, data []byte) error {
 	}
 	tmpName := tmp.Name()
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmpName)
+		if closeErr := tmp.Close(); closeErr != nil {
+			log.Printf("Failed to close temporary cache file, error: %s", closeErr.Error())
+		}
+		if rmErr := os.Remove(tmpName); rmErr != nil {
+			log.Printf("Failed to remove temporary cache file, error: %s", rmErr.Error())
+		}
 		return err
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmpName)
+		if rmErr := os.Remove(tmpName); rmErr != nil {
+			log.Printf("Failed to remove temporary cache file, error: %s", rmErr.Error())
+		}
 		return err
 	}
 	return os.Rename(tmpName, fpath)

@@ -319,10 +319,7 @@ func (vm *VM) Run() error {
 	frame := vm.currentFrame()
 	ins := frame.Instructions()
 	ip := frame.ip
-	for {
-		if ip >= len(ins)-1 {
-			break
-		}
+	for ip < len(ins)-1 {
 		ip++
 		frame.ip = ip
 		op = code.Opcode(ins[ip])
