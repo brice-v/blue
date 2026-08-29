@@ -19,10 +19,7 @@ TODO:
     - [ ] See if can be used with class pattern
         - [ ] Support dunder methods with structs
 - [ ] Add dis() builtin function to disassemble function inline
-- [ ] Default to using VM as default once everything is implemented
 - [ ] Write up full docs in html
-- [ ] Integrate with --no-exec for vm (make sure exec strings included)
-  - [ ] Make sure eval() can be disabled as well
 - [ ] See if its possible to remove *ast.StringLiteral and just directly use *object.Stringo
 - Tmp
 - [ ] FEAT: allow functions to be defined later down in the file
@@ -718,3 +715,6 @@ COMPLETED TASKS:
 - [-] DNS resolver function? like the dig cmd
 - [-] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
     - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
+- [x] Default to using VM as default once everything is implemented
+- [x] Integrate with --no-exec for vm (make sure exec strings included)
+  - [x] Make sure eval() can be disabled as well
