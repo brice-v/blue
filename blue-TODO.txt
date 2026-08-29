@@ -1,6 +1,10 @@
 TODO:
 
-
+- [ ] Implement: b"" for quick conversion to bytes
+- [ ] Scaffold out more UI features
+- [ ] Add wasm build to release
+    - [ ] Add wasm test to platform_tests.yml
+- [ ] Add bluerun versions to release?
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
@@ -21,8 +25,6 @@ TODO:
   - [ ] Make sure eval() can be disabled as well
 - [ ] See if its possible to remove *ast.StringLiteral and just directly use *object.Stringo
 - Tmp
-- [ ] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
-    - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
 - [ ] FEAT: allow functions to be defined later down in the file
 - [ ] FEAT: sort doesnt work when nulls are in collections (realistically we can put at beginning or end)
     - by fixing this we might as well add true and false to be sortable in collection as well?
@@ -31,7 +33,7 @@ TODO:
     - [ ] Spread operator from JS
     - [ ] Map on lambda with destructuring (for maps, lists, etc.)
 - [ ] Support sse (server streamed events)
-- [ ] Support more middlewares with gofiber for internal http server
+- [ ] Support more middlewares for internal http server
     - [ ] Add helmet
     - [ ] Add compression
     - [ ] Add limiter
@@ -155,7 +157,6 @@ func main() {
 - [ ] See if we can add streams properly as its own object type?
     - Use go generator pattern maybe?
     - Until go has yielding functions I think this will wait
-- [ ] DNS resolver function? like the dig cmd
 - [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
 - allow ! onto function names so that I can name methods that mutate with an !
 - [ ] BUG: maybe bug in for loop using var and len of split lines (failing in d4 when I didnt subtract 1 [it shoudlve ended at 140 ])
@@ -714,3 +715,6 @@ COMPLETED TASKS:
   - [x] Compile bytecode to file including encoded constants
   - [x] Create separate VM that is as small as possible (not including the rest of the blue runtime) that operates on bytecode files
   - [x] Redo bundler at this point (make it more efficient)
+- [-] DNS resolver function? like the dig cmd
+- [-] FEAT: Update wherever it makes sense to use unique https://pkg.go.dev/unique
+    - Can we default if no quotes to just make symbol? (and that is unique and can be used in code)
