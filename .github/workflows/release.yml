@@ -5,12 +5,11 @@ on:
       - "v*.*.*"
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        go-version: [1.25]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
@@ -19,19 +18,20 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@v6
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: "1.25"
 
-      - name: Get dependencies Linux
+      # cgo deps for fyne/GL static tests (upx used by compress steps below is also here).
+      - name: Install dependencies
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
-        if: ${{ runner.os == 'Linux' }}
 
       # rgfw: raylib's windowing backend. Do NOT build raylib's bundled GLFW
       # alongside fyne's static GLFW (duplicate symbols).
-      - name: Tests
+      - name: Test
         run: go test -tags="rgfw" ./...
 
       # Same as make_release_static: race detector needs cgo enabled.
-      - name: Tests Static
+      - name: Test Static
         env:
           CGO_ENABLED: 1
         run: go test -tags="static" -race ./...
@@ -44,13 +44,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: go build -tags="rgfw" -ldflags='-s -w' -o blue-linux .
 
-      - name: Build Macos (arm64)
+      - name: Build Macos
         if: matrix.os == 'macos-latest'
         run: go build -tags="rgfw" -ldflags='-s -w' -o blue-mac-arm64 .
 
       # Static builds ("blues-" prefix), mirroring make_release_static:
-      # cgo off for the build so binaries are self-contained. Race tests
-      # above still run with cgo enabled, per the script's ordering.
+      # cgo off so binaries are self-contained.
       - name: Build Static Windows
         if: matrix.os == 'windows-latest'
         env:
@@ -63,52 +62,87 @@ jobs:
           CGO_ENABLED: 0
         run: go build -tags="static" -ldflags='-s -w -extldflags "-static"' -o blues-linux .
 
-      - name: Build Static Macos (arm64)
+      - name: Build Static Macos
         if: matrix.os == 'macos-latest'
         env:
           CGO_ENABLED: 0
         run: go build -tags="static" -ldflags='-s -w' -o blues-mac-arm64 .
 
-      - name: Compress windows binaries
+      # WASM build (on ubuntu-latest runner alongside Build Linux).
+      - name: Build & package WASM
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          CGO_ENABLED: 0
+          GOOS: js
+          GOARCH: wasm
+        run: |
+          go build -tags "static,wasm" -trimpath -ldflags="-s -w" -o ./playground/blue.wasm ./wasmmain
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./playground/
+          zip -r playground-wasm.zip ./playground/
+
+      # upx-action installs upx itself; `files` takes newline-separated globs.
+      - name: Compress Windows binaries
         if: matrix.os == 'windows-latest'
         uses: svenstaro/upx-action@v2
         with:
-          file: blue-win.exe
+          files: |
+            blue-win.exe
+            blues-win.exe
 
-      - name: Compress linux binaries
+      - name: Compress Linux binaries
         if: matrix.os == 'ubuntu-latest'
         uses: svenstaro/upx-action@v2
         with:
-          file: blue-linux
+          files: |
+            blue-linux
+            blues-linux
 
-      - name: Compress static windows binaries
-        if: matrix.os == 'windows-latest'
-        uses: svenstaro/upx-action@v2
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          file: blues-win.exe
+          name: binaries-${{ matrix.os }}
+          path: |
+            ./blue-win.exe
+            ./blue-linux
+            ./blue-mac-arm64
+            ./blues-win.exe
+            ./blues-linux
+            ./blues-mac-arm64
+          if-no-files-found: ignore
 
-      - name: Compress static linux binaries
+      - name: Upload wasm artifact
         if: matrix.os == 'ubuntu-latest'
-        uses: svenstaro/upx-action@v2
+        uses: actions/upload-artifact@v4
         with:
-          file: blues-linux
+          name: wasm
+          path: ./playground-wasm.zip
 
-      # This will draft a new release & will attach the binaries produced by the above outputs.
-      # You still need to publish this release though after job ends.
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: true
           files: |
-            ./blue-win.exe
-            ./blue-linux
-            ./blue-mac-arm64
-            ./blue-mac-amd64
-            ./blues-win.exe
-            ./blues-linux
-            ./blues-mac-arm64
+            ./artifacts/binaries-ubuntu-latest/blue-linux
+            ./artifacts/binaries-ubuntu-latest/blues-linux
+            ./artifacts/binaries-windows-latest/blue-win.exe
+            ./artifacts/binaries-windows-latest/blues-win.exe
+            ./artifacts/binaries-macos-latest/blue-mac-arm64
+            ./artifacts/binaries-macos-latest/blues-mac-arm64
+            ./artifacts/wasm/playground-wasm.zip
+          draft: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # You don't need to add this in secrets it's by default.
-
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
