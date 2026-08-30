@@ -38,15 +38,15 @@ jobs:
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
-        run: go build -tags="rgfw" -ldflags='-s -w -extldflags "-static"' -o blue-win.exe .
+        run: go build -tags="rgfw" -ldflags='-s -w -extldflags "-static"' -o blue .
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
-        run: go build -tags="rgfw" -ldflags='-s -w' -o blue-linux .
+        run: go build -tags="rgfw" -ldflags='-s -w' -o blue .
 
       - name: Build Macos
         if: matrix.os == 'macos-latest'
-        run: go build -tags="rgfw" -ldflags='-s -w' -o blue-mac-arm64 .
+        run: go build -tags="rgfw" -ldflags='-s -w' -o blue .
 
       # Static builds ("blues-" prefix), mirroring make_release_static:
       # cgo off so binaries are self-contained.
@@ -54,19 +54,19 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           CGO_ENABLED: 0
-        run: go build -tags="static" -ldflags='-s -w -extldflags "-static"' -o blues-win.exe .
+        run: go build -tags="static" -ldflags='-s -w -extldflags "-static"' -o blues .
 
       - name: Build Static Linux
         if: matrix.os == 'ubuntu-latest'
         env:
           CGO_ENABLED: 0
-        run: go build -tags="static" -ldflags='-s -w -extldflags "-static"' -o blues-linux .
+        run: go build -tags="static" -ldflags='-s -w -extldflags "-static"' -o blues .
 
       - name: Build Static Macos
         if: matrix.os == 'macos-latest'
         env:
           CGO_ENABLED: 0
-        run: go build -tags="static" -ldflags='-s -w' -o blues-mac-arm64 .
+        run: go build -tags="static" -ldflags='-s -w' -o blues .
 
       # WASM build (on ubuntu-latest runner alongside Build Linux).
       - name: Build & package WASM
@@ -81,33 +81,32 @@ jobs:
           zip -r playground-wasm.zip ./playground/
 
       # upx-action installs upx itself; `files` takes newline-separated globs.
+      # (Go adds .exe automatically when building for Windows, so the output is blue.exe/blues.exe there.)
       - name: Compress Windows binaries
         if: matrix.os == 'windows-latest'
         uses: svenstaro/upx-action@v2
         with:
           files: |
-            blue-win.exe
-            blues-win.exe
+            blue.exe
+            blues.exe
 
       - name: Compress Linux binaries
         if: matrix.os == 'ubuntu-latest'
         uses: svenstaro/upx-action@v2
         with:
           files: |
-            blue-linux
-            blues-linux
+            blue
+            blues
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ matrix.os }}
           path: |
-            ./blue-win.exe
-            ./blue-linux
-            ./blue-mac-arm64
-            ./blues-win.exe
-            ./blues-linux
-            ./blues-mac-arm64
+            ./blue
+            ./blues
+            ./blue.exe
+            ./blues.exe
           if-no-files-found: ignore
 
       - name: Upload wasm artifact
@@ -131,17 +130,28 @@ jobs:
         with:
           path: ./artifacts
 
+      # Package each binary under its platform-qualified archive name while keeping the inner
+      # file named plain "blue"/"blues" (run from inside each artifact dir so archives store
+      # just the base name). tar.gz on Linux/Mac, .zip on Windows. Extracting any archive
+      # yields a file named "blue"/"blues" ("blue.exe" on Windows).
+      - name: Package binaries
+        run: |
+          mkdir -p ./zips && cd ./artifacts
+          (cd binaries-ubuntu-latest  && tar -czf ../../zips/blue-linux-amd64.tar.gz blue   && tar -czf ../../zips/blues-linux-amd64.tar.gz blues)
+          (cd binaries-windows-latest && zip -9q ../../zips/blue-windows-amd64.exe.zip blue.exe  && zip -9q ../../zips/blues-windows-amd64.exe.zip blues.exe)
+          (cd binaries-macos-latest   && tar -czf ../../zips/blue-macos-arm64.tar.gz blue     && tar -czf ../../zips/blues-macos-arm64.tar.gz blues)
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
           files: |
-            ./artifacts/binaries-ubuntu-latest/blue-linux
-            ./artifacts/binaries-ubuntu-latest/blues-linux
-            ./artifacts/binaries-windows-latest/blue-win.exe
-            ./artifacts/binaries-windows-latest/blues-win.exe
-            ./artifacts/binaries-macos-latest/blue-mac-arm64
-            ./artifacts/binaries-macos-latest/blues-mac-arm64
+            ./zips/blue-linux-amd64.tar.gz
+            ./zips/blues-linux-amd64.tar.gz
+            ./zips/blue-windows-amd64.exe.zip
+            ./zips/blues-windows-amd64.exe.zip
+            ./zips/blue-macos-arm64.tar.gz
+            ./zips/blues-macos-arm64.tar.gz
             ./artifacts/wasm/playground-wasm.zip
           draft: true
         env:

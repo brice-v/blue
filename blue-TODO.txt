@@ -2,9 +2,6 @@ TODO:
 
 - [ ] Implement: b"" for quick conversion to bytes
 - [ ] Scaffold out more UI features
-- [ ] Add wasm build to release
-    - [ ] Add wasm test to platform_tests.yml
-- [ ] Add bluerun versions to release?
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
@@ -718,3 +715,7 @@ COMPLETED TASKS:
 - [x] Default to using VM as default once everything is implemented
 - [x] Integrate with --no-exec for vm (make sure exec strings included)
   - [x] Make sure eval() can be disabled as well
+- [x] Add wasm build to release
+    - [-] Add wasm test to platform_tests.yml
+    - No real test for this (use wasmmain.go)
+- [-] Add bluerun versions to release?
