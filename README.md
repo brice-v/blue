@@ -212,6 +212,8 @@ The commands are:
 
     version  prints the current version
 
+             --full            include vcs revision and platform
+
 The default behavior for no command/arguments will start an vm repl. (If given a file, the file will be evaluated with the vm)
 
 Environment Variables:

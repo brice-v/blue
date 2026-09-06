@@ -70,6 +70,8 @@ The commands are:
 
     version  prints the current version
 
+             --full            include vcs revision and platform
+
 The default behavior for no command/arguments will start an vm repl. (If given a file, the file will be evaluated with the vm)
 
 Run Cache:
@@ -125,7 +127,7 @@ func Run(args ...string) {
 	command := strings.ToLower(arguments[0])
 	switch command {
 	case "version", "--version", "-version":
-		printVersion()
+		handleVersionCommand(argc, arguments)
 	case "help", "--help", "-h":
 		printUsage()
 	case "lex":
@@ -165,9 +167,32 @@ func Run(args ...string) {
 	}
 }
 
-// printVersion prints the version of the executable
-func printVersion() {
-	fmt.Printf("blue v%s\n", consts.VERSION)
+// formatVersion renders the version string, full with vcs revision and
+// platform when requested.
+func formatVersion(full bool) string {
+	if full {
+		return fmt.Sprintf("blue v%s", consts.FullVersion())
+	}
+	return fmt.Sprintf("blue v%s", consts.ShortVersion())
+}
+
+// handleVersionCommand parses `blue version` flags and prints the version.
+func handleVersionCommand(argc int, arguments []string) {
+	full := false
+	for _, arg := range arguments[1:] {
+		switch arg {
+		case "--full":
+			full = true
+		default:
+			consts.ErrorPrinter("unexpected `version` argument. got=%s\n", arg)
+			os.Exit(1)
+		}
+	}
+	if argc > 2 {
+		consts.ErrorPrinter("unexpected `version` arguments. got=%+v\n", arguments)
+		os.Exit(1)
+	}
+	fmt.Println(formatVersion(full))
 }
 
 // printUsage prints the USAGE string

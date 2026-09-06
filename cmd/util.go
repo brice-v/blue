@@ -128,6 +128,16 @@ func buildRunnerWithGo(outPath string) error {
 	return nil
 }
 
+// runnerTempPath returns the temp runner template path for a bundle
+// output. It is absolute so the go build, which runs inside the source
+// directory, writes where the bundler reads.
+func runnerTempPath(outPath string) string {
+	if abs, err := filepath.Abs(outPath); err == nil {
+		return abs + ".bluerun-tmp"
+	}
+	return outPath + ".bluerun-tmp"
+}
+
 // bundleProgram compiles source through the normal pipeline, encodes it as a
 // binary image, and appends it to a copy of the minimal runner template,
 // producing a single self-contained executable. By default the template is
@@ -147,7 +157,7 @@ func bundleProgram(sourcePath string, outPath string, allErrors bool, usePrebuil
 
 	var templateBytes []byte
 	if !usePrebuilt {
-		tmpTemplate := outPath + ".bluerun-tmp"
+		tmpTemplate := runnerTempPath(outPath)
 		if err := buildRunnerWithGo(tmpTemplate); err != nil {
 			consts.ErrorPrinter("%s\n", err.Error())
 			os.Exit(1)

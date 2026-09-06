@@ -175,6 +175,7 @@ func isBlueSourceDir(dir string) (bool, error) {
 
 // runGoModDownload pre-fetches modules so later bundles work offline.
 func runGoModDownload(srcDir string) error {
+	fmt.Printf("fetching go modules in %s (first run may take a while)...\n", srcDir)
 	cmd := exec.Command("go", "mod", "download")
 	cmd.Dir = srcDir
 	cmd.Stdout = os.Stdout
@@ -182,6 +183,7 @@ func runGoModDownload(srcDir string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("go mod download: %w", err)
 	}
+	fmt.Println("go modules ready")
 	return nil
 }
 

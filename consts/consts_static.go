@@ -4,3 +4,5 @@
 package consts
 
 var VERSION = versionFn() + "-static"
+
+const versionSuffix = "-static"

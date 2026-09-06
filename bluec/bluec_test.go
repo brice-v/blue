@@ -7,7 +7,6 @@ import (
 
 	"blue/bluec"
 	"blue/compiler"
-	"blue/consts"
 	"blue/lexer"
 	"blue/object"
 	"blue/parser"
@@ -168,7 +167,7 @@ func TestDecodeRejectsMalformedInput(t *testing.T) {
 // crcFieldOffset computes where the CRC lives inside an encoded container:
 // after magic(8) + version(2) + flags(2) + two length-prefixed strings.
 func crcFieldOffset() int {
-	return 8 + 2 + 2 + 4 + len(consts.VERSION) + 4 + len(bluec.Fingerprint())
+	return 8 + 2 + 2 + 4 + len(bluec.BlueVersion()) + 4 + len(bluec.Fingerprint())
 }
 
 func TestFindAppendedPayload(t *testing.T) {

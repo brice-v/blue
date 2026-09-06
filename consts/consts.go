@@ -11,6 +11,28 @@ import (
 // versionNumber is the current version #
 const versionNumber = "0.3.7"
 
+// BaseVersion returns the bare version number without VCS or flavor
+// suffixes. Image fingerprints and the run cache key on this instead of
+// the full VERSION so builds from exported source trees (which carry no
+// git metadata) match builds from checkouts. Opcode, constant and tag
+// components still guard real incompatibilities.
+func BaseVersion() string {
+	return versionNumber
+}
+
+// ShortVersion returns the version without VCS metadata, keeping the
+// flavor suffix (e.g. "0.3.7-static"). This is the default `blue version`
+// output.
+func ShortVersion() string {
+	return versionNumber + versionSuffix
+}
+
+// FullVersion returns the version with VCS metadata when built from git
+// (e.g. "0.3.7-12700ab-linux/amd64"). Shown by `blue version --full`.
+func FullVersion() string {
+	return VERSION
+}
+
 // versionFn is the function that returns the formatted version number of the blang repl and language
 func versionFn() string {
 	hash := ""

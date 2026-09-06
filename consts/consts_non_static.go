@@ -3,3 +3,5 @@
 package consts
 
 var VERSION = versionFn()
+
+const versionSuffix = ""

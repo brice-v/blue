@@ -23,7 +23,7 @@ import (
 // the fingerprint of their producing build; CheckEnvironment compares them.
 //
 // It covers:
-//   - blue version (consts.VERSION, itself flavor-aware for `-static`)
+//   - blue base version (consts.BaseVersion, without VCS or flavor suffixes)
 //   - opcode set hash (names + operand widths of every opcode)
 //   - reserved constant count
 //   - go build tags (`-tags` from build info, empty when unset), with the
@@ -42,7 +42,7 @@ func Fingerprint() string {
 	}
 	tags = NormalizeTags(tags)
 	return fmt.Sprintf("v%s|ops:%#016x|rc:%d|tags:%s|%s/%s",
-		consts.VERSION,
+		consts.BaseVersion(),
 		code.OpcodeSetFingerprint(),
 		len(object.OBJECT_CONSTANTS),
 		tags,
@@ -71,16 +71,17 @@ func NormalizeTags(tags string) string {
 	return strings.Join(kept, ",")
 }
 
-// BlueVersion returns consts.VERSION of the running build.
+// BlueVersion returns the base version recorded in containers and
+// compared by CheckEnvironment.
 func BlueVersion() string {
-	return consts.VERSION
+	return consts.BaseVersion()
 }
 
 // CheckEnvironment verifies a container's recorded fingerprint/blueVersion
 // against the running build, returning actionable errors on mismatch.
 func CheckEnvironment(fingerprint, blueVersion string) error {
-	if blueVersion != consts.VERSION {
-		return fmt.Errorf("%w: image was compiled with blue v%s, running v%s", ErrFingerprintMismatch, blueVersion, consts.VERSION)
+	if blueVersion != BlueVersion() {
+		return fmt.Errorf("%w: image was compiled with blue v%s, running v%s", ErrFingerprintMismatch, blueVersion, BlueVersion())
 	}
 	if fingerprint != Fingerprint() {
 		return fmt.Errorf("%w: image fingerprint mismatch (image: %s, build: %s). The image was compiled for a different build flavor (build tags like static/rgfw change the builtin and opcode surface), recompile the program with this same binary/flavor", ErrFingerprintMismatch, fingerprint, Fingerprint())

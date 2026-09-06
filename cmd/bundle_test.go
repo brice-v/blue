@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"blue/consts"
 	"os"
 	"path/filepath"
 	"testing"
@@ -66,5 +67,34 @@ func TestParseBundleArgsRequiresOutput(t *testing.T) {
 	fpath := writeTempProgram(t, "println(1)\n")
 	if _, err := parseBundleArgs(2, []string{"bundle", fpath}); err == nil {
 		t.Fatal("expected error when -o is missing")
+	}
+}
+
+func TestFormatVersion(t *testing.T) {
+	if got := formatVersion(false); got != "blue v"+consts.ShortVersion() {
+		t.Fatalf("short version mismatch: %s", got)
+	}
+	if got := formatVersion(true); got != "blue v"+consts.FullVersion() {
+		t.Fatalf("full version mismatch: %s", got)
+	}
+	if consts.ShortVersion() == "" || consts.FullVersion() == "" {
+		t.Fatal("versions must not be empty")
+	}
+}
+
+func TestRunnerTempPathIsAbsolute(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	got := runnerTempPath("main-test")
+	want := filepath.Join(dir, "main-test.bluerun-tmp")
+	if got != want {
+		t.Fatalf("got %s, want %s", got, want)
+	}
+	abs, err := filepath.Abs(filepath.Join(dir, "sub", "app"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := runnerTempPath(abs); got != abs+".bluerun-tmp" {
+		t.Fatalf("absolute output changed directory: %s", got)
 	}
 }
