@@ -49,16 +49,16 @@ func TestUrlParseBuiltin(t *testing.T) {
 		t.Fatalf("url_parse returned %T, want *BlueStruct", res)
 	}
 	want := map[string]string{
-		"scheme":     "https",
-		"username":   "user",
-		"password":   "secret",
-		"host":       "go.dev:8080",
-		"path":       "/path/x",
-		"raw_query":  "q=1",
-		"fragment":   "frag",
-		"raw_path":   "",
+		"scheme":       "https",
+		"username":     "user",
+		"password":     "secret",
+		"host":         "go.dev:8080",
+		"path":         "/path/x",
+		"raw_query":    "q=1",
+		"fragment":     "frag",
+		"raw_path":     "",
 		"raw_fragment": "",
-		"opaque":     "",
+		"opaque":       "",
 	}
 	for field, expected := range want {
 		v, idx := bs.Get(field)

@@ -559,10 +559,10 @@ func TestMatchExpressionCannotBeNestedInsideOfACondition(t *testing.T) {
 	// relies on there not being another match expression compiled inside of it.
 	inner := getMatchExpressionFromProgram(t, `match 1 { 1 => { 2 } }`)
 	outer := &ast.MatchExpression{
-		Token:        inner.Token,
+		Token:         inner.Token,
 		OptionalValue: &ast.IntegerLiteral{Token: inner.Token, Value: 1},
-		Conditions:   [][]ast.Expression{{inner}},
-		Consequences: []*ast.BlockStatement{inner.Consequences[0]},
+		Conditions:    [][]ast.Expression{{inner}},
+		Consequences:  []*ast.BlockStatement{inner.Consequences[0]},
 	}
 	program := &ast.Program{Statements: []ast.Statement{&ast.ExpressionStatement{Token: inner.Token, Expression: outer}}}
 
@@ -587,10 +587,10 @@ func TestMatchExpressionCanBeNestedInsideOfAConsequence(t *testing.T) {
 	condProg := parse(`99`)
 	cond := condProg.Statements[0].(*ast.ExpressionStatement).Expression
 	outer := &ast.MatchExpression{
-		Token:        inner.Token,
+		Token:         inner.Token,
 		OptionalValue: cond,
-		Conditions:   [][]ast.Expression{{cond}},
-		Consequences: []*ast.BlockStatement{consequence},
+		Conditions:    [][]ast.Expression{{cond}},
+		Consequences:  []*ast.BlockStatement{consequence},
 	}
 	program := &ast.Program{Statements: []ast.Statement{&ast.ExpressionStatement{Token: inner.Token, Expression: outer}}}
 

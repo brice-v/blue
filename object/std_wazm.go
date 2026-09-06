@@ -260,7 +260,6 @@ var WazmBuiltins = []*Builtin{
 						argsForCall[i] = arg.(*UInteger).Value
 					}
 					var mod api.Module
-					// TODO: Figure out timeout stuff
 					// if wm.Value.CancelFun != nil {
 					// 	defer wm.Value.CancelFun()
 					// }

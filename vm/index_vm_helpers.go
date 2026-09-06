@@ -254,9 +254,12 @@ func (vm *VM) executeGoObjIndexExpression(goObj object.Object, name string) erro
 		return vm.push(newError("GoObj.Value field is not valid, %#+v", valueField))
 	}
 	innerVal := valueField.Interface()
+	if innerVal == nil {
+		return vm.push(newError("GoObj.Value is nil, field %s", name))
+	}
 	innerType := reflect.TypeOf(innerVal)
 	if innerType.Kind() != reflect.Struct {
-		return vm.push(newError("GoObj.Value is not a struct, got=%T", innerType))
+		return vm.push(newError("GoObj.Value is not a struct, got=%T (field %s on %T)", innerType, name, goObj))
 	}
 	nameToUse := util.ToTitleCase(strings.ReplaceAll(name, "_", " "))
 	innerFieldVal := reflect.ValueOf(innerVal).FieldByName(nameToUse)

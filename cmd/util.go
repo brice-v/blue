@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"blue/ast"
-	"blue/blueutil"
 	"blue/bluec"
+	"blue/blueutil"
 	"blue/code"
 	"blue/compiler"
 	"blue/consts"

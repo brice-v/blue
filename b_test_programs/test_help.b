@@ -32,7 +32,6 @@ assert(true);
 #println(help(on_this));
 
 
-# TODO: This is not working for vm
 ENV['NO_COLOR'] = "true";
 import config
 val config_help = help(config);

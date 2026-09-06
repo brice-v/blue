@@ -106,7 +106,7 @@ const lazyFramesFloor = 32
 
 // growFramesIfNeeded doubles the frame array when the next slot would fall
 // off the end. Growth copies the live prefix; callers must not hold *Frame
-// pointers across operations that can push frames — the interpreter already
+// pointers across operations that can push frames - the interpreter already
 // re-fetches via currentFrame() after every such operation (the same
 // discipline that makes applyFunctionFast's array swapping safe).
 func (vm *VM) growFramesIfNeeded() {
@@ -200,7 +200,7 @@ func NewWithGlobalsStore(bytecode *bluec.Bytecode, s []object.Object) *VM {
 // one (process spawn, ws registration snapshot). Immutable program data
 // (constants, tokens) is shared instead of deep cloned, globals are deep
 // copied so the clone sees a spawn-time snapshot that later writes by either
-// side do not affect, and execution state (stack, frames) starts fresh —
+// side do not affect, and execution state (stack, frames) starts fresh -
 // callers immediately run a function on the clone via applyFunctionFast*,
 // which swaps in its own frames and never reads stack contents below sp.
 func (vm *VM) Clone(pid uint64) *VM {

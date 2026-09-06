@@ -335,14 +335,14 @@ func decodeFromType(t iType, data []byte, depth int) (Object, error) {
 			sfp[NameIndexKey{Name: group.Key.Name, Index: group.Key.Index}] = inner
 		}
 		return &CompiledFunction{
-			Instructions:             code.Instructions(x.Instructions),
-			NumLocals:                x.NumLocals,
-			NumParameters:            x.NumParameters,
-			Parameters:               x.Parameters,
-			ParameterHasDefault:      x.ParamHasDefault,
-			NumDefaultParams:         x.NumDefaultParams,
-			DisplayString:            x.DisplayString,
-			HelpStr:                  x.HelpStr,
+			Instructions:              code.Instructions(x.Instructions),
+			NumLocals:                 x.NumLocals,
+			NumParameters:             x.NumParameters,
+			Parameters:                x.Parameters,
+			ParameterHasDefault:       x.ParamHasDefault,
+			NumDefaultParams:          x.NumDefaultParams,
+			DisplayString:             x.DisplayString,
+			HelpStr:                   x.HelpStr,
 			SpecialFunctionParameters: sfp,
 		}, nil
 	case i_MODULE_OBJ:

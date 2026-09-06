@@ -114,8 +114,6 @@ func TestProgramStringMultipleStatements(t *testing.T) {
 	}
 }
 
-// --- Identifier Tests ---
-
 func TestIdentifierTokenLiteral(t *testing.T) {
 	ident := &Identifier{
 		Token: token.Token{Type: token.IDENT, Literal: "myIdentifier"},
@@ -148,8 +146,6 @@ func TestIdentifierString(t *testing.T) {
 	}
 }
 
-// --- Null Tests ---
-
 func TestNullTokenLiteral(t *testing.T) {
 	n := &Null{
 		Token: token.Token{Type: token.NULL_KW, Literal: "null"},
@@ -167,8 +163,6 @@ func TestNullString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", n.String(), "null")
 	}
 }
-
-// --- Boolean Tests ---
 
 func TestBooleanTokenLiteral(t *testing.T) {
 	b := &Boolean{
@@ -199,8 +193,6 @@ func TestBooleanStringFalse(t *testing.T) {
 		t.Errorf("String() = %q, want %q", b.String(), "false")
 	}
 }
-
-// --- PrefixExpression Tests ---
 
 func TestPrefixExpressionTokenLiteral(t *testing.T) {
 	pe := &PrefixExpression{
@@ -237,8 +229,6 @@ func TestPrefixExpressionWithBoolean(t *testing.T) {
 	}
 }
 
-// --- PostfixExpression Tests ---
-
 func TestPostfixExpressionTokenLiteral(t *testing.T) {
 	pe := &PostfixExpression{
 		Token:    token.Token{Type: token.IDENT, Literal: "x"},
@@ -261,8 +251,6 @@ func TestPostfixExpressionString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", pe.String(), expected)
 	}
 }
-
-// --- InfixExpression Tests ---
 
 func TestInfixExpressionTokenLiteral(t *testing.T) {
 	ie := &InfixExpression{
@@ -301,8 +289,6 @@ func TestInfixExpressionWithBoolean(t *testing.T) {
 		t.Errorf("String() = %q, want %q", ie.String(), expected)
 	}
 }
-
-// --- IfExpression Tests ---
 
 func TestIfExpressionTokenLiteral(t *testing.T) {
 	ie := &IfExpression{
@@ -393,8 +379,6 @@ func TestIfExpressionStringMultipleConditions(t *testing.T) {
 	}
 }
 
-// --- MatchExpression Tests ---
-
 func TestMatchExpressionTokenLiteral(t *testing.T) {
 	me := &MatchExpression{
 		Token: token.Token{Type: token.MATCH, Literal: "match"},
@@ -440,8 +424,6 @@ func TestMatchExpressionString(t *testing.T) {
 	}
 }
 
-// --- CallExpression Tests ---
-
 func TestCallExpressionTokenLiteral(t *testing.T) {
 	ce := &CallExpression{
 		Token:    token.Token{Type: token.LPAREN, Literal: "("},
@@ -482,8 +464,6 @@ func TestCallExpressionStringWithArgs(t *testing.T) {
 	}
 }
 
-// --- IndexExpression Tests ---
-
 func TestIndexExpressionTokenLiteral(t *testing.T) {
 	ie := &IndexExpression{
 		Token: token.Token{Type: token.LBRACKET, Literal: "["},
@@ -519,8 +499,6 @@ func TestIndexExpressionStringDot(t *testing.T) {
 	}
 }
 
-// --- AssignmentExpression Tests ---
-
 func TestAssignmentExpressionTokenLiteral(t *testing.T) {
 	ae := &AssignmentExpression{
 		Token: token.Token{Type: token.ASSIGN, Literal: "="},
@@ -544,8 +522,6 @@ func TestAssignmentExpressionString(t *testing.T) {
 	}
 }
 
-// --- EvalExpression Tests ---
-
 func TestEvalExpressionTokenLiteral(t *testing.T) {
 	ee := &EvalExpression{
 		Token:     token.Token{Type: token.EVAL, Literal: "eval"},
@@ -567,8 +543,6 @@ func TestEvalExpressionString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", ee.String(), expected)
 	}
 }
-
-// --- SpawnExpression Tests ---
 
 func TestSpawnExpressionTokenLiteral(t *testing.T) {
 	se := &SpawnExpression{
@@ -607,8 +581,6 @@ func TestSpawnExpressionStringWithArgs(t *testing.T) {
 	}
 }
 
-// --- DeferExpression Tests ---
-
 func TestDeferExpressionTokenLiteral(t *testing.T) {
 	de := &DeferExpression{
 		Token: token.Token{Type: token.DEFER, Literal: "defer"},
@@ -632,8 +604,6 @@ func TestDeferExpressionString(t *testing.T) {
 	}
 }
 
-// --- SelfExpression Tests ---
-
 func TestSelfExpressionTokenLiteral(t *testing.T) {
 	se := &SelfExpression{
 		Token: token.Token{Type: token.SELF, Literal: "self"},
@@ -651,8 +621,6 @@ func TestSelfExpressionString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", se.String(), "self()")
 	}
 }
-
-// --- IntegerLiteral Tests ---
 
 func TestIntegerLiteralTokenLiteral(t *testing.T) {
 	il := &IntegerLiteral{
@@ -674,8 +642,6 @@ func TestIntegerLiteralString(t *testing.T) {
 	}
 }
 
-// --- FloatLiteral Tests ---
-
 func TestFloatLiteralTokenLiteral(t *testing.T) {
 	fl := &FloatLiteral{
 		Token: token.Token{Type: token.FLOAT, Literal: "3.14"},
@@ -695,8 +661,6 @@ func TestFloatLiteralString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", fl.String(), "3.14")
 	}
 }
-
-// --- BigIntegerLiteral Tests ---
 
 func TestBigIntegerLiteralTokenLiteral(t *testing.T) {
 	val, _ := big.NewInt(0).SetString("123456789012345678901234567890", 10)
@@ -720,8 +684,6 @@ func TestBigIntegerLiteralString(t *testing.T) {
 	}
 }
 
-// --- BigFloatLiteral Tests ---
-
 func TestBigFloatLiteralTokenLiteral(t *testing.T) {
 	d, _ := decimal.NewFromString("123.456")
 	bfl := &BigFloatLiteral{
@@ -744,8 +706,6 @@ func TestBigFloatLiteralString(t *testing.T) {
 	}
 }
 
-// --- HexLiteral Tests ---
-
 func TestHexLiteralTokenLiteral(t *testing.T) {
 	hl := &HexLiteral{
 		Token: token.Token{Type: token.HEX, Literal: "0xFF"},
@@ -765,8 +725,6 @@ func TestHexLiteralString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", hl.String(), "0xFF")
 	}
 }
-
-// --- OctalLiteral Tests ---
 
 func TestOctalLiteralTokenLiteral(t *testing.T) {
 	ol := &OctalLiteral{
@@ -788,8 +746,6 @@ func TestOctalLiteralString(t *testing.T) {
 	}
 }
 
-// --- BinaryLiteral Tests ---
-
 func TestBinaryLiteralTokenLiteral(t *testing.T) {
 	bl := &BinaryLiteral{
 		Token: token.Token{Type: token.BINARY, Literal: "0b1010"},
@@ -810,8 +766,6 @@ func TestBinaryLiteralString(t *testing.T) {
 	}
 }
 
-// --- UIntegerLiteral Tests ---
-
 func TestUIntegerLiteralTokenLiteral(t *testing.T) {
 	ul := &UIntegerLiteral{
 		Token: token.Token{Type: token.UINT, Literal: "42"},
@@ -831,8 +785,6 @@ func TestUIntegerLiteralString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", ul.String(), "42")
 	}
 }
-
-// --- FunctionLiteral Tests ---
 
 func TestFunctionLiteralTokenLiteral(t *testing.T) {
 	fl := &FunctionLiteral{
@@ -876,8 +828,6 @@ func TestFunctionLiteralStringWithParams(t *testing.T) {
 	}
 }
 
-// --- ExecStringLiteral Tests ---
-
 func TestExecStringLiteralTokenLiteral(t *testing.T) {
 	esl := &ExecStringLiteral{
 		Token: token.Token{Type: token.BACKTICK, Literal: "`"},
@@ -898,8 +848,6 @@ func TestExecStringLiteralString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", esl.String(), expected)
 	}
 }
-
-// --- StringLiteral Tests ---
 
 func TestStringLiteralDoubleQuote(t *testing.T) {
 	sl := &StringLiteral{
@@ -943,8 +891,6 @@ func TestStringLiteralStringWithoutQuotesSingle(t *testing.T) {
 	}
 }
 
-// --- RegexLiteral Tests ---
-
 func TestRegexLiteralTokenLiteral(t *testing.T) {
 	rl := &RegexLiteral{
 		Token: token.Token{Type: token.REGEX, Literal: "r/"},
@@ -976,8 +922,6 @@ func TestRegexLiteralStringWithBackslash(t *testing.T) {
 		t.Errorf("String() = %q, want %q", rl.String(), expected)
 	}
 }
-
-// --- ListLiteral Tests ---
 
 func TestListLiteralTokenLiteral(t *testing.T) {
 	ll := &ListLiteral{
@@ -1015,8 +959,6 @@ func TestListLiteralStringWithElements(t *testing.T) {
 	}
 }
 
-// --- ListCompLiteral Tests ---
-
 func TestListCompLiteralString(t *testing.T) {
 	lcl := &ListCompLiteral{
 		Token:               token.Token{},
@@ -1045,8 +987,6 @@ func TestListCompLiteralTokenToken(t *testing.T) {
 		t.Errorf("TokenToken() Type should be empty, got %q", tt.Type)
 	}
 }
-
-// --- MapLiteral Tests ---
 
 func TestMapLiteralTokenLiteral(t *testing.T) {
 	ml := &MapLiteral{
@@ -1088,8 +1028,6 @@ func TestMapLiteralStringWithPairs(t *testing.T) {
 	}
 }
 
-// --- MapCompLiteral Tests ---
-
 func TestMapCompLiteralString(t *testing.T) {
 	mcl := &MapCompLiteral{
 		NonEvaluatedProgram: "{x: x for x in range(10)}",
@@ -1107,8 +1045,6 @@ func TestMapCompLiteralTokenToken(t *testing.T) {
 		t.Errorf("TokenToken() Type should be empty, got %q", tt.Type)
 	}
 }
-
-// --- SetLiteral Tests ---
 
 func TestSetLiteralTokenLiteral(t *testing.T) {
 	sl := &SetLiteral{
@@ -1145,8 +1081,6 @@ func TestSetLiteralStringWithElements(t *testing.T) {
 	}
 }
 
-// --- SetCompLiteral Tests ---
-
 func TestSetCompLiteralString(t *testing.T) {
 	scl := &SetCompLiteral{
 		NonEvaluatedProgram: "{x for x in range(10)}",
@@ -1164,8 +1098,6 @@ func TestSetCompLiteralTokenToken(t *testing.T) {
 		t.Errorf("TokenToken() Type should be empty, got %q", tt.Type)
 	}
 }
-
-// --- StructLiteral Tests ---
 
 func TestStructLiteralTokenLiteral(t *testing.T) {
 	sl := &StructLiteral{
@@ -1207,8 +1139,6 @@ func TestStructLiteralStringEmpty(t *testing.T) {
 		t.Errorf("String() = %q, want %q", sl.String(), expected)
 	}
 }
-
-// --- VarStatement Tests ---
 
 func TestVarStatementTokenLiteral(t *testing.T) {
 	vs := &VarStatement{
@@ -1359,8 +1289,6 @@ func TestVarStatementWithPlusEq(t *testing.T) {
 	}
 }
 
-// --- ValStatement Tests ---
-
 func TestValStatementTokenLiteral(t *testing.T) {
 	vs := &ValStatement{
 		Token: token.Token{Type: token.VAL, Literal: "val"},
@@ -1470,8 +1398,6 @@ func TestValStatementVVIsListDestructor(t *testing.T) {
 	}
 }
 
-// --- FunctionStatement Tests ---
-
 func TestFunctionStatementTokenLiteral(t *testing.T) {
 	fs := &FunctionStatement{
 		Token: token.Token{Type: token.FUNCTION, Literal: "fun"},
@@ -1508,8 +1434,6 @@ func TestFunctionStatementStringWithParams(t *testing.T) {
 	}
 }
 
-// --- ReturnStatement Tests ---
-
 func TestReturnStatementTokenLiteral(t *testing.T) {
 	rs := &ReturnStatement{
 		Token: token.Token{Type: token.RETURN, Literal: "return"},
@@ -1539,8 +1463,6 @@ func TestReturnStatementStringWithValue(t *testing.T) {
 		t.Errorf("String() = %q, want %q", rs.String(), expected)
 	}
 }
-
-// --- TryCatchStatement Tests ---
 
 func TestTryCatchStatementTokenLiteral(t *testing.T) {
 	tcs := &TryCatchStatement{
@@ -1581,8 +1503,6 @@ func TestTryCatchStatementStringWithFinally(t *testing.T) {
 	}
 }
 
-// --- ExpressionStatement Tests ---
-
 func TestExpressionStatementTokenLiteral(t *testing.T) {
 	es := &ExpressionStatement{
 		Token:      token.Token{Type: token.IDENT, Literal: "x"},
@@ -1612,8 +1532,6 @@ func TestExpressionStatementStringEmpty(t *testing.T) {
 		t.Errorf("String() = %q, want empty", es.String())
 	}
 }
-
-// --- BlockStatement Tests ---
 
 func TestBlockStatementTokenLiteral(t *testing.T) {
 	bs := &BlockStatement{
@@ -1690,8 +1608,6 @@ func TestBlockStatementExpressionStringSingle(t *testing.T) {
 	}
 }
 
-// --- ImportStatement Tests ---
-
 func TestImportStatementTokenLiteral(t *testing.T) {
 	is := &ImportStatement{
 		Token: token.Token{Type: token.IMPORT, Literal: "import"},
@@ -1765,8 +1681,6 @@ func TestImportStatementStringMultipleIdents(t *testing.T) {
 	}
 }
 
-// --- BreakStatement Tests ---
-
 func TestBreakStatementTokenLiteral(t *testing.T) {
 	bs := &BreakStatement{
 		Token: token.Token{Type: token.BREAK, Literal: "break"},
@@ -1785,8 +1699,6 @@ func TestBreakStatementString(t *testing.T) {
 	}
 }
 
-// --- ContinueStatement Tests ---
-
 func TestContinueStatementTokenLiteral(t *testing.T) {
 	cs := &ContinueStatement{
 		Token: token.Token{Type: token.CONTINUE, Literal: "continue"},
@@ -1804,8 +1716,6 @@ func TestContinueStatementString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", cs.String(), "continue")
 	}
 }
-
-// --- ForStatement Tests ---
 
 func TestForStatementTokenLiteral(t *testing.T) {
 	fs := &ForStatement{

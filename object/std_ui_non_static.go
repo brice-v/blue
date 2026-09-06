@@ -3,9 +3,14 @@
 package object
 
 import (
+	"image/color"
+	"net/url"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -60,8 +65,10 @@ var UiBuiltins = []*Builtin{
 			height := args[2].(*Integer).Value
 			title := args[3].(*Stringo).Value
 			w := app.Value.NewWindow(title)
-			w.Resize(fyne.Size{Width: float32(width), Height: float32(height)})
+			w.SetFixedSize(true)
 			w.SetContent(content.Value)
+			w.Resize(fyne.Size{Width: float32(width), Height: float32(height)})
+			w.CenterOnScreen()
 			w.ShowAndRun()
 			return NULL
 		},
@@ -157,9 +164,9 @@ var UiBuiltins = []*Builtin{
 				if arg.Type() != GO_OBJ {
 					return newPositionalTypeError("toolbar", i+1, GO_OBJ, arg.Type())
 				}
-				ti, ok := args[0].(*GoObj[widget.ToolbarItem])
+				ti, ok := arg.(*GoObj[widget.ToolbarItem])
 				if !ok {
-					return newPositionalTypeErrorForGoObj("toolbar", 1, "widget.ToolbarItem", args[0])
+					return newPositionalTypeErrorForGoObj("toolbar", i+1, "widget.ToolbarItem", arg)
 				}
 				tis = append(tis, ti.Value)
 			}
@@ -1833,6 +1840,1295 @@ var UiBuiltins = []*Builtin{
 			signature:   "toolbar_action(res: GoObj[fyne.Resource], fn: fun()) -> GoObj[widget.ToolbarItem](Value: *widget.ToolbarAction)",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "toolbar_action(icon.computer, || => {println('action!')}) => GoObj[widget.ToolbarItem](Value: *widget.ToolbarAction)",
+		}.String(),
+	},
+	// --- Expanded fyne coverage ---
+	{
+		Name: "_separator",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("separator", len(args), 0, "")
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewSeparator())
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`separator` returns a horizontal/vertical separator widget (adapts to layout orientation)",
+			signature:   "separator() -> GoObj[fyne.CanvasObject](Value: *widget.Separator)",
+			errors:      "InvalidArgCount",
+			example:     "separator() => GoObj[fyne.CanvasObject](Value: *widget.Separator)",
+		}.String(),
+	},
+	{
+		Name: "_hyperlink",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("hyperlink", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("hyperlink", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("hyperlink", 2, STRING_OBJ, args[1].Type())
+			}
+			text := args[0].(*Stringo).Value
+			rawURL := args[1].(*Stringo).Value
+			u, err := url.Parse(rawURL)
+			if err != nil {
+				return newError("`hyperlink` error: invalid URL `%s`: %s", rawURL, err.Error())
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewHyperlink(text, u))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`hyperlink` returns a clickable hyperlink widget that opens the given URL (or triggers OnTapped if overridden via hyperlink_with_handler)",
+			signature:   "hyperlink(text: str, url: str) -> GoObj[fyne.CanvasObject](Value: *widget.Hyperlink)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "hyperlink('Fyne', 'https://fyne.io') => GoObj[fyne.CanvasObject](Value: *widget.Hyperlink)",
+		}.String(),
+	},
+	{
+		Name: "_icon_widget",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("icon_widget", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("icon_widget", 1, GO_OBJ, args[0].Type())
+			}
+			r, ok := args[0].(*GoObj[fyne.Resource])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("icon_widget", 1, "fyne.Resource", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewIcon(r.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`icon_widget` returns an icon widget displaying the given fyne.Resource",
+			signature:   "icon_widget(res: GoObj[fyne.Resource]) -> GoObj[fyne.CanvasObject](Value: *widget.Icon)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "icon_widget(icon.home) => GoObj[fyne.CanvasObject](Value: *widget.Icon)",
+		}.String(),
+	},
+	{
+		Name: "_card",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("card", len(args), 3, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("card", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("card", 2, STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != GO_OBJ {
+				return newPositionalTypeError("card", 3, GO_OBJ, args[2].Type())
+			}
+			title := args[0].(*Stringo).Value
+			subtitle := args[1].(*Stringo).Value
+			c, ok := args[2].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("card", 3, "fyne.CanvasObject", args[2])
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewCard(title, subtitle, c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`card` returns a card widget grouping title, subtitle and content with shadow",
+			signature:   "card(title: str, subtitle: str, content: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *widget.Card)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "card('Title', 'Subtitle', label('hi')) => GoObj[fyne.CanvasObject](Value: *widget.Card)",
+		}.String(),
+	},
+	{
+		Name: "_accordion_item",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("accordion_item", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("accordion_item", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("accordion_item", 2, GO_OBJ, args[1].Type())
+			}
+			title := args[0].(*Stringo).Value
+			c, ok := args[1].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("accordion_item", 2, "fyne.CanvasObject", args[1])
+			}
+			item := widget.NewAccordionItem(title, c.Value)
+			return NewGoObj(item)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`accordion_item` creates an accordion item with title and detail content",
+			signature:   "accordion_item(title: str, detail: GoObj[fyne.CanvasObject]) -> GoObj[*widget.AccordionItem]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "accordion_item('Section', label('detail')) => GoObj[*widget.AccordionItem]",
+		}.String(),
+	},
+	{
+		Name: "_accordion",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("accordion", len(args), 1, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("accordion", 1, LIST_OBJ, args[0].Type())
+			}
+			elems := args[0].(*List).Elements
+			items := make([]*widget.AccordionItem, len(elems))
+			for i, e := range elems {
+				if e.Type() != GO_OBJ {
+					return newPositionalTypeError("accordion", 1, GO_OBJ, e.Type())
+				}
+				item, ok := e.(*GoObj[*widget.AccordionItem])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("accordion", 1, "*widget.AccordionItem", e)
+				}
+				items[i] = item.Value
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewAccordion(items...))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`accordion` returns an accordion widget displaying collapsible items",
+			signature:   "accordion(items: list[GoObj[*widget.AccordionItem]]) -> GoObj[fyne.CanvasObject](Value: *widget.Accordion)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "accordion([accordion_item('A', label('hi'))]) => GoObj[fyne.CanvasObject](Value: *widget.Accordion)",
+		}.String(),
+	},
+	{
+		Name: "_tab_item",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("tab_item", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("tab_item", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("tab_item", 2, GO_OBJ, args[1].Type())
+			}
+			text := args[0].(*Stringo).Value
+			c, ok := args[1].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("tab_item", 2, "fyne.CanvasObject", args[1])
+			}
+			return NewGoObj(container.NewTabItem(text, c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`tab_item` creates a tab item with text and content for use in tabs",
+			signature:   "tab_item(text: str, content: GoObj[fyne.CanvasObject]) -> GoObj[*container.TabItem]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "tab_item('Tab1', label('content')) => GoObj[*container.TabItem]",
+		}.String(),
+	},
+	{
+		Name: "_tab_item_with_icon",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("tab_item_with_icon", len(args), 3, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("tab_item_with_icon", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("tab_item_with_icon", 2, GO_OBJ, args[1].Type())
+			}
+			if args[2].Type() != GO_OBJ {
+				return newPositionalTypeError("tab_item_with_icon", 3, GO_OBJ, args[2].Type())
+			}
+			text := args[0].(*Stringo).Value
+			r, ok := args[1].(*GoObj[fyne.Resource])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("tab_item_with_icon", 2, "fyne.Resource", args[1])
+			}
+			c, ok := args[2].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("tab_item_with_icon", 3, "fyne.CanvasObject", args[2])
+			}
+			return NewGoObj(container.NewTabItemWithIcon(text, r.Value, c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`tab_item_with_icon` creates a tab item with text, icon and content",
+			signature:   "tab_item_with_icon(text: str, icon: GoObj[fyne.Resource], content: GoObj[fyne.CanvasObject]) -> GoObj[*container.TabItem]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "tab_item_with_icon('Home', icon.home, label('hi')) => GoObj[*container.TabItem]",
+		}.String(),
+	},
+	{
+		Name: "_tabs",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("tabs", len(args), 1, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("tabs", 1, LIST_OBJ, args[0].Type())
+			}
+			elems := args[0].(*List).Elements
+			items := make([]*container.TabItem, len(elems))
+			for i, e := range elems {
+				if e.Type() != GO_OBJ {
+					return newPositionalTypeError("tabs", 1, GO_OBJ, e.Type())
+				}
+				ti, ok := e.(*GoObj[*container.TabItem])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("tabs", 1, "*container.TabItem", e)
+				}
+				items[i] = ti.Value
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewAppTabs(items...))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`tabs` returns an app-tabs container with the given tab items (top bar, overflow menu)",
+			signature:   "tabs(items: list[GoObj[*container.TabItem]]) -> GoObj[fyne.CanvasObject](Value: *container.AppTabs)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "tabs([tab_item('A', label('hi'))]) => GoObj[fyne.CanvasObject](Value: *container.AppTabs)",
+		}.String(),
+	},
+	{
+		Name: "_doc_tabs",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("doc_tabs", len(args), 1, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("doc_tabs", 1, LIST_OBJ, args[0].Type())
+			}
+			elems := args[0].(*List).Elements
+			items := make([]*container.TabItem, len(elems))
+			for i, e := range elems {
+				if e.Type() != GO_OBJ {
+					return newPositionalTypeError("doc_tabs", 1, GO_OBJ, e.Type())
+				}
+				ti, ok := e.(*GoObj[*container.TabItem])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("doc_tabs", 1, "*container.TabItem", e)
+				}
+				items[i] = ti.Value
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewDocTabs(items...))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`doc_tabs` returns a document-tabs container (closable tabs, typically for editors)",
+			signature:   "doc_tabs(items: list[GoObj[*container.TabItem]]) -> GoObj[fyne.CanvasObject](Value: *container.DocTabs)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "doc_tabs([tab_item('Doc1', label('hi'))]) => GoObj[fyne.CanvasObject](Value: *container.DocTabs)",
+		}.String(),
+	},
+	{
+		Name: "_scroll",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("scroll", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("scroll", 1, GO_OBJ, args[0].Type())
+			}
+			c, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("scroll", 1, "fyne.CanvasObject", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewScroll(c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`scroll` wraps content in a scroll container (both directions, auto scrollbars)",
+			signature:   "scroll(content: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *container.Scroll)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "scroll(label('long')) => GoObj[fyne.CanvasObject](Value: *container.Scroll)",
+		}.String(),
+	},
+	{
+		Name: "_hscroll",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("hscroll", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("hscroll", 1, GO_OBJ, args[0].Type())
+			}
+			c, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("hscroll", 1, "fyne.CanvasObject", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewHScroll(c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`hscroll` wraps content in a horizontal-only scroll container",
+			signature:   "hscroll(content: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *container.Scroll)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "hscroll(label('wide')) => GoObj[fyne.CanvasObject](Value: *container.Scroll)",
+		}.String(),
+	},
+	{
+		Name: "_vscroll",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("vscroll", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("vscroll", 1, GO_OBJ, args[0].Type())
+			}
+			c, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("vscroll", 1, "fyne.CanvasObject", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewVScroll(c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`vscroll` wraps content in a vertical-only scroll container",
+			signature:   "vscroll(content: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *container.Scroll)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "vscroll(col([...])) => GoObj[fyne.CanvasObject](Value: *container.Scroll)",
+		}.String(),
+	},
+	{
+		Name: "_hsplit",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("hsplit", len(args), 2, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("hsplit", 1, GO_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("hsplit", 2, GO_OBJ, args[1].Type())
+			}
+			a, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("hsplit", 1, "fyne.CanvasObject", args[0])
+			}
+			b, ok := args[1].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("hsplit", 2, "fyne.CanvasObject", args[1])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewHSplit(a.Value, b.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`hsplit` returns a horizontally split container with draggable divider (left/right resizable)",
+			signature:   "hsplit(left: GoObj[fyne.CanvasObject], right: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *container.Split)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "hsplit(label('left'), label('right')) => GoObj[fyne.CanvasObject](Value: *container.Split)",
+		}.String(),
+	},
+	{
+		Name: "_vsplit",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("vsplit", len(args), 2, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("vsplit", 1, GO_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("vsplit", 2, GO_OBJ, args[1].Type())
+			}
+			a, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("vsplit", 1, "fyne.CanvasObject", args[0])
+			}
+			b, ok := args[1].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("vsplit", 2, "fyne.CanvasObject", args[1])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewVSplit(a.Value, b.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`vsplit` returns a vertically split container with draggable divider (top/bottom resizable)",
+			signature:   "vsplit(top: GoObj[fyne.CanvasObject], bottom: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *container.Split)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "vsplit(label('top'), label('bottom')) => GoObj[fyne.CanvasObject](Value: *container.Split)",
+		}.String(),
+	},
+	{
+		Name: "_border",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("border", len(args), 5, "")
+			}
+			toCanvas := func(o Object, pos int) (fyne.CanvasObject, Object) {
+				if o.Type() != GO_OBJ {
+					// allow null sentinel for optional border slots
+					if o.Type() == NULL_OBJ {
+						return nil, nil
+					}
+					return nil, newPositionalTypeError("border", pos, GO_OBJ+" or null", o.Type())
+				}
+				co, ok := o.(*GoObj[fyne.CanvasObject])
+				if !ok {
+					return nil, newPositionalTypeErrorForGoObj("border", pos, "fyne.CanvasObject", o)
+				}
+				return co.Value, nil
+			}
+			top, err := toCanvas(args[0], 1)
+			if err != nil {
+				return err
+			}
+			bottom, err := toCanvas(args[1], 2)
+			if err != nil {
+				return err
+			}
+			left, err := toCanvas(args[2], 3)
+			if err != nil {
+				return err
+			}
+			right, err := toCanvas(args[3], 4)
+			if err != nil {
+				return err
+			}
+			if args[4].Type() != GO_OBJ {
+				return newPositionalTypeError("border", 5, GO_OBJ, args[4].Type())
+			}
+			center, ok := args[4].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("border", 5, "fyne.CanvasObject", args[4])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewBorder(top, bottom, left, right, center.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`border` returns a border layout container (optional top/bottom/left/right plus mandatory center content)",
+			signature:   "border(top: GoObj[fyne.CanvasObject]|null, bottom: GoObj[fyne.CanvasObject]|null, left: GoObj[fyne.CanvasObject]|null, right: GoObj[fyne.CanvasObject]|null, center: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "border(label('top'), null, null, null, label('center')) => GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+		}.String(),
+	},
+	{
+		Name: "_center",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("center", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("center", 1, GO_OBJ, args[0].Type())
+			}
+			c, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("center", 1, "fyne.CanvasObject", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewCenter(c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`center` returns a centered container with the content centered both horizontally and vertically",
+			signature:   "center(content: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "center(label('hi')) => GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+		}.String(),
+	},
+	{
+		Name: "_padded",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("padded", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("padded", 1, GO_OBJ, args[0].Type())
+			}
+			c, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("padded", 1, "fyne.CanvasObject", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewPadded(c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`padded` returns a container with theme padding around the content",
+			signature:   "padded(content: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "padded(label('hi')) => GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+		}.String(),
+	},
+	{
+		Name: "_stack",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("stack", len(args), 1, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("stack", 1, LIST_OBJ, args[0].Type())
+			}
+			elems := args[0].(*List).Elements
+			objs := make([]fyne.CanvasObject, len(elems))
+			for i, e := range elems {
+				if e.Type() != GO_OBJ {
+					return newError("`stack` error: all children should be GO_OBJ[fyne.CanvasObject]. found=%s", e.Type())
+				}
+				co, ok := e.(*GoObj[fyne.CanvasObject])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("stack", i+1, "fyne.CanvasObject", e)
+				}
+				objs[i] = co.Value
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewStack(objs...))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`stack` returns a stacked container (children drawn on top of each other)",
+			signature:   "stack(children: list[GoObj[fyne.CanvasObject]]) -> GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "stack([label('a'), label('b')]) => GoObj[fyne.CanvasObject](Value: *fyne.Container)",
+		}.String(),
+	},
+	{
+		Name: "_new_color",
+		Fun: func(args ...Object) Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("new_color", len(args), 4, "")
+			}
+			for i, a := range args {
+				if a.Type() != INTEGER_OBJ {
+					return newPositionalTypeError("new_color", i+1, INTEGER_OBJ, a.Type())
+				}
+			}
+			r := uint8(args[0].(*Integer).Value)
+			g := uint8(args[1].(*Integer).Value)
+			b := uint8(args[2].(*Integer).Value)
+			aVal := uint8(args[3].(*Integer).Value)
+			col := color.NRGBA{R: r, G: g, B: b, A: aVal}
+			return NewGoObj[color.Color](color.Color(col))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`new_color` creates a color from RGBA bytes (0-255 each) for use with canvas primitives",
+			signature:   "new_color(r: int, g: int, b: int, a: int) -> GoObj[color.Color]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "new_color(255, 0, 0, 255) => GoObj[color.Color](Value: color.NRGBA{R:255 G:0 ...})",
+		}.String(),
+	},
+	{
+		Name: "_canvas_rectangle",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("canvas_rectangle", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_rectangle", 1, GO_OBJ, args[0].Type())
+			}
+			co, ok := args[0].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_rectangle", 1, "color.Color", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewRectangle(co.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_rectangle` creates a canvas rectangle primitive filled with the given color",
+			signature:   "canvas_rectangle(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_rectangle(new_color(255,0,0,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_circle",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("canvas_circle", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_circle", 1, GO_OBJ, args[0].Type())
+			}
+			co, ok := args[0].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_circle", 1, "color.Color", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewCircle(co.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_circle` creates a canvas circle primitive filled with the given color",
+			signature:   "canvas_circle(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Circle)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_circle(new_color(0,255,0,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Circle)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_line",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("canvas_line", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_line", 1, GO_OBJ, args[0].Type())
+			}
+			co, ok := args[0].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_line", 1, "color.Color", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewLine(co.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_line` creates a canvas line primitive stroked with the given color",
+			signature:   "canvas_line(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Line)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_line(new_color(0,0,255,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Line)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_text",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 && len(args) != 3 {
+				return newInvalidArgCountError("canvas_text", len(args), 2, "or 3")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("canvas_text", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_text", 2, GO_OBJ, args[1].Type())
+			}
+			txt := args[0].(*Stringo).Value
+			co, ok := args[1].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_text", 2, "color.Color", args[1])
+			}
+			t := canvas.NewText(txt, co.Value)
+			if len(args) == 3 {
+				if args[2].Type() != INTEGER_OBJ && args[2].Type() != FLOAT_OBJ {
+					return newPositionalTypeError("canvas_text", 3, "INTEGER or FLOAT", args[2].Type())
+				}
+				var sz float32
+				if args[2].Type() == INTEGER_OBJ {
+					sz = float32(args[2].(*Integer).Value)
+				} else {
+					sz = float32(args[2].(*Float).Value)
+				}
+				t.TextSize = sz
+			}
+			return NewGoObj[fyne.CanvasObject](t)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_text` creates a canvas text primitive with optional text size",
+			signature:   "canvas_text(text: str, color: GoObj[color.Color], size: int|float=theme.TextSize) -> GoObj[fyne.CanvasObject](Value: *canvas.Text)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_text('hello', new_color(0,0,0,255), 14) => GoObj[fyne.CanvasObject](Value: *canvas.Text)",
+		}.String(),
+	},
+	{
+		Name: "_rich_text",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("rich_text", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("rich_text", 1, STRING_OBJ, args[0].Type())
+			}
+			txt := args[0].(*Stringo).Value
+			rt := widget.NewRichTextFromMarkdown(txt)
+			return NewGoObj[fyne.CanvasObject](rt)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`rich_text` creates a rich text widget rendering the given markdown string (headings, bold, links, etc.)",
+			signature:   "rich_text(markdown: str) -> GoObj[fyne.CanvasObject](Value: *widget.RichText)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "rich_text('# Hello') => GoObj[fyne.CanvasObject](Value: *widget.RichText)",
+		}.String(),
+	},
+	{
+		Name: "_slider_get_value",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("slider_get_value", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("slider_get_value", 1, GO_OBJ, args[0].Type())
+			}
+			slider, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("slider_get_value", 1, "fyne.CanvasObject", args[0])
+			}
+			switch x := slider.Value.(type) {
+			case *widget.Slider:
+				return &Float{Value: x.Value}
+			default:
+				return newError("`slider_get_value` error: object is not a slider. got=%T", x)
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`slider_get_value` returns the current float value of a slider widget",
+			signature:   "slider_get_value(s: GoObj[fyne.CanvasObject](Value: *widget.Slider)) -> float",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "slider_get_value(s) => 0.5",
+		}.String(),
+	},
+	{
+		Name: "_slider_set_value",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("slider_set_value", len(args), 2, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("slider_set_value", 1, GO_OBJ, args[0].Type())
+			}
+			if args[1].Type() != FLOAT_OBJ && args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("slider_set_value", 2, "FLOAT or INTEGER", args[1].Type())
+			}
+			slider, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("slider_set_value", 1, "fyne.CanvasObject", args[0])
+			}
+			var v float64
+			if args[1].Type() == FLOAT_OBJ {
+				v = args[1].(*Float).Value
+			} else {
+				v = float64(args[1].(*Integer).Value)
+			}
+			switch x := slider.Value.(type) {
+			case *widget.Slider:
+				x.SetValue(v)
+				return NULL
+			default:
+				return newError("`slider_set_value` error: object is not a slider. got=%T", x)
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`slider_set_value` sets the float value of a slider widget",
+			signature:   "slider_set_value(s: GoObj[fyne.CanvasObject](Value: *widget.Slider), value: float|int) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "slider_set_value(s, 1.0) => null",
+		}.String(),
+	},
+	{
+		Name: "_slider",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`slider` returns a slider widget with min, max, and an on_change handler receiving the float value",
+			signature:   "slider(min: float|int, max: float|int, value: float|int, fn: fun(value: float)) -> GoObj[fyne.CanvasObject](Value: *widget.Slider)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "slider(0, 100, 50, |v| => {println(v)}) => GoObj[fyne.CanvasObject](Value: *widget.Slider)",
+		}.String(),
+	},
+	{
+		Name: "_check_group",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`check_group` returns a check_group widget (multi-select checkboxes) with options and an on_change handler receiving list[str]",
+			signature:   "check_group(options: list[str], fn: fun(selected: list[str])) -> GoObj[fyne.CanvasObject](Value: *widget.CheckGroup)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "check_group(['a','b'], |v| => {println(v)}) => GoObj[fyne.CanvasObject](Value: *widget.CheckGroup)",
+		}.String(),
+	},
+	{
+		Name: "_select_entry",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`select_entry` returns an editable select entry (combo box) with options and an on_change handler",
+			signature:   "select_entry(options: list[str], fn: fun(value: str)) -> GoObj[fyne.CanvasObject](Value: *widget.SelectEntry)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "select_entry(['a','b'], |v| => {println(v)}) => GoObj[fyne.CanvasObject](Value: *widget.SelectEntry)",
+		}.String(),
+	},
+	{
+		Name: "_hyperlink_with_handler",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`hyperlink_with_handler` returns a hyperlink widget with a custom tap handler instead of opening URL",
+			signature:   "hyperlink_with_handler(text: str, url: str, fn: fun()) -> GoObj[fyne.CanvasObject](Value: *widget.Hyperlink)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "hyperlink_with_handler('click', 'https://example.com', || => {println('tapped')}) => GoObj[fyne.CanvasObject](Value: *widget.Hyperlink)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_image",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("canvas_image", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("canvas_image", 1, STRING_OBJ, args[0].Type())
+			}
+			path := args[0].(*Stringo).Value
+			img := canvas.NewImageFromFile(path)
+			img.FillMode = canvas.ImageFillContain
+			return NewGoObj[fyne.CanvasObject](img)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_image` creates an image canvas object from a file path (PNG/JPEG/SVG)",
+			signature:   "canvas_image(path: str) -> GoObj[fyne.CanvasObject](Value: *canvas.Image)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_image('./photo.png') => GoObj[fyne.CanvasObject](Value: *canvas.Image)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_arc",
+		Fun: func(args ...Object) Object {
+			if len(args) != 4 {
+				return newInvalidArgCountError("canvas_arc", len(args), 4, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_arc", 1, GO_OBJ, args[0].Type())
+			}
+			co, ok := args[0].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_arc", 1, "color.Color", args[0])
+			}
+			parseFloat := func(o Object, pos int) (float32, Object) {
+				if o.Type() == FLOAT_OBJ {
+					return float32(o.(*Float).Value), nil
+				}
+				if o.Type() == INTEGER_OBJ {
+					return float32(o.(*Integer).Value), nil
+				}
+				return 0, newPositionalTypeError("canvas_arc", pos, "FLOAT or INTEGER", o.Type())
+			}
+			start, err := parseFloat(args[1], 2)
+			if err != nil {
+				return err
+			}
+			end, err := parseFloat(args[2], 3)
+			if err != nil {
+				return err
+			}
+			cutout, err := parseFloat(args[3], 4)
+			if err != nil {
+				return err
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewArc(start, end, cutout, co.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_arc` creates an arc/circle-sector canvas primitive (degrees, cutout 0..1)",
+			signature:   "canvas_arc(color: GoObj[color.Color], startAngle: float|int, endAngle: float|int, cutout: float|int) -> GoObj[fyne.CanvasObject](Value: *canvas.Arc)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_arc(new_color(255,0,0,255), 0, 270, 0.3) => GoObj[fyne.CanvasObject](Value: *canvas.Arc)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_polygon",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("canvas_polygon", len(args), 2, "")
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("canvas_polygon", 1, INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_polygon", 2, GO_OBJ, args[1].Type())
+			}
+			sides := uint(args[0].(*Integer).Value)
+			if sides < 3 {
+				return newError("`canvas_polygon` error: sides must be >=3. got=%d", sides)
+			}
+			co, ok := args[1].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_polygon", 2, "color.Color", args[1])
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewPolygon(sides, co.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_polygon` creates a regular polygon canvas primitive (n sides)",
+			signature:   "canvas_polygon(sides: int, color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Polygon)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "canvas_polygon(6, new_color(0,0,255,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Polygon)",
+		}.String(),
+	},
+	{
+		Name: "_text_grid",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("text_grid", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("text_grid", 1, STRING_OBJ, args[0].Type())
+			}
+			txt := args[0].(*Stringo).Value
+			return NewGoObj[fyne.CanvasObject](widget.NewTextGridFromString(txt))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`text_grid` creates a monospace text grid widget (terminal/code view) from a string",
+			signature:   "text_grid(content: str) -> GoObj[fyne.CanvasObject](Value: *widget.TextGrid)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "text_grid('hello\\nworld') => GoObj[fyne.CanvasObject](Value: *widget.TextGrid)",
+		}.String(),
+	},
+	{
+		Name: "_activity",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("activity", len(args), 0, "")
+			}
+			a := widget.NewActivity()
+			a.Start()
+			return NewGoObj[fyne.CanvasObject](a)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`activity` creates an activity indicator (spinning dots, auto-started)",
+			signature:   "activity() -> GoObj[fyne.CanvasObject](Value: *widget.Activity)",
+			errors:      "InvalidArgCount",
+			example:     "activity() => GoObj[fyne.CanvasObject](Value: *widget.Activity)",
+		}.String(),
+	},
+	{
+		Name: "_activity_start",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("activity_start", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("activity_start", 1, GO_OBJ, args[0].Type())
+			}
+			aw, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("activity_start", 1, "fyne.CanvasObject", args[0])
+			}
+			switch x := aw.Value.(type) {
+			case *widget.Activity:
+				x.Start()
+				return NULL
+			default:
+				return newError("`activity_start` error: not an activity. got=%T", x)
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`activity_start` starts the activity indicator animation",
+			signature:   "activity_start(a: GoObj[fyne.CanvasObject](Value: *widget.Activity)) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "activity_start(a) => null",
+		}.String(),
+	},
+	{
+		Name: "_activity_stop",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("activity_stop", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("activity_stop", 1, GO_OBJ, args[0].Type())
+			}
+			aw, ok := args[0].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("activity_stop", 1, "fyne.CanvasObject", args[0])
+			}
+			switch x := aw.Value.(type) {
+			case *widget.Activity:
+				x.Stop()
+				return NULL
+			default:
+				return newError("`activity_stop` error: not an activity. got=%T", x)
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`activity_stop` stops the activity indicator animation",
+			signature:   "activity_stop(a: GoObj[fyne.CanvasObject](Value: *widget.Activity)) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "activity_stop(a) => null",
+		}.String(),
+	},
+	{
+		Name: "_inner_window",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("inner_window", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("inner_window", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("inner_window", 2, GO_OBJ, args[1].Type())
+			}
+			title := args[0].(*Stringo).Value
+			c, ok := args[1].(*GoObj[fyne.CanvasObject])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("inner_window", 2, "fyne.CanvasObject", args[1])
+			}
+			return NewGoObj[fyne.CanvasObject](container.NewInnerWindow(title, c.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`inner_window` creates a draggable inner window with title and content",
+			signature:   "inner_window(title: str, content: GoObj[fyne.CanvasObject]) -> GoObj[fyne.CanvasObject](Value: *container.InnerWindow)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "inner_window('Title', label('hi')) => GoObj[fyne.CanvasObject](Value: *container.InnerWindow)",
+		}.String(),
+	},
+	{
+		Name: "_file_icon",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("file_icon", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("file_icon", 1, STRING_OBJ, args[0].Type())
+			}
+			uriStr := args[0].(*Stringo).Value
+			// try parse as URI first, fallback to file path
+			parsed, err := storage.ParseURI(uriStr)
+			if err != nil || parsed == nil {
+				// treat as plain file path
+				parsed, err = storage.ParseURI("file://" + uriStr)
+				if err != nil || parsed == nil {
+					return newError("`file_icon` error: invalid uri `%s`: %s", uriStr, err.Error())
+				}
+			}
+			return NewGoObj[fyne.CanvasObject](widget.NewFileIcon(parsed))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`file_icon` creates an icon widget for a file URI (auto picks icon by extension)",
+			signature:   "file_icon(uri: str) -> GoObj[fyne.CanvasObject](Value: *widget.FileIcon)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "file_icon('file:///tmp/photo.png') => GoObj[fyne.CanvasObject](Value: *widget.FileIcon)",
+		}.String(),
+	},
+	{
+		Name: "_calendar",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`calendar` returns a calendar widget with onChanged handler receiving the selected date string (YYYY-MM-DD)",
+			signature:   "calendar(initialDate: str='now', fn: fun(date: str)) -> GoObj[fyne.CanvasObject](Value: *widget.Calendar)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "calendar('2026-01-01', |d| => {println(d)}) => GoObj[fyne.CanvasObject](Value: *widget.Calendar)",
+		}.String(),
+	},
+	{
+		Name: "_list",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`list` returns a virtualized scrolling list of strings with onSelected handler receiving (index: int, value: str)",
+			signature:   "list(items: list[str], fn: fun(index: int, value: str)) -> GoObj[fyne.CanvasObject](Value: *widget.List)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "list(['a','b'], |i,v| => {println(i, v)}) => GoObj[fyne.CanvasObject](Value: *widget.List)",
+		}.String(),
+	},
+	{
+		Name: "_table",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`table` returns a table widget from a 2D string array with onSelected handler receiving (row: int, col: int, value: str)",
+			signature:   "table(data: list[list[str]], fn: fun(row: int, col: int, value: str)) -> GoObj[fyne.CanvasObject](Value: *widget.Table)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "table([['a','b'],['c','d']], |r,c,v| => {println(r,c,v)}) => GoObj[fyne.CanvasObject](Value: *widget.Table)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_linear_gradient",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("canvas_linear_gradient", len(args), 3, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_linear_gradient", 1, GO_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_linear_gradient", 2, GO_OBJ, args[1].Type())
+			}
+			c1, ok := args[0].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_linear_gradient", 1, "color.Color", args[0])
+			}
+			c2, ok := args[1].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_linear_gradient", 2, "color.Color", args[1])
+			}
+			var angle float64
+			if args[2].Type() == FLOAT_OBJ {
+				angle = args[2].(*Float).Value
+			} else if args[2].Type() == INTEGER_OBJ {
+				angle = float64(args[2].(*Integer).Value)
+			} else {
+				return newPositionalTypeError("canvas_linear_gradient", 3, "FLOAT or INTEGER", args[2].Type())
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewLinearGradient(c1.Value, c2.Value, angle))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_linear_gradient` creates a linear gradient canvas object (angle in degrees)",
+			signature:   "canvas_linear_gradient(start: GoObj[color.Color], end: GoObj[color.Color], angle: float|int) -> GoObj[fyne.CanvasObject](Value: *canvas.LinearGradient)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_linear_gradient(new_color(255,0,0,255), new_color(0,0,255,255), 90) => GoObj[fyne.CanvasObject](Value: *canvas.LinearGradient)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_radial_gradient",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("canvas_radial_gradient", len(args), 2, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_radial_gradient", 1, GO_OBJ, args[0].Type())
+			}
+			if args[1].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_radial_gradient", 2, GO_OBJ, args[1].Type())
+			}
+			c1, ok := args[0].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_radial_gradient", 1, "color.Color", args[0])
+			}
+			c2, ok := args[1].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_radial_gradient", 2, "color.Color", args[1])
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewRadialGradient(c1.Value, c2.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_radial_gradient` creates a radial gradient canvas object (center outward)",
+			signature:   "canvas_radial_gradient(start: GoObj[color.Color], end: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.RadialGradient)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_radial_gradient(new_color(255,255,0,255), new_color(255,0,0,0)) => GoObj[fyne.CanvasObject](Value: *canvas.RadialGradient)",
+		}.String(),
+	},
+	{
+		Name: "_canvas_square",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("canvas_square", len(args), 1, "")
+			}
+			if args[0].Type() != GO_OBJ {
+				return newPositionalTypeError("canvas_square", 1, GO_OBJ, args[0].Type())
+			}
+			co, ok := args[0].(*GoObj[color.Color])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("canvas_square", 1, "color.Color", args[0])
+			}
+			return NewGoObj[fyne.CanvasObject](canvas.NewRectangle(co.Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`canvas_square` creates a square rectangle (1:1 aspect) canvas primitive",
+			signature:   "canvas_square(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "canvas_square(new_color(128,0,128,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
+		}.String(),
+	},
+	{
+		Name: "_dialog_info",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("dialog_info", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("dialog_info", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("dialog_info", 2, STRING_OBJ, args[1].Type())
+			}
+			title := args[0].(*Stringo).Value
+			msg := args[1].(*Stringo).Value
+			a := fyne.CurrentApp()
+			if a == nil {
+				return NULL
+			}
+			fyne.Do(func() {
+				w := a.NewWindow(title)
+				w.SetContent(container.NewVBox(
+					widget.NewLabel(msg),
+					widget.NewButton("OK", func() { w.Close() }),
+				))
+				w.Resize(fyne.NewSize(380, 160))
+				w.Show()
+			})
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`dialog_info` shows a simple information dialog with OK button (non-blocking)",
+			signature:   "dialog_info(title: str, message: str) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "dialog_info('Info', 'Hello') => null (shows window)",
+		}.String(),
+	},
+	{
+		Name: "_grid_wrap",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`grid_wrap` returns a wrapping grid of strings with onSelected handler receiving (index: int, value: str)",
+			signature:   "grid_wrap(items: list[str], fn: fun(index: int, value: str)) -> GoObj[fyne.CanvasObject](Value: *widget.GridWrap)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "grid_wrap(['a','b','c'], |i,v| => {println(i, v)}) => GoObj[fyne.CanvasObject](Value: *widget.GridWrap)",
+		}.String(),
+	},
+	{
+		Name: "_tree",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`tree` returns a hierarchical tree widget from map[str]list[str] (parent->children) with onSelected handler receiving (uid: str)",
+			signature:   "tree(data: map[str]list[str], root: str, fn: fun(uid: str)) -> GoObj[fyne.CanvasObject](Value: *widget.Tree)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "tree({ '': ['a','b'], 'a': ['a1'] }, '', |uid| => {println(uid)}) => GoObj[fyne.CanvasObject](Value: *widget.Tree)",
+		}.String(),
+	},
+	{
+		Name: "_dialog_confirm",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`dialog_confirm` shows a confirm dialog with Yes/No, calling handler with bool result",
+			signature:   "dialog_confirm(title: str, message: str, fn: fun(confirmed: bool)) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "dialog_confirm('Confirm', 'Are you sure?', |v| => {println(v)}) => null",
+		}.String(),
+	},
+	{
+		Name: "_dialog_file_open",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`dialog_file_open` shows a file-open picker returning chosen path to handler (empty string if cancelled)",
+			signature:   "dialog_file_open(fn: fun(path: str)) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "dialog_file_open(|p| => {println(p)}) => null",
+		}.String(),
+	},
+	{
+		Name: "_menu_item",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`menu_item` creates a fyne menu item with label and action handler",
+			signature:   "menu_item(label: str, fn: fun()) -> GoObj[*fyne.MenuItem]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "menu_item('Open', || => {println('open')}) => GoObj[*fyne.MenuItem]",
+		}.String(),
+	},
+	{
+		Name: "_menu",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("menu", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("menu", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != LIST_OBJ {
+				return newPositionalTypeError("menu", 2, LIST_OBJ, args[1].Type())
+			}
+			label := args[0].(*Stringo).Value
+			elems := args[1].(*List).Elements
+			items := make([]*fyne.MenuItem, len(elems))
+			for i, e := range elems {
+				if e.Type() != GO_OBJ {
+					return newPositionalTypeError("menu", 2, GO_OBJ, e.Type())
+				}
+				mi, ok := e.(*GoObj[*fyne.MenuItem])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("menu", 2, "*fyne.MenuItem", e)
+				}
+				items[i] = mi.Value
+			}
+			return NewGoObj(fyne.NewMenu(label, items...))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`menu` creates a fyne menu with label and list of menu items",
+			signature:   "menu(label: str, items: list[GoObj[*fyne.MenuItem]]) -> GoObj[*fyne.Menu]",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "menu('File', [menu_item('Open', ||=>{})]) => GoObj[*fyne.Menu]",
+		}.String(),
+	},
+	{
+		Name: "_set_main_menu",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("set_main_menu", len(args), 1, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("set_main_menu", 1, LIST_OBJ, args[0].Type())
+			}
+			elems := args[0].(*List).Elements
+			menus := make([]*fyne.Menu, len(elems))
+			for i, e := range elems {
+				if e.Type() != GO_OBJ {
+					return newPositionalTypeError("set_main_menu", 1, GO_OBJ, e.Type())
+				}
+				m, ok := e.(*GoObj[*fyne.Menu])
+				if !ok {
+					return newPositionalTypeErrorForGoObj("set_main_menu", 1, "*fyne.Menu", e)
+				}
+				menus[i] = m.Value
+			}
+			mainMenu := fyne.NewMainMenu(menus...)
+			a := fyne.CurrentApp()
+			if a != nil {
+				if w := a.Driver().AllWindows(); len(w) > 0 {
+					w[0].SetMainMenu(mainMenu)
+				}
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`set_main_menu` sets the application main menu from a list of menus (must be called after window creation, ideally before Show)",
+			signature:   "set_main_menu(menus: list[GoObj[*fyne.Menu]]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "set_main_menu([menu('File', [menu_item('Quit', ||=>{})])]) => null",
 		}.String(),
 	},
 }

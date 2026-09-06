@@ -33,6 +33,27 @@ fun to_str(time_as_unix_timestamp, timezone=null) {
     __to_str(time_as_unix_timestamp, timezone)
 }
 
+val __add = _time_add;
+val __format = _time_format;
+
+fun add(ts, delta) {
+    ## `add` adds milliseconds delta to timestamp (use Unit.* for days etc)
+    ##
+    ## add(ts: int, delta: int) -> int
+    __add(ts, delta)
+}
+
+fun format(ts, layout="rfc3339", tz=null) {
+    ## `format` formats timestamp with Go layout (aliases: date→2006-01-02, datetime→2006-01-02 15:04:05, iso→RFC3339)
+    ##
+    ## format(ts: int, layout: str="rfc3339", tz: str=null) -> str
+    if (tz == null) {
+        __format(ts, layout)
+    } else {
+        __format(ts, layout, tz)
+    }
+}
+
 val timezone = {
     'Local': 'Local',
     'UTC': 'UTC',
@@ -82,8 +103,6 @@ val timezone = {
     'Melbourne': 'Australia/Melbourne',
     'Darwin': 'Australia/Darwin',
 }
-
-# TODO: Figure out months, weeks, years (maybe needs to be specific function)
 
 # These units are all in milliseconds so they can be added/subtracted to/from a timestamp and parsed appropriately
 val Unit = {

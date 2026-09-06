@@ -305,6 +305,17 @@ val uuid = {
     'new': _new_uuid,
 }
 
+val path = {
+    'join': path_join,
+    'clean': path_clean,
+    'dir': path_dir,
+    'base': path_base,
+    'ext': path_ext,
+    'is_abs': path_is_abs,
+    'rel': path_rel,
+    'abs': abs_path,
+}
+
 
 fun __go_metrics(flat=false) {
     ##core:ignore

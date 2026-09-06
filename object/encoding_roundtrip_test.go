@@ -262,14 +262,14 @@ func TestEncodingFunctionBecomesStringFunction(t *testing.T) {
 
 func makeTestCompiledFunction() *CompiledFunction {
 	return &CompiledFunction{
-		Instructions:             code.Make(code.OpConstant, 1),
-		NumLocals:                2,
-		NumParameters:            1,
-		Parameters:               []string{"x"},
-		ParameterHasDefault:      []bool{false},
-		NumDefaultParams:         0,
-		DisplayString:            "fn x()",
-		HelpStr:                  "help text",
+		Instructions:        code.Make(code.OpConstant, 1),
+		NumLocals:           2,
+		NumParameters:       1,
+		Parameters:          []string{"x"},
+		ParameterHasDefault: []bool{false},
+		NumDefaultParams:    0,
+		DisplayString:       "fn x()",
+		HelpStr:             "help text",
 		SpecialFunctionParameters: map[NameIndexKey]map[NameIndexKey]Object{
 			{Name: "defaults", Index: 1}: {
 				{Name: "dv", Index: 0}: NewString("defval"),

@@ -169,7 +169,7 @@ var parserHints = []hintPattern{
 	},
 	{
 		"unexpected }",
-		[]string{"Unmatched closing brace — check for a missing '{' earlier"},
+		[]string{"Unmatched closing brace - check for a missing '{' earlier"},
 	},
 	{
 		"expected : got }",
@@ -209,15 +209,15 @@ var parserHints = []hintPattern{
 	},
 	{
 		"expected ; here got }",
-		[]string{"Missing semicolon — did you forget to separate the loop parts?"},
+		[]string{"Missing semicolon - did you forget to separate the loop parts?"},
 	},
 	{
 		"expected ; here got for",
-		[]string{"Missing semicolon — did you forget to separate the loop parts?"},
+		[]string{"Missing semicolon - did you forget to separate the loop parts?"},
 	},
 	{
 		"expected { got }",
-		[]string{"Missing opening brace — check for a missing '{' earlier"},
+		[]string{"Missing opening brace - check for a missing '{' earlier"},
 	},
 	{
 		"invalid type for destructuring",
@@ -229,11 +229,11 @@ var parserHints = []hintPattern{
 	},
 	{
 		"unexpected while",
-		[]string{"blue does not have a 'while' keyword — use 'for' instead"},
+		[]string{"blue does not have a 'while' keyword - use 'for' instead"},
 	},
 	{
 		"unexpected do",
-		[]string{"blue does not have a 'do' keyword — use 'for' instead"},
+		[]string{"blue does not have a 'do' keyword - use 'for' instead"},
 	},
 }
 

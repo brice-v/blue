@@ -1348,7 +1348,981 @@ var Builtins = []*Builtin{
 			example:     "ls('/test') => []",
 		}.String(),
 	},
-	// TODO: Eventually we need to support files better (and possibly, stdin, stderr, stdout) and then http stuff
+	{
+		Name: "mkdir",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("mkdir", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("mkdir", 1, STRING_OBJ, args[0].Type())
+			}
+			p := args[0].(*Stringo).Value
+			if err := os.Mkdir(p, 0755); err != nil {
+				return newError("`mkdir` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`mkdir` creates a single directory (fails if parent missing)",
+			signature:   "mkdir(path: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "mkdir('/tmp/a') => null",
+		}.String(),
+	},
+	{
+		Name: "mkdir_all",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("mkdir_all", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("mkdir_all", 1, STRING_OBJ, args[0].Type())
+			}
+			p := args[0].(*Stringo).Value
+			if err := os.MkdirAll(p, 0755); err != nil {
+				return newError("`mkdir_all` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`mkdir_all` creates directory and all missing parents (like mkdir -p)",
+			signature:   "mkdir_all(path: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "mkdir_all('/tmp/a/b/c') => null",
+		}.String(),
+	},
+	{
+		Name: "cp",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("cp", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("cp", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("cp", 2, STRING_OBJ, args[1].Type())
+			}
+			src := args[0].(*Stringo).Value
+			dst := args[1].(*Stringo).Value
+			in, err := os.Open(src)
+			if err != nil {
+				return newError("`cp` error opening src `%s`: %s", src, err.Error())
+			}
+			defer func() {
+				if err := in.Close(); err != nil {
+					log.Printf("Failed to close file %s, error: %s", src, err.Error())
+				}
+			}()
+			out, err := os.Create(dst)
+			if err != nil {
+				return newError("`cp` error creating dst `%s`: %s", dst, err.Error())
+			}
+			defer func() {
+				if err := out.Close(); err != nil {
+					log.Printf("Failed to close file %s, error: %s", dst, err.Error())
+				}
+			}()
+			if _, err := io.Copy(out, in); err != nil {
+				return newError("`cp` error copying: %s", err.Error())
+			}
+			if fi, err := os.Stat(src); err == nil {
+				_ = os.Chmod(dst, fi.Mode())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`cp` copies a file from src to dst (preserves mode)",
+			signature:   "cp(src: str, dst: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "cp('a.txt', 'b.txt') => null",
+		}.String(),
+	},
+	{
+		Name: "mv",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("mv", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("mv", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("mv", 2, STRING_OBJ, args[1].Type())
+			}
+			src := args[0].(*Stringo).Value
+			dst := args[1].(*Stringo).Value
+			if err := os.Rename(src, dst); err != nil {
+				return newError("`mv` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`mv` moves/renames a file or directory",
+			signature:   "mv(src: str, dst: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "mv('a.txt', 'b.txt') => null",
+		}.String(),
+	},
+	{
+		Name: "rename",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("rename", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("rename", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("rename", 2, STRING_OBJ, args[1].Type())
+			}
+			src := args[0].(*Stringo).Value
+			dst := args[1].(*Stringo).Value
+			if err := os.Rename(src, dst); err != nil {
+				return newError("`rename` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`rename` alias for mv (moves/renames)",
+			signature:   "rename(src: str, dst: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "rename('a.txt', 'b.txt') => null",
+		}.String(),
+	},
+	{
+		Name: "exists",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("exists", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("exists", 1, STRING_OBJ, args[0].Type())
+			}
+			p := args[0].(*Stringo).Value
+			_, err := os.Stat(p)
+			if err == nil {
+				return TRUE
+			}
+			if os.IsNotExist(err) {
+				return FALSE
+			}
+			return FALSE
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`exists` returns true if path exists (file or dir)",
+			signature:   "exists(path: str) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "exists('/tmp') => true",
+		}.String(),
+	},
+	{
+		Name: "stat",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("stat", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("stat", 1, STRING_OBJ, args[0].Type())
+			}
+			p := args[0].(*Stringo).Value
+			fi, err := os.Stat(p)
+			if err != nil {
+				return newError("`stat` error: %s", err.Error())
+			}
+			m := NewOrderedMap[string, Object]()
+			m.Set("name", &Stringo{Value: fi.Name()})
+			m.Set("size", NewInteger(fi.Size()))
+			m.Set("mode", &Stringo{Value: fi.Mode().String()})
+			m.Set("mode_int", NewInteger(int64(fi.Mode().Perm())))
+			m.Set("is_dir", nativeToBooleanObject(fi.IsDir()))
+			m.Set("mtime", NewInteger(fi.ModTime().UnixMilli()))
+			m.Set("mtime_str", &Stringo{Value: fi.ModTime().Format(time.RFC3339)})
+			return CreateMapObjectForGoMap(*m)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`stat` returns map with name,size,mode,is_dir,mtime for path",
+			signature:   "stat(path: str) -> map{name:str,size:int,mode:str,mode_int:int,is_dir:bool,mtime:int,mtime_str:str}",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "stat('/tmp/a.txt') => {name:'a.txt', size: 12, ...}",
+		}.String(),
+	},
+	{
+		Name: "glob",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("glob", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("glob", 1, STRING_OBJ, args[0].Type())
+			}
+			pat := args[0].(*Stringo).Value
+			matches, err := filepath.Glob(pat)
+			if err != nil {
+				return newError("`glob` error: %s", err.Error())
+			}
+			if matches == nil {
+				matches = []string{}
+			}
+			elems := make([]Object, len(matches))
+			for i, s := range matches {
+				elems[i] = &Stringo{Value: s}
+			}
+			return &List{Elements: elems}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`glob` returns list of paths matching shell pattern",
+			signature:   "glob(pattern: str) -> list[str]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "glob('/tmp/*.txt') => ['/tmp/a.txt']",
+		}.String(),
+	},
+	{
+		Name: "walk",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("walk", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("walk", 1, STRING_OBJ, args[0].Type())
+			}
+			root := args[0].(*Stringo).Value
+			var out []Object
+			err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+				if err != nil {
+					return nil
+				}
+				out = append(out, &Stringo{Value: path})
+				return nil
+			})
+			if err != nil {
+				return newError("`walk` error: %s", err.Error())
+			}
+			return &List{Elements: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`walk` recursively lists all files/dirs under root (including root)",
+			signature:   "walk(root: str) -> list[str]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "walk('/tmp/a') => ['/tmp/a', '/tmp/a/b']",
+		}.String(),
+	},
+	{
+		Name: "temp_file",
+		Fun: func(args ...Object) Object {
+			if len(args) > 2 {
+				return newInvalidArgCountError("temp_file", len(args), 0, "or 2")
+			}
+			dir := ""
+			pattern := "blue_tmp_*"
+			if len(args) >= 1 {
+				if args[0].Type() != STRING_OBJ {
+					return newPositionalTypeError("temp_file", 1, STRING_OBJ, args[0].Type())
+				}
+				dir = args[0].(*Stringo).Value
+			}
+			if len(args) == 2 {
+				if args[1].Type() != STRING_OBJ {
+					return newPositionalTypeError("temp_file", 2, STRING_OBJ, args[1].Type())
+				}
+				pattern = args[1].(*Stringo).Value
+			}
+			f, err := os.CreateTemp(dir, pattern)
+			if err != nil {
+				return newError("`temp_file` error: %s", err.Error())
+			}
+			name := f.Name()
+			_ = f.Close()
+			return &Stringo{Value: name}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`temp_file` creates a temporary file and returns its path",
+			signature:   "temp_file(dir: str='', pattern: str='blue_tmp_*') -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "temp_file() => '/tmp/blue_tmp_123'",
+		}.String(),
+	},
+	{
+		Name: "temp_dir",
+		Fun: func(args ...Object) Object {
+			if len(args) > 2 {
+				return newInvalidArgCountError("temp_dir", len(args), 0, "or 2")
+			}
+			dir := ""
+			pattern := "blue_tmpdir_*"
+			if len(args) >= 1 {
+				if args[0].Type() != STRING_OBJ {
+					return newPositionalTypeError("temp_dir", 1, STRING_OBJ, args[0].Type())
+				}
+				dir = args[0].(*Stringo).Value
+			}
+			if len(args) == 2 {
+				if args[1].Type() != STRING_OBJ {
+					return newPositionalTypeError("temp_dir", 2, STRING_OBJ, args[1].Type())
+				}
+				pattern = args[1].(*Stringo).Value
+			}
+			name, err := os.MkdirTemp(dir, pattern)
+			if err != nil {
+				return newError("`temp_dir` error: %s", err.Error())
+			}
+			return &Stringo{Value: name}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`temp_dir` creates a temporary directory and returns its path",
+			signature:   "temp_dir(dir: str='', pattern: str='blue_tmpdir_*') -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "temp_dir() => '/tmp/blue_tmpdir_123'",
+		}.String(),
+	},
+	{
+		Name: "getenv",
+		Fun: func(args ...Object) Object {
+			if len(args) < 1 || len(args) > 2 {
+				return newInvalidArgCountError("getenv", len(args), 1, "or 2")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("getenv", 1, STRING_OBJ, args[0].Type())
+			}
+			key := args[0].(*Stringo).Value
+			val, ok := os.LookupEnv(key)
+			if ok {
+				return &Stringo{Value: val}
+			}
+			if len(args) == 2 {
+				return args[1]
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`getenv` returns env var value or default/null if missing",
+			signature:   "getenv(key: str, default: any=null) -> str|any",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "getenv('HOME') => '/home/user'",
+		}.String(),
+	},
+	{
+		Name: "setenv",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("setenv", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("setenv", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("setenv", 2, STRING_OBJ, args[1].Type())
+			}
+			key := args[0].(*Stringo).Value
+			val := args[1].(*Stringo).Value
+			if err := os.Setenv(key, val); err != nil {
+				return newError("`setenv` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`setenv` sets an env var",
+			signature:   "setenv(key: str, value: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "setenv('FOO', 'bar') => null",
+		}.String(),
+	},
+	{
+		Name: "unsetenv",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("unsetenv", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("unsetenv", 1, STRING_OBJ, args[0].Type())
+			}
+			key := args[0].(*Stringo).Value
+			if err := os.Unsetenv(key); err != nil {
+				return newError("`unsetenv` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`unsetenv` removes an env var",
+			signature:   "unsetenv(key: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "unsetenv('FOO') => null",
+		}.String(),
+	},
+	{
+		Name: "environ",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("environ", len(args), 0, "")
+			}
+			env := os.Environ()
+			m := NewOrderedMap[string, Object]()
+			for _, e := range env {
+				parts := strings.SplitN(e, "=", 2)
+				k := parts[0]
+				v := ""
+				if len(parts) == 2 {
+					v = parts[1]
+				}
+				m.Set(k, &Stringo{Value: v})
+			}
+			return CreateMapObjectForGoMap(*m)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`environ` returns map of all env vars",
+			signature:   "environ() -> map[str]str",
+			errors:      "InvalidArgCount",
+			example:     "environ() => {HOME: '/home/user', ...}",
+		}.String(),
+	},
+	{
+		Name: "path_join",
+		Fun: func(args ...Object) Object {
+			if len(args) == 0 {
+				return newInvalidArgCountError("path_join", len(args), 1, "or more")
+			}
+			parts := make([]string, len(args))
+			for i, a := range args {
+				if a.Type() != STRING_OBJ {
+					return newPositionalTypeError("path_join", i+1, STRING_OBJ, a.Type())
+				}
+				parts[i] = a.(*Stringo).Value
+			}
+			return &Stringo{Value: filepath.Join(parts...)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`path_join` joins path elements with OS separator and cleans",
+			signature:   "path_join(parts...: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "path_join('/tmp', 'a', 'b') => '/tmp/a/b'",
+		}.String(),
+	},
+	{
+		Name: "path_clean",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("path_clean", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("path_clean", 1, STRING_OBJ, args[0].Type())
+			}
+			return &Stringo{Value: filepath.Clean(args[0].(*Stringo).Value)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`path_clean` cleans path (removes ./, ../ and double slashes)",
+			signature:   "path_clean(path: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "path_clean('a//b/../c') => 'a/c'",
+		}.String(),
+	},
+	{
+		Name: "path_dir",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("path_dir", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("path_dir", 1, STRING_OBJ, args[0].Type())
+			}
+			return &Stringo{Value: filepath.Dir(args[0].(*Stringo).Value)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`path_dir` returns directory part of path",
+			signature:   "path_dir(path: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "path_dir('/tmp/a/b.txt') => '/tmp/a'",
+		}.String(),
+	},
+	{
+		Name: "path_base",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("path_base", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("path_base", 1, STRING_OBJ, args[0].Type())
+			}
+			return &Stringo{Value: filepath.Base(args[0].(*Stringo).Value)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`path_base` returns last element of path",
+			signature:   "path_base(path: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "path_base('/tmp/a/b.txt') => 'b.txt'",
+		}.String(),
+	},
+	{
+		Name: "path_ext",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("path_ext", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("path_ext", 1, STRING_OBJ, args[0].Type())
+			}
+			return &Stringo{Value: filepath.Ext(args[0].(*Stringo).Value)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`path_ext` returns file extension including dot",
+			signature:   "path_ext(path: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "path_ext('a.txt') => '.txt'",
+		}.String(),
+	},
+	{
+		Name: "path_is_abs",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("path_is_abs", len(args), 1, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("path_is_abs", 1, STRING_OBJ, args[0].Type())
+			}
+			return nativeToBooleanObject(filepath.IsAbs(args[0].(*Stringo).Value))
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`path_is_abs` returns true if path is absolute",
+			signature:   "path_is_abs(path: str) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "path_is_abs('/tmp') => true",
+		}.String(),
+	},
+	{
+		Name: "path_rel",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("path_rel", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("path_rel", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("path_rel", 2, STRING_OBJ, args[1].Type())
+			}
+			rel, err := filepath.Rel(args[0].(*Stringo).Value, args[1].(*Stringo).Value)
+			if err != nil {
+				return newError("`path_rel` error: %s", err.Error())
+			}
+			return &Stringo{Value: rel}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`path_rel` returns target relative to base",
+			signature:   "path_rel(base: str, target: str) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "path_rel('/tmp/a', '/tmp/a/b/c') => 'b/c'",
+		}.String(),
+	},
+	{
+		Name: "to_json_pretty",
+		Fun: func(args ...Object) Object {
+			if len(args) < 1 || len(args) > 2 {
+				return newInvalidArgCountError("to_json_pretty", len(args), 1, "or 2")
+			}
+			indent := "  "
+			if len(args) == 2 {
+				if args[1].Type() != STRING_OBJ && args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("to_json_pretty", 2, "STRING or INTEGER", args[1].Type())
+				}
+				if args[1].Type() == STRING_OBJ {
+					indent = args[1].(*Stringo).Value
+				} else {
+					n := args[1].(*Integer).Value
+					if n < 0 {
+						n = 0
+					}
+					if n > 16 {
+						n = 16
+					}
+					indent = strings.Repeat(" ", int(n))
+				}
+			}
+			j := blueObjToJsonObject(args[0])
+			if isError(j) {
+				return j
+			}
+			s := j.(*Stringo).Value
+			var v any
+			if err := json.Unmarshal([]byte(s), &v); err != nil {
+				return newError("`to_json_pretty` error: %s", err.Error())
+			}
+			bs, err := json.MarshalIndent(v, "", indent)
+			if err != nil {
+				return newError("`to_json_pretty` error: %s", err.Error())
+			}
+			return &Stringo{Value: string(bs)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_json_pretty` returns indented JSON string",
+			signature:   "to_json_pretty(obj: any, indent: str|int='  ') -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "to_json_pretty({a: 1}, 2) => '{\\n  \"a\": 1\\n}'",
+		}.String(),
+	},
+	{
+		Name: "repeat",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("repeat", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("repeat", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("repeat", 2, INTEGER_OBJ, args[1].Type())
+			}
+			s := args[0].(*Stringo).Value
+			n := args[1].(*Integer).Value
+			if n < 0 {
+				return newError("`repeat` error: count must be >=0. got=%d", n)
+			}
+			if n > 1000000 {
+				return newError("`repeat` error: count too large (%d)", n)
+			}
+			return &Stringo{Value: strings.Repeat(s, int(n))}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`repeat` returns string repeated n times",
+			signature:   "repeat(str: str, n: int) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "repeat('ab', 3) => 'ababab'",
+		}.String(),
+	},
+	{
+		Name: "trim_prefix",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("trim_prefix", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("trim_prefix", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("trim_prefix", 2, STRING_OBJ, args[1].Type())
+			}
+			s := args[0].(*Stringo).Value
+			prefix := args[1].(*Stringo).Value
+			return &Stringo{Value: strings.TrimPrefix(s, prefix)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`trim_prefix` removes prefix if present",
+			signature:   "trim_prefix(str: str, prefix: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "trim_prefix('foobar', 'foo') => 'bar'",
+		}.String(),
+	},
+	{
+		Name: "trim_suffix",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("trim_suffix", len(args), 2, "")
+			}
+			if args[0].Type() != STRING_OBJ {
+				return newPositionalTypeError("trim_suffix", 1, STRING_OBJ, args[0].Type())
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("trim_suffix", 2, STRING_OBJ, args[1].Type())
+			}
+			s := args[0].(*Stringo).Value
+			suffix := args[1].(*Stringo).Value
+			return &Stringo{Value: strings.TrimSuffix(s, suffix)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`trim_suffix` removes suffix if present",
+			signature:   "trim_suffix(str: str, suffix: str) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "trim_suffix('foobar', 'bar') => 'foo'",
+		}.String(),
+	},
+	{
+		Name: "get",
+		Fun: func(args ...Object) Object {
+			if len(args) < 2 || len(args) > 3 {
+				return newInvalidArgCountError("get", len(args), 2, "or 3")
+			}
+			if args[0].Type() != MAP_OBJ && args[0].Type() != LIST_OBJ && args[0].Type() != STRING_OBJ && args[0].Type() != SET_OBJ {
+				return newPositionalTypeError("get", 1, "MAP or LIST or STRING or SET", args[0].Type())
+			}
+			var defVal Object = NULL
+			if len(args) == 3 {
+				defVal = args[2]
+			}
+			switch args[0].Type() {
+			case MAP_OBJ:
+				m := args[0].(*Map)
+				hk := HashKey{Type: args[1].Type(), Value: HashObject(args[1])}
+				if pair, ok := m.Pairs.Get(hk); ok {
+					return pair.Value
+				}
+				return defVal
+			case LIST_OBJ:
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get", 2, INTEGER_OBJ, args[1].Type())
+				}
+				idx := args[1].(*Integer).Value
+				l := args[0].(*List).Elements
+				if idx < 0 {
+					idx = int64(len(l)) + idx
+				}
+				if idx < 0 || idx >= int64(len(l)) {
+					if len(args) == 3 {
+						return defVal
+					}
+					return newError("`get` index %d out of bounds (len=%d)", idx, len(l))
+				}
+				return l[idx]
+			case STRING_OBJ:
+				if args[1].Type() != INTEGER_OBJ {
+					return newPositionalTypeError("get", 2, INTEGER_OBJ, args[1].Type())
+				}
+				idx := args[1].(*Integer).Value
+				s := args[0].(*Stringo).Value
+				runes := []rune(s)
+				if idx < 0 {
+					idx = int64(len(runes)) + idx
+				}
+				if idx < 0 || idx >= int64(len(runes)) {
+					if len(args) == 3 {
+						return defVal
+					}
+					return newError("`get` string index %d out of bounds (len=%d)", idx, len(runes))
+				}
+				return &Stringo{Value: string(runes[idx])}
+			case SET_OBJ:
+				s := args[0].(*Set)
+				hk := HashObject(args[1])
+				if pair, ok := s.Elements.Get(hk); ok {
+					return pair.Value
+				}
+				return defVal
+			}
+			return defVal
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`get` returns value for key/index with optional default (supports negative index for list/string)",
+			signature:   "get(obj: map|list|str|set, key: any, default: any=null) -> any",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "get({a: 1}, 'a', 0) => 1\n    get({a: 1}, 'b', 0) => 0\n    get([1,2,3], -1) => 3",
+		}.String(),
+	},
+	{
+		Name: "has",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("has", len(args), 2, "")
+			}
+			switch args[0].Type() {
+			case MAP_OBJ:
+				m := args[0].(*Map)
+				hk := HashKey{Type: args[1].Type(), Value: HashObject(args[1])}
+				_, ok := m.Pairs.Get(hk)
+				return nativeToBooleanObject(ok)
+			case LIST_OBJ:
+				l := args[0].(*List).Elements
+				for _, e := range l {
+					if e.Inspect() == args[1].Inspect() && e.Type() == args[1].Type() {
+						if HashObject(e) == HashObject(args[1]) {
+							return TRUE
+						}
+					}
+					if e == args[1] {
+						return TRUE
+					}
+				}
+				// fallback via hash equality is already above; brute force equality via Inspect+Type
+				for _, e := range l {
+					if e.Inspect() == args[1].Inspect() {
+						return TRUE
+					}
+				}
+				return FALSE
+			case SET_OBJ:
+				s := args[0].(*Set)
+				_, ok := s.Elements.Get(HashObject(args[1]))
+				return nativeToBooleanObject(ok)
+			case STRING_OBJ:
+				if args[1].Type() != STRING_OBJ {
+					return newPositionalTypeError("has", 2, STRING_OBJ, args[1].Type())
+				}
+				return nativeToBooleanObject(strings.Contains(args[0].(*Stringo).Value, args[1].(*Stringo).Value))
+			default:
+				return newPositionalTypeError("has", 1, "MAP or LIST or SET or STRING", args[0].Type())
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`has` returns true if collection contains key/value/substring",
+			signature:   "has(obj: map|list|set|str, key: any) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "has({a: 1}, 'a') => true\n    has([1,2], 2) => true\n    has('hello', 'ell') => true",
+		}.String(),
+	},
+	{
+		Name: "flat",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("flat", len(args), 1, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("flat", 1, LIST_OBJ, args[0].Type())
+			}
+			elems := args[0].(*List).Elements
+			var out []Object
+			for _, e := range elems {
+				if e.Type() == LIST_OBJ {
+					out = append(out, e.(*List).Elements...)
+				} else {
+					out = append(out, e)
+				}
+			}
+			return &List{Elements: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`flat` flattens one level of nested lists",
+			signature:   "flat(list: list) -> list",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "flat([1, [2,3], 4]) => [1,2,3,4]",
+		}.String(),
+	},
+	{
+		Name: "uniq",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("uniq", len(args), 1, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("uniq", 1, LIST_OBJ, args[0].Type())
+			}
+			elems := args[0].(*List).Elements
+			seen := make(map[uint64]bool)
+			var out []Object
+			for _, e := range elems {
+				h := HashObject(e)
+				if !seen[h] {
+					seen[h] = true
+					out = append(out, e)
+				}
+			}
+			return &List{Elements: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`uniq` returns list with duplicates removed (first occurrence kept)",
+			signature:   "uniq(list: list) -> list",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "uniq([1,2,2,3,1]) => [1,2,3]",
+		}.String(),
+	},
+	{
+		Name: "chunk",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("chunk", len(args), 2, "")
+			}
+			if args[0].Type() != LIST_OBJ {
+				return newPositionalTypeError("chunk", 1, LIST_OBJ, args[0].Type())
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("chunk", 2, INTEGER_OBJ, args[1].Type())
+			}
+			elems := args[0].(*List).Elements
+			size := args[1].(*Integer).Value
+			if size <= 0 {
+				return newError("`chunk` error: size must be >0. got=%d", size)
+			}
+			var chunks []Object
+			for i := int64(0); i < int64(len(elems)); i += size {
+				end := i + size
+				if end > int64(len(elems)) {
+					end = int64(len(elems))
+				}
+				chunkElems := make([]Object, end-i)
+				copy(chunkElems, elems[i:end])
+				chunks = append(chunks, &List{Elements: chunkElems})
+			}
+			return &List{Elements: chunks}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`chunk` splits list into chunks of given size",
+			signature:   "chunk(list: list, size: int) -> list[list]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "chunk([1,2,3,4,5], 2) => [[1,2],[3,4],[5]]",
+		}.String(),
+	},
+	{
+		Name: "_time_add",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("time_add", len(args), 2, "")
+			}
+			var ts, delta int64
+			if args[0].Type() == INTEGER_OBJ {
+				ts = args[0].(*Integer).Value
+			} else {
+				return newPositionalTypeError("time_add", 1, INTEGER_OBJ, args[0].Type())
+			}
+			if args[1].Type() == INTEGER_OBJ {
+				delta = args[1].(*Integer).Value
+			} else {
+				return newPositionalTypeError("time_add", 2, INTEGER_OBJ, args[1].Type())
+			}
+			return NewInteger(ts + delta)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`time_add` adds milliseconds to timestamp (use with time.Unit)",
+			signature:   "time_add(ts: int, deltaMs: int) -> int",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "time_add(now(), 5 * time.Unit.DAY) => futureTs",
+		}.String(),
+	},
+	{
+		Name: "_time_format",
+		Fun: func(args ...Object) Object {
+			if len(args) < 1 || len(args) > 3 {
+				return newInvalidArgCountError("time_format", len(args), 1, "or 3")
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("time_format", 1, INTEGER_OBJ, args[0].Type())
+			}
+			ts := args[0].(*Integer).Value
+			layout := time.RFC3339
+			tz := ""
+			if len(args) >= 2 {
+				if args[1].Type() != STRING_OBJ {
+					return newPositionalTypeError("time_format", 2, STRING_OBJ, args[1].Type())
+				}
+				layout = args[1].(*Stringo).Value
+				// allow friendly aliases
+				switch layout {
+				case "date":
+					layout = "2006-01-02"
+				case "datetime":
+					layout = "2006-01-02 15:04:05"
+				case "iso":
+					layout = time.RFC3339
+				case "rfc3339":
+					layout = time.RFC3339
+				}
+			}
+			if len(args) == 3 {
+				if args[2].Type() != STRING_OBJ {
+					return newPositionalTypeError("time_format", 3, STRING_OBJ, args[2].Type())
+				}
+				tz = args[2].(*Stringo).Value
+			}
+			t := time.UnixMilli(ts)
+			if tz != "" && tz != "Local" {
+				if loc, err := time.LoadLocation(tz); err == nil {
+					t = t.In(loc)
+				}
+			}
+			return &Stringo{Value: t.Format(layout)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`time_format` formats timestamp with Go layout (aliases: date, datetime, iso)",
+			signature:   "time_format(ts: int, layout: str='rfc3339', tz: str='') -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "time_format(now(), 'date') => '2026-09-05'",
+		}.String(),
+	},
 	{
 		Name: "is_valid_json",
 		Fun: func(args ...Object) Object {
@@ -1759,7 +2733,6 @@ var Builtins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("go_metrics", len(args), 0, "")
 			}
-			// TODO: Update this to return a map?
 			var out bytes.Buffer
 			// Get descriptions for all supported metrics.
 			descs := metrics.All()
@@ -2836,7 +3809,6 @@ var Builtins = []*Builtin{
 				str := args[1].(*Stringo).Value
 				return nativeToBooleanObject(re.MatchString(str))
 			}
-			// TODO: Support inverted arg as well? Like regex on left and string on right
 			arg0, ok := args[0].(*Stringo)
 			if !ok {
 				return newPositionalTypeError("matches", 1, STRING_OBJ, args[0].Type())
