@@ -49,16 +49,17 @@ func findRunnerTemplate() (string, error) {
 			return candidate, nil
 		}
 	}
-	return "", fmt.Errorf("runner template not found: looked for %s and bluerun next to %s\nbuild one with: go build -tags \"minivm,<your-flavor-tags>\" -o %s ./cmd/bluerun\nor pass --go-build to build it with the same flavor automatically", runnerTemplateName(), dir, runnerTemplateName())
+	return "", fmt.Errorf("runner template not found: looked for %s and bluerun next to %s\nbuild one with: go build -tags \"minivm,<your-flavor-tags>\" -o %s ./cmd/bluerun\nor run `blue bundle` without --bluerun to build it from source automatically", runnerTemplateName(), dir, runnerTemplateName())
 }
 
 // runnerPackageRelPath is where the minimal runner lives inside the blue
 // source tree.
 const runnerPackageRelPath = "cmd/bluerun"
 
-// findBlueSourceDir locates the blue module root so the --go-build fallback
-// can compile the runner package no matter where blue was invoked from. It
-// walks up from the working directory, then consults BLUE_INSTALL_PATH.
+// findBlueSourceDir locates the blue module root so the default bundle
+// template build can compile the runner package no matter where blue was
+// invoked from. It walks up from the working directory, then consults
+// BLUE_INSTALL_PATH, then the default install roots (see blue install).
 func findBlueSourceDir() (string, bool) {
 	if dir, err := os.Getwd(); err == nil {
 		for {
@@ -77,6 +78,11 @@ func findBlueSourceDir() (string, bool) {
 			return install, true
 		}
 	}
+	for _, candidate := range defaultSourceCandidates() {
+		if isDir(filepath.Join(candidate, runnerPackageRelPath)) {
+			return candidate, true
+		}
+	}
 	return "", false
 }
 
@@ -86,7 +92,7 @@ func isDir(fpath string) bool {
 }
 
 // runningBuildTags returns the -tags value the CURRENT executable was
-// built with (from build info), so the --go-build template fallback can
+// built with (from build info), so the bundle template build can
 // reproduce the exact same runtime flavor.
 func runningBuildTags() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
@@ -99,14 +105,14 @@ func runningBuildTags() string {
 	return ""
 }
 
-// buildRunnerWithGo shells out to the go toolchain as a fallback way of
-// obtaining a runner template. The template is built with the same flavor
-// tags as the running blue binary (plus the structural minivm tag) so that
-// bundled images match the bundler's fingerprint.
+// buildRunnerWithGo shells out to the go toolchain to obtain a runner
+// template. The template is built with the same flavor tags as the
+// running blue binary (plus the structural minivm tag) so that bundled
+// images match the bundler's fingerprint.
 func buildRunnerWithGo(outPath string) error {
 	sourceDir, ok := findBlueSourceDir()
 	if !ok {
-		return fmt.Errorf("cannot find the blue source tree (looked up from the working directory and $BLUE_INSTALL_PATH); place a %s template next to the blue executable or run bundle from inside the blue repository", runnerTemplateName())
+		return fmt.Errorf("cannot find the blue source tree (looked up from the working directory, $BLUE_INSTALL_PATH and the default install roots); run `blue install` or place a %s template next to the blue executable or run bundle from inside the blue repository", runnerTemplateName())
 	}
 	tags := []string{"minivm"}
 	if t := runningBuildTags(); t != "" {
@@ -124,8 +130,10 @@ func buildRunnerWithGo(outPath string) error {
 
 // bundleProgram compiles source through the normal pipeline, encodes it as a
 // binary image, and appends it to a copy of the minimal runner template,
-// producing a single self-contained executable.
-func bundleProgram(sourcePath string, outPath string, allErrors bool, useGoBuild bool) {
+// producing a single self-contained executable. By default the template is
+// built with the local go toolchain; usePrebuilt selects a prebuilt
+// template next to the executable instead.
+func bundleProgram(sourcePath string, outPath string, allErrors bool, usePrebuilt bool) {
 	bc, err := compileFileOrStringToImage(sourcePath, true, allErrors)
 	if err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
@@ -138,7 +146,7 @@ func bundleProgram(sourcePath string, outPath string, allErrors bool, useGoBuild
 	}
 
 	var templateBytes []byte
-	if useGoBuild {
+	if !usePrebuilt {
 		tmpTemplate := outPath + ".bluerun-tmp"
 		if err := buildRunnerWithGo(tmpTemplate); err != nil {
 			consts.ErrorPrinter("%s\n", err.Error())

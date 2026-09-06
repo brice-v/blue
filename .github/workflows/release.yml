@@ -20,6 +20,12 @@ jobs:
         with:
           go-version: "1.25"
 
+      # Regenerate the embedded source bundle so `blue install` ships the
+      # current source (see make_src_bundle.sh and cmd/srcbundle).
+      - name: Regenerate embedded source bundle
+        shell: bash
+        run: ./make_src_bundle.sh
+
       # cgo deps for fyne/GL static tests (upx used by compress steps below is also here).
       - name: Install dependencies
         if: runner.os == 'Linux'

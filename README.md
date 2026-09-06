@@ -187,16 +187,28 @@ The commands are:
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     bundle   compile the given .b file and append it to a copy of the minimal bluerun runner template,
-             producing a single self-contained executable. the template is looked up next to this
-             executable as bluerun-<GOOS>-<GOARCH> (or bluerun); pass --go-build to build it with go instead
+             producing a single self-contained executable. by default the template is built
+             with the local go toolchain from the installed source (see blue install)
                                                                               
               -o <file>             path of the bundled executable to write
                                                                               
-             --go-build            build the template on the fly using the local go toolchain
+             --bluerun             use a prebuilt bluerun-<GOOS>-<GOARCH> (or bluerun) template
+                                   found next to this executable instead of building one
                                                                               
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     help     prints this help message
+
+    install  install blue source and binary to ~/.local/blue (src, bin)
+             on windows the default root is %USERPROFILE%\.blue
+
+             --prefix <dir>    install under <dir> instead of the default root
+             -f, --force       overwrite an existing installed source tree
+             --no-src          skip source extraction and go mod download
+             --no-bin          skip binary copy
+
+             re-running install refreshes the source when the embedded
+             bundle changed; blue and blues share one source tree
 
     version  prints the current version
 
@@ -255,7 +267,8 @@ Bundling produces a single self-contained executable by appending the compiled i
 to a copy of the `bluerun` template:
 
 ```sh
-blue bundle -o myapp main.b       # needs a bluerun-<GOOS>-<GOARCH> template next to blue
+blue bundle -o myapp main.b       # builds the template with go from the installed source
+blue bundle --bluerun -o myapp main.b  # use a prebuilt bluerun-<GOOS>-<GOARCH> template next to blue
 ./myapp                          # run; all argv is forwarded to the program
 ```
 

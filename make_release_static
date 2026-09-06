@@ -2,7 +2,11 @@
 set -o errexit
 set -o nounset
 
-go env -w CGO_ENABLED=1 && go env -w GOFLAGS=-tags=rgfw && govulncheck ./... && go clean -testcache && go test -tags="static" -race ./... && go env -w CGO_ENABLED=0 && go build -ldflags='-s -w -extldflags="static"' -tags="static" -o blues && strip blues && upx blues && cp blues ~/.blue/bin/
+# Regenerate the embedded source bundle so `blue install` ships the
+# current source (see make_src_bundle.sh and cmd/srcbundle).
+./make_src_bundle.sh
+
+go env -w CGO_ENABLED=1 && go env -w GOFLAGS=-tags=rgfw && govulncheck ./... && go clean -testcache && go test -tags="static" -race ./... && go env -w CGO_ENABLED=0 && go build -ldflags='-s -w -extldflags="static"' -tags="static" -o blues && strip blues && upx blues && ./blues install --force
 
 # Build the minimal runner template next to blues so `blue bundle` can find it
 # (see cmd/bluerun and package bluec). The template name must match what

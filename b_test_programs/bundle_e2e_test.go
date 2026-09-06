@@ -53,7 +53,7 @@ assert(results[1] == 15)
 	// Must carry .exe on Windows: the bundled file is executed directly by
 	// this test, and os/exec refuses extensionless absolute paths there.
 	bundled := filepath.Join(tmpDir, "myapp"+exeSuffix())
-	if out, code := runCmd(bin, "bundle", "--go-build", "-o", bundled, src); code != 0 {
+	if out, code := runCmd(bin, "bundle", "-o", bundled, src); code != 0 {
 		t.Fatalf("bundle failed (exit %d):\n%s", code, out)
 	}
 	info, err := os.Stat(bundled)

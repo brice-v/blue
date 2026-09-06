@@ -45,16 +45,28 @@ The commands are:
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     bundle   compile the given .b file and append it to a copy of the minimal bluerun runner template,
-             producing a single self-contained executable. the template is looked up next to this
-             executable as bluerun-<GOOS>-<GOARCH> (or bluerun); pass --go-build to build it with go instead
-                                                                              
+             producing a single self-contained executable. by default the template is built
+             with the local go toolchain from the installed source (see blue install)
+
               -o <file>             path of the bundled executable to write
-                                                                              
-             --go-build            build the template on the fly using the local go toolchain
-                                                                              
+
+             --bluerun             use a prebuilt bluerun-<GOOS>-<GOARCH> (or bluerun) template
+                                   found next to this executable instead of building one
+
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
     help     prints this help message
+
+    install  install blue source and binary to ~/.local/blue (src, bin)
+             on windows the default root is %USERPROFILE%\.blue
+
+             --prefix <dir>    install under <dir> instead of the default root
+             -f, --force       overwrite an existing installed source tree
+             --no-src          skip source extraction and go mod download
+             --no-bin          skip binary copy
+
+             re-running install refreshes the source when the embedded
+             bundle changed; blue and blues share one source tree
 
     version  prints the current version
 
@@ -126,6 +138,8 @@ func Run(args ...string) {
 		handleCompileCommand(argc, arguments)
 	case "doc":
 		handleDocCommand(argc, arguments)
+	case "install":
+		handleInstallCommand(argc, arguments)
 	case "bundle":
 		handleBundleCommand(argc, arguments)
 	default:
@@ -158,7 +172,7 @@ func printVersion() {
 
 // printUsage prints the USAGE string
 func printUsage() {
-	fmt.Print(USAGE)
+	_, _ = os.Stdout.WriteString(USAGE)
 }
 
 func handleLexCommand(argc int, arguments []string) {
@@ -271,43 +285,63 @@ func handleCompileCommand(argc int, arguments []string) {
 	saveImageFile(bc, outPath, noTokens)
 }
 
-func handleBundleCommand(argc int, arguments []string) {
+// bundleOptions is the parsed form of `blue bundle` arguments.
+type bundleOptions struct {
+	fpath       string
+	outPath     string
+	allErrors   bool
+	usePrebuilt bool
+}
+
+// parseBundleArgs parses `blue bundle` arguments. The template is built
+// with the local go toolchain by default; --bluerun selects a prebuilt
+// template next to the executable instead. --go-build is kept as a
+// deprecated alias for the default.
+func parseBundleArgs(argc int, arguments []string) (bundleOptions, error) {
 	if argc < 3 || argc > 6 {
-		consts.ErrorPrinter("unexpected `bundle` arguments. got=%+v\n", arguments)
-		os.Exit(1)
+		return bundleOptions{}, fmt.Errorf("unexpected `bundle` arguments. got=%+v", arguments)
 	}
-	fpath := ""
-	outPath := ""
-	allErrors := false
-	goBuild := false
+	var opts bundleOptions
+	sawGoBuild := false
 	for i, arg := range arguments[1:] {
 		switch arg {
 		case "--all-parser-errors":
-			allErrors = true
+			opts.allErrors = true
+		case "--bluerun":
+			opts.usePrebuilt = true
 		case "--go-build":
-			goBuild = true
+			sawGoBuild = true
 		case "-o":
 			if i+2 >= argc {
-				consts.ErrorPrinter("`bundle` flag -o requires a file path\n")
-				os.Exit(1)
+				return bundleOptions{}, fmt.Errorf("`bundle` flag -o requires a file path")
 			}
-			outPath = arguments[i+2]
+			opts.outPath = arguments[i+2]
 		default:
-			if arg == outPath && outPath != "" {
+			if arg == opts.outPath && opts.outPath != "" {
 				continue
 			}
-			fpath = arg
+			opts.fpath = arg
 		}
 	}
-	if fpath == "" || !isFile(fpath) || fpath == STDIN_ARG {
-		consts.ErrorPrinter("`bundle` expects a valid .b source file as argument. got=%s\n", fpath)
+	if opts.usePrebuilt && sawGoBuild {
+		return bundleOptions{}, fmt.Errorf("`bundle` flags --bluerun and --go-build conflict; --go-build is the default")
+	}
+	if opts.fpath == "" || !isFile(opts.fpath) || opts.fpath == STDIN_ARG {
+		return bundleOptions{}, fmt.Errorf("`bundle` expects a valid .b source file as argument. got=%s", opts.fpath)
+	}
+	if opts.outPath == "" {
+		return bundleOptions{}, fmt.Errorf("`bundle` requires -o <output-executable>")
+	}
+	return opts, nil
+}
+
+func handleBundleCommand(argc int, arguments []string) {
+	opts, err := parseBundleArgs(argc, arguments)
+	if err != nil {
+		consts.ErrorPrinter("%s\n", err.Error())
 		os.Exit(1)
 	}
-	if outPath == "" {
-		consts.ErrorPrinter("`bundle` requires -o <output-executable>\n")
-		os.Exit(1)
-	}
-	bundleProgram(fpath, outPath, allErrors, goBuild)
+	bundleProgram(opts.fpath, opts.outPath, opts.allErrors, opts.usePrebuilt)
 }
 
 func handleDocCommand(argc int, arguments []string) {
