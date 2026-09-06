@@ -2,9 +2,9 @@ import net
 
 fun something(parent_pid) {
     println("Spawning Listener...");
-    val c = net.listen(transport="udp");
+    val c = net.listen(transport="udp", addr="127.0.0.1");
     println("c = #{c}");
-
+    parent_pid.send("ready");
     var x = c.read();
     println("x = #{x}");
     parent_pid.send(true);
@@ -17,9 +17,11 @@ val child_pid = spawn(something, [parent_pid]);
 println("parent_pid = #{parent_pid}, child_pid = #{child_pid}");
 
 import time
+val ready = parent_pid.recv()
+assert(ready == "ready");
 for (true) {
     try {
-        val connection = net.connect(transport="udp");
+        val connection = net.connect(transport="udp", addr="127.0.0.1");
         println("connection = #{connection}");
         try {
             connection.write("SOMETHING!!!!");
@@ -27,7 +29,6 @@ for (true) {
             println("error: #{e}");
             break;
         }
-        
     } catch (e) {
         continue;
     }

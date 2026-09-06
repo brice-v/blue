@@ -242,6 +242,9 @@ func TestUdpListenReadWriteClose(t *testing.T) {
 	if ts := mapGetString(t, lMap.(*Map), "t").(*Stringo).Value; ts != "net/udp" {
 		t.Errorf("udp listen 't' field = %q, want 'net/udp'", ts)
 	}
+	if ip := serverUDP.LocalAddr().(*net.UDPAddr).IP.String(); ip != "127.0.0.1" {
+		t.Errorf("udp listen addr = %q, want 127.0.0.1", ip)
+	}
 	if err := serverUDP.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
 		log.Printf("Failed to set udp server deadline, error: %s", err.Error())
 	}

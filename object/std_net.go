@@ -3,7 +3,6 @@ package object
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"net"
 	"strings"
 )
@@ -60,9 +59,9 @@ var NetBuiltins = []*Builtin{
 			transport := strings.ToLower(args[0].(*Stringo).Value)
 			addr := args[1].(*Stringo).Value
 			port := args[2].(*Stringo).Value
-			addrStr := fmt.Sprintf("%s:%s", addr, port)
+			addrStr := net.JoinHostPort(addr, port)
 			if strings.Contains(transport, "udp") {
-				s, err := net.ResolveUDPAddr(transport, ":"+port)
+				s, err := net.ResolveUDPAddr(transport, addrStr)
 				if err != nil {
 					return newError("`listen` udp error: %s", err.Error())
 				}
