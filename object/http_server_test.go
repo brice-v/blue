@@ -32,13 +32,26 @@ func TestShutdownWaitsForServe(t *testing.T) {
 }
 
 func TestShutdownBeforeServeTimesOut(t *testing.T) {
+	oldWait := ShutdownServeWait
+	ShutdownServeWait = 50 * time.Millisecond
+	defer func() { ShutdownServeWait = oldWait }()
 	s := NewServer()
 	start := time.Now()
 	if err := s.Shutdown(); err != nil {
 		t.Fatalf("Shutdown returned error: %v", err)
 	}
-	if elapsed := time.Since(start); elapsed >= 15*time.Second {
-		t.Fatalf("Shutdown blocked for %v, expected timeout at 10s", elapsed)
+	elapsed := time.Since(start)
+	if elapsed < 50*time.Millisecond {
+		t.Fatalf("Shutdown returned in %v, expected to wait for serve registration (~50ms)", elapsed)
+	}
+	if elapsed >= 5*time.Second {
+		t.Fatalf("Shutdown blocked for %v, expected timeout at ~50ms", elapsed)
+	}
+}
+
+func TestShutdownServeWaitDefault(t *testing.T) {
+	if ShutdownServeWait < 100*time.Millisecond || ShutdownServeWait > 5*time.Second {
+		t.Fatalf("ShutdownServeWait default = %v, want between 100ms and 5s", ShutdownServeWait)
 	}
 }
 

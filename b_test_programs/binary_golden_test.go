@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -117,6 +118,8 @@ func TestSourceAndBinaryImageProduceIdenticalOutput(t *testing.T) {
 	bin := buildBlueBinary(t)
 
 	tmpDir := t.TempDir()
+	maxPar := min(max(runtime.GOMAXPROCS(0), 2), 8)
+	sem := make(chan struct{}, maxPar)
 	dirs := []string{"./", "./generated"}
 	for _, dir := range dirs {
 		files, err := os.ReadDir(dir)
@@ -127,7 +130,11 @@ func TestSourceAndBinaryImageProduceIdenticalOutput(t *testing.T) {
 			if !strings.HasSuffix(f.Name(), ".b") || blockingFiles[f.Name()] {
 				continue
 			}
+			dir, f := dir, f
 			t.Run(filepath.Join(dir, f.Name()), func(t *testing.T) {
+				t.Parallel()
+				sem <- struct{}{}
+				defer func() { <-sem }()
 				fpath := filepath.Join(dir, f.Name())
 				data, err := os.ReadFile(fpath)
 				if err != nil {
@@ -141,7 +148,11 @@ func TestSourceAndBinaryImageProduceIdenticalOutput(t *testing.T) {
 
 				sourceOut, sourceCode := runCmd(bin, "vm", fpath)
 
-				bbcPath := filepath.Join(tmpDir, strings.TrimSuffix(f.Name(), ".b")+".bluec")
+				prefix := filepath.Base(dir)
+				if prefix == "." || prefix == "" || prefix == string(filepath.Separator) {
+					prefix = "root"
+				}
+				bbcPath := filepath.Join(tmpDir, prefix+"_"+strings.TrimSuffix(f.Name(), ".b")+".bluec")
 				compileOut, compileCode := runCmd(bin, "compile", "-o", bbcPath, fpath)
 				if compileCode != 0 {
 					t.Skipf("program does not compile to an image: %s", compileOut)

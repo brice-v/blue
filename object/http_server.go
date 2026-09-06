@@ -44,6 +44,8 @@ type Server struct {
 }
 
 // NewServer returns an empty Server with no routes registered.
+var ShutdownServeWait = 1 * time.Second
+
 func NewServer() *Server {
 	return &Server{serveCh: make(chan struct{})}
 }
@@ -80,7 +82,7 @@ func (s *Server) Shutdown() error {
 			s.mu.Lock()
 			srv = s.srv
 			s.mu.Unlock()
-		case <-time.After(10 * time.Second):
+		case <-time.After(ShutdownServeWait):
 			return nil
 		}
 	}

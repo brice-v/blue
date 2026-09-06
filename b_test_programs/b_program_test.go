@@ -18,17 +18,23 @@ import (
 )
 
 func testDirectoryWithVm(t *testing.T, path string) {
+	t.Helper()
 	files, err := os.ReadDir(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, f := range files {
-		// test_http is still not setup to work yet
 		if f.Name() == "test_http.b" {
 			continue
 		}
-		executeBlueTestFileWithVm(path, f, t)
+		if !strings.HasSuffix(f.Name(), ".b") {
+			continue
+		}
+		f := f
+		t.Run(f.Name(), func(t *testing.T) {
+			executeBlueTestFileWithVm(path, f, t)
+		})
 	}
 }
 
@@ -70,11 +76,12 @@ func executeBlueTestFileWithVm(dir string, f fs.DirEntry, t *testing.T) {
 	}
 	stringData := string(data)
 	if strings.HasPrefix(stringData, "# IGNORE") || strings.HasPrefix(stringData, "#IGNORE") {
-		return
+		t.Skip("ignored by header")
 	}
 	if strings.HasPrefix(stringData, "#VM IGNORE") || strings.HasPrefix(stringData, "# VM IGNORE") {
-		return
+		t.Skip("ignored by header")
 	}
+	defer object.ClearGlobalState()
 	l := lexer.New(stringData, fpath)
 
 	p := parser.New(l)
@@ -108,11 +115,6 @@ func executeBlueTestFileWithVm(dir string, f fs.DirEntry, t *testing.T) {
 		// }
 		t.Errorf("File `%s`: vm returned error: %s", f.Name(), buf.String())
 	}
-	// TODO: look into why lastPoppedStackElem is not true with asserts
-	// if obj.Inspect() != "true" {
-	// 	t.Errorf("File `%s`: Did not return true as last statement. Failed", f.Name())
-	// }
-	object.ClearGlobalState()
 }
 
 func TestVmStackOverflowForIn(t *testing.T) {
