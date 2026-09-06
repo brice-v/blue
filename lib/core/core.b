@@ -306,14 +306,14 @@ val uuid = {
 }
 
 val path = {
-    'join': path_join,
-    'clean': path_clean,
-    'dir': path_dir,
-    'base': path_base,
-    'ext': path_ext,
-    'is_abs': path_is_abs,
-    'rel': path_rel,
-    'abs': abs_path,
+    'join': _path_join,
+    'clean': _path_clean,
+    'dir': _path_dir,
+    'base': _path_base,
+    'ext': _path_ext,
+    'is_abs': _path_is_abs,
+    'rel': _path_rel,
+    'abs': _abs_path,
 }
 
 

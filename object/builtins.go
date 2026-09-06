@@ -654,6 +654,7 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("read", 2, BOOLEAN_OBJ, args[1].Type())
 			}
 			fnameo := args[0].(*Stringo)
+			fnameNorm := filepath.FromSlash(fnameo.Value)
 			var bs []byte
 			if IsEmbed {
 				s := fnameo.Value
@@ -663,7 +664,7 @@ var Builtins = []*Builtin{
 				fileData, err := Files.ReadFile(consts.EMBED_FILES_PREFIX + s)
 				if err != nil {
 					// Fallback option for reading when in embedded context
-					fileData, err := os.ReadFile(fnameo.Value)
+					fileData, err := os.ReadFile(fnameNorm)
 					if err != nil {
 						return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
 					}
@@ -672,7 +673,7 @@ var Builtins = []*Builtin{
 					bs = fileData
 				}
 			} else {
-				fileData, err := os.ReadFile(fnameo.Value)
+				fileData, err := os.ReadFile(fnameNorm)
 				if err != nil {
 					return newError("`read` error reading file `%s`: %s", fnameo.Value, err.Error())
 				}
@@ -703,7 +704,7 @@ var Builtins = []*Builtin{
 			if args[1].Type() != STRING_OBJ && args[1].Type() != BYTES_OBJ {
 				return newPositionalTypeError("write", 2, "STRING or BYTES", args[1].Type())
 			}
-			fname := args[0].(*Stringo).Value
+			fname := filepath.FromSlash(args[0].(*Stringo).Value)
 			var contents []byte
 			if args[1].Type() == STRING_OBJ {
 				contents = []byte(args[1].(*Stringo).Value)
@@ -1205,7 +1206,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("is_file", 1, STRING_OBJ, args[0].Type())
 			}
-			fpath := args[0].(*Stringo).Value
+			fpath := filepath.FromSlash(args[0].(*Stringo).Value)
 			info, err := os.Stat(fpath)
 			if err != nil || info == nil {
 				return FALSE
@@ -1231,7 +1232,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("is_dir", 1, STRING_OBJ, args[0].Type())
 			}
-			fpath := args[0].(*Stringo).Value
+			fpath := filepath.FromSlash(args[0].(*Stringo).Value)
 			info, err := os.Stat(fpath)
 			if err != nil {
 				return FALSE
@@ -1261,6 +1262,9 @@ var Builtins = []*Builtin{
 			fname, err := exec.LookPath(exePath)
 			if err == nil {
 				fname, err = filepath.Abs(fname)
+				if err == nil {
+					fname = filepath.ToSlash(fname)
+				}
 			}
 			if err != nil {
 				return newError("`find_exe` error: %s", err.Error())
@@ -1284,7 +1288,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("rm", 1, STRING_OBJ, args[0].Type())
 			}
-			s := args[0].(*Stringo).Value
+			s := filepath.FromSlash(args[0].(*Stringo).Value)
 			finfo, err := os.Stat(s)
 			if err != nil {
 				return newError("`rm` error: %s", err.Error())
@@ -1329,7 +1333,7 @@ var Builtins = []*Builtin{
 				if args[0].Type() != STRING_OBJ {
 					return newPositionalTypeError("ls", 1, STRING_OBJ, args[0].Type())
 				}
-				cwd = args[0].(*Stringo).Value
+				cwd = filepath.FromSlash(args[0].(*Stringo).Value)
 			}
 			fileOrDirs, err := os.ReadDir(cwd)
 			if err != nil {
@@ -1357,7 +1361,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("mkdir", 1, STRING_OBJ, args[0].Type())
 			}
-			p := args[0].(*Stringo).Value
+			p := filepath.FromSlash(args[0].(*Stringo).Value)
 			if err := os.Mkdir(p, 0755); err != nil {
 				return newError("`mkdir` error: %s", err.Error())
 			}
@@ -1379,7 +1383,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("mkdir_all", 1, STRING_OBJ, args[0].Type())
 			}
-			p := args[0].(*Stringo).Value
+			p := filepath.FromSlash(args[0].(*Stringo).Value)
 			if err := os.MkdirAll(p, 0755); err != nil {
 				return newError("`mkdir_all` error: %s", err.Error())
 			}
@@ -1404,8 +1408,8 @@ var Builtins = []*Builtin{
 			if args[1].Type() != STRING_OBJ {
 				return newPositionalTypeError("cp", 2, STRING_OBJ, args[1].Type())
 			}
-			src := args[0].(*Stringo).Value
-			dst := args[1].(*Stringo).Value
+			src := filepath.FromSlash(args[0].(*Stringo).Value)
+			dst := filepath.FromSlash(args[1].(*Stringo).Value)
 			in, err := os.Open(src)
 			if err != nil {
 				return newError("`cp` error opening src `%s`: %s", src, err.Error())
@@ -1451,8 +1455,8 @@ var Builtins = []*Builtin{
 			if args[1].Type() != STRING_OBJ {
 				return newPositionalTypeError("mv", 2, STRING_OBJ, args[1].Type())
 			}
-			src := args[0].(*Stringo).Value
-			dst := args[1].(*Stringo).Value
+			src := filepath.FromSlash(args[0].(*Stringo).Value)
+			dst := filepath.FromSlash(args[1].(*Stringo).Value)
 			if err := os.Rename(src, dst); err != nil {
 				return newError("`mv` error: %s", err.Error())
 			}
@@ -1477,8 +1481,8 @@ var Builtins = []*Builtin{
 			if args[1].Type() != STRING_OBJ {
 				return newPositionalTypeError("rename", 2, STRING_OBJ, args[1].Type())
 			}
-			src := args[0].(*Stringo).Value
-			dst := args[1].(*Stringo).Value
+			src := filepath.FromSlash(args[0].(*Stringo).Value)
+			dst := filepath.FromSlash(args[1].(*Stringo).Value)
 			if err := os.Rename(src, dst); err != nil {
 				return newError("`rename` error: %s", err.Error())
 			}
@@ -1500,7 +1504,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("exists", 1, STRING_OBJ, args[0].Type())
 			}
-			p := args[0].(*Stringo).Value
+			p := filepath.FromSlash(args[0].(*Stringo).Value)
 			_, err := os.Stat(p)
 			if err == nil {
 				return TRUE
@@ -1526,7 +1530,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("stat", 1, STRING_OBJ, args[0].Type())
 			}
-			p := args[0].(*Stringo).Value
+			p := filepath.FromSlash(args[0].(*Stringo).Value)
 			fi, err := os.Stat(p)
 			if err != nil {
 				return newError("`stat` error: %s", err.Error())
@@ -1557,7 +1561,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("glob", 1, STRING_OBJ, args[0].Type())
 			}
-			pat := args[0].(*Stringo).Value
+			pat := filepath.FromSlash(args[0].(*Stringo).Value)
 			matches, err := filepath.Glob(pat)
 			if err != nil {
 				return newError("`glob` error: %s", err.Error())
@@ -1567,7 +1571,7 @@ var Builtins = []*Builtin{
 			}
 			elems := make([]Object, len(matches))
 			for i, s := range matches {
-				elems[i] = &Stringo{Value: s}
+				elems[i] = &Stringo{Value: filepath.ToSlash(s)}
 			}
 			return &List{Elements: elems}
 		},
@@ -1587,13 +1591,13 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("walk", 1, STRING_OBJ, args[0].Type())
 			}
-			root := args[0].(*Stringo).Value
+			root := filepath.FromSlash(args[0].(*Stringo).Value)
 			var out []Object
 			err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
 				}
-				out = append(out, &Stringo{Value: path})
+				out = append(out, &Stringo{Value: filepath.ToSlash(path)})
 				return nil
 			})
 			if err != nil {
@@ -1620,7 +1624,7 @@ var Builtins = []*Builtin{
 				if args[0].Type() != STRING_OBJ {
 					return newPositionalTypeError("temp_file", 1, STRING_OBJ, args[0].Type())
 				}
-				dir = args[0].(*Stringo).Value
+				dir = filepath.FromSlash(args[0].(*Stringo).Value)
 			}
 			if len(args) == 2 {
 				if args[1].Type() != STRING_OBJ {
@@ -1634,7 +1638,7 @@ var Builtins = []*Builtin{
 			}
 			name := f.Name()
 			_ = f.Close()
-			return &Stringo{Value: name}
+			return &Stringo{Value: filepath.ToSlash(name)}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`temp_file` creates a temporary file and returns its path",
@@ -1655,7 +1659,7 @@ var Builtins = []*Builtin{
 				if args[0].Type() != STRING_OBJ {
 					return newPositionalTypeError("temp_dir", 1, STRING_OBJ, args[0].Type())
 				}
-				dir = args[0].(*Stringo).Value
+				dir = filepath.FromSlash(args[0].(*Stringo).Value)
 			}
 			if len(args) == 2 {
 				if args[1].Type() != STRING_OBJ {
@@ -1667,7 +1671,7 @@ var Builtins = []*Builtin{
 			if err != nil {
 				return newError("`temp_dir` error: %s", err.Error())
 			}
-			return &Stringo{Value: name}
+			return &Stringo{Value: filepath.ToSlash(name)}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`temp_dir` creates a temporary directory and returns its path",
@@ -1777,7 +1781,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "path_join",
+		Name: "_path_join",
 		Fun: func(args ...Object) Object {
 			if len(args) == 0 {
 				return newInvalidArgCountError("path_join", len(args), 1, "or more")
@@ -1789,7 +1793,7 @@ var Builtins = []*Builtin{
 				}
 				parts[i] = a.(*Stringo).Value
 			}
-			return &Stringo{Value: filepath.Join(parts...)}
+			return &Stringo{Value: filepath.ToSlash(filepath.Join(parts...))}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`path_join` joins path elements with OS separator and cleans",
@@ -1799,7 +1803,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "path_clean",
+		Name: "_path_clean",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("path_clean", len(args), 1, "")
@@ -1807,7 +1811,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("path_clean", 1, STRING_OBJ, args[0].Type())
 			}
-			return &Stringo{Value: filepath.Clean(args[0].(*Stringo).Value)}
+			return &Stringo{Value: filepath.ToSlash(filepath.Clean(args[0].(*Stringo).Value))}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`path_clean` cleans path (removes ./, ../ and double slashes)",
@@ -1817,7 +1821,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "path_dir",
+		Name: "_path_dir",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("path_dir", len(args), 1, "")
@@ -1825,7 +1829,7 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("path_dir", 1, STRING_OBJ, args[0].Type())
 			}
-			return &Stringo{Value: filepath.Dir(args[0].(*Stringo).Value)}
+			return &Stringo{Value: filepath.ToSlash(filepath.Dir(args[0].(*Stringo).Value))}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`path_dir` returns directory part of path",
@@ -1835,7 +1839,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "path_base",
+		Name: "_path_base",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("path_base", len(args), 1, "")
@@ -1853,7 +1857,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "path_ext",
+		Name: "_path_ext",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("path_ext", len(args), 1, "")
@@ -1871,7 +1875,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "path_is_abs",
+		Name: "_path_is_abs",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("path_is_abs", len(args), 1, "")
@@ -1879,7 +1883,8 @@ var Builtins = []*Builtin{
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("path_is_abs", 1, STRING_OBJ, args[0].Type())
 			}
-			return nativeToBooleanObject(filepath.IsAbs(args[0].(*Stringo).Value))
+			p := filepath.FromSlash(args[0].(*Stringo).Value)
+			return nativeToBooleanObject(filepath.IsAbs(p))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`path_is_abs` returns true if path is absolute",
@@ -1889,7 +1894,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "path_rel",
+		Name: "_path_rel",
 		Fun: func(args ...Object) Object {
 			if len(args) != 2 {
 				return newInvalidArgCountError("path_rel", len(args), 2, "")
@@ -1900,11 +1905,11 @@ var Builtins = []*Builtin{
 			if args[1].Type() != STRING_OBJ {
 				return newPositionalTypeError("path_rel", 2, STRING_OBJ, args[1].Type())
 			}
-			rel, err := filepath.Rel(args[0].(*Stringo).Value, args[1].(*Stringo).Value)
+			rel, err := filepath.Rel(filepath.FromSlash(args[0].(*Stringo).Value), filepath.FromSlash(args[1].(*Stringo).Value))
 			if err != nil {
 				return newError("`path_rel` error: %s", err.Error())
 			}
-			return &Stringo{Value: rel}
+			return &Stringo{Value: filepath.ToSlash(rel)}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`path_rel` returns target relative to base",
@@ -2309,7 +2314,9 @@ var Builtins = []*Builtin{
 				tz = args[2].(*Stringo).Value
 			}
 			t := time.UnixMilli(ts)
-			if tz != "" && tz != "Local" {
+			if tz == "" {
+				t = t.UTC()
+			} else if tz != "Local" {
 				if loc, err := time.LoadLocation(tz); err == nil {
 					t = t.In(loc)
 				}
@@ -3162,7 +3169,7 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "abs_path",
+		Name: "_abs_path",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("abs_path", len(args), 1, "")
@@ -3171,12 +3178,12 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("abs_path", 1, STRING_OBJ, args[0].Type())
 			}
 			// TODO: Fix so this works with embedded files?
-			fpath := args[0].(*Stringo).Value
+			fpath := filepath.FromSlash(args[0].(*Stringo).Value)
 			path, err := filepath.Abs(fpath)
 			if err != nil {
 				return newError("`abs_path` error: %s", err.Error())
 			}
-			return &Stringo{Value: path}
+			return &Stringo{Value: filepath.ToSlash(path)}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`abs_path` returns the absolute path of the given filepath",

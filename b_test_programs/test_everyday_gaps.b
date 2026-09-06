@@ -1,21 +1,27 @@
 import time
 
+# helper to normalize Windows backslashes to forward slashes for cross-platform asserts
+fun _norm(p) {
+    replace(p, "\\", "/")
+}
+
 var tmp_root = temp_dir("", "blue_test_everyday_*")
 assert(exists(tmp_root))
 assert(is_dir(tmp_root))
 
-# path core map `path` (from lib/core/core.b) and global path_* builtins - now via `import path`
-assert(path.join("/tmp", "a", "b") == "/tmp/a/b")
-assert(path.clean("a//b/../c") == "a/c")
-assert(path.dir("/tmp/a/b.txt") == "/tmp/a")
+# path core map `path` (from lib/core/core.b) via private _path_* builtins
+# Use _norm() so tests pass on both Unix (/) and Windows (\) separators
+assert(_norm(path.join("/tmp", "a", "b")) == "/tmp/a/b")
+assert(_norm(path.clean("a//b/../c")) == "a/c")
+assert(_norm(path.dir("/tmp/a/b.txt")) == "/tmp/a")
 assert(path.base("/tmp/a/b.txt") == "b.txt")
 assert(path.ext("archive.tar.gz") == ".gz")
 assert(path.is_abs("/tmp") == true)
 assert(path.is_abs("a/b") == false)
-assert(path.rel("/tmp/a", "/tmp/a/b/c") == "b/c")
-# also test global helpers still work
-assert(path_join("/x", "y") == "/x/y")
-assert(path_clean("a/./b") == "a/b")
+assert(_norm(path.rel("/tmp/a", "/tmp/a/b/c")) == "b/c")
+# also test private helpers still work
+assert(_norm(_path_join("/x", "y")) == "/x/y")
+assert(_norm(_path_clean("a/./b")) == "a/b")
 
 var nested = path.join(tmp_root, "a", "b", "c")
 mkdir_all(nested)
@@ -100,15 +106,15 @@ assert(time.Unit.DAY == 86400000)
 assert(time.now() > 0)
 
 # Path via import path std module (core map `path` also provides same)
-assert(path.join("/x", "y") == "/x/y")
-assert(path.clean("a//b") == "a/b")
-assert(path.dir("/a/b/c.txt") == "/a/b")
+assert(_norm(path.join("/x", "y")) == "/x/y")
+assert(_norm(path.clean("a//b")) == "a/b")
+assert(_norm(path.dir("/a/b/c.txt")) == "/a/b")
 assert(path.base("/a/b/c.txt") == "c.txt")
 assert(path.ext("a.tar.gz") == ".gz")
 assert(path.is_abs("/a") == true)
-assert(path.rel("/a/b", "/a/b/c/d") == "c/d")
-assert(path.abs("a/b") == abs_path("a/b"))
-assert(path.abs("/tmp/a") == abs_path("/tmp/a"))
+assert(_norm(path.rel("/a/b", "/a/b/c/d")) == "c/d")
+assert(_norm(path.abs("a/b")) == _norm(_abs_path("a/b")))
+assert(_norm(path.abs("/tmp/a")) == _norm(_abs_path("/tmp/a")))
 
 # cleanup
 rm(tmp_root)
