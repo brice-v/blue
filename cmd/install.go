@@ -3,8 +3,6 @@ package cmd
 import (
 	"blue/cmd/srcbundle"
 	"blue/consts"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -92,7 +90,7 @@ func RunInstall(opts InstallOptions) error {
 		if !goAvailable() {
 			consts.ErrorPrinter("warning: go toolchain not found on PATH, source not installed and `blue bundle` will be unavailable\n")
 		} else if !srcbundle.Available() {
-			return fmt.Errorf("no embedded source archive present (rebuild with ./make_src_bundle.sh first)")
+			return fmt.Errorf("no embedded source tree in this build")
 		} else if srcUpToDate(root, srcDir) && !opts.Force {
 			fmt.Printf("source up to date at %s\n", srcDir)
 		} else {
@@ -108,8 +106,8 @@ func RunInstall(opts InstallOptions) error {
 			if err := srcbundle.Extract(srcDir); err != nil {
 				return fmt.Errorf("extract source: %w", err)
 			}
-			if err := srcbundle.WriteArchive(installedArchivePath(root)); err != nil {
-				return fmt.Errorf("record source archive: %w", err)
+			if err := writeTreeHash(root); err != nil {
+				return fmt.Errorf("record source tree: %w", err)
 			}
 			fmt.Printf("extracted source to %s\n", srcDir)
 			if err := runGoModDownload(srcDir); err != nil {
@@ -133,29 +131,35 @@ func RunInstall(opts InstallOptions) error {
 	return nil
 }
 
-// installedArchivePath returns where install keeps a copy of the
-// embedded source archive to detect updates on later runs.
-func installedArchivePath(root string) string {
-	return filepath.Join(root, "blue-src.tar.gz")
+// treeHashPath returns where install records the SHA-256 of the embedded source
+// tree it extracted, so later runs can tell whether the running binary still
+// carries the same source.
+func treeHashPath(root string) string {
+	return filepath.Join(root, ".blue-src-sha256")
 }
 
-// storedArchiveHash returns the hex SHA-256 of the previously installed
-// archive, or empty when no record exists.
-func storedArchiveHash(root string) string {
-	data, err := os.ReadFile(installedArchivePath(root))
-	if err != nil || len(data) == 0 {
+// writeTreeHash records the hash of the embedded source tree that was just
+// extracted to root/src.
+func writeTreeHash(root string) error {
+	return os.WriteFile(treeHashPath(root), []byte(srcbundle.TreeSHA256()+"\n"), 0o644)
+}
+
+// storedTreeHash returns the recorded hex SHA-256 of the installed source tree,
+// or empty when no record exists.
+func storedTreeHash(root string) string {
+	data, err := os.ReadFile(treeHashPath(root))
+	if err != nil {
 		return ""
 	}
-	sum := sha256.Sum256(data)
-	return hex.EncodeToString(sum[:])
+	return strings.TrimSpace(string(data))
 }
 
-// srcUpToDate reports whether srcDir was installed from the currently
-// embedded archive. Blue and blues builds from the same commit embed
-// the same archive, so they share one source tree.
+// srcUpToDate reports whether srcDir was installed from the currently embedded
+// source tree. Blue and blues builds from the same commit carry the same tree,
+// so they share one source install.
 func srcUpToDate(root, srcDir string) bool {
-	stored := storedArchiveHash(root)
-	if stored == "" || stored != srcbundle.ArchiveSHA256() {
+	stored := storedTreeHash(root)
+	if stored == "" || stored != srcbundle.TreeSHA256() {
 		return false
 	}
 	ok, _ := isBlueSourceDir(srcDir)

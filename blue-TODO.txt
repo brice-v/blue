@@ -1,7 +1,6 @@
 TODO:
 
 - [ ] when installing blue src, dont want to delete go mod download result so that its still cached
-- [ ] See if its possible to use goembed directly rather than crafting embeddable src dir (while only keeping the necessary files to avoid churn in git)
 - [ ] Implement: b"" for quick conversion to bytes
 - [ ] Scaffold out more UI features
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
@@ -721,3 +720,12 @@ COMPLETED TASKS:
     - [-] Add wasm test to platform_tests.yml
     - No real test for this (use wasmmain.go)
 - [-] Add bluerun versions to release?
+- [x] See if its possible to use goembed directly rather than crafting embeddable src dir (while only keeping the necessary files to avoid churn in git)
+    - DONE: no more `make_src_bundle.sh` and no committed `cmd/srcbundle/blue-src.tar.gz`. The list of what an install needs lives in main.go's
+      embed patterns, which read straight out of the checkout being built.
+    - Patterns cover the same set the old `git ls-files` filters produced: no vendor (go uses the module cache when installing), no tests,
+      no docs/playground/tooling folders.
+    - cmd/srcbundle gets the tree through SetFS (embed patterns cannot reach above their own package directory) and skips test scratch when
+      extracting; a `.blue-src-sha256` marker in the install root decides when a re-run refreshes the source.
+    - Cost: ~1.5 MB more raw (~0.7 MB after upx) inside blue/blues, and building still needs the full checkout (it always did).
+      bluerun/minivm builds are unaffected because they never compile the root main package.

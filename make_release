@@ -2,9 +2,6 @@
 set -o errexit
 set -o nounset
 
-# Regenerate the embedded source bundle so `blue install` ships the
-# current source (see make_src_bundle.sh and cmd/srcbundle).
-./make_src_bundle.sh
 
 LD_FLAGS='-s -w'
 PACK=true

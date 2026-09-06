@@ -3,73 +3,114 @@ package srcbundle
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
+	"testing/fstest"
 )
 
-func TestArchiveAvailable(t *testing.T) {
-	if !Available() {
-		t.Fatal("embedded source archive missing: run ./make_src_bundle.sh first")
+func testTree() fstest.MapFS {
+	return fstest.MapFS{
+		"go.mod":                  {Data: []byte("module blue\n")},
+		"go.sum":                  {Data: []byte("sums\n")},
+		"main.go":                 {Data: []byte("package main\n")},
+		"cmd/bluerun/main.go":     {Data: []byte("//go:build minivm\n")},
+		"lib/core/core.b":         {Data: []byte("// core\n")},
+		"vm/vm.go":                {Data: []byte("package vm\n")},
+		"vm/vm_test.go":           {Data: []byte("package vm\n")},
+		"bluec/testdata/fuzz/abc": {Data: []byte("seed\n")},
+		".gitignore":              {Data: []byte("ignored\n")},
 	}
 }
 
-func TestArchiveSHA256Stable(t *testing.T) {
-	first := ArchiveSHA256()
-	if len(first) != 64 {
-		t.Fatalf("expected 64 hex chars, got %q", first)
+func TestNotAvailableWithoutTree(t *testing.T) {
+	SetFS(nil)
+	if Available() {
+		t.Fatal("available without a source tree")
 	}
-	if second := ArchiveSHA256(); second != first {
-		t.Fatal("archive hash is not stable across calls")
+	if got := TreeSHA256(); got != "" {
+		t.Fatalf("expected empty hash, got %q", got)
+	}
+	if _, err := List(); err == nil {
+		t.Fatal("expected error listing an absent tree")
+	}
+	if err := Extract(t.TempDir()); err == nil {
+		t.Fatal("expected error extracting an absent tree")
 	}
 }
 
-func TestArchiveExcludesTests(t *testing.T) {
+func TestListSkipsTestScratch(t *testing.T) {
+	SetFS(testTree())
 	names, err := List()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) == 0 {
-		t.Fatal("archive is empty")
-	}
-	for _, n := range names {
-		if strings.HasSuffix(n, "_test.go") {
-			t.Errorf("archive embeds test file %s", n)
-		}
-		if strings.HasPrefix(n, "b_test_programs/") || strings.HasPrefix(n, "manual_tests/") {
-			t.Errorf("archive embeds test directory file %s", n)
-		}
-		if strings.HasPrefix(n, "vendor/") || strings.HasPrefix(n, "ignored/") || strings.HasPrefix(n, "playground/") {
-			t.Errorf("archive embeds excluded dir file %s", n)
-		}
-		if strings.HasPrefix(n, "man/") || strings.HasPrefix(n, ".github/") {
-			t.Errorf("archive embeds excluded dir file %s", n)
-		}
-	}
 	found := map[string]bool{}
-	for _, n := range names {
-		found[n] = true
+	for _, name := range names {
+		if filepath.IsAbs(name) {
+			t.Errorf("list contains absolute path %q", name)
+		}
+		found[name] = true
 	}
-	for _, want := range []string{"go.mod", "go.sum", "cmd/bluerun/main.go", "lib/core/core.b"} {
+	for _, want := range []string{"go.mod", "go.sum", "main.go", "cmd/bluerun/main.go", "lib/core/core.b", "vm/vm.go"} {
 		if !found[want] {
-			t.Errorf("archive missing required file %s", want)
+			t.Errorf("list missing %q", want)
 		}
 	}
-	for _, excluded := range []string{"README.md", "blue-TODO.txt", "b.txt", "hf.md", "scratchfile.b", "gen-man.sh", "make_release", "make_src_bundle.sh", "benchmark-things.sh", "parser/parser_illegal_tok_test_killed_by_oom_in_parser.b"} {
-		if found[excluded] {
-			t.Errorf("archive embeds excluded file %s", excluded)
+	for _, unwanted := range []string{"vm/vm_test.go", "bluec/testdata/fuzz/abc"} {
+		if found[unwanted] {
+			t.Errorf("list should skip test scratch %q", unwanted)
 		}
 	}
 }
 
 func TestExtractWritesSourceTree(t *testing.T) {
+	SetFS(testTree())
 	dest := t.TempDir()
 	if err := Extract(dest); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"go.mod", filepath.Join("cmd", "bluerun", "main.go")} {
+	for _, want := range []string{"go.mod", filepath.Join("cmd", "bluerun", "main.go"), filepath.Join("lib", "core", "core.b")} {
 		data, err := os.ReadFile(filepath.Join(dest, want))
 		if err != nil || len(data) == 0 {
 			t.Errorf("extracted %s missing or empty: %v", want, err)
+		}
+	}
+	for _, unwanted := range []string{filepath.Join("vm", "vm_test.go"), filepath.Join("bluec", "testdata")} {
+		if _, err := os.Stat(filepath.Join(dest, unwanted)); err == nil {
+			t.Errorf("extract wrote test scratch %s", unwanted)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dest, ".gitignore")); err != nil {
+		t.Errorf(".gitignore in tree should be extracted when present: %v", err)
+	}
+}
+
+func TestTreeSHA256IsStableAndContentSensitive(t *testing.T) {
+	SetFS(testTree())
+	first := TreeSHA256()
+	if len(first) != 64 {
+		t.Fatalf("expected 64 hex chars, got %q", first)
+	}
+	if second := TreeSHA256(); second != first {
+		t.Fatal("hash is not stable across calls")
+	}
+	SetFS(fstest.MapFS{"go.mod": {Data: []byte("module other\n")}})
+	if changed := TreeSHA256(); changed == first {
+		t.Fatal("hash did not change with the tree contents")
+	}
+}
+
+func TestIsTestScratch(t *testing.T) {
+	cases := map[string]bool{
+		"vm_test.go":                     true,
+		"testdata":                       true,
+		"parser_illegal_tok_test_blow.b": true,
+		"vm.go":                          false,
+		"core.b":                         false,
+		"latest.b":                       false,
+	}
+	for name, want := range cases {
+		if got := isTestScratch(name); got != want {
+			t.Errorf("isTestScratch(%q) = %v, want %v", name, got, want)
 		}
 	}
 }

@@ -207,8 +207,8 @@ The commands are:
              --no-src          skip source extraction and go mod download
              --no-bin          skip binary copy
 
-             re-running install refreshes the source when the embedded
-             bundle changed; blue and blues share one source tree
+             re-running install refreshes the installed source when this binary
+             carries newer source; blue and blues share one source tree
 
     version  prints the current version
 

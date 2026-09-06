@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 )
 
 func TestDefaultDirs(t *testing.T) {
@@ -84,7 +85,22 @@ func TestInstallExecutableKeepsBaseName(t *testing.T) {
 	}
 }
 
-func TestSrcUpToDateTracksArchive(t *testing.T) {
+// useTestTree gives srcbundle an in-memory source tree to install from, as the
+// module root's main package does for the real binary.
+func useTestTree(t *testing.T) {
+	t.Helper()
+	srcbundle.SetFS(fstest.MapFS{
+		"go.mod":              {Data: []byte("module blue\n\ngo 1.25.0\n")},
+		"main.go":             {Data: []byte("package main\n")},
+		"cmd/bluerun/main.go": {Data: []byte("//go:build minivm\n")},
+		"lib/core/core.b":     {Data: []byte("// core\n")},
+		"vm/vm.go":            {Data: []byte("package vm\n")},
+		"vm/vm_test.go":       {Data: []byte("package vm\n")},
+	})
+}
+
+func TestSrcUpToDateTracksTreeHash(t *testing.T) {
+	useTestTree(t)
 	root := t.TempDir()
 	srcDir := filepath.Join(root, "src")
 	if srcUpToDate(root, srcDir) {
@@ -97,23 +113,24 @@ func TestSrcUpToDateTracksArchive(t *testing.T) {
 		t.Fatal(err)
 	}
 	if srcUpToDate(root, srcDir) {
-		t.Fatal("missing archive record should not be up to date")
+		t.Fatal("missing tree record should not be up to date")
 	}
-	if err := srcbundle.WriteArchive(installedArchivePath(root)); err != nil {
+	if err := writeTreeHash(root); err != nil {
 		t.Fatal(err)
 	}
 	if !srcUpToDate(root, srcDir) {
-		t.Fatal("recorded archive should be up to date")
+		t.Fatal("recorded tree should be up to date")
 	}
-	if err := os.WriteFile(installedArchivePath(root), []byte("stale"), 0o644); err != nil {
+	if err := os.WriteFile(treeHashPath(root), []byte("stale\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if srcUpToDate(root, srcDir) {
-		t.Fatal("changed archive record should not be up to date")
+		t.Fatal("changed tree record should not be up to date")
 	}
 }
 
 func TestRunInstallTwiceSkipsSecondExtract(t *testing.T) {
+	useTestTree(t)
 	prefix := t.TempDir()
 	if err := RunInstall(InstallOptions{Prefix: prefix}); err != nil {
 		t.Fatal(err)
@@ -133,7 +150,10 @@ func TestRunInstallTwiceSkipsSecondExtract(t *testing.T) {
 	if !again.ModTime().Equal(info.ModTime()) {
 		t.Fatal("second install rewrote an up to date source tree")
 	}
-	if storedArchiveHash(prefix) != srcbundle.ArchiveSHA256() {
-		t.Fatal("stored archive hash does not match embedded archive")
+	if got := storedTreeHash(prefix); got != srcbundle.TreeSHA256() {
+		t.Fatalf("stored tree hash %q does not match the source tree %q", got, srcbundle.TreeSHA256())
+	}
+	if _, err := os.Stat(filepath.Join(prefix, "src", "vm", "vm_test.go")); err == nil {
+		t.Fatal("installed tree should not contain test files")
 	}
 }
