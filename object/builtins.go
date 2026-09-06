@@ -1124,7 +1124,7 @@ var Builtins = []*Builtin{
 			if err != nil {
 				return newError("`cwd` error: %s", err.Error())
 			}
-			return &Stringo{Value: dir}
+			return &Stringo{Value: filepath.ToSlash(dir)}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`cwd` returns the STRING path of the current working directory",
