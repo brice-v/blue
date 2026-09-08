@@ -19,7 +19,7 @@ import (
 // tooling. No generated artifact is committed, so a binary always carries the
 // exact source of the checkout it was built from.
 //
-//go:embed go.mod go.sum LICENSE main.go ast bd bluec blueutil cmd code compiler consts lexer lib object parser repl runner token util vm wasmmain
+//go:embed go.mod go.sum LICENSE main.go ast bd bluec blueutil cmd code compiler consts lexer lib lsp object parser repl runner token util vm wasmmain
 var srcTree embed.FS
 
 func main() {

@@ -55,6 +55,15 @@ The commands are:
 
              --all-parser-errors   show all parser errors instead of stopping at the first one
 
+    lsp      start a language server (LSP) for editor integration over stdio
+
+             --addr <host:port>   listen on TCP instead of stdio (one client at a time)
+             --trace              log every protocol message to stderr while running
+
+             features: diagnostics, completion, hover docs, go to definition,
+             references, document outlines and workspace symbol search for .b files.
+             see "Editor Integration" in the README for editor setup snippets.
+
     help     prints this help message
 
     install  install blue source and binary to ~/.local/blue (src, bin)
@@ -144,6 +153,8 @@ func Run(args ...string) {
 		handleInstallCommand(argc, arguments)
 	case "bundle":
 		handleBundleCommand(argc, arguments)
+	case "lsp":
+		handleLspCommand(argc, arguments)
 	default:
 		// Check for flags before the filename
 		fpath := ""

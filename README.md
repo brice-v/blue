@@ -53,6 +53,150 @@ speed?!
     from `GOFLAGS` and the command line are merged
 - `govulncheck` via `go install golang.org/x/vuln/cmd/govulncheck@latest`
 
+## Editor Integration
+
+`blue lsp` speaks LSP 3.17 so any editor that can start a server process can use
+it. Nothing extra has to be installed for it.
+
+```
+blue lsp                        # stdio, the default (the editor owns stdin/stdout)
+blue lsp --addr 127.0.0.1:9257  # listen on TCP instead, handy for debugging
+blue lsp --trace                # log every message to stderr
+```
+
+Stop it with `Ctrl+C` (`SIGINT`) or `SIGTERM`; both exit cleanly. Diagnostics,
+log output and trace all go to stderr so the JSON-RPC channel on stdout stays
+clean. `BLUE_INSTALL_PATH` matters for the server process as well: launch the editor
+from an environment where it is already set, or put it in the launcher, so std module
+lookups (`import math`, `import csv`, ...) resolve to your local checkout instead of
+whatever was embedded at build time.
+
+What works:
+
+- diagnostics published on open, change and save, anchored at the offending token
+  (a missing closing brace points at the line that needs the fix), re-published
+  as an empty list so editors clear stale markers
+- completion for keywords, buffers (`env`, `args`, ...), builtins, imported
+  modules and their members after `.`, std modules already present in the source,
+  and sibling `.b` files while completing an `import`
+- snippets only when the client declares `snippetSupport`, otherwise plain text
+  inserts are sent so no `${1:...}` leaks into editors that cannot handle it
+- hover documentation above declarations, including function headers kept verbatim
+  from the source (no invented signatures)
+- go to definition and find references (`includeDeclaration` is honored), plus
+  read/write highlights (`=` assignments, `for ... in ...` loop variables)
+- document symbols nested under enclosing functions, and `workspace/symbol`
+  covering open buffers plus `.b` files under the root folder
+
+What is deliberately missing: formatting and rename. Both would need a
+transformation that still compiles, which cannot be guaranteed for partial or
+syntactically broken files. Only `.b` files are indexed by name since every blue
+source file uses that extension.
+
+Neovim example:
+
+```lua
+vim.filetype.add({ extension = { b = 'blue' } })
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'blue',
+  callback = function()
+    vim.lsp.start({
+      name = 'blue',
+      cmd = { 'blue', 'lsp' },
+      root_dir = vim.fs.dirname(vim.fs.find({ '.git', 'go.mod' }, { upward = true })[1]),
+    })
+  end,
+})
+```
+
+### VS Code
+
+The client lives in `editors/code` and needs no separate server install: it just
+runs `blue lsp` from whatever binary you point it at.
+
+1. Build the binary first, with any tags your machine needs:
+
+   ```sh
+   go build -o blue .
+   ```
+
+2. Package and install the extension:
+
+   ```sh
+   cd editors/code
+   npm install
+   npx @vscode/vsce package --allow-missing-repository
+   code --install-extension blue-vscode-*.vsix
+   ```
+
+   Without packaging, run it straight from a clone in an Extension Development
+   Host instead:
+
+   ```sh
+   cd editors/code && npm install
+   code --extensionDevelopmentPath="$PWD"
+   ```
+
+3. Tell it where `blue` is. An absolute path is the reliable choice because the
+   setting is passed through as typed, with no variable substitution:
+
+   ```json
+   {
+     "blue.path": "/home/you/src/blue/blue"
+   }
+   ```
+
+   Leave it empty to have the client search `PATH` in order and pick the first
+   `blue` whose `help` output lists the `lsp` subcommand. That skip matters: an
+   older install sitting earlier on `PATH` does not know `lsp`, treats it as a file
+   name, and crash loops with "file not found: lsp". GUI launches often get a
+   different PATH than a terminal, so pinning the absolute path is safest.
+
+4. Open any folder with `.b` files. The extension registers the language id
+   `blue` for that extension, so files open colored right away and the server
+   starts on its own. If another extension already claimed `.b`, force it:
+
+   ```json
+   { "files.associations": { "*.b": "blue" } }
+   ```
+
+Settings and commands available after install:
+
+- `blue.path`: executable used to launch `lsp`
+- `blue.trace.server`: set to `verbose` to start the server with `--trace` so
+  every protocol message lands in the "Blue Language Server" output channel
+- `Blue: Restart language server` from the command palette, useful after moving
+  or rebuilding the binary. Changing `blue.path` also restarts it without reloading the window
+
+Colors come from two layers that are meant to work together. The TextMate grammar
+(`editors/code/syntaxes/blue.tmLanguage.json`, scope `source.blue`) handles
+comments including `### blocks ###`, every string form, numbers in hex, binary,
+octal and floats, keywords, ranges (`..` and `..<`) and arrows. The server then
+paints names through semantic tokens using the legend it advertises on initialize:
+
+```
+types:     comment keyword number string function variable constant parameter module property
+modifiers: declaration readonly
+```
+
+That split is deliberate. Comments and strings are lexically obvious so the
+grammar owns them, while whether a name is a parameter, a module member or a
+read-only `val` requires the bindings only the server has.
+
+Quick checks worth doing after install:
+
+- type `fun helper(` in an empty buffer and confirm completion inserts a snippet
+  with tab stops rather than literal `${1:...}` text
+- break a file on purpose (drop a closing brace) and confirm the marker points at
+  the line that needs it, then fix it and confirm markers clear
+- hover `print` or `math.sqrt` where those are already imported, and hover an
+  unknown name to confirm nothing is invented
+
+If the server process dies, run `Blue: Restart language server` from the command
+palette instead of reloading the window.
+When something looks wrong at the protocol level, set `blue.trace.server` to
+`verbose`, reproduce, and read the output channel before changing server code.
+
 ## Notes
 
 - bundler will only work with ui deps installed (on linux/mac)

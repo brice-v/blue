@@ -51,6 +51,16 @@ func StdModuleNames() []string {
 	return names
 }
 
+// StdModuleSource returns the blue source the compiler uses for a std module,
+// which is the variant (plain or -static) this build actually compiles.
+func StdModuleSource(name string) (string, bool) {
+	fb, ok := _std_mods[name]
+	if !ok || fb == nil {
+		return "", false
+	}
+	return fb.File, true
+}
+
 func (c *Compiler) GetStdModuleDocString(name string) string {
 	if err := c.CompileStdModule(name, nil, false); err != nil {
 		return ""

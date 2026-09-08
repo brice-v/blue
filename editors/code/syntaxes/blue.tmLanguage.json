@@ -1,0 +1,374 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "blue",
+  "scopeName": "source.blue",
+  "fileTypes": [
+    "b"
+  ],
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#string"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "include": "#import"
+    },
+    {
+      "include": "#function-definition"
+    },
+    {
+      "include": "#module-member"
+    },
+    {
+      "include": "#call"
+    },
+    {
+      "include": "#keyword"
+    },
+    {
+      "include": "#operator"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.block.blue",
+          "begin": "###",
+          "end": "###",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.end.blue"
+            }
+          }
+        },
+        {
+          "name": "comment.line.number-sign.blue",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.double.blue",
+          "begin": "\"\"\"",
+          "end": "\"\"\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.blue"
+            }
+          }
+        },
+        {
+          "name": "string.other.exec.blue",
+          "begin": "`",
+          "end": "`",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.blue"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        },
+        {
+          "name": "string.regexp.blue",
+          "begin": "\\br/",
+          "end": "/[a-zA-Z]*",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.blue"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.blue",
+          "begin": "'",
+          "end": "'",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.blue"
+            }
+          },
+          "contentName": "meta.string-contents.single.blue",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.blue",
+          "begin": "\"",
+          "end": "(\"|$)",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.blue"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#escape"
+            },
+            {
+              "include": "#interpolation"
+            }
+          ]
+        }
+      ]
+    },
+    "escape": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.blue",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "interpolation": {
+      "name": "meta.interpolation.blue",
+      "begin": "#\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.begin.blue"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.end.blue"
+        }
+      },
+      "contentName": "meta.embedded.expression.blue",
+      "patterns": [
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#call"
+        },
+        {
+          "include": "#keyword"
+        },
+        {
+          "include": "#operator"
+        }
+      ]
+    },
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.blue",
+          "match": "\\b0[xX][0-9a-fA-F]+n?\\b"
+        },
+        {
+          "name": "constant.numeric.binary.blue",
+          "match": "\\b0[bB][01]+n?\\b"
+        },
+        {
+          "name": "constant.numeric.octal.blue",
+          "match": "\\b0[oO][0-7]+n?\\b"
+        },
+        {
+          "name": "constant.numeric.float.blue",
+          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9]+)?n?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.blue",
+          "match": "\\b[0-9][0-9_]*n?\\b"
+        }
+      ]
+    },
+    "import": {
+      "patterns": [
+        {
+          "match": "^\\s*(from)\\s+([A-Za-z_][\\w.]*)\\s+(import)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.import.blue"
+            },
+            "2": {
+              "name": "entity.name.namespace.blue"
+            },
+            "3": {
+              "name": "keyword.other.import.blue"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(import)\\s+([A-Za-z_][\\w.]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.import.blue"
+            },
+            "2": {
+              "name": "entity.name.namespace.blue"
+            }
+          }
+        },
+        {
+          "match": "\\b(as)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.alias.blue"
+            }
+          }
+        }
+      ]
+    },
+    "function-definition": {
+      "match": "\\b(fun)\\s+([A-Za-z_][\\w!?]*)?",
+      "captures": {
+        "1": {
+          "name": "storage.type.function.blue"
+        },
+        "2": {
+          "name": "entity.name.function.blue"
+        }
+      }
+    },
+    "module-member": {
+      "patterns": [
+        {
+          "match": "(?<=\\.)[A-Za-z_][\\w!?]*(?=\\s*\\()",
+          "name": "entity.name.function.call.member.blue"
+        },
+        {
+          "match": "(?<=\\.)[A-Za-z_][\\w!?]*",
+          "name": "variable.other.member.blue"
+        }
+      ]
+    },
+    "call": {
+      "match": "\\b([A-Za-z_][\\w!?]*)(?=\\s*\\()",
+      "captures": {
+        "1": {
+          "name": "entity.name.function.call.blue"
+        }
+      }
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "match": "\\b(val|var|const)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.blue"
+            }
+          }
+        },
+        {
+          "match": "\\b(true|false|null)\\b",
+          "captures": {
+            "0": {
+              "name": "constant.language.blue"
+            }
+          }
+        },
+        {
+          "match": "\\b(self)\\b",
+          "captures": {
+            "1": {
+              "name": "variable.language.self.blue"
+            }
+          }
+        },
+        {
+          "match": "\\b(if|else|match|try|catch|finally|return|break|continue)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.blue"
+            }
+          }
+        },
+        {
+          "match": "\\b(for|in|notin)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.loop.blue"
+            }
+          }
+        },
+        {
+          "match": "\\b(and|or|not)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.logical.blue"
+            }
+          }
+        },
+        {
+          "match": "\\b(eval|spawn|defer)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.blue"
+            }
+          }
+        }
+      ]
+    },
+    "operator": {
+      "patterns": [
+        {
+          "name": "keyword.operator.range.blue",
+          "match": "\\.\\.<?"
+        },
+        {
+          "name": "keyword.operator.arrow.blue",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.blue",
+          "match": "(\\+|\\*|%|/|<=?|>=?|!=|&&?|\\|\\|?|\\^|<<|>>)=|-{1,2}"
+        }
+      ]
+    }
+  }
+}

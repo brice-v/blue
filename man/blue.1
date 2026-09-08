@@ -64,6 +64,19 @@ found next to this executable instead of building one
 \fB\-\-all\-parser\-errors\fR
 show all parser errors instead of stopping at the first one
 .TP
+lsp
+start a language server (LSP) for editor integration over stdio
+.TP
+\fB\-\-addr\fR <host:port>
+listen on TCP instead of stdio (one client at a time)
+.TP
+\fB\-\-trace\fR
+log every protocol message to stderr while running
+.IP
+features: diagnostics, completion, hover docs, go to definition,
+references, document outlines and workspace symbol search for .b files.
+see "Editor Integration" in the README for editor setup snippets.
+.TP
 help
 prints this help message
 .TP

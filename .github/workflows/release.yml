@@ -4,6 +4,9 @@ on:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -23,14 +26,13 @@ jobs:
       # cgo deps for fyne/GL static tests (upx used by compress steps below is also here).
       - name: Install dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
+        run: sudo apt-get update && sudo apt-get install -y upx gcc libgl1-mesa-dev xorg-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev
 
       # rgfw: raylib's windowing backend. Do NOT build raylib's bundled GLFW
       # alongside fyne's static GLFW (duplicate symbols).
       - name: Test
         run: go test -tags="rgfw" ./...
 
-      # Same as make_release_static: race detector needs cgo enabled.
       - name: Test Static
         env:
           CGO_ENABLED: 1
@@ -48,8 +50,6 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: go build -tags="rgfw" -ldflags='-s -w' -o blue .
 
-      # Static builds ("blues-" prefix), mirroring make_release_static:
-      # cgo off so binaries are self-contained.
       - name: Build Static Windows
         if: matrix.os == 'windows-latest'
         env:
@@ -68,7 +68,6 @@ jobs:
           CGO_ENABLED: 0
         run: go build -tags="static" -ldflags='-s -w' -o blues .
 
-      # WASM build (on ubuntu-latest runner alongside Build Linux).
       - name: Build & package WASM
         if: matrix.os == 'ubuntu-latest'
         env:
@@ -80,8 +79,6 @@ jobs:
           cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./playground/
           zip -r playground-wasm.zip ./playground/
 
-      # upx-action installs upx itself; `files` takes newline-separated globs.
-      # (Go adds .exe automatically when building for Windows, so the output is blue.exe/blues.exe there.)
       - name: Compress Windows binaries
         if: matrix.os == 'windows-latest'
         uses: svenstaro/upx-action@v2
@@ -99,7 +96,7 @@ jobs:
             blues
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: binaries-${{ matrix.os }}
           path: |
@@ -111,13 +108,12 @@ jobs:
 
       - name: Upload wasm artifact
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wasm
           path: ./playground-wasm.zip
 
-  release:
-    needs: [build]
+  vsix:
     runs-on: ubuntu-latest
 
     steps:
@@ -125,15 +121,38 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Build VSIX
+        working-directory: editors/code
+        run: |
+          npm ci --no-audit --no-fund
+          yes | npx @vscode/vsce package --no-yarn --allow-missing-repository
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: vsix
+          path: editors/code/blue-vscode-*.vsix
+
+  release:
+    needs: [build, vsix]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./artifacts
 
-      # Package each binary under its platform-qualified archive name while keeping the inner
-      # file named plain "blue"/"blues" (run from inside each artifact dir so archives store
-      # just the base name). tar.gz on Linux/Mac, .zip on Windows. Extracting any archive
-      # yields a file named "blue"/"blues" ("blue.exe" on Windows).
       - name: Package binaries
         run: |
           mkdir -p ./zips && cd ./artifacts
@@ -142,9 +161,10 @@ jobs:
           (cd binaries-macos-latest   && tar -czf ../../zips/blue-macos-arm64.tar.gz blue     && tar -czf ../../zips/blues-macos-arm64.tar.gz blues)
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ github.ref_name }}
+          fail_on_unmatched_files: true
           files: |
             ./zips/blue-linux-amd64.tar.gz
             ./zips/blues-linux-amd64.tar.gz
@@ -153,6 +173,5 @@ jobs:
             ./zips/blue-macos-arm64.tar.gz
             ./zips/blues-macos-arm64.tar.gz
             ./artifacts/wasm/playground-wasm.zip
+            ./artifacts/vsix/*.vsix
           draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

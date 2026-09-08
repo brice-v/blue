@@ -111,22 +111,37 @@ type parserError struct {
 	SourceLine     string
 	LineNumber     int
 	Hints          []string
+	srcTok         token.Token // the offending token, kept for structured consumers
 }
 
+// parseErrorString turns the message plus the lexer's error block into a
+// parserError. The message comes first, then the "path:line:col source" line,
+// then the caret line. Every index is checked because a message can contain
+// newlines of its own ("unexpected \"" for an unterminated string) and the
+// lexer block is absent entirely when no source text is available.
 func parseErrorString(errStr string, lineNumber int) parserError {
-	lines := strings.SplitN(errStr, "\n", 3)
+	lines := strings.SplitN(errStr, "\n", 4)
 	err := parserError{}
 	if len(lines) >= 1 {
 		err.Message = lines[0]
 	}
-	if len(lines) >= 2 {
+	if len(lines) >= 3 {
 		posToSplit := strings.Index(lines[1], " ")
-		err.FileLineColumn = lines[1][:posToSplit]
-		err.SourceLine = lines[1][posToSplit+1:]
-		if len(lines) >= 3 {
-			pointerPos := strings.Index(lines[2], "^")
+		if posToSplit == -1 {
+			err.FileLineColumn = lines[1]
+			err.SourceLine = lines[2]
+		} else {
+			err.FileLineColumn = lines[1][:posToSplit]
+			err.SourceLine = lines[1][posToSplit+1:]
+		}
+		if len(lines) >= 4 {
+			pointerPos := strings.Index(lines[3], "^")
 			if pointerPos != -1 {
-				err.PointerPos = lines[2][posToSplit+1 : pointerPos+1]
+				if posToSplit == -1 {
+					err.PointerPos = lines[3][:pointerPos+1]
+				} else {
+					err.PointerPos = lines[3][posToSplit+1 : pointerPos+1]
+				}
 			} else {
 				err.PointerPos = "^"
 			}
@@ -254,6 +269,42 @@ func (p *Parser) ErrorMessages() []string {
 		result[i] = err.Message
 	}
 	return result
+}
+
+// ErrorDetail is a structured view of one recorded parse error. It carries the
+// position of the offending token so programmatic consumers (editors, the `lsp`
+// command) do not have to re-parse printed error output or read files back.
+type ErrorDetail struct {
+	Message      string
+	Filepath     string
+	Line         int // 0 based line of the offending token
+	Column       int // 0 based column of the offending token within that line
+	TokenLiteral string
+	Hints        []string
+}
+
+// ErrorDetails returns every recorded parse error as structured data without
+// printing anything. Positions are relative to the input handed to the lexer.
+func (p *Parser) ErrorDetails() []ErrorDetail {
+	details := make([]ErrorDetail, 0, len(p.errors))
+	for i := range p.errors {
+		err := p.errors[i]
+		detail := ErrorDetail{
+			Message:  err.Message,
+			Filepath: err.FileLineColumn,
+			Line:     err.LineNumber - 1,
+			Hints:    err.Hints,
+		}
+		tok := err.srcTok
+		if tok.Type != "" {
+			detail.Filepath = tok.Filepath
+			detail.Line = tok.LineNumber
+			detail.Column = tok.PositionInLine
+			detail.TokenLiteral = tok.Literal
+		}
+		details = append(details, detail)
+	}
+	return details
 }
 
 func (p *Parser) PrintParserErrors(out io.Writer) {
@@ -474,6 +525,7 @@ func (p *Parser) error(msg string, tokenContext token.Token) {
 	errorLine := lexer.GetErrorLineMessage(tokenContext)
 	fullMsg := msg + "\n" + errorLine
 	pe := parseErrorString(fullMsg, tokenContext.LineNumber)
+	pe.srcTok = tokenContext
 	// Attach contextual hints based on the error message
 	pe.Hints = lookupHints(msg)
 	p.errors = append(p.errors, pe)

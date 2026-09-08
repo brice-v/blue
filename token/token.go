@@ -2,7 +2,10 @@
 
 package token
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 // Type is the string representation of the Token
 type Type string
@@ -300,6 +303,17 @@ func LookupIdent(ident string) Type {
 		return tok
 	}
 	return IDENT
+}
+
+// Keywords returns every reserved word recognized by LookupIdent, sorted.
+// Editor tooling uses it so keyword lists never drift from the tokenizer.
+func Keywords() []string {
+	names := make([]string, 0, len(keywords))
+	for name := range keywords {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // UserFriendlyName returns a human-readable name for the token type,

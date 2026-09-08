@@ -896,7 +896,7 @@ func createUIMenuItemBuiltin(vm *VM) *object.Builtin {
 					fmt.Printf("%s`menu_item` handler error: %s\n", consts.VM_ERROR_PREFIX, err.Message)
 				}
 			})
-			return NewGoObj[*fyne.MenuItem](mi)
+			return NewGoObj(mi)
 		},
 	}
 }

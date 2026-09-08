@@ -1,0 +1,69 @@
+{
+  "name": "blue-vscode",
+  "displayName": "Blue",
+  "description": "Language support for the blue programming language, powered by `blue lsp`.",
+  "version": "0.0.5",
+  "publisher": "local",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "blue",
+        "aliases": [
+          "Blue",
+          "blue"
+        ],
+        "extensions": [
+          ".b"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configuration": {
+      "title": "Blue",
+      "properties": {
+        "blue.path": {
+          "type": "string",
+          "default": "blue",
+          "description": "Path to the blue executable. The extension runs `<path> lsp` for each window."
+        },
+        "blue.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace protocol traffic to an output channel while debugging the server."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "blue.restart",
+        "title": "Blue: Restart language server"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "blue",
+        "scopeName": "source.blue",
+        "path": "./syntaxes/blue.tmLanguage.json"
+      }
+    ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "activationEvents": [
+    "onLanguage:blue"
+  ]
+}
