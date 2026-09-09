@@ -1,15 +1,13 @@
 TODO:
 
-- [ ] Make range syntax less sticky (so expression on right can get evaluated first?)
-- [ ] when installing blue src, dont want to delete go mod download result so that its still cached
 - [ ] Implement: b"" for quick conversion to bytes
-- [ ] Scaffold out more UI features
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
 - [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
+    - similarly occurs for range as well 1..10-4 or 1..<10-4
 - Struct Improvements/Fixes
     - [x] Allow structs to be matched against
     - [ ] Allow blue struct with int/float/etc. field names?
@@ -733,3 +731,5 @@ COMPLETED TASKS:
 - [x] Add math.exp, math.pow, (and any others missing)
 - [x] FEAT: allow functions to be defined later down in the file
 - [x] Add some random features
+- [-] when installing blue src, dont want to delete go mod download result so that its still cached
+- [x] Scaffold out more UI features
