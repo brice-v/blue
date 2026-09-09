@@ -500,15 +500,16 @@ func (vm *VM) Run() error {
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			ip += 2
 			frame.ip = ip
-			if int(globalIndex) < len(vm.globals) {
-				err := vm.push(vm.globals[globalIndex])
-				if err != nil {
-					err = vm.PushAndReturnError(err)
-					if err != nil {
-						return err
-					}
-				}
-			} else if err := vm.push(nil); err != nil {
+			// A slot that has not been written to yet (forward declared names
+			// read this way before their declaration runs) must push the null
+			// object rather than a nil interface, since everything downstream
+			// calls methods on whatever it pops.
+			var stored object.Object = object.NULL
+			if int(globalIndex) < len(vm.globals) && vm.globals[globalIndex] != nil {
+				stored = vm.globals[globalIndex]
+			}
+			err := vm.push(stored)
+			if err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {
 					return err
@@ -733,7 +734,14 @@ func (vm *VM) Run() error {
 			localIndex := code.ReadUint8(ins[ip+1:])
 			ip += 1
 			frame.ip = ip
-			err := vm.push(vm.stack[frame.bp+int(localIndex)])
+			// Stack slots get reused between calls, so a local that has not been
+			// assigned yet holds whatever the previous call left behind. Reading
+			// one must always give null instead of that stale value.
+			var storedLocal object.Object = object.NULL
+			if value := vm.stack[frame.bp+int(localIndex)]; value != nil {
+				storedLocal = value
+			}
+			err := vm.push(storedLocal)
 			if err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {
@@ -1502,6 +1510,8 @@ func (vm *VM) executeCallFastFrame(numArgs int) error {
 func (vm *VM) executeCall(numArgs int) error {
 	callee := vm.stack[vm.sp-1-numArgs]
 	switch callee := callee.(type) {
+	case nil:
+		return vm.prepareStackTraceAndReturnError(fmt.Errorf("calling non-closure and non-builtin. got=%s", object.NULL_OBJ))
 	case *object.Closure:
 		return vm.callClosure(callee, numArgs)
 	case *object.Builtin:

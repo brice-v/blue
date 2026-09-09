@@ -126,6 +126,11 @@ func (c *Compiler) exitBlock() {
 			delete(c.symbolTable.store, k)
 		}
 	}
+	for k := range c.symbolTable.predeclared {
+		if strings.HasPrefix(k, prefix) {
+			delete(c.symbolTable.predeclared, k)
+		}
+	}
 	c.symbolTable.BlockNestLevel--
 }
 

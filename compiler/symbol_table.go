@@ -48,6 +48,12 @@ type SymbolTable struct {
 	specialDefinitions        int
 	FreeSymbols               []Symbol
 
+	// predeclared holds the reserved slot for every name that was declared
+	// ahead of the statement that actually defines it (see Predeclare). An
+	// entry only exists between the reservation and the moment its declaration
+	// gets compiled, at which point it is consumed and deleted.
+	predeclared map[string]int
+
 	BlockNestLevel int
 
 	Outer *SymbolTable
@@ -67,8 +73,9 @@ func NewSymbolTable() *SymbolTable {
 	s := make(map[string]Symbol)
 	ss := make(map[SpecialScopeKey]Symbol)
 	ssim := make(map[string][]int)
+	predeclared := make(map[string]int)
 	free := []Symbol{}
-	return &SymbolTable{store: s, specialStore: ss, specialStoreParamIndexMap: ssim, FreeSymbols: free, BlockNestLevel: -1}
+	return &SymbolTable{store: s, specialStore: ss, specialStoreParamIndexMap: ssim, predeclared: predeclared, FreeSymbols: free, BlockNestLevel: -1}
 }
 
 func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
@@ -85,9 +92,58 @@ func (s *SymbolTable) DefineFun(name string, isImmutable bool, parameters []*ast
 	return s.defineActual(name, isImmutable, parameters, parameterExpressions, helpStr)
 }
 
+// keyFor builds the store key of a name at the current block nest level.
+func (s *SymbolTable) keyFor(name string) string {
+	if s.BlockNestLevel != -1 {
+		return fmt.Sprintf("%d:%s", s.BlockNestLevel, name)
+	}
+	return name
+}
+
+// Predeclare reserves the slot for a name that is declared further down the
+// same statement list, which is what makes it possible to use a function or
+// variable before it is defined. The reservation is consumed by the define call
+// belonging to the declaration itself so that the slot stays stable. The symbol
+// occupying the key afterwards is returned (the predeclaration gets skipped
+// entirely when the name is already defined).
+func (s *SymbolTable) Predeclare(name string, immutable bool) Symbol {
+	if name == "" {
+		return emptySym
+	}
+	key := s.keyFor(name)
+	if existing, exists := s.store[key]; exists {
+		return existing
+	}
+	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: immutable}
+	if s.Outer == nil {
+		symbol.Scope = GlobalScope
+	} else {
+		symbol.Scope = LocalScope
+	}
+	s.store[key] = symbol
+	if s.predeclared == nil {
+		s.predeclared = make(map[string]int)
+	}
+	s.predeclared[key] = symbol.Index
+	s.numDefinitions++
+	return symbol
+}
+
 func (s *SymbolTable) defineActual(name string, isImmutable bool, parameters []*ast.Identifier, parameterExpressions []ast.Expression, helpStr string) Symbol {
 	if helpStr != "" {
 		helpStr = s.getHelpInPublicFunctionHelpStore(name, helpStr)
+	}
+	key := s.keyFor(name)
+	if reservedIndex, wasPredeclared := s.predeclared[key]; wasPredeclared {
+		delete(s.predeclared, key)
+		symbol := Symbol{Name: name, Index: reservedIndex, Immutable: isImmutable, Parameters: parameters, ParameterExpressions: parameterExpressions, HelpStr: helpStr}
+		if s.Outer == nil {
+			symbol.Scope = GlobalScope
+		} else {
+			symbol.Scope = LocalScope
+		}
+		s.store[key] = symbol
+		return symbol
 	}
 	symbol := Symbol{Name: name, Index: s.numDefinitions, Immutable: isImmutable, Parameters: parameters, ParameterExpressions: parameterExpressions, HelpStr: helpStr}
 	if s.Outer == nil {
@@ -95,12 +151,7 @@ func (s *SymbolTable) defineActual(name string, isImmutable bool, parameters []*
 	} else {
 		symbol.Scope = LocalScope
 	}
-	if s.BlockNestLevel != -1 {
-		newName := fmt.Sprintf("%d:%s", s.BlockNestLevel, name)
-		s.store[newName] = symbol
-	} else {
-		s.store[name] = symbol
-	}
+	s.store[key] = symbol
 	s.numDefinitions++
 	return symbol
 }
@@ -139,40 +190,67 @@ func (s *SymbolTable) ResolveSpecial(name string, scopeIndex int) (Symbol, bool,
 	return emptySym, false, false
 }
 
-func (s *SymbolTable) resolveFromCurrentBlockNestLevel(name string) (Symbol, bool) {
+// Resolve finds the symbol for name, starting in the current scope and walking
+// outwards until one is found.
+func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
+	return s.resolve(name, false)
+}
+
+// resolve looks name up in this table and then in the tables enclosing it.
+// fromNestedScope tells the table whether the lookup started inside a scope
+// nested in it.
+//
+// A reserved key means the declaration for that name has not been compiled yet.
+// Code that runs straight through must not use such a name since it has no value
+// yet, so the lookup stops there. Lookups from a nested scope are allowed past
+// them, which is what lets `fun main()` up top call functions and read variables
+// defined underneath it: those compile to global slot reads, so they see whatever
+// value the name holds by the time they run. Only global slots qualify since a
+// local binding gets captured by value when its closure is created and would
+// then stay stuck at null forever.
+func (s *SymbolTable) resolve(name string, fromNestedScope bool) (Symbol, bool) {
 	for i := s.BlockNestLevel; i >= 0; i-- {
-		newName := fmt.Sprintf("%d:%s", i, name)
-		if obj, ok := s.store[newName]; ok {
+		key := fmt.Sprintf("%d:%s", i, name)
+		if _, reserved := s.predeclared[key]; reserved {
+			if !fromNestedScope || s.store[key].Scope != GlobalScope {
+				return emptySym, false
+			}
+			return s.store[key], true
+		}
+		if obj, ok := s.store[key]; ok {
 			return obj, ok
 		}
 	}
 	obj, ok := s.store[name]
-	return obj, ok
-}
-
-func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
-	obj, ok := s.resolveFromCurrentBlockNestLevel(name)
-	if !ok && s.Outer != nil {
-		obj, ok := s.Outer.Resolve(name)
-		if !ok {
-			return obj, ok
+	if _, reserved := s.predeclared[name]; reserved {
+		if !fromNestedScope || obj.Scope != GlobalScope {
+			return emptySym, false
 		}
-		if obj.Scope == GlobalScope || obj.Scope == BuiltinScope {
-			return obj, ok
-		}
-		free := s.defineFree(obj)
-		return free, true
+		return obj, true
 	}
-	return obj, ok
+	if ok || s.Outer == nil {
+		return obj, ok
+	}
+	outerSym, outerOk := s.Outer.resolve(name, true)
+	if !outerOk {
+		return emptySym, false
+	}
+	if outerSym.Scope == GlobalScope || outerSym.Scope == BuiltinScope {
+		return outerSym, true
+	}
+	free := s.defineFree(outerSym)
+	return free, true
 }
 
+// LookupInCurrentBlockLevel finds an existing definition of name at the current
+// block nest level. Forward declarations are skipped since they are not
+// definitions yet: the statement that declares the name binds the reserved slot.
 func (s *SymbolTable) LookupInCurrentBlockLevel(name string) (Symbol, bool) {
-	if s.BlockNestLevel == -1 {
-		sym, ok := s.store[name]
-		return sym, ok
+	key := s.keyFor(name)
+	if _, reserved := s.predeclared[key]; reserved {
+		return emptySym, false
 	}
-	prefixedName := fmt.Sprintf("%d:%s", s.BlockNestLevel, name)
-	sym, ok := s.store[prefixedName]
+	sym, ok := s.store[key]
 	return sym, ok
 }
 

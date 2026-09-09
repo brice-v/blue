@@ -1,8 +1,5 @@
 TODO:
 
-- [ ] Make it possible to define functions/variables after they are used (if used in functions)
-- [ ] Add math.exp, math.pow, (and any others missing)
-- [ ] Add some random features
 - [ ] Make range syntax less sticky (so expression on right can get evaluated first?)
 - [ ] when installing blue src, dont want to delete go mod download result so that its still cached
 - [ ] Implement: b"" for quick conversion to bytes
@@ -24,7 +21,6 @@ TODO:
 - [ ] Write up full docs in html
 - [ ] See if its possible to remove *ast.StringLiteral and just directly use *object.Stringo
 - Tmp
-- [ ] FEAT: allow functions to be defined later down in the file
 - [ ] FEAT: sort doesnt work when nulls are in collections (realistically we can put at beginning or end)
     - by fixing this we might as well add true and false to be sortable in collection as well?
 - [ ] Ensure destructuring works in more places (possibly update imports to work like they do in JS)
@@ -733,3 +729,7 @@ COMPLETED TASKS:
       extracting; a `.blue-src-sha256` marker in the install root decides when a re-run refreshes the source.
     - Cost: ~1.5 MB more raw (~0.7 MB after upx) inside blue/blues, and building still needs the full checkout (it always did).
       bluerun/minivm builds are unaffected because they never compile the root main package.
+- [x] Make it possible to define functions/variables after they are used (if used in functions)
+- [x] Add math.exp, math.pow, (and any others missing)
+- [x] FEAT: allow functions to be defined later down in the file
+- [x] Add some random features

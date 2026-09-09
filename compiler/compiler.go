@@ -329,6 +329,7 @@ func (c *Compiler) PrintStackTrace() {
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
+		c.predeclareDeclarations(node.Statements)
 		for _, s := range node.Statements {
 			c.currentPos = len(c.currentInstructions())
 			err := c.Compile(s)
@@ -537,6 +538,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 	case *ast.BlockStatement:
 		c.enterBlock()
+		c.predeclareDeclarations(node.Statements)
 		for _, s := range node.Statements {
 			err := c.Compile(s)
 			if err != nil {
