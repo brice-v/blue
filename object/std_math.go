@@ -2,8 +2,10 @@ package object
 
 import (
 	"math"
-	mr "math/rand"
+	"math/rand"
 )
+
+var mathRand = rand.New(rand.NewSource(0))
 
 // greatest common divisor (GCD) via Euclidean algorithm
 func gcd(a, b int64) int64 {
@@ -31,7 +33,7 @@ var MathBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("rand", len(args), 0, "")
 			}
-			return &Float{Value: mr.Float64()}
+			return &Float{Value: mathRand.Float64()}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`rand` returns a FLOAT a pseudo-random number in the half-open interval [0.0,1.0)",
@@ -1156,6 +1158,224 @@ var MathBuiltins = []*Builtin{
 			signature:   "yn(x: float, n: int) -> float",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "yn(3.0, 5) => -1.905946",
+		}.String(),
+	},
+	{
+		Name: "_exp",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("exp", len(args), 1, "")
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("exp", 1, FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*Float).Value
+			return &Float{Value: math.Exp(x)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`exp` returns the base-e exponential of x",
+			signature:   "exp(x: float) -> float",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "exp(1.0) => 2.718282",
+		}.String(),
+	},
+	{
+		Name: "_exp2",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("exp2", len(args), 1, "")
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("exp2", 1, FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*Float).Value
+			return &Float{Value: math.Exp2(x)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`exp2` returns the base-2 exponential of x",
+			signature:   "exp2(x: float) -> float",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "exp2(3.0) => 8.0",
+		}.String(),
+	},
+	{
+		Name: "_expm1",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("expm1", len(args), 1, "")
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("expm1", 1, FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*Float).Value
+			return &Float{Value: math.Expm1(x)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`expm1` returns e**x - 1, as a floating-point value",
+			signature:   "expm1(x: float) -> float",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "expm1(0.0) => 0.0",
+		}.String(),
+	},
+	{
+		Name: "_fmod",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("fmod", len(args), 2, "")
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("fmod", 1, FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("fmod", 2, FLOAT_OBJ, args[1].Type())
+			}
+			x := args[0].(*Float).Value
+			y := args[1].(*Float).Value
+			return &Float{Value: math.Mod(x, y)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`fmod` returns the floating-point remainder of x/y",
+			signature:   "fmod(x: float, y: float) -> float",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "fmod(9.5, 3.0) => 0.5",
+		}.String(),
+	},
+	{
+		Name: "_pow",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("pow", len(args), 2, "")
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("pow", 1, FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("pow", 2, FLOAT_OBJ, args[1].Type())
+			}
+			x := args[0].(*Float).Value
+			y := args[1].(*Float).Value
+			return &Float{Value: math.Pow(x, y)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`pow` returns x raised to the power of y",
+			signature:   "pow(x: float, y: float) -> float",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "pow(2.0, 8.0) => 256.0",
+		}.String(),
+	},
+	{
+		Name: "_signum",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("signum", len(args), 1, "")
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("signum", 1, FLOAT_OBJ, args[0].Type())
+			}
+			x := args[0].(*Float).Value
+			var sign float64
+			if x > 0 {
+				sign = 1
+			} else if x < 0 {
+				sign = -1
+			}
+			return &Float{Value: sign}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`signum` returns the sign of x as a FLOAT: -1.0, 0.0, or 1.0",
+			signature:   "signum(x: float) -> float",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "signum(-5.0) => -1.0\nsignum(0.0) => 0.0\nsignum(5.0) => 1.0",
+		}.String(),
+	},
+	{
+		Name: "_seed",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("seed", len(args), 1, "")
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("seed", 1, INTEGER_OBJ, args[0].Type())
+			}
+			n := args[0].(*Integer).Value
+			mathRand = rand.New(rand.NewSource(n))
+			return TRUE
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`seed` sets the seed for the pseudo-random number generator and returns a BOOLEAN",
+			signature:   "seed(n: int) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "seed(42) => true",
+		}.String(),
+	},
+	{
+		Name: "_gauss",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("gauss", len(args), 2, "")
+			}
+			if args[0].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("gauss", 1, FLOAT_OBJ, args[0].Type())
+			}
+			if args[1].Type() != FLOAT_OBJ {
+				return newPositionalTypeError("gauss", 2, FLOAT_OBJ, args[1].Type())
+			}
+			mean := args[0].(*Float).Value
+			stddev := args[1].(*Float).Value
+			v := mathRand.NormFloat64()
+			return &Float{Value: mean + stddev*v}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gauss` returns a FLOAT from a normal (Gaussian) distribution with given mean and standard deviation",
+			signature:   "gauss(mean: float, stddev: float) -> float",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "gauss(0.0, 1.0) => 0.534219",
+		}.String(),
+	},
+	{
+		Name: "_weighted_choice",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("weighted_choice", len(args), 2, "")
+			}
+			items := args[0]
+			weights := args[1]
+			if items.Type() != LIST_OBJ {
+				return newPositionalTypeError("weighted_choice", 1, LIST_OBJ, items.Type())
+			}
+			if weights.Type() != LIST_OBJ {
+				return newPositionalTypeError("weighted_choice", 2, LIST_OBJ, weights.Type())
+			}
+			itemList := items.(*List)
+			weightList := weights.(*List)
+			if len(itemList.Elements) != len(weightList.Elements) {
+				return newError("`weighted_choice` error: items and weights must have the same length")
+			}
+			var totalWeight float64
+			for _, w := range weightList.Elements {
+				if w.Type() != FLOAT_OBJ {
+					return newError("`weighted_choice` error: all weights must be FLOAT")
+				}
+				totalWeight += w.(*Float).Value
+			}
+			if totalWeight == 0 {
+				return newError("`weighted_choice` error: weight sum must not be zero")
+			}
+			r := mathRand.Float64() * totalWeight
+			var cumulative float64
+			for i, w := range weightList.Elements {
+				cumulative += w.(*Float).Value
+				if r <= cumulative {
+					return itemList.Elements[i]
+				}
+			}
+			return itemList.Elements[len(itemList.Elements)-1]
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`weighted_choice` returns a randomly chosen item from the items list, weighted by the corresponding weights list",
+			signature:   "weighted_choice(items: list, weights: list[float]) -> any",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "weighted_choice([10,20,30],[1,1,1]) => 20",
 		}.String(),
 	},
 }

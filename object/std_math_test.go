@@ -297,7 +297,7 @@ func TestMathErrorPaths(t *testing.T) {
 		if _, ok := res.(*Error); !ok {
 			t.Errorf("%s() with no args should error, got %T %s", b.Name, res, res.Inspect())
 		}
-		if b.Name == "_inf" {
+		if b.Name == "_inf" || b.Name == "_seed" {
 			continue
 		}
 		res = b.Fun(in(1))
@@ -365,5 +365,69 @@ func TestMathErrorPaths(t *testing.T) {
 		if !strings.Contains(errObj.Message, "Error") {
 			t.Errorf("%s(bad args) unexpected message: %s", tc.name, errObj.Message)
 		}
+	}
+}
+
+func TestNewMathBuiltins(t *testing.T) {
+	spotChecks := []struct {
+		name string
+		args []Object
+		want float64
+	}{
+		{"_exp", []Object{fl(1)}, math.Exp(1)},
+		{"_exp2", []Object{fl(3)}, 8},
+		{"_expm1", []Object{fl(0)}, 0},
+		{"_fmod", []Object{fl(9.5), fl(3)}, 0.5},
+		{"_pow", []Object{fl(2), fl(8)}, 256},
+		{"_signum", []Object{fl(-5)}, -1},
+		{"_signum", []Object{fl(5)}, 1},
+		{"_signum", []Object{fl(0)}, 0},
+	}
+	for _, sc := range spotChecks {
+		res := mathBuiltinFn(t, sc.name)(sc.args...)
+		f, ok := res.(*Float)
+		if !ok {
+			t.Fatalf("%s returned %T, want *Float", sc.name, res)
+		}
+		if f.Value != sc.want {
+			t.Errorf("%s(%v) = %v, want %v", sc.name, sc.args, f.Value, sc.want)
+		}
+	}
+}
+
+func TestRandomBuiltins(t *testing.T) {
+	seed := mathBuiltinFn(t, "_seed")
+	if _, ok := seed(in(42)).(*Boolean); !ok {
+		t.Errorf("_seed returned %T, want *Boolean", seed(in(42)))
+	}
+
+	gaussFn := mathBuiltinFn(t, "_gauss")
+	g := gaussFn(fl(0), fl(1))
+	if _, ok := g.(*Float); !ok {
+		t.Errorf("_gauss returned %T, want *Float", g)
+	}
+	if _, ok := gaussFn(fl(2.5), fl(0.5)).(*Float); !ok {
+		t.Error("_gauss should return a FLOAT")
+	}
+
+	wc := mathBuiltinFn(t, "_weighted_choice")
+	items := &List{Elements: []Object{in(10), in(20), in(30)}}
+	weights := &List{Elements: []Object{fl(1), fl(1), fl(1)}}
+	chosen := wc(items, weights)
+	if chosen.Type() != INTEGER_OBJ {
+		t.Errorf("_weighted_choice returned %T, want an item from items", chosen)
+	}
+
+	badLen := &List{Elements: []Object{in(1), in(2)}}
+	if _, ok := wc(items, badLen).(*Error); !ok {
+		t.Error("_weighted_choice with mismatched lengths should error")
+	}
+	if _, ok := wc(items, &List{Elements: []Object{fl(0), fl(0)}}).(*Error); !ok {
+		t.Error("_weighted_choice with zero-weight sum should error")
+	}
+
+	_, ok := mathBuiltinFn(t, "_seed")(in(1)).(*Boolean)
+	if !ok {
+		t.Error("_seed should return a BOOLEAN indicating success")
 	}
 }

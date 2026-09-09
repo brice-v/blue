@@ -78,6 +78,15 @@ val trunc = _trunc;
 val y0 = _y0;
 val y1 = _y1;
 val yn = _yn;
+val exp = _exp;
+val exp2 = _exp2;
+val expm1 = _expm1;
+val fmod = _fmod;
+val pow = _pow;
+val signum = _signum;
+val seed = _seed;
+val gauss = _gauss;
+val weighted_choice = _weighted_choice;
 
 fun max(x, y) {
     ## `max` will return the max of the 2 numbers passed in
