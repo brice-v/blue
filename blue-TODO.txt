@@ -1,5 +1,6 @@
 TODO:
 
+- [ ] Make it possible to define functions/variables after they are used (if used in functions)
 - [ ] Add math.exp, math.pow, (and any others missing)
 - [ ] Add some random features
 - [ ] Make range syntax less sticky (so expression on right can get evaluated first?)
