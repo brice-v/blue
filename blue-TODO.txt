@@ -1,5 +1,8 @@
 TODO:
 
+- [ ] Add math.exp, math.pow, (and any others missing)
+- [ ] Add some random features
+- [ ] Make range syntax less sticky (so expression on right can get evaluated first?)
 - [ ] when installing blue src, dont want to delete go mod download result so that its still cached
 - [ ] Implement: b"" for quick conversion to bytes
 - [ ] Scaffold out more UI features
