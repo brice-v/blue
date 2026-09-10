@@ -258,8 +258,8 @@ func printInstallEnv(root, srcDir, binDir string) {
 	fmt.Printf("  export PATH=%s:$PATH\n", binDir)
 }
 
-// handleInstallCommand parses `blue install` flags and runs the install.
-func handleInstallCommand(argc int, arguments []string) {
+// parseInstallArgs extracts InstallOptions from `blue install` arguments.
+func parseInstallArgs(argc int, arguments []string) (InstallOptions, error) {
 	opts := InstallOptions{}
 	for i, arg := range arguments[1:] {
 		switch arg {
@@ -271,20 +271,27 @@ func handleInstallCommand(argc int, arguments []string) {
 			opts.NoBin = true
 		case "--prefix":
 			if i+2 >= argc {
-				consts.ErrorPrinter("`install` flag --prefix requires a directory\n")
-				os.Exit(1)
+				return InstallOptions{}, fmt.Errorf("`install` flag --prefix requires a directory")
 			}
 			opts.Prefix = arguments[i+2]
 		default:
 			if arg == opts.Prefix && opts.Prefix != "" {
 				continue
 			}
-			consts.ErrorPrinter("unexpected `install` argument. got=%s\n", arg)
-			os.Exit(1)
+			return InstallOptions{}, fmt.Errorf("unexpected `install` argument. got=%s", arg)
 		}
 	}
-	if err := RunInstall(opts); err != nil {
-		consts.ErrorPrinter("install failed: %s\n", err.Error())
-		os.Exit(1)
+	return opts, nil
+}
+
+// handleInstallCommand parses `blue install` flags and runs the install.
+func handleInstallCommand(argc int, arguments []string) error {
+	opts, err := parseInstallArgs(argc, arguments)
+	if err != nil {
+		return failf("%s", err.Error())
 	}
+	if err := RunInstall(opts); err != nil {
+		return failf("install failed: %w", err)
+	}
+	return nil
 }

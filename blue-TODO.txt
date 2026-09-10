@@ -1,6 +1,5 @@
 TODO:
 
-- [ ] Update all cli commands to return error so it can be properly tested
 - [ ] Fix doc command so that I can do something like `blue doc math.rand`
 - [ ] Fix LSP so its able to get doc information from functions on dot call
 - [ ] Implement: b"" for quick conversion to bytes
@@ -736,3 +735,4 @@ COMPLETED TASKS:
 - [x] Add some random features
 - [-] when installing blue src, dont want to delete go mod download result so that its still cached
 - [x] Scaffold out more UI features
+- [x] Update all cli commands to return error so it can be properly tested

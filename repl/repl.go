@@ -22,25 +22,35 @@ import (
 // PROMPT is printed to the screen every time the user can type
 const PROMPT = "> "
 
-// StartLexerRepl starts the read eval print loop for the lexer
-func StartLexerRepl() {
-	startLexerRepl(os.Stdin, os.Stdout, getUsername())
+// StartLexerRepl starts the read eval print loop for the lexer. It returns
+// nil when the session ends (exit command, interrupt or EOF) and an error
+// when readline fails to start.
+func StartLexerRepl() error {
+	return startLexerRepl(os.Stdin, os.Stdout, getUsername())
 }
 
-// StartParserRepl start the read eval print loop for the parser
-func StartParserRepl() {
-	startParserRepl(os.Stdin, os.Stdout, getUsername())
+// StartParserRepl starts the read eval print loop for the parser. It returns
+// nil when the session ends (interrupt or EOF) and an error when readline
+// fails to start.
+func StartParserRepl() error {
+	return startParserRepl(os.Stdin, os.Stdout, getUsername())
 }
 
-// StartVmRepl start the read Vm print loop for the parser
-func StartVmRepl() {
-	startVmRepl(os.Stdin, os.Stdout, getUsername(), "", "")
+// StartVmRepl starts the read Vm print loop. It returns nil when the session
+// ends (exit command, interrupt or EOF) and an error when readline fails to
+// start.
+func StartVmRepl() error {
+	return startVmRepl(os.Stdin, os.Stdout, getUsername(), "", "")
 }
 
 // startVmRepl is the entry point of the repl with an io.Reader as
-// an input and io.Writer as an output
-func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) {
-	rl := NewReadline(in, out, "VM", username)
+// an input and io.Writer as an output. It returns nil when the session ends
+// (exit command, interrupt or EOF) and an error when readline fails to start.
+func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address string) error {
+	rl, err := NewReadline(in, out, "VM", username)
+	if err != nil {
+		return err
+	}
 	constants := object.NewObjectConstants()
 	globals := make([]object.Object, vm.GlobalsSize)
 	symbolTable := compiler.NewSymbolTable()
@@ -50,7 +60,7 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	for i, v := range object.BuiltinobjsList {
 		symbolTable.DefineBuiltin(i, v.Name, object.BuiltinobjsModuleIndex, v.Builtin.Help())
 	}
-	_, err := fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
+	_, err = fmt.Fprintln(out, "type .help for more information or help(OBJECT) for a specific object")
 	if err != nil {
 		log.Printf("Failed to write to repl output, error: %s", err.Error())
 	}
@@ -62,7 +72,13 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	replGlobalsHwm := 0
 	var c *compiler.Compiler = nil
 	for {
-		line := readLine(rl)
+		line, done, err := readLine(rl)
+		if err != nil {
+			return err
+		}
+		if done {
+			return nil
+		}
 		if strings.HasPrefix(line, ".") {
 			if strings.HasPrefix(line, ".exit") {
 				_, err = io.WriteString(out, "\n")
@@ -92,7 +108,7 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		if c == nil {
 			c = compiler.NewWithStateAndCore(symbolTable, constants)
 		}
-		err := c.Compile(program)
+		err = c.Compile(program)
 		if err != nil {
 			errToPrint, _, _ := strings.Cut(err.Error(), "\n"+consts.INTERNAL_ERROR_PATTERN)
 			consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, errToPrint)
@@ -133,14 +149,24 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 			log.Printf("Failed to write to repl output, error: %s", errr.Error())
 		}
 	}
+	return nil
 }
 
 // startLexerRepl is the entry point of the repl with an io.Reader as
-// an input and io.Writer as an output
-func startLexerRepl(in io.ReadCloser, out io.Writer, username string) {
-	rl := NewReadline(in, out, "LEX", username)
-	for {
-		line := readLine(rl)
+// an input and io.Writer as an output. It returns nil when the session ends
+// (interrupt or EOF) and an error when readline fails to start.
+func startLexerRepl(in io.ReadCloser, out io.Writer, username string) error {
+	rl, err := NewReadline(in, out, "LEX", username)
+	if err != nil {
+		return err
+	}
+	done := false
+	for !done {
+		var line string
+		line, done, err = readLine(rl)
+		if err != nil {
+			return err
+		}
 		l := lexer.New(line, "<repl>")
 		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 			_, errr := fmt.Fprintf(out, "%+v\n", tok)
@@ -149,14 +175,24 @@ func startLexerRepl(in io.ReadCloser, out io.Writer, username string) {
 			}
 		}
 	}
+	return nil
 }
 
 // startParserRepl is the entry point of the repl with an io.Reader as
-// an input and io.Writer as an output
-func startParserRepl(in io.ReadCloser, out io.Writer, username string) {
-	rl := NewReadline(in, out, "PARSE", username)
-	for {
-		line := readLine(rl)
+// an input and io.Writer as an output. It returns nil when the session ends
+// (interrupt or EOF) and an error when readline fails to start.
+func startParserRepl(in io.ReadCloser, out io.Writer, username string) error {
+	rl, err := NewReadline(in, out, "PARSE", username)
+	if err != nil {
+		return err
+	}
+	done := false
+	for !done {
+		var line string
+		line, done, err = readLine(rl)
+		if err != nil {
+			return err
+		}
 		l := lexer.New(line, "<repl>")
 		p := parser.New(l)
 		program := p.ParseProgram()
@@ -169,19 +205,21 @@ func startParserRepl(in io.ReadCloser, out io.Writer, username string) {
 			log.Printf("Failed to write to repl output, error: %s", errr.Error())
 		}
 	}
+	return nil
 }
 
-func NewReadline(in io.ReadCloser, out io.Writer, mode, username string) *readline.Instance {
+// NewReadline instantiates a readline session for the given mode. It returns
+// an error when the underlying terminal cannot be attached.
+func NewReadline(in io.ReadCloser, out io.Writer, mode, username string) (*readline.Instance, error) {
 	_, errr := fmt.Fprintf(out, "blue | v%s | REPL | MODE: %s | User: %s\n", consts.VERSION, mode, username)
 	if errr != nil {
 		log.Printf("Failed to write to repl output, error: %s", errr.Error())
 	}
 	rl, err := readline.NewEx(&readline.Config{Stdin: in, Stdout: out, Prompt: PROMPT})
 	if err != nil {
-		consts.ErrorPrinter("Failed to instantiate readline. error: %s\n", err.Error())
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to instantiate readline. error: %s", err.Error())
 	}
-	return rl
+	return rl, nil
 }
 
 func getUsername() string {
@@ -193,15 +231,18 @@ func getUsername() string {
 	return user.Username
 }
 
-func readLine(rl *readline.Instance) string {
-	line, err := rl.Readline()
+// readLine reads one line from the session. It returns done=true when the
+// user interrupted the session or the input hit EOF, and an error for any
+// other readline failure.
+func readLine(rl *readline.Instance) (line string, done bool, err error) {
+	line, err = rl.Readline()
 	if err != nil {
 		if err.Error() == "Interrupt" || err.Error() == "EOF" {
 			println(err.Error())
-			os.Exit(0)
+			return "", true, nil
 		}
 		consts.ErrorPrinter("Failed to read line: Unexpected Error: %s\n", err.Error())
-		os.Exit(1)
+		return "", false, err
 	}
-	return line
+	return line, false, nil
 }

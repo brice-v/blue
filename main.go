@@ -24,6 +24,7 @@ var srcTree embed.FS
 
 func main() {
 	srcbundle.SetFS(srcTree)
-	cmd.Run(os.Args...)
-	os.Exit(0)
+	if err := cmd.Run(os.Args...); err != nil {
+		os.Exit(1)
+	}
 }

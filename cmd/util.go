@@ -14,6 +14,7 @@ import (
 	"blue/token"
 	"blue/vm"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -143,24 +144,22 @@ func runnerTempPath(outPath string) string {
 // producing a single self-contained executable. By default the template is
 // built with the local go toolchain; usePrebuilt selects a prebuilt
 // template next to the executable instead.
-func bundleProgram(sourcePath string, outPath string, allErrors bool, usePrebuilt bool) {
+func bundleProgram(sourcePath string, outPath string, allErrors bool, usePrebuilt bool) error {
 	bc, err := compileFileOrStringToImage(sourcePath, true, allErrors)
 	if err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
-		os.Exit(1)
+		return err
 	}
 	payload, err := bluec.Encode(bc, bluec.EncodeOptions{})
 	if err != nil {
-		consts.ErrorPrinter("error encoding program: %s\n", err.Error())
-		os.Exit(1)
+		return failf("error encoding program: %w", err)
 	}
 
 	var templateBytes []byte
 	if !usePrebuilt {
 		tmpTemplate := runnerTempPath(outPath)
 		if err := buildRunnerWithGo(tmpTemplate); err != nil {
-			consts.ErrorPrinter("%s\n", err.Error())
-			os.Exit(1)
+			return failf("%s", err.Error())
 		}
 		defer func() {
 			err := os.Remove(tmpTemplate)
@@ -172,24 +171,22 @@ func bundleProgram(sourcePath string, outPath string, allErrors bool, usePrebuil
 	} else {
 		templatePath, terr := findRunnerTemplate()
 		if terr != nil {
-			consts.ErrorPrinter("error bundling: %s\n", terr.Error())
-			os.Exit(1)
+			return failf("error bundling: %w", terr)
 		}
 		templateBytes, err = os.ReadFile(templatePath)
 	}
 	if err != nil {
-		consts.ErrorPrinter("error reading runner template: %s\n", err.Error())
-		os.Exit(1)
+		return failf("error reading runner template: %w", err)
 	}
 
 	out := make([]byte, 0, len(templateBytes)+len(payload))
 	out = append(out, templateBytes...)
 	out = append(out, payload...)
 	if err := os.WriteFile(outPath, out, 0o755); err != nil {
-		consts.ErrorPrinter("error trying to write `%s`. error: %s\n", outPath, err.Error())
-		os.Exit(1)
+		return failf("error trying to write `%s`: %w", outPath, err)
 	}
 	fmt.Printf("bundled %s into %s (%d bytes)\nrun it with ./%s\n", sourcePath, outPath, len(out), outPath)
+	return nil
 }
 
 // installFullBuildHooks wires up runtime features that require the full
@@ -221,6 +218,15 @@ func evalSourceString(src string) object.Object {
 // out is where normal program and command output is written
 var out = os.Stdout
 
+// failf formats an error, prints it to stderr, and returns it so commands can
+// report failure without exiting the process. The returned error carries the
+// same message that was printed, keeping the string in one place.
+func failf(format string, args ...any) error {
+	err := fmt.Errorf(format, args...)
+	consts.ErrorPrinter("%s\n", err.Error())
+	return err
+}
+
 // isFile checks whether fpath exists and is not a directory.
 func isFile(fpath string) bool {
 	info, err := os.Stat(fpath)
@@ -228,7 +234,7 @@ func isFile(fpath string) bool {
 }
 
 // lexFile tokenizes and lexically analyzes the given file
-func lexFile(fpath string) {
+func lexFile(fpath string) error {
 	var data []byte
 	var err error
 	fname := fpath
@@ -239,8 +245,7 @@ func lexFile(fpath string) {
 		data, err = os.ReadFile(fpath)
 	}
 	if err != nil {
-		consts.ErrorPrinter("`lexFile` error trying to read file `%s`. error: %s\n", fpath, err.Error())
-		os.Exit(1)
+		return failf("`lexFile` error trying to read file `%s`: %w", fpath, err)
 	}
 
 	l := lexer.New(string(data), fname)
@@ -248,19 +253,21 @@ func lexFile(fpath string) {
 	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 		fmt.Printf("%+v\n", tok)
 	}
+	return nil
 }
 
-// parseFile parses the given file
-func parseFile(fpath string, allErrors bool) {
-	program := lexAndParse(fpath, true, allErrors)
-	_, err := io.WriteString(out, program.String())
+// parseFile parses the given file and writes the resulting program to out
+func parseFile(fpath string, allErrors bool) error {
+	program, err := lexAndParse(fpath, true, allErrors)
 	if err != nil {
-		log.Printf("Failed to write string to out parameter, error: %s", err.Error())
+		return err
 	}
-	_, err = io.WriteString(out, "\n")
-	if err != nil {
-		log.Printf("Failed to write string to out parameter, error: %s", err.Error())
+	for _, text := range []string{program.String(), "\n"} {
+		if _, err := io.WriteString(out, text); err != nil {
+			return fmt.Errorf("failed to write program to output: %w", err)
+		}
 	}
+	return nil
 }
 
 // STDIN_ARG is the conventional argument that means read the program from STDIN
@@ -279,20 +286,22 @@ func stdinIsTerminal() bool {
 	return (stat.Mode() & os.ModeCharDevice) != 0
 }
 
-func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) *ast.Program {
+// ErrProgramFailed is returned by Run when an evaluated program failed at
+// runtime; the run itself already printed its error to stderr.
+var ErrProgramFailed = errors.New("blue program exited with an error")
+
+func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) (*ast.Program, error) {
 	var l *lexer.Lexer
 	if inputOrFpath == STDIN_ARG {
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			consts.ErrorPrinter("error trying to read from stdin. error: %s\n", err.Error())
-			os.Exit(1)
+			return nil, failf("error trying to read from stdin: %w", err)
 		}
 		l = lexer.New(string(data), STDIN_NAME)
 	} else if isFpath {
 		data, err := os.ReadFile(inputOrFpath)
 		if err != nil {
-			consts.ErrorPrinter("error trying to read file `%s`. error: %s\n", inputOrFpath, err.Error())
-			os.Exit(1)
+			return nil, failf("error trying to read file `%s`: %w", inputOrFpath, err)
 		}
 		l = lexer.New(string(data), inputOrFpath)
 	} else {
@@ -308,9 +317,9 @@ func lexAndParse(inputOrFpath string, isFpath bool, allErrors bool) *ast.Program
 	program := p.ParseProgram()
 	if p.HasErrors() {
 		p.PrintParserErrors(os.Stderr)
-		os.Exit(1)
+		return nil, fmt.Errorf("%d parser error(s) found", len(p.ErrorMessages()))
 	}
-	return program
+	return program, nil
 }
 
 func newCompiler(isFpath bool, fpath string) *compiler.Compiler {
@@ -329,34 +338,48 @@ func newCompiler(isFpath bool, fpath string) *compiler.Compiler {
 	return c
 }
 
-func compileProgram(c *compiler.Compiler, program *ast.Program) {
+func compileProgram(c *compiler.Compiler, program *ast.Program) error {
 	if err := c.Compile(program); err != nil {
 		errToPrint, _, _ := strings.Cut(err.Error(), "\n"+consts.INTERNAL_ERROR_PATTERN)
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, errToPrint)
 		c.PrintStackTrace()
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
 
-func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) *compiler.Compiler {
-	program := lexAndParse(inputOrFpath, isFpath, allErrors)
+func instantiateCompiler(inputOrFpath string, isFpath bool, allErrors bool) (*compiler.Compiler, error) {
+	program, err := lexAndParse(inputOrFpath, isFpath, allErrors)
+	if err != nil {
+		return nil, err
+	}
 	c := newCompiler(isFpath, inputOrFpath)
-	compileProgram(c, program)
-	return c
+	if err := compileProgram(c, program); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func instantiateCompilerForDoc(fpath string) string {
 	modName := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
-	program := lexAndParse(fpath, true, false)
+	program, err := lexAndParse(fpath, true, false)
+	if err != nil {
+		return ""
+	}
 	c := newCompiler(true, fpath)
 	c.SetDocModName(modName)
-	compileProgram(c, program)
+	if err := compileProgram(c, program); err != nil {
+		return ""
+	}
 	pubFunHelpStr := c.GetDocOrderedPublicFunctionHelpString(modName)
 	return object.CreateHelpStringFromProgramTokens(modName, program.HelpStrTokens, pubFunHelpStr) + "\n"
 }
 
-func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) {
-	c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) error {
+	c, err := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+	if err != nil {
+		return err
+	}
 	offset := 0
 	for i, ins := range c.Bytecode().Instructions {
 		if ins == byte(code.OpCoreCompiled) {
@@ -364,13 +387,16 @@ func compileFileOrString(inputOrFpath string, isFpath bool, allErrors bool) {
 		}
 	}
 	fmt.Print(blueutil.BytecodeDebugStringWithOffset(offset, c.Bytecode().Instructions[offset:], c.Bytecode().Constants))
-	os.Exit(0)
+	return nil
 }
 
 // compileFileOrStringToImage compiles like compileFileOrString and returns
 // the merged program image ready to be encoded into a .bluec container.
 func compileFileOrStringToImage(inputOrFpath string, isFpath bool, allErrors bool) (*bluec.Bytecode, error) {
-	c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+	c, err := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+	if err != nil {
+		return nil, err
+	}
 	bc := c.Bytecode()
 	if idx, err := object.FindUnserializableConstant(bc.Constants); err != nil {
 		return nil, fmt.Errorf("constant %d cannot be stored in a binary image: %w\n%s", idx, err, object.DebugDumpConstants(bc.Constants))
@@ -379,16 +405,15 @@ func compileFileOrStringToImage(inputOrFpath string, isFpath bool, allErrors boo
 }
 
 // saveImageFile encodes an image and writes it to fpath.
-func saveImageFile(bc *bluec.Bytecode, fpath string, noTokens bool) {
+func saveImageFile(bc *bluec.Bytecode, fpath string, noTokens bool) error {
 	data, err := bluec.Encode(bc, bluec.EncodeOptions{NoTokens: noTokens})
 	if err != nil {
-		consts.ErrorPrinter("error encoding `%s`: %s\n", fpath, err.Error())
-		os.Exit(1)
+		return failf("error encoding `%s`: %w", fpath, err)
 	}
 	if err := os.WriteFile(fpath, data, 0o755); err != nil {
-		consts.ErrorPrinter("error trying to write file `%s`. error: %s\n", fpath, err.Error())
-		os.Exit(1)
+		return failf("error trying to write file `%s`: %w", fpath, err)
 	}
+	return nil
 }
 
 // loadImageFile reads a .bluec container from disk. It sniffs the magic so
@@ -425,30 +450,35 @@ func looksLikeImage(inputOrFpath string) bool {
 	return n == len(header) && bluec.SniffMagic(header[:n])
 }
 
-func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult bool) {
+func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult bool) error {
 	var bc *bluec.Bytecode
 	if looksLikeImage(inputOrFpath) {
 		img, err := loadImageFile(inputOrFpath)
 		if err != nil {
-			consts.ErrorPrinter("error loading binary image `%s`:\n%s\n", inputOrFpath, err.Error())
-			os.Exit(1)
+			return failf("error loading binary image `%s`: %w", inputOrFpath, err)
 		}
 		bc = img
 	} else if cached := lookupCachedProgram(inputOrFpath, allErrors); cached != nil {
 		bc = cached
 	} else {
-		c := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+		c, err := instantiateCompiler(inputOrFpath, isFpath, allErrors)
+		if err != nil {
+			return err
+		}
 		storeCachedProgram(c, inputOrFpath, allErrors)
 		bc = c.Bytecode()
 	}
-	runBytecode(bc, noExec, printResult)
+	return runBytecode(bc, noExec, printResult)
 }
 
 // runBytecode runs a program image and handles exit-code/error semantics.
 // It delegates to the shared runner package so the minimal standalone
 // runner behaves identically.
-func runBytecode(bc *bluec.Bytecode, noExec, printResult bool) {
-	os.Exit(runner.RunBytecode(bc, noExec, printResult))
+func runBytecode(bc *bluec.Bytecode, noExec, printResult bool) error {
+	if runner.RunBytecode(bc, noExec, printResult) != 0 {
+		return ErrProgramFailed
+	}
+	return nil
 }
 
 func getBuiltinHelpIfExists(name string) string {

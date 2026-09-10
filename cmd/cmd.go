@@ -114,8 +114,10 @@ BLUE_NO_CACHE                    set to true (or any non empty string) to disabl
 PATH                             add blue to the path variable to access it anywhere. ie. ~/.blue/bin could be added to path with the blue exe inside of it
 `
 
-// Run runs the cmd line parsing of arguments and kicks off blue
-func Run(args ...string) {
+// Run runs the cmd line parsing of arguments and kicks off blue. It returns
+// nil on success and an error when a command failed, so callers (and tests)
+// can observe the outcome without relying on the process exiting.
+func Run(args ...string) error {
 	if os.Getenv(consts.BLUE_NO_COLOR) != "" {
 		color.Disable()
 	}
@@ -127,34 +129,33 @@ func Run(args ...string) {
 		// behavior. If stdin is piped or redirected (not a terminal) then
 		// evaluate it as a program, otherwise start a vm repl.
 		if !stdinIsTerminal() {
-			vmFileOrString(STDIN_ARG, true, false, false, false)
-			os.Exit(0)
+			return vmFileOrString(STDIN_ARG, true, false, false, false)
 		}
-		repl.StartVmRepl()
-		os.Exit(0)
+		return repl.StartVmRepl()
 	}
 	command := strings.ToLower(arguments[0])
 	switch command {
 	case "version", "--version", "-version":
-		handleVersionCommand(argc, arguments)
+		return handleVersionCommand(argc, arguments)
 	case "help", "--help", "-h":
 		printUsage()
+		return nil
 	case "lex":
-		handleLexCommand(argc, arguments)
+		return handleLexCommand(argc, arguments)
 	case "parse":
-		handleParseCommand(argc, arguments)
+		return handleParseCommand(argc, arguments)
 	case "vm", "eval", "-e", "e":
-		handleVmCommand(argc, arguments)
+		return handleVmCommand(argc, arguments)
 	case "compile", "-c", "c":
-		handleCompileCommand(argc, arguments)
+		return handleCompileCommand(argc, arguments)
 	case "doc":
-		handleDocCommand(argc, arguments)
+		return handleDocCommand(argc, arguments)
 	case "install":
-		handleInstallCommand(argc, arguments)
+		return handleInstallCommand(argc, arguments)
 	case "bundle":
-		handleBundleCommand(argc, arguments)
+		return handleBundleCommand(argc, arguments)
 	case "lsp":
-		handleLspCommand(argc, arguments)
+		return handleLspCommand(argc, arguments)
 	default:
 		// Check for flags before the filename
 		fpath := ""
@@ -170,11 +171,9 @@ func Run(args ...string) {
 			}
 		}
 		if fpath == STDIN_ARG || isFile(fpath) {
-			vmFileOrString(fpath, true, noExec, allErrors, false)
-		} else {
-			consts.ErrorPrinter("error: file not found: %s (run 'blue help' for usage)\n", fpath)
-			os.Exit(1)
+			return vmFileOrString(fpath, true, noExec, allErrors, false)
 		}
+		return failf("error: file not found: %s (run 'blue help' for usage)", fpath)
 	}
 }
 
@@ -188,22 +187,30 @@ func formatVersion(full bool) string {
 }
 
 // handleVersionCommand parses `blue version` flags and prints the version.
-func handleVersionCommand(argc int, arguments []string) {
+func handleVersionCommand(argc int, arguments []string) error {
+	full, err := parseVersionArgs(arguments)
+	if err != nil {
+		return failf("%s", err.Error())
+	}
+	fmt.Println(formatVersion(full))
+	return nil
+}
+
+// parseVersionArgs extracts the --full flag from `blue version` arguments.
+func parseVersionArgs(arguments []string) (bool, error) {
 	full := false
 	for _, arg := range arguments[1:] {
 		switch arg {
 		case "--full":
 			full = true
 		default:
-			consts.ErrorPrinter("unexpected `version` argument. got=%s\n", arg)
-			os.Exit(1)
+			return false, fmt.Errorf("unexpected `version` argument. got=%s", arg)
 		}
 	}
-	if argc > 2 {
-		consts.ErrorPrinter("unexpected `version` arguments. got=%+v\n", arguments)
-		os.Exit(1)
+	if len(arguments) > 2 {
+		return false, fmt.Errorf("unexpected `version` arguments. got=%+v", arguments)
 	}
-	fmt.Println(formatVersion(full))
+	return full, nil
 }
 
 // printUsage prints the USAGE string
@@ -211,25 +218,23 @@ func printUsage() {
 	_, _ = os.Stdout.WriteString(USAGE)
 }
 
-func handleLexCommand(argc int, arguments []string) {
+func handleLexCommand(argc int, arguments []string) error {
 	if argc == 1 {
-		repl.StartLexerRepl()
-	} else {
-		// Check if the file exists and if so, run the lexer on it
-		fpath := arguments[1]
-		if fpath == STDIN_ARG || isFile(fpath) {
-			lexFile(fpath)
-		} else {
-			consts.ErrorPrinter("`lex` command expects valid file as argument. got=%s\n", fpath)
-			os.Exit(1)
-		}
+		return repl.StartLexerRepl()
 	}
+	// Check if the file exists and if so, run the lexer on it
+	fpath := arguments[1]
+	if fpath == STDIN_ARG || isFile(fpath) {
+		return lexFile(fpath)
+	}
+	return failf("`lex` command expects valid file as argument. got=%s", fpath)
 }
 
-func handleParseCommand(argc int, arguments []string) {
+func handleParseCommand(argc int, arguments []string) error {
 	if argc == 1 {
-		repl.StartParserRepl()
-	} else {
+		return repl.StartParserRepl()
+	}
+	{
 		// Check if the file exists and if so, run the parser on it
 		fpath := ""
 		allErrors := false
@@ -241,23 +246,20 @@ func handleParseCommand(argc int, arguments []string) {
 			}
 		}
 		if fpath == STDIN_ARG || isFile(fpath) {
-			parseFile(fpath, allErrors)
-		} else {
-			consts.ErrorPrinter("`parse` command expects valid file as argument. got=%s\n", fpath)
-			os.Exit(1)
+			return parseFile(fpath, allErrors)
 		}
+		return failf("`parse` command expects valid file as argument. got=%s", fpath)
 	}
 }
 
-func handleVmCommand(argc int, arguments []string) {
+func handleVmCommand(argc int, arguments []string) error {
 	switch argc {
 	case 1:
 		if !stdinIsTerminal() {
 			// stdin is piped or redirected so evaluate it as a program
-			vmFileOrString(STDIN_ARG, true, false, false, true)
-			return
+			return vmFileOrString(STDIN_ARG, true, false, false, true)
 		}
-		repl.StartVmRepl()
+		return repl.StartVmRepl()
 	case 2, 3:
 		strToEval := ""
 		flagNoExec := false
@@ -272,17 +274,15 @@ func handleVmCommand(argc int, arguments []string) {
 				strToEval = arg
 			}
 		}
-		vmFileOrString(strToEval, strToEval == STDIN_ARG || isFile(strToEval), flagNoExec, allErrors, true)
+		return vmFileOrString(strToEval, strToEval == STDIN_ARG || isFile(strToEval), flagNoExec, allErrors, true)
 	default:
-		consts.ErrorPrinter("unexpected `vm` arguments. got=%+v\n", arguments)
-		os.Exit(1)
+		return failf("unexpected `vm` arguments. got=%+v", arguments)
 	}
 }
 
-func handleCompileCommand(argc int, arguments []string) {
+func handleCompileCommand(argc int, arguments []string) error {
 	if argc < 2 || argc > 6 {
-		consts.ErrorPrinter("unexpected `compile` arguments. got=%+v\n", arguments)
-		os.Exit(1)
+		return failf("unexpected `compile` arguments. got=%+v", arguments)
 	}
 	strToEval := ""
 	allErrors := false
@@ -296,8 +296,7 @@ func handleCompileCommand(argc int, arguments []string) {
 			noTokens = true
 		case "-o":
 			if i+2 >= argc {
-				consts.ErrorPrinter("`compile` flag -o requires a file path\n")
-				os.Exit(1)
+				return failf("`compile` flag -o requires a file path")
 			}
 			outPath = arguments[i+2]
 		default:
@@ -310,15 +309,14 @@ func handleCompileCommand(argc int, arguments []string) {
 	isFpath := strToEval == STDIN_ARG || isFile(strToEval)
 	if outPath == "" {
 		// Keep the historical debug-print behavior when no -o is given
-		compileFileOrString(strToEval, isFpath, allErrors)
-		return
+		return compileFileOrString(strToEval, isFpath, allErrors)
 	}
 	bc, err := compileFileOrStringToImage(strToEval, isFpath, allErrors)
 	if err != nil {
 		consts.ErrorPrinter("%s%s\n", consts.COMPILER_ERROR_PREFIX, err.Error())
-		os.Exit(1)
+		return err
 	}
-	saveImageFile(bc, outPath, noTokens)
+	return saveImageFile(bc, outPath, noTokens)
 }
 
 // bundleOptions is the parsed form of `blue bundle` arguments.
@@ -371,20 +369,19 @@ func parseBundleArgs(argc int, arguments []string) (bundleOptions, error) {
 	return opts, nil
 }
 
-func handleBundleCommand(argc int, arguments []string) {
+func handleBundleCommand(argc int, arguments []string) error {
 	opts, err := parseBundleArgs(argc, arguments)
 	if err != nil {
-		consts.ErrorPrinter("%s\n", err.Error())
-		os.Exit(1)
+		return failf("%s", err.Error())
 	}
-	bundleProgram(opts.fpath, opts.outPath, opts.allErrors, opts.usePrebuilt)
+	return bundleProgram(opts.fpath, opts.outPath, opts.allErrors, opts.usePrebuilt)
 }
 
-func handleDocCommand(argc int, arguments []string) {
+func handleDocCommand(argc int, arguments []string) error {
 	if argc != 2 {
-		consts.ErrorPrinter("unexpected `doc` arguments. got=%+v\n", arguments)
-		os.Exit(1)
+		return failf("unexpected `doc` arguments. got=%+v", arguments)
 	}
 	name := arguments[1]
 	fmt.Print(getDocStringFor(name))
+	return nil
 }

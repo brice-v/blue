@@ -14,25 +14,30 @@ import (
 // handleLspCommand starts a Language Server Protocol server for editor
 // integration. Without --addr it speaks the protocol over stdin and stdout,
 // which is how editors launch language servers.
-func handleLspCommand(argc int, arguments []string) {
+// parseLspArgs extracts the LSP options from `blue lsp` arguments.
+func parseLspArgs(args []string) (lsp.Options, error) {
 	opts := lsp.Options{}
-	args := arguments[1:]
-
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--addr":
 			if i+1 >= len(args) {
-				consts.ErrorPrinter("error: `lsp --addr` requires a host:port value\n")
-				os.Exit(1)
+				return lsp.Options{}, fmt.Errorf("`lsp --addr` requires a host:port value")
 			}
 			opts.Addr = args[i+1]
 			i++
 		case "--trace":
 			opts.Trace = true
 		default:
-			consts.ErrorPrinter("unexpected `lsp` argument. got=%s\n", args[i])
-			os.Exit(1)
+			return lsp.Options{}, fmt.Errorf("unexpected `lsp` argument. got=%s", args[i])
 		}
+	}
+	return opts, nil
+}
+
+func handleLspCommand(argc int, arguments []string) error {
+	opts, err := parseLspArgs(arguments[1:])
+	if err != nil {
+		return failf("error: %s", err.Error())
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -46,6 +51,7 @@ func handleLspCommand(argc int, arguments []string) {
 
 	if err := lsp.Run(ctx, opts); err != nil && ctx.Err() == nil {
 		consts.ErrorPrinter("language server error: %s\n", err.Error())
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
