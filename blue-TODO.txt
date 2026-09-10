@@ -1,5 +1,8 @@
 TODO:
 
+- [ ] Update all cli commands to return error so it can be properly tested
+- [ ] Fix doc command so that I can do something like `blue doc math.rand`
+- [ ] Fix LSP so its able to get doc information from functions on dot call
 - [ ] Implement: b"" for quick conversion to bytes
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
