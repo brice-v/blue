@@ -37,6 +37,16 @@ func builtinHelp(name string) (*object.Builtin, bool) {
 	return b, ok
 }
 
+// looseBuiltinHelp finds a builtin by its plain name, trying the underscore variants first. blue wraps go builtins behind such names (`_acos`) and modules alias them without the underscores, so `acos` on a dot call still means that builtin.
+func looseBuiltinHelp(name string) (*object.Builtin, bool) {
+	for _, candidate := range []string{"_" + name, "__" + name, name} {
+		if b, ok := builtinHelp(candidate); ok {
+			return b, true
+		}
+	}
+	return nil, false
+}
+
 // isBuiltinName reports whether a bare identifier is a builtin in any group.
 func isBuiltinName(name string) bool {
 	_, ok := builtinHelp(name)

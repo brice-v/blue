@@ -111,6 +111,36 @@ func TestHoverDocstringRules(t *testing.T) {
 	}
 }
 
+// A dot call on a plain value compiles as the bare function or builtin of that
+// name with the value passed as first argument, so hovering it must show that
+// name's docs, not the receiver's.
+func TestHoverDotCallOnValue(t *testing.T) {
+	text := "val s = \"abc\"\nfun twice(x) {\n\tx * 2\n}\nprint(s.len())\nprint(21.twice())\n"
+	s, uri := openDoc(t, text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 4, "len"))
+	if !ok {
+		t.Fatalf("hover over s.len() returned nothing")
+	}
+	if !strings.Contains(got, "returns the INTEGER length") {
+		t.Errorf("hover = %q, want the builtin len's help text", got)
+	}
+
+	got2, ok := hoverValue(hoverAt(t, s, uri, text, 5, "twice"))
+	if !ok {
+		t.Fatalf("hover over 21.twice() returned nothing")
+	}
+	if !strings.Contains(got2, "fun twice(x)") {
+		t.Errorf("hover = %q, want the local function's declaration", got2)
+	}
+
+	text2 := "val m = {a: 1}\nprint(m.a)\n"
+	s2, uri2 := openDoc(t, text2)
+	if res := hoverAt(t, s2, uri2, text2, 1, "a"); res != nil {
+		t.Errorf("hover over a bare index access returned %v, want nil", res)
+	}
+}
+
 // Nothing may be invented: unknown names and members blue does not have get no
 // hover at all.
 func TestHoverUnknown(t *testing.T) {

@@ -507,6 +507,26 @@ func getBuiltinHelpIfExists(name string) string {
 	return out.String()
 }
 
+// docFilePath resolves a plain file or module name to an existing source file, first as given and then with a .b extension appended, which is the convention for local modules (`blue doc foo` meaning `foo.b`).
+func docFilePath(name string) string {
+	if isFile(name) {
+		return name
+	}
+	if isFile(name + ".b") {
+		return name + ".b"
+	}
+	return ""
+}
+
+// cutModuleMember splits a dotted reference into its module and member parts, as in `math.rand` or `./sub/mod.b.pi`.
+func cutModuleMember(name string) (string, string, bool) {
+	i := strings.LastIndex(name, ".")
+	if i <= 0 || i == len(name)-1 {
+		return "", "", false
+	}
+	return name[:i], name[i+1:], true
+}
+
 func getDocStringFor(name string) string {
 	builtinHelpStr := getBuiltinHelpIfExists(name)
 	if builtinHelpStr != "" {
@@ -529,8 +549,59 @@ func getDocStringFor(name string) string {
 		c := compiler.NewFromCore()
 		return c.GetStdModuleDocString(name)
 	}
-	if isFile(name) {
-		return instantiateCompilerForDoc(name)
+	if fpath := docFilePath(name); fpath != "" {
+		return instantiateCompilerForDoc(fpath)
+	}
+
+	if modName, member, ok := cutModuleMember(name); ok {
+		return getDocStringForModuleMember(modName, member)
 	}
 	return ""
+}
+
+// stdModuleMemberDoc prints the documentation of one public function of a std module. The function's own `##` docs win; a plain alias to a builtin such as `val acos = _acos;` falls back to that builtin's help text, which is what shows up in blue at runtime anyway.
+func stdModuleMemberDoc(modName string, member string) string {
+	c := compiler.NewFromCore()
+	if err := c.CompileStdModule(modName, nil, false); err != nil {
+		return ""
+	}
+	if helpStr := c.GetCompiledFunctionHelpString(modName + "." + member); helpStr != "" {
+		return helpStr + "\n"
+	}
+	_, builtins := object.GetIndexAndBuiltinsOf(modName)
+	for _, b := range builtins {
+		if b == nil || b.Name == "" {
+			continue
+		}
+		if b.Name == member || strings.TrimLeft(b.Name, "_") == member {
+			return b.HelpStr + "\n"
+		}
+	}
+	return ""
+}
+
+// getDocStringForModuleMember prints the documentation of one function inside a module, given the two halves of a `module.function` reference like `math.rand`. Local modules are plain .b files reached through their path; standard library modules compile from blue's embedded sources.
+func getDocStringForModuleMember(modName string, member string) string {
+	if compiler.IsStd(modName) {
+		return stdModuleMemberDoc(modName, member)
+	}
+	fpath := docFilePath(modName)
+	if fpath == "" {
+		return ""
+	}
+	modBase := strings.ReplaceAll(filepath.Base(fpath), ".b", "")
+	program, err := lexAndParse(fpath, true, false)
+	if err != nil {
+		return ""
+	}
+	c := newCompiler(true, fpath)
+	c.SetDocModName(modBase)
+	if err := compileProgram(c, program); err != nil {
+		return ""
+	}
+	helpStr := c.GetCompiledFunctionHelpString(modBase + "." + member)
+	if helpStr == "" {
+		return ""
+	}
+	return helpStr + "\n"
 }

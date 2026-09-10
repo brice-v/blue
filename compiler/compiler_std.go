@@ -61,6 +61,15 @@ func StdModuleSource(name string) (string, bool) {
 	return fb.File, true
 }
 
+// GetCompiledFunctionHelpString returns the help string the symbol table stored for a single top level function by its full name such as `math.rand`, or an empty string when the compile produced none for it. Aliases to builtins such as `val acos = _acos;` have no help of their own and so yield an empty string too.
+func (c *Compiler) GetCompiledFunctionHelpString(name string) string {
+	sym, ok := c.symbolTable.Resolve(name)
+	if !ok || sym.HelpStr == "" {
+		return ""
+	}
+	return sym.HelpStr
+}
+
 func (c *Compiler) GetStdModuleDocString(name string) string {
 	if err := c.CompileStdModule(name, nil, false); err != nil {
 		return ""

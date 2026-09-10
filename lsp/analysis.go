@@ -11,6 +11,20 @@ import (
 	"blue/parser"
 )
 
+// dotCallFollows reports whether an opening parenthesis follows an offset, which is what turns `value.name` into a call of the plain function or builtin name with the value as first argument. blue compiles such calls exactly that way, so the docs to show are the ones of that name alone.
+func dotCallFollows(src *docSource, offset int) bool {
+	i := offset
+	for i < len(src.runes) {
+		r := src.runes[i]
+		if r == ' ' || r == '\t' || r == '\n' {
+			i++
+			continue
+		}
+		return r == '('
+	}
+	return false
+}
+
 // maxWorkspaceFiles caps how many files a workspace wide search walks so a huge
 // directory cannot stall the editor.
 const maxWorkspaceFiles = 400
@@ -309,14 +323,22 @@ func (s *session) hover(p textDocumentHoverParams) any {
 	// `module.member` references explain the member inside the module.
 	if c.module != "" {
 		entry, found := s.resolveModuleEntry(c, c.module)
-		if !found || entry == nil {
-			return nil
+		if found && entry != nil {
+			value := moduleMemberMarkdown(entry, c.module, word)
+			if value == "" {
+				return nil
+			}
+			return &hoverResult{Contents: markupContent{Kind: hoverMarkdown, Value: value}, Range: wordRange}
 		}
-		value := moduleMemberMarkdown(entry, c.module, word)
-		if value == "" {
-			return nil
+		// A dot call on a plain value resolves its name in scope the way a bare call does, so only when a call follows do those names explain it. A bare `map.key` index has no docs to show here.
+		end := c.tok.end
+		if end == 0 {
+			end = c.offset
 		}
-		return &hoverResult{Contents: markupContent{Kind: hoverMarkdown, Value: value}, Range: wordRange}
+		if dotCallFollows(c.src, end) {
+			return s.dotCallHover(c, word)
+		}
+		return nil
 	}
 
 	// Builtins such as `println` or `type_of`.
@@ -336,6 +358,27 @@ func (s *session) hover(p textDocumentHoverParams) any {
 		Contents: markupContent{Kind: hoverMarkdown, Value: declarationMarkdown(c.src.runes, decl)},
 		Range:    wordRange,
 	}
+}
+
+// dotCallHover explains `value.name` when blue cannot tell that value is a module. It looks up name as a plain function or builtin first, which is what such a call compiles to: the receiver simply becomes the first argument.
+func (s *session) dotCallHover(c editContext, word string) any {
+	wordRange := &rangeStruct{Start: c.src.positionOf(c.tok.start), End: c.src.positionOf(c.tok.end)}
+
+	// A local declaration of that name wins over a builtin, exactly like the bare-name hover below does.
+	decl := c.index.definitionFor(word, c.offset)
+	if decl != nil {
+		return &hoverResult{
+			Contents: markupContent{Kind: hoverMarkdown, Value: declarationMarkdown(c.src.runes, decl)},
+			Range:    wordRange,
+		}
+	}
+	if b, found := looseBuiltinHelp(word); found && strings.TrimSpace(b.HelpStr) != "" {
+		return &hoverResult{
+			Contents: markupContent{Kind: hoverMarkdown, Value: "```blue\n" + strings.TrimSpace(b.HelpStr) + "\n```"},
+			Range:    wordRange,
+		}
+	}
+	return nil
 }
 
 // declarationMarkdown renders a declaration of the current buffer for hover.
@@ -462,20 +505,21 @@ func (s *session) definition(p textDocumentPositionParams) any {
 		return nil
 	}
 
-	// `module.member` jumps into the module's file when it has one.
+	// `module.member` jumps into the module's file when it has one. When the
+	// receiver is not a resolvable module, such as a dot call on a plain value,
+	// the name resolves in this buffer instead so the fallthrough below handles it.
 	if c.module != "" {
 		entry, found := s.resolveModuleEntry(c, c.module)
-		if !found || entry == nil || entry.path == "" {
-			return nil
+		if found && entry != nil && entry.path != "" {
+			decl := entry.ix.definitionFor(word, 0)
+			if decl == nil {
+				return nil
+			}
+			return []location{{
+				URI:   pathToURI(entry.path),
+				Range: rangeStruct{Start: entry.src.positionOf(decl.nameStart), End: entry.src.positionOf(decl.nameEnd)},
+			}}
 		}
-		decl := entry.ix.definitionFor(word, 0)
-		if decl == nil {
-			return nil
-		}
-		return []location{{
-			URI:   pathToURI(entry.path),
-			Range: rangeStruct{Start: entry.src.positionOf(decl.nameStart), End: entry.src.positionOf(decl.nameEnd)},
-		}}
 	}
 
 	if decl := c.index.definitionFor(word, c.offset); decl != nil {

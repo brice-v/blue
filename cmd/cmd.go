@@ -382,6 +382,10 @@ func handleDocCommand(argc int, arguments []string) error {
 		return failf("unexpected `doc` arguments. got=%+v", arguments)
 	}
 	name := arguments[1]
-	fmt.Print(getDocStringFor(name))
+	docStr := getDocStringFor(name)
+	if docStr == "" {
+		return failf("no documentation found for `%s`", name)
+	}
+	fmt.Print(docStr)
 	return nil
 }

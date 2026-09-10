@@ -109,6 +109,37 @@ func TestCompletionModuleMembers(t *testing.T) {
 	}
 }
 
+// After `<value>.` where value is not a module, blue resolves the name as a
+// bare call with the value as first argument, so local functions and core
+// builtins are what completion may offer there.
+func TestCompletionDotCallOnValue(t *testing.T) {
+	text := "val s = \"abc\"\n## doubles its argument\nfun twice(x) {\n\tx * 2\n}\ns."
+	s, uri := openDoc(t, text)
+
+	res := s.completion(completionParams{TextDocument: textDocumentIdentifier{URI: uri}, Position: position{Line: 5, Character: 3}})
+	list, ok := res.(*completionList)
+	if !ok {
+		t.Fatalf("completion returned %T", res)
+	}
+
+	if !hasLabel(list, "twice") {
+		t.Errorf("local function twice missing from dot call candidates: %v", labelItems(list))
+	}
+	if !hasLabel(list, "len") {
+		t.Errorf("core builtin len missing from dot call candidates: %v", labelItems(list))
+	}
+
+	item, _ := findLabel(list, "twice")
+	if item.Documentation == nil || item.InsertText == "" {
+		t.Errorf("dot call candidate twice lost its docs or insert text: %+v", item)
+	}
+
+	// A module that was never imported must not leak members into a dot call on a value.
+	if hasLabel(list, "acos") {
+		t.Errorf("unimported std member acos offered in a plain dot call: %v", labelItems(list))
+	}
+}
+
 // An import statement offers the modules that can actually be imported.
 func TestCompletionImportCandidates(t *testing.T) {
 	s, uri := openDoc(t, "import ma")

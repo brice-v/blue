@@ -106,18 +106,19 @@ func (s *session) completion(p completionParams) any {
 
 	// Member access after a dot. Modules get their own member list. A plain
 	// value's members depend on its runtime type, which blue does not know at
-	// this point, so the core builtins are offered instead of nothing.
+	// this point, so the local functions and the core builtins are offered instead of nothing.
 	if c.module != "" {
 		entry, found := s.resolveModuleEntry(c, c.module)
 		if found && entry != nil {
 			b.addModuleMembers(entry)
 		} else {
+			b.addBufferDecls(c, true)
 			b.addBuiltinGroup("core")
 		}
 		return b.list()
 	}
 
-	b.addBufferDecls(c)
+	b.addBufferDecls(c, false)
 	b.addBuiltinGroup("core")
 	b.addImportedModules(c)
 	for _, word := range token.Keywords() {
@@ -214,10 +215,14 @@ func callInsertText(name string, params []string, snippets bool) string {
 }
 
 // addBufferDecls offers the names bound in the current buffer. Names already in
-// scope (declared above the cursor) rank ahead of everything else.
-func (b *completionBuilder) addBufferDecls(c editContext) {
+// scope (declared above the cursor) rank ahead of everything else. Dot calls on
+// a plain value only resolve to functions, so functionsOnly trims the rest out.
+func (b *completionBuilder) addBufferDecls(c editContext, functionsOnly bool) {
 	for _, d := range c.index.decls {
 		if d.kind == declParam || d.kind == declLoopVar || d.kind == declCatchVar {
+			continue
+		}
+		if functionsOnly && d.kind != declFunction {
 			continue
 		}
 		if b.seen(d.name) || !b.matches(d.name) {
@@ -237,6 +242,9 @@ func (b *completionBuilder) addBufferDecls(c editContext) {
 			if b.snippets {
 				item.InsertTextFormat = completionSnippet
 			}
+		}
+		if d.doc != "" {
+			item.Documentation = &markupContent{Kind: hoverMarkdown, Value: d.doc}
 		}
 		b.add(item)
 	}
