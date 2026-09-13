@@ -382,15 +382,16 @@ func (s *session) dotCallHover(c editContext, word string) any {
 }
 
 // declarationMarkdown renders a declaration of the current buffer for hover.
+// Its docstring reads first, then the signature, the way a builtin's help does.
 func declarationMarkdown(runes []rune, d *declaration) string {
 	var b strings.Builder
+	if d.doc != "" {
+		b.WriteString(d.doc)
+		b.WriteString("\n\n")
+	}
 	b.WriteString("```blue\n")
 	b.WriteString(declarationSignature(runes, d))
 	b.WriteString("\n```")
-	if d.doc != "" {
-		b.WriteString("\n\n")
-		b.WriteString(d.doc)
-	}
 	return b.String()
 }
 
@@ -404,6 +405,10 @@ func declarationSignature(runes []rune, d *declaration) string {
 	text = strings.TrimRight(text, "{ \t\n")
 
 	switch d.kind {
+	case declFunction:
+		// Show just the header, the way a builtin's help shows only its
+		// signature, instead of the whole body.
+		return "fun " + d.name + d.detail
 	case declVariable:
 		return text
 	case declConstant:
@@ -428,27 +433,48 @@ func moduleMemberMarkdown(entry *moduleEntry, moduleName string, member string) 
 	var b strings.Builder
 	fmt.Fprintf(&b, "**module** `%s`\n\n", moduleName)
 
+	wrote := false
 	decl := index.definitionFor(member, 0)
 	if decl != nil {
+		// The docs read first, then the signature code sample, the way a
+		// builtin's help text puts its explanation above the Signature line.
+		if decl.doc != "" {
+			b.WriteString(decl.doc)
+			b.WriteString("\n\n")
+		}
 		b.WriteString("```blue\n")
 		b.WriteString(declarationSignature(entry.src.runes, decl))
 		b.WriteString("\n```")
-		if decl.doc != "" {
-			b.WriteString("\n\n")
-			b.WriteString(decl.doc)
+		// A wrapper such as `color.style` also shows the builtin behind it,
+		// which is where the real signature and examples live.
+		for _, builtin := range wrappedBuiltins(index, decl) {
+			writeHelpBlock(&b, builtin.HelpStr)
 		}
-	} else if target := aliasedBuiltin(entry.src.runes, index, member); target == "" {
-		return ""
+		wrote = true
 	}
 
 	if target := aliasedBuiltin(entry.src.runes, index, member); target != "" {
-		if builtin, ok := builtinHelp(target); ok && strings.TrimSpace(builtin.HelpStr) != "" {
-			b.WriteString("\n\n```blue\n")
-			b.WriteString(strings.TrimSpace(builtin.HelpStr))
-			b.WriteString("\n```")
+		if builtin, ok := builtinHelp(target); ok {
+			writeHelpBlock(&b, builtin.HelpStr)
+			wrote = true
 		}
 	}
+	if !wrote {
+		return ""
+	}
 	return b.String()
+}
+
+// writeHelpBlock appends a builtin's help text as a fenced blue block, which is
+// how hover shows builtins themselves.
+func writeHelpBlock(b *strings.Builder, help string) {
+	help = strings.TrimSpace(help)
+	if help == "" {
+		return
+	}
+	b.WriteString("\n\n```blue\n")
+	b.WriteString(help)
+	b.WriteString("\n```")
 }
 
 // aliasedBuiltin finds the builtin a module level name simply wraps, such as the

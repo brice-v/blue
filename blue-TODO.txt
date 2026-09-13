@@ -1,6 +1,5 @@
 TODO:
 
-- [ ] Strip ##this... part from docs, also put doc string above code sample, make it look more like builtin
 - [ ] Implement: b"" for quick conversion to bytes
 - [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
 - [ ] Add tests to test_dunder_fun for += and associated functions
@@ -737,3 +736,7 @@ COMPLETED TASKS:
 - [x] Update all cli commands to return error so it can be properly tested
 - [x] Fix doc command so that I can do something like `blue doc math.rand`
 - [x] Fix LSP so its able to get doc information from functions on dot call
+- [x] Strip ##this... part from docs, also put doc string above code sample, make it look more like builtin
+    - The LSP docstring collector now drops compiler help directives such as `std:this,__style`.
+    - Module member hover shows the docstring above the signature and uses the function header instead of its body.
+    - Wrapped functions also show the builtin they delegate to, the way the `blue doc` command does.

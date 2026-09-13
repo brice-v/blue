@@ -53,6 +53,47 @@ func isBuiltinName(name string) bool {
 	return ok
 }
 
+// wrappedBuiltins returns the go builtins a module function wraps through its
+// help directive, such as `std:this,__style` meaning "my own docs plus
+// _style's help". The leading underscore is trimmed the way the compiler trims
+// it, and `this` is skipped because that part is the function's own docs.
+func wrappedBuiltins(index *fileIndex, d *declaration) []*object.Builtin {
+	if d == nil || d.kind != declFunction || d.bodyOpen < 0 || d.bodyOpen >= len(index.tokens) {
+		return nil
+	}
+	for i := d.bodyOpen + 1; i < len(index.tokens); i++ {
+		t := index.tokens[i]
+		if t.kind != kComment {
+			break
+		}
+		body := strings.TrimSpace(commentBody(t.text))
+		var rest string
+		switch {
+		case strings.HasPrefix(body, "std:"):
+			rest = strings.TrimPrefix(body, "std:")
+		case strings.HasPrefix(body, "core:"):
+			rest = strings.TrimPrefix(body, "core:")
+		default:
+			continue
+		}
+		var out []*object.Builtin
+		for _, name := range strings.Split(rest, ",") {
+			name = strings.TrimSpace(name)
+			if name == "" || name == "this" {
+				continue
+			}
+			if strings.HasPrefix(name, "__") {
+				name = name[1:]
+			}
+			if b, ok := builtinHelp(name); ok {
+				out = append(out, b)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
 // stdModuleNames are the modules of blue's standard library.
 func stdModuleNames() []string { return compiler.StdModuleNames() }
 

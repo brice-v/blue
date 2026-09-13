@@ -209,6 +209,44 @@ val undoc = 1
 	}
 }
 
+// A compiler directive such as `std:this,__style` steers how blue builds help
+// text, so it must never show up in a docstring. The blank `##` line that
+// separates a description from its signature is worth keeping because it makes
+// the docs read like a builtin's help.
+func TestIndexDocstringsStripHelpDirectives(t *testing.T) {
+	index := buildTestIndex(t, `fun style(text=normal) {
+	##std:this,__style
+	## `+"`style`"+` does style things
+	##
+	## style(text) -> str
+	__style(text)
+}
+`)
+
+	doc := declNamed(index, "style").doc
+	if strings.Contains(doc, "std:this") || strings.Contains(doc, "__style") {
+		t.Errorf("doc = %q, want the compiler directive stripped", doc)
+	}
+	want := "`style` does style things\n\nstyle(text) -> str"
+	if doc != want {
+		t.Errorf("doc = %q, want %q", doc, want)
+	}
+}
+
+// The help directive names the builtins a function wraps, and the compiler
+// trims one leading underscore before looking each one up.
+func TestWrappedBuiltins(t *testing.T) {
+	index := buildTestIndex(t, "fun fancy(x) {\n\t##std:this,__style,__bold\n\t__style(x)\n}\nfun plain(x) { x }\n")
+
+	got := wrappedBuiltins(index, declNamed(index, "fancy"))
+	if len(got) != 2 || got[0].Name != "_style" || got[1].Name != "_bold" {
+		t.Errorf("wrappedBuiltins(fancy) = %+v, want _style and _bold", got)
+	}
+	if got := wrappedBuiltins(index, declNamed(index, "plain")); len(got) != 0 {
+		t.Errorf("wrappedBuiltins(plain) = %+v, want none", got)
+	}
+}
+
 // Definition lookup only sees bindings declared before the cursor, which is what
 // makes hover and completion agree with blue's own scoping.
 func TestIndexDefinitionFor(t *testing.T) {

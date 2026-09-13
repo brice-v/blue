@@ -141,6 +141,56 @@ func TestHoverDotCallOnValue(t *testing.T) {
 	}
 }
 
+// A module member's hover shows its docstring above the signature, the way a
+// builtin's help does, and never leaks compiler directives such as
+// `std:this,__style` into the docs.
+func TestHoverModuleMemberDocs(t *testing.T) {
+	text := "import color\nprint(color.style)\n"
+	s, uri := openDoc(t, text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 1, "style"))
+	if !ok {
+		t.Fatalf("hover over color.style returned nothing")
+	}
+	if strings.Contains(got, "std:this") {
+		t.Errorf("hover leaked the help directive: %q", got)
+	}
+	if !strings.Contains(got, "takes a text style") {
+		t.Errorf("hover = %q, want the member's own docs", got)
+	}
+	docAt := strings.Index(got, "takes a text style")
+	codeAt := strings.Index(got, "```blue")
+	if docAt < 0 || codeAt < 0 || docAt > codeAt {
+		t.Errorf("hover = %q, want the docstring above the signature code sample", got)
+	}
+	if !strings.Contains(got, "fun style(text=normal, fg_color=normal, bg_color=normal)") {
+		t.Errorf("hover = %q, want the function header as the signature", got)
+	}
+	if strings.Contains(got, "__style(text, fg_color, bg_color)") {
+		t.Errorf("hover = %q, want the body left out of the signature", got)
+	}
+
+	if !strings.Contains(got, "Signature:  style(") || !strings.Contains(got, "Example(s):") {
+		t.Errorf("hover = %q, want the wrapped builtin's help text", got)
+	}
+
+	text2 := "import math\nprint(math.rand)\n"
+	s2, uri2 := openDoc(t, text2)
+	got2, ok := hoverValue(hoverAt(t, s2, uri2, text2, 1, "rand"))
+	if !ok {
+		t.Fatalf("hover over math.rand returned nothing")
+	}
+	if !strings.Contains(got2, "`rand` returns a random float") || !strings.Contains(got2, "rand() -> float") {
+		t.Errorf("hover = %q, want the member's docs with their signature", got2)
+	}
+	if strings.Contains(got2, "__rand()") {
+		t.Errorf("hover = %q, want the body left out", got2)
+	}
+	if strings.Index(got2, "`rand` returns") > strings.Index(got2, "```blue") {
+		t.Errorf("hover = %q, want the docstring above the signature code sample", got2)
+	}
+}
+
 // Nothing may be invented: unknown names and members blue does not have get no
 // hover at all.
 func TestHoverUnknown(t *testing.T) {

@@ -232,12 +232,29 @@ func docstringFor(rs []rune, tokens []scanToken, declStart int, bodyOpenTok int)
 
 	picked := []string{}
 	for _, l := range lines {
-		if strings.TrimSpace(l) == "" {
+		// Compiler directives such as `std:this,__style` steer how blue
+		// assembles help text and are not prose, so they never belong in a
+		// docstring a reader sees.
+		if isHelpDirective(strings.TrimSpace(l)) {
 			continue
 		}
 		picked = append(picked, l)
 	}
+	// Blank `##` lines separate a description from its signature, so keep the
+	// ones between text but drop any that pad the docstring's ends.
+	for len(picked) > 0 && strings.TrimSpace(picked[0]) == "" {
+		picked = picked[1:]
+	}
+	for len(picked) > 0 && strings.TrimSpace(picked[len(picked)-1]) == "" {
+		picked = picked[:len(picked)-1]
+	}
 	return strings.Join(picked, "\n")
+}
+
+// isHelpDirective reports whether a docstring line is one of blue's compiler
+// help directives, like `std:this,__style` or `core:ignore`.
+func isHelpDirective(line string) bool {
+	return strings.HasPrefix(line, "std:") || strings.HasPrefix(line, "core:")
 }
 
 // commentBody strips the leading comment markers from a comment token so the
