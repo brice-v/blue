@@ -589,6 +589,11 @@ type Builtin struct {
 	HelpStr string
 
 	Mutates bool // Mutates signifies whether this function can mutate its arguments
+
+	// OverrideDunder names the dunder a map may define to take over this
+	// builtin. When set and the first argument is such a map, the vm calls the
+	// map's `__get`/`__len` function instead, so `for in` can be customized.
+	OverrideDunder DunderType
 }
 
 // Type returns the BUILTIN_OBJ type string

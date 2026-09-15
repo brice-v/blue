@@ -1,9 +1,6 @@
 TODO:
 
 - [ ] Implement: b"" for quick conversion to bytes
-- [ ] Support _get_ as overrideable dunder method so that for in can work as custom function
-- [ ] Add tests to test_dunder_fun for += and associated functions
-- [ ] Potentially Optimize new match arms conds, if first is true skip second
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
@@ -740,3 +737,10 @@ COMPLETED TASKS:
     - The LSP docstring collector now drops compiler help directives such as `std:this,__style`.
     - Module member hover shows the docstring above the signature and uses the function header instead of its body.
     - Wrapped functions also show the builtin they delegate to, the way the `blue doc` command does.
+- [x] Support _get_ as overrideable dunder method so that for in can work as custom function
+    - A map that defines `__get` takes over the `_get_` builtin, and one that defines `__len` takes over `len`, so `for in` can iterate a custom object. Both are only used when the value is a map holding a closure under that key.
+    - Covered by b_test_programs/test_dunder_get.b.
+- [x] Add tests to test_dunder_fun for += and associated functions
+    - Every augmented assignment operator is exercised at the end of b_test_programs/test_dunder_fun.b.
+- [x] Potentially Optimize new match arms conds, if first is true skip second
+    - Multi-condition arms now compile their consequence once and jump to it from the first true condition, instead of emitting a copy per condition. Covered by b_test_programs/test_match_short_circuit.b.

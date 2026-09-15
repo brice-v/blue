@@ -23,6 +23,8 @@ const (
 	DunderNotEq
 	DunderGt
 	DunderGte
+	DunderGet
+	DunderLen
 )
 
 var (
@@ -101,6 +103,14 @@ var (
 	_dunderGte        = &Stringo{Value: "__gte"}
 	_hashedDunderGte  = HashObject(_dunderGte)
 	_dunderGteHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderGte}
+
+	_dunderGet        = &Stringo{Value: "__get"}
+	_hashedDunderGet  = HashObject(_dunderGet)
+	_dunderGetHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderGet}
+
+	_dunderLen        = &Stringo{Value: "__len"}
+	_hashedDunderLen  = HashObject(_dunderLen)
+	_dunderLenHashKey = HashKey{Type: STRING_OBJ, Value: _hashedDunderLen}
 )
 
 func getDunderHashKey(t DunderType) *HashKey {
@@ -145,6 +155,10 @@ func getDunderHashKey(t DunderType) *HashKey {
 		return &_dunderGtHashKey
 	case DunderGte:
 		return &_dunderGteHashKey
+	case DunderGet:
+		return &_dunderGetHashKey
+	case DunderLen:
+		return &_dunderLenHashKey
 	default:
 		return nil
 	}

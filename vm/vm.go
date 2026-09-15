@@ -1657,6 +1657,17 @@ func (vm *VM) pushClosure(constIndex, numFree int) error {
 
 func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 	args := vm.stack[vm.sp-numArgs : vm.sp]
+	// A map can take over a builtin by defining the matching dunder, which is
+	// how a custom iterable answers `__get` and `__len` during a `for in`.
+	if builtin.OverrideDunder != object.DunderInvalid && numArgs > 0 {
+		if fn, ok := object.HasDunderFun(builtin.OverrideDunder, args[0]); ok {
+			extra := make([]object.Object, numArgs-1)
+			copy(extra, args[1:])
+			result := vm.applyFunctionFastWithMultipleArgs(fn, extra)
+			vm.sp = vm.sp - numArgs - 1
+			return vm.push(result)
+		}
+	}
 	result := builtin.Fun(args...)
 	vm.sp = vm.sp - numArgs - 1
 	return vm.push(result)

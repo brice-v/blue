@@ -668,44 +668,62 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 	allEndingJumpPos := []int{}
 	for i := range node.Conditions {
 		var err error
-		var jumpNotTruthyPos int
+		// All of an arm's conditions share one copy of its consequence. Each
+		// condition that is true jumps past the remaining tests straight to it,
+		// so the first true condition wins and the ones after it are skipped.
+		truthyJumps := []int{}
+		hasDefault := false
 		for j := range node.Conditions[i] {
 			condIsDefault := node.Conditions[i][j].String() == "_"
-			if !condIsDefault {
-				// Save/restore around the condition so that an error partway through
-				// compiling it cannot leave the compiler stuck in 'match' context
-				prevInMatch := c.inMatch
-				c.inMatch = true
-				err = c.Compile(node.Conditions[i][j])
-				c.inMatch = prevInMatch
-				if err != nil {
-					return err
-				}
-				if node.OptionalValue != nil && !c.lastInstructionReturnsBool() {
-					err = c.Compile(node.OptionalValue)
-					if err != nil {
-						return err
-					}
-					c.emit(code.OpMatchValue)
-				}
-				jumpNotTruthyPos = c.emit(code.OpJumpNotTruthy, 9999)
+			if condIsDefault {
+				// A default always matches, so nothing after it can be reached.
+				hasDefault = true
+				break
 			}
-			err = c.Compile(node.Consequences[i])
+			// Save/restore around the condition so that an error partway through
+			// compiling it cannot leave the compiler stuck in 'match' context
+			prevInMatch := c.inMatch
+			c.inMatch = true
+			err = c.Compile(node.Conditions[i][j])
+			c.inMatch = prevInMatch
 			if err != nil {
 				return err
 			}
-			if c.lastInstructionIsSet() {
-				c.emit(code.OpNull)
+			if node.OptionalValue != nil && !c.lastInstructionReturnsBool() {
+				err = c.Compile(node.OptionalValue)
+				if err != nil {
+					return err
+				}
+				c.emit(code.OpMatchValue)
 			}
-			if c.lastInstructionIs(code.OpPop) {
-				c.removeLastPop()
-			}
-			jumpPos := c.emit(code.OpJump, 9999)
-			allEndingJumpPos = append(allEndingJumpPos, jumpPos)
-			afterConsequencePos := len(c.currentInstructions())
-			if !condIsDefault {
-				c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
-			}
+			// Not truthy: try the next condition. Truthy: jump to the shared
+			// consequence, which starts after every condition has been tested.
+			jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
+			truthyJumps = append(truthyJumps, c.emit(code.OpJump, 9999))
+			c.changeOperand(jumpNotTruthyPos, len(c.currentInstructions()))
+		}
+		// No condition matched and the arm has no default: skip the consequence.
+		skipConsequencePos := -1
+		if !hasDefault {
+			skipConsequencePos = c.emit(code.OpJump, 9999)
+		}
+		afterConditionsPos := len(c.currentInstructions())
+		for _, jumpPos := range truthyJumps {
+			c.changeOperand(jumpPos, afterConditionsPos)
+		}
+		err = c.Compile(node.Consequences[i])
+		if err != nil {
+			return err
+		}
+		if c.lastInstructionIsSet() {
+			c.emit(code.OpNull)
+		}
+		if c.lastInstructionIs(code.OpPop) {
+			c.removeLastPop()
+		}
+		allEndingJumpPos = append(allEndingJumpPos, c.emit(code.OpJump, 9999))
+		if skipConsequencePos >= 0 {
+			c.changeOperand(skipConsequencePos, len(c.currentInstructions()))
 		}
 	}
 	afterAlternativePos := len(c.currentInstructions())

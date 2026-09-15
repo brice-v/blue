@@ -76,7 +76,8 @@ type BuiltinMapTypeInternal map[string]*Builtin
 
 var Builtins = []*Builtin{
 	{
-		Name: "_get_",
+		Name:           "_get_",
+		OverrideDunder: DunderGet,
 		Fun: func(args ...Object) Object {
 			if len(args) < 2 || len(args) > 3 {
 				return newInvalidArgCountError("_get_", len(args), 2, "or 3")
@@ -303,7 +304,8 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "len",
+		Name:           "len",
+		OverrideDunder: DunderLen,
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("len", len(args), 1, "")
