@@ -54,6 +54,9 @@ const (
 	// as GoObjectGob, which would break struct matching after an image
 	// round-trip. Appended at the end so existing encodings stay valid.
 	i_STRUCT_FIELDS_OBJ
+
+	// For Tensor
+	i_TENSOR_OBJ
 )
 
 type ObjectWrapper struct {

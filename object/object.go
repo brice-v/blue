@@ -1151,7 +1151,10 @@ func HashObject(obj Object) uint64 {
 		hasher.Write(obj.(*CompiledFunction).Instructions)
 	case MODULE_OBJ:
 		hasher.WriteString(obj.(*Module).Name)
+	case TENSOR_OBJ:
+		panic("TODO: Handle hashing for tensor object")
 	default:
+		// TODO: Should just panic here
 		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
 		fmt.Printf("Unsupported hashable object: %T\n", obj)
 	}
