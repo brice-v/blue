@@ -16,11 +16,12 @@ func (t *Tensor) Type() Type {
 }
 
 func (t *Tensor) Inspect() string {
-	return fmt.Sprintf("Tensor{shape: %s, }", t.T)
+	return "TODO: Implement String() on tensor"
+	// return fmt.Sprintf("Tensor{shape: %s, }", t.T)
 }
 
 func (t *Tensor) Help() string {
-	return createHelpStringForObject("Integer", "is the object that represents tensor values", t)
+	return createHelpStringForObject("Tensor", "is the object that represents tensor values", t)
 }
 
 func (t *Tensor) Encode() ([]byte, error) {

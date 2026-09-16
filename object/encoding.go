@@ -400,6 +400,8 @@ func decodeFromType(t iType, data []byte, depth int) (Object, error) {
 		return BREAK, nil
 	case i_CONTINUE_OBJ:
 		return CONTINUE, nil
+	case i_TENSOR_OBJ:
+		panic("TODO: Support decoding tensor obj")
 	default:
 		return nil, fmt.Errorf("decodeFromType: handle %d", t)
 	}

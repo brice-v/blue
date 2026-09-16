@@ -20,7 +20,7 @@ const (
 
 // Tensor is a strided view over a flat buffer
 type Tensor struct {
-	data    []float32 // backing store (starting with f32 only, TBD use generics for other dtypes?)
+	data    []float32 // backing store (starting with f32 only - eventually create storage struct based on dtype and put here)
 	shape   []int
 	strides []int
 	offset  int
@@ -39,33 +39,36 @@ type gradState struct {
 }
 
 type Backend interface {
-	MatMul(a, b *Tensor) *Tensor
-	Add(a, b *Tensor) *Tensor
-	Sub(a, b *Tensor) *Tensor
-	Mul(a, b *Tensor) *Tensor
-	Div(a, b *Tensor) *Tensor
-	Exp(a, b *Tensor) *Tensor
-	Log(a, b *Tensor) *Tensor
-	Sqrt(a, b *Tensor) *Tensor
-	Sum(a, b *Tensor) *Tensor
-	Max(a, b *Tensor) *Tensor
-	Softmax(a, b *Tensor) *Tensor
-	Reshape(a, b *Tensor) *Tensor
-	Transpose(a, b *Tensor) *Tensor
+	MatMul(a, b *Tensor) (*Tensor, error)
+	Add(a, b *Tensor) (*Tensor, error)
+	Sub(a, b *Tensor) (*Tensor, error)
+	Mul(a, b *Tensor) (*Tensor, error)
+	Div(a, b *Tensor) (*Tensor, error)
+	Exp(a *Tensor) (*Tensor, error)
+	Log(a *Tensor) (*Tensor, error)
+	Sqrt(a *Tensor) (*Tensor, error)
+	Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error)
+	Max(a *Tensor, dim int, keepdim bool) (*Tensor, error)
+	Softmax(a *Tensor, dim int) (*Tensor, error)
+	Reshape(a *Tensor, shape ...int) (*Tensor, error)
+	Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error)
 }
 
 // auto grad helpers
 
+// IsLeaf reports whether t is a leaf, matching PyTorch's is_leaf: true when
+// requires_grad is false, or when t was not produced by an op (no gradFn).
+// Untracked tensors such as input data are therefore leaves by convention.
 func (t *Tensor) IsLeaf() bool {
-	return t.gradState == nil
+	return !t.RequiresGrad() || t.gradState.gradFn == nil
 }
 
 func (t *Tensor) RequiresGrad() bool {
-	return !t.IsLeaf() && t.gradState.requiresGrad
+	return t.gradState != nil && t.gradState.requiresGrad
 }
 
 func (t *Tensor) Grad() *Tensor {
-	if t.IsLeaf() {
+	if t.gradState == nil {
 		return nil
 	}
 	return t.gradState.Grad
@@ -73,12 +76,12 @@ func (t *Tensor) Grad() *Tensor {
 
 func (t *Tensor) SetRequiresGrad(on bool) {
 	if !on {
-		if !t.IsLeaf() {
+		if t.gradState != nil {
 			t.gradState.requiresGrad = on
 		}
 		return
 	}
-	if t.IsLeaf() {
+	if t.gradState == nil {
 		t.gradState = &gradState{}
 	}
 	t.gradState.requiresGrad = on
@@ -97,11 +100,7 @@ func (t *Tensor) Strides() []int {
 // Numel is the number of elements
 // the product of the shape's dimensions
 func (t *Tensor) Numel() int {
-	n := 1 // 0-d (empty shape) returns 1
-	for _, d := range t.shape {
-		n *= d
-	}
-	return n
+	return numelOf(t.shape)
 }
 
 // IsContiguous is true if walking through the logical indices in row major order
@@ -133,14 +132,7 @@ func (t *Tensor) materialize() *Tensor {
 			device:  t.device,
 		}
 	}
-	tt := &Tensor{
-		data:    make([]float32, t.Numel()),
-		shape:   slices.Clone(t.shape),
-		strides: contiguousStrides(t.shape),
-		offset:  0,
-		dtype:   t.dtype,
-		device:  t.device,
-	}
+	tt := newLike(t)
 	copyStrided(tt.data, t)
 	return tt
 }
@@ -176,4 +168,25 @@ func (t *Tensor) Item() float32 {
 		panic("Item: tensor does not hold exactly 1 element")
 	}
 	return t.data[t.offset]
+}
+
+// other helpers
+
+func numelOf(shape []int) int {
+	n := 1 // 0-d (empty shape) returns 1
+	for _, d := range shape {
+		n *= d
+	}
+	return n
+}
+
+// newLike does not copy data, returns equivalent of materialize'd tensor in with allocated space for data
+func newLike(a *Tensor) *Tensor {
+	return &Tensor{
+		data:    make([]float32, a.Numel()),
+		shape:   slices.Clone(a.shape),
+		strides: contiguousStrides(a.shape),
+		dtype:   a.dtype,
+		device:  a.device,
+	}
 }
