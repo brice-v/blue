@@ -14,7 +14,7 @@ func dense(data []float32, shape ...int) *Tensor {
 	return &Tensor{
 		data:    slices.Clone(data),
 		shape:   slices.Clone(shape),
-		strides: contiguousStrides(shape),
+		strides: getContiguousStridesFromShape(shape),
 		offset:  0,
 		dtype:   Float32,
 		device:  CPU,

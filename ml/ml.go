@@ -1,6 +1,10 @@
 package ml
 
-import "slices"
+import (
+	"fmt"
+	"math"
+	"slices"
+)
 
 type DType uint8
 
@@ -137,7 +141,7 @@ func (t *Tensor) materialize() *Tensor {
 	return tt
 }
 
-func contiguousStrides(shape []int) []int {
+func getContiguousStridesFromShape(shape []int) []int {
 	strides := make([]int, len(shape))
 	acc := 1
 	for i, v := range slices.Backward(shape) {
@@ -163,11 +167,11 @@ func copyStrided(dst []float32, src *Tensor) {
 	walk(0, src.offset)
 }
 
-func (t *Tensor) Item() float32 {
+func (t *Tensor) Item() (float32, error) {
 	if t.Numel() != 1 || t.offset < 0 || t.offset >= len(t.data) {
-		panic("Item: tensor does not hold exactly 1 element")
+		return float32(math.NaN()), fmt.Errorf("Item: tensor does not hold exactly 1 element")
 	}
-	return t.data[t.offset]
+	return t.data[t.offset], nil
 }
 
 // other helpers
@@ -185,7 +189,7 @@ func newLike(a *Tensor) *Tensor {
 	return &Tensor{
 		data:    make([]float32, a.Numel()),
 		shape:   slices.Clone(a.shape),
-		strides: contiguousStrides(a.shape),
+		strides: getContiguousStridesFromShape(a.shape),
 		dtype:   a.dtype,
 		device:  a.device,
 	}

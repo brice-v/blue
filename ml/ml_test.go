@@ -60,7 +60,7 @@ func TestContiguousStrides(t *testing.T) {
 		{[]int{2, 3, 4}, []int{12, 4, 1}},
 	}
 	for _, tc := range cases {
-		got := contiguousStrides(tc.shape)
+		got := getContiguousStridesFromShape(tc.shape)
 		if !slices.Equal(got, tc.want) {
 			t.Fatalf("contiguousStrides(%v) = %v, want %v", tc.shape, got, tc.want)
 		}
@@ -177,25 +177,30 @@ func TestCopyStrided(t *testing.T) {
 
 func TestItem(t *testing.T) {
 	t.Run("single element", func(t *testing.T) {
-		if got := dense([]float32{42}, 1).Item(); got != 42 {
+		got, err := dense([]float32{42}, 1).Item()
+		if err != nil {
+			t.Fatalf("Item() unexpected error: %v", err)
+		}
+		if got != 42 {
 			t.Fatalf("Item() = %v, want 42", got)
 		}
 	})
 
 	t.Run("honours offset", func(t *testing.T) {
 		a := view([]float32{5, 6, 7}, []int{1}, []int{1}, 2)
-		if got := a.Item(); got != 7 {
+		got, err := a.Item()
+		if err != nil {
+			t.Fatalf("Item() unexpected error: %v", err)
+		}
+		if got != 7 {
 			t.Fatalf("Item() = %v, want 7", got)
 		}
 	})
 
-	t.Run("multi element panics", func(t *testing.T) {
-		defer func() {
-			if recover() == nil {
-				t.Fatal("expected Item() on a multi-element tensor to panic")
-			}
-		}()
-		dense([]float32{1, 2}, 2).Item()
+	t.Run("multi element errors", func(t *testing.T) {
+		if _, err := dense([]float32{1, 2}, 2).Item(); err == nil {
+			t.Fatal("expected Item() on a multi-element tensor to error")
+		}
 	})
 }
 

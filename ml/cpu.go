@@ -3,6 +3,7 @@ package ml
 import (
 	"fmt"
 	"math"
+	"slices"
 )
 
 type CPUBackend struct{}
@@ -151,24 +152,172 @@ func (cpu CPUBackend) Sqrt(a *Tensor) (*Tensor, error) {
 	}), nil
 }
 
+// outer, reduce, inner, dim, error
+// materializes tensor first then returns if valid
+func oride(a *Tensor, dimension int, opName string, canReduceBeZero bool) (outer, reduce, inner, dim int, err error) {
+	a = a.materialize()
+	if len(a.shape) == 0 {
+		err = fmt.Errorf("%s: cannot reduce a 0d tensor", opName)
+		return
+	}
+	// Allow backwards indexing
+	if dimension < 0 {
+		dimension += len(a.shape)
+	}
+	if dimension < 0 || dimension >= len(a.shape) {
+		err = fmt.Errorf("%s: dim %d out of range for shape %v", opName, dimension, a.shape)
+		return
+	}
+	dim = dimension
+
+	outer, reduce, inner = 1, a.shape[dim], 1
+	if !canReduceBeZero && reduce == 0 {
+		err = fmt.Errorf("%s: cannot reduce an empty dimension", opName)
+		return
+	}
+	for _, d := range a.shape[:dim] {
+		outer *= d
+	}
+	for _, d := range a.shape[dim+1:] {
+		inner *= d
+	}
+	return
+}
+
 func (cpu CPUBackend) Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
-	return nil, nil
+	outer, reduce, inner, dim, err := oride(a, dim, "sum", true)
+	if err != nil {
+		return nil, err
+	}
+
+	ttShape := slices.Clone(a.shape)
+	if keepdim {
+		ttShape[dim] = 1
+	} else {
+		ttShape = slices.Delete(ttShape, dim, dim+1)
+	}
+	tt := &Tensor{
+		data:    make([]float32, outer*inner),
+		shape:   ttShape,
+		strides: getContiguousStridesFromShape(ttShape),
+		dtype:   a.dtype,
+		device:  a.device,
+	}
+	for o := range outer {
+		for in := range inner {
+			var s float32
+			for r := range reduce {
+				s += a.data[(o*reduce+r)*inner+in]
+			}
+			tt.data[o*inner+in] = s
+		}
+	}
+	return tt, nil
 }
 
 func (cpu CPUBackend) Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
-	return nil, nil
+	outer, reduce, inner, dim, err := oride(a, dim, "max", false)
+	if err != nil {
+		return nil, err
+	}
+
+	ttShape := slices.Clone(a.shape)
+	if keepdim {
+		ttShape[dim] = 1
+	} else {
+		ttShape = slices.Delete(ttShape, dim, dim+1)
+	}
+	tt := &Tensor{
+		data:    make([]float32, outer*inner),
+		shape:   ttShape,
+		strides: getContiguousStridesFromShape(ttShape),
+		dtype:   a.dtype,
+		device:  a.device,
+	}
+	for o := range outer {
+		for in := range inner {
+			m := a.data[(o*reduce)*inner+in]
+			for r := 1; r < reduce; r++ {
+				if v := a.data[(o*reduce+r)*inner+in]; v > m {
+					m = v
+				}
+			}
+			tt.data[o*inner+in] = m
+		}
+	}
+	return tt, nil
 }
 
 func (cpu CPUBackend) Softmax(a *Tensor, dim int) (*Tensor, error) {
-	return nil, nil
+	outer, reduce, inner, dim, err := oride(a, dim, "softmax", false)
+	if err != nil {
+		return nil, err
+	}
+
+	tt := newLike(a)
+	for o := range outer {
+		for in := range inner {
+			base := o*reduce*inner + in
+			m := a.data[base]
+			for r := 1; r < reduce; r++ {
+				if v := a.data[base+r*inner]; v > m {
+					m = v
+				}
+			}
+			var sum float32
+			for r := range reduce {
+				e := float32(math.Exp(float64(a.data[base+r*inner] - m)))
+				tt.data[base+r*inner] = e
+				sum += e
+			}
+			for r := range reduce {
+				tt.data[base+r*inner] /= sum
+			}
+		}
+	}
+	return tt, nil
 }
 
 // view ops (does not materialize)
 
 func (cpu CPUBackend) Reshape(a *Tensor, shape ...int) (*Tensor, error) {
-	return nil, nil
+	if numelOf(shape) != a.Numel() {
+		return nil, fmt.Errorf("reshape: cannot reshape %v into %v", a.shape, shape)
+	}
+	src := a
+	if !src.IsContiguous() {
+		src = src.materialize()
+	}
+	return &Tensor{
+		data:    src.data, // same backing array
+		shape:   slices.Clone(shape),
+		strides: getContiguousStridesFromShape(shape),
+		offset:  src.offset,
+		dtype:   src.dtype,
+		device:  src.device,
+	}, nil
 }
 
 func (cpu CPUBackend) Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
-	return nil, nil
+	n := len(a.shape)
+	if dim0 < 0 {
+		dim0 += n
+	}
+	if dim1 < 0 {
+		dim1 += n
+	}
+	if dim0 < 0 || dim0 >= n || dim1 < 0 || dim1 >= n {
+		return nil, fmt.Errorf("transpose: dims %d,%d out of range for shape %v", dim0, dim1, a.shape)
+	}
+	tt := &Tensor{
+		data:    a.data, // same backing array
+		shape:   slices.Clone(a.shape),
+		strides: slices.Clone(a.strides),
+		offset:  a.offset,
+		dtype:   a.dtype,
+		device:  a.device,
+	}
+	tt.shape[dim0], tt.shape[dim1] = tt.shape[dim1], tt.shape[dim0]
+	tt.strides[dim0], tt.strides[dim1] = tt.strides[dim1], tt.strides[dim0]
+	return tt, nil
 }
