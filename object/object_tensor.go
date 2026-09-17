@@ -16,8 +16,7 @@ func (t *Tensor) Type() Type {
 }
 
 func (t *Tensor) Inspect() string {
-	return "TODO: Implement String() on tensor"
-	// return fmt.Sprintf("Tensor{shape: %s, }", t.T)
+	return t.T.String()
 }
 
 func (t *Tensor) Help() string {

@@ -15,12 +15,38 @@ const (
 	Bool
 )
 
+func (d DType) String() string {
+	switch d {
+	case Float32:
+		return "float32"
+	case Float64:
+		return "float64"
+	case Int32:
+		return "int32"
+	case Bool:
+		return "bool"
+	default:
+		panic(fmt.Sprintf("unsupported dtype: %d", d))
+	}
+}
+
 type Device uint8
 
 const (
 	CPU Device = iota
 	GPU
 )
+
+func (d Device) String() string {
+	switch d {
+	case CPU:
+		return "cpu"
+	case GPU:
+		return "gpu"
+	default:
+		panic(fmt.Sprintf("unsupported device: %d", d))
+	}
+}
 
 // Tensor is a strided view over a flat buffer
 type Tensor struct {
@@ -32,6 +58,34 @@ type Tensor struct {
 	device  Device
 
 	gradState *gradState
+}
+
+func (t *Tensor) Data() []float32 {
+	return t.data
+}
+
+func (t *Tensor) Shape() []int {
+	return t.shape
+}
+
+func (t *Tensor) Strides() []int {
+	return t.strides
+}
+
+func (t *Tensor) Offset() int {
+	return t.offset
+}
+
+func (t *Tensor) DType() DType {
+	return t.dtype
+}
+
+func (t *Tensor) Device() Device {
+	return t.device
+}
+
+func (t *Tensor) String() string {
+	return fmt.Sprintf("Tensor{shape: %v, strides: %v, offset: %d, dtype: %s, device: %s}", t.shape, t.strides, t.offset, t.dtype, t.device)
 }
 
 type gradState struct {
@@ -89,16 +143,6 @@ func (t *Tensor) SetRequiresGrad(on bool) {
 		t.gradState = &gradState{}
 	}
 	t.gradState.requiresGrad = on
-}
-
-// view helpers
-
-func (t *Tensor) Shape() []int {
-	return t.shape
-}
-
-func (t *Tensor) Strides() []int {
-	return t.strides
 }
 
 // Numel is the number of elements
