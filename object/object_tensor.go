@@ -2,6 +2,7 @@ package object
 
 import (
 	"blue/ml"
+	"fmt"
 	"hash/maphash"
 )
 
@@ -46,4 +47,39 @@ func (t *Tensor) hashTensor() uint64 {
 		maphash.WriteComparable(hasher, v)
 	}
 	return hasher.Sum64()
+}
+
+func sliceIntToListInteger(a []int) Object {
+	es := make([]Object, len(a))
+	for i, e := range a {
+		es[i] = NewInteger(int64(e))
+	}
+	return &List{Elements: es}
+}
+
+func (t *Tensor) Get(property string) (Object, error) {
+	switch property {
+	case "shape":
+		return sliceIntToListInteger(t.T.Shape()), nil
+	case "strides":
+		return sliceIntToListInteger(t.T.Strides()), nil
+	case "T":
+		// TODO: Cannot implement properly yet until ops.go is created and track is implemented
+		tt, err := ml.DefaultBackend.Transpose(t.T, 0, 1)
+		if err != nil {
+			return nil, err
+		}
+		return &Tensor{T: tt}, nil
+	case "offset":
+		return NewInteger(int64(t.T.Offset())), nil
+	case "dtype":
+		return &Stringo{Value: t.T.DType().String()}, nil
+	case "device":
+		return &Stringo{Value: t.T.Device().String()}, nil
+	case "ndim":
+		return NewInteger(int64(len(t.T.Shape()))), nil
+	case "requires_grad":
+		return nativeToBooleanObject(t.T.RequiresGrad()), nil
+	}
+	return nil, fmt.Errorf("unsupported property on tensor: %s", property)
 }

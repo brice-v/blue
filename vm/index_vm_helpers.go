@@ -273,10 +273,18 @@ func (vm *VM) executeGoObjIndexExpression(goObj object.Object, name string) erro
 	return vm.push(obj)
 }
 
-func (vm *VM) executeBlueIndexGetExpression(blueStruct *object.BlueStruct, fieldName string) error {
+func (vm *VM) executeBlueStructIndexExpression(blueStruct *object.BlueStruct, fieldName string) error {
 	result, pos := blueStruct.Get(fieldName)
 	if pos == -1 {
 		return vm.push(newError("BlueStruct.%s error: field not found", fieldName))
+	}
+	return vm.push(result)
+}
+
+func (vm *VM) executeTensorIndexExpression(t *object.Tensor, property string) error {
+	result, err := t.Get(property)
+	if err != nil {
+		return vm.push(newError("tensor.%s error: %s", property, err.Error()))
 	}
 	return vm.push(result)
 }
