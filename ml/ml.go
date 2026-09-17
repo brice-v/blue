@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strings"
 )
 
 type DType uint8
@@ -13,6 +14,7 @@ const (
 	Float64
 	Int32
 	Bool
+	Invalid
 )
 
 func (d DType) String() string {
@@ -30,11 +32,28 @@ func (d DType) String() string {
 	}
 }
 
+func ParseDType(s string) (DType, error) {
+	s = strings.ToLower(s)
+	switch s {
+	case "float32":
+		return Float32, nil
+	case "float64":
+		return Float64, nil
+	case "int32":
+		return Int32, nil
+	case "bool":
+		return Bool, nil
+	default:
+		return Invalid, fmt.Errorf("invalid DType: %s", s)
+	}
+}
+
 type Device uint8
 
 const (
 	CPU Device = iota
 	GPU
+	INVALID
 )
 
 func (d Device) String() string {
@@ -45,6 +64,18 @@ func (d Device) String() string {
 		return "gpu"
 	default:
 		panic(fmt.Sprintf("unsupported device: %d", d))
+	}
+}
+
+func ParseDevice(s string) (Device, error) {
+	s = strings.ToLower(s)
+	switch s {
+	case "cpu":
+		return CPU, nil
+	case "gpu":
+		return GPU, nil
+	default:
+		return INVALID, fmt.Errorf("invalid Device: %s", s)
 	}
 }
 
