@@ -4,10 +4,12 @@ import (
 	"math"
 	"math/big"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
 	"blue/code"
+	"blue/ml"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/shopspring/decimal"
@@ -321,6 +323,74 @@ func TestEncodingBlueStruct(t *testing.T) {
 	}
 }
 
+func TestEncodingTensor(t *testing.T) {
+	base, err := ml.NewTensor([]float32{1, 2, 3, 4, 5, 6}, []int{2, 3}, ml.Float32, ml.CPU)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base.SetRequiresGrad(true) // autograd state must not survive serialization
+
+	obj := &Tensor{T: base}
+	got, ok := roundTrip(t, obj).(*Tensor)
+	if !ok {
+		t.Fatalf("decoded type = %T, want *Tensor", got)
+	}
+	if got.Type() != TENSOR_OBJ {
+		t.Errorf("Type() = %s, want %s", got.Type(), TENSOR_OBJ)
+	}
+	if got.Inspect() != obj.Inspect() {
+		t.Errorf("Inspect() = %q, want %q", got.Inspect(), obj.Inspect())
+	}
+	if got.T.RequiresGrad() {
+		t.Error("requires_grad should not survive a round trip")
+	}
+	if got.T.Grad() != nil {
+		t.Error("grad should not survive a round trip")
+	}
+	if !slices.Equal(got.T.Shape(), []int{2, 3}) {
+		t.Errorf("Shape() = %v, want [2 3]", got.T.Shape())
+	}
+	if !slices.Equal(got.T.Strides(), []int{3, 1}) {
+		t.Errorf("Strides() = %v, want [3 1]", got.T.Strides())
+	}
+	if got.T.Offset() != 0 {
+		t.Errorf("Offset() = %d, want 0", got.T.Offset())
+	}
+	if got.T.DType() != ml.Float32 || got.T.Device() != ml.CPU {
+		t.Errorf("dtype/device = %v/%v, want float32/cpu", got.T.DType(), got.T.Device())
+	}
+	if !slices.Equal(got.T.ContiguousData(), []float32{1, 2, 3, 4, 5, 6}) {
+		t.Errorf("ContiguousData() = %v, want [1 2 3 4 5 6]", got.T.ContiguousData())
+	}
+}
+
+func TestEncodingTensorPacksViews(t *testing.T) {
+	base, err := ml.NewTensor([]float32{1, 2, 3, 4, 5, 6}, []int{2, 3}, ml.Float32, ml.CPU)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A transposed view is non-contiguous; it must decode as a packed,
+	// contiguous tensor with the same logical values.
+	transposed, err := ml.DefaultBackend.Transpose(base, 0, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if transposed.IsContiguous() {
+		t.Fatal("test setup: transposed view should not be contiguous")
+	}
+
+	got := roundTrip(t, &Tensor{T: transposed}).(*Tensor)
+	if !slices.Equal(got.T.Shape(), []int{3, 2}) {
+		t.Errorf("Shape() = %v, want [3 2]", got.T.Shape())
+	}
+	if !got.T.IsContiguous() || got.T.Offset() != 0 {
+		t.Errorf("decoded view should be packed, got strides=%v offset=%d", got.T.Strides(), got.T.Offset())
+	}
+	if !slices.Equal(got.T.ContiguousData(), []float32{1, 4, 2, 5, 3, 6}) {
+		t.Errorf("ContiguousData() = %v, want [1 4 2 5 3 6]", got.T.ContiguousData())
+	}
+}
+
 func TestEncodingStructFieldsGoObj(t *testing.T) {
 	fields := NewGoObj([]string{"x", "y"})
 	got := marshalRoundTrip(t, fields)
@@ -480,6 +550,7 @@ func TestDecodeTypeMismatchErrors(t *testing.T) {
 		{"blue struct", i_BLUE_STRUCT_OBJ, wrongShapeString},
 		{"exec string", i_EXEC_STRING_OBJ, wrongShapeInt},
 		{"default args", i_DEFAULT_ARGS_OBJ, wrongShapeString},
+		{"tensor", i_TENSOR_OBJ, wrongShapeString},
 		{"closure unsupported", i_CLOSURE_OBJ, wrongShapeString},
 	}
 	for _, c := range cases {
@@ -521,6 +592,17 @@ func TestDecodingErrors(t *testing.T) {
 		}
 		if _, err := decodeFromType(i_INTEGER_OBJ, data, maxSerializeDepth+1); err != errTooDeep {
 			t.Errorf("err = %v, want errTooDeep", err)
+		}
+	})
+	t.Run("tensor shape mismatch", func(t *testing.T) {
+		data := cborOf(encTensor{
+			Data:   []float32{1, 2, 3},
+			Shape:  []int{2, 2},
+			Dtype:  uint8(ml.Float32),
+			Device: uint8(ml.CPU),
+		})
+		if _, err := decodeFromType(i_TENSOR_OBJ, data, 0); err == nil {
+			t.Error("expected a shape/data mismatch to fail decoding")
 		}
 	})
 }

@@ -308,3 +308,148 @@ func TestAccessors(t *testing.T) {
 		}
 	})
 }
+
+func TestNewTensor(t *testing.T) {
+	t.Run("dense 2x2", func(t *testing.T) {
+		got, err := NewTensor([]float32{1, 2, 3, 4}, []int{2, 2}, Float32, CPU)
+		if err != nil {
+			t.Fatalf("NewTensor() error: %v", err)
+		}
+		if !slices.Equal(got.Shape(), []int{2, 2}) {
+			t.Fatalf("Shape() = %v, want [2 2]", got.Shape())
+		}
+		if !slices.Equal(got.Strides(), []int{2, 1}) {
+			t.Fatalf("Strides() = %v, want [2 1]", got.Strides())
+		}
+		if got.Offset() != 0 || got.DType() != Float32 || got.Device() != CPU {
+			t.Fatalf("offset/dtype/device = %d/%v/%v, want 0/float32/cpu", got.Offset(), got.DType(), got.Device())
+		}
+		if !slices.Equal(got.RawData(), []float32{1, 2, 3, 4}) {
+			t.Fatalf("RawData() = %v, want [1 2 3 4]", got.RawData())
+		}
+	})
+
+	t.Run("0-D scalar from nil shape", func(t *testing.T) {
+		got, err := NewTensor([]float32{7}, nil, Float32, CPU)
+		if err != nil {
+			t.Fatalf("NewTensor() error: %v", err)
+		}
+		if got.Numel() != 1 {
+			t.Fatalf("Numel() = %d, want 1", got.Numel())
+		}
+		if v, err := got.Item(); err != nil || v != 7 {
+			t.Fatalf("Item() = %v, %v; want 7, nil", v, err)
+		}
+	})
+
+	t.Run("empty tensor", func(t *testing.T) {
+		got, err := NewTensor([]float32{}, []int{0, 3}, Float32, GPU)
+		if err != nil {
+			t.Fatalf("NewTensor() error: %v", err)
+		}
+		if got.Numel() != 0 || got.Device() != GPU {
+			t.Fatalf("Numel()/Device() = %d/%v, want 0/gpu", got.Numel(), got.Device())
+		}
+	})
+
+	t.Run("copies the input data", func(t *testing.T) {
+		src := []float32{1, 2}
+		got, err := NewTensor(src, []int{2}, Float32, CPU)
+		if err != nil {
+			t.Fatalf("NewTensor() error: %v", err)
+		}
+		src[0] = 99
+		if got.RawData()[0] != 1 {
+			t.Fatalf("NewTensor shares caller storage: RawData() = %v", got.RawData())
+		}
+	})
+
+	t.Run("rejects mismatch, negative dims and unknown enums", func(t *testing.T) {
+		if _, err := NewTensor([]float32{1, 2, 3}, []int{2, 2}, Float32, CPU); err == nil {
+			t.Error("expected length/shape mismatch error")
+		}
+		if _, err := NewTensor([]float32{}, []int{-1}, Float32, CPU); err == nil {
+			t.Error("expected negative dimension error")
+		}
+		if _, err := NewTensor([]float32{1}, []int{1}, DType(99), CPU); err == nil {
+			t.Error("expected unsupported dtype error")
+		}
+		if _, err := NewTensor([]float32{1}, []int{1}, Float32, Device(99)); err == nil {
+			t.Error("expected unsupported device error")
+		}
+	})
+}
+
+func TestContiguousData(t *testing.T) {
+	t.Run("dense passthrough", func(t *testing.T) {
+		a := dense([]float32{1, 2, 3, 4}, 2, 2)
+		if got := a.ContiguousData(); !slices.Equal(got, []float32{1, 2, 3, 4}) {
+			t.Fatalf("ContiguousData() = %v, want [1 2 3 4]", got)
+		}
+	})
+
+	t.Run("contiguous offset-0 view is trimmed to numel", func(t *testing.T) {
+		a := view([]float32{10, 20, 30, 40, 50, 60}, []int{2}, []int{1}, 0)
+		got := a.ContiguousData()
+		if !slices.Equal(got, []float32{10, 20}) {
+			t.Fatalf("ContiguousData() = %v, want [10 20]", got)
+		}
+		if len(got) != a.Numel() {
+			t.Fatalf("len = %d, want Numel() = %d", len(got), a.Numel())
+		}
+	})
+
+	t.Run("contiguous with offset", func(t *testing.T) {
+		a := view([]float32{10, 20, 30}, []int{2}, []int{1}, 1)
+		if got := a.ContiguousData(); !slices.Equal(got, []float32{20, 30}) {
+			t.Fatalf("ContiguousData() = %v, want [20 30]", got)
+		}
+	})
+
+	t.Run("non-contiguous view is packed row-major", func(t *testing.T) {
+		aT := view([]float32{1, 2, 3, 4, 5, 6}, []int{3, 2}, []int{1, 3}, 0)
+		if got := aT.ContiguousData(); !slices.Equal(got, []float32{1, 4, 2, 5, 3, 6}) {
+			t.Fatalf("ContiguousData() = %v, want [1 4 2 5 3 6]", got)
+		}
+	})
+
+	t.Run("0-D scalar", func(t *testing.T) {
+		s := view([]float32{5, 6, 7}, nil, nil, 2)
+		if got := s.ContiguousData(); !slices.Equal(got, []float32{7}) {
+			t.Fatalf("ContiguousData() = %v, want [7]", got)
+		}
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		a := view([]float32{}, []int{0, 3}, []int{3, 1}, 0)
+		if got := a.ContiguousData(); len(got) != 0 {
+			t.Fatalf("ContiguousData() = %v, want empty", got)
+		}
+	})
+}
+
+func TestClonePreservesView(t *testing.T) {
+	base := dense([]float32{1, 2, 3, 4, 5, 6}, 2, 3)
+	aT := view(base.data, []int{3, 2}, []int{1, 3}, 0) // non-contiguous
+
+	c := aT.Clone()
+	if c.IsContiguous() {
+		t.Fatal("clone should preserve the non-contiguous strides")
+	}
+	if !slices.Equal(c.Shape(), aT.Shape()) || !slices.Equal(c.Strides(), aT.Strides()) {
+		t.Fatalf("clone shape/strides = %v/%v, want %v/%v", c.Shape(), c.Strides(), aT.Shape(), aT.Strides())
+	}
+	if !slices.Equal(c.ContiguousData(), []float32{1, 4, 2, 5, 3, 6}) {
+		t.Fatalf("clone values = %v", c.ContiguousData())
+	}
+	if &c.RawData()[0] == &aT.RawData()[0] {
+		t.Fatal("clone must own its backing buffer")
+	}
+	c.RawData()[0] = 99
+	if aT.ContiguousData()[0] == 99 {
+		t.Fatal("mutating the clone changed the original")
+	}
+	if c.RequiresGrad() {
+		t.Fatal("clone should be detached")
+	}
+}

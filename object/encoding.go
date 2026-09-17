@@ -3,9 +3,11 @@ package object
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 
 	"blue/code"
+	"blue/ml"
 
 	"github.com/fxamacker/cbor/v2"
 )
@@ -131,6 +133,18 @@ type encModule struct {
 type encBlueStruct struct {
 	Fields []string        `cbor:"f"`
 	Values []ObjectWrapper `cbor:"v"`
+}
+
+// encTensor is the serializable mirror of ml.Tensor. Only numeric state is
+// stored: the logical float32 elements in row-major order, the shape, and the
+// dtype/device tags. Views are packed on the way out, so strides and offset
+// are recomputed on decode and autograd state (gradFn, prev, Grad) is never
+// persisted, since it holds closures that cannot be serialized.
+type encTensor struct {
+	Data   []float32 `cbor:"d"`
+	Shape  []int     `cbor:"s"`
+	Dtype  uint8     `cbor:"dt"`
+	Device uint8     `cbor:"dv"`
 }
 
 func decodeFromType(t iType, data []byte, depth int) (Object, error) {
@@ -401,7 +415,15 @@ func decodeFromType(t iType, data []byte, depth int) (Object, error) {
 	case i_CONTINUE_OBJ:
 		return CONTINUE, nil
 	case i_TENSOR_OBJ:
-		panic("TODO: Support decoding tensor obj")
+		var x encTensor
+		if derr := cbor.Unmarshal(data, &x); derr != nil {
+			return nil, derr
+		}
+		tt, terr := ml.NewTensorOwned(x.Data, x.Shape, ml.DType(x.Dtype), ml.Device(x.Device))
+		if terr != nil {
+			return nil, terr
+		}
+		return &Tensor{T: tt}, nil
 	default:
 		return nil, fmt.Errorf("decodeFromType: handle %d", t)
 	}
@@ -451,6 +473,14 @@ func marshalObjectDepth(obj Object, depth int) (ObjectWrapper, error) {
 	var data []byte
 	var err error
 	switch obj.IType() {
+	case i_TENSOR_OBJ:
+		tt := obj.(*Tensor).T
+		data, err = cbor.Marshal(encTensor{
+			Data:   tt.ContiguousData(),
+			Shape:  slices.Clone(tt.Shape()),
+			Dtype:  uint8(tt.DType()),
+			Device: uint8(tt.Device()),
+		})
 	case i_REGEX_OBJ:
 		s := obj.(*Regex).Value.String()
 		data, err = cbor.Marshal(s)

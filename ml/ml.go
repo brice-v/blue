@@ -60,7 +60,7 @@ type Tensor struct {
 	gradState *gradState
 }
 
-func (t *Tensor) Data() []float32 {
+func (t *Tensor) RawData() []float32 {
 	return t.data
 }
 
@@ -82,6 +82,81 @@ func (t *Tensor) DType() DType {
 
 func (t *Tensor) Device() Device {
 	return t.device
+}
+
+func (t *Tensor) Clone() *Tensor {
+	return &Tensor{
+		data:    slices.Clone(t.data),
+		shape:   slices.Clone(t.shape),
+		strides: slices.Clone(t.strides),
+		offset:  t.offset,
+		dtype:   t.dtype,
+		device:  t.device,
+	}
+}
+
+// ContiguousData returns the tensor's logical elements in row-major order.
+// Non-contiguous views are packed into a fresh buffer, so the result always
+// has length Numel(). The returned slice may alias the backing store when t
+// is already contiguous with offset 0; callers must not mutate it in that
+// case. Used by serialization, which only reads the values.
+func (t *Tensor) ContiguousData() []float32 {
+	m := t.materialize()
+	return m.data[:m.Numel()]
+}
+
+func checkNewTensorConstruction(data []float32, shape []int, dtype DType, device Device) error {
+	if dtype > Bool || dtype < Float32 {
+		return fmt.Errorf("NewTensor: unsupported dtype %d", dtype)
+	}
+	if device > GPU {
+		return fmt.Errorf("NewTensor: unsupported device %d", device)
+	}
+	for _, d := range shape {
+		if d < 0 {
+			return fmt.Errorf("NewTensor: negative dimension %d in shape %v", d, shape)
+		}
+	}
+	n := numelOf(shape)
+	if len(data) != n {
+		return fmt.Errorf("NewTensor: data has %d elements but shape %v needs %d", len(data), shape, n)
+	}
+	return nil
+}
+
+// NewTensor builds a contiguous, offset-0 tensor from data and shape. It
+// copies data so the returned tensor owns its storage. An error is returned
+// when a dimension is negative, when len(data) does not equal the product of
+// shape, or when dtype/device are not known. This is the constructor the
+// object package uses to rebuild a tensor after decoding.
+func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
+	err := checkNewTensorConstruction(data, shape, dtype, device)
+	if err != nil {
+		return nil, err
+	}
+	return &Tensor{
+		data:    slices.Clone(data),
+		shape:   slices.Clone(shape),
+		strides: getContiguousStridesFromShape(shape),
+		dtype:   dtype,
+		device:  device,
+	}, nil
+}
+
+// NewTensorOwned is the same as above but without cloning data
+// ownership will now be by this tensor so it must not be modified (note: this is currently only used by decode so its safe)
+func NewTensorOwned(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
+	err := checkNewTensorConstruction(data, shape, dtype, device)
+	if err != nil {
+		return nil, err
+	}
+	return &Tensor{
+		data:    data,
+		shape:   shape,
+		strides: getContiguousStridesFromShape(shape),
+		dtype:   dtype,
+		device:  device,
+	}, nil
 }
 
 func (t *Tensor) String() string {

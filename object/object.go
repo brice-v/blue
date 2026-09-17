@@ -1152,11 +1152,9 @@ func HashObject(obj Object) uint64 {
 	case MODULE_OBJ:
 		hasher.WriteString(obj.(*Module).Name)
 	case TENSOR_OBJ:
-		panic("TODO: Handle hashing for tensor object")
+		maphash.WriteComparable(hasher, obj.(*Tensor).hashTensor())
 	default:
-		// TODO: Should just panic here
-		fmt.Printf("This is the object trying to be hashed = %v\n\n", obj)
-		fmt.Printf("Unsupported hashable object: %T\n", obj)
+		panic(fmt.Sprintf("This is the object trying to be hashed = %v\n\nUnsupported hashable object: %T\n", obj, obj))
 	}
 	return hasher.Sum64()
 }

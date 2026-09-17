@@ -2,7 +2,7 @@ package object
 
 import (
 	"blue/ml"
-	"fmt"
+	"hash/maphash"
 )
 
 const TENSOR_OBJ Type = "TENSOR"
@@ -24,7 +24,7 @@ func (t *Tensor) Help() string {
 }
 
 func (t *Tensor) Encode() ([]byte, error) {
-	return nil, fmt.Errorf("TODO: Tensor Encoding not supported yet")
+	return marshalObjectWrapper(t)
 }
 
 func (t *Tensor) IType() iType {
@@ -32,5 +32,18 @@ func (t *Tensor) IType() iType {
 }
 
 func (t *Tensor) Clone() Object {
-	panic("TODO: Support Tensor Clone, likely need to implement clone function in ml/tensor.go")
+	return &Tensor{T: t.T.Clone()}
+}
+
+func (t *Tensor) hashTensor() uint64 {
+	hasher := newHasher()
+	maphash.WriteComparable(hasher, uint8(t.T.DType()))
+	maphash.WriteComparable(hasher, uint8(t.T.Device()))
+	for _, d := range t.T.Shape() {
+		maphash.WriteComparable(hasher, d)
+	}
+	for _, v := range t.T.ContiguousData() {
+		maphash.WriteComparable(hasher, v)
+	}
+	return hasher.Sum64()
 }

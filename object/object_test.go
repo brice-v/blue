@@ -3,6 +3,8 @@ package object
 import (
 	"math"
 	"testing"
+
+	"blue/ml"
 )
 
 func TestStringHashKey(t *testing.T) {
@@ -97,6 +99,41 @@ func TestHashObject(t *testing.T) {
 	ho1 := HashObject(o1)
 	if ho == ho1 {
 		t.Errorf("These should never be equal float hash = %d, integer hash = %d", ho, ho1)
+	}
+}
+
+func TestTensorHashing(t *testing.T) {
+	mk := func(vals []float32) *Tensor {
+		tt, err := ml.NewTensor(vals, []int{2, 2}, ml.Float32, ml.CPU)
+		if err != nil {
+			t.Fatalf("NewTensor() error: %v", err)
+		}
+		return &Tensor{T: tt}
+	}
+
+	a := mk([]float32{1, 2, 3, 4})
+	b := mk([]float32{1, 2, 3, 4})
+	c := mk([]float32{1, 2, 3, 5})
+
+	if HashObject(a) != HashObject(b) {
+		t.Error("equal tensors must hash equal")
+	}
+	if HashObject(a) == HashObject(c) {
+		t.Error("tensors with different values must not hash equal")
+	}
+	if IsHashable(a) {
+		t.Error("tensors must not be usable as Map/Set keys")
+	}
+
+	// A transposed view has logical values [1,3,2,4], so it must hash like a
+	// packed tensor with those same values. This fails if the raw backing slice
+	// is hashed instead of the logical elements.
+	tr, err := ml.DefaultBackend.Transpose(a.T, 0, 1)
+	if err != nil {
+		t.Fatalf("Transpose() error: %v", err)
+	}
+	if HashObject(&Tensor{T: tr}) != HashObject(mk([]float32{1, 3, 2, 4})) {
+		t.Error("a view must hash like its packed logical values")
 	}
 }
 
