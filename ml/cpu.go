@@ -60,19 +60,27 @@ func (cpu CPUBackend) Add(a, b *Tensor) (*Tensor, error) {
 	if err := requireCPU("add", a, b); err != nil {
 		return nil, err
 	}
-	a = a.materialize()
-	tt := newLike(a)
-	if b.Numel() == 1 {
-		s := b.materialize().data[0]
+	a, b = a.materialize(), b.materialize()
+	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
+		tt := newLike(b)
+		s := a.data[0]
+		for i, v := range b.data {
+			tt.data[i] = s + v
+		}
+		return tt, nil
+	}
+	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
+		tt := newLike(a)
+		s := b.data[0]
 		for i, v := range a.data {
 			tt.data[i] = v + s
 		}
 		return tt, nil
 	}
-	b = b.materialize()
 	if a.Numel() != b.Numel() {
 		return nil, fmt.Errorf("add: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
+	tt := newLike(a)
 	for i, v := range a.data {
 		tt.data[i] = v + b.data[i]
 	}
@@ -83,19 +91,27 @@ func (cpu CPUBackend) Sub(a, b *Tensor) (*Tensor, error) {
 	if err := requireCPU("sub", a, b); err != nil {
 		return nil, err
 	}
-	a = a.materialize()
-	tt := newLike(a)
-	if b.Numel() == 1 {
-		s := b.materialize().data[0]
+	a, b = a.materialize(), b.materialize()
+	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
+		tt := newLike(b)
+		s := a.data[0]
+		for i, v := range b.data {
+			tt.data[i] = s - v
+		}
+		return tt, nil
+	}
+	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
+		tt := newLike(a)
+		s := b.data[0]
 		for i, v := range a.data {
 			tt.data[i] = v - s
 		}
 		return tt, nil
 	}
-	b = b.materialize()
 	if a.Numel() != b.Numel() {
 		return nil, fmt.Errorf("sub: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
+	tt := newLike(a)
 	for i, v := range a.data {
 		tt.data[i] = v - b.data[i]
 	}
@@ -106,19 +122,27 @@ func (cpu CPUBackend) Mul(a, b *Tensor) (*Tensor, error) {
 	if err := requireCPU("mul", a, b); err != nil {
 		return nil, err
 	}
-	a = a.materialize()
-	tt := newLike(a)
-	if b.Numel() == 1 {
-		s := b.materialize().data[0]
+	a, b = a.materialize(), b.materialize()
+	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
+		tt := newLike(b)
+		s := a.data[0]
+		for i, v := range b.data {
+			tt.data[i] = s * v
+		}
+		return tt, nil
+	}
+	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
+		tt := newLike(a)
+		s := b.data[0]
 		for i, v := range a.data {
 			tt.data[i] = v * s
 		}
 		return tt, nil
 	}
-	b = b.materialize()
 	if a.Numel() != b.Numel() {
 		return nil, fmt.Errorf("mul: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
+	tt := newLike(a)
 	for i, v := range a.data {
 		tt.data[i] = v * b.data[i]
 	}
@@ -129,10 +153,21 @@ func (cpu CPUBackend) Div(a, b *Tensor) (*Tensor, error) {
 	if err := requireCPU("div", a, b); err != nil {
 		return nil, err
 	}
-	a = a.materialize()
-	tt := newLike(a)
-	if b.Numel() == 1 {
-		s := b.materialize().data[0]
+	a, b = a.materialize(), b.materialize()
+	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
+		tt := newLike(b)
+		s := a.data[0]
+		for i, v := range b.data {
+			if v == 0 {
+				return nil, fmt.Errorf("div: divide by 0")
+			}
+			tt.data[i] = s / v
+		}
+		return tt, nil
+	}
+	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
+		tt := newLike(a)
+		s := b.data[0]
 		if s == 0 {
 			return nil, fmt.Errorf("div: divide by 0")
 		}
@@ -141,10 +176,10 @@ func (cpu CPUBackend) Div(a, b *Tensor) (*Tensor, error) {
 		}
 		return tt, nil
 	}
-	b = b.materialize()
 	if a.Numel() != b.Numel() {
 		return nil, fmt.Errorf("div: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
+	tt := newLike(a)
 	for i, v := range a.data {
 		bb := b.data[i]
 		if bb == 0 {
@@ -340,12 +375,22 @@ func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
 	if err := requireCPU("greater", a, b); err != nil {
 		return nil, err
 	}
-	a = a.materialize()
-	tt := newLike(a)
-	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
-
-	if b.Numel() == 1 { // scalar broadcast
-		s := b.materialize().data[0]
+	a, b = a.materialize(), b.materialize()
+	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
+		tt := newLike(b)
+		tt.dtype = Bool
+		s := a.data[0]
+		for i, v := range b.data {
+			if s > v {
+				tt.data[i] = 1
+			}
+		}
+		return tt, nil
+	}
+	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
+		tt := newLike(a)
+		tt.dtype = Bool
+		s := b.data[0]
 		for i, v := range a.data {
 			if v > s {
 				tt.data[i] = 1
@@ -353,11 +398,11 @@ func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
 		}
 		return tt, nil
 	}
-
-	b = b.materialize()
 	if a.Numel() != b.Numel() {
 		return nil, fmt.Errorf("greater: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
+	tt := newLike(a)
+	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
 	for i, v := range a.data {
 		if v > b.data[i] {
 			tt.data[i] = 1
@@ -370,12 +415,22 @@ func (cpu CPUBackend) Eq(a, b *Tensor) (*Tensor, error) {
 	if err := requireCPU("eq", a, b); err != nil {
 		return nil, err
 	}
-	a = a.materialize()
-	tt := newLike(a)
-	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
-
-	if b.Numel() == 1 { // scalar broadcast
-		s := b.materialize().data[0]
+	a, b = a.materialize(), b.materialize()
+	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
+		tt := newLike(b)
+		tt.dtype = Bool
+		s := a.data[0]
+		for i, v := range b.data {
+			if s == v {
+				tt.data[i] = 1
+			}
+		}
+		return tt, nil
+	}
+	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
+		tt := newLike(a)
+		tt.dtype = Bool
+		s := b.data[0]
 		for i, v := range a.data {
 			if v == s {
 				tt.data[i] = 1
@@ -383,11 +438,11 @@ func (cpu CPUBackend) Eq(a, b *Tensor) (*Tensor, error) {
 		}
 		return tt, nil
 	}
-
-	b = b.materialize()
 	if a.Numel() != b.Numel() {
 		return nil, fmt.Errorf("eq: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
+	tt := newLike(a)
+	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
 	for i, v := range a.data {
 		if v == b.data[i] {
 			tt.data[i] = 1

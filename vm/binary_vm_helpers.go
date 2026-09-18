@@ -691,10 +691,10 @@ func binaryBytesOp(vm *VM, op code.Opcode, left, right object.Object) error {
 	}
 }
 
-func binaryTensorOpHelper(vm *VM, name string, left, right *ml.Tensor, f func(a, b *ml.Tensor) (*ml.Tensor, error)) error {
+func binaryTensorOpHelper(vm *VM, left, right *ml.Tensor, f func(a, b *ml.Tensor) (*ml.Tensor, error)) error {
 	t, err := f(left, right)
 	if err != nil {
-		return vm.push(newError("invalid %s: %s", name, err.Error()))
+		return vm.push(newError("invalid %s", err.Error()))
 	}
 	return vm.push(&object.Tensor{T: t})
 }
@@ -704,17 +704,17 @@ func binaryTensorOp(vm *VM, op code.Opcode, left, right object.Object) error {
 	rightT := right.(*object.Tensor).T
 	switch op {
 	case code.OpMatMul:
-		return binaryTensorOpHelper(vm, "matmul", leftT, rightT, ml.MatMul)
+		return binaryTensorOpHelper(vm, leftT, rightT, ml.MatMul)
 	case code.OpAdd:
-		return binaryTensorOpHelper(vm, "add", leftT, rightT, ml.Add)
+		return binaryTensorOpHelper(vm, leftT, rightT, ml.Add)
 	case code.OpMinus:
-		return binaryTensorOpHelper(vm, "sub", leftT, rightT, ml.Sub)
+		return binaryTensorOpHelper(vm, leftT, rightT, ml.Sub)
 	case code.OpStar:
-		return binaryTensorOpHelper(vm, "mul", leftT, rightT, ml.Mul)
+		return binaryTensorOpHelper(vm, leftT, rightT, ml.Mul)
 	case code.OpDiv:
-		return binaryTensorOpHelper(vm, "div", leftT, rightT, ml.Div)
+		return binaryTensorOpHelper(vm, leftT, rightT, ml.Div)
 	case code.OpEqual:
-		return binaryTensorOpHelper(vm, "eq", leftT, rightT, ml.Eq)
+		return binaryTensorOpHelper(vm, leftT, rightT, ml.Eq)
 	default:
 		return vm.executeDefaultBinaryOperation(op, left, right)
 	}
@@ -792,16 +792,42 @@ func (vm *VM) executeBinaryOperationDifferentTypes(op code.Opcode, left, right o
 		leftType == object.UINTEGER_OBJ && rightType == object.INTEGER_OBJ {
 		return binaryOperationFunctions[object.UINTEGER_OBJ](vm, op, left, right)
 	}
-	if left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ ||
-		left.Type() == object.INTEGER_OBJ && right.Type() == object.STRING_OBJ ||
-		left.Type() == object.STRING_OBJ && right.Type() == object.UINTEGER_OBJ ||
-		left.Type() == object.UINTEGER_OBJ && right.Type() == object.STRING_OBJ {
+	if leftType == object.STRING_OBJ && rightType == object.INTEGER_OBJ ||
+		leftType == object.INTEGER_OBJ && rightType == object.STRING_OBJ ||
+		leftType == object.STRING_OBJ && rightType == object.UINTEGER_OBJ ||
+		leftType == object.UINTEGER_OBJ && rightType == object.STRING_OBJ {
 		return vm.executeBinaryStringAndIntOrUintOperation(op, left, right)
 	}
-	if (op == code.OpIn || op == code.OpNotin) && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ || right.Type() == object.MAP_OBJ) {
+	if (leftType == object.TENSOR_OBJ && (rightType == object.INTEGER_OBJ || rightType == object.FLOAT_OBJ)) ||
+		(rightType == object.TENSOR_OBJ && (leftType == object.INTEGER_OBJ || leftType == object.FLOAT_OBJ)) {
+		// When mismatched with scalar value (either float or int) convert to 1d tensor
+		tt, scalar := left, right
+		if rightType == object.TENSOR_OBJ {
+			tt, scalar = right, left
+		}
+		st := &object.Tensor{}
+		if scalar.Type() == object.INTEGER_OBJ {
+			t, err := ml.NewTensor([]float32{float32(scalar.(*object.Integer).Value)}, []int{1}, ml.Float32, tt.(*object.Tensor).T.Device())
+			if err != nil {
+				return vm.push(newError("failed to create tensor from scalar %s, error: %s", scalar.Inspect(), err.Error()))
+			}
+			st.T = t
+		} else {
+			t, err := ml.NewTensor([]float32{float32(scalar.(*object.Float).Value)}, []int{1}, ml.Float32, tt.(*object.Tensor).T.Device())
+			if err != nil {
+				return vm.push(newError("failed to create tensor from scalar %s, error: %s", scalar.Inspect(), err.Error()))
+			}
+			st.T = t
+		}
+		if leftType == object.TENSOR_OBJ {
+			return binaryTensorOp(vm, op, left, st)
+		}
+		return binaryTensorOp(vm, op, st, right)
+	}
+	if (op == code.OpIn || op == code.OpNotin) && (rightType == object.LIST_OBJ || rightType == object.SET_OBJ || rightType == object.MAP_OBJ) {
 		return vm.executeInNotInOperation(op, left, right)
 	}
-	if op == code.OpRshift && (right.Type() == object.LIST_OBJ || right.Type() == object.SET_OBJ) {
+	if op == code.OpRshift && (rightType == object.LIST_OBJ || rightType == object.SET_OBJ) {
 		// Push item on left into right (to front if list)
 		return vm.executeRshiftFromLeftToRight(left, right)
 	}

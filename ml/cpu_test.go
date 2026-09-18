@@ -358,3 +358,37 @@ func TestCPUOpsRejectNonCPUTensors(t *testing.T) {
 		t.Fatalf("Add(cpu, cpu) unexpected error: %v", err)
 	}
 }
+
+// TestElementwiseScalarLeft covers a scalar in the left operand position. That
+// matters for Sub and Div, which are not commutative.
+func TestElementwiseScalarLeft(t *testing.T) {
+	be := CPUBackend{}
+	a := dense([]float32{1, 2, 4}, 3)
+	s := scalar(2)
+
+	cases := []struct {
+		name string
+		fn   func(*Tensor, *Tensor) (*Tensor, error)
+		want []float32
+	}{
+		{"add", be.Add, []float32{3, 4, 6}},
+		{"sub", be.Sub, []float32{1, 0, -2}},
+		{"mul", be.Mul, []float32{2, 4, 8}},
+		{"div", be.Div, []float32{2, 1, 0.5}},
+	}
+	for _, tc := range cases {
+		got, err := tc.fn(s, a)
+		check(t, tc.name+" scalar left", got, err, []int{3}, tc.want)
+	}
+
+	// comparisons with the scalar on the left
+	got, err := be.Greater(s, a) // 2 > [1, 2, 4]
+	check(t, "greater scalar left", got, err, []int{3}, []float32{1, 0, 0})
+	got, err = be.Eq(s, a) // 2 == [1, 2, 4]
+	check(t, "eq scalar left", got, err, []int{3}, []float32{0, 1, 0})
+
+	// scalar divided by a zero element must still error
+	if _, err := be.Div(scalar(1), dense([]float32{0}, 1)); err == nil {
+		t.Fatal("div scalar left by zero: expected error")
+	}
+}
