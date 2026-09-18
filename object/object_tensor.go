@@ -163,7 +163,7 @@ func (t *Tensor) binaryMethod(name string, f func(a, b *ml.Tensor) (*ml.Tensor, 
 				return err
 			}
 			out, ferr := f(t.T, args[0].(*Tensor).T)
-			if err != nil {
+			if ferr != nil {
 				return newError("%s", ferr.Error())
 			}
 			return &Tensor{T: out}
