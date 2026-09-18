@@ -197,6 +197,12 @@ func Sqrt(a *Tensor) (*Tensor, error) {
 		})
 }
 
+func Neg(a *Tensor) (*Tensor, error) {
+	return applyUnary("neg", a,
+		func(be Backend, a *Tensor) (*Tensor, error) { return be.Neg(a) },
+		func(be Backend, g, out, a *Tensor) (*Tensor, error) { return be.Neg(g) })
+}
+
 func Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
 	return applyUnary("transpose", a,
 		func(be Backend, a *Tensor) (*Tensor, error) { return be.Transpose(a, dim0, dim1) },

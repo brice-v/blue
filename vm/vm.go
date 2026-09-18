@@ -5,6 +5,7 @@ import (
 	"blue/blueutil"
 	"blue/code"
 	"blue/consts"
+	"blue/ml"
 	"blue/object"
 	"blue/token"
 	"fmt"
@@ -1285,23 +1286,20 @@ func (vm *VM) executeNotIfNotNullOperation() error {
 
 func (vm *VM) executeNegOperation() error {
 	operand := vm.pop()
-	if operand.Type() == object.INTEGER_OBJ {
+	switch operand.Type() {
+	case object.INTEGER_OBJ:
 		value := operand.(*object.Integer).Value
 		return vm.push(intObject(-value))
-	}
-	if operand.Type() == object.FLOAT_OBJ {
+	case object.FLOAT_OBJ:
 		value := operand.(*object.Float).Value
 		return vm.push(&object.Float{Value: -value})
-	}
-	if operand.Type() == object.BIG_INTEGER_OBJ {
+	case object.BIG_INTEGER_OBJ:
 		value := operand.(*object.BigInteger).Value
 		return vm.push(&object.BigInteger{Value: new(big.Int).Neg(value)})
-	}
-	if operand.Type() == object.BIG_FLOAT_OBJ {
+	case object.BIG_FLOAT_OBJ:
 		value := operand.(*object.BigFloat).Value
 		return vm.push(&object.BigFloat{Value: value.Neg()})
-	}
-	if operand.Type() == object.MAP_OBJ {
+	case object.MAP_OBJ:
 		t := object.DunderNeg
 		if fn, ok := object.HasDunderFun(t, operand); ok {
 			resultObj := vm.applyFunctionFast(fn, nil)
@@ -1310,8 +1308,14 @@ func (vm *VM) executeNegOperation() error {
 			}
 			return vm.push(resultObj)
 		}
+	case object.TENSOR_OBJ:
+		value := operand.(*object.Tensor).T
+		t, err := ml.Neg(value)
+		if err != nil {
+			return vm.push(newError("-%s error: %s", operand.Inspect(), err.Error()))
+		}
+		return vm.push(&object.Tensor{T: t})
 	}
-
 	return vm.push(newError("unknown operator: -%s", operand.Type()))
 }
 
