@@ -9,8 +9,8 @@
 ##                                     results such as softmax, exp, sqrt
 ## Do not use `==` to compare two tensors in a test: it is the elementwise
 ## comparison operator and returns a bool tensor, which `assert` cannot take.
-## Bool tensors from `>`/`<` are still read with `ml.to_list` until there is a
-## way to compare bool tensors directly.
+## Bool tensors can be checked with same()/close(), or read elementwise with
+## to_list().
 
 import ml
 
@@ -151,6 +151,16 @@ assert(to_list(c == a.matmul(b)) == [[true, true], [true, true]]);
 assert(to_list(c > 0.0) == [[true, true], [true, true]]);
 assert(to_list(c < 0.0) == [[false, false], [false, false]]);
 assert(to_list(c != c) == [[false, false], [false, false]]);
+
+# the module functions and methods match the operators, and take scalars
+assert(same(c > 0.0, ml.gt(c, 0.0)));
+assert(same(c >= 0.0, ml.ge(c, 0.0)));
+assert(same(c < 0.0, ml.lt(c, 0.0)));
+assert(same(c <= 0.0, ml.le(c, 0.0)));
+assert(same(c != c, ml.ne(c, c)));
+assert(same(c == a.matmul(b), ml.eq(c, a.matmul(b))));
+assert(same(c.gt(0.0), ml.gt(c, 0.0)));
+assert(same(c.neg(), -c));
 
 # --- 9. TARGET: reductions --------------------------------------------------
 

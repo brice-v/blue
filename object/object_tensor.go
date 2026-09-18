@@ -100,6 +100,20 @@ func (t *Tensor) Get(property string) (Object, error) {
 		return t.binaryMethod("div", ml.Div), nil
 	case "pow":
 		return t.binaryMethod("pow", ml.Pow), nil
+	case "eq":
+		return t.binaryMethod("eq", ml.Eq), nil
+	case "ne":
+		return t.binaryMethod("ne", ml.Ne), nil
+	case "gt":
+		return t.binaryMethod("gt", ml.Gt), nil
+	case "ge":
+		return t.binaryMethod("ge", ml.Ge), nil
+	case "lt":
+		return t.binaryMethod("lt", ml.Lt), nil
+	case "le":
+		return t.binaryMethod("le", ml.Le), nil
+	case "neg":
+		return t.unaryMethod("neg", ml.Neg), nil
 	case "relu":
 		return t.unaryMethod("relu", ml.Relu), nil
 	case "exp":
@@ -186,11 +200,12 @@ func (t *Tensor) binaryMethod(name string, f func(a, b *ml.Tensor) (*ml.Tensor, 
 			if err != nil {
 				return err
 			}
-			err = checkArgType(name, 1, TENSOR_OBJ, args)
-			if err != nil {
-				return err
+			// accept a scalar too, so a.gt(0.0) works like PyTorch
+			b, ok := asTensorArg(args[0], t.T.Device())
+			if !ok {
+				return newPositionalTypeError(name, 1, TENSOR_OBJ, args[0].Type())
 			}
-			out, ferr := f(t.T, args[0].(*Tensor).T)
+			out, ferr := f(t.T, b)
 			if ferr != nil {
 				return newError("%s", ferr.Error())
 			}

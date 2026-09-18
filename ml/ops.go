@@ -204,7 +204,7 @@ func Relu(a *Tensor) (*Tensor, error) {
 	return applyUnary("relu", a,
 		func(be Backend, a *Tensor) (*Tensor, error) { return be.Relu(a) },
 		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
-			mask, err := be.Greater(a, zerosLike(a)) // 1 where a > 0, else 0
+			mask, err := be.Gt(a, zerosLike(a)) // 1 where a > 0, else 0
 			if err != nil {
 				return nil, err
 			}
@@ -339,12 +339,41 @@ func Softmax(a *Tensor, dim int) (*Tensor, error) {
 		})
 }
 
-// Eq is a comparison, so it is not differentiable and records no graph node.
-// It exists for masks (for example Max's backward) and for `_eq` later.
-func Eq(a, b *Tensor) (*Tensor, error) {
+// compare runs a non-differentiable comparison. It records no graph node, so
+// its output is detached even when an input requires grad.
+func compare(a, b *Tensor, f func(be Backend, a, b *Tensor) (*Tensor, error)) (*Tensor, error) {
 	be, err := backendForAll(a, b)
 	if err != nil {
 		return nil, err
 	}
-	return be.Eq(a, b)
+	return f(be, a, b)
+}
+
+// The comparison ops below are non-differentiable and record no graph node.
+// Each is a distinct predicate rather than a negation of another, so NaN
+// semantics match (NaN compares false with everything except Ne, which is
+// true). They exist for masks (Relu uses Gt, Max uses Eq) and for `_eq`/`_ne`/
+// `_gt`/`_ge`/`_lt`/`_le`.
+func Eq(a, b *Tensor) (*Tensor, error) {
+	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Eq(a, b) })
+}
+
+func Ne(a, b *Tensor) (*Tensor, error) {
+	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Ne(a, b) })
+}
+
+func Gt(a, b *Tensor) (*Tensor, error) {
+	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Gt(a, b) })
+}
+
+func Ge(a, b *Tensor) (*Tensor, error) {
+	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Ge(a, b) })
+}
+
+func Lt(a, b *Tensor) (*Tensor, error) {
+	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Lt(a, b) })
+}
+
+func Le(a, b *Tensor) (*Tensor, error) {
+	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Le(a, b) })
 }

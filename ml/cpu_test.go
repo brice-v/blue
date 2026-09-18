@@ -344,8 +344,12 @@ func TestCPUOpsRejectNonCPUTensors(t *testing.T) {
 		{"Softmax", func() (*Tensor, error) { return be.Softmax(gpu, 1) }},
 		{"Neg", func() (*Tensor, error) { return be.Neg(gpu) }},
 		{"Relu", func() (*Tensor, error) { return be.Relu(gpu) }},
-		{"Greater", func() (*Tensor, error) { return be.Greater(gpu, cpu) }},
 		{"Eq", func() (*Tensor, error) { return be.Eq(gpu, cpu) }},
+		{"Ne", func() (*Tensor, error) { return be.Ne(gpu, cpu) }},
+		{"Gt", func() (*Tensor, error) { return be.Gt(gpu, cpu) }},
+		{"Ge", func() (*Tensor, error) { return be.Ge(gpu, cpu) }},
+		{"Lt", func() (*Tensor, error) { return be.Lt(gpu, cpu) }},
+		{"Le", func() (*Tensor, error) { return be.Le(gpu, cpu) }},
 		{"Reshape", func() (*Tensor, error) { return be.Reshape(gpu, 4) }},
 		{"Transpose", func() (*Tensor, error) { return be.Transpose(gpu, 0, 1) }},
 	}
@@ -386,7 +390,7 @@ func TestElementwiseScalarLeft(t *testing.T) {
 	}
 
 	// comparisons with the scalar on the left
-	got, err := be.Greater(s, a) // 2 > [1, 2, 4]
+	got, err := be.Gt(s, a) // 2 > [1, 2, 4]
 	check(t, "greater scalar left", got, err, []int{3}, []float32{1, 0, 0})
 	got, err = be.Eq(s, a) // 2 == [1, 2, 4]
 	check(t, "eq scalar left", got, err, []int{3}, []float32{0, 1, 0})

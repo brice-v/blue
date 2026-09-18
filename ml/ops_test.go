@@ -108,3 +108,49 @@ func TestNegOp(t *testing.T) {
 	}
 	check(t, "neg grad", y.Grad(), nil, []int{1, 1}, []float32{-1})
 }
+
+func TestCompareOps(t *testing.T) {
+	a := dense([]float32{1, 2, 3}, 3)
+	b := dense([]float32{1, 0, 4}, 3)
+
+	cases := []struct {
+		name string
+		fn   func(*Tensor, *Tensor) (*Tensor, error)
+		want []float32
+	}{
+		{"eq", Eq, []float32{1, 0, 0}},
+		{"ne", Ne, []float32{0, 1, 1}},
+		{"gt", Gt, []float32{0, 1, 0}},
+		{"ge", Ge, []float32{1, 1, 0}},
+		{"lt", Lt, []float32{0, 0, 1}},
+		{"le", Le, []float32{1, 0, 1}},
+	}
+	for _, tc := range cases {
+		got, err := tc.fn(a, b)
+		check(t, tc.name, got, err, []int{3}, tc.want)
+		if got.DType() != Bool {
+			t.Fatalf("%s dtype = %s, want bool", tc.name, got.DType())
+		}
+
+		// comparisons never build a graph, even when an input requires grad
+		a.SetRequiresGrad(true)
+		tracked, err := tc.fn(a, b)
+		if err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		if tracked.RequiresGrad() || tracked.gradState != nil {
+			t.Fatalf("%s should not be tracked by autograd", tc.name)
+		}
+		a.SetRequiresGrad(false)
+	}
+
+	// scalar broadcast on the left
+	got, err := Ge(dense([]float32{2}, 1), a) // 2 >= [1, 2, 3]
+	check(t, "ge scalar left", got, err, []int{3}, []float32{1, 1, 0})
+	got, err = Ne(dense([]float32{2}, 1), a) // 2 != [1, 2, 3]
+	check(t, "ne scalar left", got, err, []int{3}, []float32{1, 0, 1})
+	got, err = Lt(dense([]float32{2}, 1), a) // 2 < [1, 2, 3]
+	check(t, "lt scalar left", got, err, []int{3}, []float32{0, 0, 1})
+	got, err = Le(dense([]float32{2}, 1), a) // 2 <= [1, 2, 3]
+	check(t, "le scalar left", got, err, []int{3}, []float32{0, 1, 1})
+}

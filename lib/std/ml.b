@@ -8,12 +8,19 @@ val __sub = _sub;
 val __mul = _mul;
 val __div = _div;
 val __pow = _pow;
+val __neg = _neg;
 val __relu = _relu;
 val __exp = _exp;
 val __log = _log;
 val __sqrt = _sqrt;
 val __reshape = _reshape;
 val __transpose = _transpose;
+val __eq = _eq;
+val __ne = _ne;
+val __gt = _gt;
+val __ge = _ge;
+val __lt = _lt;
+val __le = _le;
 val __equal = _equal;
 val __allclose = _allclose;
 
@@ -86,6 +93,14 @@ fun pow(a, b) {
     __pow(a, b)
 }
 
+fun neg(a) {
+    ##std:this,__neg
+    ## `neg` returns the negation of each element
+    ##
+    ## neg(a: tensor) -> tensor
+    __neg(a)
+}
+
 fun relu(a) {
     ##std:this,__relu
     ## `relu` returns max(0, x) elementwise
@@ -132,6 +147,60 @@ fun transpose(a, dim0=0, dim1=1) {
     ##
     ## transpose(a: tensor, dim0: int=0, dim1: int=1) -> tensor
     __transpose(a, dim0, dim1)
+}
+
+fun eq(a, b) {
+    ##std:this,__eq
+    ## `eq` returns a bool tensor that is true where a == b, with scalar broadcast.
+    ## Comparisons are not differentiable, and `==` is the operator form.
+    ##
+    ## eq(a: tensor, b: tensor) -> tensor
+    __eq(a, b)
+}
+
+fun ne(a, b) {
+    ##std:this,__ne
+    ## `ne` returns a bool tensor that is true where a != b, with scalar broadcast.
+    ## Comparisons are not differentiable, and `!=` is the operator form.
+    ##
+    ## ne(a: tensor, b: tensor) -> tensor
+    __ne(a, b)
+}
+
+fun gt(a, b) {
+    ##std:this,__gt
+    ## `gt` returns a bool tensor that is true where a > b, with scalar broadcast.
+    ## Comparisons are not differentiable, and `>` is the operator form.
+    ##
+    ## gt(a: tensor, b: tensor) -> tensor
+    __gt(a, b)
+}
+
+fun ge(a, b) {
+    ##std:this,__ge
+    ## `ge` returns a bool tensor that is true where a >= b, with scalar broadcast.
+    ## Comparisons are not differentiable, and `>=` is the operator form.
+    ##
+    ## ge(a: tensor, b: tensor) -> tensor
+    __ge(a, b)
+}
+
+fun lt(a, b) {
+    ##std:this,__lt
+    ## `lt` returns a bool tensor that is true where a < b, with scalar broadcast.
+    ## Comparisons are not differentiable, and `<` is the operator form.
+    ##
+    ## lt(a: tensor, b: tensor) -> tensor
+    __lt(a, b)
+}
+
+fun le(a, b) {
+    ##std:this,__le
+    ## `le` returns a bool tensor that is true where a <= b, with scalar broadcast.
+    ## Comparisons are not differentiable, and `<=` is the operator form.
+    ##
+    ## le(a: tensor, b: tensor) -> tensor
+    __le(a, b)
 }
 
 fun equal(a, b) {

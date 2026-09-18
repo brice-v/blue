@@ -179,6 +179,16 @@ var MlBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_neg",
+		Fun:  tensorUnaryBuiltin("neg", ml.Neg),
+		HelpStr: helpStrArgs{
+			explanation: "`neg` returns the negation of each element",
+			signature:   "neg(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "neg(tensor([[1.0, -2.0]])) => Tensor{shape: [1 2]}",
+		}.String(),
+	},
+	{
 		Name: "_relu",
 		Fun:  tensorUnaryBuiltin("relu", ml.Relu),
 		HelpStr: helpStrArgs{
@@ -216,6 +226,66 @@ var MlBuiltins = []*Builtin{
 			signature:   "sqrt(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "sqrt(tensor([[4.0]])) => Tensor{shape: [1 1]}",
+		}.String(),
+	},
+	{
+		Name: "_eq",
+		Fun:  tensorBinaryBuiltin("eq", ml.Eq),
+		HelpStr: helpStrArgs{
+			explanation: "`eq` returns a bool tensor that is true where a == b, with scalar broadcast; comparisons are not differentiable",
+			signature:   "eq(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "eq(tensor([[1.0, 3.0]]), tensor([[2.0, 3.0]])) => Tensor{shape: [1 2]}",
+		}.String(),
+	},
+	{
+		Name: "_ne",
+		Fun:  tensorBinaryBuiltin("ne", ml.Ne),
+		HelpStr: helpStrArgs{
+			explanation: "`ne` returns a bool tensor that is true where a != b, with scalar broadcast; comparisons are not differentiable",
+			signature:   "ne(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "ne(tensor([[1.0, 3.0]]), tensor([[1.0, 3.0]])) => Tensor{shape: [1 2]}",
+		}.String(),
+	},
+	{
+		Name: "_gt",
+		Fun:  tensorBinaryBuiltin("gt", ml.Gt),
+		HelpStr: helpStrArgs{
+			explanation: "`gt` returns a bool tensor that is true where a > b, with scalar broadcast; comparisons are not differentiable",
+			signature:   "gt(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "gt(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
+		}.String(),
+	},
+	{
+		Name: "_ge",
+		Fun:  tensorBinaryBuiltin("ge", ml.Ge),
+		HelpStr: helpStrArgs{
+			explanation: "`ge` returns a bool tensor that is true where a >= b, with scalar broadcast; comparisons are not differentiable",
+			signature:   "ge(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "ge(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
+		}.String(),
+	},
+	{
+		Name: "_lt",
+		Fun:  tensorBinaryBuiltin("lt", ml.Lt),
+		HelpStr: helpStrArgs{
+			explanation: "`lt` returns a bool tensor that is true where a < b, with scalar broadcast; comparisons are not differentiable",
+			signature:   "lt(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "lt(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
+		}.String(),
+	},
+	{
+		Name: "_le",
+		Fun:  tensorBinaryBuiltin("le", ml.Le),
+		HelpStr: helpStrArgs{
+			explanation: "`le` returns a bool tensor that is true where a <= b, with scalar broadcast; comparisons are not differentiable",
+			signature:   "le(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "le(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
 		}.String(),
 	},
 	{
@@ -360,21 +430,55 @@ var MlBuiltins = []*Builtin{
 	},
 }
 
+// asTensorArg accepts either a tensor or a scalar (int, float, or bool), which
+// is coerced to a one element tensor on device. This lets the module functions
+// take scalars the way PyTorch does, for example `ml.gt(a, 0.0)`.
+func asTensorArg(o Object, device ml.Device) (*ml.Tensor, bool) {
+	if t, ok := o.(*Tensor); ok {
+		return t.T, true
+	}
+	var v float32
+	switch n := o.(type) {
+	case *Integer:
+		v = float32(n.Value)
+	case *Float:
+		v = float32(n.Value)
+	case *Boolean:
+		if n.Value {
+			v = 1
+		}
+	default:
+		return nil, false
+	}
+	t, err := ml.NewTensor([]float32{v}, []int{1}, ml.Float32, device)
+	if err != nil {
+		return nil, false
+	}
+	return t, true
+}
+
 func tensorBinaryBuiltin(name string, f func(a, b *ml.Tensor) (*ml.Tensor, error)) func(...Object) Object {
 	return func(args ...Object) Object {
 		err := checkArgCount(name, 2, args)
 		if err != nil {
 			return err
 		}
-		err = checkArgType(name, 1, TENSOR_OBJ, args)
-		if err != nil {
-			return err
+		// a scalar on either side is built on the other operand's device
+		device := ml.CPU
+		if t, ok := args[0].(*Tensor); ok {
+			device = t.T.Device()
+		} else if t, ok := args[1].(*Tensor); ok {
+			device = t.T.Device()
 		}
-		err = checkArgType(name, 2, TENSOR_OBJ, args)
-		if err != nil {
-			return err
+		a, ok := asTensorArg(args[0], device)
+		if !ok {
+			return newPositionalTypeError(name, 1, TENSOR_OBJ, args[0].Type())
 		}
-		out, ferr := f(args[0].(*Tensor).T, args[1].(*Tensor).T)
+		b, ok := asTensorArg(args[1], device)
+		if !ok {
+			return newPositionalTypeError(name, 2, TENSOR_OBJ, args[1].Type())
+		}
+		out, ferr := f(a, b)
 		if ferr != nil {
 			return newError("`%s` error: %s", name, ferr.Error())
 		}

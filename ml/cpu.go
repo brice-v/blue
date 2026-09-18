@@ -329,7 +329,7 @@ func (cpu CPUBackend) Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Softmax(a *Tensor, dim int) (*Tensor, error) {
-	outer, reduce, inner, dim, err := oride(a, dim, "softmax", false)
+	outer, reduce, inner, _, err := oride(a, dim, "softmax", false)
 	if err != nil {
 		return nil, err
 	}
@@ -377,40 +377,37 @@ func (cpu CPUBackend) Relu(a *Tensor) (*Tensor, error) {
 	}), nil
 }
 
-func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
-	if err := requireCPU("greater", a, b); err != nil {
+// compareElem implements every comparison op: elementwise pred with either
+// operand order, scalar broadcast on either side, producing a Bool-tagged
+// tensor (0.0 / 1.0 in the same float32 buffer). Comparisons are not
+// differentiable.
+func compareElem(op string, a, b *Tensor, pred func(x, y float32) bool) (*Tensor, error) {
+	if err := requireCPU(op, a, b); err != nil {
 		return nil, err
 	}
 	a, b = a.materialize(), b.materialize()
-	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
-		tt := newLike(b)
-		tt.storage.dtype = Bool
-		s := a.storage.data[0]
-		for i, v := range b.storage.data {
-			if s > v {
-				tt.storage.data[i] = 1
-			}
+	if a.Numel() != 1 && b.Numel() != 1 && a.Numel() != b.Numel() {
+		return nil, fmt.Errorf("%s: shape mismatch: %v %v", op, a.Numel(), b.Numel())
+	}
+
+	// the output takes the shape of whichever operand is not a scalar
+	out := a
+	if a.Numel() == 1 && b.Numel() != 1 {
+		out = b
+	}
+	tt := newLike(out)
+	tt.storage.dtype = Bool
+
+	for i := range tt.storage.data {
+		x := a.storage.data[0]
+		if a.Numel() != 1 {
+			x = a.storage.data[i]
 		}
-		return tt, nil
-	}
-	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
-		tt := newLike(a)
-		tt.storage.dtype = Bool
-		s := b.storage.data[0]
-		for i, v := range a.storage.data {
-			if v > s {
-				tt.storage.data[i] = 1
-			}
+		y := b.storage.data[0]
+		if b.Numel() != 1 {
+			y = b.storage.data[i]
 		}
-		return tt, nil
-	}
-	if a.Numel() != b.Numel() {
-		return nil, fmt.Errorf("greater: shape mismatch: %v %v", a.Numel(), b.Numel())
-	}
-	tt := newLike(a)
-	tt.storage.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
-	for i, v := range a.storage.data {
-		if v > b.storage.data[i] {
+		if pred(x, y) {
 			tt.storage.data[i] = 1
 		}
 	}
@@ -418,43 +415,27 @@ func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Eq(a, b *Tensor) (*Tensor, error) {
-	if err := requireCPU("eq", a, b); err != nil {
-		return nil, err
-	}
-	a, b = a.materialize(), b.materialize()
-	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
-		tt := newLike(b)
-		tt.storage.dtype = Bool
-		s := a.storage.data[0]
-		for i, v := range b.storage.data {
-			if s == v {
-				tt.storage.data[i] = 1
-			}
-		}
-		return tt, nil
-	}
-	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
-		tt := newLike(a)
-		tt.storage.dtype = Bool
-		s := b.storage.data[0]
-		for i, v := range a.storage.data {
-			if v == s {
-				tt.storage.data[i] = 1
-			}
-		}
-		return tt, nil
-	}
-	if a.Numel() != b.Numel() {
-		return nil, fmt.Errorf("eq: shape mismatch: %v %v", a.Numel(), b.Numel())
-	}
-	tt := newLike(a)
-	tt.storage.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
-	for i, v := range a.storage.data {
-		if v == b.storage.data[i] {
-			tt.storage.data[i] = 1
-		}
-	}
-	return tt, nil
+	return compareElem("eq", a, b, func(x, y float32) bool { return x == y })
+}
+
+func (cpu CPUBackend) Ne(a, b *Tensor) (*Tensor, error) {
+	return compareElem("ne", a, b, func(x, y float32) bool { return x != y })
+}
+
+func (cpu CPUBackend) Gt(a, b *Tensor) (*Tensor, error) {
+	return compareElem("gt", a, b, func(x, y float32) bool { return x > y })
+}
+
+func (cpu CPUBackend) Ge(a, b *Tensor) (*Tensor, error) {
+	return compareElem("ge", a, b, func(x, y float32) bool { return x >= y })
+}
+
+func (cpu CPUBackend) Lt(a, b *Tensor) (*Tensor, error) {
+	return compareElem("lt", a, b, func(x, y float32) bool { return x < y })
+}
+
+func (cpu CPUBackend) Le(a, b *Tensor) (*Tensor, error) {
+	return compareElem("le", a, b, func(x, y float32) bool { return x <= y })
 }
 
 func (cpu CPUBackend) Pow(a, b *Tensor) (*Tensor, error) {
