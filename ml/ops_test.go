@@ -90,3 +90,21 @@ func TestEqOp(t *testing.T) {
 		t.Fatal("Eq should not be tracked by autograd")
 	}
 }
+
+func TestNegOp(t *testing.T) {
+	x := dense([]float32{-1, 0, 2}, 3)
+	got, err := Neg(x)
+	check(t, "neg forward", got, err, []int{3}, []float32{1, 0, -2})
+
+	// d(-x)/dx = -1, so a seed of 1 comes back as -1
+	y := dense([]float32{-3}, 1, 1)
+	y.SetRequiresGrad(true)
+	out, err := Neg(y)
+	if err != nil {
+		t.Fatalf("Neg() error: %v", err)
+	}
+	if err := out.Backward(); err != nil {
+		t.Fatalf("Backward() error: %v", err)
+	}
+	check(t, "neg grad", y.Grad(), nil, []int{1, 1}, []float32{-1})
+}

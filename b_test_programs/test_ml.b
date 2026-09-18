@@ -101,14 +101,34 @@ assert(same(c + c, e));
 assert(same(c - c, ml.tensor([[0.0, 0.0], [0.0, 0.0]])));
 assert(same(c * c, ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]])));
 assert(same(c / c, ml.tensor([[1.0, 1.0], [1.0, 1.0]])));
-assert(same(-c, ml.tensor([[-58.0, -64.0], [-139.0, -154.0]])));
 
 # scalar broadcast operators (float and int scalars both coerce)
 assert(same(c + 1.0, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
 assert(same(1.0 + c, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
 assert(same(c * 2.0, ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
+assert(same(2.0 * c, ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
 assert(same(c + 1, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
+assert(same(1 + c, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
+assert(same(2 * c, ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
+
+# scalar on the left for the non-commutative operators: operand order matters
+assert(same(1.0 - c, ml.tensor([[-57.0, -63.0], [-138.0, -153.0]])));
+assert(same(c - 1.0, ml.tensor([[57.0, 63.0], [138.0, 153.0]])));
+assert(close(2.0 / c, ml.tensor([[2.0 / 58.0, 2.0 / 64.0], [2.0 / 139.0, 2.0 / 154.0]])));
+assert(close(c / 2.0, ml.tensor([[29.0, 32.0], [69.5, 77.0]])));
+
+# TARGET: unary negation
+assert(same(-c, ml.tensor([[-58.0, -64.0], [-139.0, -154.0]])));
+
+# TARGET: pow works for a negative base with an integer exponent, and the
+# gradient reaches the base (dz/da = b * a^(b-1))
 assert(same(c ** 2.0, ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]])));
+assert(same(ml.tensor([[-2.0, 3.0]]) ** 2.0, ml.tensor([[4.0, 9.0]])));
+val pbase = ml.tensor([[-3.0]], requires_grad=true);
+val pout = pbase ** 2.0;
+assert(same(pout, ml.tensor([[9.0]])));
+pout.backward();
+assert(same(pbase.grad, ml.tensor([[-6.0]])));
 
 # compound assignment desugars to the binary op
 var acc = c;
