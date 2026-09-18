@@ -12,24 +12,28 @@ const eps = 1e-5
 // dense builds a packed, offset-0 tensor for tests.
 func dense(data []float32, shape ...int) *Tensor {
 	return &Tensor{
-		data:    slices.Clone(data),
+		storage: &Storage{
+			data:   slices.Clone(data),
+			dtype:  Float32,
+			device: CPU,
+		},
 		shape:   slices.Clone(shape),
 		strides: getContiguousStridesFromShape(shape),
 		offset:  0,
-		dtype:   Float32,
-		device:  CPU,
 	}
 }
 
 // view builds an arbitrary strided view, used for non-contiguous inputs.
 func view(data []float32, shape, strides []int, offset int) *Tensor {
 	return &Tensor{
-		data:    data,
+		storage: &Storage{
+			data:   data,
+			dtype:  Float32,
+			device: CPU,
+		},
 		shape:   shape,
 		strides: strides,
 		offset:  offset,
-		dtype:   Float32,
-		device:  CPU,
 	}
 }
 
@@ -49,12 +53,12 @@ func check(t *testing.T, name string, got *Tensor, err error, wantShape []int, w
 		t.Fatalf("%s: shape = %v, want %v", name, got.shape, wantShape)
 	}
 	m := got.materialize()
-	if len(m.data) != len(wantData) {
-		t.Fatalf("%s: len(data) = %d, want %d (got %v)", name, len(m.data), len(wantData), m.data)
+	if len(m.storage.data) != len(wantData) {
+		t.Fatalf("%s: len(data) = %d, want %d (got %v)", name, len(m.storage.data), len(wantData), m.storage.data)
 	}
 	for i := range wantData {
-		if math.Abs(float64(m.data[i]-wantData[i])) > eps {
-			t.Fatalf("%s: data[%d] = %v, want %v (got %v)", name, i, m.data[i], wantData[i], m.data)
+		if math.Abs(float64(m.storage.data[i]-wantData[i])) > eps {
+			t.Fatalf("%s: data[%d] = %v, want %v (got %v)", name, i, m.storage.data[i], wantData[i], m.storage.data)
 		}
 	}
 }
@@ -267,7 +271,7 @@ func TestReshape(t *testing.T) {
 		if err != nil || got == nil {
 			t.Fatalf("reshape failed: %v", err)
 		}
-		if len(got.data) == 0 || &got.data[0] != &a.data[0] {
+		if len(got.storage.data) == 0 || &got.storage.data[0] != &a.storage.data[0] {
 			t.Fatal("reshape of a contiguous tensor should be a view sharing data")
 		}
 	})
@@ -299,7 +303,7 @@ func TestTranspose(t *testing.T) {
 		if err != nil || got == nil {
 			t.Fatalf("transpose failed: %v", err)
 		}
-		if len(got.data) == 0 || &got.data[0] != &a.data[0] {
+		if len(got.storage.data) == 0 || &got.storage.data[0] != &a.storage.data[0] {
 			t.Fatal("transpose should share data with its input")
 		}
 	})

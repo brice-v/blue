@@ -79,20 +79,28 @@ func ParseDevice(s string) (Device, error) {
 	}
 }
 
-// Tensor is a strided view over a flat buffer
+// Storage owns the backing buffer and the dtype/device it lives on. Views over
+// the same buffer share one Storage; only a copy (materialize of a
+// non-contiguous view, Clone, NewTensor) creates a new one.
+type Storage struct {
+	data   []float32
+	dtype  DType
+	device Device
+}
+
+// Tensor is a strided view over a Storage.
 type Tensor struct {
-	data    []float32 // backing store (starting with f32 only - eventually create storage struct based on dtype and put here)
+	storage *Storage
+
 	shape   []int
 	strides []int
 	offset  int
-	dtype   DType
-	device  Device
 
 	gradState *gradState
 }
 
 func (t *Tensor) RawData() []float32 {
-	return t.data
+	return t.storage.data
 }
 
 func (t *Tensor) Shape() []int {
@@ -108,21 +116,23 @@ func (t *Tensor) Offset() int {
 }
 
 func (t *Tensor) DType() DType {
-	return t.dtype
+	return t.storage.dtype
 }
 
 func (t *Tensor) Device() Device {
-	return t.device
+	return t.storage.device
 }
 
 func (t *Tensor) Clone() *Tensor {
 	return &Tensor{
-		data:    slices.Clone(t.data),
+		storage: &Storage{
+			data:   slices.Clone(t.storage.data),
+			dtype:  t.storage.dtype,
+			device: t.storage.device,
+		},
 		shape:   slices.Clone(t.shape),
 		strides: slices.Clone(t.strides),
 		offset:  t.offset,
-		dtype:   t.dtype,
-		device:  t.device,
 	}
 }
 
@@ -140,7 +150,7 @@ func (t *Tensor) SetGrad(tt *Tensor) {
 // case. Used by serialization, which only reads the values.
 func (t *Tensor) ContiguousData() []float32 {
 	m := t.materialize()
-	return m.data[:m.Numel()]
+	return m.storage.data[:m.Numel()]
 }
 
 func checkNewTensorConstruction(data []float32, shape []int, dtype DType, device Device) error {
@@ -173,11 +183,13 @@ func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor
 		return nil, err
 	}
 	return &Tensor{
-		data:    slices.Clone(data),
+		storage: &Storage{
+			data:   slices.Clone(data),
+			dtype:  dtype,
+			device: device,
+		},
 		shape:   slices.Clone(shape),
 		strides: getContiguousStridesFromShape(shape),
-		dtype:   dtype,
-		device:  device,
 	}, nil
 }
 
@@ -189,16 +201,18 @@ func NewTensorOwned(data []float32, shape []int, dtype DType, device Device) (*T
 		return nil, err
 	}
 	return &Tensor{
-		data:    data,
+		storage: &Storage{
+			data:   data,
+			dtype:  dtype,
+			device: device,
+		},
 		shape:   shape,
 		strides: getContiguousStridesFromShape(shape),
-		dtype:   dtype,
-		device:  device,
 	}, nil
 }
 
 func (t *Tensor) String() string {
-	return fmt.Sprintf("Tensor{shape: %v, strides: %v, offset: %d, dtype: %s, device: %s}", t.shape, t.strides, t.offset, t.dtype, t.device)
+	return fmt.Sprintf("Tensor{shape: %v, strides: %v, offset: %d, dtype: %s, device: %s}", t.shape, t.strides, t.offset, t.storage.dtype, t.storage.device)
 }
 
 type gradState struct {
@@ -296,16 +310,18 @@ func (t *Tensor) materialize() *Tensor {
 		}
 		// slice data on the offset so new tensor becomes offset-0
 		return &Tensor{
-			data:    t.data[t.offset:],
+			storage: &Storage{
+				data:   t.storage.data[t.offset:],
+				dtype:  t.storage.dtype,
+				device: t.storage.device,
+			},
 			shape:   slices.Clone(t.shape),
 			strides: slices.Clone(t.strides),
 			offset:  0,
-			dtype:   t.dtype,
-			device:  t.device,
 		}
 	}
 	tt := newLike(t)
-	copyStrided(tt.data, t)
+	copyStrided(tt.storage.data, t)
 	return tt
 }
 
@@ -324,7 +340,7 @@ func copyStrided(dst []float32, src *Tensor) {
 	var walk func(dim, srcIdx int)
 	walk = func(dim, srcIdx int) {
 		if dim == len(src.shape) {
-			dst[pos] = src.data[srcIdx]
+			dst[pos] = src.storage.data[srcIdx]
 			pos++
 			return
 		}
@@ -336,10 +352,10 @@ func copyStrided(dst []float32, src *Tensor) {
 }
 
 func (t *Tensor) Item() (float32, error) {
-	if t.Numel() != 1 || t.offset < 0 || t.offset >= len(t.data) {
+	if t.Numel() != 1 || t.offset < 0 || t.offset >= len(t.storage.data) {
 		return float32(math.NaN()), fmt.Errorf("Item: tensor does not hold exactly 1 element")
 	}
-	return t.data[t.offset], nil
+	return t.storage.data[t.offset], nil
 }
 
 // other helpers
@@ -355,11 +371,13 @@ func numelOf(shape []int) int {
 // newLike does not copy data, returns equivalent of materialize'd tensor in with allocated space for data
 func newLike(a *Tensor) *Tensor {
 	return &Tensor{
-		data:    make([]float32, a.Numel()),
+		storage: &Storage{
+			data:   make([]float32, a.Numel()),
+			dtype:  a.storage.dtype,
+			device: a.storage.device,
+		},
 		shape:   slices.Clone(a.shape),
 		strides: getContiguousStridesFromShape(a.shape),
-		dtype:   a.dtype,
-		device:  a.device,
 	}
 }
 
@@ -384,8 +402,8 @@ func backendForAll(in ...*Tensor) (Backend, error) {
 
 func onesLike(t *Tensor) *Tensor {
 	out := newLike(t)
-	for i := range out.data {
-		out.data[i] = 1
+	for i := range out.storage.data {
+		out.storage.data[i] = 1
 	}
 	return out
 }
@@ -417,8 +435,8 @@ func sumAll(be Backend, g *Tensor) (*Tensor, error) {
 
 func scalarLike(a *Tensor, v float32) *Tensor {
 	out := newLike(a)
-	for i := range out.data {
-		out.data[i] = v
+	for i := range out.storage.data {
+		out.storage.data[i] = v
 	}
 	return out
 }
@@ -439,12 +457,10 @@ func broadcastTo(g *Tensor, shape []int) (*Tensor, error) {
 		return nil, fmt.Errorf("broadcastTo: rank %d vs %d", len(g.shape), len(shape))
 	}
 	out := &Tensor{
-		data:    g.data,
+		storage: g.storage, // shares the backing array, only the strides change
 		shape:   slices.Clone(shape),
 		strides: make([]int, len(shape)),
 		offset:  g.offset,
-		dtype:   g.dtype,
-		device:  g.device,
 	}
 	for i := range shape {
 		switch g.shape[i] {

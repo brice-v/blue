@@ -111,11 +111,11 @@ func TestMaterialize(t *testing.T) {
 		if got.offset != 0 {
 			t.Fatalf("offset = %d, want 0", got.offset)
 		}
-		if &got.data[0] != &base[1] {
+		if &got.storage.data[0] != &base[1] {
 			t.Fatal("expected the re-slice to share the original backing array")
 		}
-		if got.data[0] != 20 || got.data[1] != 30 {
-			t.Fatalf("data = %v, want [20 30 ...]", got.data)
+		if got.storage.data[0] != 20 || got.storage.data[1] != 30 {
+			t.Fatalf("data = %v, want [20 30 ...]", got.storage.data)
 		}
 	})
 
@@ -126,11 +126,11 @@ func TestMaterialize(t *testing.T) {
 		if !got.IsContiguous() || got.offset != 0 {
 			t.Fatalf("expected a packed offset-0 result, got strides=%v offset=%d", got.strides, got.offset)
 		}
-		if &got.data[0] == &base[0] {
+		if &got.storage.data[0] == &base[0] {
 			t.Fatal("expected a fresh buffer for a non-contiguous input")
 		}
-		if !slices.Equal(got.data, []float32{1, 4, 2, 5, 3, 6}) {
-			t.Fatalf("data = %v, want [1 4 2 5 3 6]", got.data)
+		if !slices.Equal(got.storage.data, []float32{1, 4, 2, 5, 3, 6}) {
+			t.Fatalf("data = %v, want [1 4 2 5 3 6]", got.storage.data)
 		}
 		if got.gradState != nil {
 			t.Fatal("materialized copy should not carry graph state")
@@ -141,8 +141,8 @@ func TestMaterialize(t *testing.T) {
 		base := []float32{5, 6, 7}
 		s := view(base, nil, nil, 2)
 		got := s.materialize()
-		if got.Numel() != 1 || got.data[0] != 7 {
-			t.Fatalf("scalar materialize = %v, want 7", got.data)
+		if got.Numel() != 1 || got.storage.data[0] != 7 {
+			t.Fatalf("scalar materialize = %v, want 7", got.storage.data)
 		}
 	})
 
@@ -206,8 +206,8 @@ func TestItem(t *testing.T) {
 
 func TestNewLike(t *testing.T) {
 	a := dense([]float32{1, 2, 3, 4}, 2, 2)
-	a.dtype = Float64
-	a.device = GPU
+	a.storage.dtype = Float64
+	a.storage.device = GPU
 
 	got := newLike(a)
 	if !slices.Equal(got.shape, []int{2, 2}) {
@@ -219,18 +219,18 @@ func TestNewLike(t *testing.T) {
 	if got.offset != 0 {
 		t.Fatalf("offset = %d, want 0", got.offset)
 	}
-	if got.dtype != Float64 || got.device != GPU {
-		t.Fatalf("dtype/device = %v/%v, want Float64/GPU", got.dtype, got.device)
+	if got.storage.dtype != Float64 || got.storage.device != GPU {
+		t.Fatalf("dtype/device = %v/%v, want Float64/GPU", got.storage.dtype, got.storage.device)
 	}
-	if len(got.data) != 4 {
-		t.Fatalf("len(data) = %d, want 4", len(got.data))
+	if len(got.storage.data) != 4 {
+		t.Fatalf("len(data) = %d, want 4", len(got.storage.data))
 	}
-	for i, v := range got.data {
+	for i, v := range got.storage.data {
 		if v != 0 {
 			t.Fatalf("data[%d] = %v, want 0 (newLike must not copy input data)", i, v)
 		}
 	}
-	if &got.data[0] == &a.data[0] {
+	if &got.storage.data[0] == &a.storage.data[0] {
 		t.Fatal("newLike must allocate a fresh buffer")
 	}
 }
@@ -430,7 +430,7 @@ func TestContiguousData(t *testing.T) {
 
 func TestClonePreservesView(t *testing.T) {
 	base := dense([]float32{1, 2, 3, 4, 5, 6}, 2, 3)
-	aT := view(base.data, []int{3, 2}, []int{1, 3}, 0) // non-contiguous
+	aT := view(base.storage.data, []int{3, 2}, []int{1, 3}, 0) // non-contiguous
 
 	c := aT.Clone()
 	if c.IsContiguous() {
@@ -451,5 +451,52 @@ func TestClonePreservesView(t *testing.T) {
 	}
 	if c.RequiresGrad() {
 		t.Fatal("clone should be detached")
+	}
+}
+
+// TestStorageSharing pins the contract: views share one Storage, copies own a
+// new one, and dtype/device live on the shared Storage.
+func TestStorageSharing(t *testing.T) {
+	be := CPUBackend{}
+	base := dense([]float32{1, 2, 3, 4, 5, 6}, 2, 3)
+
+	tr, err := be.Transpose(base, 0, 1)
+	if err != nil {
+		t.Fatalf("Transpose() error: %v", err)
+	}
+	if tr.storage != base.storage {
+		t.Fatal("a transpose view should share the base storage")
+	}
+
+	rs, err := be.Reshape(base, 6)
+	if err != nil {
+		t.Fatalf("Reshape() error: %v", err)
+	}
+	if rs.storage != base.storage {
+		t.Fatal("a reshape view should share the base storage")
+	}
+
+	// materialize of a non-contiguous view allocates a new Storage
+	m := tr.materialize()
+	if m.storage == base.storage {
+		t.Fatal("materialize should allocate a new storage for a non-contiguous view")
+	}
+	if &m.storage.data[0] == &base.storage.data[0] {
+		t.Fatal("materialize should not alias the original buffer")
+	}
+
+	// Clone copies into a new Storage
+	c := base.Clone()
+	if c.storage == base.storage {
+		t.Fatal("Clone should allocate a new storage")
+	}
+	if &c.storage.data[0] == &base.storage.data[0] {
+		t.Fatal("Clone should copy the buffer")
+	}
+
+	// dtype and device are shared through the Storage
+	base.storage.dtype = Float64
+	if tr.storage.dtype != Float64 {
+		t.Fatal("dtype should be shared through storage")
 	}
 }

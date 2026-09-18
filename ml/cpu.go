@@ -39,17 +39,19 @@ func (cpu CPUBackend) MatMul(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("matmul: inner dimensions differ: %v x %v", a.shape, b.shape)
 	}
 	tt := &Tensor{
-		data:    make([]float32, m*n),
+		storage: &Storage{
+			data:   make([]float32, m*n),
+			dtype:  a.storage.dtype,
+			device: a.storage.device,
+		},
 		shape:   []int{m, n},
 		strides: []int{n, 1},
-		dtype:   a.dtype,
-		device:  a.device,
 	}
 	for i := range m {
 		for p := range k1 {
-			av := a.data[i*k1+p] // packed after materialize
+			av := a.storage.data[i*k1+p] // packed after materialize
 			for j := range n {
-				tt.data[i*n+j] += av * b.data[p*n+j]
+				tt.storage.data[i*n+j] += av * b.storage.data[p*n+j]
 			}
 		}
 	}
@@ -63,17 +65,17 @@ func (cpu CPUBackend) Add(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
 	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
 		tt := newLike(b)
-		s := a.data[0]
-		for i, v := range b.data {
-			tt.data[i] = s + v
+		s := a.storage.data[0]
+		for i, v := range b.storage.data {
+			tt.storage.data[i] = s + v
 		}
 		return tt, nil
 	}
 	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
 		tt := newLike(a)
-		s := b.data[0]
-		for i, v := range a.data {
-			tt.data[i] = v + s
+		s := b.storage.data[0]
+		for i, v := range a.storage.data {
+			tt.storage.data[i] = v + s
 		}
 		return tt, nil
 	}
@@ -81,8 +83,8 @@ func (cpu CPUBackend) Add(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("add: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
 	tt := newLike(a)
-	for i, v := range a.data {
-		tt.data[i] = v + b.data[i]
+	for i, v := range a.storage.data {
+		tt.storage.data[i] = v + b.storage.data[i]
 	}
 	return tt, nil
 }
@@ -94,17 +96,17 @@ func (cpu CPUBackend) Sub(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
 	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
 		tt := newLike(b)
-		s := a.data[0]
-		for i, v := range b.data {
-			tt.data[i] = s - v
+		s := a.storage.data[0]
+		for i, v := range b.storage.data {
+			tt.storage.data[i] = s - v
 		}
 		return tt, nil
 	}
 	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
 		tt := newLike(a)
-		s := b.data[0]
-		for i, v := range a.data {
-			tt.data[i] = v - s
+		s := b.storage.data[0]
+		for i, v := range a.storage.data {
+			tt.storage.data[i] = v - s
 		}
 		return tt, nil
 	}
@@ -112,8 +114,8 @@ func (cpu CPUBackend) Sub(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("sub: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
 	tt := newLike(a)
-	for i, v := range a.data {
-		tt.data[i] = v - b.data[i]
+	for i, v := range a.storage.data {
+		tt.storage.data[i] = v - b.storage.data[i]
 	}
 	return tt, nil
 }
@@ -125,17 +127,17 @@ func (cpu CPUBackend) Mul(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
 	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
 		tt := newLike(b)
-		s := a.data[0]
-		for i, v := range b.data {
-			tt.data[i] = s * v
+		s := a.storage.data[0]
+		for i, v := range b.storage.data {
+			tt.storage.data[i] = s * v
 		}
 		return tt, nil
 	}
 	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
 		tt := newLike(a)
-		s := b.data[0]
-		for i, v := range a.data {
-			tt.data[i] = v * s
+		s := b.storage.data[0]
+		for i, v := range a.storage.data {
+			tt.storage.data[i] = v * s
 		}
 		return tt, nil
 	}
@@ -143,8 +145,8 @@ func (cpu CPUBackend) Mul(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("mul: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
 	tt := newLike(a)
-	for i, v := range a.data {
-		tt.data[i] = v * b.data[i]
+	for i, v := range a.storage.data {
+		tt.storage.data[i] = v * b.storage.data[i]
 	}
 	return tt, nil
 }
@@ -156,23 +158,23 @@ func (cpu CPUBackend) Div(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
 	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
 		tt := newLike(b)
-		s := a.data[0]
-		for i, v := range b.data {
+		s := a.storage.data[0]
+		for i, v := range b.storage.data {
 			if v == 0 {
 				return nil, fmt.Errorf("div: divide by 0")
 			}
-			tt.data[i] = s / v
+			tt.storage.data[i] = s / v
 		}
 		return tt, nil
 	}
 	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
 		tt := newLike(a)
-		s := b.data[0]
+		s := b.storage.data[0]
 		if s == 0 {
 			return nil, fmt.Errorf("div: divide by 0")
 		}
-		for i, v := range a.data {
-			tt.data[i] = v / s
+		for i, v := range a.storage.data {
+			tt.storage.data[i] = v / s
 		}
 		return tt, nil
 	}
@@ -180,12 +182,12 @@ func (cpu CPUBackend) Div(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("div: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
 	tt := newLike(a)
-	for i, v := range a.data {
-		bb := b.data[i]
+	for i, v := range a.storage.data {
+		bb := b.storage.data[i]
 		if bb == 0 {
 			return nil, fmt.Errorf("div: divide by 0")
 		}
-		tt.data[i] = v / b.data[i]
+		tt.storage.data[i] = v / b.storage.data[i]
 	}
 	return tt, nil
 }
@@ -193,8 +195,8 @@ func (cpu CPUBackend) Div(a, b *Tensor) (*Tensor, error) {
 func mapUnary(a *Tensor, f func(float32) float32) *Tensor {
 	a = a.materialize()
 	tt := newLike(a)
-	for i := range tt.data {
-		tt.data[i] = f(a.data[i])
+	for i := range tt.storage.data {
+		tt.storage.data[i] = f(a.storage.data[i])
 	}
 	return tt
 }
@@ -271,19 +273,21 @@ func (cpu CPUBackend) Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 		ttShape = slices.Delete(ttShape, dim, dim+1)
 	}
 	tt := &Tensor{
-		data:    make([]float32, outer*inner),
+		storage: &Storage{
+			data:   make([]float32, outer*inner),
+			dtype:  a.storage.dtype,
+			device: a.storage.device,
+		},
 		shape:   ttShape,
 		strides: getContiguousStridesFromShape(ttShape),
-		dtype:   a.dtype,
-		device:  a.device,
 	}
 	for o := range outer {
 		for in := range inner {
 			var s float32
 			for r := range reduce {
-				s += a.data[(o*reduce+r)*inner+in]
+				s += a.storage.data[(o*reduce+r)*inner+in]
 			}
-			tt.data[o*inner+in] = s
+			tt.storage.data[o*inner+in] = s
 		}
 	}
 	return tt, nil
@@ -302,21 +306,23 @@ func (cpu CPUBackend) Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 		ttShape = slices.Delete(ttShape, dim, dim+1)
 	}
 	tt := &Tensor{
-		data:    make([]float32, outer*inner),
+		storage: &Storage{
+			data:   make([]float32, outer*inner),
+			dtype:  a.storage.dtype,
+			device: a.storage.device,
+		},
 		shape:   ttShape,
 		strides: getContiguousStridesFromShape(ttShape),
-		dtype:   a.dtype,
-		device:  a.device,
 	}
 	for o := range outer {
 		for in := range inner {
-			m := a.data[(o*reduce)*inner+in]
+			m := a.storage.data[(o*reduce)*inner+in]
 			for r := 1; r < reduce; r++ {
-				if v := a.data[(o*reduce+r)*inner+in]; v > m {
+				if v := a.storage.data[(o*reduce+r)*inner+in]; v > m {
 					m = v
 				}
 			}
-			tt.data[o*inner+in] = m
+			tt.storage.data[o*inner+in] = m
 		}
 	}
 	return tt, nil
@@ -332,20 +338,20 @@ func (cpu CPUBackend) Softmax(a *Tensor, dim int) (*Tensor, error) {
 	for o := range outer {
 		for in := range inner {
 			base := o*reduce*inner + in
-			m := a.data[base]
+			m := a.storage.data[base]
 			for r := 1; r < reduce; r++ {
-				if v := a.data[base+r*inner]; v > m {
+				if v := a.storage.data[base+r*inner]; v > m {
 					m = v
 				}
 			}
 			var sum float32
 			for r := range reduce {
-				e := float32(math.Exp(float64(a.data[base+r*inner] - m)))
-				tt.data[base+r*inner] = e
+				e := float32(math.Exp(float64(a.storage.data[base+r*inner] - m)))
+				tt.storage.data[base+r*inner] = e
 				sum += e
 			}
 			for r := range reduce {
-				tt.data[base+r*inner] /= sum
+				tt.storage.data[base+r*inner] /= sum
 			}
 		}
 	}
@@ -378,22 +384,22 @@ func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
 	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
 		tt := newLike(b)
-		tt.dtype = Bool
-		s := a.data[0]
-		for i, v := range b.data {
+		tt.storage.dtype = Bool
+		s := a.storage.data[0]
+		for i, v := range b.storage.data {
 			if s > v {
-				tt.data[i] = 1
+				tt.storage.data[i] = 1
 			}
 		}
 		return tt, nil
 	}
 	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
 		tt := newLike(a)
-		tt.dtype = Bool
-		s := b.data[0]
-		for i, v := range a.data {
+		tt.storage.dtype = Bool
+		s := b.storage.data[0]
+		for i, v := range a.storage.data {
 			if v > s {
-				tt.data[i] = 1
+				tt.storage.data[i] = 1
 			}
 		}
 		return tt, nil
@@ -402,10 +408,10 @@ func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("greater: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
 	tt := newLike(a)
-	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
-	for i, v := range a.data {
-		if v > b.data[i] {
-			tt.data[i] = 1
+	tt.storage.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
+	for i, v := range a.storage.data {
+		if v > b.storage.data[i] {
+			tt.storage.data[i] = 1
 		}
 	}
 	return tt, nil
@@ -418,22 +424,22 @@ func (cpu CPUBackend) Eq(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
 	if a.Numel() == 1 && b.Numel() != 1 { // scalar on the left, broadcast
 		tt := newLike(b)
-		tt.dtype = Bool
-		s := a.data[0]
-		for i, v := range b.data {
+		tt.storage.dtype = Bool
+		s := a.storage.data[0]
+		for i, v := range b.storage.data {
 			if s == v {
-				tt.data[i] = 1
+				tt.storage.data[i] = 1
 			}
 		}
 		return tt, nil
 	}
 	if b.Numel() == 1 && a.Numel() != 1 { // scalar on the right, broadcast
 		tt := newLike(a)
-		tt.dtype = Bool
-		s := b.data[0]
-		for i, v := range a.data {
+		tt.storage.dtype = Bool
+		s := b.storage.data[0]
+		for i, v := range a.storage.data {
 			if v == s {
-				tt.data[i] = 1
+				tt.storage.data[i] = 1
 			}
 		}
 		return tt, nil
@@ -442,10 +448,10 @@ func (cpu CPUBackend) Eq(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("eq: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
 	tt := newLike(a)
-	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
-	for i, v := range a.data {
-		if v == b.data[i] {
-			tt.data[i] = 1
+	tt.storage.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
+	for i, v := range a.storage.data {
+		if v == b.storage.data[i] {
+			tt.storage.data[i] = 1
 		}
 	}
 	return tt, nil
@@ -458,17 +464,17 @@ func (cpu CPUBackend) Pow(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
 	if a.Numel() == 1 && b.Numel() != 1 { // scalar base, broadcast
 		tt := newLike(b)
-		s := a.data[0]
-		for i, v := range b.data {
-			tt.data[i] = float32(math.Pow(float64(s), float64(v)))
+		s := a.storage.data[0]
+		for i, v := range b.storage.data {
+			tt.storage.data[i] = float32(math.Pow(float64(s), float64(v)))
 		}
 		return tt, nil
 	}
 	if b.Numel() == 1 && a.Numel() != 1 { // scalar exponent, broadcast
 		tt := newLike(a)
-		s := b.data[0]
-		for i, v := range a.data {
-			tt.data[i] = float32(math.Pow(float64(v), float64(s)))
+		s := b.storage.data[0]
+		for i, v := range a.storage.data {
+			tt.storage.data[i] = float32(math.Pow(float64(v), float64(s)))
 		}
 		return tt, nil
 	}
@@ -476,8 +482,8 @@ func (cpu CPUBackend) Pow(a, b *Tensor) (*Tensor, error) {
 		return nil, fmt.Errorf("pow: shape mismatch: %v %v", a.Numel(), b.Numel())
 	}
 	tt := newLike(a)
-	for i, v := range a.data {
-		tt.data[i] = float32(math.Pow(float64(v), float64(b.data[i])))
+	for i, v := range a.storage.data {
+		tt.storage.data[i] = float32(math.Pow(float64(v), float64(b.storage.data[i])))
 	}
 	return tt, nil
 }
@@ -496,12 +502,10 @@ func (cpu CPUBackend) Reshape(a *Tensor, shape ...int) (*Tensor, error) {
 		src = src.materialize()
 	}
 	return &Tensor{
-		data:    src.data, // same backing array
+		storage: src.storage, // same backing array
 		shape:   slices.Clone(shape),
 		strides: getContiguousStridesFromShape(shape),
 		offset:  src.offset,
-		dtype:   src.dtype,
-		device:  src.device,
 	}, nil
 }
 
@@ -520,12 +524,10 @@ func (cpu CPUBackend) Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
 		return nil, fmt.Errorf("transpose: dims %d,%d out of range for shape %v", dim0, dim1, a.shape)
 	}
 	tt := &Tensor{
-		data:    a.data, // same backing array
+		storage: a.storage, // same backing array
 		shape:   slices.Clone(a.shape),
 		strides: slices.Clone(a.strides),
 		offset:  a.offset,
-		dtype:   a.dtype,
-		device:  a.device,
 	}
 	tt.shape[dim0], tt.shape[dim1] = tt.shape[dim1], tt.shape[dim0]
 	tt.strides[dim0], tt.strides[dim1] = tt.strides[dim1], tt.strides[dim0]
