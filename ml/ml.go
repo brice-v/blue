@@ -126,6 +126,13 @@ func (t *Tensor) Clone() *Tensor {
 	}
 }
 
+func (t *Tensor) SetGrad(tt *Tensor) {
+	if t.gradState == nil {
+		t.gradState = &gradState{}
+	}
+	t.gradState.Grad = tt
+}
+
 // ContiguousData returns the tensor's logical elements in row-major order.
 // Non-contiguous views are packed into a fresh buffer, so the result always
 // has length Numel(). The returned slice may alias the backing store when t
@@ -202,15 +209,24 @@ type gradState struct {
 	op           string
 }
 
+var backends = map[Device]Backend{}
+
+func register(d Device, b Backend) {
+	backends[d] = b
+}
+
 type Backend interface {
 	MatMul(a, b *Tensor) (*Tensor, error)
 	Add(a, b *Tensor) (*Tensor, error)
 	Sub(a, b *Tensor) (*Tensor, error)
 	Mul(a, b *Tensor) (*Tensor, error)
 	Div(a, b *Tensor) (*Tensor, error)
+	Neg(a *Tensor) (*Tensor, error)
 	Exp(a *Tensor) (*Tensor, error)
 	Log(a *Tensor) (*Tensor, error)
 	Sqrt(a *Tensor) (*Tensor, error)
+	Relu(a *Tensor) (*Tensor, error)
+	Greater(a, b *Tensor) (*Tensor, error)
 	Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error)
 	Max(a *Tensor, dim int, keepdim bool) (*Tensor, error)
 	Softmax(a *Tensor, dim int) (*Tensor, error)
@@ -343,4 +359,76 @@ func newLike(a *Tensor) *Tensor {
 		dtype:   a.dtype,
 		device:  a.device,
 	}
+}
+
+func must(t *Tensor, err error) *Tensor {
+	// validate on forward pass, this is only used for backwards
+	if err != nil {
+		panic(err.Error())
+	}
+	return t
+}
+
+func mustBackend(t *Tensor) Backend {
+	b, err := backendForAll(t)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+// backendForAll resolves the backend for a set of inputs and rejects mixed
+// devices, so an op can never silently run on the wrong one.
+func backendForAll(in ...*Tensor) (Backend, error) {
+	if len(in) == 0 {
+		return nil, fmt.Errorf("no inputs")
+	}
+	d := in[0].Device()
+	for _, t := range in[1:] {
+		if t.Device() != d {
+			return nil, fmt.Errorf("device mismatch: %s and %s", d, t.Device())
+		}
+	}
+	b, ok := backends[d]
+	if !ok {
+		return nil, fmt.Errorf("no backend registered for device %s", d)
+	}
+	return b, nil
+}
+
+func onesLike(t *Tensor) *Tensor {
+	out := newLike(t)
+	for i := range out.data {
+		out.data[i] = 1
+	}
+	return out
+}
+
+func zerosLike(t *Tensor) *Tensor {
+	return newLike(t)
+}
+
+// unbroadcast reduces g back to the shape of like. Only scalar broadcast exists
+// today, so a 0d operand's gradient is the sum of all of g's elements.
+func unbroadcast(be Backend, g, like *Tensor) *Tensor {
+	if like.Numel() == g.Numel() {
+		return g
+	}
+	return sumAll(be, g)
+}
+
+func sumAll(be Backend, g *Tensor) *Tensor {
+	out := g
+	for out.Numel() > 1 {
+		out = must(be.Sum(out, 0, false))
+	}
+	return out
+}
+
+func scalarLike(a *Tensor, v float32) *Tensor {
+	out := newLike(a)
+	for i := range out.data {
+		out.data[i] = v
+	}
+	return out
 }

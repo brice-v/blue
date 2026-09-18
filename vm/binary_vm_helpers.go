@@ -3,6 +3,7 @@ package vm
 import (
 	"blue/blueutil"
 	"blue/code"
+	"blue/ml"
 	"blue/object"
 	"blue/util"
 	"bytes"
@@ -54,6 +55,8 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 			return binaryUIntegerOp(vm, op, left, right)
 		case object.BYTES_OBJ:
 			return binaryBytesOp(vm, op, left, right)
+		case object.TENSOR_OBJ:
+			return binaryTensorOp(vm, op, left, right)
 		}
 		return vm.executeDefaultBinaryOperation(op, left, right)
 	}
@@ -683,6 +686,21 @@ func binaryBytesOp(vm *VM, op code.Opcode, left, right object.Object) error {
 			buf[i] = leftBs[i] ^ rightBs[i]
 		}
 		return vm.push(&object.Bytes{Value: buf})
+	default:
+		return vm.executeDefaultBinaryOperation(op, left, right)
+	}
+}
+
+func binaryTensorOp(vm *VM, op code.Opcode, left, right object.Object) error {
+	leftT := left.(*object.Tensor).T
+	rightT := right.(*object.Tensor).T
+	switch op {
+	case code.OpMatMul:
+		t, err := ml.MatMul(leftT, rightT)
+		if err != nil {
+			return vm.push(newError("invalid matmul: %s", err.Error()))
+		}
+		return vm.push(&object.Tensor{T: t})
 	default:
 		return vm.executeDefaultBinaryOperation(op, left, right)
 	}

@@ -63,6 +63,8 @@ func (c *Compiler) compileInfixExpression(operator string) error {
 		c.emit(code.OpGreaterThanOrEqual)
 	case ">", "<":
 		c.emit(code.OpGreaterThan)
+	case "@":
+		c.emit(code.OpMatMul)
 	default:
 		return fmt.Errorf("unsupported operator: %s", operator)
 	}

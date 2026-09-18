@@ -374,7 +374,7 @@ func (vm *VM) Run() error {
 			code.OpFlDiv, code.OpPercent, code.OpCarat, code.OpAmpersand,
 			code.OpPipe, code.OpIn, code.OpNotin, code.OpRange, code.OpNonIncRange,
 			code.OpAnd, code.OpEqual, code.OpNotEqual, code.OpOr, code.OpGreaterThan, code.OpGreaterThanOrEqual,
-			code.OpRshift, code.OpLshift:
+			code.OpRshift, code.OpLshift, code.OpMatMul:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				err = vm.PushAndReturnError(err)

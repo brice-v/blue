@@ -608,7 +608,7 @@ func (l *Lexer) NextToken() token.Token {
 		if l.peekChar() == '{' {
 			tok = l.makeTwoCharToken(token.ATLBRACE)
 		} else {
-			tok = l.newToken(token.ILLEGAL, l.ch)
+			tok = l.newToken(token.ATSIGN, l.ch)
 		}
 	case '`':
 		tok.Filepath = l.fname

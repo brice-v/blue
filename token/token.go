@@ -195,6 +195,9 @@ const (
 	// NONINCRANGE is the string rep. of the non inclusive range token
 	NONINCRANGE Type = "..<"
 
+	// ATSIGN is the string rep. of the @ tok.
+	ATSIGN Type = "@"
+
 	// Keywords
 
 	// FUNCTION is the string rep. of a function tok.
@@ -433,6 +436,8 @@ func (t Type) UserFriendlyName() string {
 		return "@{"
 	case ELLIPSE:
 		return "..."
+	case ATSIGN:
+		return "@"
 
 	// Keywords
 	case VAR:

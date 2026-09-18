@@ -16,8 +16,19 @@ func (vm *VM) executeIndexSetOperator(indexable object.Object, index object.Obje
 		return vm.executeStringIndexSetOperator(s, index, rightValue)
 	} else if bs, ok := indexable.(*object.BlueStruct); ok {
 		return vm.executeStructIndexSetOperator(bs, index, rightValue)
+	} else if t, ok := indexable.(*object.Tensor); ok {
+		return vm.executeTensorIndexSetOperator(t, index, rightValue)
 	}
 	return fmt.Errorf("'%s' (%T) is not indexable", indexable.Inspect(), indexable)
+}
+
+func (vm *VM) executeTensorIndexSetOperator(t *object.Tensor, indx, rightValue object.Object) error {
+	indexField, ok := indx.(*object.Stringo)
+	if !ok {
+		return fmt.Errorf("index operator not supported: TENSOR.%s", indx.Inspect())
+	}
+	fieldName := indexField.Value
+	return t.Set(fieldName, rightValue)
 }
 
 func (vm *VM) executeStructIndexSetOperator(bs *object.BlueStruct, indx, rightValue object.Object) error {

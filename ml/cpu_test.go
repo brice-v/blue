@@ -67,13 +67,6 @@ func checkErr(t *testing.T, name string, got *Tensor, err error) {
 	}
 }
 
-func TestDefaultBackend(t *testing.T) {
-	if DefaultBackend == nil {
-		t.Fatal("DefaultBackend is nil")
-	}
-	var _ Backend = CPUBackend{}
-}
-
 func TestMatMul(t *testing.T) {
 	be := CPUBackend{}
 

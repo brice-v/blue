@@ -8,7 +8,17 @@ import (
 
 type CPUBackend struct{}
 
-var DefaultBackend Backend = CPUBackend{}
+// for compile time checks
+var _ Backend = CPUBackend{}
+
+func init() {
+	register(CPU, CPUBackend{})
+}
+
+// TODO: Add checks that tensor devices are cpu otherwise return error
+// if a.Device() != CPU || b.Device() != CPU {
+// 		return nil, fmt.Errorf("cpu backend: expected cpu tensors")
+// 	}
 
 func (cpu CPUBackend) MatMul(a, b *Tensor) (*Tensor, error) {
 	a, b = a.materialize(), b.materialize()
@@ -273,6 +283,46 @@ func (cpu CPUBackend) Softmax(a *Tensor, dim int) (*Tensor, error) {
 			for r := range reduce {
 				tt.data[base+r*inner] /= sum
 			}
+		}
+	}
+	return tt, nil
+}
+
+func (cpu CPUBackend) Neg(a *Tensor) (*Tensor, error) {
+	return mapUnary(a, func(v float32) float32 { return -v }), nil
+}
+
+func (cpu CPUBackend) Relu(a *Tensor) (*Tensor, error) {
+	return mapUnary(a, func(v float32) float32 {
+		if v < 0 {
+			return 0
+		}
+		return v
+	}), nil
+}
+
+func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
+	a = a.materialize()
+	tt := newLike(a)
+	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
+
+	if b.Numel() == 1 { // scalar broadcast
+		s := b.materialize().data[0]
+		for i, v := range a.data {
+			if v > s {
+				tt.data[i] = 1
+			}
+		}
+		return tt, nil
+	}
+
+	b = b.materialize()
+	if a.Numel() != b.Numel() {
+		return nil, fmt.Errorf("greater: shape mismatch: %v %v", a.Numel(), b.Numel())
+	}
+	for i, v := range a.data {
+		if v > b.data[i] {
+			tt.data[i] = 1
 		}
 	}
 	return tt, nil
