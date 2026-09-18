@@ -98,6 +98,8 @@ func (t *Tensor) Get(property string) (Object, error) {
 		return t.binaryMethod("mul", ml.Mul), nil
 	case "div":
 		return t.binaryMethod("div", ml.Div), nil
+	case "pow":
+		return t.binaryMethod("pow", ml.Pow), nil
 	case "relu":
 		return t.unaryMethod("relu", ml.Relu), nil
 	case "exp":
@@ -117,6 +119,10 @@ func (t *Tensor) Get(property string) (Object, error) {
 		return t.noArgMethod("zero_grad", func() Object {
 			t.T.ZeroGrad()
 			return NULL
+		}), nil
+	case "to_list":
+		return t.noArgMethod("to_list", func() Object {
+			return t.ToList()
 		}), nil
 	case "item":
 		return t.noArgMethod("item", func() Object {
@@ -148,6 +154,28 @@ func (t *Tensor) Set(property string, val Object) error {
 		return nil
 	}
 	return fmt.Errorf("unsupported property on tensor: %s", property)
+}
+
+// ToList returns the tensor's values as nested blue lists, one level per
+// dimension, so the nesting matches the shape. A 0-D tensor returns a single
+// value. Values match the tensor's dtype.
+func (t *Tensor) ToList() Object {
+	data := t.T.ContiguousData()
+	pos := 0
+	var build func(dims []int) Object
+	build = func(dims []int) Object {
+		if len(dims) == 0 {
+			v := data[pos]
+			pos++
+			return scalarObject(t.T.DType(), v)
+		}
+		elems := make([]Object, dims[0])
+		for i := range elems {
+			elems[i] = build(dims[1:])
+		}
+		return &List{Elements: elems}
+	}
+	return build(t.T.Shape())
 }
 
 func (t *Tensor) binaryMethod(name string, f func(a, b *ml.Tensor) (*ml.Tensor, error)) *Builtin {
@@ -198,5 +226,18 @@ func (t *Tensor) noArgMethod(name string, f func() Object) *Builtin {
 			}
 			return f()
 		},
+	}
+}
+
+// scalarObject converts a stored float32 into the blue value that matches the
+// tensor's dtype.
+func scalarObject(dt ml.DType, v float32) Object {
+	switch dt {
+	case ml.Bool:
+		return nativeToBooleanObject(v != 0)
+	case ml.Int32:
+		return NewInteger(int64(v))
+	default:
+		return &Float{Value: float64(v)}
 	}
 }

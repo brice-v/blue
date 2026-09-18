@@ -451,6 +451,37 @@ func (cpu CPUBackend) Eq(a, b *Tensor) (*Tensor, error) {
 	return tt, nil
 }
 
+func (cpu CPUBackend) Pow(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("pow", a, b); err != nil {
+		return nil, err
+	}
+	a, b = a.materialize(), b.materialize()
+	if a.Numel() == 1 && b.Numel() != 1 { // scalar base, broadcast
+		tt := newLike(b)
+		s := a.data[0]
+		for i, v := range b.data {
+			tt.data[i] = float32(math.Pow(float64(s), float64(v)))
+		}
+		return tt, nil
+	}
+	if b.Numel() == 1 && a.Numel() != 1 { // scalar exponent, broadcast
+		tt := newLike(a)
+		s := b.data[0]
+		for i, v := range a.data {
+			tt.data[i] = float32(math.Pow(float64(v), float64(s)))
+		}
+		return tt, nil
+	}
+	if a.Numel() != b.Numel() {
+		return nil, fmt.Errorf("pow: shape mismatch: %v %v", a.Numel(), b.Numel())
+	}
+	tt := newLike(a)
+	for i, v := range a.data {
+		tt.data[i] = float32(math.Pow(float64(v), float64(b.data[i])))
+	}
+	return tt, nil
+}
+
 // view ops (does not materialize)
 
 func (cpu CPUBackend) Reshape(a *Tensor, shape ...int) (*Tensor, error) {

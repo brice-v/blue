@@ -157,6 +157,49 @@ func Div(a, b *Tensor) (*Tensor, error) {
 		})
 }
 
+func Pow(a, b *Tensor) (*Tensor, error) {
+	return applyBinary("pow", a, b,
+		func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Pow(a, b) },
+		func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error) {
+			var da, db *Tensor
+			if a.RequiresGrad() {
+				// da = g * b * a^(b-1)
+				bMinus1, err := be.Sub(b, onesLike(b))
+				if err != nil {
+					return nil, nil, err
+				}
+				p, err := be.Pow(a, bMinus1)
+				if err != nil {
+					return nil, nil, err
+				}
+				bp, err := be.Mul(b, p)
+				if err != nil {
+					return nil, nil, err
+				}
+				da, err = be.Mul(g, bp)
+				if err != nil {
+					return nil, nil, err
+				}
+			}
+			if b.RequiresGrad() {
+				// db = g * out * ln(a); NaN for a <= 0, matching PyTorch
+				la, err := be.Log(a)
+				if err != nil {
+					return nil, nil, err
+				}
+				o, err := be.Mul(out, la)
+				if err != nil {
+					return nil, nil, err
+				}
+				db, err = be.Mul(g, o)
+				if err != nil {
+					return nil, nil, err
+				}
+			}
+			return da, db, nil
+		})
+}
+
 func Relu(a *Tensor) (*Tensor, error) {
 	return applyUnary("relu", a,
 		func(be Backend, a *Tensor) (*Tensor, error) { return be.Relu(a) },

@@ -3152,21 +3152,25 @@ var Builtins = []*Builtin{
 			if len(args) != 1 {
 				return newInvalidArgCountError("to_list", len(args), 1, "")
 			}
-			if args[0].Type() != SET_OBJ {
-				return newPositionalTypeError("to_list", 1, SET_OBJ, args[0].Type())
-			}
-			s := args[0].(*Set).Elements
-			newElems := []Object{}
-			for _, k := range s.Keys {
-				if obj, ok := s.Get(k); ok {
-					newElems = append(newElems, obj.Value)
+			switch args[0].Type() {
+			case SET_OBJ:
+				s := args[0].(*Set).Elements
+				newElems := []Object{}
+				for _, k := range s.Keys {
+					if obj, ok := s.Get(k); ok {
+						newElems = append(newElems, obj.Value)
+					}
 				}
+				return &List{Elements: newElems}
+			case TENSOR_OBJ:
+				return args[0].(*Tensor).ToList()
+			default:
+				return newPositionalTypeError("to_list", 1, "set[any] or tensor", args[0].Type())
 			}
-			return &List{Elements: newElems}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`to_list` returns a list from the given set",
-			signature:   "to_list(arg: set[any]) -> list[any]",
+			explanation: "`to_list` returns a list from the given set, or the nested values of a tensor",
+			signature:   "to_list(arg: set[any]|tensor) -> list[any]|float|int|bool",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "to_list({1,2,3}) => [1,2,3]",
 		}.String(),

@@ -144,10 +144,13 @@ assert(prop.requires_grad == true);
 
 # --- 8. TARGET: comparisons return elementwise bool tensors -----------------
 
-assert(ml.to_list(c == a.matmul(b)) == [[true, true], [true, true]]);
-assert(ml.to_list(c > 0.0) == [[true, true], [true, true]]);
-assert(ml.to_list(c < 0.0) == [[false, false], [false, false]]);
-assert(ml.to_list(c != c) == [[false, false], [false, false]]);
+# to_list is the core builtin, extended to accept a tensor; the method form too
+assert(to_list(c) == [[58.0, 64.0], [139.0, 154.0]]);
+assert(c.to_list() == [[58.0, 64.0], [139.0, 154.0]]);
+assert(to_list(c == a.matmul(b)) == [[true, true], [true, true]]);
+assert(to_list(c > 0.0) == [[true, true], [true, true]]);
+assert(to_list(c < 0.0) == [[false, false], [false, false]]);
+assert(to_list(c != c) == [[false, false], [false, false]]);
 
 # --- 9. TARGET: reductions --------------------------------------------------
 

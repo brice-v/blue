@@ -228,6 +228,7 @@ type Backend interface {
 	Relu(a *Tensor) (*Tensor, error)
 	Greater(a, b *Tensor) (*Tensor, error)
 	Eq(a, b *Tensor) (*Tensor, error)
+	Pow(a, b *Tensor) (*Tensor, error)
 	Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error)
 	Max(a *Tensor, dim int, keepdim bool) (*Tensor, error)
 	Softmax(a *Tensor, dim int) (*Tensor, error)

@@ -715,6 +715,8 @@ func binaryTensorOp(vm *VM, op code.Opcode, left, right object.Object) error {
 		return binaryTensorOpHelper(vm, leftT, rightT, ml.Div)
 	case code.OpEqual:
 		return binaryTensorOpHelper(vm, leftT, rightT, ml.Eq)
+	case code.OpPow:
+		return binaryTensorOpHelper(vm, leftT, rightT, ml.Pow)
 	default:
 		return vm.executeDefaultBinaryOperation(op, left, right)
 	}

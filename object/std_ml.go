@@ -169,6 +169,16 @@ var MlBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_pow",
+		Fun:  tensorBinaryBuiltin("pow", ml.Pow),
+		HelpStr: helpStrArgs{
+			explanation: "`pow` returns the elementwise power of two tensors, with scalar broadcast; a negative base is allowed when the exponent is an integer",
+			signature:   "pow(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "pow(tensor([[2.0, 4.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
+		}.String(),
+	},
+	{
 		Name: "_relu",
 		Fun:  tensorUnaryBuiltin("relu", ml.Relu),
 		HelpStr: helpStrArgs{

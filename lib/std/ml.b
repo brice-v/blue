@@ -7,6 +7,7 @@ val __add = _add;
 val __sub = _sub;
 val __mul = _mul;
 val __div = _div;
+val __pow = _pow;
 val __relu = _relu;
 val __exp = _exp;
 val __log = _log;
@@ -74,6 +75,15 @@ fun div(a, b) {
     ##
     ## div(a: tensor, b: tensor) -> tensor
     __div(a, b)
+}
+
+fun pow(a, b) {
+    ##std:this,__pow
+    ## `pow` returns the elementwise power of two tensors, with scalar broadcast.
+    ## A negative base is allowed when the exponent is an integer.
+    ##
+    ## pow(a: tensor, b: tensor) -> tensor
+    __pow(a, b)
 }
 
 fun relu(a) {
