@@ -5,21 +5,6 @@ import (
 	"fmt"
 )
 
-func checkListOfFloats(l *List) bool {
-	for _, e := range l.Elements {
-		switch e.Type() {
-		case LIST_OBJ:
-			if !checkListOfFloats(e.(*List)) {
-				return false
-			}
-		case FLOAT_OBJ:
-		default:
-			return false
-		}
-	}
-	return true
-}
-
 type tensorData struct {
 	data []float32
 }
