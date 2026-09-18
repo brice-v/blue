@@ -691,16 +691,30 @@ func binaryBytesOp(vm *VM, op code.Opcode, left, right object.Object) error {
 	}
 }
 
+func binaryTensorOpHelper(vm *VM, name string, left, right *ml.Tensor, f func(a, b *ml.Tensor) (*ml.Tensor, error)) error {
+	t, err := f(left, right)
+	if err != nil {
+		return vm.push(newError("invalid %s: %s", name, err.Error()))
+	}
+	return vm.push(&object.Tensor{T: t})
+}
+
 func binaryTensorOp(vm *VM, op code.Opcode, left, right object.Object) error {
 	leftT := left.(*object.Tensor).T
 	rightT := right.(*object.Tensor).T
 	switch op {
 	case code.OpMatMul:
-		t, err := ml.MatMul(leftT, rightT)
-		if err != nil {
-			return vm.push(newError("invalid matmul: %s", err.Error()))
-		}
-		return vm.push(&object.Tensor{T: t})
+		return binaryTensorOpHelper(vm, "matmul", leftT, rightT, ml.MatMul)
+	case code.OpAdd:
+		return binaryTensorOpHelper(vm, "add", leftT, rightT, ml.Add)
+	case code.OpMinus:
+		return binaryTensorOpHelper(vm, "sub", leftT, rightT, ml.Sub)
+	case code.OpStar:
+		return binaryTensorOpHelper(vm, "mul", leftT, rightT, ml.Mul)
+	case code.OpDiv:
+		return binaryTensorOpHelper(vm, "div", leftT, rightT, ml.Div)
+	case code.OpEqual:
+		return binaryTensorOpHelper(vm, "eq", leftT, rightT, ml.Eq)
 	default:
 		return vm.executeDefaultBinaryOperation(op, left, right)
 	}

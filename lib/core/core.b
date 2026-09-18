@@ -20,6 +20,7 @@ val Type = {
     PROCESS: 'PROCESS',
     STRUCT: 'BLUE_STRUCT_OBJ',
     ERR: 'ERROR',
+    TENSOR: 'TENSOR',
 };
 
 val __fetch = _fetch;

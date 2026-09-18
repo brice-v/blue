@@ -1,22 +1,27 @@
 ## End-state integration test for the `ml` module (see ML_PLAN.md).
 ##
-## This is the full target: everything below should pass once the plan is at
-## 100%. The VM stops at the first error, so the file lights up top to bottom as
-## features land. Sections 1 to 5 already pass; section 6 is the next work item.
+## The VM stops at the first error, so the file lights up top to bottom as
+## features land.
 ##
-## Value checks: sections below use two styles on purpose.
-##   - `==` between two tensors is value-equality via HashObject today. Once
-##     comparisons route to `_eq` (Phase 10) `==` becomes an elementwise bool
-##     tensor, so those assertions must move to `same(...)`.
-##   - `same(a, b)` compares via `ml.to_list`, which is the stable way once
-##     `==` changes. It needs `ml.to_list` to exist, so it is only used in the
-##     later target sections.
+## Value checks use two helpers:
+##   same(a, b)  -> ml.equal(a, b)     exact shape + dtype + element equality
+##   close(a, b) -> ml.allclose(a, b)  equality within rtol/atol, for computed
+##                                     results such as softmax, exp, sqrt
+## Do not use `==` to compare two tensors in a test: it is the elementwise
+## comparison operator and returns a bool tensor, which `assert` cannot take.
+## Bool tensors from `>`/`<` are still read with `ml.to_list` until there is a
+## way to compare bool tensors directly.
 
 import ml
 
 fun same(a, b) {
-    ## value equality for two tensors, independent of `==` semantics
-    ml.to_list(a) == ml.to_list(b)
+    ## exact value equality for two tensors
+    ml.equal(a, b)
+}
+
+fun close(a, b) {
+    ## value equality within tolerance, for computed results
+    ml.allclose(a, b)
 }
 
 # --- 1. creation and properties ---------------------------------------------
@@ -45,16 +50,16 @@ assert(ml.tensor(5.0).shape == [1]);
 
 val c = a.matmul(b);                                                       # 2x2
 assert(c.shape == [2, 2]);
-assert(c == ml.tensor([[58.0, 64.0], [139.0, 154.0]]));
+assert(same(c, ml.tensor([[58.0, 64.0], [139.0, 154.0]])));
 
-assert(c.add(c) == ml.tensor([[116.0, 128.0], [278.0, 308.0]]));
-assert(c.sub(c) == ml.tensor([[0.0, 0.0], [0.0, 0.0]]));
-assert(c.mul(c) == ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]]));
-assert(c.div(c) == ml.tensor([[1.0, 1.0], [1.0, 1.0]]));
+assert(same(c.add(c), ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
+assert(same(c.sub(c), ml.tensor([[0.0, 0.0], [0.0, 0.0]])));
+assert(same(c.mul(c), ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]])));
+assert(same(c.div(c), ml.tensor([[1.0, 1.0], [1.0, 1.0]])));
 
 # unary methods
-assert(a.relu() == a);
-assert(ml.tensor([[-1.0, 2.0]]).relu() == ml.tensor([[0.0, 2.0]]));
+assert(same(a.relu(), a));
+assert(same(ml.tensor([[-1.0, 2.0]]).relu(), ml.tensor([[0.0, 2.0]])));
 assert(ml.tensor([0.0]).exp().item() == 1.0);
 assert(ml.tensor([1.0]).log().item() == 0.0);
 assert(ml.tensor([4.0]).sqrt().item() == 2.0);
@@ -64,7 +69,7 @@ assert(ml.tensor([[6.0]]).item() == 6.0);
 
 # --- 3. matmul operator `@` -------------------------------------------------
 
-assert((a @ b) == c);
+assert(same(a @ b, c));
 
 # --- 4. autograd ------------------------------------------------------------
 
@@ -86,29 +91,29 @@ assert(w.grad == null);
 
 val e = c.add(c);
 val m = ml.matmul(a, b);
-assert(m == c);
+assert(same(m, c));
 val n = ml.add(c, c);
-assert(n == e);
+assert(same(n, e));
 
 # --- 6. TARGET: arithmetic operators ----------------------------------------
 
-assert((c + c) == e);
-assert((c - c) == ml.tensor([[0.0, 0.0], [0.0, 0.0]]));
-assert((c * c) == ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]]));
-assert((c / c) == ml.tensor([[1.0, 1.0], [1.0, 1.0]]));
-assert((-c) == ml.tensor([[-58.0, -64.0], [-139.0, -154.0]]));
+assert(same(c + c, e));
+assert(same(c - c, ml.tensor([[0.0, 0.0], [0.0, 0.0]])));
+assert(same(c * c, ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]])));
+assert(same(c / c, ml.tensor([[1.0, 1.0], [1.0, 1.0]])));
+assert(same(-c, ml.tensor([[-58.0, -64.0], [-139.0, -154.0]])));
 
 # scalar broadcast operators (float and int scalars both coerce)
-assert((c + 1.0) == ml.tensor([[59.0, 65.0], [140.0, 155.0]]));
-assert((1.0 + c) == ml.tensor([[59.0, 65.0], [140.0, 155.0]]));
-assert((c * 2.0) == ml.tensor([[116.0, 128.0], [278.0, 308.0]]));
-assert((c + 1) == ml.tensor([[59.0, 65.0], [140.0, 155.0]]));
-assert((c ** 2.0) == ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]]));
+assert(same(c + 1.0, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
+assert(same(1.0 + c, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
+assert(same(c * 2.0, ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
+assert(same(c + 1, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
+assert(same(c ** 2.0, ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]])));
 
 # compound assignment desugars to the binary op
 var acc = c;
 acc += c;
-assert(acc == ml.tensor([[116.0, 128.0], [278.0, 308.0]]));
+assert(same(acc, ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
 
 # --- 7. TARGET: property assignment -----------------------------------------
 
@@ -156,8 +161,8 @@ assert(same(u.neg(), ml.tensor([[1.0, 0.0, -4.0]])));
 assert(same(u.pow(ml.tensor([[2.0, 2.0, 2.0]])), ml.tensor([[1.0, 0.0, 16.0]])));
 assert(ml.tensor([0.0]).sigmoid().item() == 0.5);
 assert(ml.tensor([0.0]).tanh().item() == 0.0);
-assert(same(ml.softmax(ml.tensor([[1.0, 2.0, 3.0]]), 1),
-            ml.tensor([[0.09003057, 0.24472847, 0.66524096]])));
+assert(close(ml.softmax(ml.tensor([[1.0, 2.0, 3.0]]), 1),
+             ml.tensor([[0.09003057, 0.24472847, 0.66524096]])));
 
 # --- 11. TARGET: creation ops -----------------------------------------------
 
@@ -167,7 +172,7 @@ assert(same(ml.full([2, 2], 5.0), ml.tensor([[5.0, 5.0], [5.0, 5.0]])));
 assert(ml.randn([2, 3]).shape == [2, 3]);
 assert(same(ml.arange(0.0, 5.0, 1.0), ml.tensor([0.0, 1.0, 2.0, 3.0, 4.0])));
 assert(same(ml.eye(2), ml.tensor([[1.0, 0.0], [0.0, 1.0]])));
-assert(ml.tensor([[1.0]], dtype="float64").dtype == "float64");
+assert(ml.tensor([[1.0]], datatype="float64").dtype == "float64");
 assert(ml.randn([2, 2], requires_grad=true).requires_grad == true);
 ml.manual_seed(0);
 
@@ -209,7 +214,7 @@ val lw = ml.tensor([[1.0], [2.0]], requires_grad=true);
 val lx = ml.tensor([[1.0, 2.0]]);
 val lloss = ml.mse_loss(lx.matmul(lw), ml.tensor([[1.0]]));
 lloss.backward();
-assert(lw.grad != null);
+assert(type(lw.grad) == "TENSOR");
 
 # --- 15. TARGET: in-place functions -----------------------------------------
 
@@ -267,4 +272,4 @@ val B = ml.randn([2, 2], requires_grad=true);
 val C = A.matmul(B).relu();
 val L = C.sum();
 L.backward();
-assert(B.grad != null);
+assert(type(B.grad) == "TENSOR");

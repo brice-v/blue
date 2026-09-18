@@ -13,6 +13,8 @@ val __log = _log;
 val __sqrt = _sqrt;
 val __reshape = _reshape;
 val __transpose = _transpose;
+val __equal = _equal;
+val __allclose = _allclose;
 
 val dtype = {
     'float32': 'float32',
@@ -28,72 +30,116 @@ val device = {
 
 fun tensor(data, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {
     ##std:this,__tensor
-    ## TODO: provide docs for tensor
+    ## `tensor` builds a tensor from nested lists, inferring the shape from the nesting
+    ##
+    ## tensor(data: list, datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor
     __tensor(data, datatype, dev, requires_grad)
 }
 
 fun matmul(a, b) {
     ##std:this,__matmul
-    ## TODO: provide docs for matmul
+    ## `matmul` returns the matrix product of two tensors
+    ##
+    ## matmul(a: tensor, b: tensor) -> tensor
     __matmul(a, b)
 }
 
 fun add(a, b) {
     ##std:this,__add
-    ## TODO: provide docs for add
+    ## `add` returns the elementwise sum of two tensors, with scalar broadcast
+    ##
+    ## add(a: tensor, b: tensor) -> tensor
     __add(a, b)
 }
 
 fun sub(a, b) {
     ##std:this,__sub
-    ## TODO: provide docs for sub
+    ## `sub` returns the elementwise difference of two tensors, with scalar broadcast
+    ##
+    ## sub(a: tensor, b: tensor) -> tensor
     __sub(a, b)
 }
 
 fun mul(a, b) {
     ##std:this,__mul
-    ## TODO: provide docs for mul
+    ## `mul` returns the elementwise product of two tensors, with scalar broadcast
+    ##
+    ## mul(a: tensor, b: tensor) -> tensor
     __mul(a, b)
 }
 
 fun div(a, b) {
     ##std:this,__div
-    ## TODO: provide docs for div
+    ## `div` returns the elementwise quotient of two tensors, with scalar broadcast
+    ##
+    ## div(a: tensor, b: tensor) -> tensor
     __div(a, b)
 }
 
 fun relu(a) {
     ##std:this,__relu
-    ## TODO: provide docs for relu
+    ## `relu` returns max(0, x) elementwise
+    ##
+    ## relu(a: tensor) -> tensor
     __relu(a)
 }
 
 fun exp(a) {
     ##std:this,__exp
-    ## TODO: provide docs for exp
+    ## `exp` returns e to the power of each element
+    ##
+    ## exp(a: tensor) -> tensor
     __exp(a)
 }
 
 fun log(a) {
     ##std:this,__log
-    ## TODO: provide docs for log
+    ## `log` returns the natural logarithm of each element
+    ##
+    ## log(a: tensor) -> tensor
     __log(a)
 }
 
 fun sqrt(a) {
     ##std:this,__sqrt
-    ## TODO: provide docs for sqrt
+    ## `sqrt` returns the square root of each element
+    ##
+    ## sqrt(a: tensor) -> tensor
     __sqrt(a)
 }
 
 fun reshape(a, shape) {
     ##std:this,__reshape
-    ## TODO: provide docs for reshape
+    ## `reshape` returns a view of the tensor with a new shape; the element count must match
+    ##
+    ## reshape(a: tensor, shape: list[int]) -> tensor
     __reshape(a, shape)
 }
 
 fun transpose(a, dim0=0, dim1=1) {
     ##std:this,__transpose
-    ## TODO: provide docs for transpose
+    ## `transpose` returns a view with dim0 and dim1 swapped (metadata only)
+    ##
+    ## transpose(a: tensor, dim0: int=0, dim1: int=1) -> tensor
     __transpose(a, dim0, dim1)
+}
+
+fun equal(a, b) {
+    ##std:this,__equal
+    ## `equal` returns true when two tensors have the same shape, dtype, and elements.
+    ## Use this to compare tensors in tests, since `==` is the elementwise comparison
+    ## operator and returns a bool tensor.
+    ##
+    ## equal(a: tensor, b: tensor) -> bool
+    __equal(a, b)
+}
+
+fun allclose(a, b, rtol=1e-5, atol=1e-8) {
+    ##std:this,__allclose
+    ## `allclose` returns true when two tensors have the same shape and every element
+    ## satisfies |a - b| <= atol + rtol*|b|. Use it for computed results such as
+    ## softmax, exp, and sqrt.
+    ##
+    ## allclose(a: tensor, b: tensor, rtol: float=1e-5, atol: float=1e-8) -> bool
+    __allclose(a, b, rtol, atol)
 }

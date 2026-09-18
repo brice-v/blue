@@ -3,6 +3,8 @@ package object
 import (
 	"blue/ml"
 	"fmt"
+	"math"
+	"slices"
 )
 
 type tensorData struct {
@@ -63,8 +65,7 @@ var MlBuiltins = []*Builtin{
 			if args[0].Type() != LIST_OBJ && args[0].Type() != FLOAT_OBJ {
 				return newPositionalTypeError("tensor", 1, "list or float", args[0].Type())
 			}
-			// TODO: Evenually support int/bool, for float32 vs 64 it all depends on dtype
-			// TODO: or coerce ints to float32 as well
+			// TODO: eventually support int/bool leaves; float32 vs float64 depends on dtype
 			tdata := &tensorData{
 				data: []float32{},
 			}
@@ -111,100 +112,100 @@ var MlBuiltins = []*Builtin{
 			return &Tensor{T: tt}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`tensor` returns a TENSOR constructed from the provided lists",
-			signature:   "tensor(list) -> tensor",
+			explanation: "`tensor` builds a tensor from nested lists, inferring the shape from the nesting",
+			signature:   "tensor(data: list, datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "tensor([[1.0, 2.0], [3.0, 4.0]]) => Tensor{shape: [2 2]}",
 		}.String(),
 	},
 	{
 		Name: "_matmul",
 		Fun:  tensorBinaryBuiltin("matmul", ml.MatMul),
 		HelpStr: helpStrArgs{
-			explanation: "`matmul` returns tensor @ tensor",
+			explanation: "`matmul` returns the matrix product of two tensors",
 			signature:   "matmul(a: tensor, b: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "matmul(tensor([[1.0, 2.0]]), tensor([[3.0], [4.0]])) => Tensor{shape: [1 1]}",
 		}.String(),
 	},
 	{
 		Name: "_add",
 		Fun:  tensorBinaryBuiltin("add", ml.Add),
 		HelpStr: helpStrArgs{
-			explanation: "`add` returns tensor + tensor",
+			explanation: "`add` returns the elementwise sum of two tensors, with scalar broadcast",
 			signature:   "add(a: tensor, b: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "add(tensor([[1.0, 2.0]]), tensor([[3.0, 4.0]])) => Tensor{shape: [1 2]}",
 		}.String(),
 	},
 	{
 		Name: "_sub",
 		Fun:  tensorBinaryBuiltin("sub", ml.Sub),
 		HelpStr: helpStrArgs{
-			explanation: "`sub` returns tensor - tensor",
+			explanation: "`sub` returns the elementwise difference of two tensors, with scalar broadcast",
 			signature:   "sub(a: tensor, b: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "sub(tensor([[1.0, 2.0]]), tensor([[1.0, 1.0]])) => Tensor{shape: [1 2]}",
 		}.String(),
 	},
 	{
 		Name: "_mul",
 		Fun:  tensorBinaryBuiltin("mul", ml.Mul),
 		HelpStr: helpStrArgs{
-			explanation: "`mul` returns tensor * tensor",
+			explanation: "`mul` returns the elementwise product of two tensors, with scalar broadcast",
 			signature:   "mul(a: tensor, b: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "mul(tensor([[1.0, 2.0]]), tensor([[3.0, 4.0]])) => Tensor{shape: [1 2]}",
 		}.String(),
 	},
 	{
 		Name: "_div",
 		Fun:  tensorBinaryBuiltin("div", ml.Div),
 		HelpStr: helpStrArgs{
-			explanation: "`div` returns tensor / tensor",
+			explanation: "`div` returns the elementwise quotient of two tensors, with scalar broadcast",
 			signature:   "div(a: tensor, b: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "div(tensor([[2.0, 4.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
 		}.String(),
 	},
 	{
 		Name: "_relu",
 		Fun:  tensorUnaryBuiltin("relu", ml.Relu),
 		HelpStr: helpStrArgs{
-			explanation: "`relu` returns tensor.relu()",
+			explanation: "`relu` returns max(0, x) elementwise",
 			signature:   "relu(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "relu(tensor([[-1.0, 2.0]])) => Tensor{shape: [1 2]}",
 		}.String(),
 	},
 	{
 		Name: "_exp",
 		Fun:  tensorUnaryBuiltin("exp", ml.Exp),
 		HelpStr: helpStrArgs{
-			explanation: "`exp` returns tensor.exp()",
-			signature:   "relu(a: tensor) -> tensor",
+			explanation: "`exp` returns e to the power of each element",
+			signature:   "exp(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "exp(tensor([[0.0]])) => Tensor{shape: [1 1]}",
 		}.String(),
 	},
 	{
 		Name: "_log",
 		Fun:  tensorUnaryBuiltin("log", ml.Log),
 		HelpStr: helpStrArgs{
-			explanation: "`log` returns tensor.log()",
+			explanation: "`log` returns the natural logarithm of each element",
 			signature:   "log(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "log(tensor([[1.0]])) => Tensor{shape: [1 1]}",
 		}.String(),
 	},
 	{
 		Name: "_sqrt",
 		Fun:  tensorUnaryBuiltin("sqrt", ml.Sqrt),
 		HelpStr: helpStrArgs{
-			explanation: "`sqrt` returns tensor.sqrt()",
+			explanation: "`sqrt` returns the square root of each element",
 			signature:   "sqrt(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "sqrt(tensor([[4.0]])) => Tensor{shape: [1 1]}",
 		}.String(),
 	},
 	{
@@ -233,16 +234,16 @@ var MlBuiltins = []*Builtin{
 			return &Tensor{T: out}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`reshape` TODO",
+			explanation: "`reshape` returns a view of the tensor with a new shape; the element count must match",
 			signature:   "reshape(a: tensor, shape: list[int]) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "reshape(tensor([[1.0, 2.0], [3.0, 4.0]]), [4]) => Tensor{shape: [4]}",
 		}.String(),
 	},
 	{
 		Name: "_transpose",
 		Fun: func(args ...Object) Object {
-			err := checkArgCount("transpose", 2, args)
+			err := checkArgCount("transpose", 3, args)
 			if err != nil {
 				return err
 			}
@@ -265,10 +266,86 @@ var MlBuiltins = []*Builtin{
 			return &Tensor{T: out}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`transpose` TODO",
-			signature:   "transpose(a: tensor, dim0: int, dim1: int) -> tensor",
+			explanation: "`transpose` returns a view with two dimensions swapped (metadata only)",
+			signature:   "transpose(a: tensor, dim0: int=0, dim1: int=1) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "TODO",
+			example:     "transpose(tensor([[1.0, 2.0], [3.0, 4.0]]), 0, 1) => Tensor{shape: [2 2]}",
+		}.String(),
+	},
+	{
+		Name: "_equal",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("equal", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("equal", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("equal", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			a, b := args[0].(*Tensor).T, args[1].(*Tensor).T
+			if !slices.Equal(a.Shape(), b.Shape()) || a.DType() != b.DType() {
+				return FALSE
+			}
+			ad, bd := a.ContiguousData(), b.ContiguousData()
+			for i := range ad {
+				if ad[i] != bd[i] {
+					return FALSE
+				}
+			}
+			return TRUE
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`equal` returns true when two tensors have the same shape, dtype, and elements; this is the value check to use in tests, since `==` is the elementwise comparison operator",
+			signature:   "equal(a: tensor, b: tensor) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "equal(tensor([[1.0, 2.0]]), tensor([[1.0, 2.0]])) => true",
+		}.String(),
+	},
+	{
+		Name: "_allclose",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("allclose", 4, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("allclose", 1, TENSOR_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("allclose", 2, TENSOR_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("allclose", 3, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("allclose", 4, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			a, b := args[0].(*Tensor).T, args[1].(*Tensor).T
+			rtol, atol := args[2].(*Float).Value, args[3].(*Float).Value
+			if !slices.Equal(a.Shape(), b.Shape()) {
+				return FALSE
+			}
+			ad, bd := a.ContiguousData(), b.ContiguousData()
+			for i := range ad {
+				diff := math.Abs(float64(ad[i]) - float64(bd[i]))
+				limit := atol + rtol*math.Abs(float64(bd[i]))
+				if diff > limit {
+					return FALSE
+				}
+			}
+			return TRUE
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`allclose` returns true when two tensors have the same shape and every element satisfies |a - b| <= atol + rtol*|b|; use it for computed results such as softmax, exp, and sqrt",
+			signature:   "allclose(a: tensor, b: tensor, rtol: float=1e-5, atol: float=1e-8) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "allclose(tensor([[1.0]]), tensor([[1.000001]])) => true",
 		}.String(),
 	},
 }
