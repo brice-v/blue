@@ -309,3 +309,51 @@ func TestTranspose(t *testing.T) {
 		checkErr(t, "transpose bad dim", got, err)
 	})
 }
+
+// TestCPUOpsRejectNonCPUTensors checks that every CPU op refuses tensors that
+// are not on the CPU device, so a GPU-tagged tensor can never be read as host
+// memory. Reductions go through oride, so Sum/Max/Softmax are covered there.
+func TestCPUOpsRejectNonCPUTensors(t *testing.T) {
+	be := CPUBackend{}
+	cpu := dense([]float32{1, 2, 3, 4}, 2, 2)
+
+	gpu, err := NewTensor([]float32{1, 2, 3, 4}, []int{2, 2}, Float32, GPU)
+	if err != nil {
+		t.Fatalf("NewTensor() error: %v", err)
+	}
+
+	cases := []struct {
+		name string
+		call func() (*Tensor, error)
+	}{
+		{"MatMul left", func() (*Tensor, error) { return be.MatMul(gpu, gpu) }},
+		{"MatMul right", func() (*Tensor, error) { return be.MatMul(cpu, gpu) }},
+		{"Add", func() (*Tensor, error) { return be.Add(gpu, gpu) }},
+		{"Sub", func() (*Tensor, error) { return be.Sub(cpu, gpu) }},
+		{"Mul", func() (*Tensor, error) { return be.Mul(gpu, cpu) }},
+		{"Div", func() (*Tensor, error) { return be.Div(gpu, gpu) }},
+		{"Exp", func() (*Tensor, error) { return be.Exp(gpu) }},
+		{"Log", func() (*Tensor, error) { return be.Log(gpu) }},
+		{"Sqrt", func() (*Tensor, error) { return be.Sqrt(gpu) }},
+		{"Sum", func() (*Tensor, error) { return be.Sum(gpu, 0, false) }},
+		{"Max", func() (*Tensor, error) { return be.Max(gpu, 1, false) }},
+		{"Softmax", func() (*Tensor, error) { return be.Softmax(gpu, 1) }},
+		{"Neg", func() (*Tensor, error) { return be.Neg(gpu) }},
+		{"Relu", func() (*Tensor, error) { return be.Relu(gpu) }},
+		{"Greater", func() (*Tensor, error) { return be.Greater(gpu, cpu) }},
+		{"Reshape", func() (*Tensor, error) { return be.Reshape(gpu, 4) }},
+		{"Transpose", func() (*Tensor, error) { return be.Transpose(gpu, 0, 1) }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := tc.call(); err == nil {
+				t.Fatalf("%s: expected a device error, got none", tc.name)
+			}
+		})
+	}
+
+	// sanity: the same ops accept CPU tensors
+	if _, err := be.Add(cpu, cpu); err != nil {
+		t.Fatalf("Add(cpu, cpu) unexpected error: %v", err)
+	}
+}

@@ -15,12 +15,20 @@ func init() {
 	register(CPU, CPUBackend{})
 }
 
-// TODO: Add checks that tensor devices are cpu otherwise return error
-// if a.Device() != CPU || b.Device() != CPU {
-// 		return nil, fmt.Errorf("cpu backend: expected cpu tensors")
-// 	}
+// requireCPU returns an error unless every tensor is on the CPU device.
+func requireCPU(op string, ts ...*Tensor) error {
+	for _, t := range ts {
+		if t.Device() != CPU {
+			return fmt.Errorf("%s: expected cpu tensors, got %s", op, t.Device())
+		}
+	}
+	return nil
+}
 
 func (cpu CPUBackend) MatMul(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("matmul", a, b); err != nil {
+		return nil, err
+	}
 	a, b = a.materialize(), b.materialize()
 	if len(a.shape) != 2 || len(b.shape) != 2 {
 		return nil, fmt.Errorf("matmul: expected 2d tensors got %v and %v", a.shape, b.shape)
@@ -49,6 +57,9 @@ func (cpu CPUBackend) MatMul(a, b *Tensor) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Add(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("add", a, b); err != nil {
+		return nil, err
+	}
 	a = a.materialize()
 	tt := newLike(a)
 	if b.Numel() == 1 {
@@ -69,6 +80,9 @@ func (cpu CPUBackend) Add(a, b *Tensor) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Sub(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("sub", a, b); err != nil {
+		return nil, err
+	}
 	a = a.materialize()
 	tt := newLike(a)
 	if b.Numel() == 1 {
@@ -89,6 +103,9 @@ func (cpu CPUBackend) Sub(a, b *Tensor) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Mul(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("mul", a, b); err != nil {
+		return nil, err
+	}
 	a = a.materialize()
 	tt := newLike(a)
 	if b.Numel() == 1 {
@@ -109,6 +126,9 @@ func (cpu CPUBackend) Mul(a, b *Tensor) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Div(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("div", a, b); err != nil {
+		return nil, err
+	}
 	a = a.materialize()
 	tt := newLike(a)
 	if b.Numel() == 1 {
@@ -145,18 +165,27 @@ func mapUnary(a *Tensor, f func(float32) float32) *Tensor {
 }
 
 func (cpu CPUBackend) Exp(a *Tensor) (*Tensor, error) {
+	if err := requireCPU("exp", a); err != nil {
+		return nil, err
+	}
 	return mapUnary(a, func(v float32) float32 {
 		return float32(math.Exp(float64(v)))
 	}), nil
 }
 
 func (cpu CPUBackend) Log(a *Tensor) (*Tensor, error) {
+	if err := requireCPU("log", a); err != nil {
+		return nil, err
+	}
 	return mapUnary(a, func(v float32) float32 {
 		return float32(math.Log(float64(v)))
 	}), nil
 }
 
 func (cpu CPUBackend) Sqrt(a *Tensor) (*Tensor, error) {
+	if err := requireCPU("sqrt", a); err != nil {
+		return nil, err
+	}
 	return mapUnary(a, func(v float32) float32 {
 		return float32(math.Sqrt(float64(v)))
 	}), nil
@@ -165,6 +194,9 @@ func (cpu CPUBackend) Sqrt(a *Tensor) (*Tensor, error) {
 // outer, reduce, inner, dim, error
 // materializes tensor first then returns if valid
 func oride(a *Tensor, dimension int, opName string, canReduceBeZero bool) (outer, reduce, inner, dim int, err error) {
+	if err = requireCPU(opName, a); err != nil {
+		return
+	}
 	a = a.materialize()
 	if len(a.shape) == 0 {
 		err = fmt.Errorf("%s: cannot reduce a 0d tensor", opName)
@@ -289,10 +321,16 @@ func (cpu CPUBackend) Softmax(a *Tensor, dim int) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Neg(a *Tensor) (*Tensor, error) {
+	if err := requireCPU("neg", a); err != nil {
+		return nil, err
+	}
 	return mapUnary(a, func(v float32) float32 { return -v }), nil
 }
 
 func (cpu CPUBackend) Relu(a *Tensor) (*Tensor, error) {
+	if err := requireCPU("relu", a); err != nil {
+		return nil, err
+	}
 	return mapUnary(a, func(v float32) float32 {
 		if v < 0 {
 			return 0
@@ -302,6 +340,9 @@ func (cpu CPUBackend) Relu(a *Tensor) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("greater", a, b); err != nil {
+		return nil, err
+	}
 	a = a.materialize()
 	tt := newLike(a)
 	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
@@ -331,6 +372,9 @@ func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
 // view ops (does not materialize)
 
 func (cpu CPUBackend) Reshape(a *Tensor, shape ...int) (*Tensor, error) {
+	if err := requireCPU("reshape", a); err != nil {
+		return nil, err
+	}
 	if numelOf(shape) != a.Numel() {
 		return nil, fmt.Errorf("reshape: cannot reshape %v into %v", a.shape, shape)
 	}
@@ -349,6 +393,9 @@ func (cpu CPUBackend) Reshape(a *Tensor, shape ...int) (*Tensor, error) {
 }
 
 func (cpu CPUBackend) Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
+	if err := requireCPU("transpose", a); err != nil {
+		return nil, err
+	}
 	n := len(a.shape)
 	if dim0 < 0 {
 		dim0 += n

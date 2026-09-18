@@ -128,7 +128,7 @@ func TestTensorHashing(t *testing.T) {
 	// A transposed view has logical values [1,3,2,4], so it must hash like a
 	// packed tensor with those same values. This fails if the raw backing slice
 	// is hashed instead of the logical elements.
-	tr, err := ml.DefaultBackend.Transpose(a.T, 0, 1)
+	tr, err := ml.CPUBackend{}.Transpose(a.T, 0, 1)
 	if err != nil {
 		t.Fatalf("Transpose() error: %v", err)
 	}

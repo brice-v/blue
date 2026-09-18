@@ -371,7 +371,7 @@ func TestEncodingTensorPacksViews(t *testing.T) {
 	}
 	// A transposed view is non-contiguous; it must decode as a packed,
 	// contiguous tensor with the same logical values.
-	transposed, err := ml.DefaultBackend.Transpose(base, 0, 1)
+	transposed, err := ml.CPUBackend{}.Transpose(base, 0, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1085,11 +1085,19 @@ func TestNextTokenSelf(t *testing.T) {
 }
 
 func TestNextTokenIllegalChar(t *testing.T) {
-	input := `@`
+	input := "?"
 	l := New(input, "<internal:test>")
 	tok := l.NextToken()
 	if tok.Type != token.ILLEGAL {
-		t.Fatalf("expected ILLEGAL for @, got %v", tok.Type)
+		t.Fatalf("expected ILLEGAL for ?, got %v", tok.Type)
+	}
+}
+
+func TestNextTokenAtSign(t *testing.T) {
+	l := New("@", "<internal:test>")
+	tok := l.NextToken()
+	if tok.Type != token.ATSIGN {
+		t.Fatalf("expected ATSIGN for @, got %v", tok.Type)
 	}
 }
 
