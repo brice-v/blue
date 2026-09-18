@@ -202,10 +202,7 @@ func oride(a *Tensor, dimension int, opName string, canReduceBeZero bool) (outer
 		err = fmt.Errorf("%s: cannot reduce a 0d tensor", opName)
 		return
 	}
-	// Allow backwards indexing
-	if dimension < 0 {
-		dimension += len(a.shape)
-	}
+	dimension = resolveDim(a.shape, dimension)
 	if dimension < 0 || dimension >= len(a.shape) {
 		err = fmt.Errorf("%s: dim %d out of range for shape %v", opName, dimension, a.shape)
 		return
@@ -363,6 +360,36 @@ func (cpu CPUBackend) Greater(a, b *Tensor) (*Tensor, error) {
 	}
 	for i, v := range a.data {
 		if v > b.data[i] {
+			tt.data[i] = 1
+		}
+	}
+	return tt, nil
+}
+
+func (cpu CPUBackend) Eq(a, b *Tensor) (*Tensor, error) {
+	if err := requireCPU("eq", a, b); err != nil {
+		return nil, err
+	}
+	a = a.materialize()
+	tt := newLike(a)
+	tt.dtype = Bool // 0.0 / 1.0 in the same float32 buffer
+
+	if b.Numel() == 1 { // scalar broadcast
+		s := b.materialize().data[0]
+		for i, v := range a.data {
+			if v == s {
+				tt.data[i] = 1
+			}
+		}
+		return tt, nil
+	}
+
+	b = b.materialize()
+	if a.Numel() != b.Numel() {
+		return nil, fmt.Errorf("eq: shape mismatch: %v %v", a.Numel(), b.Numel())
+	}
+	for i, v := range a.data {
+		if v == b.data[i] {
 			tt.data[i] = 1
 		}
 	}

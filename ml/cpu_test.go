@@ -341,6 +341,7 @@ func TestCPUOpsRejectNonCPUTensors(t *testing.T) {
 		{"Neg", func() (*Tensor, error) { return be.Neg(gpu) }},
 		{"Relu", func() (*Tensor, error) { return be.Relu(gpu) }},
 		{"Greater", func() (*Tensor, error) { return be.Greater(gpu, cpu) }},
+		{"Eq", func() (*Tensor, error) { return be.Eq(gpu, cpu) }},
 		{"Reshape", func() (*Tensor, error) { return be.Reshape(gpu, 4) }},
 		{"Transpose", func() (*Tensor, error) { return be.Transpose(gpu, 0, 1) }},
 	}

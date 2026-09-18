@@ -151,40 +151,52 @@ func (t *Tensor) Set(property string, val Object) error {
 }
 
 func (t *Tensor) binaryMethod(name string, f func(a, b *ml.Tensor) (*ml.Tensor, error)) *Builtin {
-	return &Builtin{Name: name, Fun: func(args ...Object) Object {
-		if len(args) != 1 {
-			return newInvalidArgCountError(name, len(args), 1, "")
-		}
-		other, ok := args[0].(*Tensor)
-		if !ok {
-			return newPositionalTypeError(name, 1, TENSOR_OBJ, args[0].Type())
-		}
-		out, err := f(t.T, other.T)
-		if err != nil {
-			return newError("%s", err.Error())
-		}
-		return &Tensor{T: out}
-	}}
+	return &Builtin{
+		Name: name,
+		Fun: func(args ...Object) Object {
+			err := checkArgCount(name, 1, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType(name, 1, TENSOR_OBJ, args)
+			if err != nil {
+				return err
+			}
+			out, ferr := f(t.T, args[0].(*Tensor).T)
+			if err != nil {
+				return newError("%s", ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+	}
 }
 
 func (t *Tensor) unaryMethod(name string, f func(a *ml.Tensor) (*ml.Tensor, error)) *Builtin {
-	return &Builtin{Name: name, Fun: func(args ...Object) Object {
-		if len(args) != 0 {
-			return newInvalidArgCountError(name, len(args), 0, "")
-		}
-		out, err := f(t.T)
-		if err != nil {
-			return newError("%s", err.Error())
-		}
-		return &Tensor{T: out}
-	}}
+	return &Builtin{
+		Name: name,
+		Fun: func(args ...Object) Object {
+			err := checkArgCount(name, 0, args)
+			if err != nil {
+				return err
+			}
+			out, ferr := f(t.T)
+			if ferr != nil {
+				return newError("%s", ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+	}
 }
 
 func (t *Tensor) noArgMethod(name string, f func() Object) *Builtin {
-	return &Builtin{Name: name, Fun: func(args ...Object) Object {
-		if len(args) != 0 {
-			return newInvalidArgCountError(name, len(args), 0, "")
-		}
-		return f()
-	}}
+	return &Builtin{
+		Name: name,
+		Fun: func(args ...Object) Object {
+			err := checkArgCount(name, 0, args)
+			if err != nil {
+				return err
+			}
+			return f()
+		},
+	}
 }

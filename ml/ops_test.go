@@ -1,0 +1,92 @@
+package ml
+
+import "testing"
+
+func TestSumOp(t *testing.T) {
+	x := dense([]float32{1, 2, 3}, 1, 3)
+	x.SetRequiresGrad(true)
+
+	out, err := Sum(x, 1, false) // shape [1], numel 1
+	check(t, "sum forward", out, err, []int{1}, []float32{6})
+
+	if err := out.Backward(); err != nil {
+		t.Fatalf("Backward() error: %v", err)
+	}
+	check(t, "sum grad", x.Grad(), nil, []int{1, 3}, []float32{1, 1, 1})
+}
+
+func TestSumOpKeepdim(t *testing.T) {
+	x := dense([]float32{1, 2, 3, 4, 5, 6}, 2, 3)
+	out, err := Sum(x, 0, true)
+	check(t, "sum keepdim", out, err, []int{1, 3}, []float32{5, 7, 9})
+}
+
+func TestMaxOp(t *testing.T) {
+	x := dense([]float32{1, 3, 2}, 1, 3)
+	x.SetRequiresGrad(true)
+
+	out, err := Max(x, 1, false)
+	check(t, "max forward", out, err, []int{1}, []float32{3})
+
+	if err := out.Backward(); err != nil {
+		t.Fatalf("Backward() error: %v", err)
+	}
+	// gradient routes only to the argmax position
+	check(t, "max grad", x.Grad(), nil, []int{1, 3}, []float32{0, 1, 0})
+}
+
+func TestSoftmaxOp(t *testing.T) {
+	x := dense([]float32{1, 2, 3}, 1, 3)
+	s, err := Softmax(x, 1)
+	check(t, "softmax forward", s, err, []int{1, 3},
+		[]float32{0.09003057, 0.24472847, 0.66524096})
+}
+
+// TestSoftmaxOpBackward chains softmax into mul+sum so the loss is scalar, then
+// checks the analytic gradient s_i * (w_i - sum_k w_k s_k).
+func TestSoftmaxOpBackward(t *testing.T) {
+	x := dense([]float32{1, 2, 3}, 1, 3)
+	x.SetRequiresGrad(true)
+
+	s, err := Softmax(x, 1)
+	if err != nil {
+		t.Fatalf("Softmax() error: %v", err)
+	}
+	p, err := Mul(s, dense([]float32{1, 0, 0}, 1, 3))
+	if err != nil {
+		t.Fatalf("Mul() error: %v", err)
+	}
+	loss, err := Sum(p, 1, false)
+	if err != nil {
+		t.Fatalf("Sum() error: %v", err)
+	}
+	if err := loss.Backward(); err != nil {
+		t.Fatalf("Backward() error: %v", err)
+	}
+	check(t, "softmax grad", x.Grad(), nil, []int{1, 3},
+		[]float32{0.08192507, -0.02203304, -0.05989203})
+}
+
+func TestEqOp(t *testing.T) {
+	a := dense([]float32{1, 2, 3}, 3)
+	b := dense([]float32{1, 0, 3}, 3)
+
+	got, err := Eq(a, b)
+	check(t, "eq", got, err, []int{3}, []float32{1, 0, 1})
+	if got.DType() != Bool {
+		t.Fatalf("Eq dtype = %s, want bool", got.DType())
+	}
+
+	got, err = Eq(a, scalar(2)) // scalar broadcast
+	check(t, "eq scalar", got, err, []int{3}, []float32{0, 1, 0})
+
+	// comparisons are not differentiable, so Eq must not build a graph node
+	a.SetRequiresGrad(true)
+	got, err = Eq(a, b)
+	if err != nil {
+		t.Fatalf("Eq() error: %v", err)
+	}
+	if got.RequiresGrad() || got.gradState != nil {
+		t.Fatal("Eq should not be tracked by autograd")
+	}
+}

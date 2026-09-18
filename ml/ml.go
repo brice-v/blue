@@ -204,7 +204,7 @@ func (t *Tensor) String() string {
 type gradState struct {
 	requiresGrad bool
 	Grad         *Tensor
-	gradFn       func(outputGrad *Tensor) []*Tensor // grads for prev
+	gradFn       func(outputGrad *Tensor) ([]*Tensor, error) // grads for prev
 	prev         []*Tensor
 	op           string
 }
@@ -227,6 +227,7 @@ type Backend interface {
 	Sqrt(a *Tensor) (*Tensor, error)
 	Relu(a *Tensor) (*Tensor, error)
 	Greater(a, b *Tensor) (*Tensor, error)
+	Eq(a, b *Tensor) (*Tensor, error)
 	Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error)
 	Max(a *Tensor, dim int, keepdim bool) (*Tensor, error)
 	Softmax(a *Tensor, dim int) (*Tensor, error)
@@ -361,22 +362,6 @@ func newLike(a *Tensor) *Tensor {
 	}
 }
 
-func must(t *Tensor, err error) *Tensor {
-	// validate on forward pass, this is only used for backwards
-	if err != nil {
-		panic(err.Error())
-	}
-	return t
-}
-
-func mustBackend(t *Tensor) Backend {
-	b, err := backendForAll(t)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
 // backendForAll resolves the backend for a set of inputs and rejects mixed
 // devices, so an op can never silently run on the wrong one.
 func backendForAll(in ...*Tensor) (Backend, error) {
@@ -410,19 +395,23 @@ func zerosLike(t *Tensor) *Tensor {
 
 // unbroadcast reduces g back to the shape of like. Only scalar broadcast exists
 // today, so a 0d operand's gradient is the sum of all of g's elements.
-func unbroadcast(be Backend, g, like *Tensor) *Tensor {
+func unbroadcast(be Backend, g, like *Tensor) (*Tensor, error) {
 	if like.Numel() == g.Numel() {
-		return g
+		return g, nil
 	}
 	return sumAll(be, g)
 }
 
-func sumAll(be Backend, g *Tensor) *Tensor {
+func sumAll(be Backend, g *Tensor) (*Tensor, error) {
 	out := g
 	for out.Numel() > 1 {
-		out = must(be.Sum(out, 0, false))
+		var err error
+		out, err = be.Sum(out, 0, false)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return out
+	return out, nil
 }
 
 func scalarLike(a *Tensor, v float32) *Tensor {
@@ -431,4 +420,61 @@ func scalarLike(a *Tensor, v float32) *Tensor {
 		out.data[i] = v
 	}
 	return out
+}
+
+func resolveDim(shape []int, dim int) int {
+	// allow backwards indexing
+	if dim < 0 {
+		dim += len(shape)
+	}
+	return dim
+}
+
+// broadcastTo expands g to shape, using stride 0 on axes where g has size 1.
+// Requires len(g.shape) == len(shape). materialize() turns it into a dense tensor
+// for any backend op that needs contiguous data.
+func broadcastTo(g *Tensor, shape []int) (*Tensor, error) {
+	if len(g.shape) != len(shape) {
+		return nil, fmt.Errorf("broadcastTo: rank %d vs %d", len(g.shape), len(shape))
+	}
+	out := &Tensor{
+		data:    g.data,
+		shape:   slices.Clone(shape),
+		strides: make([]int, len(shape)),
+		offset:  g.offset,
+		dtype:   g.dtype,
+		device:  g.device,
+	}
+	for i := range shape {
+		switch g.shape[i] {
+		case shape[i]:
+			out.strides[i] = g.strides[i]
+		case 1:
+			out.strides[i] = 0
+		default:
+			return nil, fmt.Errorf("broadcastTo: cannot expand %v to %v", g.shape, shape)
+		}
+	}
+	return out, nil
+}
+
+// expandToDim brings a reduced gradient back to a's shape. If keepdim was
+// false, the reduced axis is first re-inserted as size 1 so the ranks match.
+func expandToDim(be Backend, g, a *Tensor, dim int, keepdim bool) (*Tensor, error) {
+	shape := a.Shape()
+	d := resolveDim(shape, dim)
+	if !keepdim {
+		newShape := slices.Clone(shape)
+		newShape[d] = 1
+		var err error
+		g, err = be.Reshape(g, newShape...)
+		if err != nil {
+			return nil, err
+		}
+	}
+	b, err := broadcastTo(g, shape)
+	if err != nil {
+		return nil, err
+	}
+	return b.materialize(), nil
 }

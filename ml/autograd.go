@@ -4,7 +4,7 @@ import "fmt"
 
 // track records the graph node on out. No-op when nothing requires grad, so
 // inference stays cheap.
-func track(out *Tensor, op string, inputs []*Tensor, gradFn func(*Tensor) []*Tensor) {
+func track(out *Tensor, op string, inputs []*Tensor, gradFn func(*Tensor) ([]*Tensor, error)) {
 	needs := false
 	for _, in := range inputs {
 		if in.RequiresGrad() {
@@ -23,15 +23,25 @@ func track(out *Tensor, op string, inputs []*Tensor, gradFn func(*Tensor) []*Ten
 	}
 }
 
-func (t *Tensor) accumulate(g *Tensor) {
+// accumulate adds g into t's gradient, creating the slot if needed.
+func (t *Tensor) accumulate(g *Tensor) error {
 	if t.gradState == nil {
 		t.gradState = &gradState{requiresGrad: true}
 	}
 	if t.gradState.Grad == nil {
 		t.gradState.Grad = g // read-only alias; never mutated in place
-		return
+		return nil
 	}
-	t.gradState.Grad = must(mustBackend(t).Add(t.gradState.Grad, g))
+	be, err := backendForAll(t, g)
+	if err != nil {
+		return err
+	}
+	sum, err := be.Add(t.gradState.Grad, g)
+	if err != nil {
+		return err
+	}
+	t.gradState.Grad = sum
+	return nil
 }
 
 func (t *Tensor) ZeroGrad() {
@@ -65,7 +75,7 @@ func topoOrder(root *Tensor) []*Tensor {
 	return order
 }
 
-// Backward must be called on a scalar (0d) loss
+// Backward must be called on a scalar (0d) loss.
 func (t *Tensor) Backward() error {
 	if t.gradState == nil {
 		return fmt.Errorf("backward: tensor is not part of a graph")
@@ -73,7 +83,9 @@ func (t *Tensor) Backward() error {
 	if t.Numel() != 1 {
 		return fmt.Errorf("backward: expected a scalar loss, got shape %v", t.Shape())
 	}
-	t.accumulate(onesLike(t)) // seed dLoss/dLoss = 1
+	if err := t.accumulate(onesLike(t)); err != nil { // seed dLoss/dLoss = 1
+		return err
+	}
 
 	order := topoOrder(t)
 	for i := len(order) - 1; i >= 0; i-- {
@@ -81,10 +93,18 @@ func (t *Tensor) Backward() error {
 		if n.gradState == nil || n.gradState.gradFn == nil || n.gradState.Grad == nil {
 			continue
 		}
-		grads := n.gradState.gradFn(n.gradState.Grad)
+		grads, err := n.gradState.gradFn(n.gradState.Grad)
+		if err != nil {
+			return fmt.Errorf("backward %s: %w", n.gradState.op, err)
+		}
+		if len(grads) != len(n.gradState.prev) {
+			return fmt.Errorf("backward %s: produced %d gradients for %d inputs", n.gradState.op, len(grads), len(n.gradState.prev))
+		}
 		for j, p := range n.gradState.prev {
 			if p.RequiresGrad() {
-				p.accumulate(grads[j])
+				if err := p.accumulate(grads[j]); err != nil {
+					return fmt.Errorf("backward %s: %w", n.gradState.op, err)
+				}
 			}
 		}
 	}

@@ -280,7 +280,7 @@ func TestAccessors(t *testing.T) {
 		a := dense([]float32{1}, 1)
 		a.gradState = &gradState{
 			requiresGrad: true,
-			gradFn:       func(*Tensor) []*Tensor { return nil },
+			gradFn:       func(*Tensor) ([]*Tensor, error) { return nil, nil },
 		}
 		if a.IsLeaf() {
 			t.Fatal("a tensor with a gradFn should not be a leaf")

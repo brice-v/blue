@@ -114,7 +114,212 @@ var MlBuiltins = []*Builtin{
 			explanation: "`tensor` returns a TENSOR constructed from the provided lists",
 			signature:   "tensor(list) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "tensor() => Tensor{shape: [2,2], strides: TODO}",
+			example:     "TODO",
 		}.String(),
 	},
+	{
+		Name: "_matmul",
+		Fun:  tensorBinaryBuiltin("matmul", ml.MatMul),
+		HelpStr: helpStrArgs{
+			explanation: "`matmul` returns tensor @ tensor",
+			signature:   "matmul(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_add",
+		Fun:  tensorBinaryBuiltin("add", ml.Add),
+		HelpStr: helpStrArgs{
+			explanation: "`add` returns tensor + tensor",
+			signature:   "add(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_sub",
+		Fun:  tensorBinaryBuiltin("sub", ml.Sub),
+		HelpStr: helpStrArgs{
+			explanation: "`sub` returns tensor - tensor",
+			signature:   "sub(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_mul",
+		Fun:  tensorBinaryBuiltin("mul", ml.Mul),
+		HelpStr: helpStrArgs{
+			explanation: "`mul` returns tensor * tensor",
+			signature:   "mul(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_div",
+		Fun:  tensorBinaryBuiltin("div", ml.Div),
+		HelpStr: helpStrArgs{
+			explanation: "`div` returns tensor / tensor",
+			signature:   "div(a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_relu",
+		Fun:  tensorUnaryBuiltin("relu", ml.Relu),
+		HelpStr: helpStrArgs{
+			explanation: "`relu` returns tensor.relu()",
+			signature:   "relu(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_exp",
+		Fun:  tensorUnaryBuiltin("exp", ml.Exp),
+		HelpStr: helpStrArgs{
+			explanation: "`exp` returns tensor.exp()",
+			signature:   "relu(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_log",
+		Fun:  tensorUnaryBuiltin("log", ml.Log),
+		HelpStr: helpStrArgs{
+			explanation: "`log` returns tensor.log()",
+			signature:   "log(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_sqrt",
+		Fun:  tensorUnaryBuiltin("sqrt", ml.Sqrt),
+		HelpStr: helpStrArgs{
+			explanation: "`sqrt` returns tensor.sqrt()",
+			signature:   "sqrt(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_reshape",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("reshape", 2, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("reshape", 1, TENSOR_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("reshape", 2, LIST_OBJ, args)
+			if err != nil {
+				return err
+			}
+			is, ierr := toIntList("reshape", args[1].(*List))
+			if ierr != nil {
+				return newError("%s", ierr.Error())
+			}
+			out, terr := ml.Reshape(args[0].(*Tensor).T, is...)
+			if terr != nil {
+				return newError("`reshape` error: %s", terr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`reshape` TODO",
+			signature:   "reshape(a: tensor, shape: list[int]) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+	{
+		Name: "_transpose",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("transpose", 2, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("transpose", 1, TENSOR_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("transpose", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("transpose", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			out, terr := ml.Transpose(args[0].(*Tensor).T, int(args[1].(*Integer).Value), int(args[2].(*Integer).Value))
+			if terr != nil {
+				return newError("`transpose` error: %s", terr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`transpose` TODO",
+			signature:   "transpose(a: tensor, dim0: int, dim1: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "TODO",
+		}.String(),
+	},
+}
+
+func tensorBinaryBuiltin(name string, f func(a, b *ml.Tensor) (*ml.Tensor, error)) func(...Object) Object {
+	return func(args ...Object) Object {
+		err := checkArgCount(name, 2, args)
+		if err != nil {
+			return err
+		}
+		err = checkArgType(name, 1, TENSOR_OBJ, args)
+		if err != nil {
+			return err
+		}
+		err = checkArgType(name, 2, TENSOR_OBJ, args)
+		if err != nil {
+			return err
+		}
+		out, ferr := f(args[0].(*Tensor).T, args[1].(*Tensor).T)
+		if ferr != nil {
+			return newError("`%s` error: %s", name, ferr.Error())
+		}
+		return &Tensor{T: out}
+	}
+}
+
+func tensorUnaryBuiltin(name string, f func(a *ml.Tensor) (*ml.Tensor, error)) func(...Object) Object {
+	return func(args ...Object) Object {
+		err := checkArgCount(name, 1, args)
+		if err != nil {
+			return err
+		}
+		err = checkArgType(name, 1, TENSOR_OBJ, args)
+		if err != nil {
+			return err
+		}
+		out, ferr := f(args[0].(*Tensor).T)
+		if ferr != nil {
+			return newError("`%s` error: %s", name, ferr.Error())
+		}
+		return &Tensor{T: out}
+	}
+}
+
+func toIntList(name string, l *List) ([]int, error) {
+	is := make([]int, len(l.Elements))
+	for i, e := range l.Elements {
+		if e.Type() != INTEGER_OBJ {
+			return nil, fmt.Errorf("`%s` error: expected INTEGER in list, found %s", name, e.Type())
+		}
+		is[i] = int(e.(*Integer).Value)
+	}
+	return is, nil
 }
