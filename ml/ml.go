@@ -252,6 +252,11 @@ type Backend interface {
 	Softmax(a *Tensor, dim int) (*Tensor, error)
 	Reshape(a *Tensor, shape ...int) (*Tensor, error)
 	Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error)
+	ArgMax(a *Tensor, dim int) (*Tensor, error)
+	ArgMin(a *Tensor, dim int) (*Tensor, error)
+	Permute(a *Tensor, perm ...int) (*Tensor, error)
+	Slice(a *Tensor, dim, start, end int) (*Tensor, error)
+	OneHot(labels *Tensor, classes int) (*Tensor, error)
 }
 
 // auto grad helpers
@@ -445,58 +450,18 @@ func scalarLike(a *Tensor, v float32) *Tensor {
 	return out
 }
 
-func resolveDim(shape []int, dim int) int {
+func resolveDim(op string, shape []int, dim int) (int, error) {
+	if op != "" {
+		op += ": "
+	}
 	// allow backwards indexing
 	if dim < 0 {
 		dim += len(shape)
 	}
-	return dim
-}
-
-// normalizeDims resolves negative dims and expands nil to ever dim. An empty,
-// non-nil slice means reduce nothing.
-func normalizeDims(shape []int, dims []int) ([]int, error) {
-	if dims == nil {
-		all := make([]int, len(shape))
-		for i := range shape {
-			all[i] = i
-		}
-		return all, nil
+	if dim < 0 || dim >= len(shape) {
+		return 0, fmt.Errorf("%sdim %d out of range for shape %v", op, dim, shape)
 	}
-	out := make([]int, len(dims))
-	for i, d := range dims {
-		rd := resolveDim(shape, d)
-		if rd < 0 || rd >= len(shape) {
-			return nil, fmt.Errorf("dim %d out of range for shape %v", d, shape)
-		}
-		out[i] = rd
-	}
-	return out, nil
-}
-
-// reduceSum runs the single dim kernel once per dim, highest index first so that
-// dropping an axis never shifts a lower axies that has yet to be reduced
-func reduceSum(be Backend, a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
-	ds, err := normalizeDims(a.Shape(), dims)
-	if err != nil {
-		return nil, err
-	}
-	if len(ds) == 0 {
-		// summing over no dims is the identity, copy
-		cp := newLike(a)
-		copyStrided(cp.storage.data, a.materialize())
-		return cp, nil
-	}
-	slices.Sort(ds)
-	slices.Reverse(ds)
-	out := a
-	for _, d := range ds {
-		out, err = be.Sum(out, d, keepdim)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return out, nil
+	return dim, nil
 }
 
 // broadcastTo expands g to shape, using stride 0 on axes where g has size 1.
@@ -527,17 +492,15 @@ func broadcastTo(g *Tensor, shape []int) (*Tensor, error) {
 
 // expandToDim brings a reduced gradient back to a's shape. If keepdim was
 // false, the reduced axis is first re-inserted as size 1 so the ranks match.
-func expandToDims(be Backend, g, a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+func expandToDim(be Backend, g, a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 	shape := a.Shape()
+	d, err := resolveDim("", shape, dim)
+	if err != nil {
+		return nil, err
+	}
 	if !keepdim {
-		ds, err := normalizeDims(shape, dims)
-		if err != nil {
-			return nil, err
-		}
 		newShape := slices.Clone(shape)
-		for _, d := range ds {
-			newShape[d] = 1
-		}
+		newShape[d] = 1
 		g, err = be.Reshape(g, newShape...)
 		if err != nil {
 			return nil, err
@@ -548,4 +511,50 @@ func expandToDims(be Backend, g, a *Tensor, dims []int, keepdim bool) (*Tensor, 
 		return nil, err
 	}
 	return b.materialize(), nil
+}
+
+// normalizeDims resolves negative dims and expands nil to every dim. An empty,
+// non-nil slice means "reduce nothing".
+func normalizeDims(shape []int, dims []int) ([]int, error) {
+	if dims == nil {
+		all := make([]int, len(shape))
+		for i := range shape {
+			all[i] = i
+		}
+		return all, nil
+	}
+	out := make([]int, len(dims))
+	for i, d := range dims {
+		rd, err := resolveDim("", shape, d)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = rd
+	}
+	return out, nil
+}
+
+// reduceDims runs a single-dim reduction once per dim, highest index first so
+// dropping an axis never shifts a lower axis still to be reduced. dims nil means
+// every dim; an empty non-nil slice is the identity.
+func reduceDims(a *Tensor, dims []int, keepdim bool, f func(*Tensor, int, bool) (*Tensor, error)) (*Tensor, error) {
+	ds, err := normalizeDims(a.Shape(), dims)
+	if err != nil {
+		return nil, err
+	}
+	if len(ds) == 0 {
+		cp := newLike(a)
+		copyStrided(cp.storage.data, a.materialize())
+		return cp, nil
+	}
+	slices.Sort(ds)
+	slices.Reverse(ds)
+	out := a
+	for _, d := range ds {
+		out, err = f(out, d, keepdim)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }

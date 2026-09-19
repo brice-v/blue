@@ -1,5 +1,10 @@
 package ml
 
+import (
+	"fmt"
+	"slices"
+)
+
 // apply is the low-level "autograd key": resolve the backend, run the forward
 // kernel, wrap with track. The backward also receives the forward output `out`,
 // which several gradients need (exp, sigmoid, softmax, max).
@@ -260,13 +265,16 @@ func Reshape(a *Tensor, shape ...int) (*Tensor, error) {
 		func(be Backend, g, out, a *Tensor) (*Tensor, error) { return be.Reshape(g, a.Shape()...) })
 }
 
-// Sum reduces dims, or every dim when dims is nil. keepdim keeps each reduced dim as size 1
 func Sum(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+	return reduceDims(a, dims, keepdim, reduceSum)
+}
+
+func reduceSum(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 	return apply("sum", []*Tensor{a},
-		func(be Backend, in []*Tensor) (*Tensor, error) { return reduceSum(be, a, dims, keepdim) },
+		func(be Backend, in []*Tensor) (*Tensor, error) { return be.Sum(in[0], dim, keepdim) },
 		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
 			// every element that was summed gets the same incoming gradient
-			d, err := expandToDims(be, g, in[0], dims, keepdim)
+			d, err := expandToDim(be, g, in[0], dim, keepdim)
 			if err != nil {
 				return nil, err
 			}
@@ -274,7 +282,7 @@ func Sum(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
 		})
 }
 
-func Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
+func maxDim(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 	return apply("max", []*Tensor{a},
 		func(be Backend, in []*Tensor) (*Tensor, error) { return be.Max(in[0], dim, keepdim) },
 		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
@@ -283,8 +291,11 @@ func Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 			red := out
 			if !keepdim {
 				sh := append([]int(nil), a.Shape()...)
-				sh[resolveDim(a.Shape(), dim)] = 1
-				var err error
+				rd, err := resolveDim("max", a.Shape(), dim)
+				if err != nil {
+					return nil, err
+				}
+				sh[rd] = 1
 				red, err = be.Reshape(out, sh...)
 				if err != nil {
 					return nil, err
@@ -298,7 +309,7 @@ func Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 			if err != nil {
 				return nil, err
 			}
-			exp, err := expandToDims(be, g, a, []int{dim}, keepdim)
+			exp, err := expandToDim(be, g, a, dim, keepdim)
 			if err != nil {
 				return nil, err
 			}
@@ -308,6 +319,109 @@ func Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 			}
 			return []*Tensor{d}, nil
 		})
+}
+
+func Max(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+	return reduceDims(a, dims, keepdim, maxDim)
+}
+
+func Min(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+	n, err := Neg(a)
+	if err != nil {
+		return nil, err
+	}
+	m, err := Max(n, dims, keepdim)
+	if err != nil {
+		return nil, err
+	}
+	return Neg(m)
+}
+
+func Mean(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+	s, err := Sum(a, dims, keepdim)
+	if err != nil {
+		return nil, err
+	}
+	ds, err := normalizeDims(a.Shape(), dims)
+	if err != nil {
+		return nil, err
+	}
+	count := 1
+	for _, d := range ds {
+		count *= a.Shape()[d]
+	}
+	if count == 0 {
+		return nil, fmt.Errorf("mean: cannot average over an empty dimension")
+	}
+	return Div(s, scalarLike(s, float32(count)))
+}
+
+func ArgMax(a *Tensor, dim int) (*Tensor, error) {
+	be, err := backendForAll(a)
+	if err != nil {
+		return nil, err
+	}
+	return be.ArgMax(a, dim)
+}
+
+func ArgMin(a *Tensor, dim int) (*Tensor, error) {
+	be, err := backendForAll(a)
+	if err != nil {
+		return nil, err
+	}
+	return be.ArgMin(a, dim)
+}
+
+// Abs is relu(x) + relu(-x), so the gradient comes from Relu.
+func Abs(a *Tensor) (*Tensor, error) {
+	p, err := Relu(a)
+	if err != nil {
+		return nil, err
+	}
+	n, err := Neg(a)
+	if err != nil {
+		return nil, err
+	}
+	r, err := Relu(n)
+	if err != nil {
+		return nil, err
+	}
+	return Add(p, r)
+}
+
+// Sigmoid is 1 / (1 + exp(-x)); the chain rule handles the gradient.
+func Sigmoid(a *Tensor) (*Tensor, error) {
+	n, err := Neg(a)
+	if err != nil {
+		return nil, err
+	}
+	e, err := Exp(n)
+	if err != nil {
+		return nil, err
+	}
+	denom, err := Add(e, onesLike(a))
+	if err != nil {
+		return nil, err
+	}
+	return Div(onesLike(a), denom)
+}
+
+// Tanh is 2*sigmoid(2x) - 1.
+func Tanh(a *Tensor) (*Tensor, error) {
+	two := scalarLike(a, 2)
+	x2, err := Mul(a, two)
+	if err != nil {
+		return nil, err
+	}
+	s, err := Sigmoid(x2)
+	if err != nil {
+		return nil, err
+	}
+	num, err := Mul(s, two)
+	if err != nil {
+		return nil, err
+	}
+	return Sub(num, onesLike(a))
 }
 
 func Softmax(a *Tensor, dim int) (*Tensor, error) {
@@ -377,4 +491,148 @@ func Lt(a, b *Tensor) (*Tensor, error) {
 
 func Le(a, b *Tensor) (*Tensor, error) {
 	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Le(a, b) })
+}
+
+func Permute(a *Tensor, perm ...int) (*Tensor, error) {
+	return applyUnary("permute", a,
+		func(be Backend, a *Tensor) (*Tensor, error) { return be.Permute(a, perm...) },
+		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
+			inv := make([]int, len(perm))
+			for i, p := range perm {
+				rd, err := resolveDim("permute", a.Shape(), p)
+				if err != nil {
+					return nil, err
+				}
+				inv[rd] = i
+			}
+			return be.Permute(a, inv...)
+		})
+}
+
+func Flatten(a *Tensor) (*Tensor, error) {
+	return Reshape(a, a.Numel())
+}
+
+func Unsqueeze(a *Tensor, dim int) (*Tensor, error) {
+	shape := a.Shape()
+	d := dim
+	if d < 0 {
+		d += len(shape) - 1
+	}
+	if d < 0 || d >= len(shape) {
+		return nil, fmt.Errorf("unsqueeze: dim %d out of range for shape %v", dim, shape)
+	}
+	out := slices.Concat(shape[:d], []int{1}, shape[d:])
+	return Reshape(a, out...)
+}
+
+// Squeeze drops size-1 dims. dims nil drops every size-1 dim.
+func Squeeze(a *Tensor, dims []int) (*Tensor, error) {
+	shape := a.Shape()
+	drop := map[int]bool{}
+	if dims == nil {
+		for i, d := range shape {
+			if d == 1 {
+				drop[i] = true
+			}
+		}
+	} else {
+		for _, d := range dims {
+			rd, err := resolveDim("squeeze", shape, d)
+			if err != nil {
+				return nil, err
+			}
+			if shape[rd] != 1 {
+				return nil, fmt.Errorf("squeeze: dim %d has size %d, not 1", d, shape[rd])
+			}
+			drop[rd] = true
+		}
+	}
+	out := make([]int, 0, len(shape))
+	for i, d := range shape {
+		if !drop[i] {
+			out = append(out, d)
+		}
+	}
+	return Reshape(a, out...)
+}
+
+func BroadcastTo(a *Tensor, shape []int) (*Tensor, error) {
+	return applyUnary("broadcast_to", a,
+		func(be Backend, a *Tensor) (*Tensor, error) { return broadcastTo(a.materialize(), shape) },
+		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
+			// sum g back over the axes that were expanded
+			d := g
+			var err error
+			for i := range shape {
+				if a.Shape()[i] == 1 && shape[i] != 1 {
+					d, err = be.Sum(a, i, true)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+			return d, nil
+		})
+}
+
+// Slice returns a strided view, so it is not tracked (batching data needs no grad).
+func Slice(a *Tensor, dim, start, end int) (*Tensor, error) {
+	be, err := backendForAll(a)
+	if err != nil {
+		return nil, err
+	}
+	return be.Slice(a, dim, start, end)
+}
+
+// Clamp is lo + relu(x - lo) - relu(x - hi).
+func Clamp(a *Tensor, lo, hi float32) (*Tensor, error) {
+	loT, hiT := scalarLike(a, lo), scalarLike(a, hi)
+	below, err := Sub(a, loT)
+	if err != nil {
+		return nil, err
+	}
+	above, err := Sub(a, hiT)
+	if err != nil {
+		return nil, err
+	}
+	rl, err := Relu(below)
+	if err != nil {
+		return nil, err
+	}
+	rh, err := Relu(above)
+	if err != nil {
+		return nil, err
+	}
+	x, err := Add(loT, rl)
+	if err != nil {
+		return nil, err
+	}
+	return Sub(x, rh)
+}
+
+// Where is a*cond + b*(1-cond). cond is a detached bool tensor.
+func Where(cond, a, b *Tensor) (*Tensor, error) {
+	notCond, err := Sub(onesLike(cond), cond)
+	if err != nil {
+		return nil, err
+	}
+	left, err := Mul(a, cond)
+	if err != nil {
+		return nil, err
+	}
+	right, err := Mul(b, notCond)
+	if err != nil {
+		return nil, err
+	}
+	return Add(left, right)
+}
+
+// OneHot maps a 1d label tensor to [n, classes]; labels are not differentiable.
+func OneHot(labels *Tensor, classes int) (*Tensor, error) {
+	be, err := backendForAll(labels)
+	if err != nil {
+		return nil, err
+	}
+	return be.OneHot(labels, classes)
 }

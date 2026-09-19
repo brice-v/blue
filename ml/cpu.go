@@ -239,12 +239,10 @@ func oride(a *Tensor, dimension int, opName string, canReduceBeZero bool) (outer
 		err = fmt.Errorf("%s: cannot reduce a 0d tensor", opName)
 		return
 	}
-	dimension = resolveDim(a.shape, dimension)
-	if dimension < 0 || dimension >= len(a.shape) {
-		err = fmt.Errorf("%s: dim %d out of range for shape %v", opName, dimension, a.shape)
+	dim, err = resolveDim(opName, a.shape, dimension)
+	if err != nil {
 		return
 	}
-	dim = dimension
 
 	outer, reduce, inner = 1, a.shape[dim], 1
 	if !canReduceBeZero && reduce == 0 {
@@ -469,6 +467,80 @@ func (cpu CPUBackend) Pow(a, b *Tensor) (*Tensor, error) {
 	return tt, nil
 }
 
+func (cpu CPUBackend) ArgMax(a *Tensor, dim int) (*Tensor, error) {
+	return argReduce("argmax", a, dim, func(v, best float32) bool { return v > best })
+}
+
+func (cpu CPUBackend) ArgMin(a *Tensor, dim int) (*Tensor, error) {
+	return argReduce("argmin", a, dim, func(v, best float32) bool { return v < best })
+}
+
+func (cpu CPUBackend) OneHot(labels *Tensor, classes int) (*Tensor, error) {
+	err := requireCPU("onehot", labels)
+	if err != nil {
+		return nil, err
+	}
+	labels = labels.materialize()
+	if len(labels.shape) != 1 {
+		return nil, fmt.Errorf("onehot: expected a 1d tensor, got %v", labels.shape)
+	}
+	n := labels.shape[0]
+	data := make([]float32, n*classes)
+	for i := range n {
+		c := int(labels.storage.data[i])
+		if c < 0 || c >= classes {
+			return nil, fmt.Errorf("onehot: label %d out of range for %d classes", c, classes)
+		}
+		data[i*classes+c] = 1
+	}
+	return NewTensorOwned(data, []int{n, classes}, Float32, labels.storage.device)
+}
+
+func argReduce(op string, a *Tensor, dim int, better func(v, best float32) bool) (*Tensor, error) {
+	err := requireCPU(op, a)
+	if err != nil {
+		return nil, err
+	}
+	a = a.materialize()
+	outer, reduce, inner, d, err := oride(a, dim, op, false)
+	if err != nil {
+		return nil, err
+	}
+	ttShape := slices.Delete(slices.Clone(a.shape), d, d+1)
+	tt := &Tensor{
+		storage: &Storage{data: make([]float32, outer*inner), dtype: Float32, device: a.storage.device},
+		shape:   ttShape,
+		strides: getContiguousStridesFromShape(ttShape),
+	}
+	for o := range outer {
+		for in := range inner {
+			best := a.storage.data[o+reduce*inner+in]
+			bestIdx := 0
+			for r := 1; r < reduce; r++ {
+				v := a.storage.data[(o+reduce+r)*inner+in]
+				if better(v, best) {
+					best, bestIdx = v, r
+				}
+			}
+			tt.storage.data[o*inner+in] = float32(bestIdx)
+		}
+	}
+	return tt, nil
+}
+
+func clampIndex(i, n int) int {
+	if i < 0 {
+		i += n
+	}
+	if i < 0 {
+		return 0
+	}
+	if i > n {
+		return n
+	}
+	return i
+}
+
 // view ops (does not materialize)
 
 func (cpu CPUBackend) Reshape(a *Tensor, shape ...int) (*Tensor, error) {
@@ -512,5 +584,56 @@ func (cpu CPUBackend) Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
 	}
 	tt.shape[dim0], tt.shape[dim1] = tt.shape[dim1], tt.shape[dim0]
 	tt.strides[dim0], tt.strides[dim1] = tt.strides[dim1], tt.strides[dim0]
+	return tt, nil
+}
+
+func (cpu CPUBackend) Permute(a *Tensor, perm ...int) (*Tensor, error) {
+	err := requireCPU("permute", a)
+	if err != nil {
+		return nil, err
+	}
+	if len(perm) != len(a.shape) {
+		return nil, fmt.Errorf("permute: need %d dims, got %d", len(a.shape), len(perm))
+	}
+	seen := make([]bool, len(perm))
+	tt := &Tensor{
+		storage: a.storage,
+		shape:   make([]int, len(perm)),
+		strides: make([]int, len(perm)),
+		offset:  a.offset,
+	}
+	for i, p := range perm {
+		rp, err := resolveDim("permute", a.shape, p)
+		if err != nil || seen[rp] {
+			return nil, fmt.Errorf("permute: invalid permutation %v for shape %v", perm, a.shape)
+		}
+		seen[rp] = true
+		tt.shape[i] = a.shape[rp]
+		tt.strides[i] = a.shape[rp]
+	}
+	return tt, nil
+}
+
+func (cpu CPUBackend) Slice(a *Tensor, dim int, start int, end int) (*Tensor, error) {
+	err := requireCPU("permute", a)
+	if err != nil {
+		return nil, err
+	}
+	d, err := resolveDim("slice", a.shape, dim)
+	if err != nil {
+		return nil, err
+	}
+	n := a.shape[d]
+	start, end = clampIndex(start, n), clampIndex(end, n)
+	if end < start {
+		end = start
+	}
+	tt := &Tensor{
+		storage: a.storage,
+		shape:   slices.Clone(a.shape),
+		strides: slices.Clone(a.strides),
+		offset:  a.offset + start*a.strides[d],
+	}
+	tt.shape[d] = end - start
 	return tt, nil
 }

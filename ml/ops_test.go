@@ -25,7 +25,7 @@ func TestMaxOp(t *testing.T) {
 	x := dense([]float32{1, 3, 2}, 1, 3)
 	x.SetRequiresGrad(true)
 
-	out, err := Max(x, 1, false)
+	out, err := Max(x, []int{1}, false)
 	check(t, "max forward", out, err, []int{1}, []float32{3})
 
 	if err := out.Backward(); err != nil {
