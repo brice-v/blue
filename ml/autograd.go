@@ -2,9 +2,22 @@ package ml
 
 import "fmt"
 
+// gradEnabled gates graph building. SetGradEnabled returns the previous value so
+// a no_grad wrapper can restore it.
+var gradEnabled = true
+
+func SetGradEnabled(on bool) bool {
+	prev := gradEnabled
+	gradEnabled = on
+	return prev
+}
+
 // track records the graph node on out. No-op when nothing requires grad, so
 // inference stays cheap.
 func track(out *Tensor, op string, inputs []*Tensor, gradFn func(*Tensor) ([]*Tensor, error)) {
+	if !gradEnabled {
+		return
+	}
 	needs := false
 	for _, in := range inputs {
 		if in.RequiresGrad() {
