@@ -146,6 +146,8 @@ func (t *Tensor) Get(property string) (Object, error) {
 			}
 			return &Float{Value: float64(v)}
 		}), nil
+	case "sum":
+		return t.sumMethod(), nil
 	}
 	return nil, fmt.Errorf("unsupported property on tensor: %s", property)
 }
@@ -254,5 +256,18 @@ func scalarObject(dt ml.DType, v float32) Object {
 		return NewInteger(int64(v))
 	default:
 		return &Float{Value: float64(v)}
+	}
+}
+
+func (t *Tensor) sumMethod() *Builtin {
+	return &Builtin{
+		Name: "sum",
+		Fun: func(args ...Object) Object {
+			vals, err := bindArgs("sum", args, "dim", "keepdim")
+			if err != nil {
+				return err
+			}
+			return tensorSum(t.T, vals["dim"], vals["keepdim"])
+		},
 	}
 }

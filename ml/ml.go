@@ -453,6 +453,52 @@ func resolveDim(shape []int, dim int) int {
 	return dim
 }
 
+// normalizeDims resolves negative dims and expands nil to ever dim. An empty,
+// non-nil slice means reduce nothing.
+func normalizeDims(shape []int, dims []int) ([]int, error) {
+	if dims == nil {
+		all := make([]int, len(shape))
+		for i := range shape {
+			all[i] = i
+		}
+		return all, nil
+	}
+	out := make([]int, len(dims))
+	for i, d := range dims {
+		rd := resolveDim(shape, d)
+		if rd < 0 || rd >= len(shape) {
+			return nil, fmt.Errorf("dim %d out of range for shape %v", d, shape)
+		}
+		out[i] = rd
+	}
+	return out, nil
+}
+
+// reduceSum runs the single dim kernel once per dim, highest index first so that
+// dropping an axis never shifts a lower axies that has yet to be reduced
+func reduceSum(be Backend, a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+	ds, err := normalizeDims(a.Shape(), dims)
+	if err != nil {
+		return nil, err
+	}
+	if len(ds) == 0 {
+		// summing over no dims is the identity, copy
+		cp := newLike(a)
+		copyStrided(cp.storage.data, a.materialize())
+		return cp, nil
+	}
+	slices.Sort(ds)
+	slices.Reverse(ds)
+	out := a
+	for _, d := range ds {
+		out, err = be.Sum(out, d, keepdim)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
 // broadcastTo expands g to shape, using stride 0 on axes where g has size 1.
 // Requires len(g.shape) == len(shape). materialize() turns it into a dense tensor
 // for any backend op that needs contiguous data.
@@ -481,13 +527,17 @@ func broadcastTo(g *Tensor, shape []int) (*Tensor, error) {
 
 // expandToDim brings a reduced gradient back to a's shape. If keepdim was
 // false, the reduced axis is first re-inserted as size 1 so the ranks match.
-func expandToDim(be Backend, g, a *Tensor, dim int, keepdim bool) (*Tensor, error) {
+func expandToDims(be Backend, g, a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
 	shape := a.Shape()
-	d := resolveDim(shape, dim)
 	if !keepdim {
+		ds, err := normalizeDims(shape, dims)
+		if err != nil {
+			return nil, err
+		}
 		newShape := slices.Clone(shape)
-		newShape[d] = 1
-		var err error
+		for _, d := range ds {
+			newShape[d] = 1
+		}
 		g, err = be.Reshape(g, newShape...)
 		if err != nil {
 			return nil, err

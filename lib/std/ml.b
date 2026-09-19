@@ -23,6 +23,7 @@ val __lt = _lt;
 val __le = _le;
 val __equal = _equal;
 val __allclose = _allclose;
+val __sum = _sum;
 
 val dtype = {
     'float32': 'float32',
@@ -221,4 +222,13 @@ fun allclose(a, b, rtol=1e-5, atol=1e-8) {
     ##
     ## allclose(a: tensor, b: tensor, rtol: float=1e-5, atol: float=1e-8) -> bool
     __allclose(a, b, rtol, atol)
+}
+
+fun sum(a, dim=null, keepdim=false) {
+    ##std:this,__sum
+    ## `sum` returns the sum over `dim`, or over every element when `dim` is null.
+    ## `dim` may be an int or a list of ints; `keepdim` keeps reduced dims as size 1.
+    ##
+    ## sum(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
+    __sum(a, dim, keepdim)
 }

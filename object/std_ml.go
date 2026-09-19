@@ -428,6 +428,20 @@ var MlBuiltins = []*Builtin{
 			example:     "allclose(tensor([[1.0]]), tensor([[1.000001]])) => true",
 		}.String(),
 	},
+	{
+		Name: "_sum",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("sum", 3, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("sum", 1, TENSOR_OBJ, args)
+			if err != nil {
+				return err
+			}
+			return tensorSum(args[0].(*Tensor).T, args[1], args[2])
+		},
+	},
 }
 
 // asTensorArg accepts either a tensor or a scalar (int, float, or bool), which
@@ -513,4 +527,45 @@ func toIntList(name string, l *List) ([]int, error) {
 		is[i] = int(e.(*Integer).Value)
 	}
 	return is, nil
+}
+
+// tensorSum is the shared code of builtin sum and method sum
+// dim/keepdim are the raw arguments, nil means unset
+func tensorSum(t *ml.Tensor, dim, keepdim Object) Object {
+	dims, err := dimsFromObject("sum", dim)
+	if err != nil {
+		return err
+	}
+	keep := false
+	if keepdim != nil {
+		if keepdim.Type() != BOOLEAN_OBJ {
+			return newPositionalTypeError("sum", 2, BOOLEAN_OBJ, keepdim.Type())
+		}
+		keep = keepdim.(*Boolean).Value
+	}
+	out, serr := ml.Sum(t, dims, keep)
+	if serr != nil {
+		return newError("`sum` error: %s", serr.Error())
+	}
+	return &Tensor{T: out}
+}
+
+func dimsFromObject(name string, o Object) ([]int, Object) {
+	switch v := o.(type) {
+	case nil, *Null:
+		return nil, nil
+	case *Integer:
+		return []int{int(v.Value)}, nil
+	case *List:
+		dims := make([]int, len(v.Elements))
+		for i, e := range v.Elements {
+			if e.Type() != INTEGER_OBJ {
+				return nil, newPositionalTypeError(name, 2, INTEGER_OBJ, e.Type())
+			}
+			dims[i] = int(e.(*Integer).Value)
+		}
+		return dims, nil
+	default:
+		return nil, newPositionalTypeError(name, 2, INTEGER_OBJ, o.Type())
+	}
 }

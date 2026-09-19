@@ -6,7 +6,7 @@ func TestSumOp(t *testing.T) {
 	x := dense([]float32{1, 2, 3}, 1, 3)
 	x.SetRequiresGrad(true)
 
-	out, err := Sum(x, 1, false) // shape [1], numel 1
+	out, err := Sum(x, []int{1}, false) // shape [1], numel 1
 	check(t, "sum forward", out, err, []int{1}, []float32{6})
 
 	if err := out.Backward(); err != nil {
@@ -17,7 +17,7 @@ func TestSumOp(t *testing.T) {
 
 func TestSumOpKeepdim(t *testing.T) {
 	x := dense([]float32{1, 2, 3, 4, 5, 6}, 2, 3)
-	out, err := Sum(x, 0, true)
+	out, err := Sum(x, []int{0}, true)
 	check(t, "sum keepdim", out, err, []int{1, 3}, []float32{5, 7, 9})
 }
 
@@ -56,7 +56,7 @@ func TestSoftmaxOpBackward(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mul() error: %v", err)
 	}
-	loss, err := Sum(p, 1, false)
+	loss, err := Sum(p, []int{1}, false)
 	if err != nil {
 		t.Fatalf("Sum() error: %v", err)
 	}
@@ -153,4 +153,27 @@ func TestCompareOps(t *testing.T) {
 	check(t, "lt scalar left", got, err, []int{3}, []float32{0, 0, 1})
 	got, err = Le(dense([]float32{2}, 1), a) // 2 <= [1, 2, 3]
 	check(t, "le scalar left", got, err, []int{3}, []float32{0, 1, 1})
+}
+
+func TestSumAllOp(t *testing.T) {
+	x := dense([]float32{1, 2, 3, 4}, 2, 2)
+	x.SetRequiresGrad(true)
+
+	out, err := Sum(x, nil, false) // all dims -> 0-d
+	check(t, "sum all", out, err, []int{}, []float32{10})
+
+	if err := out.Backward(); err != nil {
+		t.Fatalf("Backward() error: %v", err)
+	}
+	check(t, "sum all grad", x.Grad(), nil, []int{2, 2}, []float32{1, 1, 1, 1})
+}
+
+func TestSumMultiDimOp(t *testing.T) {
+	x := dense([]float32{1, 2, 3, 4, 5, 6}, 2, 3)
+
+	out, err := Sum(x, []int{0, 1}, false)
+	check(t, "sum dims 0,1", out, err, []int{}, []float32{21})
+
+	out, err = Sum(x, []int{1, 0}, true)
+	check(t, "sum dims keepdim", out, err, []int{1, 1}, []float32{21})
 }

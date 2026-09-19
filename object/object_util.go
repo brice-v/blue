@@ -682,3 +682,42 @@ func CreateHelpStringFromProgramTokens(modName string, helpStrTokens []string, p
 	}
 	return fmt.Sprintf("MODULE `%s`: %s\n\ntype(%s) = '%s'\n\nPUBLIC FUNCTIONS:%s", modName, explanation, modName, MODULE_OBJ, pubFunHelpStr)
 }
+
+func bindArgs(name string, args []Object, params ...string) (map[string]Object, Object) {
+	pos := args
+	var named *DefaultArgs
+	if len(pos) > 0 {
+		if da, ok := pos[len(pos)-1].(*DefaultArgs); ok {
+			named = da
+			pos = pos[:len(pos)-1]
+		}
+	}
+	if len(pos) > len(params) {
+		return nil, newInvalidArgCountError(name, len(pos), len(params), "")
+	}
+	vals := make(map[string]Object, len(params))
+	declared := make(map[string]bool, len(params))
+	for _, p := range params {
+		declared[p] = true
+	}
+	for i, v := range pos {
+		vals[params[i]] = v
+	}
+	if named != nil {
+		for k, v := range named.Value {
+			if !declared[k] {
+				return nil, newError("`%s` unexpected keyword argument '%s'", name, k)
+			}
+			if _, dup := vals[k]; dup {
+				return nil, newError("`%s` multiple values for argument '%s'", name, k)
+			}
+			vals[k] = v
+		}
+		for k := range named.Value {
+			if !declared[k] {
+				return nil, newError("`%s` unexpected keyword argument '%s'", name, k)
+			}
+		}
+	}
+	return vals, nil
+}

@@ -260,12 +260,13 @@ func Reshape(a *Tensor, shape ...int) (*Tensor, error) {
 		func(be Backend, g, out, a *Tensor) (*Tensor, error) { return be.Reshape(g, a.Shape()...) })
 }
 
-func Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
+// Sum reduces dims, or every dim when dims is nil. keepdim keeps each reduced dim as size 1
+func Sum(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
 	return apply("sum", []*Tensor{a},
-		func(be Backend, in []*Tensor) (*Tensor, error) { return be.Sum(in[0], dim, keepdim) },
+		func(be Backend, in []*Tensor) (*Tensor, error) { return reduceSum(be, a, dims, keepdim) },
 		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
 			// every element that was summed gets the same incoming gradient
-			d, err := expandToDim(be, g, in[0], dim, keepdim)
+			d, err := expandToDims(be, g, in[0], dims, keepdim)
 			if err != nil {
 				return nil, err
 			}
@@ -297,7 +298,7 @@ func Max(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
 			if err != nil {
 				return nil, err
 			}
-			exp, err := expandToDim(be, g, a, dim, keepdim)
+			exp, err := expandToDims(be, g, a, []int{dim}, keepdim)
 			if err != nil {
 				return nil, err
 			}
