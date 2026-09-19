@@ -1,0 +1,74 @@
+# CODEOWNERS for Born ML Framework
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# This file defines individuals or teams responsible for code in this repository.
+# Code owners are automatically requested for review when someone opens a pull request
+# that modifies code they own.
+#
+# Last updated: 2025-11-17
+
+# Default owner for everything in the repo
+* @kolkov
+
+# Core Tensor API - Foundation of the framework
+/internal/tensor/ @kolkov
+/internal/tensor/dtype.go @kolkov
+/internal/tensor/shape.go @kolkov
+/internal/tensor/backend.go @kolkov
+
+# Backend implementations - Performance critical code
+/internal/backend/ @kolkov
+/internal/backend/cpu/ @kolkov
+/internal/backend/cpu/matmul.go @kolkov
+/internal/backend/cpu/conv2d.go @kolkov
+
+# Autodiff system - Gradient computation engine
+/internal/autodiff/ @kolkov
+/internal/autodiff/ops/ @kolkov
+/internal/autodiff/tape.go @kolkov
+/internal/autodiff/backward.go @kolkov
+
+# Neural Network modules - Public API for ML models
+/internal/nn/ @kolkov
+/internal/nn/linear.go @kolkov
+/internal/nn/conv2d.go @kolkov
+/internal/nn/maxpool2d.go @kolkov
+/internal/nn/activation.go @kolkov
+/internal/nn/loss.go @kolkov
+
+# Optimizers - Training algorithms
+/internal/optim/ @kolkov
+
+# Command-line tools
+/cmd/ @kolkov
+
+# Examples - Reference implementations and tutorials
+/examples/ @kolkov
+
+# Scripts - Build automation and tooling
+/scripts/ @kolkov
+
+# Documentation - Keep synchronized with code
+*.md @kolkov
+/docs/ @kolkov
+
+# GitHub configuration and CI/CD
+/.github/ @kolkov
+
+# Code quality and linting configuration
+/.golangci.yml @kolkov
+/Makefile @kolkov
+
+# Tests - Ensure coverage and correctness
+*_test.go @kolkov
+
+# Benchmarks - Performance validation
+*_benchmark_test.go @kolkov
+
+# Release management - Version control and changelog
+/CHANGELOG.md @kolkov
+/LICENSE @kolkov
+
+# Go module files - Dependency management (zero dependencies policy!)
+/go.mod @kolkov
+/go.sum @kolkov

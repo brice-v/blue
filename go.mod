@@ -20,14 +20,18 @@ require (
 	github.com/huandu/go-clone/generic v1.7.3
 	github.com/huandu/xstrings v1.5.0
 	github.com/microcosm-cc/bluemonday v1.0.27
+	github.com/oliverbestmann/webgpu v1.36.0
+	github.com/pkoukk/tiktoken-go v0.1.8
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/shopspring/decimal v1.4.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tdewolff/minify/v2 v2.24.11
 	github.com/tetratelabs/wazero v1.11.0
 	golang.org/x/crypto v0.51.0
 	golang.org/x/net v0.55.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/text v0.39.0
 	modernc.org/sqlite v1.48.1
 )
@@ -40,6 +44,7 @@ require (
 	github.com/antchfx/xpath v1.3.6 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/dromara/carbon/v2 v2.6.9 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
@@ -81,6 +86,11 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
+	github.com/oliverbestmann/webgpu/libs-android v0.0.0-20260628152806-6b27e30a172e // indirect
+	github.com/oliverbestmann/webgpu/libs-darwin v0.0.0-20260628152755-66a5dfa57f8d // indirect
+	github.com/oliverbestmann/webgpu/libs-ios v0.0.0-20260628152757-fe2537e7ddac // indirect
+	github.com/oliverbestmann/webgpu/libs-linux v0.0.0-20260628152803-421b8a341d08 // indirect
+	github.com/oliverbestmann/webgpu/libs-windows v0.0.0-20260628152801-f47d1b682eb8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
@@ -92,7 +102,6 @@ require (
 	github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tdewolff/parse/v2 v2.8.11 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
@@ -103,7 +112,6 @@ require (
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.70.0 // indirect

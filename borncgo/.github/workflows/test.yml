@@ -1,0 +1,210 @@
+name: Tests
+
+# Testing Strategy:
+# - Tests run on Linux, macOS, and Windows (cross-platform framework)
+# - Born ML is a cross-platform ML framework - must work everywhere
+# - Go 1.26+ required (matches go.mod requirement)
+#
+# Branch Strategy (Git Flow):
+# - feature/** branches: Development work
+# - release/** branches: Pre-release testing (test here BEFORE merging to main)
+# - develop branch: Integration branch
+# - main branch: Production-ready code only (protected)
+# - Pull requests: Must pass all tests before merge
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # Unit tests - Cross-platform
+  unit-tests:
+    name: Unit Tests - ${{ matrix.os }} - Go ${{ matrix.go-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: ['1.26']  # Match go.mod requirement
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run go vet
+      if: matrix.os == 'ubuntu-latest'
+      run: go vet ./...
+
+    - name: Run unit tests with race detector
+      shell: bash
+      env:
+        CGO_ENABLED: 1
+      run: go test -short -v -race -timeout 20m -coverprofile=coverage.txt -covermode=atomic ./...
+
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.26'
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage.txt
+        flags: unittests
+        name: codecov-unit
+        fail_ci_if_error: false
+        verbose: true
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    continue-on-error: false  # Strict for production framework
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+        cache: true
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v8
+      with:
+        version: latest
+        args: --timeout=5m
+
+  # Formatting check
+  formatting:
+    name: Code Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+        cache: true
+
+    - name: Check formatting
+      run: |
+        if [ -n "$(gofmt -l .)" ]; then
+          echo "ERROR: The following files are not formatted:"
+          gofmt -l .
+          echo ""
+          echo "Run 'go fmt ./...' to fix formatting issues."
+          exit 1
+        fi
+        echo "All files are properly formatted ✓"
+
+  # Build examples - Ensures examples compile
+  build-examples:
+    name: Build Examples
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+        cache: true
+
+    - name: Build MNIST example
+      run: go build -v ./examples/mnist
+
+    - name: Build MNIST-CNN example
+      run: go build -v ./examples/mnist-cnn
+
+
+  # Build tools - Ensures cmd tools compile
+  build-tools:
+    name: Build Tools
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+        cache: true
+
+    - name: Build all tools
+      run: go build -v ./cmd/...
+
+  # WASM build check - Ensures WASM target compiles (#123)
+  build-wasm:
+    name: Build WASM
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+        cache: true
+
+    - name: Build for WASM
+      run: GOOS=js GOARCH=wasm go build ./...
+
+  # Performance benchmarks (informational only)
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+        cache: true
+
+    - name: Run benchmarks
+      run: go test -bench=. -benchmem -run=^$ ./internal/tensor/...
+
+  # Gate job for branch protection — single required check
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [unit-tests, lint, formatting, build-examples, build-tools, build-wasm, benchmarks]
+    steps:
+    - name: Check results
+      run: |
+        if [[ "${{ needs.unit-tests.result }}" == "failure" || \
+              "${{ needs.lint.result }}" == "failure" || \
+              "${{ needs.formatting.result }}" == "failure" || \
+              "${{ needs.build-examples.result }}" == "failure" || \
+              "${{ needs.build-tools.result }}" == "failure" || \
+              "${{ needs.build-wasm.result }}" == "failure" || \
+              "${{ needs.benchmarks.result }}" == "failure" ]]; then
+          echo "One or more required jobs failed"
+          exit 1
+        fi
+        echo "All checks passed ✓"

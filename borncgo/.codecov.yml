@@ -1,0 +1,47 @@
+# Codecov configuration for Born ML Framework
+# Documentation: https://docs.codecov.com/docs/codecovyml-reference
+# Validator: https://api.codecov.io/validate
+# Last updated: 2025-11-17
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 70%           # Minimum project coverage (matches pre-release-check.sh)
+        threshold: 1%         # Allow 1% drop from target
+        base: auto
+        informational: false  # Fail if below target (strict for ML framework)
+        only_pulls: false
+
+    patch:
+      default:
+        target: auto          # Auto-detect reasonable target for changes
+        threshold: 10%        # Allow 10% variance for patches
+        base: auto
+        informational: true   # Don't fail PRs, just inform (encourage improvement)
+        only_pulls: false
+
+  ignore:
+    - "cmd/**"                # CLI tools (not covered by tests)
+    - "examples/**"           # Example code and tutorials
+    - "internal/testing/**"   # Test utilities (no self-tests needed)
+    - "testdata/**"           # Test data files
+    - "**/*_test.go"          # Test files themselves
+    - "tmp/**"                # Temporary/scratch files
+    - "docs/**"               # Documentation
+    - "scripts/**"            # Build and automation scripts
+
+comment:
+  layout: "header, diff, flags, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+# GitHub integration
+github_checks:
+  annotations: true
