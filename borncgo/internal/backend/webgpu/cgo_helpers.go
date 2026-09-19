@@ -38,7 +38,7 @@ func endComputePass(pass *wgpu.ComputePassEncoder) error {
 // GPU completes all submitted work. Returns a CPU copy of the mapped bytes;
 // the buffer is unmapped before returning.
 func mapReadSync(device *wgpu.Device, buf *wgpu.Buffer, size uint64) ([]byte, error) {
-	var mapStatus wgpu.MapAsyncStatus = wgpu.MapAsyncStatusError
+	mapStatus := wgpu.MapAsyncStatusError
 	if err := buf.TryMapAsync(wgpu.MapModeRead, 0, size, func(s wgpu.MapAsyncStatus) {
 		mapStatus = s
 	}); err != nil {

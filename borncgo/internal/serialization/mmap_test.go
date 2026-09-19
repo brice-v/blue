@@ -18,7 +18,7 @@ func createTestFile(t *testing.T, path string, stateDict map[string]*tensor.RawT
 	if err != nil {
 		t.Fatalf("Failed to create writer: %v", err)
 	}
-	defer writer.Close()
+	defer func() { _ = writer.Close() }()
 
 	if err := writer.WriteStateDictV2(stateDict, "TestModel", nil); err != nil {
 		t.Fatalf("Failed to write state dict: %v", err)
@@ -58,7 +58,7 @@ func TestMmapReaderBasic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create mmap reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify header
 	header := reader.Header()
@@ -139,7 +139,7 @@ func TestMmapReaderZeroCopy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create mmap reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Get zero-copy data
 	tensorData, err := reader.TensorData("data")
@@ -194,7 +194,7 @@ func TestMmapReaderNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create mmap reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Try to get non-existent tensor
 	_, err = reader.TensorInfo("nonexistent")
@@ -228,7 +228,7 @@ func TestMmapReaderClosed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create mmap reader: %v", err)
 	}
-	reader.Close()
+	_ = reader.Close()
 
 	// Try to use closed reader
 	_, err = reader.TensorData("data")
@@ -281,7 +281,7 @@ func TestMmapReaderInvalidFile(t *testing.T) {
 
 			reader, err := NewMmapReader(path)
 			if reader != nil {
-				defer reader.Close()
+				defer func() { _ = reader.Close() }()
 			}
 
 			if (err != nil) != tt.wantErr {
@@ -344,7 +344,7 @@ func TestMmapReaderMultipleTensors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create mmap reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify all tensors can be read
 	tensorTests := []struct {
@@ -390,7 +390,7 @@ func TestMmapReaderVersionAndFlags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create mmap reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify version (should be v2 since we're using WriteStateDictV2)
 	version := reader.Version()
@@ -458,7 +458,7 @@ func createBenchFile(b *testing.B, numElements int) (string, tensor.Backend) {
 	if err := writer.WriteStateDictV2(stateDict, "BenchModel", nil); err != nil {
 		b.Fatalf("Failed to write state dict: %v", err)
 	}
-	writer.Close()
+	_ = writer.Close()
 
 	return path, backend
 }
@@ -478,7 +478,7 @@ func benchmarkMmapVsRegular(b *testing.B, numElements int) {
 			if err != nil {
 				b.Fatalf("Failed to load tensor: %v", err)
 			}
-			reader.Close()
+			_ = reader.Close()
 		}
 	})
 
@@ -493,7 +493,7 @@ func benchmarkMmapVsRegular(b *testing.B, numElements int) {
 			if err != nil {
 				b.Fatalf("Failed to load tensor: %v", err)
 			}
-			reader.Close()
+			_ = reader.Close()
 		}
 	})
 
@@ -508,7 +508,7 @@ func benchmarkMmapVsRegular(b *testing.B, numElements int) {
 			if err != nil {
 				b.Fatalf("Failed to get tensor data: %v", err)
 			}
-			reader.Close()
+			_ = reader.Close()
 		}
 	})
 }

@@ -30,6 +30,50 @@ val __min = _min;
 val __argmax = _argmax;
 val __argmin = _argmin;
 val __softmax = _softmax;
+val __abs = _abs;
+val __sigmoid = _sigmoid;
+val __tanh = _tanh;
+val __flatten = _flatten;
+val __unsqueeze = _unsqueeze;
+val __permute = _permute;
+val __broadcast_to = _broadcast_to;
+val __squeeze = _squeeze;
+val __zeros = _zeros;
+val __ones = _ones;
+val __randn = _randn;
+val __full = _full;
+val __arange = _arange;
+val __eye = _eye;
+val __manual_seed = _manual_seed;
+val __slice = _slice;
+val __clamp = _clamp;
+val __where = _where;
+val __onehot = _onehot;
+val __set_requires_grad = _set_requires_grad;
+val __requires_grad = _requires_grad;
+val __backward = _backward;
+val __grad = _grad;
+val __zero_grad = _zero_grad;
+val __set_grad_enabled = _set_grad_enabled;
+val __cross_entropy = _cross_entropy;
+val __mse_loss = _mse_loss;
+val __add_ = _add_;
+val __sub_ = _sub_;
+val __mul_ = _mul_;
+val __div_ = _div_;
+val __save = _save;
+val __load = _load;
+val __optim_sgd = _optim_sgd;
+val __optim_adam = _optim_adam;
+val __optim_step = _optim_step;
+val __optim_zero_grad = _optim_zero_grad;
+val __nn_linear = _nn_linear;
+val __nn_relu = _nn_relu;
+val __nn_sigmoid = _nn_sigmoid;
+val __nn_forward = _nn_forward;
+val __nn_parameters = _nn_parameters;
+val __nn_to = _nn_to;
+val __gpu_is_available = _gpu_is_available;
 
 val dtype = {
     'float32': 'float32',
@@ -41,6 +85,11 @@ val dtype = {
 val device = {
     'cpu': 'cpu',
     'gpu': 'gpu',
+};
+
+## `gpu.is_available()` mirrors torch.cuda.is_available().
+val gpu = {
+    'is_available': fun() { __gpu_is_available(); },
 };
 
 fun tensor(data, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {
@@ -286,3 +335,344 @@ fun softmax(a, dim) {
     ## softmax(a: tensor, dim: int) -> tensor
     __softmax(a, dim)
 }
+
+fun abs(a) {
+    ##std:this,__abs
+    ## `abs` returns the absolute value of each element.
+    ##
+    ## abs(a: tensor) -> tensor
+    __abs(a)
+}
+
+fun sigmoid(a) {
+    ##std:this,__sigmoid
+    ## `sigmoid` returns 1/(1+exp(-x)) elementwise.
+    ##
+    ## sigmoid(a: tensor) -> tensor
+    __sigmoid(a)
+}
+
+fun tanh(a) {
+    ##std:this,__tanh
+    ## `tanh` returns the hyperbolic tangent elementwise.
+    ##
+    ## tanh(a: tensor) -> tensor
+    __tanh(a)
+}
+
+fun flatten(a) {
+    ##std:this,__flatten
+    ## `flatten` returns a 1d view of the tensor.
+    ##
+    ## flatten(a: tensor) -> tensor
+    __flatten(a)
+}
+
+fun unsqueeze(a, dim) {
+    ##std:this,__unsqueeze
+    ## `unsqueeze` inserts a size-1 dimension at `dim`.
+    ##
+    ## unsqueeze(a: tensor, dim: int) -> tensor
+    __unsqueeze(a, dim)
+}
+
+fun permute(a, dims) {
+    ##std:this,__permute
+    ## `permute` reorders the dimensions.
+    ##
+    ## permute(a: tensor, dims: list[int]) -> tensor
+    __permute(a, dims)
+}
+
+fun broadcast_to(a, shape) {
+    ##std:this,__broadcast_to
+    ## `broadcast_to` expands size-1 dims to the given shape.
+    ##
+    ## broadcast_to(a: tensor, shape: list[int]) -> tensor
+    __broadcast_to(a, shape)
+}
+
+fun squeeze(a, dim=null) {
+    ##std:this,__squeeze
+    ## `squeeze` removes size-1 dimensions; `dim` null removes every size-1 dim.
+    ##
+    ## squeeze(a: tensor, dim: int|list[int]|null=null) -> tensor
+    __squeeze(a, dim)
+}
+
+fun zeros(shape, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {
+    ##std:this,__zeros
+    ## `zeros` returns a tensor of zeros with the given shape.
+    ##
+    ## zeros(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor
+    __zeros(shape, datatype, dev, requires_grad)
+}
+
+fun ones(shape, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {
+    ##std:this,__ones
+    ## `ones` returns a tensor of ones with the given shape.
+    ##
+    ## ones(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor
+    __ones(shape, datatype, dev, requires_grad)
+}
+
+fun randn(shape, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {
+    ##std:this,__randn
+    ## `randn` returns a tensor of standard normal samples.
+    ##
+    ## randn(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor
+    __randn(shape, datatype, dev, requires_grad)
+}
+
+fun full(shape, fill_value, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {
+    ##std:this,__full
+    ## `full` returns a tensor filled with a value.
+    ##
+    ## full(shape: list[int], fill_value: float, datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor
+    __full(shape, fill_value, datatype, dev, requires_grad)
+}
+
+fun arange(start, end, step=1.0, datatype=dtype.float32, dev=device.cpu) {
+    ##std:this,__arange
+    ## `arange` returns evenly spaced values in [start, end).
+    ##
+    ## arange(start: float, end: float, step: float=1.0, datatype: str='float32', dev: str='cpu') -> tensor
+    __arange(start, end, step, datatype, dev)
+}
+
+fun eye(n, datatype=dtype.float32, dev=device.cpu) {
+    ##std:this,__eye
+    ## `eye` returns an n by n identity matrix.
+    ##
+    ## eye(n: int, datatype: str='float32', dev: str='cpu') -> tensor
+    __eye(n, datatype, dev)
+}
+
+fun manual_seed(seed) {
+    ##std:this,__manual_seed
+    ## `manual_seed` seeds the shared random generator.
+    ##
+    ## manual_seed(seed: int) -> null
+    __manual_seed(seed)
+}
+
+fun slice(a, dim, start, end) {
+    ##std:this,__slice
+    ## `slice` returns a view of `dim` from `start` to `end`.
+    ##
+    ## slice(a: tensor, dim: int, start: int, end: int) -> tensor
+    __slice(a, dim, start, end)
+}
+
+fun clamp(a, min_val, max_val) {
+    ##std:this,__clamp
+    ## `clamp` limits each element to [min, max].
+    ##
+    ## clamp(a: tensor, min: float, max: float) -> tensor
+    __clamp(a, min_val, max_val)
+}
+
+fun where(condition, a, b) {
+    ##std:this,__where
+    ## `where` selects a where condition is true and b otherwise.
+    ##
+    ## where(condition: tensor, a: tensor, b: tensor) -> tensor
+    __where(condition, a, b)
+}
+
+fun onehot(labels, classes) {
+    ##std:this,__onehot
+    ## `onehot` turns a 1d label tensor into a [n, classes] matrix.
+    ##
+    ## onehot(labels: tensor, classes: int) -> tensor
+    __onehot(labels, classes)
+}
+
+fun set_requires_grad(a, flag) {
+    ##std:this,__set_requires_grad
+    ## `set_requires_grad` turns gradient tracking on or off for a tensor.
+    ##
+    ## set_requires_grad(a: tensor, flag: bool) -> null
+    __set_requires_grad(a, flag)
+}
+
+fun requires_grad(a) {
+    ##std:this,__requires_grad
+    ## `requires_grad` reports whether a tensor is tracked.
+    ##
+    ## requires_grad(a: tensor) -> bool
+    __requires_grad(a)
+}
+
+fun backward(a) {
+    ##std:this,__backward
+    ## `backward` runs reverse-mode autograd from a scalar tensor.
+    ##
+    ## backward(a: tensor) -> null
+    __backward(a)
+}
+
+fun grad(a) {
+    ##std:this,__grad
+    ## `grad` returns the accumulated gradient or null.
+    ##
+    ## grad(a: tensor) -> tensor|null
+    __grad(a)
+}
+
+fun zero_grad(a) {
+    ##std:this,__zero_grad
+    ## `zero_grad` clears a tensor's gradient.
+    ##
+    ## zero_grad(a: tensor) -> null
+    __zero_grad(a)
+}
+
+fun no_grad(f) {
+    ##std:this,__set_grad_enabled
+    ## `no_grad` runs a closure with graph building disabled.
+    ##
+    ## no_grad(f: fun) -> any
+    val prev = __set_grad_enabled(false);
+    val out = f();
+    __set_grad_enabled(prev);
+    return out;
+}
+
+fun cross_entropy(logits, target) {
+    ##std:this,__cross_entropy
+    ## `cross_entropy` returns the mean cross-entropy loss between logits
+    ## [batch, classes] and class indices [batch].
+    ##
+    ## cross_entropy(logits: tensor, target: tensor) -> tensor
+    __cross_entropy(logits, target)
+}
+
+fun mse_loss(predictions, targets) {
+    ##std:this,__mse_loss
+    ## `mse_loss` returns the mean squared error between two tensors of equal shape.
+    ##
+    ## mse_loss(predictions: tensor, targets: tensor) -> tensor
+    __mse_loss(predictions, targets)
+}
+
+fun add_(a, b) {
+    ##std:this,__add_
+    ## `add_` adds b (or a scalar) into a in place.
+    ##
+    ## add_(a: tensor, b: tensor) -> null
+    __add_(a, b)
+}
+
+fun sub_(a, b) {
+    ##std:this,__sub_
+    ## `sub_` subtracts b (or a scalar) from a in place.
+    ##
+    ## sub_(a: tensor, b: tensor) -> null
+    __sub_(a, b)
+}
+
+fun mul_(a, b) {
+    ##std:this,__mul_
+    ## `mul_` multiplies a by b (or a scalar) in place.
+    ##
+    ## mul_(a: tensor, b: tensor) -> null
+    __mul_(a, b)
+}
+
+fun div_(a, b) {
+    ##std:this,__div_
+    ## `div_` divides a by b (or a scalar) in place.
+    ##
+    ## div_(a: tensor, b: tensor) -> null
+    __div_(a, b)
+}
+
+fun save(a, path) {
+    ##std:this,__save
+    ## `save` writes a tensor to a file.
+    ##
+    ## save(a: tensor, path: str) -> null
+    __save(a, path)
+}
+
+fun load(path, dev=device.cpu) {
+    ##std:this,__load
+    ## `load` reads a tensor written by `save` onto a device.
+    ##
+    ## load(path: str, dev: str='cpu') -> tensor
+    __load(path, dev)
+}
+
+## `nn` holds the small PyTorch-style layer set. Each layer is a map with
+## `forward(x)` and `parameters()`. The math runs through the ml ops, which
+## delegate to the borncgo engine.
+val nn = {
+    'Linear': fun(in_features, out_features, dev=device.cpu) {
+        val h = __nn_linear(in_features, out_features, dev);
+        var this = {};
+        this.__handle = h;
+        this.forward = fun(x) { return __nn_forward(h, x); };
+        this.parameters = fun() { return __nn_parameters(h); };
+        this.to = fun(dev) { __nn_to(h, dev); return this; };
+        return this;
+    },
+    'ReLU': fun(dev=device.cpu) {
+        val h = __nn_relu(dev);
+        var this = {};
+        this.__handle = h;
+        this.forward = fun(x) { return __nn_forward(h, x); };
+        this.parameters = fun() { return __nn_parameters(h); };
+        this.to = fun(dev) { __nn_to(h, dev); return this; };
+        return this;
+    },
+    'Sigmoid': fun(dev=device.cpu) {
+        val h = __nn_sigmoid(dev);
+        var this = {};
+        this.__handle = h;
+        this.forward = fun(x) { return __nn_forward(h, x); };
+        this.parameters = fun() { return __nn_parameters(h); };
+        this.to = fun(dev) { __nn_to(h, dev); return this; };
+        return this;
+    },
+    'Sequential': fun(modules) {
+        var this = {};
+        this.forward = fun(x) {
+            var out = x;
+            for (m in modules) { out = m.forward(out); }
+            return out;
+        };
+        this.parameters = fun() {
+            var ps = [];
+            for (m in modules) {
+                for (p in m.parameters()) { push(ps, p); }
+            }
+            return ps;
+        };
+        this.to = fun(dev) {
+            for (m in modules) { m.to(dev); }
+            return this;
+        };
+        return this;
+    },
+    'parameters': fun(model) { return model.parameters(); },
+};
+
+## `optim` holds the optimizers. State lives on the optimizer object because
+## closures capture scalars by value.
+val optim = {
+    'SGD': fun(params, lr=0.01, momentum=0.0) {
+        val h = __optim_sgd(params, lr, momentum);
+        var this = {};
+        this.step = fun() { __optim_step(h); };
+        this.zero_grad = fun() { __optim_zero_grad(h); };
+        return this;
+    },
+    'Adam': fun(params, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8) {
+        val h = __optim_adam(params, lr, beta1, beta2, eps);
+        var this = {};
+        this.step = fun() { __optim_step(h); };
+        this.zero_grad = fun() { __optim_zero_grad(h); };
+        return this;
+    },
+};

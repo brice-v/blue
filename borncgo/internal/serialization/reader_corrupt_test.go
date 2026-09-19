@@ -161,7 +161,7 @@ func TestLoadTensor_CorruptTensor(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to open reader: %v", err)
 			}
-			defer reader.Close()
+			defer func() { _ = reader.Close() }()
 
 			if _, err := reader.LoadTensor("weight", backend); err == nil {
 				t.Fatalf("Expected LoadTensor to reject %q, got nil", tt.name)
@@ -184,7 +184,7 @@ func TestLoadTensor_DataReadFailUnvalidated(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	if _, err := reader.LoadTensor("weight", backend); err == nil {
 		t.Fatal("Expected LoadTensor to fail on a short data section, got nil")

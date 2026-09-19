@@ -21,7 +21,7 @@ func readIDXImages(filename string) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Read magic number
 	var magic uint32
@@ -70,7 +70,7 @@ func readIDXLabels(filename string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Read magic number
 	var magic uint32

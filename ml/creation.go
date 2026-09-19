@@ -14,23 +14,43 @@ func tag(t *bornTensor, dtype DType, device Device) *Tensor {
 }
 
 func Zeros(shape []int, dtype DType, device Device) (*Tensor, error) {
-	return tag(tensor.Zeros[float32](tensor.Shape(shape), engine), dtype, device), nil
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	return tag(tensor.Zeros[float32](tensor.Shape(shape), be), dtype, device), nil
 }
 
 func Ones(shape []int, dtype DType, device Device) (*Tensor, error) {
-	return tag(tensor.Ones[float32](tensor.Shape(shape), engine), dtype, device), nil
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	return tag(tensor.Ones[float32](tensor.Shape(shape), be), dtype, device), nil
 }
 
 func Full(shape []int, v float32, dtype DType, device Device) (*Tensor, error) {
-	return tag(tensor.Full[float32](tensor.Shape(shape), v, engine), dtype, device), nil
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	return tag(tensor.Full[float32](tensor.Shape(shape), v, be), dtype, device), nil
 }
 
 func Eye(n int, dtype DType, device Device) (*Tensor, error) {
-	return tag(tensor.Eye[float32](n, engine), dtype, device), nil
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	return tag(tensor.Eye[float32](n, be), dtype, device), nil
 }
 
 func Randn(shape []int, dtype DType, device Device) (*Tensor, error) {
-	return tag(tensor.Randn[float32](tensor.Shape(shape), engine), dtype, device), nil
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	return tag(tensor.Randn[float32](tensor.Shape(shape), be), dtype, device), nil
 }
 
 // Arange returns evenly spaced values in [start, end). borncgo's Arange has no

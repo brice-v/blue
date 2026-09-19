@@ -70,24 +70,98 @@ func ParseDevice(s string) (Device, error) {
 	}
 }
 
-// engine is the single borncgo autodiff backend every tensor shares. Its tape
-// records operations, and Backward walks it. Delegating autograd to borncgo is
-// the whole point: blue only shapes the PyTorch-facing surface.
-type engineB = *autodiff.Backend[*cpu.Backend]
-type bornTensor = tensor.Tensor[float32, engineB]
+// backends hold one borncgo autodiff backend per device. Tensors remember the
+// backend they were created on, so ops run on the right device and each device
+// keeps its own tape. Delegating autograd to borncgo is the whole point: blue
+// only shapes the PyTorch-facing surface.
+type bornTensor = tensor.Tensor[float32, tensor.Backend]
 
-var engine engineB
+var (
+	cpuEngine tensor.Backend
+	gpuEngine tensor.Backend
+	gpuErr    error
+	recording = true
+)
 
 func init() {
-	engine = autodiff.New(cpu.New())
-	engine.Tape().StartRecording()
+	cpuEngine = autodiff.New(cpu.New())
+	setRecording(cpuEngine, true)
+}
+
+// tapeOf returns the gradient tape of a backend that supports backprop.
+func tapeOf(be tensor.Backend) *autodiff.GradientTape {
+	if bc, ok := be.(autodiff.BackwardCapable); ok {
+		return bc.GetTape()
+	}
+	return nil
+}
+
+func setRecording(be tensor.Backend, on bool) {
+	if tp := tapeOf(be); tp != nil {
+		if on {
+			tp.StartRecording()
+		} else {
+			tp.StopRecording()
+		}
+	}
+}
+
+// ensureGPU lazily creates the WebGPU autodiff backend. The implementation is
+// compiled in only for cgo, non-static builds (see gpu_cgo.go / gpu_stub.go).
+func ensureGPU() tensor.Backend {
+	if gpuEngine != nil || gpuErr != nil {
+		return gpuEngine
+	}
+	be, err := newGPUEngine()
+	if err != nil {
+		gpuErr = err
+		return nil
+	}
+	gpuEngine = be
+	setRecording(gpuEngine, recording)
+	return gpuEngine
+}
+
+// backendFor returns the backend for a blue device, erroring when the device is
+// unavailable (for example gpu without a working WebGPU adapter).
+func backendFor(d Device) (tensor.Backend, error) {
+	switch d {
+	case CPU:
+		return cpuEngine, nil
+	case GPU:
+		if be := ensureGPU(); be != nil {
+			return be, nil
+		}
+		return nil, fmt.Errorf("gpu device unavailable: %w", gpuErr)
+	default:
+		return nil, fmt.Errorf("unknown device %d", d)
+	}
+}
+
+// backendForBorn maps a borncgo device back to the backend that owns it.
+func backendForBorn(d tensor.Device) tensor.Backend {
+	if d == tensor.CPU {
+		return cpuEngine
+	}
+	if be := ensureGPU(); be != nil {
+		return be
+	}
+	return cpuEngine
+}
+
+func mlDeviceOf(d tensor.Device) Device {
+	if d == tensor.CPU {
+		return CPU
+	}
+	return GPU
 }
 
 // Tensor is the blue-facing PyTorch-style tensor. It owns a borncgo tensor for
 // storage and compute, and keeps the gradient bookkeeping PyTorch exposes
 // (requires_grad and .grad).
 type Tensor struct {
-	t *bornTensor
+	t  *bornTensor
+	be tensor.Backend
 
 	requiresGrad bool
 	grad         *Tensor
@@ -100,11 +174,12 @@ type Tensor struct {
 }
 
 func wrap(t *bornTensor) *Tensor {
-	return &Tensor{t: t, dtype: t.DType(), device: CPU}
+	d := t.Device()
+	return &Tensor{t: t, be: backendForBorn(d), dtype: t.DType(), device: mlDeviceOf(d)}
 }
 
 func wrapRaw(raw *tensor.RawTensor) *Tensor {
-	return wrap(tensor.New[float32](raw, engine))
+	return wrap(tensor.New[float32](raw, backendForBorn(raw.Device())))
 }
 
 func (t *Tensor) Shape() []int { return []int(t.t.Shape()) }
@@ -217,16 +292,28 @@ var tracked = map[*Tensor]bool{}
 // borncgo's tape seeds the *last recorded operation*, not the tensor passed in,
 // so we append one connected op (loss + 0) to make the loss graph the walk root
 // even when other operations ran after the loss was built.
+// lastGrads is the raw gradient map from the most recent Backward. borncgo's
+// optimizers consume it directly, so it is kept until the next Backward.
+var lastGrads map[*tensor.RawTensor]*tensor.RawTensor
+
 func (t *Tensor) Backward() error {
 	if t.Numel() != 1 {
 		return fmt.Errorf("backward: expected a scalar loss, got shape %v", t.Shape())
 	}
-	if engine.Tape().NumOps() == 0 {
+	be := t.be
+	tp := tapeOf(be)
+	if tp == nil {
+		return fmt.Errorf("backward: no tape for device %s", t.Device())
+	}
+	if tp.NumOps() == 0 {
 		return fmt.Errorf("backward: tensor is not part of a graph")
 	}
 
-	zero := tensor.Zeros[float32](tensor.Shape(t.Shape()), engine)
-	sentinel := t.t.Add(zero)
+	zero := tensor.Zeros[float32](tensor.Shape(t.Shape()), be)
+	// Recording the connected add makes the loss graph the last ops on the tape,
+	// which is what borncgo's Backward walks from.
+	_ = t.t.Add(zero)
+	one := tensor.Ones[float32](tensor.Shape(t.Shape()), be)
 
 	var grads map[*tensor.RawTensor]*tensor.RawTensor
 	err := func() (e error) {
@@ -235,21 +322,22 @@ func (t *Tensor) Backward() error {
 				e = fmt.Errorf("%v", r)
 			}
 		}()
-		grads = autodiff.Backward(sentinel, engine)
+		grads = tp.Backward(one.Raw(), be)
 		return nil
 	}()
 	if err != nil {
 		return err
 	}
-	engine.Tape().Clear()
+	tp.Clear()
+	lastGrads = grads
 
 	// Accumulate outside the tape so gradient bookkeeping never becomes part of
 	// the next graph.
-	was := engine.Tape().IsRecording()
-	engine.Tape().StopRecording()
+	was := tp.IsRecording()
+	tp.StopRecording()
 	defer func() {
 		if was {
-			engine.Tape().StartRecording()
+			tp.StartRecording()
 		}
 	}()
 
@@ -265,7 +353,7 @@ func (t *Tensor) Backward() error {
 		if tt.grad == nil {
 			tt.grad = gt
 		} else {
-			tt.grad = wrapRaw(engine.Add(tt.grad.t.Raw(), gt.t.Raw()))
+			tt.grad = wrapRaw(be.Add(tt.grad.t.Raw(), gt.t.Raw()))
 		}
 	}
 	return nil
@@ -274,19 +362,23 @@ func (t *Tensor) Backward() error {
 // SetGradEnabled turns tape recording on or off and returns the previous value,
 // so a no_grad wrapper can restore it. This is how no_grad is implemented now.
 func SetGradEnabled(on bool) bool {
-	was := engine.Tape().IsRecording()
-	if on {
-		engine.Tape().StartRecording()
-	} else {
-		engine.Tape().StopRecording()
+	prev := recording
+	recording = on
+	setRecording(cpuEngine, on)
+	if gpuEngine != nil {
+		setRecording(gpuEngine, on)
 	}
-	return was
+	return prev
 }
 
 // NewTensor builds a tensor, keeping dtype as a blue-facing tag (borncgo always
 // stores float32 today).
 func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
-	bt, err := tensor.FromSlice[float32](data, tensor.Shape(shape), engine)
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	bt, err := tensor.FromSlice[float32](data, tensor.Shape(shape), be)
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +391,20 @@ func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor
 // NewTensorOwned is retained for the object layer's decoder.
 func NewTensorOwned(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
 	return NewTensor(data, shape, dtype, device)
+}
+
+// GPUAvailable reports whether a GPU backend can be created on this machine.
+func GPUAvailable() bool {
+	return gpuIsAvailable()
+}
+
+// To returns a copy of the tensor on the requested device. Like PyTorch's
+// Tensor.to, this is a data transfer, not a graph operation.
+func (t *Tensor) To(device Device) (*Tensor, error) {
+	if t.device == device {
+		return t, nil
+	}
+	return NewTensor(t.ContiguousData(), t.Shape(), t.dtype, device)
 }
 
 // helpers shared by the ops.
@@ -347,7 +453,7 @@ func asFloat(a *Tensor) *Tensor {
 	if a.dtype == Float32 {
 		return a
 	}
-	f := wrapRaw(engine.Cast(a.t.Raw(), tensor.Float32))
+	f := wrapRaw(a.be.Cast(a.t.Raw(), tensor.Float32))
 	f.dtype = Float32
 	return f
 }

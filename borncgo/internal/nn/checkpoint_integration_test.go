@@ -14,7 +14,7 @@ type CPUBackend = *cpu.CPUBackend
 func TestCheckpointSaveLoad_SGD(t *testing.T) {
 	backend := cpu.New()
 	tempFile := "test_checkpoint_sgd.born"
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Create model and optimizer
 	model := nn.NewLinear[CPUBackend](10, 5, backend)
@@ -92,7 +92,7 @@ func TestCheckpointSaveLoad_SGD(t *testing.T) {
 func TestCheckpointSaveLoad_Adam(t *testing.T) {
 	backend := cpu.New()
 	tempFile := "test_checkpoint_adam.born"
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Create model and optimizer
 	model := nn.NewLinear[CPUBackend](10, 5, backend)
@@ -146,7 +146,7 @@ func TestCheckpointSaveLoad_Adam(t *testing.T) {
 func TestSaveCheckpoint_Convenience(t *testing.T) {
 	backend := cpu.New()
 	tempFile := "test_checkpoint_convenience.born"
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Create model and optimizer
 	model := nn.NewLinear[CPUBackend](10, 5, backend)
@@ -183,7 +183,7 @@ func TestSaveCheckpoint_Convenience(t *testing.T) {
 func TestCheckpointSaveLoad_Sequential(t *testing.T) {
 	backend := cpu.New()
 	tempFile := "test_checkpoint_sequential.born"
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Create sequential model
 	model := nn.NewSequential[CPUBackend](
@@ -242,7 +242,7 @@ func TestCheckpointSaveLoad_Sequential(t *testing.T) {
 func TestCheckpointSaveLoad_SGDNoMomentum(t *testing.T) {
 	backend := cpu.New()
 	tempFile := "test_checkpoint_sgd_no_momentum.born"
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Create model and optimizer without momentum
 	model := nn.NewLinear[CPUBackend](5, 3, backend)
@@ -299,7 +299,7 @@ func TestCheckpointLoad_InvalidFile(t *testing.T) {
 func TestCheckpointLoad_NotACheckpoint(t *testing.T) {
 	backend := cpu.New()
 	tempFile := "test_not_checkpoint.born"
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Save a regular model (not a checkpoint)
 	model := nn.NewLinear[CPUBackend](10, 5, backend)
@@ -320,7 +320,7 @@ func TestCheckpointLoad_NotACheckpoint(t *testing.T) {
 func TestCheckpointMetadata(t *testing.T) {
 	backend := cpu.New()
 	tempFile := "test_checkpoint_metadata.born"
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Create checkpoint with custom metadata
 	model := nn.NewLinear[CPUBackend](10, 5, backend)

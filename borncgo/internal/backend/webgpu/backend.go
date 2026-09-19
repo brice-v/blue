@@ -224,18 +224,24 @@ func newHardwareBackend(backendType wgpu.BackendType) (*Backend, error) {
 
 	info := adapter.GetInfo()
 
+	// Request the adapter's full limits. Without this, wgpu applies the WebGPU
+	// spec defaults (128 MiB storage buffer binding, 256 MiB buffer), which are
+	// far below what desktop GPUs support and reject large single tensors such
+	// as a full 60000x784 float32 batch.
+	adapterLimits := adapter.GetLimits()
+	desc := &wgpu.DeviceDescriptor{
+		Label:          "born",
+		RequiredLimits: &adapterLimits,
+	}
+
 	// Request subgroups when the adapter advertises support.
 	// On Vulkan subgroup ops are governed by SPIR-V capabilities, but we
 	// still record whether the feature was granted so the rest of the
 	// backend can guard dispatch. On DX12 (SM 6.0+) and Metal the flag
 	// is honored at device creation.
-	var desc *wgpu.DeviceDescriptor
 	subgroupsEnabled := false
 	if adapter.HasFeature(wgpu.FeatureNameSubgroups) {
-		desc = &wgpu.DeviceDescriptor{
-			Label:            "born",
-			RequiredFeatures: []wgpu.FeatureName{wgpu.FeatureNameSubgroups},
-		}
+		desc.RequiredFeatures = []wgpu.FeatureName{wgpu.FeatureNameSubgroups}
 		subgroupsEnabled = true
 	}
 

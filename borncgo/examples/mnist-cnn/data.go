@@ -38,7 +38,7 @@ func LoadMNISTCSV(filename string, maxSamples int) (*MNISTData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	reader := csv.NewReader(file)
 	records, err := reader.ReadAll()
@@ -317,10 +317,10 @@ func (d *MNISTData) Split(validationRatio float32) (*MNISTData, *MNISTData) {
 	splitIdx := int(float32(numSamples) * (1.0 - validationRatio))
 
 	return &MNISTData{
-			Images: d.Images[:splitIdx],
-			Labels: d.Labels[:splitIdx],
-		}, &MNISTData{
-			Images: d.Images[splitIdx:],
-			Labels: d.Labels[splitIdx:],
-		}
+		Images: d.Images[:splitIdx],
+		Labels: d.Labels[:splitIdx],
+	}, &MNISTData{
+		Images: d.Images[splitIdx:],
+		Labels: d.Labels[splitIdx:],
+	}
 }

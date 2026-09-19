@@ -15,7 +15,7 @@ func createTestGGUFFile(t *testing.T, path string) {
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Write magic: "GGUF" = 0x46554747
 	magic := uint32(0x46554747)
@@ -141,7 +141,7 @@ func TestNewGGUFReader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGGUFReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Check version
 	if reader.version != 3 {
@@ -174,7 +174,7 @@ func TestGGUFReader_TensorNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGGUFReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	names := reader.TensorNames()
 	if len(names) != 1 {
@@ -195,7 +195,7 @@ func TestGGUFReader_TensorInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGGUFReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	info, err := reader.TensorInfo("weight")
 	if err != nil {
@@ -224,7 +224,7 @@ func TestGGUFReader_ReadTensorData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGGUFReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	data, err := reader.ReadTensorData("weight")
 	if err != nil {
@@ -256,7 +256,7 @@ func TestGGUFReader_NonExistentTensor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGGUFReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	_, err = reader.TensorInfo("nonexistent")
 	if err == nil {

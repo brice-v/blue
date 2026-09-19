@@ -427,13 +427,23 @@ func (b *AutodiffBackend[B]) CrossEntropy(logits, targets *tensor.RawTensor) *te
 	defer logits.ForceNonUnique()()
 
 	// Forward: -mean(log_softmax(logits)[targets]) via backend ops composition.
-	// All ops stay on GPU — no CPU readback of logits/targets.
+	// All ops stay on device (no CPU readback of logits/targets), and the
+	// log-softmax uses the log-sum-exp trick so it never computes log(0):
 	//
-	// Step 1: log_softmax = log(softmax(logits))
-	softmax := b.inner.Softmax(logits, -1) // [batch, classes] — GPU
-	logSoftmax := b.inner.Log(softmax)     // [batch, classes] — GPU
+	//   log_softmax(z) = (z - rowMax(z)) - log(sum(exp(z - rowMax(z))))
+	//
+	// The previous version used log(softmax(z)), which underflows to log(0)
+	// for saturated logits.
+	rowMaxIdx := b.inner.Argmax(logits, 1)                                      // [batch] int32
+	rowMaxIdxCol := b.inner.Cast(b.inner.Unsqueeze(rowMaxIdx, 1), tensor.Int32) // [batch, 1]
+	rowMax := b.inner.Gather(logits, 1, rowMaxIdxCol)                           // [batch, 1]
+	shifted := b.inner.Sub(logits, rowMax)                                      // [batch, classes]
+	expShifted := b.inner.Exp(shifted)                                          // [batch, classes]
+	sumExp := b.inner.SumDim(expShifted, 1, true)                               // [batch, 1]
+	lse := b.inner.Log(sumExp)                                                  // [batch, 1]
+	logSoftmax := b.inner.Sub(shifted, lse)                                     // [batch, classes]
 
-	// Step 2: gather log-probs at target indices → [batch, 1]
+	// Step 2: gather log-probs at target indices -> [batch, 1]
 	targetsUnsqueezed := b.inner.Unsqueeze(targets, -1)          // [batch, 1]
 	targetsCast := b.inner.Cast(targetsUnsqueezed, tensor.Int32) // ensure int32
 	logProbs := b.inner.Gather(logSoftmax, 1, targetsCast)       // [batch, 1]

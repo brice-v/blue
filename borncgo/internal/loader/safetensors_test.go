@@ -46,7 +46,7 @@ func createTestSafeTensorsFile(t *testing.T, path string) {
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Write header size (8 bytes, little-endian)
 	headerSize := uint64(len(headerJSON))
@@ -90,7 +90,7 @@ func TestNewSafeTensorsReader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Check metadata
 	metadata := reader.Metadata()
@@ -114,7 +114,7 @@ func TestSafeTensorsReader_TensorInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Test existing tensor
 	info, err := reader.TensorInfo("weight")
@@ -146,7 +146,7 @@ func TestSafeTensorsReader_ReadTensorData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Read weight tensor
 	data, err := reader.ReadTensorData("weight")
@@ -175,7 +175,7 @@ func TestSafeTensorsReader_LoadTensor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	backend := cpu.New()
 
@@ -215,7 +215,7 @@ func TestSafeTensorsReader_LoadBias(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	backend := cpu.New()
 

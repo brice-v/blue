@@ -102,7 +102,7 @@ func TestSafeTensorsExportRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify metadata
 	readMetadata := reader.Metadata()
@@ -168,7 +168,7 @@ func TestSafeTensorsExportFloat64(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify dtype
 	info, err := reader.TensorInfo("tensor64")
@@ -222,7 +222,7 @@ func TestSafeTensorsExportInt32(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify dtype
 	info, err := reader.TensorInfo("indices")
@@ -278,7 +278,7 @@ func TestSafeTensorsExportMultipleShapes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify shapes
 	tests := []struct {
@@ -335,7 +335,7 @@ func TestSafeTensorsExportEmptyMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Metadata should be empty (SafeTensorsReader returns nil for empty metadata)
 	metadata := reader.Metadata()
@@ -378,7 +378,7 @@ func TestSafeTensorsExportAlphabeticalOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSafeTensorsReader failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify all tensors can be loaded correctly
 	loadedA, _ := reader.LoadTensor("a_first", backend)

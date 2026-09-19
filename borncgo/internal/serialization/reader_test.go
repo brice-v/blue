@@ -26,7 +26,7 @@ func TestReaderAccessors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	if got := reader.Metadata()["dataset"]; got != "MNIST" {
 		t.Errorf("Metadata()[dataset] = %q, want %q", got, "MNIST")
@@ -145,7 +145,7 @@ func TestReader_TensorNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	if _, err := reader.TensorInfo("missing"); err == nil {
 		t.Error("TensorInfo(missing) = nil error, want not-found")

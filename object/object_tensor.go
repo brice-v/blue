@@ -160,6 +160,34 @@ func (t *Tensor) Get(property string) (Object, error) {
 		return t.intMethod("argmin", ml.ArgMin), nil
 	case "softmax":
 		return t.intMethod("softmax", ml.Softmax), nil
+	case "reshape":
+		return t.listMethod("reshape", func(a *ml.Tensor, dims []int) (*ml.Tensor, error) {
+			return ml.Reshape(a, dims...)
+		}), nil
+	case "permute":
+		return t.listMethod("permute", func(a *ml.Tensor, dims []int) (*ml.Tensor, error) {
+			return ml.Permute(a, dims...)
+		}), nil
+	case "broadcast_to":
+		return t.listMethod("broadcast_to", ml.BroadcastTo), nil
+	case "unsqueeze":
+		return t.intMethod("unsqueeze", ml.Unsqueeze), nil
+	case "squeeze":
+		return t.squeezeMethod(), nil
+	case "flatten":
+		return t.unaryMethod("flatten", ml.Flatten), nil
+	case "abs":
+		return t.unaryMethod("abs", ml.Abs), nil
+	case "sigmoid":
+		return t.unaryMethod("sigmoid", ml.Sigmoid), nil
+	case "tanh":
+		return t.unaryMethod("tanh", ml.Tanh), nil
+	case "detach":
+		return t.noArgMethod("detach", func() Object {
+			return &Tensor{T: t.T.Detach()}
+		}), nil
+	case "to":
+		return t.toMethod(), nil
 	}
 	return nil, fmt.Errorf("unsupported property on tensor: %s", property)
 }
@@ -313,6 +341,82 @@ func (t *Tensor) intMethod(name string, f func(*ml.Tensor, int) (*ml.Tensor, err
 			out, err := f(t.T, int(n.Value))
 			if err != nil {
 				return newError("`%s` error: %s", name, err.Error())
+			}
+			return &Tensor{T: out}
+		},
+	}
+}
+
+// listMethod builds a method that takes one list[int], like a.reshape([2, 3]).
+func (t *Tensor) listMethod(name string, f func(*ml.Tensor, []int) (*ml.Tensor, error)) *Builtin {
+	return &Builtin{
+		Name: name,
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount(name, 1, args); err != nil {
+				return err
+			}
+			l, ok := args[0].(*List)
+			if !ok {
+				return newPositionalTypeError(name, 1, LIST_OBJ, args[0].Type())
+			}
+			dims, err := toIntList(name, l)
+			if err != nil {
+				return newError("%s", err.Error())
+			}
+			out, ferr := f(t.T, dims)
+			if ferr != nil {
+				return newError("`%s` error: %s", name, ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+	}
+}
+
+// toMethod builds a.to(dev), a device transfer like PyTorch's Tensor.to.
+func (t *Tensor) toMethod() *Builtin {
+	return &Builtin{
+		Name: "to",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("to", 1, args); err != nil {
+				return err
+			}
+			s, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("to", 1, STRING_OBJ, args[0].Type())
+			}
+			dev, derr := ml.ParseDevice(s.Value)
+			if derr != nil {
+				return newError("`to` error: %s", derr.Error())
+			}
+			out, err := t.T.To(dev)
+			if err != nil {
+				return newError("`to` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+	}
+}
+
+// squeezeMethod builds a.squeeze(dim=null): null drops every size-1 dim.
+func (t *Tensor) squeezeMethod() *Builtin {
+	return &Builtin{
+		Name: "squeeze",
+		Fun: func(args ...Object) Object {
+			vals, err := bindArgs("squeeze", args, "dim")
+			if err != nil {
+				return err
+			}
+			var dims []int
+			if d, ok := vals["dim"]; ok && d != nil {
+				parsed, errObj := dimsFromObject("squeeze", d)
+				if errObj != nil {
+					return errObj
+				}
+				dims = parsed
+			}
+			out, ferr := ml.Squeeze(t.T, dims)
+			if ferr != nil {
+				return newError("`squeeze` error: %s", ferr.Error())
 			}
 			return &Tensor{T: out}
 		},

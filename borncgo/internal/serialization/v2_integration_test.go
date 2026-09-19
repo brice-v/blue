@@ -47,7 +47,7 @@ func TestV2RoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open v2 file: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify it's v2
 	if reader.version != FormatVersionV2 {
@@ -197,7 +197,7 @@ func TestV2SkipChecksumValidation(t *testing.T) {
 	if _, err := file.Write([]byte{0xFF}); err != nil {
 		t.Fatalf("Failed to corrupt: %v", err)
 	}
-	file.Close()
+	_ = file.Close()
 
 	// Read with checksum validation ENABLED - should fail
 	_, err = NewBornReaderWithOptions(path, ReaderOptions{
@@ -216,7 +216,7 @@ func TestV2SkipChecksumValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected to succeed with skipped validation, got: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Should be able to read (though data is corrupt)
 	if reader.version != FormatVersionV2 {
@@ -289,7 +289,7 @@ func TestV2WithCheckpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open checkpoint: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Verify checkpoint metadata
 	readHeader := reader.Header()
@@ -367,7 +367,7 @@ func TestV1Compatibility(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open v1 file with v2 reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Should detect as v1
 	if reader.version != FormatVersion {
@@ -477,7 +477,7 @@ func BenchmarkV2ReadWithChecksum(b *testing.B) {
 	if err := writer.WriteStateDictV2(stateDict, "BenchModel", nil); err != nil {
 		b.Fatalf("Failed to write: %v", err)
 	}
-	writer.Close()
+	_ = writer.Close()
 
 	// Benchmark reading
 	b.ResetTimer()
@@ -492,6 +492,6 @@ func BenchmarkV2ReadWithChecksum(b *testing.B) {
 			b.Fatalf("Failed to read: %v", err)
 		}
 
-		reader.Close()
+		_ = reader.Close()
 	}
 }

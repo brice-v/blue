@@ -177,7 +177,7 @@ func TestBornWriter_BufferRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open buffer: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	loaded, err := reader.ReadStateDict(backend)
 	if err != nil {
@@ -254,7 +254,7 @@ func TestWriteTo_ReadSeekerRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBornReaderFromReadSeeker failed: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	loaded, err := reader.ReadStateDict(backend)
 	if err != nil {

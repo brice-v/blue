@@ -131,7 +131,7 @@ func TestBornFormatWithMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open reader: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	loadedMetadata := reader.Metadata()
 	for key, expectedValue := range metadata {
@@ -178,7 +178,7 @@ func TestBornFormatMissingParameter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reader.Close()
+	_ = reader.Close()
 
 	// Remove weight parameter
 	delete(stateDict, "weight")
@@ -269,7 +269,7 @@ func TestBornFormatTensorNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	names := reader.TensorNames()
 	expectedNames := []string{"0.weight", "0.bias", "2.weight", "2.bias"}
@@ -306,7 +306,7 @@ func TestBornFormatHeaderInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	header := reader.Header()
 
