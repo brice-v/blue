@@ -30,3 +30,11 @@ __blue_cache/
 node_modules/
 out/
 *.vsix
+
+# WebGPU native artifacts fetched by scripts/fetch-wgpu-libs.sh.
+# These are not Go packages, so `go mod vendor` cannot copy them; they are
+# downloaded before building and must never be committed.
+vendor/github.com/oliverbestmann/webgpu/wgpu/lib/
+vendor/github.com/oliverbestmann/webgpu/libs-*/amd64/
+vendor/github.com/oliverbestmann/webgpu/libs-*/arm64/
+vendor/github.com/oliverbestmann/webgpu/libs-*/386/

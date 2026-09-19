@@ -442,6 +442,66 @@ var MlBuiltins = []*Builtin{
 			return tensorSum(args[0].(*Tensor).T, args[1], args[2])
 		},
 	},
+	{
+		Name: "_mean",
+		Fun:  reductionBuiltin("mean", ml.Mean),
+		HelpStr: helpStrArgs{
+			explanation: "`mean` returns the average over `dim`, or over every element when `dim` is null",
+			signature:   "mean(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "mean(tensor([[1.0, 2.0], [3.0, 4.0]]), 0) => Tensor{shape: [2]}",
+		}.String(),
+	},
+	{
+		Name: "_max",
+		Fun:  reductionBuiltin("max", ml.Max),
+		HelpStr: helpStrArgs{
+			explanation: "`max` returns the maximum over `dim`, or over every element when `dim` is null",
+			signature:   "max(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "max(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_min",
+		Fun:  reductionBuiltin("min", ml.Min),
+		HelpStr: helpStrArgs{
+			explanation: "`min` returns the minimum over `dim`, or over every element when `dim` is null",
+			signature:   "min(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "min(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_argmax",
+		Fun:  argBuiltin("argmax", ml.ArgMax),
+		HelpStr: helpStrArgs{
+			explanation: "`argmax` returns the index of the maximum along `dim`",
+			signature:   "argmax(a: tensor, dim: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "argmax(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_argmin",
+		Fun:  argBuiltin("argmin", ml.ArgMin),
+		HelpStr: helpStrArgs{
+			explanation: "`argmin` returns the index of the minimum along `dim`",
+			signature:   "argmin(a: tensor, dim: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "argmin(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_softmax",
+		Fun:  argBuiltin("softmax", ml.Softmax),
+		HelpStr: helpStrArgs{
+			explanation: "`softmax` returns a numerically stable softmax along `dim`",
+			signature:   "softmax(a: tensor, dim: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "softmax(tensor([[1.0, 2.0, 3.0]]), 1) => Tensor{shape: [1 3]}",
+		}.String(),
+	},
 }
 
 // asTensorArg accepts either a tensor or a scalar (int, float, or bool), which
@@ -529,25 +589,63 @@ func toIntList(name string, l *List) ([]int, error) {
 	return is, nil
 }
 
-// tensorSum is the shared code of builtin sum and method sum
-// dim/keepdim are the raw arguments, nil means unset
-func tensorSum(t *ml.Tensor, dim, keepdim Object) Object {
-	dims, err := dimsFromObject("sum", dim)
+// tensorReduction is the shared code of the module-level reductions.
+// dim/keepdim are the raw arguments, nil means unset.
+func tensorReduction(name string, t *ml.Tensor, dim, keepdim Object,
+	f func(*ml.Tensor, []int, bool) (*ml.Tensor, error)) Object {
+	dims, err := dimsFromObject(name, dim)
 	if err != nil {
 		return err
 	}
 	keep := false
 	if keepdim != nil {
 		if keepdim.Type() != BOOLEAN_OBJ {
-			return newPositionalTypeError("sum", 2, BOOLEAN_OBJ, keepdim.Type())
+			return newPositionalTypeError(name, 2, BOOLEAN_OBJ, keepdim.Type())
 		}
 		keep = keepdim.(*Boolean).Value
 	}
-	out, serr := ml.Sum(t, dims, keep)
+	out, serr := f(t, dims, keep)
 	if serr != nil {
-		return newError("`sum` error: %s", serr.Error())
+		return newError("`%s` error: %s", name, serr.Error())
 	}
 	return &Tensor{T: out}
+}
+
+func tensorSum(t *ml.Tensor, dim, keepdim Object) Object {
+	return tensorReduction("sum", t, dim, keepdim, ml.Sum)
+}
+
+func reductionBuiltin(name string, f func(*ml.Tensor, []int, bool) (*ml.Tensor, error)) func(...Object) Object {
+	return func(args ...Object) Object {
+		if err := checkArgCount(name, 3, args); err != nil {
+			return err
+		}
+		if err := checkArgType(name, 1, TENSOR_OBJ, args); err != nil {
+			return err
+		}
+		return tensorReduction(name, args[0].(*Tensor).T, args[1], args[2], f)
+	}
+}
+
+// argBuiltin builds a single-dim index reduction like argmax(a, dim).
+func argBuiltin(name string, f func(*ml.Tensor, int) (*ml.Tensor, error)) func(...Object) Object {
+	return func(args ...Object) Object {
+		if err := checkArgCount(name, 2, args); err != nil {
+			return err
+		}
+		if err := checkArgType(name, 1, TENSOR_OBJ, args); err != nil {
+			return err
+		}
+		d, ok := args[1].(*Integer)
+		if !ok {
+			return newPositionalTypeError(name, 2, INTEGER_OBJ, args[1].Type())
+		}
+		out, err := f(args[0].(*Tensor).T, int(d.Value))
+		if err != nil {
+			return newError("`%s` error: %s", name, err.Error())
+		}
+		return &Tensor{T: out}
+	}
 }
 
 func dimsFromObject(name string, o Object) ([]int, Object) {

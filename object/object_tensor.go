@@ -148,6 +148,18 @@ func (t *Tensor) Get(property string) (Object, error) {
 		}), nil
 	case "sum":
 		return t.sumMethod(), nil
+	case "mean":
+		return t.reductionMethod("mean", ml.Mean), nil
+	case "max":
+		return t.reductionMethod("max", ml.Max), nil
+	case "min":
+		return t.reductionMethod("min", ml.Min), nil
+	case "argmax":
+		return t.intMethod("argmax", ml.ArgMax), nil
+	case "argmin":
+		return t.intMethod("argmin", ml.ArgMin), nil
+	case "softmax":
+		return t.intMethod("softmax", ml.Softmax), nil
 	}
 	return nil, fmt.Errorf("unsupported property on tensor: %s", property)
 }
@@ -268,6 +280,41 @@ func (t *Tensor) sumMethod() *Builtin {
 				return err
 			}
 			return tensorSum(t.T, vals["dim"], vals["keepdim"])
+		},
+	}
+}
+
+// reductionMethod builds a.sum/mean/max/min(dim=null, keepdim=false).
+func (t *Tensor) reductionMethod(name string, f func(*ml.Tensor, []int, bool) (*ml.Tensor, error)) *Builtin {
+	return &Builtin{
+		Name: name,
+		Fun: func(args ...Object) Object {
+			vals, err := bindArgs(name, args, "dim", "keepdim")
+			if err != nil {
+				return err
+			}
+			return tensorReduction(name, t.T, vals["dim"], vals["keepdim"], f)
+		},
+	}
+}
+
+// intMethod builds a single-int-argument method like a.argmax(dim).
+func (t *Tensor) intMethod(name string, f func(*ml.Tensor, int) (*ml.Tensor, error)) *Builtin {
+	return &Builtin{
+		Name: name,
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount(name, 1, args); err != nil {
+				return err
+			}
+			n, ok := args[0].(*Integer)
+			if !ok {
+				return newPositionalTypeError(name, 1, INTEGER_OBJ, args[0].Type())
+			}
+			out, err := f(t.T, int(n.Value))
+			if err != nil {
+				return newError("`%s` error: %s", name, err.Error())
+			}
+			return &Tensor{T: out}
 		},
 	}
 }

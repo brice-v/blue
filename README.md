@@ -28,6 +28,12 @@ speed?!
 - C Compiler
   - `brew install gcc` or `scoop install gcc`
 - Install deps for [fyne](https://fyne.io)
+- WebGPU native libraries (used by the vendored WebGPU backend) are downloaded,
+  not committed:
+  - run `./scripts/fetch-wgpu-libs.sh` once before the first native build, or
+    just use `./build.sh` which does it for you
+  - they are gitignored, and `go mod vendor` deletes them, so re-run the script
+    after vendoring
 - make sure no errors with `go build`
   - [had this error on mint](https://stackoverflow.com/questions/65387167/glfw-pkg-config-error-when-building-a-fyne-app)
     - added `export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig` to

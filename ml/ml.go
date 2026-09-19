@@ -5,36 +5,26 @@ import (
 	"math"
 	"slices"
 	"strings"
+
+	"blue/borncgo/autodiff"
+	"blue/borncgo/backend/cpu"
+	"blue/borncgo/tensor"
 )
 
-type DType uint8
+// DType and Device are borncgo's runtime type/device tags, re-exported so the
+// rest of blue does not import borncgo directly.
+type DType = tensor.DataType
 
 const (
-	Float32 DType = iota
-	Float64
-	Int32
-	Bool
-	Invalid
+	Float32 = tensor.Float32
+	Float64 = tensor.Float64
+	Int32   = tensor.Int32
+	Bool    = tensor.Bool
+	Invalid = tensor.DataType(-1)
 )
 
-func (d DType) String() string {
-	switch d {
-	case Float32:
-		return "float32"
-	case Float64:
-		return "float64"
-	case Int32:
-		return "int32"
-	case Bool:
-		return "bool"
-	default:
-		panic(fmt.Sprintf("unsupported dtype: %d", d))
-	}
-}
-
 func ParseDType(s string) (DType, error) {
-	s = strings.ToLower(s)
-	switch s {
+	switch strings.ToLower(s) {
 	case "float32":
 		return Float32, nil
 	case "float64":
@@ -48,7 +38,9 @@ func ParseDType(s string) (DType, error) {
 	}
 }
 
-type Device uint8
+// Device is blue's own device tag (lowercase names, matching blue) mapped onto
+// borncgo's device enum at the boundary.
+type Device int
 
 const (
 	CPU Device = iota
@@ -63,13 +55,12 @@ func (d Device) String() string {
 	case GPU:
 		return "gpu"
 	default:
-		panic(fmt.Sprintf("unsupported device: %d", d))
+		return "unknown"
 	}
 }
 
 func ParseDevice(s string) (Device, error) {
-	s = strings.ToLower(s)
-	switch s {
+	switch strings.ToLower(s) {
 	case "cpu":
 		return CPU, nil
 	case "gpu":
@@ -79,442 +70,249 @@ func ParseDevice(s string) (Device, error) {
 	}
 }
 
-// Storage owns the backing buffer and the dtype/device it lives on. Views over
-// the same buffer share one Storage; only a copy (materialize of a
-// non-contiguous view, Clone, NewTensor) creates a new one.
-type Storage struct {
-	data   []float32
-	dtype  DType
-	device Device
+// engine is the single borncgo autodiff backend every tensor shares. Its tape
+// records operations, and Backward walks it. Delegating autograd to borncgo is
+// the whole point: blue only shapes the PyTorch-facing surface.
+type engineB = *autodiff.Backend[*cpu.Backend]
+type bornTensor = tensor.Tensor[float32, engineB]
+
+var engine engineB
+
+func init() {
+	engine = autodiff.New(cpu.New())
+	engine.Tape().StartRecording()
 }
 
-// Tensor is a strided view over a Storage.
+// Tensor is the blue-facing PyTorch-style tensor. It owns a borncgo tensor for
+// storage and compute, and keeps the gradient bookkeeping PyTorch exposes
+// (requires_grad and .grad).
 type Tensor struct {
-	storage *Storage
+	t *bornTensor
 
-	shape   []int
-	strides []int
-	offset  int
-
-	gradState *gradState
-}
-
-func (t *Tensor) RawData() []float32 {
-	return t.storage.data
-}
-
-func (t *Tensor) Shape() []int {
-	return t.shape
-}
-
-func (t *Tensor) Strides() []int {
-	return t.strides
-}
-
-func (t *Tensor) Offset() int {
-	return t.offset
-}
-
-func (t *Tensor) DType() DType {
-	return t.storage.dtype
-}
-
-func (t *Tensor) Device() Device {
-	return t.storage.device
-}
-
-func (t *Tensor) Clone() *Tensor {
-	return &Tensor{
-		storage: &Storage{
-			data:   slices.Clone(t.storage.data),
-			dtype:  t.storage.dtype,
-			device: t.storage.device,
-		},
-		shape:   slices.Clone(t.shape),
-		strides: slices.Clone(t.strides),
-		offset:  t.offset,
-	}
-}
-
-func (t *Tensor) SetGrad(tt *Tensor) {
-	if t.gradState == nil {
-		t.gradState = &gradState{}
-	}
-	t.gradState.Grad = tt
-}
-
-// ContiguousData returns the tensor's logical elements in row-major order.
-// Non-contiguous views are packed into a fresh buffer, so the result always
-// has length Numel(). The returned slice may alias the backing store when t
-// is already contiguous with offset 0; callers must not mutate it in that
-// case. Used by serialization, which only reads the values.
-func (t *Tensor) ContiguousData() []float32 {
-	m := t.materialize()
-	return m.storage.data[:m.Numel()]
-}
-
-func checkNewTensorConstruction(data []float32, shape []int, dtype DType, device Device) error {
-	if dtype > Bool || dtype < Float32 {
-		return fmt.Errorf("NewTensor: unsupported dtype %d", dtype)
-	}
-	if device > GPU {
-		return fmt.Errorf("NewTensor: unsupported device %d", device)
-	}
-	for _, d := range shape {
-		if d < 0 {
-			return fmt.Errorf("NewTensor: negative dimension %d in shape %v", d, shape)
-		}
-	}
-	n := numelOf(shape)
-	if len(data) != n {
-		return fmt.Errorf("NewTensor: data has %d elements but shape %v needs %d", len(data), shape, n)
-	}
-	return nil
-}
-
-// NewTensor builds a contiguous, offset-0 tensor from data and shape. It
-// copies data so the returned tensor owns its storage. An error is returned
-// when a dimension is negative, when len(data) does not equal the product of
-// shape, or when dtype/device are not known. This is the constructor the
-// object package uses to rebuild a tensor after decoding.
-func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
-	err := checkNewTensorConstruction(data, shape, dtype, device)
-	if err != nil {
-		return nil, err
-	}
-	return &Tensor{
-		storage: &Storage{
-			data:   slices.Clone(data),
-			dtype:  dtype,
-			device: device,
-		},
-		shape:   slices.Clone(shape),
-		strides: getContiguousStridesFromShape(shape),
-	}, nil
-}
-
-// NewTensorOwned is the same as above but without cloning data
-// ownership will now be by this tensor so it must not be modified (note: this is currently only used by decode so its safe)
-func NewTensorOwned(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
-	err := checkNewTensorConstruction(data, shape, dtype, device)
-	if err != nil {
-		return nil, err
-	}
-	return &Tensor{
-		storage: &Storage{
-			data:   data,
-			dtype:  dtype,
-			device: device,
-		},
-		shape:   shape,
-		strides: getContiguousStridesFromShape(shape),
-	}, nil
-}
-
-func (t *Tensor) String() string {
-	return fmt.Sprintf("Tensor{shape: %v, strides: %v, offset: %d, dtype: %s, device: %s}", t.shape, t.strides, t.offset, t.storage.dtype, t.storage.device)
-}
-
-type gradState struct {
 	requiresGrad bool
-	Grad         *Tensor
-	gradFn       func(outputGrad *Tensor) ([]*Tensor, error) // grads for prev
-	prev         []*Tensor
-	op           string
+	grad         *Tensor
+	dtype        DType
+	device       Device
+
+	// viewStrides lets view ops report PyTorch-style strides even though
+	// borncgo materializes the data behind them. nil means "use the raw strides".
+	viewStrides []int
 }
 
-var backends = map[Device]Backend{}
-
-func register(d Device, b Backend) {
-	backends[d] = b
+func wrap(t *bornTensor) *Tensor {
+	return &Tensor{t: t, dtype: t.DType(), device: CPU}
 }
 
-type Backend interface {
-	MatMul(a, b *Tensor) (*Tensor, error)
-	Add(a, b *Tensor) (*Tensor, error)
-	Sub(a, b *Tensor) (*Tensor, error)
-	Mul(a, b *Tensor) (*Tensor, error)
-	Div(a, b *Tensor) (*Tensor, error)
-	Neg(a *Tensor) (*Tensor, error)
-	Exp(a *Tensor) (*Tensor, error)
-	Log(a *Tensor) (*Tensor, error)
-	Sqrt(a *Tensor) (*Tensor, error)
-	Relu(a *Tensor) (*Tensor, error)
-	Eq(a, b *Tensor) (*Tensor, error)
-	Ne(a, b *Tensor) (*Tensor, error)
-	Gt(a, b *Tensor) (*Tensor, error)
-	Ge(a, b *Tensor) (*Tensor, error)
-	Lt(a, b *Tensor) (*Tensor, error)
-	Le(a, b *Tensor) (*Tensor, error)
-	Pow(a, b *Tensor) (*Tensor, error)
-	Sum(a *Tensor, dim int, keepdim bool) (*Tensor, error)
-	Max(a *Tensor, dim int, keepdim bool) (*Tensor, error)
-	Softmax(a *Tensor, dim int) (*Tensor, error)
-	Reshape(a *Tensor, shape ...int) (*Tensor, error)
-	Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error)
-	ArgMax(a *Tensor, dim int) (*Tensor, error)
-	ArgMin(a *Tensor, dim int) (*Tensor, error)
-	Permute(a *Tensor, perm ...int) (*Tensor, error)
-	Slice(a *Tensor, dim, start, end int) (*Tensor, error)
-	OneHot(labels *Tensor, classes int) (*Tensor, error)
+func wrapRaw(raw *tensor.RawTensor) *Tensor {
+	return wrap(tensor.New[float32](raw, engine))
 }
 
-// auto grad helpers
-
-// IsLeaf reports whether t is a leaf, matching PyTorch's is_leaf: true when
-// requires_grad is false, or when t was not produced by an op (no gradFn).
-// Untracked tensors such as input data are therefore leaves by convention.
-func (t *Tensor) IsLeaf() bool {
-	return !t.RequiresGrad() || t.gradState.gradFn == nil
-}
-
-func (t *Tensor) RequiresGrad() bool {
-	return t.gradState != nil && t.gradState.requiresGrad
-}
-
-func (t *Tensor) Grad() *Tensor {
-	if t.gradState == nil {
-		return nil
+func (t *Tensor) Shape() []int { return []int(t.t.Shape()) }
+func (t *Tensor) Strides() []int {
+	if t.viewStrides != nil {
+		return t.viewStrides
 	}
-	return t.gradState.Grad
+	return t.t.Raw().Strides()
 }
+func (t *Tensor) Offset() int    { return 0 }
+func (t *Tensor) DType() DType   { return t.dtype }
+func (t *Tensor) Device() Device { return t.device }
+func (t *Tensor) Numel() int     { return t.t.NumElements() }
 
-func (t *Tensor) SetRequiresGrad(on bool) {
-	if !on {
-		if t.gradState != nil {
-			t.gradState.requiresGrad = on
-		}
-		return
-	}
-	if t.gradState == nil {
-		t.gradState = &gradState{}
-	}
-	t.gradState.requiresGrad = on
-}
-
-// Numel is the number of elements
-// the product of the shape's dimensions
-func (t *Tensor) Numel() int {
-	return numelOf(t.shape)
-}
-
-// IsContiguous is true if walking through the logical indices in row major order
-// visits contiguous slots of the backing slice
 func (t *Tensor) IsContiguous() bool {
-	expected := 1
-	for i, v := range slices.Backward(t.shape) {
-		if v != 1 && t.strides[i] != expected {
+	s, st := t.Shape(), t.Strides()
+	acc := 1
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] != 1 && st[i] != acc {
 			return false
 		}
-		expected *= v
+		acc *= s[i]
 	}
 	return true
 }
 
-// materialize returns a contiguous offset-0 view of the tensor
-func (t *Tensor) materialize() *Tensor {
-	if t.IsContiguous() {
-		if t.offset == 0 {
-			return t
-		}
-		// slice data on the offset so new tensor becomes offset-0
-		return &Tensor{
-			storage: &Storage{
-				data:   t.storage.data[t.offset:],
-				dtype:  t.storage.dtype,
-				device: t.storage.device,
-			},
-			shape:   slices.Clone(t.shape),
-			strides: slices.Clone(t.strides),
-			offset:  0,
-		}
-	}
-	tt := newLike(t)
-	copyStrided(tt.storage.data, t)
-	return tt
+func (t *Tensor) String() string {
+	return fmt.Sprintf("Tensor{shape: %v, strides: %v, offset: %d, dtype: %s, device: %s}",
+		t.Shape(), t.Strides(), 0, t.DType(), t.Device())
 }
 
-func getContiguousStridesFromShape(shape []int) []int {
-	strides := make([]int, len(shape))
-	acc := 1
-	for i, v := range slices.Backward(shape) {
-		strides[i] = acc
-		acc *= v
+// ContiguousData returns the logical elements in row-major order as float32.
+// Bool and int payloads (comparison and index results) are converted to
+// 0/1/values so the object layer can read every dtype the same way.
+func (t *Tensor) ContiguousData() []float32 {
+	raw := t.t.Raw()
+	switch raw.DType() {
+	case tensor.Bool:
+		b := raw.AsBool()
+		out := make([]float32, len(b))
+		for i, v := range b {
+			if v {
+				out[i] = 1
+			}
+		}
+		return out
+	case tensor.Int32:
+		n := raw.AsInt32()
+		out := make([]float32, len(n))
+		for i, v := range n {
+			out[i] = float32(v)
+		}
+		return out
+	case tensor.Int64:
+		n := raw.AsInt64()
+		out := make([]float32, len(n))
+		for i, v := range n {
+			out[i] = float32(v)
+		}
+		return out
+	case tensor.Float64:
+		f := raw.AsFloat64()
+		out := make([]float32, len(f))
+		for i, v := range f {
+			out[i] = float32(v)
+		}
+		return out
+	default:
+		return slices.Clone(raw.AsFloat32())
 	}
-	return strides
 }
 
-func copyStrided(dst []float32, src *Tensor) {
-	pos := 0
-	var walk func(dim, srcIdx int)
-	walk = func(dim, srcIdx int) {
-		if dim == len(src.shape) {
-			dst[pos] = src.storage.data[srcIdx]
-			pos++
-			return
-		}
-		for i := 0; i < src.shape[dim]; i++ {
-			walk(dim+1, srcIdx+i*src.strides[dim])
-		}
-	}
-	walk(0, src.offset)
-}
+func (t *Tensor) RawData() []float32 { return t.ContiguousData() }
 
 func (t *Tensor) Item() (float32, error) {
-	if t.Numel() != 1 || t.offset < 0 || t.offset >= len(t.storage.data) {
+	if t.Numel() != 1 {
 		return float32(math.NaN()), fmt.Errorf("Item: tensor does not hold exactly 1 element")
 	}
-	return t.storage.data[t.offset], nil
+	return t.t.Data()[0], nil
 }
 
-// other helpers
+func (t *Tensor) RequiresGrad() bool { return t.requiresGrad }
 
-func numelOf(shape []int) int {
-	n := 1 // 0-d (empty shape) returns 1
-	for _, d := range shape {
-		n *= d
-	}
-	return n
-}
-
-// newLike does not copy data, returns equivalent of materialize'd tensor in with allocated space for data
-func newLike(a *Tensor) *Tensor {
-	return &Tensor{
-		storage: &Storage{
-			data:   make([]float32, a.Numel()),
-			dtype:  a.storage.dtype,
-			device: a.storage.device,
-		},
-		shape:   slices.Clone(a.shape),
-		strides: getContiguousStridesFromShape(a.shape),
+func (t *Tensor) SetRequiresGrad(on bool) {
+	t.requiresGrad = on
+	if on {
+		tracked[t] = true
+	} else {
+		delete(tracked, t)
 	}
 }
 
-// backendForAll resolves the backend for a set of inputs and rejects mixed
-// devices, so an op can never silently run on the wrong one.
-func backendForAll(in ...*Tensor) (Backend, error) {
-	if len(in) == 0 {
-		return nil, fmt.Errorf("no inputs")
+func (t *Tensor) Grad() *Tensor     { return t.grad }
+func (t *Tensor) SetGrad(g *Tensor) { t.grad = g }
+func (t *Tensor) ZeroGrad()         { t.grad = nil }
+
+// Detach shares data and drops the graph (borncgo clones the raw buffer).
+func (t *Tensor) Detach() *Tensor { return wrap(t.t.Detach()) }
+
+// Clone is a detached deep copy, matching the previous blue behavior.
+func (t *Tensor) Clone() *Tensor { return wrap(t.t.Detach()) }
+
+// tracked holds every leaf that requires grad, so Backward can pick its
+// gradient out of borncgo's map.
+var tracked = map[*Tensor]bool{}
+
+// Backward runs reverse-mode autodiff on borncgo's tape and stores the leaf
+// gradients on the tensors.
+//
+// borncgo's tape seeds the *last recorded operation*, not the tensor passed in,
+// so we append one connected op (loss + 0) to make the loss graph the walk root
+// even when other operations ran after the loss was built.
+func (t *Tensor) Backward() error {
+	if t.Numel() != 1 {
+		return fmt.Errorf("backward: expected a scalar loss, got shape %v", t.Shape())
 	}
-	d := in[0].Device()
-	for _, t := range in[1:] {
-		if t.Device() != d {
-			return nil, fmt.Errorf("device mismatch: %s and %s", d, t.Device())
+	if engine.Tape().NumOps() == 0 {
+		return fmt.Errorf("backward: tensor is not part of a graph")
+	}
+
+	zero := tensor.Zeros[float32](tensor.Shape(t.Shape()), engine)
+	sentinel := t.t.Add(zero)
+
+	var grads map[*tensor.RawTensor]*tensor.RawTensor
+	err := func() (e error) {
+		defer func() {
+			if r := recover(); r != nil {
+				e = fmt.Errorf("%v", r)
+			}
+		}()
+		grads = autodiff.Backward(sentinel, engine)
+		return nil
+	}()
+	if err != nil {
+		return err
+	}
+	engine.Tape().Clear()
+
+	// Accumulate outside the tape so gradient bookkeeping never becomes part of
+	// the next graph.
+	was := engine.Tape().IsRecording()
+	engine.Tape().StopRecording()
+	defer func() {
+		if was {
+			engine.Tape().StartRecording()
+		}
+	}()
+
+	for tt := range tracked {
+		if !tt.requiresGrad {
+			continue
+		}
+		g, ok := grads[tt.t.Raw()]
+		if !ok || g == nil {
+			continue
+		}
+		gt := wrapRaw(g)
+		if tt.grad == nil {
+			tt.grad = gt
+		} else {
+			tt.grad = wrapRaw(engine.Add(tt.grad.t.Raw(), gt.t.Raw()))
 		}
 	}
-	b, ok := backends[d]
-	if !ok {
-		return nil, fmt.Errorf("no backend registered for device %s", d)
-	}
-	return b, nil
+	return nil
 }
 
-func onesLike(t *Tensor) *Tensor {
-	out := newLike(t)
-	for i := range out.storage.data {
-		out.storage.data[i] = 1
+// SetGradEnabled turns tape recording on or off and returns the previous value,
+// so a no_grad wrapper can restore it. This is how no_grad is implemented now.
+func SetGradEnabled(on bool) bool {
+	was := engine.Tape().IsRecording()
+	if on {
+		engine.Tape().StartRecording()
+	} else {
+		engine.Tape().StopRecording()
 	}
-	return out
+	return was
 }
 
-func zerosLike(t *Tensor) *Tensor {
-	return newLike(t)
+// NewTensor builds a tensor, keeping dtype as a blue-facing tag (borncgo always
+// stores float32 today).
+func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
+	bt, err := tensor.FromSlice[float32](data, tensor.Shape(shape), engine)
+	if err != nil {
+		return nil, err
+	}
+	tt := wrap(bt)
+	tt.dtype = dtype
+	tt.device = device
+	return tt, nil
 }
 
-// unbroadcast reduces g back to the shape of like. Only scalar broadcast exists
-// today, so a 0d operand's gradient is the sum of all of g's elements.
-func unbroadcast(be Backend, g, like *Tensor) (*Tensor, error) {
-	if like.Numel() == g.Numel() {
-		return g, nil
-	}
-	return sumAll(be, g)
+// NewTensorOwned is retained for the object layer's decoder.
+func NewTensorOwned(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
+	return NewTensor(data, shape, dtype, device)
 }
 
-func sumAll(be Backend, g *Tensor) (*Tensor, error) {
-	out := g
-	for out.Numel() > 1 {
-		var err error
-		out, err = be.Sum(out, 0, false)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return out, nil
-}
+// helpers shared by the ops.
 
-func scalarLike(a *Tensor, v float32) *Tensor {
-	out := newLike(a)
-	for i := range out.storage.data {
-		out.storage.data[i] = v
-	}
-	return out
-}
-
-func resolveDim(op string, shape []int, dim int) (int, error) {
-	if op != "" {
-		op += ": "
-	}
-	// allow backwards indexing
+func normalizeDim(shape []int, dim int) (int, error) {
 	if dim < 0 {
 		dim += len(shape)
 	}
 	if dim < 0 || dim >= len(shape) {
-		return 0, fmt.Errorf("%sdim %d out of range for shape %v", op, dim, shape)
+		return 0, fmt.Errorf("dim %d out of range for shape %v", dim, shape)
 	}
 	return dim, nil
 }
 
-// broadcastTo expands g to shape, using stride 0 on axes where g has size 1.
-// Requires len(g.shape) == len(shape). materialize() turns it into a dense tensor
-// for any backend op that needs contiguous data.
-func broadcastTo(g *Tensor, shape []int) (*Tensor, error) {
-	if len(g.shape) != len(shape) {
-		return nil, fmt.Errorf("broadcastTo: rank %d vs %d", len(g.shape), len(shape))
-	}
-	out := &Tensor{
-		storage: g.storage, // shares the backing array, only the strides change
-		shape:   slices.Clone(shape),
-		strides: make([]int, len(shape)),
-		offset:  g.offset,
-	}
-	for i := range shape {
-		switch g.shape[i] {
-		case shape[i]:
-			out.strides[i] = g.strides[i]
-		case 1:
-			out.strides[i] = 0
-		default:
-			return nil, fmt.Errorf("broadcastTo: cannot expand %v to %v", g.shape, shape)
-		}
-	}
-	return out, nil
-}
-
-// expandToDim brings a reduced gradient back to a's shape. If keepdim was
-// false, the reduced axis is first re-inserted as size 1 so the ranks match.
-func expandToDim(be Backend, g, a *Tensor, dim int, keepdim bool) (*Tensor, error) {
-	shape := a.Shape()
-	d, err := resolveDim("", shape, dim)
-	if err != nil {
-		return nil, err
-	}
-	if !keepdim {
-		newShape := slices.Clone(shape)
-		newShape[d] = 1
-		g, err = be.Reshape(g, newShape...)
-		if err != nil {
-			return nil, err
-		}
-	}
-	b, err := broadcastTo(g, shape)
-	if err != nil {
-		return nil, err
-	}
-	return b.materialize(), nil
-}
-
-// normalizeDims resolves negative dims and expands nil to every dim. An empty,
-// non-nil slice means "reduce nothing".
 func normalizeDims(shape []int, dims []int) ([]int, error) {
 	if dims == nil {
 		all := make([]int, len(shape))
@@ -525,7 +323,7 @@ func normalizeDims(shape []int, dims []int) ([]int, error) {
 	}
 	out := make([]int, len(dims))
 	for i, d := range dims {
-		rd, err := resolveDim("", shape, d)
+		rd, err := normalizeDim(shape, d)
 		if err != nil {
 			return nil, err
 		}
@@ -534,27 +332,22 @@ func normalizeDims(shape []int, dims []int) ([]int, error) {
 	return out, nil
 }
 
-// reduceDims runs a single-dim reduction once per dim, highest index first so
-// dropping an axis never shifts a lower axis still to be reduced. dims nil means
-// every dim; an empty non-nil slice is the identity.
-func reduceDims(a *Tensor, dims []int, keepdim bool, f func(*Tensor, int, bool) (*Tensor, error)) (*Tensor, error) {
-	ds, err := normalizeDims(a.Shape(), dims)
-	if err != nil {
-		return nil, err
+// descendingDims sorts high to low so dropping an axis never shifts one still
+// to be reduced.
+func descendingDims(dims []int) []int {
+	out := slices.Clone(dims)
+	slices.Sort(out)
+	slices.Reverse(out)
+	return out
+}
+
+// asFloat casts a non-float tensor (bool masks, int indices) to float32 so it
+// can take part in arithmetic and reductions.
+func asFloat(a *Tensor) *Tensor {
+	if a.dtype == Float32 {
+		return a
 	}
-	if len(ds) == 0 {
-		cp := newLike(a)
-		copyStrided(cp.storage.data, a.materialize())
-		return cp, nil
-	}
-	slices.Sort(ds)
-	slices.Reverse(ds)
-	out := a
-	for _, d := range ds {
-		out, err = f(out, d, keepdim)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return out, nil
+	f := wrapRaw(engine.Cast(a.t.Raw(), tensor.Float32))
+	f.dtype = Float32
+	return f
 }

@@ -24,6 +24,12 @@ val __le = _le;
 val __equal = _equal;
 val __allclose = _allclose;
 val __sum = _sum;
+val __mean = _mean;
+val __max = _max;
+val __min = _min;
+val __argmax = _argmax;
+val __argmin = _argmin;
+val __softmax = _softmax;
 
 val dtype = {
     'float32': 'float32',
@@ -231,4 +237,52 @@ fun sum(a, dim=null, keepdim=false) {
     ##
     ## sum(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
     __sum(a, dim, keepdim)
+}
+
+fun mean(a, dim=null, keepdim=false) {
+    ##std:this,__mean
+    ## `mean` returns the average over `dim`, or over every element when `dim` is null.
+    ##
+    ## mean(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
+    __mean(a, dim, keepdim)
+}
+
+fun max(a, dim=null, keepdim=false) {
+    ##std:this,__max
+    ## `max` returns the maximum over `dim`, or over every element when `dim` is null.
+    ##
+    ## max(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
+    __max(a, dim, keepdim)
+}
+
+fun min(a, dim=null, keepdim=false) {
+    ##std:this,__min
+    ## `min` returns the minimum over `dim`, or over every element when `dim` is null.
+    ##
+    ## min(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
+    __min(a, dim, keepdim)
+}
+
+fun argmax(a, dim) {
+    ##std:this,__argmax
+    ## `argmax` returns the index of the maximum along `dim`.
+    ##
+    ## argmax(a: tensor, dim: int) -> tensor
+    __argmax(a, dim)
+}
+
+fun argmin(a, dim) {
+    ##std:this,__argmin
+    ## `argmin` returns the index of the minimum along `dim`.
+    ##
+    ## argmin(a: tensor, dim: int) -> tensor
+    __argmin(a, dim)
+}
+
+fun softmax(a, dim) {
+    ##std:this,__softmax
+    ## `softmax` returns a numerically stable softmax along `dim`.
+    ##
+    ## softmax(a: tensor, dim: int) -> tensor
+    __softmax(a, dim)
 }

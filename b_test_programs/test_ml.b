@@ -46,6 +46,9 @@ assert(a.T.strides == [1, 3]);
 # a scalar literal becomes a shape [1] tensor
 assert(ml.tensor(5.0).shape == [1]);
 
+# every optional parameter can be passed by keyword, in any order
+assert(ml.tensor([[1.0]], datatype="float32", dev="cpu", requires_grad=false).shape == [1, 1]);
+
 # --- 2. methods -------------------------------------------------------------
 
 val c = a.matmul(b);                                                       # 2x2
@@ -94,6 +97,10 @@ val m = ml.matmul(a, b);
 assert(same(m, c));
 val n = ml.add(c, c);
 assert(same(n, e));
+
+# keyword arguments bind by name and may be reordered
+assert(same(ml.add(a=c, b=c), e));
+assert(same(ml.matmul(a=a, b=b), c));
 
 # --- 6. TARGET: arithmetic operators ----------------------------------------
 
@@ -162,12 +169,23 @@ assert(same(c == a.matmul(b), ml.eq(c, a.matmul(b))));
 assert(same(c.gt(0.0), ml.gt(c, 0.0)));
 assert(same(c.neg(), -c));
 
+# keyword arguments on comparisons and on the tolerance-based helpers
+assert(same(ml.gt(a=c, b=0.0), ml.gt(c, 0.0)));
+assert(same(ml.le(a=c, b=0.0), ml.le(c, 0.0)));
+assert(ml.allclose(c, c, rtol=1e-5, atol=1e-8));
+assert(ml.allclose(b=c, a=c, atol=1e-8, rtol=1e-5));
+
 # --- 9. TARGET: reductions --------------------------------------------------
 
 val r = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
 assert(same(r.sum(0), ml.tensor([5.0, 7.0, 9.0])));
 assert(same(r.sum(1), ml.tensor([6.0, 15.0])));
 assert(same(r.sum(1, keepdim=true), ml.tensor([[6.0], [15.0]])));
+# the reduction arguments also bind by keyword, on the method and the module form
+assert(same(r.sum(dim=0), r.sum(0)));
+assert(same(r.sum(dim=1, keepdim=true), r.sum(1, keepdim=true)));
+assert(same(ml.sum(r, dim=0), ml.tensor([5.0, 7.0, 9.0])));
+assert(same(ml.sum(a=r, dim=1, keepdim=true), ml.tensor([[6.0], [15.0]])));
 assert(same(r.mean(0), ml.tensor([2.5, 3.5, 4.5])));
 assert(same(r.max(1), ml.tensor([3.0, 6.0])));
 assert(same(r.min(1), ml.tensor([1.0, 4.0])));
@@ -182,6 +200,7 @@ val s = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
 assert(s.reshape([3, 2]).shape == [3, 2]);
 assert(same(s.reshape([6]), ml.tensor([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])));
 assert(same(ml.transpose(s, 0, 1), s.T));
+assert(same(ml.transpose(s, dim0=0, dim1=1), s.T));
 assert(s.permute([1, 0]).shape == [3, 2]);
 assert(same(s.flatten(), ml.tensor([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])));
 assert(ml.tensor([[1.0, 2.0]]).unsqueeze(0).shape == [1, 1, 2]);

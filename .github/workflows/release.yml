@@ -23,6 +23,13 @@ jobs:
         with:
           go-version: "1.25"
 
+      # The vendored WebGPU binding ships no libraries (they are not Go
+      # packages, so `go mod vendor` cannot copy them). Fetch them before any
+      # cgo build or test.
+      - name: Fetch WebGPU native libraries
+        shell: bash
+        run: bash scripts/fetch-wgpu-libs.sh
+
       # cgo deps for fyne/GL static tests (upx used by compress steps below is also here).
       - name: Install dependencies
         if: runner.os == 'Linux'

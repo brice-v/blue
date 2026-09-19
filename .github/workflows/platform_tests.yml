@@ -20,6 +20,13 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      # The vendored WebGPU binding ships no libraries (they are not Go
+      # packages, so `go mod vendor` cannot copy them). Fetch them before any
+      # cgo build or test.
+      - name: Fetch WebGPU native libraries
+        shell: bash
+        run: bash scripts/fetch-wgpu-libs.sh
+
       - name: Get dependencies Linux
         run: sudo apt-get update && sudo apt-get install gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libwayland-dev libxkbcommon-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev bc
         if: ${{ runner.os == 'Linux' }}

@@ -3,636 +3,319 @@ package ml
 import (
 	"fmt"
 	"slices"
+
+	"blue/borncgo/tensor"
 )
 
-// apply is the low-level "autograd key": resolve the backend, run the forward
-// kernel, wrap with track. The backward also receives the forward output `out`,
-// which several gradients need (exp, sigmoid, softmax, max).
-func apply(name string, in []*Tensor,
-	fwd func(be Backend, in []*Tensor) (*Tensor, error),
-	bwd func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error),
-) (*Tensor, error) {
-	be, err := backendForAll(in...)
-	if err != nil {
-		return nil, err
+// Binary arithmetic delegates straight to borncgo, which handles broadcasting
+// (including scalar tensors of shape [1]) and records the op on its tape.
+
+func Add(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Add(b.t)), nil }
+func Sub(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Sub(b.t)), nil }
+func Mul(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Mul(b.t)), nil }
+func Div(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Div(b.t)), nil }
+
+func MatMul(a, b *Tensor) (*Tensor, error) { return wrap(a.t.MatMul(b.t)), nil }
+
+// Pow is the one op borncgo lacks, so blue composes it. A non-negative integer
+// scalar exponent uses repeated multiplication, which stays differentiable and
+// works for a negative base (matching PyTorch's integer-exponent behavior).
+// Everything else is exp(b * log(a)).
+func Pow(a, b *Tensor) (*Tensor, error) {
+	if b.Numel() == 1 {
+		e := b.t.Data()[0]
+		if e == float32(int64(e)) && e >= 0 && e <= 64 {
+			return powInt(a, int(e)), nil
+		}
 	}
-	out, err := fwd(be, in)
-	if err != nil {
-		return nil, err
+	m := b.t.Mul(a.t.Log())
+	return wrap(m.Exp()), nil
+}
+
+func powInt(a *Tensor, n int) *Tensor {
+	out := tensor.Ones[float32](tensor.Shape(a.Shape()), engine)
+	base := a.t
+	for n > 0 {
+		if n&1 == 1 {
+			out = out.Mul(base)
+		}
+		n >>= 1
+		if n > 0 {
+			base = base.Mul(base)
+		}
 	}
-	track(out, name, in, func(g *Tensor) ([]*Tensor, error) {
-		return bwd(be, g, out, in)
+	return wrap(out)
+}
+
+func Neg(a *Tensor) (*Tensor, error) { return wrap(a.t.MulScalar(float32(-1))), nil }
+
+// Unary math and activations.
+
+func Exp(a *Tensor) (*Tensor, error)  { return wrap(a.t.Exp()), nil }
+func Log(a *Tensor) (*Tensor, error)  { return wrap(a.t.Log()), nil }
+func Sqrt(a *Tensor) (*Tensor, error) { return wrap(a.t.Sqrt()), nil }
+func Abs(a *Tensor) (*Tensor, error)  { return wrap(a.t.Abs()), nil }
+
+func Relu(a *Tensor) (*Tensor, error)    { return wrapRaw(engine.ReLU(a.t.Raw())), nil }
+func Sigmoid(a *Tensor) (*Tensor, error) { return wrapRaw(engine.Sigmoid(a.t.Raw())), nil }
+func Tanh(a *Tensor) (*Tensor, error)    { return wrapRaw(engine.Tanh(a.t.Raw())), nil }
+
+func Softmax(a *Tensor, dim int) (*Tensor, error) { return wrap(a.t.Softmax(dim)), nil }
+
+// Comparisons return borncgo bool tensors, so blue reports dtype "bool" and
+// to_list yields booleans, matching PyTorch.
+
+func Eq(a, b *Tensor) (*Tensor, error) { return wrapRaw(engine.Equal(a.t.Raw(), b.t.Raw())), nil }
+func Ne(a, b *Tensor) (*Tensor, error) {
+	return wrapRaw(engine.NotEqual(a.t.Raw(), b.t.Raw())), nil
+}
+func Gt(a, b *Tensor) (*Tensor, error) {
+	return wrapRaw(engine.Greater(a.t.Raw(), b.t.Raw())), nil
+}
+func Ge(a, b *Tensor) (*Tensor, error) {
+	return wrapRaw(engine.GreaterEqual(a.t.Raw(), b.t.Raw())), nil
+}
+func Lt(a, b *Tensor) (*Tensor, error) { return wrapRaw(engine.Lower(a.t.Raw(), b.t.Raw())), nil }
+func Le(a, b *Tensor) (*Tensor, error) {
+	return wrapRaw(engine.LowerEqual(a.t.Raw(), b.t.Raw())), nil
+}
+
+// Reductions.
+
+// Sum reduces dims, or every dim when dims is nil. keepdim keeps reduced dims as 1.
+func Sum(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+	return reduce(a, dims, keepdim, func(x *Tensor, d int) *Tensor {
+		return wrapRaw(engine.SumDim(x.t.Raw(), d, keepdim))
 	})
+}
+
+// Mean is borncgo's MeanDim applied per dim.
+func Mean(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
+	return reduce(a, dims, keepdim, func(x *Tensor, d int) *Tensor {
+		return wrapRaw(engine.MeanDim(x.t.Raw(), d, keepdim))
+	})
+}
+
+func reduce(a *Tensor, dims []int, keepdim bool, f func(*Tensor, int) *Tensor) (*Tensor, error) {
+	x := asFloat(a)
+	ds, err := normalizeDims(x.Shape(), dims)
+	if err != nil {
+		return nil, err
+	}
+	if len(ds) == 0 {
+		return x.Clone(), nil
+	}
+	out := x
+	for _, d := range descendingDims(ds) {
+		out = f(out, d)
+	}
 	return out, nil
 }
 
-func applyUnary(name string, a *Tensor,
-	fwd func(be Backend, a *Tensor) (*Tensor, error),
-	bwd func(be Backend, g, out, a *Tensor) (*Tensor, error),
-) (*Tensor, error) {
-	return apply(name, []*Tensor{a},
-		func(be Backend, in []*Tensor) (*Tensor, error) { return fwd(be, in[0]) },
-		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
-			d, err := bwd(be, g, out, in[0])
-			if err != nil {
-				return nil, err
-			}
-			return []*Tensor{d}, nil
-		})
-}
-
-func applyBinary(name string, a, b *Tensor,
-	fwd func(be Backend, a, b *Tensor) (*Tensor, error),
-	bwd func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error),
-) (*Tensor, error) {
-	return apply(name, []*Tensor{a, b},
-		func(be Backend, in []*Tensor) (*Tensor, error) { return fwd(be, in[0], in[1]) },
-		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
-			da, db, err := bwd(be, g, out, in[0], in[1])
-			if err != nil {
-				return nil, err
-			}
-			return []*Tensor{da, db}, nil
-		})
-}
-
-func MatMul(a, b *Tensor) (*Tensor, error) {
-	return applyBinary("matmul", a, b,
-		func(be Backend, a, b *Tensor) (*Tensor, error) { return be.MatMul(a, b) },
-		func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error) {
-			// dA = g @ b^T, dB = a^T @ g
-			bT, err := be.Transpose(b, 0, 1)
-			if err != nil {
-				return nil, nil, err
-			}
-			aT, err := be.Transpose(a, 0, 1)
-			if err != nil {
-				return nil, nil, err
-			}
-			dA, err := be.MatMul(g, bT)
-			if err != nil {
-				return nil, nil, err
-			}
-			dB, err := be.MatMul(aT, g)
-			if err != nil {
-				return nil, nil, err
-			}
-			return dA, dB, nil
-		})
-}
-
-func Add(a, b *Tensor) (*Tensor, error) {
-	return applyBinary("add", a, b,
-		func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Add(a, b) },
-		func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error) {
-			da, err := unbroadcast(be, g, a)
-			if err != nil {
-				return nil, nil, err
-			}
-			db, err := unbroadcast(be, g, b)
-			if err != nil {
-				return nil, nil, err
-			}
-			return da, db, nil
-		})
-}
-
-func Sub(a, b *Tensor) (*Tensor, error) {
-	return applyBinary("sub", a, b,
-		func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Sub(a, b) },
-		func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error) {
-			da, err := unbroadcast(be, g, a)
-			if err != nil {
-				return nil, nil, err
-			}
-			db, err := unbroadcast(be, g, b)
-			if err != nil {
-				return nil, nil, err
-			}
-			neg, err := be.Neg(db)
-			if err != nil {
-				return nil, nil, err
-			}
-			return da, neg, nil
-		})
-}
-
-func Mul(a, b *Tensor) (*Tensor, error) {
-	return applyBinary("mul", a, b,
-		func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Mul(a, b) },
-		func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error) {
-			da, err := be.Mul(g, b) // dz/da = b
-			if err != nil {
-				return nil, nil, err
-			}
-			db, err := be.Mul(g, a) // dz/db = a
-			if err != nil {
-				return nil, nil, err
-			}
-			return da, db, nil
-		})
-}
-
-func Div(a, b *Tensor) (*Tensor, error) {
-	return applyBinary("div", a, b,
-		func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Div(a, b) },
-		func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error) {
-			// da = g / b, db = -g * a / b^2
-			da, err := be.Div(g, b)
-			if err != nil {
-				return nil, nil, err
-			}
-			b2, err := be.Mul(b, b)
-			if err != nil {
-				return nil, nil, err
-			}
-			num, err := be.Mul(g, a)
-			if err != nil {
-				return nil, nil, err
-			}
-			q, err := be.Div(num, b2)
-			if err != nil {
-				return nil, nil, err
-			}
-			db, err := be.Neg(q)
-			if err != nil {
-				return nil, nil, err
-			}
-			return da, db, nil
-		})
-}
-
-func Pow(a, b *Tensor) (*Tensor, error) {
-	return applyBinary("pow", a, b,
-		func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Pow(a, b) },
-		func(be Backend, g, out, a, b *Tensor) (*Tensor, *Tensor, error) {
-			var da, db *Tensor
-			if a.RequiresGrad() {
-				// da = g * b * a^(b-1)
-				bMinus1, err := be.Sub(b, onesLike(b))
-				if err != nil {
-					return nil, nil, err
-				}
-				p, err := be.Pow(a, bMinus1)
-				if err != nil {
-					return nil, nil, err
-				}
-				bp, err := be.Mul(b, p)
-				if err != nil {
-					return nil, nil, err
-				}
-				da, err = be.Mul(g, bp)
-				if err != nil {
-					return nil, nil, err
-				}
-			}
-			if b.RequiresGrad() {
-				// db = g * out * ln(a); NaN for a <= 0, matching PyTorch
-				la, err := be.Log(a)
-				if err != nil {
-					return nil, nil, err
-				}
-				o, err := be.Mul(out, la)
-				if err != nil {
-					return nil, nil, err
-				}
-				db, err = be.Mul(g, o)
-				if err != nil {
-					return nil, nil, err
-				}
-			}
-			return da, db, nil
-		})
-}
-
-func Relu(a *Tensor) (*Tensor, error) {
-	return applyUnary("relu", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Relu(a) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
-			mask, err := be.Gt(a, zerosLike(a)) // 1 where a > 0, else 0
-			if err != nil {
-				return nil, err
-			}
-			return be.Mul(g, mask)
-		})
-}
-
-func Exp(a *Tensor) (*Tensor, error) {
-	return applyUnary("exp", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Exp(a) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
-			return be.Mul(g, out) // exp' = exp, already computed
-		})
-}
-
-func Log(a *Tensor) (*Tensor, error) {
-	return applyUnary("log", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Log(a) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) { return be.Div(g, a) })
-}
-
-func Sqrt(a *Tensor) (*Tensor, error) {
-	return applyUnary("sqrt", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Sqrt(a) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
-			// 1/(2 sqrt x), reusing the output
-			two := scalarLike(a, 2)
-			den, err := be.Mul(two, out)
-			if err != nil {
-				return nil, err
-			}
-			return be.Div(g, den)
-		})
-}
-
-func Neg(a *Tensor) (*Tensor, error) {
-	return applyUnary("neg", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Neg(a) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) { return be.Neg(g) })
-}
-
-func Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
-	return applyUnary("transpose", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Transpose(a, dim0, dim1) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
-			return be.Transpose(g, dim0, dim1) // a swap is its own inverse
-		})
-}
-
-func Reshape(a *Tensor, shape ...int) (*Tensor, error) {
-	return applyUnary("reshape", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Reshape(a, shape...) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) { return be.Reshape(g, a.Shape()...) })
-}
-
-func Sum(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
-	return reduceDims(a, dims, keepdim, reduceSum)
-}
-
-func reduceSum(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
-	return apply("sum", []*Tensor{a},
-		func(be Backend, in []*Tensor) (*Tensor, error) { return be.Sum(in[0], dim, keepdim) },
-		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
-			// every element that was summed gets the same incoming gradient
-			d, err := expandToDim(be, g, in[0], dim, keepdim)
-			if err != nil {
-				return nil, err
-			}
-			return []*Tensor{d}, nil
-		})
-}
-
-func maxDim(a *Tensor, dim int, keepdim bool) (*Tensor, error) {
-	return apply("max", []*Tensor{a},
-		func(be Backend, in []*Tensor) (*Tensor, error) { return be.Max(in[0], dim, keepdim) },
-		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
-			a := in[0]
-			// mask: 1 where a equals the max along dim, else 0
-			red := out
-			if !keepdim {
-				sh := append([]int(nil), a.Shape()...)
-				rd, err := resolveDim("max", a.Shape(), dim)
-				if err != nil {
-					return nil, err
-				}
-				sh[rd] = 1
-				red, err = be.Reshape(out, sh...)
-				if err != nil {
-					return nil, err
-				}
-			}
-			broad, err := broadcastTo(red, a.Shape())
-			if err != nil {
-				return nil, err
-			}
-			mask, err := be.Eq(a, broad.materialize())
-			if err != nil {
-				return nil, err
-			}
-			exp, err := expandToDim(be, g, a, dim, keepdim)
-			if err != nil {
-				return nil, err
-			}
-			d, err := be.Mul(exp, mask)
-			if err != nil {
-				return nil, err
-			}
-			return []*Tensor{d}, nil
-		})
-}
-
+// Max/Min are computed on the host because borncgo has no max reduction.
 func Max(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
-	return reduceDims(a, dims, keepdim, maxDim)
+	return extremum(a, dims, keepdim, func(v, best float32) bool { return v > best })
 }
 
 func Min(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
-	n, err := Neg(a)
-	if err != nil {
-		return nil, err
-	}
-	m, err := Max(n, dims, keepdim)
-	if err != nil {
-		return nil, err
-	}
-	return Neg(m)
+	return extremum(a, dims, keepdim, func(v, best float32) bool { return v < best })
 }
 
-func Mean(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
-	s, err := Sum(a, dims, keepdim)
-	if err != nil {
-		return nil, err
-	}
+func extremum(a *Tensor, dims []int, keepdim bool, better func(v, best float32) bool) (*Tensor, error) {
 	ds, err := normalizeDims(a.Shape(), dims)
 	if err != nil {
 		return nil, err
 	}
-	count := 1
-	for _, d := range ds {
-		count *= a.Shape()[d]
+	if len(ds) == 0 {
+		return a.Clone(), nil
 	}
-	if count == 0 {
-		return nil, fmt.Errorf("mean: cannot average over an empty dimension")
+	out := a
+	for _, d := range descendingDims(ds) {
+		out, err = extremumDim(out, d, keepdim, better)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return Div(s, scalarLike(s, float32(count)))
+	return out, nil
 }
 
-func ArgMax(a *Tensor, dim int) (*Tensor, error) {
-	be, err := backendForAll(a)
+func extremumDim(a *Tensor, dim int, keepdim bool, better func(v, best float32) bool) (*Tensor, error) {
+	shape := a.Shape()
+	d, err := normalizeDim(shape, dim)
 	if err != nil {
 		return nil, err
 	}
-	return be.ArgMax(a, dim)
+	reduce := shape[d]
+	outer, inner := 1, 1
+	for _, s := range shape[:d] {
+		outer *= s
+	}
+	for _, s := range shape[d+1:] {
+		inner *= s
+	}
+	data := a.ContiguousData()
+	out := make([]float32, outer*inner)
+	for o := 0; o < outer; o++ {
+		for in := 0; in < inner; in++ {
+			best := data[o*reduce*inner+in]
+			for r := 1; r < reduce; r++ {
+				v := data[(o*reduce+r)*inner+in]
+				if better(v, best) {
+					best = v
+				}
+			}
+			out[o*inner+in] = best
+		}
+	}
+	ttShape := slices.Clone(shape)
+	if keepdim {
+		ttShape[d] = 1
+	} else {
+		ttShape = slices.Delete(ttShape, d, d+1)
+	}
+	return NewTensor(out, ttShape, a.dtype, a.Device())
+}
+
+// ArgMax/ArgMin return float32 tensors, matching blue's existing surface.
+func ArgMax(a *Tensor, dim int) (*Tensor, error) {
+	return wrap(a.t.Argmax(dim).Float32()), nil
 }
 
 func ArgMin(a *Tensor, dim int) (*Tensor, error) {
-	be, err := backendForAll(a)
+	n := a.t.MulScalar(float32(-1))
+	return wrap(n.Argmax(dim).Float32()), nil
+}
+
+// Shape ops.
+
+func Reshape(a *Tensor, shape ...int) (*Tensor, error) { return wrap(a.t.Reshape(shape...)), nil }
+
+func Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
+	n := len(a.Shape())
+	d0, err := normalizeDim(a.Shape(), dim0)
 	if err != nil {
 		return nil, err
 	}
-	return be.ArgMin(a, dim)
-}
-
-// Abs is relu(x) + relu(-x), so the gradient comes from Relu.
-func Abs(a *Tensor) (*Tensor, error) {
-	p, err := Relu(a)
+	d1, err := normalizeDim(a.Shape(), dim1)
 	if err != nil {
 		return nil, err
 	}
-	n, err := Neg(a)
-	if err != nil {
-		return nil, err
+	perm := make([]int, n)
+	for i := range perm {
+		perm[i] = i
 	}
-	r, err := Relu(n)
-	if err != nil {
-		return nil, err
-	}
-	return Add(p, r)
-}
-
-// Sigmoid is 1 / (1 + exp(-x)); the chain rule handles the gradient.
-func Sigmoid(a *Tensor) (*Tensor, error) {
-	n, err := Neg(a)
-	if err != nil {
-		return nil, err
-	}
-	e, err := Exp(n)
-	if err != nil {
-		return nil, err
-	}
-	denom, err := Add(e, onesLike(a))
-	if err != nil {
-		return nil, err
-	}
-	return Div(onesLike(a), denom)
-}
-
-// Tanh is 2*sigmoid(2x) - 1.
-func Tanh(a *Tensor) (*Tensor, error) {
-	two := scalarLike(a, 2)
-	x2, err := Mul(a, two)
-	if err != nil {
-		return nil, err
-	}
-	s, err := Sigmoid(x2)
-	if err != nil {
-		return nil, err
-	}
-	num, err := Mul(s, two)
-	if err != nil {
-		return nil, err
-	}
-	return Sub(num, onesLike(a))
-}
-
-func Softmax(a *Tensor, dim int) (*Tensor, error) {
-	return apply("softmax", []*Tensor{a},
-		func(be Backend, in []*Tensor) (*Tensor, error) { return be.Softmax(in[0], dim) },
-		func(be Backend, g, out *Tensor, in []*Tensor) ([]*Tensor, error) {
-			a := in[0]
-			// dA = out * (g - sum(g * out, dim, keepdim=true))
-			gy, err := be.Mul(g, out)
-			if err != nil {
-				return nil, err
-			}
-			s, err := be.Sum(gy, dim, true)
-			if err != nil {
-				return nil, err
-			}
-			broad, err := broadcastTo(s, a.Shape())
-			if err != nil {
-				return nil, err
-			}
-			diff, err := be.Sub(g, broad.materialize())
-			if err != nil {
-				return nil, err
-			}
-			d, err := be.Mul(out, diff)
-			if err != nil {
-				return nil, err
-			}
-			return []*Tensor{d}, nil
-		})
-}
-
-// compare runs a non-differentiable comparison. It records no graph node, so
-// its output is detached even when an input requires grad.
-func compare(a, b *Tensor, f func(be Backend, a, b *Tensor) (*Tensor, error)) (*Tensor, error) {
-	be, err := backendForAll(a, b)
-	if err != nil {
-		return nil, err
-	}
-	return f(be, a, b)
-}
-
-// The comparison ops below are non-differentiable and record no graph node.
-// Each is a distinct predicate rather than a negation of another, so NaN
-// semantics match (NaN compares false with everything except Ne, which is
-// true). They exist for masks (Relu uses Gt, Max uses Eq) and for `_eq`/`_ne`/
-// `_gt`/`_ge`/`_lt`/`_le`.
-func Eq(a, b *Tensor) (*Tensor, error) {
-	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Eq(a, b) })
-}
-
-func Ne(a, b *Tensor) (*Tensor, error) {
-	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Ne(a, b) })
-}
-
-func Gt(a, b *Tensor) (*Tensor, error) {
-	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Gt(a, b) })
-}
-
-func Ge(a, b *Tensor) (*Tensor, error) {
-	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Ge(a, b) })
-}
-
-func Lt(a, b *Tensor) (*Tensor, error) {
-	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Lt(a, b) })
-}
-
-func Le(a, b *Tensor) (*Tensor, error) {
-	return compare(a, b, func(be Backend, a, b *Tensor) (*Tensor, error) { return be.Le(a, b) })
+	perm[d0], perm[d1] = perm[d1], perm[d0]
+	return permuted(a, perm), nil
 }
 
 func Permute(a *Tensor, perm ...int) (*Tensor, error) {
-	return applyUnary("permute", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return be.Permute(a, perm...) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
-			inv := make([]int, len(perm))
-			for i, p := range perm {
-				rd, err := resolveDim("permute", a.Shape(), p)
-				if err != nil {
-					return nil, err
-				}
-				inv[rd] = i
-			}
-			return be.Permute(a, inv...)
-		})
+	return permuted(a, perm), nil
 }
 
-func Flatten(a *Tensor) (*Tensor, error) {
-	return Reshape(a, a.Numel())
+// permuted transposes the data with borncgo and records the permuted strides so
+// the reported view metadata matches PyTorch.
+func permuted(a *Tensor, perm []int) *Tensor {
+	out := wrap(a.t.Transpose(perm...))
+	st := a.Strides()
+	vs := make([]int, len(perm))
+	for i, p := range perm {
+		vs[i] = st[p]
+	}
+	out.viewStrides = vs
+	return out
 }
 
-func Unsqueeze(a *Tensor, dim int) (*Tensor, error) {
-	shape := a.Shape()
-	d := dim
-	if d < 0 {
-		d += len(shape) - 1
-	}
-	if d < 0 || d >= len(shape) {
-		return nil, fmt.Errorf("unsqueeze: dim %d out of range for shape %v", dim, shape)
-	}
-	out := slices.Concat(shape[:d], []int{1}, shape[d:])
-	return Reshape(a, out...)
-}
+func Flatten(a *Tensor) (*Tensor, error) { return wrap(a.t.Reshape(a.Numel())), nil }
+
+func Unsqueeze(a *Tensor, dim int) (*Tensor, error) { return wrap(a.t.Unsqueeze(dim)), nil }
 
 // Squeeze drops size-1 dims. dims nil drops every size-1 dim.
 func Squeeze(a *Tensor, dims []int) (*Tensor, error) {
 	shape := a.Shape()
-	drop := map[int]bool{}
+	var drop []int
 	if dims == nil {
-		for i, d := range shape {
-			if d == 1 {
-				drop[i] = true
+		for i, s := range shape {
+			if s == 1 {
+				drop = append(drop, i)
 			}
 		}
 	} else {
 		for _, d := range dims {
-			rd, err := resolveDim("squeeze", shape, d)
+			rd, err := normalizeDim(shape, d)
 			if err != nil {
 				return nil, err
 			}
 			if shape[rd] != 1 {
 				return nil, fmt.Errorf("squeeze: dim %d has size %d, not 1", d, shape[rd])
 			}
-			drop[rd] = true
+			drop = append(drop, rd)
 		}
 	}
-	out := make([]int, 0, len(shape))
-	for i, d := range shape {
-		if !drop[i] {
-			out = append(out, d)
-		}
+	out := a
+	for _, d := range descendingDims(drop) {
+		out = wrap(out.t.Squeeze(d))
 	}
-	return Reshape(a, out...)
+	return out, nil
 }
 
 func BroadcastTo(a *Tensor, shape []int) (*Tensor, error) {
-	return applyUnary("broadcast_to", a,
-		func(be Backend, a *Tensor) (*Tensor, error) { return broadcastTo(a.materialize(), shape) },
-		func(be Backend, g, out, a *Tensor) (*Tensor, error) {
-			// sum g back over the axes that were expanded
-			d := g
-			var err error
-			for i := range shape {
-				if a.Shape()[i] == 1 && shape[i] != 1 {
-					d, err = be.Sum(a, i, true)
-					if err != nil {
-						return nil, err
-					}
-				}
-			}
-			return d, nil
-		})
+	return wrap(a.t.Expand(tensor.Shape(shape))), nil
 }
 
-// Slice returns a strided view, so it is not tracked (batching data needs no grad).
+// Slice selects [start:end) along dim using borncgo's Gather.
 func Slice(a *Tensor, dim, start, end int) (*Tensor, error) {
-	be, err := backendForAll(a)
+	shape := a.Shape()
+	d, err := normalizeDim(shape, dim)
 	if err != nil {
 		return nil, err
 	}
-	return be.Slice(a, dim, start, end)
+	n := shape[d]
+	if start < 0 {
+		start += n
+	}
+	if end < 0 {
+		end += n
+	}
+	if start < 0 {
+		start = 0
+	}
+	if end > n {
+		end = n
+	}
+	if end < start {
+		end = start
+	}
+	idx := make([]int32, end-start)
+	for i := range idx {
+		idx[i] = int32(start + i)
+	}
+	it, err := tensor.FromSlice[int32](idx, tensor.Shape{len(idx)}, engine)
+	if err != nil {
+		return nil, err
+	}
+	return wrapRaw(engine.Gather(a.t.Raw(), d, it.Raw())), nil
 }
 
-// Clamp is lo + relu(x - lo) - relu(x - hi).
 func Clamp(a *Tensor, lo, hi float32) (*Tensor, error) {
-	loT, hiT := scalarLike(a, lo), scalarLike(a, hi)
-	below, err := Sub(a, loT)
-	if err != nil {
-		return nil, err
-	}
-	above, err := Sub(a, hiT)
-	if err != nil {
-		return nil, err
-	}
-	rl, err := Relu(below)
-	if err != nil {
-		return nil, err
-	}
-	rh, err := Relu(above)
-	if err != nil {
-		return nil, err
-	}
-	x, err := Add(loT, rl)
-	if err != nil {
-		return nil, err
-	}
-	return Sub(x, rh)
+	return wrapRaw(engine.Clamp(a.t.Raw(), lo, hi)), nil
 }
 
-// Where is a*cond + b*(1-cond). cond is a detached bool tensor.
 func Where(cond, a, b *Tensor) (*Tensor, error) {
-	notCond, err := Sub(onesLike(cond), cond)
-	if err != nil {
-		return nil, err
-	}
-	left, err := Mul(a, cond)
-	if err != nil {
-		return nil, err
-	}
-	right, err := Mul(b, notCond)
-	if err != nil {
-		return nil, err
-	}
-	return Add(left, right)
+	return wrapRaw(engine.Where(cond.t.Raw(), a.t.Raw(), b.t.Raw())), nil
 }
 
-// OneHot maps a 1d label tensor to [n, classes]; labels are not differentiable.
+// OneHot turns a 1d label tensor into [n, classes]. Labels are data, not
+// differentiable.
 func OneHot(labels *Tensor, classes int) (*Tensor, error) {
-	be, err := backendForAll(labels)
-	if err != nil {
-		return nil, err
+	data := labels.ContiguousData()
+	n := len(data)
+	out := make([]float32, n*classes)
+	for i, v := range data {
+		c := int(v)
+		if c < 0 || c >= classes {
+			return nil, fmt.Errorf("onehot: label %d out of range for %d classes", c, classes)
+		}
+		out[i*classes+c] = 1
 	}
-	return be.OneHot(labels, classes)
+	return NewTensor(out, []int{n, classes}, Float32, labels.Device())
 }

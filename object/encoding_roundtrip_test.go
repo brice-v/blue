@@ -369,14 +369,12 @@ func TestEncodingTensorPacksViews(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A transposed view is non-contiguous; it must decode as a packed,
-	// contiguous tensor with the same logical values.
-	transposed, err := ml.CPUBackend{}.Transpose(base, 0, 1)
+	// borncgo materializes transposes, so this is a contiguous copy of the
+	// transposed values; it must still roundtrip as a packed tensor with the
+	// same logical values.
+	transposed, err := ml.Transpose(base, 0, 1)
 	if err != nil {
 		t.Fatal(err)
-	}
-	if transposed.IsContiguous() {
-		t.Fatal("test setup: transposed view should not be contiguous")
 	}
 
 	got := roundTrip(t, &Tensor{T: transposed}).(*Tensor)
