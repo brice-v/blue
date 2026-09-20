@@ -27,9 +27,10 @@ const (
 // gemmScratch holds per-call packing buffers. They are pooled and grown lazily so
 // the GEMM fast path stays allocation-free across calls.
 type gemmScratch struct {
-	ap []float32 // packed A: [nBlocks][k][gemmMr]
-	bp []float32 // packed B: [nTiles][k][gemmNr]
-	bt []float32 // packed tail B: [k][gemmNr] (n%gemmNr cols, zero-padded)
+	ap   []float32 // packed A: [nBlocks][k][gemmMr]
+	bp   []float32 // packed B: [nTiles][k][gemmNr]
+	bt   []float32 // packed tail B: [k][gemmNr] (n%gemmNr cols, zero-padded)
+	gemv []float32 // packed single-row B panel for the thin (GEMV) path: [k][gemmNr]
 }
 
 var gemmScratchPool = sync.Pool{New: func() any { return new(gemmScratch) }}
@@ -78,7 +79,7 @@ func gemmNEONF32(c, a, b []float32, m, k, n int) {
 	case nFull == 0:
 		// All columns are in the tail; handled below.
 	case mFull == 0:
-		gemvStridedNEONF32(c, a, b, m, k, n, nFull)
+		gemvStridedNEONF32(c, a, b, m, k, n, nFull, sc)
 	default:
 		gemmPackedNEONF32(c, a, b, m, k, n, mFull, nFull, sc)
 	}
@@ -90,11 +91,15 @@ func gemmNEONF32(c, a, b []float32, m, k, n int) {
 
 // gemvStridedNEONF32 handles thin shapes (m < gemmMr) over the full gemmNr-wide
 // column tiles. Each B element feeds only one output row, so packing B would double
-// its traffic for no reuse; instead a single-row packed panel is built per call.
-func gemvStridedNEONF32(c, a, b []float32, m, k, n, nFull int) {
-	// Temporary buffer for one row of packed B ([k][gemmNr]).
-	// Allocated once per thin-matrix call and reused across row iterations.
-	bpRow := make([]float32, k*gemmNr)
+// its traffic for no reuse; instead one row of packed B is built into the pooled
+// scratch and reused across every row iteration.
+//
+// Unlike the amd64 path, which has a dedicated strided micro-kernel
+// (gemmMicroKernel1x16StridedAVX2) that reads B in place, the NEON micro-kernel
+// only reads packed panels. So the single-row panel is packed here, from pooled
+// scratch, keeping the fast path allocation free.
+func gemvStridedNEONF32(c, a, b []float32, m, k, n, nFull int, sc *gemmScratch) {
+	bpRow := ensureCap(&sc.gemv, k*gemmNr)
 	for i := 0; i < m; i++ {
 		for j := 0; j < nFull; j += gemmNr {
 			// Pack one column tile of B into bpRow.

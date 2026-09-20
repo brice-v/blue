@@ -5,6 +5,7 @@ package cpu
 import (
 	"math"
 	"math/rand"
+	"runtime/debug"
 	"testing"
 
 	"blue/borncgo/internal/tensor"
@@ -140,21 +141,51 @@ func TestGemmNEONDispatch(t *testing.T) {
 }
 
 // TestGemmNEONNoAllocs asserts the NEON GEMM fast path performs no heap allocations
-// in steady state (packing buffers are reused from the pool).
+// in steady state (packing buffers are reused from the pool). It covers each
+// dispatch branch, because they draw different buffers from the scratch struct:
+// the packed 4x8 path, the thin GEMV path, and the n%gemmNr column tail.
+//
+// Skipped under -short and under the race detector (raceEnabled), matching
+// TestGemmAVX2F32NoAllocs: the scratch lives in a package-global sync.Pool, and
+// both the race detector's shadow allocations and the reduced -short test set
+// make AllocsPerRun attribute spurious per-call allocations to pool churn.
 func TestGemmNEONNoAllocs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("AllocsPerRun over the shared sync.Pool is unreliable under -short -race")
+	if testing.Short() || raceEnabled {
+		t.Skip("AllocsPerRun is unreliable under -short and under the race detector")
 	}
 	if !cpu.ARM64.HasASIMD {
 		t.Skip("ASIMD/NEON not available on this CPU")
 	}
-	const m, k, n = 32, 256, 64
-	r := rand.New(rand.NewSource(1))
-	a := randSliceF32(r, m*k)
-	b := randSliceF32(r, k*n)
-	c := make([]float32, m*n)
-	if allocs := testing.AllocsPerRun(20, func() { gemmNEONF32(c, a, b, m, k, n) }); allocs != 0 {
-		t.Errorf("gemmNEONF32 allocated %v times, want 0", allocs)
+
+	shapes := []struct {
+		name    string
+		m, k, n int
+	}{
+		{"packed 4x8 tiles", 32, 256, 64},
+		{"gemv thin", 1, 512, 3072},
+		{"column tail", 32, 256, 68},
+	}
+
+	for _, tc := range shapes {
+		t.Run(tc.name, func(t *testing.T) {
+			r := rand.New(rand.NewSource(1))
+			a := randSliceF32(r, tc.m*tc.k)
+			b := randSliceF32(r, tc.k*tc.n)
+			c := make([]float32, tc.m*tc.n)
+
+			// The packing scratch lives in a sync.Pool, which the GC can clear at
+			// any time. A cleared pool makes the next Get allocate, which
+			// AllocsPerRun would attribute to the kernel even though steady-state
+			// use is allocation free. Disable the GC for the measurement and prime
+			// each shape's buffers first.
+			prevGC := debug.SetGCPercent(-1)
+			defer debug.SetGCPercent(prevGC)
+			gemmNEONF32(c, a, b, tc.m, tc.k, tc.n) // warmup, primes the scratch pool
+
+			if allocs := testing.AllocsPerRun(20, func() { gemmNEONF32(c, a, b, tc.m, tc.k, tc.n) }); allocs != 0 {
+				t.Errorf("gemmNEONF32 allocated %v times, want 0", allocs)
+			}
+		})
 	}
 }
 
