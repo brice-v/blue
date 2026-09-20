@@ -357,6 +357,171 @@ func (b *Backend) runMatMulLazy(a, other *tensor.RawTensor) (*tensor.RawTensor, 
 		})
 }
 
+// runMatMulTransposedLazy executes C = op(A) @ op(B), where op(X) is X or X^T
+// depending on the flags. This lets the matmul backward compute G @ B^T and
+// A^T @ G without materializing B^T and A^T into fresh buffers first.
+func (b *Backend) runMatMulTransposedLazy(a, other *tensor.RawTensor, transA, transB bool) (*tensor.RawTensor, error) {
+	if a.DType() != tensor.Float32 {
+		return nil, &lazyError{msg: "matmul: only float32 is supported, got " + a.DType().String()}
+	}
+	if len(a.Shape()) != 2 || len(other.Shape()) != 2 {
+		return nil, &lazyError{msg: "matmul: requires 2D tensors"}
+	}
+
+	as := a.Shape()
+	bs := other.Shape()
+
+	var M, K int
+	if transA {
+		K, M = as[0], as[1]
+	} else {
+		M, K = as[0], as[1]
+	}
+	var innerB, N int
+	if transB {
+		N, innerB = bs[0], bs[1]
+	} else {
+		innerB, N = bs[0], bs[1]
+	}
+	if K != innerB {
+		return nil, &lazyError{msg: "matmul: shape mismatch"}
+	}
+
+	inputA := b.getOrCreateInputBuffer(a)
+	inputOther := b.getOrCreateInputBuffer(other)
+
+	var transientBufs []*wgpu.Buffer
+	var inputLazyDatas []*LazyGPUData
+	if !inputA.cached {
+		transientBufs = append(transientBufs, inputA.buffer)
+	} else if inputA.gpuData != nil {
+		inputLazyDatas = append(inputLazyDatas, inputA.gpuData)
+	}
+	if !inputOther.cached {
+		transientBufs = append(transientBufs, inputOther.buffer)
+	} else if inputOther.gpuData != nil {
+		inputLazyDatas = append(inputLazyDatas, inputOther.gpuData)
+	}
+
+	resultShape := tensor.Shape{M, N}
+	resultSize := uint64(M * N * 4) //nolint:gosec // G115: tensor dims are small positive ints
+
+	bufferResult, err := b.gpuPool.Acquire(resultSize)
+	if err != nil {
+		return nil, fmt.Errorf("runMatMulTransposedLazy: create result buffer: %w", err)
+	}
+
+	// Params is 5 u32 followed by padding to the 16-byte uniform stride (32 bytes).
+	paramBytes := make([]byte, 32)
+	putUint32LE(paramBytes[0:4], uint32(M))  //nolint:gosec // G115: dims are small positive ints
+	putUint32LE(paramBytes[4:8], uint32(K))  //nolint:gosec // G115: dims are small positive ints
+	putUint32LE(paramBytes[8:12], uint32(N)) //nolint:gosec // G115: dims are small positive ints
+	if transA {
+		putUint32LE(paramBytes[12:16], 1)
+	}
+	if transB {
+		putUint32LE(paramBytes[16:20], 1)
+	}
+	bufferParams := b.createUniformBuffer(paramBytes)
+
+	shader := b.compileShader("matmul_flags", matmulFlagsShader)
+	entry := b.getOrCreatePipeline("matmul_flags", shader, bglBinary)
+
+	workgroupsX := uint32((N + 15) / 16) //nolint:gosec // G115: dims are small positive ints
+	workgroupsY := uint32((M + 15) / 16) //nolint:gosec // G115: dims are small positive ints
+
+	sizeA := uint64(a.ByteSize())         //nolint:gosec // G115: integer overflow conversion int -> uint64
+	sizeOther := uint64(other.ByteSize()) //nolint:gosec // G115: integer overflow conversion int -> uint64
+
+	bg := b.createBindGroupFromBuffers(entry.layout, []bindGroupBuffer{
+		bufBinding(inputA.buffer, sizeA),
+		bufBinding(inputOther.buffer, sizeOther),
+		bufBinding(bufferResult, resultSize),
+		bufBinding(bufferParams, 32),
+	})
+
+	return b.addComputePassToEncoder(entry.pipeline, bg, workgroupsX, workgroupsY, 1, bufferResult, resultSize, resultShape, tensor.Float32,
+		lazyResources{
+			buffers:    append(transientBufs, bufferParams),
+			bindGroups: []*wgpu.BindGroup{},
+			lazyDatas:  inputLazyDatas,
+		})
+}
+
+// runMatMulBiasLazy executes a fused Linear epilogue: y = relu(x @ W^T + bias),
+// with W stored [N, K] and bias [N]. One dispatch instead of matmul + add +
+// relu, and no materialized [M, N] intermediate.
+func (b *Backend) runMatMulBiasLazy(a, other, bias *tensor.RawTensor, relu bool) (*tensor.RawTensor, error) {
+	if a.DType() != tensor.Float32 || other.DType() != tensor.Float32 || bias.DType() != tensor.Float32 {
+		return nil, &lazyError{msg: "matmulBias: only float32 is supported"}
+	}
+	if len(a.Shape()) != 2 || len(other.Shape()) != 2 {
+		return nil, &lazyError{msg: "matmulBias: requires 2D tensors"}
+	}
+
+	M, K := a.Shape()[0], a.Shape()[1]
+	N := other.Shape()[0]
+	if other.Shape()[1] != K {
+		return nil, &lazyError{msg: "matmulBias: weight shape does not match input"}
+	}
+	if bias.NumElements() != N {
+		return nil, &lazyError{msg: "matmulBias: bias length does not match output features"}
+	}
+
+	inputA := b.getOrCreateInputBuffer(a)
+	inputB := b.getOrCreateInputBuffer(other)
+	inputBias := b.getOrCreateInputBuffer(bias)
+
+	var transientBufs []*wgpu.Buffer
+	var inputLazyDatas []*LazyGPUData
+	for _, in := range []inputBufferResult{inputA, inputB, inputBias} {
+		if !in.cached {
+			transientBufs = append(transientBufs, in.buffer)
+		} else if in.gpuData != nil {
+			inputLazyDatas = append(inputLazyDatas, in.gpuData)
+		}
+	}
+
+	resultShape := tensor.Shape{M, N}
+	resultSize := uint64(M * N * 4) //nolint:gosec // G115: tensor dims are small positive ints
+
+	bufferResult, err := b.gpuPool.Acquire(resultSize)
+	if err != nil {
+		return nil, fmt.Errorf("runMatMulBiasLazy: create result buffer: %w", err)
+	}
+
+	paramBytes := make([]byte, 16)
+	putUint32LE(paramBytes[0:4], uint32(M))  //nolint:gosec // G115: dims are small positive ints
+	putUint32LE(paramBytes[4:8], uint32(K))  //nolint:gosec // G115: dims are small positive ints
+	putUint32LE(paramBytes[8:12], uint32(N)) //nolint:gosec // G115: dims are small positive ints
+	if relu {
+		putUint32LE(paramBytes[12:16], 1)
+	}
+	bufferParams := b.createUniformBuffer(paramBytes)
+
+	shader := b.compileShader("matmul_bias", matmulBiasShader)
+	// 3 read-only storage (a, w, bias) + 1 read-write (result) + uniform.
+	entry := b.getOrCreatePipeline("matmul_bias", shader, bglWhere)
+
+	workgroupsX := uint32((N + 15) / 16) //nolint:gosec // G115: dims are small positive ints
+	workgroupsY := uint32((M + 15) / 16) //nolint:gosec // G115: dims are small positive ints
+
+	bg := b.createBindGroupFromBuffers(entry.layout, []bindGroupBuffer{
+		bufBinding(inputA.buffer, uint64(a.ByteSize())),       //nolint:gosec // G115
+		bufBinding(inputB.buffer, uint64(other.ByteSize())),   //nolint:gosec // G115
+		bufBinding(inputBias.buffer, uint64(bias.ByteSize())), //nolint:gosec // G115
+		bufBinding(bufferResult, resultSize),
+		bufBinding(bufferParams, 16),
+	})
+
+	return b.addComputePassToEncoder(entry.pipeline, bg, workgroupsX, workgroupsY, 1, bufferResult, resultSize, resultShape, tensor.Float32,
+		lazyResources{
+			buffers:    append(transientBufs, bufferParams),
+			bindGroups: []*wgpu.BindGroup{},
+			lazyDatas:  inputLazyDatas,
+		})
+}
+
 // runUnaryOpLazy executes a unary operation (exp, sqrt, cos, sin, etc.) with lazy result.
 func (b *Backend) runUnaryOpLazy(x *tensor.RawTensor, shaderName, shaderCode string) (*tensor.RawTensor, error) {
 	if x.DType() != tensor.Float32 {

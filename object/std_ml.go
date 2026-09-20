@@ -8,7 +8,9 @@ import (
 )
 
 type tensorData struct {
-	data []float32
+	// leaves are collected as float64 (which holds int64 exactly up to 2^53)
+	// and converted to the requested dtype when the tensor is built.
+	data []float64
 }
 
 func inferShape(l *List) []int {
@@ -35,23 +37,74 @@ func appendToData(tdata *tensorData, l *List, shape []int) error {
 	}
 	for _, e := range l.Elements {
 		switch e.Type() {
-		case FLOAT_OBJ:
+		case FLOAT_OBJ, INTEGER_OBJ, BOOLEAN_OBJ:
 			if len(shape) != 1 {
-				return fmt.Errorf("got a float where a list of length %d was expected", shape[1])
+				return fmt.Errorf("got a scalar where a list of length %d was expected", shape[1])
 			}
-			tdata.data = append(tdata.data, float32(e.(*Float).Value))
+			switch v := e.(type) {
+			case *Float:
+				tdata.data = append(tdata.data, v.Value)
+			case *Integer:
+				tdata.data = append(tdata.data, float64(v.Value))
+			case *Boolean:
+				if v.Value {
+					tdata.data = append(tdata.data, 1)
+				} else {
+					tdata.data = append(tdata.data, 0)
+				}
+			}
 		case LIST_OBJ:
 			if len(shape) == 1 {
-				return fmt.Errorf("got a list where a float was expected")
+				return fmt.Errorf("got a list where a scalar was expected")
 			}
 			if err := appendToData(tdata, e.(*List), shape[1:]); err != nil {
 				return err
 			}
 		default:
-			return fmt.Errorf("encountered %s, expected list or float", e.Type())
+			return fmt.Errorf("encountered %s, expected list or scalar", e.Type())
 		}
 	}
 	return nil
+}
+
+// newTypedTensor builds a tensor of the requested dtype from collected leaves.
+func newTypedTensor(data []float64, shape []int, dtype ml.DType, device ml.Device) (*ml.Tensor, error) {
+	switch dtype {
+	case ml.Float32:
+		d := make([]float32, len(data))
+		for i, v := range data {
+			d[i] = float32(v)
+		}
+		return ml.NewTensor(d, shape, dtype, device)
+	case ml.Float64:
+		return ml.NewFloat64Tensor(data, shape, device)
+	case ml.Int32:
+		d := make([]int32, len(data))
+		for i, v := range data {
+			d[i] = int32(v)
+		}
+		return ml.NewInt32Tensor(d, shape, device)
+	case ml.Int64:
+		d := make([]int64, len(data))
+		for i, v := range data {
+			d[i] = int64(v)
+		}
+		return ml.NewInt64Tensor(d, shape, device)
+	case ml.Uint8:
+		d := make([]uint8, len(data))
+		for i, v := range data {
+			d[i] = uint8(v)
+		}
+		return ml.NewUint8Tensor(d, shape, device)
+	case ml.Bool:
+		d := make([]bool, len(data))
+		for i, v := range data {
+			d[i] = v != 0
+		}
+		return ml.NewBoolTensor(d, shape, device)
+	default:
+		return nil, fmt.Errorf("unsupported dtype %s", dtype)
+	}
 }
 
 var MlBuiltins = []*Builtin{
@@ -62,24 +115,31 @@ var MlBuiltins = []*Builtin{
 			if err != nil {
 				return err
 			}
-			if args[0].Type() != LIST_OBJ && args[0].Type() != FLOAT_OBJ {
-				return newPositionalTypeError("tensor", 1, "list or float", args[0].Type())
+			if args[0].Type() != LIST_OBJ && args[0].Type() != FLOAT_OBJ &&
+				args[0].Type() != INTEGER_OBJ && args[0].Type() != BOOLEAN_OBJ {
+				return newPositionalTypeError("tensor", 1, "list or scalar", args[0].Type())
 			}
-			// TODO: eventually support int/bool leaves; float32 vs float64 depends on dtype
-			tdata := &tensorData{
-				data: []float32{},
-			}
+			tdata := &tensorData{data: []float64{}}
 			var shape []int
-			if args[0].Type() == FLOAT_OBJ {
-				tdata.data = append(tdata.data, float32(args[0].(*Float).Value))
-				shape = []int{1}
-			} else {
-				l := args[0].(*List)
-				shape = inferShape(l)
-				err := appendToData(tdata, l, shape)
-				if err != nil {
+			switch v := args[0].(type) {
+			case *List:
+				shape = inferShape(v)
+				if err := appendToData(tdata, v, shape); err != nil {
 					return newError("`tensor` error: %s", err.Error())
 				}
+			case *Float:
+				tdata.data = append(tdata.data, v.Value)
+				shape = []int{1}
+			case *Integer:
+				tdata.data = append(tdata.data, float64(v.Value))
+				shape = []int{1}
+			case *Boolean:
+				if v.Value {
+					tdata.data = append(tdata.data, 1)
+				} else {
+					tdata.data = append(tdata.data, 0)
+				}
+				shape = []int{1}
 			}
 			err = checkArgType("tensor", 2, STRING_OBJ, args)
 			if err != nil {
@@ -104,7 +164,7 @@ var MlBuiltins = []*Builtin{
 				return newError("`tensor` error: %s", derr.Error())
 			}
 			requiresGrad := args[3].(*Boolean).Value
-			tt, terr := ml.NewTensor(tdata.data, shape, dtype, device)
+			tt, terr := newTypedTensor(tdata.data, shape, dtype, device)
 			if terr != nil {
 				return newError("`tensor` error: %s", terr.Error())
 			}
@@ -441,6 +501,12 @@ var MlBuiltins = []*Builtin{
 			}
 			return tensorSum(args[0].(*Tensor).T, args[1], args[2])
 		},
+		HelpStr: helpStrArgs{
+			explanation: "`sum` returns the sum over `dim`, or over every element when `dim` is null",
+			signature:   "sum(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "sum(tensor([[1.0, 2.0], [3.0, 4.0]]), 0) => Tensor{shape: [2]}",
+		}.String(),
 	},
 	{
 		Name: "_mean",
@@ -873,6 +939,70 @@ var MlBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_cat",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("cat", 2, args); err != nil {
+				return err
+			}
+			list, ok := args[0].(*List)
+			if !ok {
+				return newPositionalTypeError("cat", 1, LIST_OBJ, args[0].Type())
+			}
+			n, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("cat", 2, INTEGER_OBJ, args[1].Type())
+			}
+			tensors := make([]*ml.Tensor, len(list.Elements))
+			for i, e := range list.Elements {
+				t, ok := e.(*Tensor)
+				if !ok {
+					return newError("`cat` error: element %d is not a tensor", i)
+				}
+				tensors[i] = t.T
+			}
+			out, err := ml.Cat(tensors, int(n.Value))
+			if err != nil {
+				return newError("`cat` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`cat` joins a list of tensors along a dimension (same as torch.cat)",
+			signature:   "cat(tensors: list[tensor], dim: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "cat([a, b], 0) => Tensor{shape: [4 3]}",
+		}.String(),
+	},
+	{
+		Name: "_gather",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("gather", 3, args); err != nil {
+				return err
+			}
+			if err := checkArgType("gather", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			n, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("gather", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if err := checkArgType("gather", 3, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			out, err := ml.Gather(args[0].(*Tensor).T, int(n.Value), args[2].(*Tensor).T)
+			if err != nil {
+				return newError("`gather` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`gather` selects entries along a dimension using an index tensor (torch.gather)",
+			signature:   "gather(a: tensor, dim: int, index: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "gather(a, 1, idx) => Tensor{shape: [2 3]}",
+		}.String(),
+	},
+	{
 		Name: "_onehot",
 		Fun: func(args ...Object) Object {
 			if err := checkArgCount("onehot", 2, args); err != nil {
@@ -1044,6 +1174,31 @@ var MlBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_cross_entropy_grad",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("cross_entropy_grad", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("cross_entropy_grad", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("cross_entropy_grad", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			out, err := ml.CrossEntropyGrad(args[0].(*Tensor).T, args[1].(*Tensor).T)
+			if err != nil {
+				return newError("`cross_entropy_grad` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`cross_entropy_grad` returns the gradient of the mean cross-entropy loss with respect to the logits, for use as a compiled-backward seed",
+			signature:   "cross_entropy_grad(logits: tensor, target: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "cross_entropy_grad(tensor([[2.0, 1.0, 0.1]]), tensor([0.0])) => Tensor{shape: [1 3]}",
+		}.String(),
+	},
+	{
 		Name: "_mse_loss",
 		Fun: func(args ...Object) Object {
 			if err := checkArgCount("mse_loss", 2, args); err != nil {
@@ -1186,8 +1341,8 @@ var MlBuiltins = []*Builtin{
 			return &GoObj[*ml.Optimizer]{Value: opt}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`optim_sgd` builds a borncgo SGD optimizer over a list of parameter tensors",
-			signature:   "optim_sgd(params: list[tensor], lr: float, momentum: float) -> GoObj[*ml.Optimizer]",
+			explanation: "`optim_sgd` builds a borncgo SGD optimizer over a module's parameters",
+			signature:   "optim_sgd(params: list[GoObj[*ml.Param]], lr: float, momentum: float) -> GoObj[*ml.Optimizer]",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "optim_sgd(params, 0.01, 0.0) => GoObj[*ml.Optimizer]",
 		}.String(),
@@ -1225,8 +1380,8 @@ var MlBuiltins = []*Builtin{
 			return &GoObj[*ml.Optimizer]{Value: opt}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`optim_adam` builds a borncgo Adam optimizer over a list of parameter tensors",
-			signature:   "optim_adam(params: list[tensor], lr: float, beta1: float, beta2: float, eps: float) -> GoObj[*ml.Optimizer]",
+			explanation: "`optim_adam` builds a borncgo Adam optimizer over a module's parameters",
+			signature:   "optim_adam(params: list[GoObj[*ml.Param]], lr: float, beta1: float, beta2: float, eps: float) -> GoObj[*ml.Optimizer]",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "optim_adam(params, 0.001, 0.9, 0.999, 1e-8) => GoObj[*ml.Optimizer]",
 		}.String(),
@@ -1302,9 +1457,9 @@ var MlBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`linear` builds a borncgo Linear layer on a device",
-			signature:   "linear(in_features: int, out_features: int, dev: str='cpu') -> GoObj[*ml.Linear]",
+			signature:   "linear(in_features: int, out_features: int, dev: str='cpu') -> GoObj[*ml.Module]",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "linear(784, 128, 'gpu') => GoObj[*ml.Linear]",
+			example:     "linear(784, 128, 'gpu') => GoObj[*ml.Module]",
 		}.String(),
 	},
 	{
@@ -1320,9 +1475,9 @@ var MlBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`relu` builds a borncgo ReLU module",
-			signature:   "relu(dev: str='cpu') -> GoObj[*ml.ReLU]",
+			signature:   "relu(dev: str='cpu') -> GoObj[*ml.Module]",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "relu('cpu') => GoObj[*ml.ReLU]",
+			example:     "relu('cpu') => GoObj[*ml.Module]",
 		}.String(),
 	},
 	{
@@ -1338,9 +1493,9 @@ var MlBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`sigmoid` builds a borncgo Sigmoid module",
-			signature:   "sigmoid(dev: str='cpu') -> GoObj[*ml.Sigmoid]",
+			signature:   "sigmoid(dev: str='cpu') -> GoObj[*ml.Module]",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "sigmoid('cpu') => GoObj[*ml.Sigmoid]",
+			example:     "sigmoid('cpu') => GoObj[*ml.Module]",
 		}.String(),
 	},
 	{
@@ -1431,6 +1586,295 @@ var MlBuiltins = []*Builtin{
 			signature:   "nn_to(module: GoObj[*ml.Module], dev: str) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "nn_to(linear, 'gpu') => null",
+		}.String(),
+	},
+	{
+		Name: "_cast",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("cast", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("cast", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("cast", 2, STRING_OBJ, args); err != nil {
+				return err
+			}
+			dt, derr := ml.ParseDType(args[1].(*Stringo).Value)
+			if derr != nil {
+				return newError("`cast` error: %s", derr.Error())
+			}
+			out, err := args[0].(*Tensor).T.Cast(dt)
+			if err != nil {
+				return newError("`cast` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`cast` converts a tensor to another dtype",
+			signature:   "cast(a: tensor, datatype: str) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "cast(tensor([1.0]), 'int32') => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_nn_linear_act",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("linear_act", 3, args); err != nil {
+				return err
+			}
+			m, ok := args[0].(*GoObj[ml.Module])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("linear_act", 1, "*ml.Module", args[0])
+			}
+			if err := checkArgType("linear_act", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("linear_act", 3, BOOLEAN_OBJ, args); err != nil {
+				return err
+			}
+			out, err := ml.NNLinearForwardAct(m.Value, args[1].(*Tensor).T, args[2].(*Boolean).Value)
+			if err != nil {
+				return newError("`linear_act` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`linear_act` runs a Linear layer fused with the following activation (one dispatch)",
+			signature:   "linear_act(module: GoObj[*ml.Module], x: tensor, relu: bool) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "linear_act(linear, x, true) => Tensor{shape: [1 128]}",
+		}.String(),
+	},
+	{
+		Name: "_trace_begin",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 1, args); err != nil {
+				return err
+			}
+			if err := checkArgType("compile", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			tr, terr := ml.NewTracer(args[0].(*Tensor).T)
+			if terr != nil {
+				return newError("`compile` error: %s", terr.Error())
+			}
+			return &GoObj[*ml.Tracer]{Value: tr}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`trace_begin` starts a traced capture of a model's forward pass",
+			signature:   "trace_begin(example: tensor) -> GoObj[*ml.Tracer]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "trace_begin(x) => GoObj[*ml.Tracer]",
+		}.String(),
+	},
+	{
+		Name: "_trace_input",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 1, args); err != nil {
+				return err
+			}
+			tr, ok := args[0].(*GoObj[*ml.Tracer])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Tracer", args[0])
+			}
+			return &Tensor{T: tr.Value.InputTensor()}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`trace_input` returns the symbolic input for a traced capture",
+			signature:   "trace_input(tracer: GoObj[*ml.Tracer]) -> tensor",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "trace_input(tracer) => Tensor",
+		}.String(),
+	},
+	{
+		Name: "_trace_end",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 2, args); err != nil {
+				return err
+			}
+			tr, ok := args[0].(*GoObj[*ml.Tracer])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Tracer", args[0])
+			}
+			if err := checkArgType("compile", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			g, gerr := tr.Value.Finish(args[1].(*Tensor).T)
+			if gerr != nil {
+				return NULL
+			}
+			return &GoObj[*ml.Graph]{Value: g}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`trace_end` closes a traced capture at the model output; returns null when the forward could not be traced",
+			signature:   "trace_end(tracer: GoObj[*ml.Tracer], out: tensor) -> GoObj[*ml.Graph]|null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "trace_end(tracer, out) => GoObj[*ml.Graph]",
+		}.String(),
+	},
+	{
+		Name: "_graph_optimize",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 1, args); err != nil {
+				return err
+			}
+			g, ok := args[0].(*GoObj[*ml.Graph])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Graph", args[0])
+			}
+			g.Value.Optimize()
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`graph_optimize` runs the fusion and pruning passes over a captured graph",
+			signature:   "graph_optimize(graph: GoObj[*ml.Graph]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "graph_optimize(graph) => null",
+		}.String(),
+	},
+	{
+		Name: "_compiled_new",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 0, args); err != nil {
+				return err
+			}
+			return &GoObj[*ml.Compiled]{Value: ml.NewCompiled()}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compiled_new` creates a plan cache for a compiled model",
+			signature:   "compiled_new() -> GoObj[*ml.Compiled]",
+			errors:      "InvalidArgCount",
+			example:     "compiled_new() => GoObj[*ml.Compiled]",
+		}.String(),
+	},
+	{
+		Name: "_compiled_has_plan",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 2, args); err != nil {
+				return err
+			}
+			c, ok := args[0].(*GoObj[*ml.Compiled])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Compiled", args[0])
+			}
+			if err := checkArgType("compile", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			return nativeToBooleanObject(c.Value.Plan(args[1].(*Tensor).T) != nil)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compiled_has_plan` reports whether a plan exists for a tensor's shape (a guard hit)",
+			signature:   "compiled_has_plan(compiled: GoObj[*ml.Compiled], x: tensor) -> bool",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "compiled_has_plan(compiled, x) => true",
+		}.String(),
+	},
+	{
+		Name: "_compiled_install",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 3, args); err != nil {
+				return err
+			}
+			c, ok := args[0].(*GoObj[*ml.Compiled])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Compiled", args[0])
+			}
+			if err := checkArgType("compile", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			g, ok := args[2].(*GoObj[*ml.Graph])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 3, "*ml.Graph", args[2])
+			}
+			c.Value.Install(args[1].(*Tensor).T, g.Value)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compiled_install` installs a captured graph for an input shape",
+			signature:   "compiled_install(compiled: GoObj[*ml.Compiled], x: tensor, graph: GoObj[*ml.Graph]) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "compiled_install(compiled, x, graph) => null",
+		}.String(),
+	},
+	{
+		Name: "_compiled_run",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 2, args); err != nil {
+				return err
+			}
+			c, ok := args[0].(*GoObj[*ml.Compiled])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Compiled", args[0])
+			}
+			if err := checkArgType("compile", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			out, rerr := c.Value.Run(args[1].(*Tensor).T)
+			if rerr != nil {
+				return newError("`compile` error: %s", rerr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compiled_run` replays the cached plan for a tensor",
+			signature:   "compiled_run(compiled: GoObj[*ml.Compiled], x: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "compiled_run(compiled, x) => Tensor",
+		}.String(),
+	},
+	{
+		Name: "_compiled_stats",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compile", 1, args); err != nil {
+				return err
+			}
+			c, ok := args[0].(*GoObj[*ml.Compiled])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Compiled", args[0])
+			}
+			return &Stringo{Value: c.Value.Stats()}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compiled_stats` reports plan count and recompilations",
+			signature:   "compiled_stats(compiled: GoObj[*ml.Compiled]) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "compiled_stats(compiled) => 'plans=1 compiles=1 backwards=1'",
+		}.String(),
+	},
+	{
+		Name: "_compiled_backward",
+		Fun: func(args ...Object) Object {
+			if err := checkArgsCount("compile", []int{2, 3}, args); err != nil {
+				return err
+			}
+			c, ok := args[0].(*GoObj[*ml.Compiled])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("compile", 1, "*ml.Compiled", args[0])
+			}
+			if err := checkArgType("compile", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			x := args[1].(*Tensor).T
+			var err error
+			if len(args) == 3 {
+				if err := checkArgType("compile", 3, TENSOR_OBJ, args); err != nil {
+					return err
+				}
+				err = c.Value.BackwardWithSeed(x, args[2].(*Tensor).T)
+			} else {
+				err = c.Value.Backward(x)
+			}
+			if err != nil {
+				return newError("`compile` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compiled_backward` runs the compiled backward for a tensor, filling parameter gradients; an optional seed is the loss gradient w.r.t. the output",
+			signature:   "compiled_backward(compiled: GoObj[*ml.Compiled], x: tensor, seed: tensor=null) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "compiled_backward(compiled, x) => null",
 		}.String(),
 	},
 }

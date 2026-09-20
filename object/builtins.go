@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"log"
 	"math/big"
@@ -4033,6 +4034,27 @@ func GetNameOfModuleByIndex(index int) string {
 		}
 	}
 	return ""
+}
+
+// BuiltinFingerprint returns a stable hash of the builtin surface: the module
+// order, and the name of every builtin within each module, in slot order.
+//
+// Bytecode addresses builtins by (module index, slot index), so any change to
+// this list (adding, removing or reordering a builtin) makes previously
+// compiled images invalid. The run cache folds this into the build
+// fingerprint so stale images are never served against a different surface.
+func BuiltinFingerprint() uint64 {
+	h := fnv.New64a()
+	for _, mod := range AllBuiltins {
+		_, _ = h.Write([]byte(mod.Name))
+		_, _ = h.Write([]byte{0})
+		for _, b := range mod.Builtins {
+			_, _ = h.Write([]byte(b.Name))
+			_, _ = h.Write([]byte{0})
+		}
+		_, _ = h.Write([]byte{1})
+	}
+	return h.Sum64()
 }
 
 func GetIndexAndBuiltinsOf(name string) (int, []*Builtin) {

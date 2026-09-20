@@ -173,6 +173,61 @@ func (b *AutodiffBackend[B]) MatMul(a, c *tensor.RawTensor) *tensor.RawTensor {
 	return result
 }
 
+// matMulTransposedBackend is implemented by backends that can multiply with
+// transposed operands without materializing the transpose first.
+type matMulTransposedBackend interface {
+	MatMulTransposed(a, b *tensor.RawTensor, transA, transB bool) *tensor.RawTensor
+}
+
+// MatMulTransposed computes op(a) @ op(other). Backends that support transposed
+// operands handle it directly; others fall back to materializing the transposes.
+// It records no tape node because it is only used inside a backward pass, when
+// recording is already disabled.
+func (b *AutodiffBackend[B]) MatMulTransposed(a, other *tensor.RawTensor, transA, transB bool) *tensor.RawTensor {
+	if tb, ok := any(b.inner).(matMulTransposedBackend); ok {
+		return tb.MatMulTransposed(a, other, transA, transB)
+	}
+	x, y := a, other
+	if transA {
+		x = b.inner.Transpose(a, 1, 0)
+	}
+	if transB {
+		y = b.inner.Transpose(other, 1, 0)
+	}
+	return b.inner.MatMul(x, y)
+}
+
+// matMulBiasBackend is implemented by backends with a fused matmul+bias(+relu).
+type matMulBiasBackend interface {
+	MatMulBias(a, b, bias *tensor.RawTensor, relu bool) *tensor.RawTensor
+}
+
+// MatMulBias computes relu(a @ b^T + bias) in one dispatch when the inner
+// backend supports it, and records a fused MatMulBiasOp so the backward works
+// without materializing the intermediate matmul or add results.
+func (b *AutodiffBackend[B]) MatMulBias(a, other, bias *tensor.RawTensor, relu bool) *tensor.RawTensor {
+	defer a.ForceNonUnique()()
+	defer other.ForceNonUnique()()
+
+	var result *tensor.RawTensor
+	if mb, ok := any(b.inner).(matMulBiasBackend); ok {
+		result = mb.MatMulBias(a, other, bias, relu)
+	} else {
+		wT := b.inner.Transpose(other, 1, 0)
+		result = b.inner.MatMul(a, wT)
+		bias2 := b.inner.Reshape(bias, tensor.Shape{1, other.Shape()[0]})
+		result = b.inner.Add(result, bias2)
+		if relu {
+			result = b.inner.ReLU(result)
+		}
+	}
+
+	if b.tape.IsRecording() {
+		b.tape.Record(ops.NewMatMulBiasOp(a, other, bias, result, relu))
+	}
+	return result
+}
+
 // BatchMatMul performs batched matrix multiplication and records the operation.
 func (b *AutodiffBackend[B]) BatchMatMul(a, c *tensor.RawTensor) *tensor.RawTensor {
 	defer a.ForceNonUnique()()

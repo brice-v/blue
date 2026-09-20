@@ -91,6 +91,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 // matmulShader performs matrix multiplication: C = A @ B.
 // A is [M, K], B is [K, N], C is [M, N].
+// matmulShader performs C = A @ B with a shared-memory tiled kernel.
+//
+// Each 16x16 workgroup computes a 16x16 output tile. The naive per-element
+// K-loop read A and B from global memory M*N*K*2 times, which is bandwidth
+// bound on every GPU; staging a 16x16 block of each into workgroup memory makes
+// each element read O(M*N + N*K) / TILE times instead, which is the standard
+// SGEMM tiling and is device independent.
 const matmulShader = `
 @group(0) @binding(0) var<storage, read> a: array<f32>;
 @group(0) @binding(1) var<storage, read> b: array<f32>;
@@ -103,28 +110,197 @@ struct Params {
 }
 @group(0) @binding(3) var<uniform> params: Params;
 
-@compute @workgroup_size(16, 16)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let row = global_id.y;
-    let col = global_id.x;
+// One 16x16 workgroup per 16x16 output tile, one output per thread, A and B
+// staged in workgroup memory. A 32x32 tile with a 2x2 register micro-tile was
+// measurably slower on an integrated GPU because it cuts the thread count 4x
+// and this class of GPU needs the extra threads for latency hiding.
+const TILE: u32 = 16u;
+var<workgroup> tileA: array<f32, 256>;
+var<workgroup> tileB: array<f32, 256>;
 
-    if (row >= params.M || col >= params.N) {
-        return;
-    }
+@compute @workgroup_size(16, 16)
+fn main(
+    @builtin(local_invocation_id) lid: vec3<u32>,
+    @builtin(workgroup_id) wid: vec3<u32>,
+) {
+    let lx = lid.x;
+    let ly = lid.y;
+    let row = wid.y * TILE + ly;
+    let col = wid.x * TILE + lx;
 
     var sum: f32 = 0.0;
-    for (var k: u32 = 0u; k < params.K; k = k + 1u) {
-        let a_idx = row * params.K + k;
-        let b_idx = k * params.N + col;
-        sum = sum + a[a_idx] * b[b_idx];
+    let tiles = (params.K + TILE - 1u) / TILE;
+
+    for (var t: u32 = 0u; t < tiles; t = t + 1u) {
+        let aCol = t * TILE + lx;
+        if (row < params.M && aCol < params.K) {
+            tileA[ly * TILE + lx] = a[row * params.K + aCol];
+        } else {
+            tileA[ly * TILE + lx] = 0.0;
+        }
+        let bRow = t * TILE + ly;
+        if (bRow < params.K && col < params.N) {
+            tileB[ly * TILE + lx] = b[bRow * params.N + col];
+        } else {
+            tileB[ly * TILE + lx] = 0.0;
+        }
+        workgroupBarrier();
+        for (var k: u32 = 0u; k < TILE; k = k + 1u) {
+            sum = sum + tileA[ly * TILE + k] * tileB[k * TILE + lx];
+        }
+        workgroupBarrier();
     }
 
-    let c_idx = row * params.N + col;
-    result[c_idx] = sum;
+    if (row < params.M && col < params.N) {
+        result[row * params.N + col] = sum;
+    }
+}
+`
+
+// matmulBiasShader fuses a Linear layer epilogue: y = relu(x @ W^T + bias).
+// W is stored [N, K] (out, in) like nn.Linear. Fusing the bias add and the
+// activation into the matmul kernel removes two dispatches and, more
+// importantly, one full write and reread of the [M, N] activation.
+const matmulBiasShader = `
+@group(0) @binding(0) var<storage, read> a: array<f32>;
+@group(0) @binding(1) var<storage, read> b: array<f32>;
+@group(0) @binding(2) var<storage, read> bias: array<f32>;
+@group(0) @binding(3) var<storage, read_write> result: array<f32>;
+
+struct Params {
+    M: u32,
+    K: u32,
+    N: u32,
+    relu: u32,
+}
+@group(0) @binding(4) var<uniform> params: Params;
+
+const TILE: u32 = 16u;
+var<workgroup> tileA: array<f32, 256>;
+var<workgroup> tileB: array<f32, 256>;
+
+@compute @workgroup_size(16, 16)
+fn main(
+    @builtin(local_invocation_id) lid: vec3<u32>,
+    @builtin(workgroup_id) wid: vec3<u32>,
+) {
+    let lx = lid.x;
+    let ly = lid.y;
+    let row = wid.y * TILE + ly;
+    let col = wid.x * TILE + lx;
+
+    var sum: f32 = 0.0;
+    let tiles = (params.K + TILE - 1u) / TILE;
+
+    for (var t: u32 = 0u; t < tiles; t = t + 1u) {
+        let aCol = t * TILE + lx;
+        if (row < params.M && aCol < params.K) {
+            tileA[ly * TILE + lx] = a[row * params.K + aCol];
+        } else {
+            tileA[ly * TILE + lx] = 0.0;
+        }
+        // W is [N, K]: logical W^T[k, col] = b[col * K + k].
+        let kB = t * TILE + ly;
+        if (kB < params.K && col < params.N) {
+            tileB[ly * TILE + lx] = b[col * params.K + kB];
+        } else {
+            tileB[ly * TILE + lx] = 0.0;
+        }
+        workgroupBarrier();
+        for (var k: u32 = 0u; k < TILE; k = k + 1u) {
+            sum = sum + tileA[ly * TILE + k] * tileB[k * TILE + lx];
+        }
+        workgroupBarrier();
+    }
+
+    if (row < params.M && col < params.N) {
+        var v = sum + bias[col];
+        if (params.relu != 0u) {
+            v = max(v, 0.0);
+        }
+        result[row * params.N + col] = v;
+    }
+}
+`
+
+// matmulFlagsShader is matmulShader with optional transposed operands, so the
+// matmul backward can compute G @ B^T and A^T @ G without materializing B^T and
+// A^T first (two extra full-size copies and dispatches per matmul).
+//
+// transA: a is stored [K, M] instead of [M, K].
+// transB: b is stored [N, K] instead of [K, N].
+const matmulFlagsShader = `
+@group(0) @binding(0) var<storage, read> a: array<f32>;
+@group(0) @binding(1) var<storage, read> b: array<f32>;
+@group(0) @binding(2) var<storage, read_write> result: array<f32>;
+
+struct Params {
+    M: u32,
+    K: u32,
+    N: u32,
+    transA: u32,
+    transB: u32,
+}
+@group(0) @binding(3) var<uniform> params: Params;
+
+const TILE: u32 = 16u;
+var<workgroup> tileA: array<f32, 256>;
+var<workgroup> tileB: array<f32, 256>;
+
+@compute @workgroup_size(16, 16)
+fn main(
+    @builtin(local_invocation_id) lid: vec3<u32>,
+    @builtin(workgroup_id) wid: vec3<u32>,
+) {
+    let lx = lid.x;
+    let ly = lid.y;
+    let row = wid.y * TILE + ly;
+    let col = wid.x * TILE + lx;
+
+    var sum: f32 = 0.0;
+    let tiles = (params.K + TILE - 1u) / TILE;
+
+    for (var t: u32 = 0u; t < tiles; t = t + 1u) {
+        let kk = t * TILE + lx;
+        var av: f32 = 0.0;
+        if (row < params.M && kk < params.K) {
+            if (params.transA == 0u) {
+                av = a[row * params.K + kk];
+            } else {
+                av = a[kk * params.M + row];
+            }
+        }
+        tileA[ly * TILE + lx] = av;
+
+        let kb = t * TILE + ly;
+        var bv: f32 = 0.0;
+        if (kb < params.K && col < params.N) {
+            if (params.transB == 0u) {
+                bv = b[kb * params.N + col];
+            } else {
+                bv = b[col * params.K + kb];
+            }
+        }
+        tileB[ly * TILE + lx] = bv;
+
+        workgroupBarrier();
+        for (var k: u32 = 0u; k < TILE; k = k + 1u) {
+            sum = sum + tileA[ly * TILE + k] * tileB[k * TILE + lx];
+        }
+        workgroupBarrier();
+    }
+
+    if (row < params.M && col < params.N) {
+        result[row * params.N + col] = sum;
+    }
 }
 `
 
 // transposeShader transposes a 2D matrix.
+// transposeShader transposes a 2D matrix with a shared-memory tile, so both the
+// read from the input and the write to the output are coalesced. A direct
+// gather/scatter reads one row-major stream and writes a column-major one,
+// which is uncoalesced on the write side.
 const transposeShader = `
 @group(0) @binding(0) var<storage, read> input: array<f32>;
 @group(0) @binding(1) var<storage, read_write> result: array<f32>;
@@ -135,18 +311,33 @@ struct Params {
 }
 @group(0) @binding(2) var<uniform> params: Params;
 
+const TILE: u32 = 16u;
+var<workgroup> tile: array<f32, 256>;
+
 @compute @workgroup_size(16, 16)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let row = global_id.y;
-    let col = global_id.x;
+fn main(
+    @builtin(local_invocation_id) lid: vec3<u32>,
+    @builtin(workgroup_id) wid: vec3<u32>,
+) {
+    let tx = lid.x;
+    let ty = lid.y;
+    let baseRow = wid.y * TILE;
+    let baseCol = wid.x * TILE;
 
-    if (row >= params.rows || col >= params.cols) {
-        return;
+    let rr = baseRow + ty;
+    let cc = baseCol + tx;
+    if (rr < params.rows && cc < params.cols) {
+        tile[ty * TILE + tx] = input[rr * params.cols + cc];
     }
+    workgroupBarrier();
 
-    let in_idx = row * params.cols + col;
-    let out_idx = col * params.rows + row;
-    result[out_idx] = input[in_idx];
+    // result[cc, rr] = input[rr, cc]; consecutive tx write consecutive result
+    // columns for a fixed result row.
+    let orow = baseCol + ty;
+    let ocol = baseRow + tx;
+    if (orow < params.cols && ocol < params.rows) {
+        result[orow * params.rows + ocol] = tile[tx * TILE + ty];
+    }
 }
 `
 

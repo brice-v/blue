@@ -5,6 +5,7 @@ package cpu
 import (
 	"math"
 	"math/rand"
+	"runtime/debug"
 	"testing"
 
 	"blue/borncgo/internal/tensor"
@@ -189,15 +190,16 @@ func TestMatMulGemmDispatch(t *testing.T) {
 // allocations in steady state (the micro-kernel is //go:noescape; the driver
 // reslices and reuses pooled packing scratch).
 //
-// Skipped under -short (which CI uses, alongside -race): the scratch lives in a
-// package-global sync.Pool that every other matmul test now exercises through the
-// always-on dispatch, so AllocsPerRun can attribute a spurious per-call allocation
-// to pool churn or race-detector bookkeeping, and that varies by platform. This is
-// a deterministic local check (go test, no -short); a regression that dropped
-// pooling would allocate the packing buffers on every call regardless.
+// Skipped under -short and under the race detector (raceEnabled): the scratch
+// lives in a package-global sync.Pool, and both the race detector's shadow
+// allocations and the reduced -short test set make AllocsPerRun attribute
+// spurious per-call allocations to pool churn, which varies by platform. This
+// is a deterministic local check (go test, no -short, no -race); a regression
+// that dropped pooling would allocate the packing buffers on every call
+// regardless.
 func TestGemmAVX2F32NoAllocs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("AllocsPerRun over the shared sync.Pool is unreliable under -short -race")
+	if testing.Short() || raceEnabled {
+		t.Skip("AllocsPerRun is unreliable under -short and under the race detector")
 	}
 	if !cpu.X86.HasAVX2 || !cpu.X86.HasFMA {
 		t.Skip("AVX2+FMA not available on this CPU")
@@ -207,6 +209,15 @@ func TestGemmAVX2F32NoAllocs(t *testing.T) {
 	a := randSliceF32(r, m*k)
 	b := randSliceF32(r, k*n)
 	c := make([]float32, m*n)
+
+	// The packing scratch lives in a sync.Pool, which the GC can clear at any
+	// time. A cleared pool makes the next Get allocate, which AllocsPerRun would
+	// attribute to the kernel even though steady-state use is allocation free.
+	// Disable the GC for the measurement and prime the pool first.
+	prevGC := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(prevGC)
+	gemmAVX2F32(c, a, b, m, k, n) // warmup, primes the scratch pool
+
 	if allocs := testing.AllocsPerRun(20, func() { gemmAVX2F32(c, a, b, m, k, n) }); allocs != 0 {
 		t.Errorf("gemmAVX2F32 allocated %v times, want 0", allocs)
 	}

@@ -189,8 +189,10 @@ assert(same(ml.sum(a=r, dim=1, keepdim=true), ml.tensor([[6.0], [15.0]])));
 assert(same(r.mean(0), ml.tensor([2.5, 3.5, 4.5])));
 assert(same(r.max(1), ml.tensor([3.0, 6.0])));
 assert(same(r.min(1), ml.tensor([1.0, 4.0])));
-assert(same(r.argmax(1), ml.tensor([2.0, 2.0])));
-assert(same(r.argmin(1), ml.tensor([0.0, 0.0])));
+# argmax/argmin return integer tensors, like PyTorch
+assert(to_list(r.argmax(1)) == [2, 2]);
+assert(to_list(r.argmin(1)) == [0, 0]);
+assert(r.argmax(1).dtype == "int32");
 assert(ml.sum(r).item() == 21.0);
 assert(ml.mean(r).item() == 3.5);
 
@@ -325,3 +327,159 @@ val C = A.matmul(B).relu();
 val L = C.sum();
 L.backward();
 assert(type(B.grad) == "TENSOR");
+
+# --- 19. TARGET: graph compiler (ml.compile) --------------------------------
+
+val cmodel = ml.nn.Sequential([ml.nn.Linear(4, 8), ml.nn.ReLU(), ml.nn.Linear(8, 3)]);
+val cx = ml.tensor([[0.1, 0.2, 0.3, 0.4], [0.5, -0.6, 0.7, -0.8], [1.0, 0.9, -0.8, 0.7]]);
+val eager_out = cmodel.forward(cx);
+
+# compile captures the forward, fuses and prunes it, then replays it
+val compiled = ml.compile(cmodel, cx);
+assert(close(compiled.forward(cx), eager_out));
+assert(type(compiled.stats()) == "STRING");
+
+# replay runs real ops, so the tape still records and training works; this also
+# checks that parameters stay rebound across optimizer steps
+val cy = ml.tensor([0, 2, 1], datatype=ml.dtype.int32);
+val copt = ml.optim.Adam(compiled.parameters(), lr=0.05);
+var cfirst = 0.0;
+var clast = 0.0;
+for (i in 1..100) {
+    copt.zero_grad();
+    val closs = ml.cross_entropy(compiled.forward(cx), cy);
+    closs.backward();
+    copt.step();
+    if (i == 1) { cfirst = closs.item(); }
+    clast = closs.item();
+}
+assert(clast < cfirst);
+
+# --- 20. TARGET: cat / gather --------------------------------------
+
+val ca = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]); # [2, 3]
+val cb = ml.tensor([[7.0, 8.0, 9.0]]);                    # [1, 3]
+
+assert(ml.cat([ca, cb], 0).shape == [3, 3]);
+assert(same(ml.cat([ca, cb], 0), ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])));
+
+# cat is differentiable: each operand gets a gradient of ones
+val cp = ml.tensor([[1.0, 2.0]], requires_grad=true);
+val cq = ml.tensor([[3.0, 4.0]], requires_grad=true);
+ml.sum(ml.cat([cp, cq], 1)).backward();
+assert(same(cp.grad, ml.tensor([[1.0, 1.0]])));
+assert(same(cq.grad, ml.tensor([[1.0, 1.0]])));
+
+# gather selects along a dim, torch.gather style
+val gidx = ml.tensor([[0, 2], [2, 0]], datatype=ml.dtype.int32);
+assert(same(ml.gather(ca, 1, gidx), ml.tensor([[1.0, 3.0], [6.0, 4.0]])));
+
+# gather scatters its gradient back to the selected positions
+val gx = ml.tensor([[1.0, 2.0, 3.0]], requires_grad=true);
+val gsel = ml.tensor([[2, 0]], datatype=ml.dtype.int32);
+ml.sum(ml.gather(gx, 1, gsel)).backward();
+assert(same(gx.grad, ml.tensor([[1.0, 0.0, 1.0]])));
+
+# --- 21. TARGET: compiled model recompiles across shapes --------------------
+
+val rmodel = ml.nn.Sequential([ml.nn.Linear(4, 8), ml.nn.ReLU(), ml.nn.Linear(8, 2)]);
+val rx2 = ml.tensor([[0.1, 0.2, 0.3, 0.4], [0.5, -0.6, 0.7, -0.8]]);
+val rcompiled = ml.compile(rmodel, rx2);
+assert(rcompiled.forward(rx2).shape == [2, 2]);
+
+# A different batch size recompiles rather than erroring, and matches eager.
+val rx1 = ml.tensor([[0.1, 0.2, 0.3, 0.4]]);
+assert(rcompiled.forward(rx1).shape == [1, 2]);
+assert(close(rcompiled.forward(rx1), rmodel.forward(rx1)));
+
+# Calling the same shape again is a cache hit (no growth in plan count).
+val before = rcompiled.stats();
+rcompiled.forward(rx1);
+assert(rcompiled.stats() == before);
+
+# Training through the recompiled model still works: parameters stay bound
+# across optimizer steps even after a recompile.
+val ry = ml.tensor([0, 1], datatype=ml.dtype.int32);
+val ropt = ml.optim.Adam(rcompiled.parameters(), lr=0.05);
+var rfirst = 0.0;
+var rlast = 0.0;
+for (i in 1..60) {
+    ropt.zero_grad();
+    val rloss = ml.cross_entropy(rcompiled.forward(rx2), ry);
+    rloss.backward();
+    ropt.step();
+    if (i == 1) { rfirst = rloss.item(); }
+    rlast = rloss.item();
+}
+assert(rlast < rfirst);
+
+# --- 22. TARGET: compiled backward ------------------------------------------
+
+# The compiled backward differentiates the captured forward graph, fusing the
+# backward's own elementwise chains. With an explicit seed (the loss gradient
+# w.r.t. the output) it trains the same objective as the eager backward.
+val bwmodel = ml.nn.Sequential([ml.nn.Linear(4, 12), ml.nn.ReLU(), ml.nn.Linear(12, 1)]);
+val bwX = ml.tensor([[0.1, 0.2, 0.3, 0.4], [0.5, -0.6, 0.7, -0.8], [1.0, 0.9, -0.8, 0.7]]);
+val bwY = ml.full([3, 1], 0.0);
+val bwCompiled = ml.compile(bwmodel, bwX);
+val bwOpt = ml.optim.Adam(bwCompiled.parameters(), lr=0.05);
+var bwFirst = 0.0;
+var bwLast = 0.0;
+for (i in 1..200) {
+    val out = bwCompiled.forward(bwX);
+    val diff = ml.sub(out, bwY);
+    val loss = ml.mean(ml.mul(diff, diff));
+    # d(mean squared error)/d(out) = 2*(out - y)/n
+    val seed = ml.div(ml.mul(diff, 2.0), 3.0);
+    bwOpt.zero_grad();
+    bwCompiled.backward(bwX, seed);
+    bwOpt.step();
+    if (i == 1) { bwFirst = loss.item(); }
+    bwLast = loss.item();
+}
+assert(bwLast < bwFirst);
+
+# without a seed it differentiates the sum of the output
+bwCompiled.backward(bwX);
+
+# --- 23. TARGET: compiled cross-entropy training ----------------------------
+
+# cross_entropy_grad is d(mean cross-entropy)/d(logits). Passing it as the
+# compiled backward seed trains a classifier through the compiled backward, so
+# the loss stays outside the captured graph while the backward is compiled.
+val cemodel = ml.nn.Sequential([ml.nn.Linear(4, 12), ml.nn.ReLU(), ml.nn.Linear(12, 3)]);
+val ceX = ml.tensor([[0.1, 0.2, 0.3, 0.4], [0.5, -0.6, 0.7, -0.8], [1.0, 0.9, -0.8, 0.7], [0.2, 0.3, -0.4, 0.5]]);
+val ceY = ml.tensor([0, 2, 1, 0], datatype=ml.dtype.int32);
+val ceCompiled = ml.compile(cemodel, ceX);
+val ceOpt = ml.optim.Adam(ceCompiled.parameters(), lr=0.05);
+var ceFirst = 0.0;
+var ceLast = 0.0;
+for (i in 1..200) {
+    val logits = ceCompiled.forward(ceX);
+    val loss = ml.cross_entropy(logits, ceY);
+    val seed = ml.cross_entropy_grad(logits, ceY);
+    ceOpt.zero_grad();
+    ceCompiled.backward(ceX, seed);
+    ceOpt.step();
+    if (i == 1) { ceFirst = loss.item(); }
+    ceLast = loss.item();
+}
+assert(ceLast < ceFirst);
+
+# --- 24. TARGET: compile eager fallback -------------------------------------
+
+# A forward that reads host data (here .item()) cannot be captured. ml.compile
+# must fall back to eager execution rather than failing or mis-compiling.
+var fbmodel = {};
+fbmodel.forward = fun(x) { return ml.add(x, ml.mean(x).item()); };
+fbmodel.parameters = fun() { return []; };
+fbmodel.to = fun(dev) { return fbmodel; };
+val fbx = ml.tensor([[1.0, 2.0, 3.0, 4.0]]);
+val fbc = ml.compile(fbmodel, fbx);
+assert(fbc.is_eager());
+assert(same(fbc.forward(fbx), ml.add(fbx, 2.5)));
+assert(fbc.stats() == "eager-fallback");
+
+# A traceable model stays compiled (no fallback).
+val okc = ml.compile(ml.nn.Sequential([ml.nn.Linear(4, 4), ml.nn.ReLU(), ml.nn.Linear(4, 2)]), fbx);
+assert(!okc.is_eager());

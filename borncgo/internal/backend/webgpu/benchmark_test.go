@@ -268,7 +268,9 @@ func BenchmarkWebGPU_Combined_1M(b *testing.B)   { benchmarkCombinedOps(b, "webg
 // Summary Report Generator (run with -v flag)
 // =============================================================================
 
-func TestPrintBenchmarkInfo(_ *testing.T) {
+// BenchmarkPrintBenchmarkInfo prints environment info. It is a benchmark so it
+// only runs with -bench, not during a normal `go test`.
+func BenchmarkPrintBenchmarkInfo(_ *testing.B) {
 	fmt.Println("\n" + "=" + "===========================================")
 	fmt.Println("  Born ML Framework - Benchmark Suite")
 	fmt.Println("============================================")

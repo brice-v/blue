@@ -188,6 +188,8 @@ func (t *Tensor) Get(property string) (Object, error) {
 		}), nil
 	case "to":
 		return t.toMethod(), nil
+	case "cast":
+		return t.castMethod(), nil
 	}
 	return nil, fmt.Errorf("unsupported property on tensor: %s", property)
 }
@@ -372,7 +374,8 @@ func (t *Tensor) listMethod(name string, f func(*ml.Tensor, []int) (*ml.Tensor, 
 	}
 }
 
-// toMethod builds a.to(dev), a device transfer like PyTorch's Tensor.to.
+// toMethod builds a.to(dev_or_dtype), like PyTorch's Tensor.to: a device name
+// moves the tensor, a dtype name casts it.
 func (t *Tensor) toMethod() *Builtin {
 	return &Builtin{
 		Name: "to",
@@ -384,13 +387,45 @@ func (t *Tensor) toMethod() *Builtin {
 			if !ok {
 				return newPositionalTypeError("to", 1, STRING_OBJ, args[0].Type())
 			}
-			dev, derr := ml.ParseDevice(s.Value)
-			if derr != nil {
-				return newError("`to` error: %s", derr.Error())
+			if dev, derr := ml.ParseDevice(s.Value); derr == nil {
+				out, err := t.T.To(dev)
+				if err != nil {
+					return newError("`to` error: %s", err.Error())
+				}
+				return &Tensor{T: out}
 			}
-			out, err := t.T.To(dev)
+			dt, derr := ml.ParseDType(s.Value)
+			if derr != nil {
+				return newError("`to` error: expected a device (cpu/gpu) or dtype (float32/float64/int32/int64/uint8/bool), got %q", s.Value)
+			}
+			out, err := t.T.Cast(dt)
 			if err != nil {
 				return newError("`to` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+	}
+}
+
+// castMethod builds a.cast(dtype), an explicit dtype conversion.
+func (t *Tensor) castMethod() *Builtin {
+	return &Builtin{
+		Name: "cast",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("cast", 1, args); err != nil {
+				return err
+			}
+			s, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("cast", 1, STRING_OBJ, args[0].Type())
+			}
+			dt, derr := ml.ParseDType(s.Value)
+			if derr != nil {
+				return newError("`cast` error: %s", derr.Error())
+			}
+			out, err := t.T.Cast(dt)
+			if err != nil {
+				return newError("`cast` error: %s", err.Error())
 			}
 			return &Tensor{T: out}
 		},

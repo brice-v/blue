@@ -121,6 +121,48 @@ func (b *Backend) MatMul(a, other *tensor.RawTensor) *tensor.RawTensor {
 	return result
 }
 
+// MatMulTransposed computes op(A) @ op(B) where op(X) is X or X^T. The autograd
+// matmul backward uses it to avoid materializing B^T and A^T first.
+func (b *Backend) MatMulTransposed(a, other *tensor.RawTensor, transA, transB bool) *tensor.RawTensor {
+	if b.LazyMode {
+		result, err := b.runMatMulTransposedLazy(a, other, transA, transB)
+		if err != nil {
+			panic("webgpu: MatMulTransposed: " + err.Error())
+		}
+		return result
+	}
+
+	// Non-lazy fallback: materialize the transposes, then multiply.
+	x, y := a, other
+	if transA {
+		x = b.Transpose(a, 1, 0)
+	}
+	if transB {
+		y = b.Transpose(other, 1, 0)
+	}
+	return b.MatMul(x, y)
+}
+
+// MatMulBias computes y = relu(x @ W^T + bias) where W is stored [N, K], the
+// fused Linear epilogue, in one dispatch.
+func (b *Backend) MatMulBias(a, other, bias *tensor.RawTensor, relu bool) *tensor.RawTensor {
+	if b.LazyMode {
+		result, err := b.runMatMulBiasLazy(a, other, bias, relu)
+		if err != nil {
+			panic("webgpu: MatMulBias: " + err.Error())
+		}
+		return result
+	}
+	out := b.MatMulTransposed(a, other, false, true)
+	n := other.Shape()[0]
+	bias2 := b.Reshape(bias, tensor.Shape{1, n})
+	out = b.Add(out, bias2)
+	if relu {
+		out = b.ReLU(out)
+	}
+	return out
+}
+
 // BatchMatMul performs batched matrix multiplication on GPU.
 // Supports 3D tensors [batch, M, K] @ [batch, K, N] -> [batch, M, N]
 // and 4D tensors [batch, heads, M, K] @ [batch, heads, K, N].

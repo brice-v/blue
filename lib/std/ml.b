@@ -48,6 +48,8 @@ val __manual_seed = _manual_seed;
 val __slice = _slice;
 val __clamp = _clamp;
 val __where = _where;
+val __cat = _cat;
+val __gather = _gather;
 val __onehot = _onehot;
 val __set_requires_grad = _set_requires_grad;
 val __requires_grad = _requires_grad;
@@ -56,6 +58,7 @@ val __grad = _grad;
 val __zero_grad = _zero_grad;
 val __set_grad_enabled = _set_grad_enabled;
 val __cross_entropy = _cross_entropy;
+val __cross_entropy_grad = _cross_entropy_grad;
 val __mse_loss = _mse_loss;
 val __add_ = _add_;
 val __sub_ = _sub_;
@@ -72,13 +75,27 @@ val __nn_relu = _nn_relu;
 val __nn_sigmoid = _nn_sigmoid;
 val __nn_forward = _nn_forward;
 val __nn_parameters = _nn_parameters;
+val __nn_linear_act = _nn_linear_act;
 val __nn_to = _nn_to;
 val __gpu_is_available = _gpu_is_available;
+val __cast = _cast;
+val __trace_begin = _trace_begin;
+val __trace_input = _trace_input;
+val __trace_end = _trace_end;
+val __graph_optimize = _graph_optimize;
+val __compiled_new = _compiled_new;
+val __compiled_has_plan = _compiled_has_plan;
+val __compiled_install = _compiled_install;
+val __compiled_run = _compiled_run;
+val __compiled_stats = _compiled_stats;
+val __compiled_backward = _compiled_backward;
 
 val dtype = {
     'float32': 'float32',
     'float64': 'float64',
     'int32': 'int32',
+    'int64': 'int64',
+    'uint8': 'uint8',
     'bool': 'bool',
 };
 
@@ -480,6 +497,25 @@ fun where(condition, a, b) {
     __where(condition, a, b)
 }
 
+fun cat(tensors, dim=0) {
+    ##std:this,__cat
+    ## `cat` joins a list of tensors along `dim`, like torch.cat. Every tensor
+    ## must share all dimensions except `dim`.
+    ##
+    ## cat(tensors: list[tensor], dim: int=0) -> tensor
+    __cat(tensors, dim)
+}
+
+fun gather(a, dim, index) {
+    ##std:this,__gather
+    ## `gather` selects entries along `dim` using an int index tensor, matching
+    ## torch.gather (out[i][j] = a[i][index[i][j]] for dim=1). It is
+    ## differentiable, so it can be used inside models.
+    ##
+    ## gather(a: tensor, dim: int, index: tensor) -> tensor
+    __gather(a, dim, index)
+}
+
 fun onehot(labels, classes) {
     ##std:this,__onehot
     ## `onehot` turns a 1d label tensor into a [n, classes] matrix.
@@ -548,12 +584,99 @@ fun cross_entropy(logits, target) {
     __cross_entropy(logits, target)
 }
 
+fun cross_entropy_grad(logits, target) {
+    ##std:this,__cross_entropy_grad
+    ## `cross_entropy_grad` returns d(mean cross-entropy)/d(logits), the seed a
+    ## compiled backward needs when the loss is kept outside the compiled graph.
+    ##
+    ## cross_entropy_grad(logits: tensor, target: tensor) -> tensor
+    __cross_entropy_grad(logits, target)
+}
+
 fun mse_loss(predictions, targets) {
     ##std:this,__mse_loss
     ## `mse_loss` returns the mean squared error between two tensors of equal shape.
     ##
     ## mse_loss(predictions: tensor, targets: tensor) -> tensor
     __mse_loss(predictions, targets)
+}
+
+fun run_eager(m, x) { m.forward(x); }
+
+fun compile(model, example) {
+    ##std:this,__compiled_new,__trace_begin,__trace_input,__trace_end,__graph_optimize,__compiled_has_plan,__compiled_install,__compiled_run,__compiled_stats,__compiled_backward
+    ## `compile` captures a model's forward pass, fuses and prunes the recorded
+    ## graph, and returns a module whose forward replays it.
+    ##
+    ## The graph is specialised for the example's shape, dtype and device. A
+    ## call with a different signature recompiles automatically (torch.compile
+    ## guards work the same way), so the same compiled model works across batch
+    ## sizes.
+    ##
+    ## A forward that uses an op the tracer cannot record, or that reads host
+    ## data, falls back to eager execution rather than failing, so ml.compile
+    ## never makes a working model stop working.
+    ##
+    ## compile(model: module, example: tensor) -> module
+    val cache = __compiled_new();
+
+    var this = {};
+    this.__cache = cache;
+    this.__model = model;
+    # Mutable state lives on the map, not in a captured local: blue closures
+    # capture captured variables by value, so a local flag would not propagate.
+    this.__fellback = false;
+    this.is_eager = fun() { return this.__fellback; };
+    this.stats = fun() {
+        if (this.__fellback) { return "eager-fallback"; }
+        return __compiled_stats(cache);
+    };
+    this.forward = fun(x) {
+        val xin = x;
+        if (this.__fellback) { return run_eager(model, xin); }
+        if (!__compiled_has_plan(cache, xin)) {
+            val tracer = __trace_begin(xin);
+            val out = model.forward(__trace_input(tracer));
+            val graph = __trace_end(tracer, out);
+            if (graph == null) {
+                # The forward uses an op the tracer cannot record, or reads host
+                # data. Run it eagerly from here on instead of failing.
+                this.__fellback = true;
+                return run_eager(model, xin);
+            }
+            __graph_optimize(graph);
+            __compiled_install(cache, xin, graph);
+        }
+        return __compiled_run(cache, xin);
+    };
+    # backward runs the compiled (differentiated) graph, so the backward's own
+    # elementwise chains are fused the same way the forward's are. An optional
+    # seed is the loss gradient with respect to the forward output; without one
+    # it differentiates the sum of the output. Under the eager fallback the
+    # eager tape backward runs instead.
+    this.backward = fun(x, seed=null) {
+        if (this.__fellback) {
+            val out = run_eager(model, x);
+            if (seed == null) {
+                backward(sum(out));
+            } else {
+                backward(sum(mul(out, seed)));
+            }
+        } else {
+            if (seed == null) {
+                __compiled_backward(cache, x);
+            } else {
+                __compiled_backward(cache, x, seed);
+            }
+        }
+    };
+    this.parameters = fun() { return model.parameters(); };
+    this.to = fun(dev) { model.to(dev); return this; };
+
+    # compile the example shape up front, so a model that cannot be traced is
+    # switched to eager before the first real call
+    this.forward(example);
+    return this;
 }
 
 fun add_(a, b) {
@@ -604,6 +727,14 @@ fun load(path, dev=device.cpu) {
     __load(path, dev)
 }
 
+fun cast(a, datatype) {
+    ##std:this,__cast
+    ## `cast` converts a tensor to another dtype.
+    ##
+    ## cast(a: tensor, datatype: str) -> tensor
+    __cast(a, datatype)
+}
+
 ## `nn` holds the small PyTorch-style layer set. Each layer is a map with
 ## `forward(x)` and `parameters()`. The math runs through the ml ops, which
 ## delegate to the borncgo engine.
@@ -612,7 +743,10 @@ val nn = {
         val h = __nn_linear(in_features, out_features, dev);
         var this = {};
         this.__handle = h;
+        this.kind = 'linear';
         this.forward = fun(x) { return __nn_forward(h, x); };
+        # fused matmul + bias (+ relu), one dispatch
+        this.forward_act = fun(x, relu) { return __nn_linear_act(h, x, relu); };
         this.parameters = fun() { return __nn_parameters(h); };
         this.to = fun(dev) { __nn_to(h, dev); return this; };
         return this;
@@ -621,6 +755,7 @@ val nn = {
         val h = __nn_relu(dev);
         var this = {};
         this.__handle = h;
+        this.kind = 'relu';
         this.forward = fun(x) { return __nn_forward(h, x); };
         this.parameters = fun() { return __nn_parameters(h); };
         this.to = fun(dev) { __nn_to(h, dev); return this; };
@@ -630,6 +765,7 @@ val nn = {
         val h = __nn_sigmoid(dev);
         var this = {};
         this.__handle = h;
+        this.kind = 'sigmoid';
         this.forward = fun(x) { return __nn_forward(h, x); };
         this.parameters = fun() { return __nn_parameters(h); };
         this.to = fun(dev) { __nn_to(h, dev); return this; };
@@ -637,9 +773,35 @@ val nn = {
     },
     'Sequential': fun(modules) {
         var this = {};
+        # Fuse a Linear with the ReLU that follows it into one kernel. This is a
+        # small, structural "compile": the module list is the graph, and the
+        # Linear -> ReLU pair is the pattern that matters.
         this.forward = fun(x) {
             var out = x;
-            for (m in modules) { out = m.forward(out); }
+            var next = 0;
+            val n = modules.len();
+            for (i in 0..(n - 1)) {
+                if (i >= next) {
+                    val m = modules[i];
+                    if (m.kind == 'linear') {
+                        var fuse = false;
+                        if (i + 1 <= n - 1) {
+                            if (modules[i + 1].kind == 'relu') {
+                                fuse = true;
+                                next = i + 2;
+                            } else {
+                                next = i + 1;
+                            }
+                        } else {
+                            next = i + 1;
+                        }
+                        out = m.forward_act(out, fuse);
+                    } else {
+                        out = m.forward(out);
+                        next = i + 1;
+                    }
+                }
+            }
             return out;
         };
         this.parameters = fun() {

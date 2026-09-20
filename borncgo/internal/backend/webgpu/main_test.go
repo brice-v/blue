@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 	// With -short the probe is skipped entirely and computeAvailable stays false,
 	// causing every GPU test to t.Skip gracefully instead of crashing the binary.
 	if !testing.Short() {
-		computeAvailable = IsAvailable()
+		computeAvailable = IsAvailable() && IsHardwareAdapter()
 	}
 	os.Exit(m.Run())
 }

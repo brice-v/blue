@@ -69,12 +69,14 @@ func reduceBroadcast(grad *tensor.RawTensor, targetShape tensor.Shape, backend t
 	gradDims := len(gradShape)
 	targetDims := len(targetShape)
 
-	// If target has fewer dimensions, sum leading dimensions
+	// If target has fewer dimensions, sum the leading dimensions away. SumDim
+	// with keepDim=false drops the axis, so the rank actually shrinks; keeping
+	// the axis (size 1) here leaves trailing axes unreduced and the final
+	// reshape below then fails (e.g. grad [16, 16] against a [1] scalar).
 	if targetDims < gradDims {
-		dimsToSum := gradDims - targetDims
 		result := grad
-		for i := 0; i < dimsToSum; i++ {
-			result = sumAlongDimension(result, 0, backend)
+		for len(result.Shape()) > targetDims {
+			result = backend.SumDim(result, 0, false)
 		}
 		grad = result
 		gradShape = grad.Shape()

@@ -273,6 +273,12 @@ func NewTieredPool(device *wgpu.Device) *TieredPool {
 	if alignment == 0 {
 		alignment = gpuPoolAlignment
 	}
+	// Floor the max page to alignment. Buffer sizes are rounded up to alignment
+	// when created, so an unaligned maxPage would round past MaxBufferSize
+	// (2147483644 -> 2147483648 when the limit is 2147483647).
+	if alignment > 0 {
+		maxPage -= maxPage % alignment
+	}
 
 	budgetBytes := getEnvUint64Or("BORN_GPU_BUDGET_MB", defaultBudgetMB) * 1024 * 1024
 
@@ -296,7 +302,7 @@ func NewTieredPool(device *wgpu.Device) *TieredPool {
 // Reference: CubeCL generate_bucket_sizes() in memory_manage.rs:128-151.
 func generateBucketSizes(startSize, endSize uint64, numBuckets int, alignment uint64) []uint64 {
 	if numBuckets <= 1 {
-		return []uint64{roundUpAlign(endSize, alignment)}
+		return []uint64{clampBucket(roundUpAlign(endSize, alignment), endSize, alignment)}
 	}
 
 	logMin := math.Log(float64(startSize))
@@ -307,12 +313,31 @@ func generateBucketSizes(startSize, endSize uint64, numBuckets int, alignment ui
 	for i := 0; i < numBuckets; i++ {
 		p := float64(i) / float64(numBuckets-1)
 		size := uint64(math.Exp(logMin + logRange*p))
-		aligned := roundUpAlign(size, alignment)
+		aligned := clampBucket(roundUpAlign(size, alignment), endSize, alignment)
 		if len(buckets) == 0 || buckets[len(buckets)-1] != aligned {
 			buckets = append(buckets, aligned)
 		}
 	}
 	return buckets
+}
+
+// clampBucket keeps a bucket aligned and at or below the device's max page.
+// Rounding the largest bucket up to alignment would otherwise request a buffer
+// one step past maxBufferSize (2147483644 -> 2147483648 when the limit is
+// 2147483647), so the cap is floored to alignment rather than the bucket being
+// truncated to an unaligned size.
+func clampBucket(size, endSize, alignment uint64) uint64 {
+	maxAligned := endSize
+	if alignment > 0 {
+		maxAligned = endSize - endSize%alignment
+	}
+	if maxAligned == 0 {
+		return size
+	}
+	if size > maxAligned {
+		return maxAligned
+	}
+	return size
 }
 
 // Acquire routes the allocation to the first pool that accepts the size.

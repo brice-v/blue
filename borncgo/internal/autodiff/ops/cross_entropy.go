@@ -140,18 +140,11 @@ func (op *CrossEntropyOp) Backward(outputGrad *tensor.RawTensor, backend tensor.
 
 	scaled := backend.MulScalar(diff, batchScale)
 
-	// Step 6: extract upstream gradient scalar — shape [1], single element readback.
-	// This is acceptable: we are reading one float (the scalar loss gradient), not batch data.
-	var gradScale any
-	switch dtype {
-	case tensor.Float32:
-		gradScale = outputGrad.AsFloat32()[0]
-	default: // Float64
-		gradScale = outputGrad.AsFloat64()[0]
-	}
-
-	// Step 7: chain rule — multiply by upstream gradient.
-	gradInput := backend.MulScalar(scaled, gradScale)
+	// Step 6: chain rule, multiply by the upstream gradient on device. outputGrad
+	// is a scalar [1] tensor and the binary Mul broadcasts it, so this avoids the
+	// GPU->CPU readback (and the lazy-batch flush/sync it would force) that a
+	// host-side scalar multiply needs.
+	gradInput := backend.Mul(scaled, outputGrad)
 
 	return []*tensor.RawTensor{gradInput}
 }

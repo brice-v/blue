@@ -143,8 +143,6 @@ func TestReduceBroadcast_ToScalarTarget(t *testing.T) {
 // NOTE: This test is currently skipped due to existing bug in reduceBroadcast
 // for non-scalar gradient reduction. This is unrelated to the scalar gradient fix.
 func TestReduceBroadcast_BroadcastedDimension(t *testing.T) {
-	t.Skip("Skipping due to existing bug in reduceBroadcast for non-scalar reduction")
-
 	backend := cpu.New()
 
 	// Gradient has shape [3, 4] (result of forward broadcasting [3,1] -> [3,4])
@@ -170,6 +168,28 @@ func TestReduceBroadcast_BroadcastedDimension(t *testing.T) {
 		if val != expected {
 			t.Errorf("Element %d: expected %v, got %v", i, expected, val)
 		}
+	}
+}
+
+// TestReduceBroadcast_ScalarOperandInto2D reproduces the case where a [1]
+// scalar operand is broadcast against a 2D tensor (for example scores /
+// sqrt(head_dim) in attention). The upstream gradient is [2, 3] and the scalar
+// operand must receive the sum of every element, shape [1].
+func TestReduceBroadcast_ScalarOperandInto2D(t *testing.T) {
+	backend := cpu.New()
+
+	grad, _ := tensor.NewRaw(tensor.Shape{2, 3}, tensor.Float32, backend.Device())
+	data := grad.AsFloat32()
+	for i := range data {
+		data[i] = float32(i + 1) // 1..6, sum = 21
+	}
+
+	result := reduceBroadcast(grad, tensor.Shape{1}, backend)
+	if !result.Shape().Equal(tensor.Shape{1}) {
+		t.Fatalf("expected shape [1], got %v", result.Shape())
+	}
+	if got := result.AsFloat32()[0]; got != 21 {
+		t.Fatalf("expected summed scalar 21, got %v", got)
 	}
 }
 

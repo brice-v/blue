@@ -19,6 +19,8 @@ const (
 	Float32 = tensor.Float32
 	Float64 = tensor.Float64
 	Int32   = tensor.Int32
+	Int64   = tensor.Int64
+	Uint8   = tensor.Uint8
 	Bool    = tensor.Bool
 	Invalid = tensor.DataType(-1)
 )
@@ -31,6 +33,10 @@ func ParseDType(s string) (DType, error) {
 		return Float64, nil
 	case "int32":
 		return Int32, nil
+	case "int64":
+		return Int64, nil
+	case "uint8":
+		return Uint8, nil
 	case "bool":
 		return Bool, nil
 	default:
@@ -174,15 +180,28 @@ type Tensor struct {
 }
 
 func wrap(t *bornTensor) *Tensor {
+	// Keep the backend that actually produced the tensor rather than mapping the
+	// device back to an engine. They agree for real backends, but a tracing
+	// backend needs to stay attached so recorded ops keep flowing through it.
 	d := t.Device()
-	return &Tensor{t: t, be: backendForBorn(d), dtype: t.DType(), device: mlDeviceOf(d)}
+	return &Tensor{t: t, be: t.Backend(), dtype: t.DType(), device: mlDeviceOf(d)}
 }
 
-func wrapRaw(raw *tensor.RawTensor) *Tensor {
-	return wrap(tensor.New[float32](raw, backendForBorn(raw.Device())))
+func wrapRaw(be tensor.Backend, raw *tensor.RawTensor) *Tensor {
+	return wrap(tensor.New[float32](raw, be))
 }
 
 func (t *Tensor) Shape() []int { return []int(t.t.Shape()) }
+
+// Raw exposes the underlying borncgo raw tensor.
+func (t *Tensor) Raw() *tensor.RawTensor { return t.t.Raw() }
+
+// Backend exposes the backend a tensor was produced on, so the graph compiler
+// can replay on the same engine.
+func (t *Tensor) Backend() tensor.Backend { return t.be }
+
+// WrapRaw wraps a raw tensor produced by a known backend.
+func WrapRaw(be tensor.Backend, raw *tensor.RawTensor) *Tensor { return wrapRaw(be, raw) }
 func (t *Tensor) Strides() []int {
 	if t.viewStrides != nil {
 		return t.viewStrides
@@ -235,6 +254,13 @@ func (t *Tensor) ContiguousData() []float32 {
 		return out
 	case tensor.Int64:
 		n := raw.AsInt64()
+		out := make([]float32, len(n))
+		for i, v := range n {
+			out[i] = float32(v)
+		}
+		return out
+	case tensor.Uint8:
+		n := raw.AsUint8()
 		out := make([]float32, len(n))
 		for i, v := range n {
 			out[i] = float32(v)
@@ -309,10 +335,13 @@ func (t *Tensor) Backward() error {
 		return fmt.Errorf("backward: tensor is not part of a graph")
 	}
 
-	zero := tensor.Zeros[float32](tensor.Shape(t.Shape()), be)
-	// Recording the connected add makes the loss graph the last ops on the tape,
-	// which is what borncgo's Backward walks from.
-	_ = t.t.Add(zero)
+	// Free the previous step's gradient buffers (held for the optimizer) before
+	// computing new ones, so GPU grad memory does not accumulate across steps.
+	if lastGrads != nil {
+		autodiff.ReleaseGradients(lastGrads)
+		lastGrads = nil
+	}
+
 	one := tensor.Ones[float32](tensor.Shape(t.Shape()), be)
 
 	var grads map[*tensor.RawTensor]*tensor.RawTensor
@@ -322,7 +351,7 @@ func (t *Tensor) Backward() error {
 				e = fmt.Errorf("%v", r)
 			}
 		}()
-		grads = tp.Backward(one.Raw(), be)
+		grads = tp.BackwardFrom(t.t.Raw(), one.Raw(), be)
 		return nil
 	}()
 	if err != nil {
@@ -349,11 +378,11 @@ func (t *Tensor) Backward() error {
 		if !ok || g == nil {
 			continue
 		}
-		gt := wrapRaw(g)
+		gt := wrapRaw(be, g)
 		if tt.grad == nil {
 			tt.grad = gt
 		} else {
-			tt.grad = wrapRaw(be.Add(tt.grad.t.Raw(), gt.t.Raw()))
+			tt.grad = wrapRaw(be, be.Add(tt.grad.t.Raw(), gt.t.Raw()))
 		}
 	}
 	return nil
@@ -399,12 +428,22 @@ func GPUAvailable() bool {
 }
 
 // To returns a copy of the tensor on the requested device. Like PyTorch's
-// Tensor.to, this is a data transfer, not a graph operation.
+// Tensor.to, this is a data transfer, not a graph operation. It preserves the
+// dtype tag but the new storage is the given device's default (float32).
 func (t *Tensor) To(device Device) (*Tensor, error) {
 	if t.device == device {
 		return t, nil
 	}
 	return NewTensor(t.ContiguousData(), t.Shape(), t.dtype, device)
+}
+
+// Cast returns a tensor with a different dtype on the same device, matching
+// PyTorch's to(dtype).
+func (t *Tensor) Cast(dtype DType) (*Tensor, error) {
+	if t.dtype == dtype {
+		return t, nil
+	}
+	return wrapRaw(t.be, t.be.Cast(t.t.Raw(), dtype)), nil
 }
 
 // helpers shared by the ops.
@@ -453,7 +492,7 @@ func asFloat(a *Tensor) *Tensor {
 	if a.dtype == Float32 {
 		return a
 	}
-	f := wrapRaw(a.be.Cast(a.t.Raw(), tensor.Float32))
+	f := wrapRaw(a.be, a.be.Cast(a.t.Raw(), tensor.Float32))
 	f.dtype = Float32
 	return f
 }

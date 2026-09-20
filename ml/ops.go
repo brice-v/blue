@@ -7,21 +7,106 @@ import (
 	"blue/borncgo/tensor"
 )
 
+// promoteDType returns the dtype both operands should use, or an error when the
+// pair has no common dtype (bool only combines with bool). Ordering follows
+// PyTorch: float64 > float32 > int64 > int32.
+func promoteDType(a, b DType) (DType, error) {
+	if a == b {
+		return a, nil
+	}
+	if a == Bool || b == Bool {
+		return Invalid, fmt.Errorf("no common dtype for %s and %s", a, b)
+	}
+	rank := func(d DType) int {
+		switch d {
+		case Float64:
+			return 4
+		case Float32:
+			return 3
+		case Int64:
+			return 2
+		case Int32:
+			return 1
+		default:
+			return 0
+		}
+	}
+	if rank(a) >= rank(b) {
+		return a, nil
+	}
+	return b, nil
+}
+
+// promote casts both operands to their common dtype so mixed-type arithmetic
+// and comparisons work the way PyTorch's promotion does.
+func promote(a, b *Tensor) (*Tensor, *Tensor, error) {
+	d, err := promoteDType(a.dtype, b.dtype)
+	if err != nil {
+		return nil, nil, err
+	}
+	na, err := a.Cast(d)
+	if err != nil {
+		return nil, nil, err
+	}
+	nb, err := b.Cast(d)
+	if err != nil {
+		return nil, nil, err
+	}
+	return na, nb, nil
+}
+
 // Binary arithmetic delegates straight to borncgo, which handles broadcasting
 // (including scalar tensors of shape [1]) and records the op on its tape.
 
-func Add(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Add(b.t)), nil }
-func Sub(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Sub(b.t)), nil }
-func Mul(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Mul(b.t)), nil }
-func Div(a, b *Tensor) (*Tensor, error) { return wrap(a.t.Div(b.t)), nil }
+func Add(a, b *Tensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
+	return wrap(a.t.Add(b.t)), nil
+}
 
-func MatMul(a, b *Tensor) (*Tensor, error) { return wrap(a.t.MatMul(b.t)), nil }
+func Sub(a, b *Tensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
+	return wrap(a.t.Sub(b.t)), nil
+}
+
+func Mul(a, b *Tensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
+	return wrap(a.t.Mul(b.t)), nil
+}
+
+func Div(a, b *Tensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
+	return wrap(a.t.Div(b.t)), nil
+}
+
+func MatMul(a, b *Tensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
+	return wrap(a.t.MatMul(b.t)), nil
+}
 
 // Pow is the one op borncgo lacks, so blue composes it. A non-negative integer
 // scalar exponent uses repeated multiplication, which stays differentiable and
 // works for a negative base (matching PyTorch's integer-exponent behavior).
 // Everything else is exp(b * log(a)).
 func Pow(a, b *Tensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
 	// A uniform non-negative integer exponent (scalar or a whole tensor of the
 	// same value) uses repeated multiplication: correct for a negative base and
 	// differentiable, and it never calls log on a non-positive value.
@@ -114,28 +199,56 @@ func Log(a *Tensor) (*Tensor, error)  { return wrap(a.t.Log()), nil }
 func Sqrt(a *Tensor) (*Tensor, error) { return wrap(a.t.Sqrt()), nil }
 func Abs(a *Tensor) (*Tensor, error)  { return wrap(a.t.Abs()), nil }
 
-func Relu(a *Tensor) (*Tensor, error)    { return wrapRaw(a.be.ReLU(a.t.Raw())), nil }
-func Sigmoid(a *Tensor) (*Tensor, error) { return wrapRaw(a.be.Sigmoid(a.t.Raw())), nil }
-func Tanh(a *Tensor) (*Tensor, error)    { return wrapRaw(a.be.Tanh(a.t.Raw())), nil }
+func Relu(a *Tensor) (*Tensor, error)    { return wrapRaw(a.be, a.be.ReLU(a.t.Raw())), nil }
+func Sigmoid(a *Tensor) (*Tensor, error) { return wrapRaw(a.be, a.be.Sigmoid(a.t.Raw())), nil }
+func Tanh(a *Tensor) (*Tensor, error)    { return wrapRaw(a.be, a.be.Tanh(a.t.Raw())), nil }
 
 func Softmax(a *Tensor, dim int) (*Tensor, error) { return wrap(a.t.Softmax(dim)), nil }
 
-// Comparisons return borncgo bool tensors, so blue reports dtype "bool" and
-// to_list yields booleans, matching PyTorch.
+// Comparisons promote to a common dtype, then return borncgo bool tensors, so
+// blue reports dtype "bool" and to_list yields booleans, matching PyTorch.
+func promoteCmp(a, b *Tensor, f func(be tensor.Backend, x, y *Tensor) *tensor.RawTensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
+	return wrapRaw(a.be, f(a.be, a, b)), nil
+}
 
-func Eq(a, b *Tensor) (*Tensor, error) { return wrapRaw(a.be.Equal(a.t.Raw(), b.t.Raw())), nil }
+func Eq(a, b *Tensor) (*Tensor, error) {
+	return promoteCmp(a, b, func(be tensor.Backend, x, y *Tensor) *tensor.RawTensor {
+		return be.Equal(x.t.Raw(), y.t.Raw())
+	})
+}
+
 func Ne(a, b *Tensor) (*Tensor, error) {
-	return wrapRaw(a.be.NotEqual(a.t.Raw(), b.t.Raw())), nil
+	return promoteCmp(a, b, func(be tensor.Backend, x, y *Tensor) *tensor.RawTensor {
+		return be.NotEqual(x.t.Raw(), y.t.Raw())
+	})
 }
+
 func Gt(a, b *Tensor) (*Tensor, error) {
-	return wrapRaw(a.be.Greater(a.t.Raw(), b.t.Raw())), nil
+	return promoteCmp(a, b, func(be tensor.Backend, x, y *Tensor) *tensor.RawTensor {
+		return be.Greater(x.t.Raw(), y.t.Raw())
+	})
 }
+
 func Ge(a, b *Tensor) (*Tensor, error) {
-	return wrapRaw(a.be.GreaterEqual(a.t.Raw(), b.t.Raw())), nil
+	return promoteCmp(a, b, func(be tensor.Backend, x, y *Tensor) *tensor.RawTensor {
+		return be.GreaterEqual(x.t.Raw(), y.t.Raw())
+	})
 }
-func Lt(a, b *Tensor) (*Tensor, error) { return wrapRaw(a.be.Lower(a.t.Raw(), b.t.Raw())), nil }
+
+func Lt(a, b *Tensor) (*Tensor, error) {
+	return promoteCmp(a, b, func(be tensor.Backend, x, y *Tensor) *tensor.RawTensor {
+		return be.Lower(x.t.Raw(), y.t.Raw())
+	})
+}
+
 func Le(a, b *Tensor) (*Tensor, error) {
-	return wrapRaw(a.be.LowerEqual(a.t.Raw(), b.t.Raw())), nil
+	return promoteCmp(a, b, func(be tensor.Backend, x, y *Tensor) *tensor.RawTensor {
+		return be.LowerEqual(x.t.Raw(), y.t.Raw())
+	})
 }
 
 // Reductions.
@@ -143,14 +256,14 @@ func Le(a, b *Tensor) (*Tensor, error) {
 // Sum reduces dims, or every dim when dims is nil. keepdim keeps reduced dims as 1.
 func Sum(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
 	return reduce(a, dims, keepdim, func(x *Tensor, d int) *Tensor {
-		return wrapRaw(a.be.SumDim(x.t.Raw(), d, keepdim))
+		return wrapRaw(x.be, x.be.SumDim(x.t.Raw(), d, keepdim))
 	})
 }
 
 // Mean is borncgo's MeanDim applied per dim.
 func Mean(a *Tensor, dims []int, keepdim bool) (*Tensor, error) {
 	return reduce(a, dims, keepdim, func(x *Tensor, d int) *Tensor {
-		return wrapRaw(a.be.MeanDim(x.t.Raw(), d, keepdim))
+		return wrapRaw(x.be, x.be.MeanDim(x.t.Raw(), d, keepdim))
 	})
 }
 
@@ -234,14 +347,15 @@ func extremumDim(a *Tensor, dim int, keepdim bool, better func(v, best float32) 
 	return NewTensor(out, ttShape, a.dtype, a.Device())
 }
 
-// ArgMax/ArgMin return float32 tensors, matching blue's existing surface.
+// ArgMax/ArgMin return int32 index tensors, matching PyTorch (which returns
+// int64; blue's index dtype is int32).
 func ArgMax(a *Tensor, dim int) (*Tensor, error) {
-	return wrap(a.t.Argmax(dim).Float32()), nil
+	return wrapRaw(a.be, a.t.Argmax(dim).Raw()), nil
 }
 
 func ArgMin(a *Tensor, dim int) (*Tensor, error) {
 	n := a.t.MulScalar(float32(-1))
-	return wrap(n.Argmax(dim).Float32()), nil
+	return wrapRaw(a.be, n.Argmax(dim).Raw()), nil
 }
 
 // Shape ops.
@@ -367,11 +481,79 @@ func Slice(a *Tensor, dim, start, end int) (*Tensor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return wrapRaw(a.be.Gather(a.t.Raw(), d, it.Raw())), nil
+	return wrapRaw(a.be, a.be.Gather(a.t.Raw(), d, it.Raw())), nil
 }
 
 func Clamp(a *Tensor, lo, hi float32) (*Tensor, error) {
-	return wrapRaw(a.be.Clamp(a.t.Raw(), lo, hi)), nil
+	return wrapRaw(a.be, a.be.Clamp(a.t.Raw(), lo, hi)), nil
+}
+
+// Cat joins tensors along dim. All tensors must share every dimension except
+// dim, matching PyTorch's torch.cat.
+// this function.
+func Cat(tensors []*Tensor, dim int) (*Tensor, error) {
+	if len(tensors) == 0 {
+		return nil, fmt.Errorf("cat: expected at least one tensor")
+	}
+	// Promote to a common dtype and device, then hand the raw tensors to
+	// borncgo's Cat, which is differentiable and records on its tape.
+	be := tensors[0].be
+	shape := tensors[0].Shape()
+	d, err := normalizeDim(shape, dim)
+	if err != nil {
+		return nil, err
+	}
+	dtype := tensors[0].dtype
+	raws := make([]*tensor.RawTensor, len(tensors))
+	for i, t := range tensors {
+		if t.be != be {
+			return nil, fmt.Errorf("cat: all tensors must be on the same device")
+		}
+		// Validate here rather than letting the backend panic: cat is a public
+		// op, so a shape mismatch has to come back as an error.
+		ts := t.Shape()
+		if len(ts) != len(shape) {
+			return nil, fmt.Errorf("cat: tensor %d has %d dimensions, want %d", i, len(ts), len(shape))
+		}
+		for j := range ts {
+			if j != d && ts[j] != shape[j] {
+				return nil, fmt.Errorf("cat: tensor %d dimension %d is %d, expected %d", i, j, ts[j], shape[j])
+			}
+		}
+		pd, err := promoteDType(dtype, t.dtype)
+		if err != nil {
+			return nil, err
+		}
+		dtype = pd
+		raws[i] = t.t.Raw()
+	}
+	if dtype != tensors[0].dtype {
+		casted := make([]*tensor.RawTensor, len(tensors))
+		for i, t := range tensors {
+			casted[i] = be.Cast(t.t.Raw(), dtype)
+		}
+		raws = casted
+	}
+	out := wrapRaw(be, be.Cat(raws, d))
+	out.dtype = dtype
+	return out, nil
+}
+
+// Gather selects entries along dim using an int index tensor, matching
+// torch.gather: out[i][j] = input[i][index[i][j]] for dim=1. It is
+// differentiable, so it can be used inside models.
+func Gather(a *Tensor, dim int, index *Tensor) (*Tensor, error) {
+	shape := a.Shape()
+	d, err := normalizeDim(shape, dim)
+	if err != nil {
+		return nil, err
+	}
+	it := index.t.Raw()
+	if index.dtype != Int32 {
+		it = a.be.Cast(it, tensor.Int32)
+	}
+	out := wrapRaw(a.be, a.be.Gather(a.t.Raw(), d, it))
+	return out, nil
 }
 
 func Where(cond, a, b *Tensor) (*Tensor, error) {
@@ -381,7 +563,7 @@ func Where(cond, a, b *Tensor) (*Tensor, error) {
 	if cond.dtype != Bool {
 		c = a.be.Cast(cond.t.Raw(), tensor.Bool)
 	}
-	return wrapRaw(a.be.Where(c, a.t.Raw(), b.t.Raw())), nil
+	return wrapRaw(a.be, a.be.Where(c, a.t.Raw(), b.t.Raw())), nil
 }
 
 // OneHot turns a 1d label tensor into [n, classes]. Labels are data, not

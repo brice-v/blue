@@ -1,6 +1,8 @@
 package ml
 
 import (
+	"fmt"
+
 	"blue/borncgo/nn"
 	"blue/borncgo/tensor"
 )
@@ -15,6 +17,51 @@ func CrossEntropy(logits, target *Tensor) (*Tensor, error) {
 	}
 	loss := nn.NewCrossEntropyLoss(logits.be)
 	return wrap(loss.Forward(logits.t, tgt)), nil
+}
+
+// CrossEntropyGrad returns the gradient of the mean cross-entropy loss with
+// respect to the logits: (softmax(logits) - onehot(target)) / batch.
+//
+// It is the seed a compiled backward needs for a classification model: the
+// compiled graph is the model's forward (logits), so the loss lives outside it
+// and its gradient is supplied here. The value is computed on the real backend
+// and is not recorded on the tape, so it can be passed to Compiled.Backward
+// without disturbing eager bookkeeping.
+func CrossEntropyGrad(logits, target *Tensor) (*Tensor, error) {
+	shape := logits.Shape()
+	if len(shape) != 2 {
+		return nil, fmt.Errorf("cross_entropy_grad: logits must be 2D, got %v", shape)
+	}
+	batch, classes := shape[0], shape[1]
+
+	// Compute under no-grad so the seed's own ops never land on the tape.
+	was := SetGradEnabled(false)
+	defer SetGradEnabled(was)
+
+	probs, err := Softmax(logits, 1)
+	if err != nil {
+		return nil, err
+	}
+	// onehot(targets) as a constant tensor on logits' backend.
+	labels := target.ContiguousData()
+	oh := make([]float32, batch*classes)
+	for i := 0; i < batch && i < len(labels); i++ {
+		c := int(labels[i])
+		if c < 0 || c >= classes {
+			return nil, fmt.Errorf("cross_entropy_grad: target %d out of range for %d classes", c, classes)
+		}
+		oh[i*classes+c] = 1
+	}
+	ohT, err := tensor.FromSlice[float32](oh, tensor.Shape{batch, classes}, logits.be)
+	if err != nil {
+		return nil, err
+	}
+	diff, err := Sub(probs, wrap(ohT))
+	if err != nil {
+		return nil, err
+	}
+	scale := 1.0 / float32(batch)
+	return wrapRaw(logits.be, logits.be.MulScalar(diff.t.Raw(), scale)), nil
 }
 
 // MSE is composed from ops rather than borncgo's nn.MSELoss, because that loss

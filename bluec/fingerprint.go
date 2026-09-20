@@ -26,6 +26,7 @@ import (
 //   - blue base version (consts.BaseVersion, without VCS or flavor suffixes)
 //   - opcode set hash (names + operand widths of every opcode)
 //   - reserved constant count
+//   - builtin surface hash (module order and every builtin name/slot)
 //   - go build tags (`-tags` from build info, empty when unset), with the
 //     structural `minivm` tag filtered out: it selects which main package
 //     is built, not what the runtime can do
@@ -41,10 +42,11 @@ func Fingerprint() string {
 		}
 	}
 	tags = NormalizeTags(tags)
-	return fmt.Sprintf("v%s|ops:%#016x|rc:%d|tags:%s|%s/%s",
+	return fmt.Sprintf("v%s|ops:%#016x|rc:%d|bi:%#016x|tags:%s|%s/%s",
 		consts.BaseVersion(),
 		code.OpcodeSetFingerprint(),
 		len(object.OBJECT_CONSTANTS),
+		object.BuiltinFingerprint(),
 		tags,
 		runtime.GOOS, runtime.GOARCH,
 	)
@@ -95,7 +97,7 @@ func DescribeFingerprintMismatch(a, b string) string {
 	if a == b {
 		return ""
 	}
-	for _, part := range []string{"ops:", "rc:", "tags:"} {
+	for _, part := range []string{"ops:", "rc:", "bi:", "tags:"} {
 		pa := componentOf(a, part)
 		pb := componentOf(b, part)
 		if pa != pb {

@@ -211,6 +211,25 @@ func TestFingerprintIsStableAndDescriptive(t *testing.T) {
 	}
 }
 
+// TestFingerprintCoversBuiltins guards the run cache against serving an image
+// compiled against a different builtin surface: bytecode addresses builtins by
+// slot index, so a changed builtin set must change the fingerprint.
+func TestFingerprintCoversBuiltins(t *testing.T) {
+	if !strings.Contains(bluec.Fingerprint(), "bi:") {
+		t.Fatalf("fingerprint does not record the builtin surface: %s", bluec.Fingerprint())
+	}
+	if object.BuiltinFingerprint() == 0 {
+		t.Fatal("builtin fingerprint is zero")
+	}
+	// The builtin component is reported as the source of a mismatch when it is
+	// the only part that differs.
+	a := bluec.Fingerprint()
+	b := strings.Replace(a, "bi:", "bi:0000000000000000|", 1)
+	if desc := bluec.DescribeFingerprintMismatch(a, b); !strings.Contains(desc, "bi:") {
+		t.Fatalf("builtin mismatch not reported: %q", desc)
+	}
+}
+
 func flipBit(b []byte, pos int) []byte {
 	out := make([]byte, len(b))
 	copy(out, b)

@@ -81,6 +81,18 @@ func (t *GradientTape) Backward(outputGrad *tensor.RawTensor, backend tensor.Bac
 	if len(t.operations) == 0 {
 		return make(map[*tensor.RawTensor]*tensor.RawTensor)
 	}
+	lastOp := t.operations[len(t.operations)-1]
+	return t.BackwardFrom(lastOp.Output(), outputGrad, backend)
+}
+
+// BackwardFrom is Backward seeded from `output` instead of the last recorded
+// op. A wrapper can then differentiate any tensor in the graph even when other
+// operations were recorded after it, without appending a sentinel op to make it
+// the last thing on the tape.
+func (t *GradientTape) BackwardFrom(output *tensor.RawTensor, outputGrad *tensor.RawTensor, backend tensor.Backend) map[*tensor.RawTensor]*tensor.RawTensor {
+	if len(t.operations) == 0 {
+		return make(map[*tensor.RawTensor]*tensor.RawTensor)
+	}
 
 	// Temporarily stop recording so backward's own ops (gradient computation)
 	// are not captured on tape. Restore recording state after backward completes
@@ -97,9 +109,8 @@ func (t *GradientTape) Backward(outputGrad *tensor.RawTensor, backend tensor.Bac
 	// Map to accumulate gradients for each tensor
 	grads := make(map[*tensor.RawTensor]*tensor.RawTensor)
 
-	// Initialize with output gradient
-	lastOp := t.operations[len(t.operations)-1]
-	grads[lastOp.Output()] = outputGrad
+	// Initialize with the output gradient seeded at the requested tensor.
+	grads[output] = outputGrad
 
 	// Walk tape backwards, releasing forward-pass activations eagerly.
 	// Once an op's backward is computed, its saved output (activation) is
@@ -237,4 +248,12 @@ func (t *GradientTape) accumulateGrads(
 // NumOps returns the number of recorded operations.
 func (t *GradientTape) NumOps() int {
 	return len(t.operations)
+}
+
+// Operations returns the recorded operations, in execution order. It is used by
+// the graph compiler to find every tensor the backward pass reads.
+//
+// The returned slice is the tape's own storage; callers must not mutate it.
+func (t *GradientTape) Operations() []ops.Operation {
+	return t.operations
 }

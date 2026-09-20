@@ -240,17 +240,25 @@ func newHardwareBackend(backendType wgpu.BackendType) (*Backend, error) {
 	// backend can guard dispatch. On DX12 (SM 6.0+) and Metal the flag
 	// is honored at device creation.
 	subgroupsEnabled := false
-	if adapter.HasFeature(wgpu.FeatureNameSubgroups) {
+	wantsSubgroups := adapter.HasFeature(wgpu.FeatureNameSubgroups)
+	if wantsSubgroups {
 		desc.RequiredFeatures = []wgpu.FeatureName{wgpu.FeatureNameSubgroups}
-		subgroupsEnabled = true
 	}
 
 	device, err := adapter.RequestDevice(desc)
+	if err != nil && wantsSubgroups {
+		// An adapter can advertise a feature it then refuses to grant (seen on
+		// some Windows software adapters). Subgroups are an optimisation, so
+		// retry without them rather than failing to create the device at all.
+		desc.RequiredFeatures = nil
+		device, err = adapter.RequestDevice(desc)
+	}
 	if err != nil {
 		adapter.Release()
 		instance.Release()
 		return nil, fmt.Errorf("webgpu: failed to request device: %w", err)
 	}
+	subgroupsEnabled = wantsSubgroups && len(desc.RequiredFeatures) > 0
 
 	queue := device.GetQueue()
 
@@ -543,6 +551,20 @@ func ListAdapters() ([]*wgpu.AdapterInfo, error) {
 
 	info := adapter.GetInfo()
 	return []*wgpu.AdapterInfo{&info}, nil
+}
+
+// IsHardwareAdapter reports whether the default adapter is a real GPU rather
+// than a software/CPU renderer (for example the "Microsoft Basic Render
+// Driver" that GitHub's Windows runners expose). The GPU tests use it to skip
+// on machines with only a software adapter, where device creation is
+// unreliable and the results are not meaningful. Adapters that do not report a
+// type are treated as hardware so a real GPU is never skipped by accident.
+func IsHardwareAdapter() bool {
+	adapters, err := ListAdapters()
+	if err != nil || len(adapters) == 0 {
+		return false
+	}
+	return adapters[0].AdapterType != wgpu.AdapterTypeCPU
 }
 
 // MemoryStats represents GPU memory usage statistics.

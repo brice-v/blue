@@ -94,7 +94,15 @@ type RawTensor struct {
 	offset       int           // Offset for slicing/views
 	backendData  any           // Opaque backend-owned data (managed by backend, not RawTensor).
 	materializer Materializer  // Backend that can materialize this tensor (GPU→CPU readback).
+	// dataHook, when set, is called before any host read of this tensor's data.
+	// The graph tracer uses it to notice that a traced region read a fake
+	// tensor's value (a host read), which cannot be replayed.
+	dataHook func()
 }
+
+// SetDataHook registers a callback invoked before any host read of the tensor's
+// data. It is used by the graph tracer to detect host reads during capture.
+func (r *RawTensor) SetDataHook(f func()) { r.dataHook = f }
 
 // NewRaw creates a new RawTensor with the given shape and type.
 // Memory is allocated but not initialized (contains zeros).
@@ -171,6 +179,11 @@ func (r *RawTensor) ensureBuffer() {
 // calls return the cached CPU buffer directly.
 // WARNING: Direct access to underlying memory. Use with caution.
 func (r *RawTensor) Data() []byte {
+	// A registered data hook notices host reads (the graph tracer uses this to
+	// fail a traced region that read a fake tensor's value).
+	if r.dataHook != nil {
+		r.dataHook()
+	}
 	// Materializer path: GPU backends set a Materializer and backendData (ADR-019).
 	// On first call, Materialize triggers the GPU→CPU readback and caches the result.
 	// materializer and backendData are cleared after realization to prevent double-realization.

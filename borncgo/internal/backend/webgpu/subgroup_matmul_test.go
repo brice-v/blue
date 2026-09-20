@@ -25,16 +25,26 @@ func matmulCPUReference(aData []float32, rows, inner int, bData []float32, cols 
 	return out
 }
 
+// f32Diff is the absolute error between a GPU result and the CPU reference.
+func f32Diff(got, want float32) float64 {
+	return math.Abs(float64(got) - float64(want))
+}
+
+// f32Tol is a relative tolerance. GPU and CPU float32 matmuls sum in different
+// orders, so their results differ by a few ulps; at large magnitudes that is
+// more than an absolute 1e-4 (for example 1.22e-4 at 1659).
+func f32Tol(want float32) float64 {
+	return 1e-5 * math.Max(1.0, math.Abs(float64(want)))
+}
+
 // checkMatMulResults compares a GPU MatMul result against a CPU reference.
 func checkMatMulResults(t *testing.T, got, expected []float32, cols int) {
 	t.Helper()
 	if len(got) != len(expected) {
 		t.Fatalf("result size: got %d, want %d", len(got), len(expected))
 	}
-	const tol = 1e-4
 	for i, want := range expected {
-		diff := math.Abs(float64(got[i] - want))
-		if diff > tol {
+		if diff := f32Diff(got[i], want); diff > f32Tol(want) {
 			r, c := i/cols, i%cols
 			t.Errorf("[%d,%d] got=%f want=%f diff=%f", r, c, got[i], want, diff)
 		}
@@ -164,10 +174,8 @@ func TestSubgroupMatMulShaders_ScalarFallback(t *testing.T) {
 	cRaw := b.MatMul(aRaw, bRaw)
 	got := cRaw.AsFloat32()
 
-	const tol = 1e-4
 	for i, want := range expected {
-		diff := math.Abs(float64(got[i] - want))
-		if diff > tol {
+		if diff := f32Diff(got[i], want); diff > f32Tol(want) {
 			r, c := i/N, i%N
 			t.Errorf("scalar[%d,%d]: got=%f want=%f diff=%e", r, c, got[i], want, diff)
 		}
@@ -223,10 +231,8 @@ func TestSubgroupBatchMatMulShaders_Correctness(t *testing.T) {
 	if len(got) != len(expected) {
 		t.Fatalf("result size: got %d, want %d", len(got), len(expected))
 	}
-	const tol = 1e-4
 	for i, want := range expected {
-		diff := math.Abs(float64(got[i] - want))
-		if diff > tol {
+		if diff := f32Diff(got[i], want); diff > f32Tol(want) {
 			bi := i / (M * N)
 			rem := i % (M * N)
 			r, c := rem/N, rem%N

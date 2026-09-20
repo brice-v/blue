@@ -22,9 +22,23 @@ func NewMatMulOp(a, b, output *tensor.RawTensor) *MatMulOp {
 	}
 }
 
+// matMulTransposed is implemented by backends that can multiply with transposed
+// operands directly, so the matmul backward does not materialize B^T and A^T.
+type matMulTransposed interface {
+	MatMulTransposed(a, b *tensor.RawTensor, transA, transB bool) *tensor.RawTensor
+}
+
 // Backward computes input gradients for matrix multiplication.
 func (op *MatMulOp) Backward(outputGrad *tensor.RawTensor, backend tensor.Backend) []*tensor.RawTensor {
 	a, b := op.inputs[0], op.inputs[1]
+
+	// grad_a = outputGrad @ b^T, grad_b = a^T @ outputGrad. Prefer the transposed
+	// matmul so the backward does not create two extra full-size copies.
+	if tb, ok := backend.(matMulTransposed); ok {
+		gradA := tb.MatMulTransposed(outputGrad, b, false, true)
+		gradB := tb.MatMulTransposed(a, outputGrad, true, false)
+		return []*tensor.RawTensor{gradA, gradB}
+	}
 
 	// grad_a = outputGrad @ b^T
 	bT := backend.Transpose(b, 1, 0)
