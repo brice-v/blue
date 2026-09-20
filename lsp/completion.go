@@ -360,8 +360,8 @@ func (b *completionBuilder) addModuleMembers(entry *moduleEntry) {
 }
 
 func firstLine(s string) string {
-	if idx := strings.Index(s, "\n"); idx >= 0 {
-		return strings.TrimSpace(s[:idx])
+	if before, _, ok := strings.Cut(s, "\n"); ok {
+		return strings.TrimSpace(before)
 	}
 	return s
 }

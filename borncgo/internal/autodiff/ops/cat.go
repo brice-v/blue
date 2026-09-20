@@ -128,11 +128,11 @@ func copySliceAlongDim(dst, src *tensor.RawTensor, dim, offset int, srcStrides [
 
 // copySliceFloat32 copies float32 data along a dimension.
 func copySliceFloat32(dst, src []float32, dim, offset int, dstShape tensor.Shape, dstStrides, srcStrides []int, numElements int) {
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		// Compute multi-dimensional index for dst
 		temp := i
 		srcIdx := 0
-		for d := 0; d < len(dstShape); d++ {
+		for d := range dstShape {
 			coord := temp / dstStrides[d]
 			temp %= dstStrides[d]
 
@@ -149,10 +149,10 @@ func copySliceFloat32(dst, src []float32, dim, offset int, dstShape tensor.Shape
 
 // copySliceFloat64 copies float64 data along a dimension.
 func copySliceFloat64(dst, src []float64, dim, offset int, dstShape tensor.Shape, dstStrides, srcStrides []int, numElements int) {
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		temp := i
 		srcIdx := 0
-		for d := 0; d < len(dstShape); d++ {
+		for d := range dstShape {
 			coord := temp / dstStrides[d]
 			temp %= dstStrides[d]
 
@@ -168,10 +168,10 @@ func copySliceFloat64(dst, src []float64, dim, offset int, dstShape tensor.Shape
 
 // copySliceInt32 copies int32 data along a dimension.
 func copySliceInt32(dst, src []int32, dim, offset int, dstShape tensor.Shape, dstStrides, srcStrides []int, numElements int) {
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		temp := i
 		srcIdx := 0
-		for d := 0; d < len(dstShape); d++ {
+		for d := range dstShape {
 			coord := temp / dstStrides[d]
 			temp %= dstStrides[d]
 
@@ -187,10 +187,10 @@ func copySliceInt32(dst, src []int32, dim, offset int, dstShape tensor.Shape, ds
 
 // copySliceInt64 copies int64 data along a dimension.
 func copySliceInt64(dst, src []int64, dim, offset int, dstShape tensor.Shape, dstStrides, srcStrides []int, numElements int) {
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		temp := i
 		srcIdx := 0
-		for d := 0; d < len(dstShape); d++ {
+		for d := range dstShape {
 			coord := temp / dstStrides[d]
 			temp %= dstStrides[d]
 
@@ -206,10 +206,10 @@ func copySliceInt64(dst, src []int64, dim, offset int, dstShape tensor.Shape, ds
 
 // copySliceUint8 copies uint8 data along a dimension.
 func copySliceUint8(dst, src []uint8, dim, offset int, dstShape tensor.Shape, dstStrides, srcStrides []int, numElements int) {
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		temp := i
 		srcIdx := 0
-		for d := 0; d < len(dstShape); d++ {
+		for d := range dstShape {
 			coord := temp / dstStrides[d]
 			temp %= dstStrides[d]
 
@@ -225,10 +225,10 @@ func copySliceUint8(dst, src []uint8, dim, offset int, dstShape tensor.Shape, ds
 
 // copySliceBool copies bool data along a dimension.
 func copySliceBool(dst, src []bool, dim, offset int, dstShape tensor.Shape, dstStrides, srcStrides []int, numElements int) {
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		temp := i
 		srcIdx := 0
-		for d := 0; d < len(dstShape); d++ {
+		for d := range dstShape {
 			coord := temp / dstStrides[d]
 			temp %= dstStrides[d]
 

@@ -3,20 +3,14 @@ package ml
 import (
 	"fmt"
 
-	"blue/borncgo/nn"
 	"blue/borncgo/tensor"
 )
 
-// CrossEntropy wraps borncgo's cross-entropy loss. blue labels are float32, so
-// they are converted to the int32 class indices borncgo expects. The loss
-// records on the backend's tape, so it is differentiable on CPU and GPU.
+// CrossEntropy is the mean cross-entropy over logits [batch, classes] and
+// integer targets [batch]. It is the default-reduction case of CrossEntropyWith,
+// so there is one implementation.
 func CrossEntropy(logits, target *Tensor) (*Tensor, error) {
-	tgt, err := toInt32(target)
-	if err != nil {
-		return nil, err
-	}
-	loss := nn.NewCrossEntropyLoss(logits.be)
-	return wrap(loss.Forward(logits.t, tgt)), nil
+	return CrossEntropyWith(logits, target, CrossEntropyOpts{Reduction: "mean"})
 }
 
 // CrossEntropyGrad returns the gradient of the mean cross-entropy loss with
@@ -77,13 +71,4 @@ func MSE(pred, target *Tensor) (*Tensor, error) {
 		return nil, err
 	}
 	return Mean(sq, nil, false)
-}
-
-func toInt32(t *Tensor) (*tensor.Tensor[int32, tensor.Backend], error) {
-	data := t.ContiguousData()
-	ids := make([]int32, len(data))
-	for i, v := range data {
-		ids[i] = int32(v)
-	}
-	return tensor.FromSlice[int32](ids, tensor.Shape(t.Shape()), t.be)
 }

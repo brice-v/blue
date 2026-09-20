@@ -238,7 +238,7 @@ func Eye[T DType, B Backend](n int, b B) *Tensor[T, B] {
 		one = true
 	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		t.Set(one.(T), i, i)
 	}
 	return t

@@ -22,7 +22,7 @@ func TestTranspose3D(t *testing.T) {
 
 	// Create 3D tensor [2, 3, 4]
 	data := make([]float32, 24)
-	for i := 0; i < 24; i++ {
+	for i := range 24 {
 		data[i] = float32(i)
 	}
 
@@ -78,7 +78,7 @@ func TestTranspose4D(t *testing.T) {
 	shape := tensor.Shape{2, 8, 16, 64}
 	numElements := shape.NumElements()
 	data := make([]float32, numElements)
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		data[i] = float32(i)
 	}
 
@@ -120,7 +120,7 @@ func TestTranspose4DInt32(t *testing.T) {
 	shape := tensor.Shape{2, 3, 4, 5}
 	numElements := shape.NumElements()
 	data := make([]int32, numElements)
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		data[i] = int32(i)
 	}
 
@@ -154,7 +154,7 @@ func TestExpandBroadcast(t *testing.T) {
 
 	// Create tensor [1, 1, 64]
 	data := make([]float32, 64)
-	for i := 0; i < 64; i++ {
+	for i := range 64 {
 		data[i] = float32(i)
 	}
 
@@ -175,9 +175,9 @@ func TestExpandBroadcast(t *testing.T) {
 
 	// Verify broadcasting: all [b, i, :] should have same values as input[0, 0, :]
 	resultData := result.AsFloat32()
-	for b := 0; b < 2; b++ {
-		for i := 0; i < 16; i++ {
-			for j := 0; j < 64; j++ {
+	for b := range 2 {
+		for i := range 16 {
+			for j := range 64 {
 				idx := b*16*64 + i*64 + j
 				expected := data[j]
 				if resultData[idx] != expected {
@@ -202,7 +202,7 @@ func TestExpandPartialBroadcast(t *testing.T) {
 
 	// Create tensor [3, 1, 4]
 	data := make([]float32, 12)
-	for i := 0; i < 12; i++ {
+	for i := range 12 {
 		data[i] = float32(i)
 	}
 
@@ -223,9 +223,9 @@ func TestExpandPartialBroadcast(t *testing.T) {
 
 	// Verify broadcasting: result[b, i, j] should equal input[b, 0, j]
 	resultData := result.AsFloat32()
-	for b := 0; b < 3; b++ {
-		for i := 0; i < 5; i++ {
-			for j := 0; j < 4; j++ {
+	for b := range 3 {
+		for i := range 5 {
+			for j := range 4 {
 				resultIdx := b*5*4 + i*4 + j
 				inputIdx := b*4 + j
 				expected := data[inputIdx]
@@ -269,8 +269,8 @@ func TestExpandInt32(t *testing.T) {
 
 	// Verify broadcasting
 	resultData := result.AsInt32()
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 4; j++ {
+	for i := range 3 {
+		for j := range 4 {
 			idx := i*4 + j
 			expected := data[j]
 			if resultData[idx] != expected {
@@ -296,7 +296,7 @@ func TestTranspose5D(t *testing.T) {
 	shape := tensor.Shape{2, 3, 4, 5, 6}
 	numElements := shape.NumElements()
 	data := make([]float32, numElements)
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		data[i] = float32(i % 100) // Keep values small for easier debugging
 	}
 
@@ -330,7 +330,7 @@ func TestExpand6D(t *testing.T) {
 
 	// Create tensor [1, 1, 1, 1, 1, 8]
 	data := make([]float32, 8)
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		data[i] = float32(i)
 	}
 
@@ -379,7 +379,7 @@ func TestTransposeNoOp(t *testing.T) {
 
 	// Create 3D tensor
 	data := make([]float32, 24)
-	for i := 0; i < 24; i++ {
+	for i := range 24 {
 		data[i] = float32(i)
 	}
 

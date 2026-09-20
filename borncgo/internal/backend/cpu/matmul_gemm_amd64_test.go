@@ -30,10 +30,10 @@ func rawFromSlice(t *testing.T, data []float32, shape ...int) *tensor.RawTensor 
 // row-major. Used as the oracle for the vendored SIMD GEMM kernel.
 func naiveMatMulF32(a, b []float32, m, k, n int) []float32 {
 	c := make([]float32, m*n)
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
+	for i := range m {
+		for j := range n {
 			var sum float32
-			for kk := 0; kk < k; kk++ {
+			for kk := range k {
 				sum += a[i*k+kk] * b[kk*n+j]
 			}
 			c[i*n+j] = sum

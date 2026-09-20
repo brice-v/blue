@@ -33,7 +33,7 @@ func (m *mockLLM) Forward(input *tensor.RawTensor, _ KVCache, _ int) *tensor.Raw
 	data := output.AsFloat32()
 
 	// Fill with biased logits
-	for i := 0; i < seqLen; i++ {
+	for i := range seqLen {
 		for j := 0; j < m.vocabSize; j++ {
 			data[i*m.vocabSize+j] = m.logitsBias[j]
 		}
@@ -143,7 +143,7 @@ func TestSpeculativeResample(t *testing.T) {
 	// Target prefers token 5
 	targetProbs := make([]float32, 10)
 	targetProbs[5] = 0.8
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if i != 5 {
 			targetProbs[i] = 0.02
 		}
@@ -153,7 +153,7 @@ func TestSpeculativeResample(t *testing.T) {
 	counts := make([]int, 10)
 	numSamples := 1000
 
-	for i := 0; i < numSamples; i++ {
+	for range numSamples {
 		token := sg.resampleRejected(draftProbs, targetProbs)
 		counts[token]++
 	}
@@ -318,7 +318,7 @@ func TestSpeculativeOutputDistribution(t *testing.T) {
 	counts := make([]int, vocabSize)
 	numRuns := 100
 
-	for run := 0; run < numRuns; run++ {
+	for range numRuns {
 		// Reset for each run
 		sg.ClearCaches()
 		tokens, _, err := sg.Generate([]int32{0}, 5)

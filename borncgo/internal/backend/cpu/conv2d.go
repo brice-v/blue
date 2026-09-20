@@ -242,24 +242,24 @@ func im2colFloat32Stride1NoPad(colBuf, inputData []float32, dims *ConvDims) {
 	colWidth := CIn * KH * KW
 	colIdx := 0
 
-	for n := 0; n < N; n++ {
+	for n := range N {
 		batchOffset := n * CIn * H * W
 		batchData := inputData[batchOffset : batchOffset+CIn*H*W]
 
-		for outH := 0; outH < HOut; outH++ {
-			for outW := 0; outW < WOut; outW++ {
+		for outH := range HOut {
+			for outW := range WOut {
 				// With stride=1, padding=0: hStart = outH, wStart = outW
 				rowOffset := colIdx * colWidth
 				rowData := colBuf[rowOffset : rowOffset+colWidth]
 
 				bufIdx := 0
-				for c := 0; c < CIn; c++ {
+				for c := range CIn {
 					channelOffset := c * H * W
 					channelData := batchData[channelOffset : channelOffset+H*W]
 
-					for kh := 0; kh < KH; kh++ {
+					for kh := range KH {
 						h := outH + kh // stride=1: no multiplication
-						for kw := 0; kw < KW; kw++ {
+						for kw := range KW {
 							w := outW + kw // stride=1: no multiplication
 							// No padding check needed (padding=0 guaranteed)
 							rowData[bufIdx] = channelData[h*W+w]
@@ -300,13 +300,13 @@ func im2colFloat32(colBuf, inputData []float32, dims *ConvDims) {
 	colWidth := CIn * KH * KW
 	colIdx := 0 // Current row in colBuf
 
-	for n := 0; n < N; n++ {
+	for n := range N {
 		// Pre-slice batch: eliminates n*C*H*W bounds check
 		batchOffset := n * CIn * H * W
 		batchData := inputData[batchOffset : batchOffset+CIn*H*W]
 
-		for outH := 0; outH < HOut; outH++ {
-			for outW := 0; outW < WOut; outW++ {
+		for outH := range HOut {
+			for outW := range WOut {
 				// For this output position, extract the input patch
 				// Top-left corner in input space
 				hStart := outH*stride - padding
@@ -317,14 +317,14 @@ func im2colFloat32(colBuf, inputData []float32, dims *ConvDims) {
 				rowData := colBuf[rowOffset : rowOffset+colWidth]
 
 				bufIdx := 0
-				for c := 0; c < CIn; c++ {
+				for c := range CIn {
 					// Pre-slice channel: eliminates c*H*W bounds check
 					channelOffset := c * H * W
 					channelData := batchData[channelOffset : channelOffset+H*W]
 
-					for kh := 0; kh < KH; kh++ {
+					for kh := range KH {
 						h := hStart + kh
-						for kw := 0; kw < KW; kw++ {
+						for kw := range KW {
 							w := wStart + kw
 
 							// Check bounds (padding)
@@ -470,24 +470,24 @@ func im2colFloat64Stride1NoPad(colBuf, inputData []float64, dims *ConvDims) {
 	colWidth := CIn * KH * KW
 	colIdx := 0
 
-	for n := 0; n < N; n++ {
+	for n := range N {
 		batchOffset := n * CIn * H * W
 		batchData := inputData[batchOffset : batchOffset+CIn*H*W]
 
-		for outH := 0; outH < HOut; outH++ {
-			for outW := 0; outW < WOut; outW++ {
+		for outH := range HOut {
+			for outW := range WOut {
 				// With stride=1, padding=0: hStart = outH, wStart = outW
 				rowOffset := colIdx * colWidth
 				rowData := colBuf[rowOffset : rowOffset+colWidth]
 
 				bufIdx := 0
-				for c := 0; c < CIn; c++ {
+				for c := range CIn {
 					channelOffset := c * H * W
 					channelData := batchData[channelOffset : channelOffset+H*W]
 
-					for kh := 0; kh < KH; kh++ {
+					for kh := range KH {
 						h := outH + kh // stride=1: no multiplication
-						for kw := 0; kw < KW; kw++ {
+						for kw := range KW {
 							w := outW + kw // stride=1: no multiplication
 							// No padding check needed (padding=0 guaranteed)
 							rowData[bufIdx] = channelData[h*W+w]
@@ -517,13 +517,13 @@ func im2colFloat64(colBuf, inputData []float64, dims *ConvDims) {
 	colWidth := CIn * KH * KW
 	colIdx := 0
 
-	for n := 0; n < N; n++ {
+	for n := range N {
 		// Pre-slice batch: eliminates n*CIn*H*W bounds check
 		batchOffset := n * CIn * H * W
 		batchData := inputData[batchOffset : batchOffset+CIn*H*W]
 
-		for outH := 0; outH < HOut; outH++ {
-			for outW := 0; outW < WOut; outW++ {
+		for outH := range HOut {
+			for outW := range WOut {
 				hStart := outH*stride - padding
 				wStart := outW*stride - padding
 
@@ -532,14 +532,14 @@ func im2colFloat64(colBuf, inputData []float64, dims *ConvDims) {
 				rowData := colBuf[rowOffset : rowOffset+colWidth]
 
 				bufIdx := 0
-				for c := 0; c < CIn; c++ {
+				for c := range CIn {
 					// Pre-slice channel: eliminates c*H*W bounds check
 					channelOffset := c * H * W
 					channelData := batchData[channelOffset : channelOffset+H*W]
 
-					for kh := 0; kh < KH; kh++ {
+					for kh := range KH {
 						h := hStart + kh
-						for kw := 0; kw < KW; kw++ {
+						for kw := range KW {
 							w := wStart + kw
 
 							if h >= 0 && h < H && w >= 0 && w < W {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"maps"
 	"net"
 	"net/http"
 	"strconv"
@@ -175,9 +176,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			continue
 		}
-		for k, v := range p {
-			params[k] = v
-		}
+		maps.Copy(params, p)
 		handlers = append(handlers, route.handler)
 	}
 	for _, route := range routes {
@@ -191,9 +190,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			continue
 		}
-		for k, v := range p {
-			params[k] = v
-		}
+		maps.Copy(params, p)
 		handlers = append(handlers, route.handler)
 		break
 	}
@@ -223,7 +220,7 @@ func compilePattern(pattern string) []segment {
 	if pattern == "" {
 		return segs
 	}
-	for _, p := range strings.Split(pattern, "/") {
+	for p := range strings.SplitSeq(pattern, "/") {
 		if p == "" {
 			continue
 		}

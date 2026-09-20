@@ -1936,10 +1936,7 @@ var Builtins = []*Builtin{
 				if args[1].Type() == STRING_OBJ {
 					indent = args[1].(*Stringo).Value
 				} else {
-					n := args[1].(*Integer).Value
-					if n < 0 {
-						n = 0
-					}
+					n := max(args[1].(*Integer).Value, 0)
 					if n > 16 {
 						n = 16
 					}
@@ -2239,10 +2236,7 @@ var Builtins = []*Builtin{
 			}
 			var chunks []Object
 			for i := int64(0); i < int64(len(elems)); i += size {
-				end := i + size
-				if end > int64(len(elems)) {
-					end = int64(len(elems))
-				}
+				end := min(i+size, int64(len(elems)))
 				chunkElems := make([]Object, end-i)
 				copy(chunkElems, elems[i:end])
 				chunks = append(chunks, &List{Elements: chunkElems})

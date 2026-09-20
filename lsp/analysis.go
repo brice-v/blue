@@ -60,14 +60,8 @@ func analyze(src *docSource) (diags []diagnostic) {
 			continue
 		}
 
-		line := detail.Line
-		if line < 0 {
-			line = 0
-		}
-		col := detail.Column
-		if col < 0 {
-			col = 0
-		}
+		line := max(detail.Line, 0)
+		col := max(detail.Column, 0)
 
 		key := fmt.Sprintf("%s|%d|%d", message, line, col)
 		if seen[key] {
@@ -97,11 +91,12 @@ func analyze(src *docSource) (diags []diagnostic) {
 			end = start + 1
 		}
 
-		full := message
+		var full strings.Builder
+		full.WriteString(message)
 		for _, hint := range detail.Hints {
 			hint = strings.TrimSpace(hint)
 			if hint != "" {
-				full += "\n" + hint
+				full.WriteString("\n" + hint)
 			}
 		}
 
@@ -113,7 +108,7 @@ func analyze(src *docSource) (diags []diagnostic) {
 			Severity: sevError,
 			Code:     "parse",
 			Source:   "blue",
-			Message:  full,
+			Message:  full.String(),
 		})
 	}
 
@@ -246,7 +241,7 @@ func (s *session) contextAt(uri string, pos position) (editContext, bool) {
 // not code so completion stays out of the way.
 func (ix *fileIndex) insideStringOrComment(offset int) bool {
 	i := indexAtOrAfter(ix.tokens, offset)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		t := ix.tokens[j]
 		if (t.kind == kString || t.kind == kComment) && t.start <= offset && offset < t.end {
 			return true
@@ -830,15 +825,15 @@ func (s *session) documentHighlight(p documentHighlightParams) any {
 // right after token i. tokenize emits operators one rune at a time, so `+=` and
 // `==` only exist once those runes are put back together.
 func operatorAfter(tokens []scanToken, i int) string {
-	run := ""
+	var run strings.Builder
 	for j := i + 1; j < len(tokens); j++ {
 		t := tokens[j]
 		if t.kind != kPunct || !isOperatorRune([]rune(t.text)[0]) {
 			break
 		}
-		run += t.text
+		run.WriteString(t.text)
 	}
-	return run
+	return run.String()
 }
 
 // isAssignOp reports whether an operator binds a value to the name before it.

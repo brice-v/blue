@@ -653,3 +653,102 @@ val fx = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
 assert(same(ml.flip(fx, [1]), ml.tensor([[3.0, 2.0, 1.0], [6.0, 5.0, 4.0]])));
 assert(same(ml.masked_select(fx, ml.tensor([[1.0, 0.0, 1.0], [0.0, 1.0, 0.0]])),
     ml.tensor([1.0, 3.0, 5.0])));
+
+# --- 35. TARGET: conv2d / maxpool2d -----------------------------------------
+
+val cv = ml.nn.Conv2d(1, 2, 3, stride=1, padding=1);
+assert(cv.forward(ml.randn([1, 1, 4, 4])).shape == [1, 2, 4, 4]);
+assert(ml.parameters(cv).len() == 2); # weight and bias
+
+val mp = ml.nn.MaxPool2d(2);
+assert(mp.forward(ml.randn([1, 2, 4, 4])).shape == [1, 2, 2, 2]);
+assert(ml.parameters(mp).len() == 0);
+
+# --- 36. TARGET: max_dim, stats, tile, cumsum, sort, topk, nonzero ----------
+
+val ox = ml.tensor([[1.0, 3.0, 2.0], [4.0, 0.0, 5.0]]);
+val mdv = ml.max_dim(ox, 1);
+assert(same(mdv[0], ml.tensor([3.0, 5.0])));
+assert(same(mdv[1], ml.tensor([1, 2], datatype=ml.dtype.int32)));
+val mnv = ml.min_dim(ox, 1);
+assert(same(mnv[0], ml.tensor([1.0, 0.0])));
+assert(same(mnv[1], ml.tensor([0, 1], datatype=ml.dtype.int32)));
+
+assert(close(ml.variance(ox, 1), ml.tensor([0.6666667, 4.6666665])));
+assert(close(ml.variance(ox, 1, unbiased=true), ml.tensor([1.0, 7.0])));
+assert(close(ml.std(ox, 1, unbiased=true), ml.tensor([1.0, 2.6457512])));
+
+assert(same(ml.tile(ml.tensor([[1.0, 2.0]]), [2, 2]),
+    ml.tensor([[1.0, 2.0, 1.0, 2.0], [1.0, 2.0, 1.0, 2.0]])));
+assert(same(ml.cumsum(ml.tensor([1.0, 2.0, 3.0]), 0), ml.tensor([1.0, 3.0, 6.0])));
+
+val srt = ml.sort(ml.tensor([3.0, 1.0, 2.0]), 0, false);
+assert(same(srt[0], ml.tensor([1.0, 2.0, 3.0])));
+assert(same(srt[1], ml.tensor([1, 2, 0], datatype=ml.dtype.int32)));
+
+val tk = ml.topk(ml.tensor([3.0, 1.0, 2.0]), 2, 0, true);
+assert(same(tk[0], ml.tensor([3.0, 2.0])));
+assert(same(tk[1], ml.tensor([0, 2], datatype=ml.dtype.int32)));
+
+assert(same(ml.nonzero(ml.tensor([0.0, 2.0, 0.0, 3.0])),
+    ml.tensor([[1], [3]], datatype=ml.dtype.int32)));
+assert(same(ml.scatter_add(ml.zeros([3, 2]), 0,
+        ml.tensor([[0, 1]], datatype=ml.dtype.int32), ml.ones([1, 2])),
+    ml.tensor([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])));
+
+# --- 37. TARGET: cross_entropy options --------------------------------------
+
+val cel = ml.tensor([[1.0, 2.0, 3.0]]);
+val cet = ml.tensor([2], datatype=ml.dtype.int32);
+assert(close(ml.cross_entropy(cel, cet), ml.tensor([0.40760595])));
+assert(close(ml.cross_entropy(cel, cet, reduction='sum'), ml.tensor([0.40760595])));
+assert(close(ml.cross_entropy(cel, cet, reduction='none'), ml.tensor([0.40760595])));
+assert(close(ml.cross_entropy(cel, cet, weight=ml.tensor([1.0, 1.0, 2.0])),
+    ml.tensor([0.8152119])));
+val cei = ml.cross_entropy(ml.tensor([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
+    ml.tensor([2, 0], datatype=ml.dtype.int32), ignore_index=2);
+assert(close(cei, ml.tensor([2.4076059])));
+
+# --- 38. TARGET: autograd extras, optimizer state, views --------------------
+
+# retain_grad keeps a non-leaf gradient
+val rgx = ml.tensor([[2.0]], requires_grad=true);
+val rgy = ml.mul(rgx, rgx);
+ml.retain_grad(rgy);
+ml.sum(rgy).backward();
+assert(same(rgx.grad, ml.tensor([[4.0]])));
+assert(same(rgy.grad, ml.tensor([[1.0]])));
+
+# autograd_grad returns gradients without storing them
+val aga = ml.tensor([[3.0]], requires_grad=true);
+val agb = ml.tensor([[4.0]], requires_grad=true);
+val ags = ml.autograd_grad(ml.sum(ml.mul(aga, agb)), [aga, agb]);
+assert(same(ags[0], ml.tensor([[4.0]])));
+assert(same(ags[1], ml.tensor([[3.0]])));
+assert(aga.grad == null);
+
+# optimizer state dict shares storage and round-trips through save/load
+val ow = ml.randn([2, 2], requires_grad=true);
+val oopt = ml.optim.Adam([ow], lr=0.01);
+ml.sum(ml.mul(ow, ow)).backward();
+oopt.step();
+val osd = oopt.state_dict();
+assert(osd.len() == 2); # m and v
+ml.save_state(osd, "test_ml_optim.bin");
+val om0 = ml.clone(osd['m.0']);
+ml.sum(ml.mul(ow, ow)).backward();
+oopt.step();
+ml.load_state(osd, "test_ml_optim.bin");
+assert(same(osd['m.0'], om0));
+
+# storage-sharing views under no_grad
+ml.no_grad(fun() {
+    val vx = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+    val vt = ml.transpose(vx, 0, 1);
+    assert(vt.shape == [3, 2]);
+    assert(same(vt, ml.tensor([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])));
+    assert(same(ml.slice(vx, 1, 1, 3), ml.tensor([[2.0, 3.0], [5.0, 6.0]])));
+    assert(same(ml.contiguous(vt), vt));
+    assert(ml.view(ml.tensor([1.0, 2.0, 3.0, 4.0]), [2, 2]).shape == [2, 2]);
+    return null;
+});

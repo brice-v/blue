@@ -13,7 +13,7 @@ func TestMaxPool2D_BasicForward(t *testing.T) {
 	// Input: [1, 1, 4, 4] with sequential values 1-16
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 4, 4}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float32(i + 1)
 	}
 
@@ -48,7 +48,7 @@ func TestMaxPool2D_WithStride(t *testing.T) {
 	// Input: [1, 1, 5, 5]
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 5, 5}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 25; i++ {
+	for i := range 25 {
 		inputData[i] = float32(i + 1)
 	}
 
@@ -81,7 +81,7 @@ func TestMaxPool2D_MultiChannel(t *testing.T) {
 	inputData := input.AsFloat32()
 
 	// Channel 0: all ones
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = 1.0
 	}
 	// Channel 1: all twos
@@ -105,9 +105,9 @@ func TestMaxPool2D_MultiChannel(t *testing.T) {
 	outputData := output.AsFloat32()
 
 	// Verify each channel maintains its values
-	for c := 0; c < 3; c++ {
+	for c := range 3 {
 		expectedVal := float32(c + 1)
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			idx := c*4 + i
 			if outputData[idx] != expectedVal {
 				t.Errorf("Channel %d, output[%d]: expected %.1f, got %.1f",
@@ -126,7 +126,7 @@ func TestMaxPool2D_Batch(t *testing.T) {
 	inputData := input.AsFloat32()
 
 	// Batch 0: values 1-16
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float32(i + 1)
 	}
 	// Batch 1: values 17-32
@@ -201,7 +201,7 @@ func TestMaxPool2D_Float64(t *testing.T) {
 	// Input: [1, 1, 4, 4] float64
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 4, 4}, tensor.Float64, tensor.CPU)
 	inputData := input.AsFloat64()
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float64(i + 1)
 	}
 

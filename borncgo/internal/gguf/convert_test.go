@@ -72,7 +72,7 @@ func createTestGGUFFileWithType(t *testing.T, dtype GGMLType) *File {
 			TensorCount:     1,
 			MetadataKVCount: 0,
 		},
-		Metadata:         make(map[string]interface{}),
+		Metadata:         make(map[string]any),
 		TensorInfo:       []TensorInfo{tensorInfo},
 		Alignment:        DefaultAlignment,
 		TensorDataOffset: tensorDataOffset,
@@ -357,7 +357,7 @@ func TestConvertAll(t *testing.T) {
 			TensorCount:     2,
 			MetadataKVCount: 0,
 		},
-		Metadata: make(map[string]interface{}),
+		Metadata: make(map[string]any),
 		TensorInfo: []TensorInfo{
 			{Name: "tensor_a", NDims: 2, Dimensions: []uint64{3, 2}, Type: GGMLTypeF32, Offset: 0},
 			{Name: "tensor_b", NDims: 2, Dimensions: []uint64{2, 2}, Type: GGMLTypeF32, Offset: 24},

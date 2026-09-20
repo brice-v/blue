@@ -276,7 +276,7 @@ func TestModelForwardNamed(t *testing.T) {
 
 	aData := a.AsFloat32()
 	bData := b.AsFloat32()
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		aData[i] = float32(i + 1)   // [1, 2, 3]
 		bData[i] = float32(i+1) * 2 // [2, 4, 6]
 	}

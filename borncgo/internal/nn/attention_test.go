@@ -94,8 +94,8 @@ func TestScaledDotProductAttention_WithCausalMask(t *testing.T) {
 
 	// weights shape: [1, 1, seq_len, seq_len]
 	// For each position i, weights to positions j > i should be 0
-	for i := 0; i < seqLen; i++ {
-		for j := 0; j < seqLen; j++ {
+	for i := range seqLen {
+		for j := range seqLen {
 			idx := i*seqLen + j
 			weight := weightsData[idx]
 
@@ -114,9 +114,9 @@ func TestScaledDotProductAttention_WithCausalMask(t *testing.T) {
 	}
 
 	// Each row should sum to 1
-	for i := 0; i < seqLen; i++ {
+	for i := range seqLen {
 		sum := float32(0)
-		for j := 0; j < seqLen; j++ {
+		for j := range seqLen {
 			idx := i*seqLen + j
 			sum += weightsData[idx]
 		}
@@ -158,11 +158,11 @@ func TestScaledDotProductAttention_CrossAttention(t *testing.T) {
 	batch := 2
 	heads := 4
 
-	for b := 0; b < batch; b++ {
-		for h := 0; h < heads; h++ {
-			for q := 0; q < seqQ; q++ {
+	for b := range batch {
+		for h := range heads {
+			for q := range seqQ {
 				sum := float32(0)
-				for k := 0; k < seqKV; k++ {
+				for k := range seqKV {
 					// Index: [b, h, q, k]
 					idx := b*heads*seqQ*seqKV + h*seqQ*seqKV + q*seqKV + k
 					sum += weightsData[idx]
@@ -196,9 +196,9 @@ func TestScaledDotProductAttention_CustomScale(t *testing.T) {
 
 	// Weights should sum to 1
 	weightsData := weights.Data()
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		sum := float32(0)
-		for j := 0; j < 3; j++ {
+		for j := range 3 {
 			idx := i*3 + j
 			sum += weightsData[idx]
 		}
@@ -243,8 +243,8 @@ func TestCausalMask_Values(t *testing.T) {
 	//  [0,   0,    0,    -inf],
 	//  [0,   0,    0,    0   ]]
 
-	for i := 0; i < seqLen; i++ {
-		for j := 0; j < seqLen; j++ {
+	for i := range seqLen {
+		for j := range seqLen {
 			idx := i*seqLen + j
 			val := data[idx]
 

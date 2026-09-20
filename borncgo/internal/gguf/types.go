@@ -271,13 +271,13 @@ func (t *TensorInfo) Size() uint64 {
 type MetadataKV struct {
 	Key       string
 	ValueType ValueType
-	Value     interface{}
+	Value     any
 }
 
 // File represents a parsed GGUF file.
 type File struct {
 	Header     Header
-	Metadata   map[string]interface{}
+	Metadata   map[string]any
 	TensorInfo []TensorInfo
 	Alignment  int
 

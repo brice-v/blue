@@ -134,10 +134,10 @@ func matmulMicroKernelF32(c, a, b []float32, k, n, ii, iEnd, kk, kEnd, jj, jEnd 
 
 // matmulNaiveFloat32 is the plain O(n³) fallback used for small matrices.
 func matmulNaiveFloat32(c, a, b []float32, m, k, n int) {
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
+	for i := range m {
+		for j := range n {
 			sum := float32(0)
-			for kIdx := 0; kIdx < k; kIdx++ {
+			for kIdx := range k {
 				sum += a[i*k+kIdx] * b[kIdx*n+j]
 			}
 			c[i*n+j] = sum
@@ -191,10 +191,10 @@ func matmulMicroKernelF64(c, a, b []float64, k, n, ii, iEnd, kk, kEnd, jj, jEnd 
 
 // matmulNaiveFloat64 is the plain O(n³) fallback used for small float64 matrices.
 func matmulNaiveFloat64(c, a, b []float64, m, k, n int) {
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
+	for i := range m {
+		for j := range n {
 			sum := float64(0)
-			for kIdx := 0; kIdx < k; kIdx++ {
+			for kIdx := range k {
 				sum += a[i*k+kIdx] * b[kIdx*n+j]
 			}
 			c[i*n+j] = sum
@@ -207,10 +207,10 @@ func matmulInt32(c, a, b []int32, m, k, n int) {
 		c[i] = 0
 	}
 
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
+	for i := range m {
+		for j := range n {
 			sum := int32(0)
-			for kIdx := 0; kIdx < k; kIdx++ {
+			for kIdx := range k {
 				sum += a[i*k+kIdx] * b[kIdx*n+j]
 			}
 			c[i*n+j] = sum
@@ -223,10 +223,10 @@ func matmulInt64(c, a, b []int64, m, k, n int) {
 		c[i] = 0
 	}
 
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
+	for i := range m {
+		for j := range n {
 			sum := int64(0)
-			for kIdx := 0; kIdx < k; kIdx++ {
+			for kIdx := range k {
 				sum += a[i*k+kIdx] * b[kIdx*n+j]
 			}
 			c[i*n+j] = sum

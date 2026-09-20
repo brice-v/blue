@@ -60,14 +60,14 @@ func TestCatOp_Backward_Simple(t *testing.T) {
 
 	// Check values (all should be 1)
 	grad1 := grads[0].AsFloat32()
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		if grad1[i] != 1.0 {
 			t.Errorf("grad1[%d] = %f, expected 1.0", i, grad1[i])
 		}
 	}
 
 	grad2 := grads[1].AsFloat32()
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if grad2[i] != 1.0 {
 			t.Errorf("grad2[%d] = %f, expected 1.0", i, grad2[i])
 		}
@@ -203,7 +203,7 @@ func TestCatOp_Backward_MultipleTensors(t *testing.T) {
 		}
 
 		gradData := grads[i].AsFloat32()
-		for j := 0; j < size; j++ {
+		for j := range size {
 			expected := float32(offset + j + 1)
 			if gradData[j] != expected {
 				t.Errorf("grad[%d][%d] = %f, expected %f", i, j, gradData[j], expected)

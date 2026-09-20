@@ -21,10 +21,9 @@ func (b *Backend) FromRawTensor(t *tensor.RawTensor) *GPUTensor {
 
 	// Ensure buffer size is at least 4 bytes and aligned to COPY_BUFFER_ALIGNMENT (4 bytes)
 
-	byteSize := uint64(t.ByteSize()) //nolint:gosec // G115: integer overflow conversion int -> uint64
-	if byteSize < 4 {
-		byteSize = 4
-	}
+	byteSize := max(
+		//nolint:gosec // G115: integer overflow conversion int -> uint64
+		uint64(t.ByteSize()), 4)
 	// Align to 4-byte boundary
 	alignedSize := (byteSize + 3) &^ 3
 
@@ -62,10 +61,9 @@ func (b *Backend) ZerosGPU(shape tensor.Shape, dtype tensor.DataType) *GPUTensor
 	// Create zero-filled data with alignment
 	numElements := shape.NumElements()
 
-	byteSize := uint64(numElements * dtype.Size()) //nolint:gosec // G115: integer overflow conversion int -> uint64
-	if byteSize < 4 {
-		byteSize = 4
-	}
+	byteSize := max(
+		//nolint:gosec // G115: integer overflow conversion int -> uint64
+		uint64(numElements*dtype.Size()), 4)
 	// Align to 4-byte boundary
 	alignedSize := (byteSize + 3) &^ 3
 
@@ -101,10 +99,9 @@ func (b *Backend) OnesGPU(shape tensor.Shape, dtype tensor.DataType) *GPUTensor 
 
 	numElements := shape.NumElements()
 
-	byteSize := uint64(numElements * dtype.Size()) //nolint:gosec // G115: integer overflow conversion int -> uint64
-	if byteSize < 4 {
-		byteSize = 4
-	}
+	byteSize := max(
+		//nolint:gosec // G115: integer overflow conversion int -> uint64
+		uint64(numElements*dtype.Size()), 4)
 	// Align to 4-byte boundary
 	alignedSize := (byteSize + 3) &^ 3
 
@@ -113,23 +110,23 @@ func (b *Backend) OnesGPU(shape tensor.Shape, dtype tensor.DataType) *GPUTensor 
 	// Fill with ones based on dtype
 	switch dtype {
 	case tensor.Float32:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			binary.LittleEndian.PutUint32(data[i*4:(i+1)*4], 0x3f800000) // 1.0 in float32
 		}
 	case tensor.Float64:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			binary.LittleEndian.PutUint64(data[i*8:(i+1)*8], 0x3ff0000000000000) // 1.0 in float64
 		}
 	case tensor.Int32:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			binary.LittleEndian.PutUint32(data[i*4:(i+1)*4], 1)
 		}
 	case tensor.Int64:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			binary.LittleEndian.PutUint64(data[i*8:(i+1)*8], 1)
 		}
 	case tensor.Uint8:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			data[i] = 1
 		}
 	default:
@@ -165,10 +162,9 @@ func (b *Backend) RandGPU(shape tensor.Shape, dtype tensor.DataType) *GPUTensor 
 
 	numElements := shape.NumElements()
 
-	byteSize := uint64(numElements * dtype.Size()) //nolint:gosec // G115: integer overflow conversion int -> uint64
-	if byteSize < 4 {
-		byteSize = 4
-	}
+	byteSize := max(
+		//nolint:gosec // G115: integer overflow conversion int -> uint64
+		uint64(numElements*dtype.Size()), 4)
 	// Align to 4-byte boundary
 	alignedSize := (byteSize + 3) &^ 3
 
@@ -177,27 +173,27 @@ func (b *Backend) RandGPU(shape tensor.Shape, dtype tensor.DataType) *GPUTensor 
 	// Generate random data based on dtype
 	switch dtype {
 	case tensor.Float32:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			val := rand.Float32()                                                              //nolint:gosec // G404: ML uses math/rand for reproducibility
 			binary.LittleEndian.PutUint32(data[i*4:(i+1)*4], *(*uint32)(unsafe.Pointer(&val))) //nolint:gosec // G103: Required for float bit conversion
 		}
 	case tensor.Float64:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			val := rand.Float64()                                                              //nolint:gosec // G404: ML uses math/rand for reproducibility
 			binary.LittleEndian.PutUint64(data[i*8:(i+1)*8], *(*uint64)(unsafe.Pointer(&val))) //nolint:gosec // G103: Required for float bit conversion
 		}
 	case tensor.Int32:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			val := rand.Int31() //nolint:gosec // G404: ML uses math/rand for reproducibility
 			binary.LittleEndian.PutUint32(data[i*4:(i+1)*4], uint32(val))
 		}
 	case tensor.Int64:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			val := rand.Int63() //nolint:gosec // G404: ML uses math/rand for reproducibility
 			binary.LittleEndian.PutUint64(data[i*8:(i+1)*8], uint64(val))
 		}
 	case tensor.Uint8:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			data[i] = uint8(rand.Intn(256)) //nolint:gosec // G404: ML uses math/rand for reproducibility
 		}
 	default:

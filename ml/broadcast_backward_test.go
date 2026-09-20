@@ -32,15 +32,15 @@ func TestBroadcastMulBackward(t *testing.T) {
 
 	// d(sum(x*s))/dx = s broadcast; d/ds = sum over rows of x.
 	wantX := make([]float32, M*N)
-	for i := 0; i < M; i++ {
-		for j := 0; j < N; j++ {
+	for i := range M {
+		for j := range N {
 			wantX[i*N+j] = sData[j]
 		}
 	}
 	wantS := make([]float32, N)
-	for j := 0; j < N; j++ {
+	for j := range N {
 		var acc float32
-		for i := 0; i < M; i++ {
+		for i := range M {
 			acc += xData[i*N+j]
 		}
 		wantS[j] = acc

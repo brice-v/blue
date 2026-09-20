@@ -236,7 +236,7 @@ func flashAttentionScoreBlock(
 ) {
 	negInf := float32(math.Inf(-1))
 
-	for kvIdx := 0; kvIdx < kvBlockSize; kvIdx++ {
+	for kvIdx := range kvBlockSize {
 		j := kvStart + kvIdx
 
 		// Apply causal mask: future positions get -inf.
@@ -251,7 +251,7 @@ func flashAttentionScoreBlock(
 
 		// Compute dot product Q[i] @ K[j]^T.
 		var score float32
-		for d := 0; d < headDim; d++ {
+		for d := range headDim {
 			score += q[d] * kVec[d]
 		}
 		scores[kvIdx] = score * scale
@@ -278,7 +278,7 @@ func flashAttentionExtractValues(
 	kvStart, kvBlockSize int,
 	headDim int,
 ) {
-	for kvIdx := 0; kvIdx < kvBlockSize; kvIdx++ {
+	for kvIdx := range kvBlockSize {
 		j := kvStart + kvIdx
 
 		// Pre-slice V vector.
@@ -400,8 +400,8 @@ func flashAttentionCPU(
 	kvStride := numHeads * headDim // Between KV positions.
 
 	// Process each batch and head independently.
-	for b := 0; b < batch; b++ {
-		for h := 0; h < numHeads; h++ {
+	for b := range batch {
+		for h := range numHeads {
 			// Pre-compute dimension parameters for this batch+head.
 			dims := FlashDims{
 				HeadDim:   headDim,

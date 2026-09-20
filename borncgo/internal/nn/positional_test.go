@@ -142,7 +142,7 @@ func TestSinusoidalPositionalEncodingValues(t *testing.T) {
 	epsilon := 1e-5
 	expected := []float32{0, 1, 0, 1} // position 0
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if math.Abs(float64(outData[i]-expected[i])) > epsilon {
 			t.Errorf("PE(0, %d) = %f, want %f", i, outData[i], expected[i])
 		}
@@ -272,7 +272,7 @@ func TestLearnedPositionalEmbeddingDifferentPositions(t *testing.T) {
 
 	// At least one dimension should differ (very high probability with random init)
 	same01 := true
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if math.Abs(float64(pos0[i]-pos1[i])) > 1e-6 {
 			same01 = false
 			break
@@ -280,7 +280,7 @@ func TestLearnedPositionalEmbeddingDifferentPositions(t *testing.T) {
 	}
 
 	same12 := true
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if math.Abs(float64(pos1[i]-pos2[i])) > 1e-6 {
 			same12 = false
 			break
@@ -390,8 +390,8 @@ func TestALiBiGetBias(t *testing.T) {
 
 	// Check diagonal (i == j, distance = 0)
 	// bias[h, i, i] = -slope[h] * 0 = 0
-	for h := 0; h < 4; h++ {
-		for i := 0; i < seqLen; i++ {
+	for h := range 4 {
+		for i := range seqLen {
 			idx := h*seqLen*seqLen + i*seqLen + i
 			if math.Abs(float64(biasData[idx])) > 1e-6 {
 				t.Errorf("Diagonal bias[%d, %d, %d] = %f, want 0.0", h, i, i, biasData[idx])
@@ -401,9 +401,9 @@ func TestALiBiGetBias(t *testing.T) {
 
 	// Check symmetry (distance-based)
 	// bias[h, i, j] should equal bias[h, j, i] (both are -slope * |i-j|)
-	for h := 0; h < 4; h++ {
-		for i := 0; i < seqLen; i++ {
-			for j := 0; j < seqLen; j++ {
+	for h := range 4 {
+		for i := range seqLen {
+			for j := range seqLen {
 				idxIJ := h*seqLen*seqLen + i*seqLen + j
 				idxJI := h*seqLen*seqLen + j*seqLen + i
 				if math.Abs(float64(biasData[idxIJ]-biasData[idxJI])) > 1e-6 {

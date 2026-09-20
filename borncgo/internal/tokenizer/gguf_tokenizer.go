@@ -277,7 +277,7 @@ var gpt2ByteToUnicode = func() map[byte]rune {
 	}
 	// Remaining bytes map to 256+n.
 	n := 0
-	for b := 0; b < 256; b++ {
+	for b := range 256 {
 		if _, ok := m[byte(b)]; !ok {
 			m[byte(b)] = rune(256 + n)
 			n++

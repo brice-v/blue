@@ -319,10 +319,10 @@ func RepeatKV[B tensor.Backend](
 	outData := make([]float32, batch*nKV*nRep*seqLen*headDim)
 
 	// Copy each KV head nRep times
-	for b := 0; b < batch; b++ {
-		for h := 0; h < nKV; h++ {
-			for r := 0; r < nRep; r++ {
-				for s := 0; s < seqLen; s++ {
+	for b := range batch {
+		for h := range nKV {
+			for r := range nRep {
+				for s := range seqLen {
 					// Source index: [b, h, s, :]
 					srcBase := b*nKV*seqLen*headDim + h*seqLen*headDim + s*headDim
 					// Destination index: [b, h*nRep+r, s, :]

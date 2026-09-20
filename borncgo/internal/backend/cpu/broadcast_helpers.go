@@ -17,7 +17,7 @@ func computeBroadcastStridesForShape(inShape, outShape tensor.Shape) []int {
 	// Compute original strides
 	origStrides := inShape.ComputeStrides()
 
-	for i := 0; i < outDim; i++ {
+	for i := range outDim {
 		inIdx := i - offset
 		switch {
 		case inIdx < 0 || inIdx >= inDim:
@@ -42,7 +42,7 @@ func computeFlatIndex(outIdx int, outStrides, inStrides []int) int {
 	ndim := len(outStrides)
 	flatIdx := 0
 
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		// Extract coordinate along dimension i
 		coord := outIdx / outStrides[i]
 		outIdx %= outStrides[i]

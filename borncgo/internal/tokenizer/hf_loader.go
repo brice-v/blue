@@ -58,7 +58,7 @@ func DetectHFTokenizerType(path string) (*HFTokenizerMetadata, error) {
 		return nil, fmt.Errorf("failed to read tokenizer.json: %w", err)
 	}
 
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("failed to parse tokenizer.json: %w", err)
 	}
@@ -68,7 +68,7 @@ func DetectHFTokenizerType(path string) (*HFTokenizerMetadata, error) {
 	}
 
 	// Check model type.
-	if model, ok := raw["model"].(map[string]interface{}); ok {
+	if model, ok := raw["model"].(map[string]any); ok {
 		if tokType, ok := model["type"].(string); ok {
 			metadata.TokenizerType = tokType
 			switch tokType {
@@ -82,15 +82,15 @@ func DetectHFTokenizerType(path string) (*HFTokenizerMetadata, error) {
 		}
 
 		// Get vocab size.
-		if vocab, ok := model["vocab"].(map[string]interface{}); ok {
+		if vocab, ok := model["vocab"].(map[string]any); ok {
 			metadata.VocabSize = len(vocab)
 		}
 	}
 
 	// Check for special tokens.
-	if addedTokens, ok := raw["added_tokens"].([]interface{}); ok {
+	if addedTokens, ok := raw["added_tokens"].([]any); ok {
 		for _, tokenRaw := range addedTokens {
-			if token, ok := tokenRaw.(map[string]interface{}); ok {
+			if token, ok := tokenRaw.(map[string]any); ok {
 				if content, ok := token["content"].(string); ok {
 					switch content {
 					case specialTokenBOS, specialTokenAltBOS, specialTokenCLS:

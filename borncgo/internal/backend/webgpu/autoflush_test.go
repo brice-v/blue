@@ -38,7 +38,7 @@ func TestAutoFlush_ManyOpsWithoutReadback(t *testing.T) {
 	// Chain 500 GPU ops without any readback.
 	// This exceeds maxPendingBeforeFlush (128) — auto-flush must kick in.
 	result := raw
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		result = backend.Add(result, raw)
 	}
 
@@ -85,7 +85,7 @@ func TestAutoFlush_PendingCountResets(t *testing.T) {
 	}
 
 	// Phase 2: more ops after auto-flush triggered.
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		result = backend.Mul(result, raw)
 	}
 

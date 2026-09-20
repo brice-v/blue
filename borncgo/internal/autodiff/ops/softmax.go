@@ -162,16 +162,16 @@ func (op *LogSoftmaxOp) Backward(outputGrad *tensor.RawTensor, _ tensor.Backend)
 		outGradData := outputGrad.AsFloat32()
 		inGradData := inputGrad.AsFloat32()
 
-		for b := 0; b < batchSize; b++ {
+		for b := range batchSize {
 			// Sum gradient over classes: Σ_i ∂L/∂log_softmax[i]
 			gradSum := float32(0.0)
-			for j := 0; j < numClasses; j++ {
+			for j := range numClasses {
 				idx := b*numClasses + j
 				gradSum += outGradData[idx]
 			}
 
 			// Compute gradient
-			for j := 0; j < numClasses; j++ {
+			for j := range numClasses {
 				idx := b*numClasses + j
 				inGradData[idx] = outGradData[idx] - op.softmaxData[idx]*gradSum
 			}
@@ -186,7 +186,7 @@ func (op *LogSoftmaxOp) Backward(outputGrad *tensor.RawTensor, _ tensor.Backend)
 
 // softmaxFloat32 computes softmax for float32 data.
 func softmaxFloat32(inputData, outputData []float32, batchSize, numClasses int) {
-	for b := 0; b < batchSize; b++ {
+	for b := range batchSize {
 		// Find max for numerical stability
 		offset := b * numClasses
 		maxVal := inputData[offset]
@@ -198,14 +198,14 @@ func softmaxFloat32(inputData, outputData []float32, batchSize, numClasses int) 
 
 		// Compute exp and sum
 		sumExp := float32(0.0)
-		for j := 0; j < numClasses; j++ {
+		for j := range numClasses {
 			idx := offset + j
 			outputData[idx] = float32(math.Exp(float64(inputData[idx] - maxVal)))
 			sumExp += outputData[idx]
 		}
 
 		// Normalize
-		for j := 0; j < numClasses; j++ {
+		for j := range numClasses {
 			outputData[offset+j] /= sumExp
 		}
 	}
@@ -213,7 +213,7 @@ func softmaxFloat32(inputData, outputData []float32, batchSize, numClasses int) 
 
 // softmaxFloat64 computes softmax for float64 data.
 func softmaxFloat64(inputData, outputData []float64, batchSize, numClasses int) {
-	for b := 0; b < batchSize; b++ {
+	for b := range batchSize {
 		offset := b * numClasses
 		maxVal := inputData[offset]
 		for j := 1; j < numClasses; j++ {
@@ -223,13 +223,13 @@ func softmaxFloat64(inputData, outputData []float64, batchSize, numClasses int) 
 		}
 
 		sumExp := 0.0
-		for j := 0; j < numClasses; j++ {
+		for j := range numClasses {
 			idx := offset + j
 			outputData[idx] = math.Exp(inputData[idx] - maxVal)
 			sumExp += outputData[idx]
 		}
 
-		for j := 0; j < numClasses; j++ {
+		for j := range numClasses {
 			outputData[offset+j] /= sumExp
 		}
 	}

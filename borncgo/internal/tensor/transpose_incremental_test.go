@@ -34,7 +34,7 @@ func transposeSrcMap(oldShape, axes []int) []int {
 			tmp /= newShape[j]
 		}
 		oldFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			oldFlat += idx[j] * oldStrides[axes[j]]
 		}
 		srcMap[i] = oldFlat

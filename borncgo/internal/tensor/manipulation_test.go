@@ -341,7 +341,7 @@ func TestCatChunkRoundtrip(t *testing.T) {
 	origData := input.Data()
 
 	// Chunk along each dimension
-	for dim := 0; dim < 3; dim++ {
+	for dim := range 3 {
 		dimSize := input.Shape()[dim]
 		for n := 1; n <= dimSize; n++ {
 			if dimSize%n != 0 {

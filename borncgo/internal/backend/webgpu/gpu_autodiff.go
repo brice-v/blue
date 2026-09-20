@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"slices"
 
 	"blue/borncgo/internal/tensor"
 	wgpu "github.com/oliverbestmann/webgpu/wgpu"
@@ -81,8 +82,7 @@ func (tape *GPUTape) Backward(loss *GPUTensor) map[*GPUTensor]*GPUTensor {
 	grads[lastOp.output] = loss
 
 	// Walk tape backwards
-	for i := len(tape.operations) - 1; i >= 0; i-- {
-		op := tape.operations[i]
+	for _, op := range slices.Backward(tape.operations) {
 
 		// Get gradient for this operation's output
 		outputGrad, hasGrad := grads[op.output]
@@ -482,17 +482,17 @@ func (b *Backend) scalarGPU(value float32, shape tensor.Shape, dtype tensor.Data
 	switch dtype {
 	case tensor.Float32:
 		data := raw.AsFloat32()
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			data[i] = value
 		}
 	case tensor.Float64:
 		data := raw.AsFloat64()
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			data[i] = float64(value)
 		}
 	case tensor.Int32:
 		data := raw.AsInt32()
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			data[i] = int32(value)
 		}
 	default:

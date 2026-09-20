@@ -134,6 +134,12 @@ func (r *RawTensor) Strides() []int {
 	return r.stride
 }
 
+// Offset returns the byte offset of the first element within the buffer. It is
+// nonzero for views that start partway into their base storage.
+func (r *RawTensor) Offset() int {
+	return r.offset
+}
+
 // DType returns the tensor's data type.
 func (r *RawTensor) DType() DataType {
 	return r.dtype
@@ -236,6 +242,36 @@ func (r *RawTensor) AsFloat32() []float32 {
 	return unsafe.Slice((*float32)(unsafe.Pointer(&data[0])), r.NumElements())
 }
 
+// Float32At returns the value at buffer element index i (absolute, counted from
+// the start of the buffer and ignoring this tensor's offset), converted to
+// float32. It is used to read strided views, where the elements are not
+// contiguous and AsFloat32's NumElements-sized slice is too short.
+func (r *RawTensor) Float32At(i int) float32 {
+	if r.buffer == nil {
+		r.ensureBuffer()
+	}
+	d := r.buffer.data
+	switch r.dtype {
+	case Float32:
+		return *(*float32)(unsafe.Pointer(&d[i*4]))
+	case Float64:
+		return float32(*(*float64)(unsafe.Pointer(&d[i*8])))
+	case Int32:
+		return float32(*(*int32)(unsafe.Pointer(&d[i*4])))
+	case Int64:
+		return float32(*(*int64)(unsafe.Pointer(&d[i*8])))
+	case Uint8:
+		return float32(d[i])
+	case Bool:
+		if d[i] != 0 {
+			return 1
+		}
+		return 0
+	default:
+		return 0
+	}
+}
+
 // AsFloat64 interprets the data as []float64.
 // Panics if the tensor's dtype is not Float64.
 // For lazy GPU tensors, this triggers data transfer from GPU to CPU.
@@ -322,6 +358,22 @@ func (r *RawTensor) Clone() *RawTensor {
 		backendData:  r.backendData,  // Shared reference; backend manages lifecycle.
 		materializer: r.materializer, // Shared reference; backend is stateless for this call.
 	}
+}
+
+// ViewAs returns a new RawTensor that shares this tensor's buffer but reports
+// the given shape, strides, and offset. The buffer is reference counted, so the
+// base storage stays alive as long as the view does. The caller must ensure the
+// strides and offset describe a valid view of the buffer.
+//
+// Note: this only describes a view. Kernels that read the buffer linearly
+// (most of the CPU backend) assume contiguous data, so a non-contiguous view
+// must be materialized before it is passed to them.
+func (r *RawTensor) ViewAs(shape Shape, strides []int, offset int) *RawTensor {
+	v := r.Clone()
+	v.shape = shape.Clone()
+	v.stride = append([]int(nil), strides...)
+	v.offset = offset
+	return v
 }
 
 // Release decrements the reference count and deallocates if it reaches 0.

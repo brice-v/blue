@@ -77,7 +77,7 @@ func wrappedBuiltins(index *fileIndex, d *declaration) []*object.Builtin {
 			continue
 		}
 		var out []*object.Builtin
-		for _, name := range strings.Split(rest, ",") {
+		for name := range strings.SplitSeq(rest, ",") {
 			name = strings.TrimSpace(name)
 			if name == "" || name == "this" {
 				continue

@@ -881,7 +881,7 @@ func (b *Backend) runTransposeNDLazy(input *tensor.RawTensor, axes []int) (*tens
 	// Default axes: reverse all dimensions
 	if len(axes) == 0 {
 		axes = make([]int, ndim)
-		for i := 0; i < ndim; i++ {
+		for i := range ndim {
 			axes[i] = ndim - 1 - i
 		}
 	}
@@ -958,7 +958,7 @@ func (b *Backend) runTransposeNDLazy(input *tensor.RawTensor, axes []int) (*tens
 	putUint32LE(params[4:8], uint32(shape.NumElements())) //nolint:gosec // G115: integer overflow conversion int -> uint32
 
 	// Pack input shape (6 slots)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(shape) {
 			putUint32LE(params[8+i*4:12+i*4], uint32(shape[i])) //nolint:gosec // G115: safe, tensor dims are small positive ints
 		} else {
@@ -967,7 +967,7 @@ func (b *Backend) runTransposeNDLazy(input *tensor.RawTensor, axes []int) (*tens
 	}
 
 	// Pack input strides (6 slots)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(inputStrides) {
 			putUint32LE(params[32+i*4:36+i*4], uint32(inputStrides[i])) //nolint:gosec // G115: safe, strides derived from tensor dims
 		} else {
@@ -976,7 +976,7 @@ func (b *Backend) runTransposeNDLazy(input *tensor.RawTensor, axes []int) (*tens
 	}
 
 	// Pack output strides (6 slots)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(outputStrides) {
 			putUint32LE(params[56+i*4:60+i*4], uint32(outputStrides[i])) //nolint:gosec // G115: safe, strides derived from tensor dims
 		} else {
@@ -985,7 +985,7 @@ func (b *Backend) runTransposeNDLazy(input *tensor.RawTensor, axes []int) (*tens
 	}
 
 	// Pack axes (6 slots)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(axes) {
 			putUint32LE(params[80+i*4:84+i*4], uint32(axes[i])) //nolint:gosec // G115: safe, axis indices are small non-negative ints
 		} else {
@@ -1033,15 +1033,15 @@ func (b *Backend) runExpandLazy(input *tensor.RawTensor, newShape tensor.Shape) 
 	// Pad source shape to match destination dimensions
 	dimDiff := len(newShape) - len(shape)
 	paddedShape := make(tensor.Shape, len(newShape))
-	for i := 0; i < dimDiff; i++ {
+	for i := range dimDiff {
 		paddedShape[i] = 1
 	}
-	for i := 0; i < len(shape); i++ {
+	for i := range shape {
 		paddedShape[dimDiff+i] = shape[i]
 	}
 
 	// Validate broadcasting compatibility
-	for i := 0; i < len(newShape); i++ {
+	for i := range newShape {
 		if paddedShape[i] != 1 && paddedShape[i] != newShape[i] {
 			return nil, &lazyError{msg: "expand: incompatible shapes"}
 		}
@@ -1099,7 +1099,7 @@ func (b *Backend) runExpandLazy(input *tensor.RawTensor, newShape tensor.Shape) 
 	putUint32LE(params[4:8], uint32(resultNumElements)) //nolint:gosec // G115: integer overflow conversion int -> uint32
 
 	// Pack input shape (6 slots) - use paddedShape
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(paddedShape) {
 			putUint32LE(params[8+i*4:12+i*4], uint32(paddedShape[i])) //nolint:gosec // G115: safe, tensor dims are small positive ints
 		} else {
@@ -1108,7 +1108,7 @@ func (b *Backend) runExpandLazy(input *tensor.RawTensor, newShape tensor.Shape) 
 	}
 
 	// Pack input strides (6 slots)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(inputStrides) {
 			putUint32LE(params[32+i*4:36+i*4], uint32(inputStrides[i])) //nolint:gosec // G115: safe, strides derived from tensor dims
 		} else {
@@ -1117,7 +1117,7 @@ func (b *Backend) runExpandLazy(input *tensor.RawTensor, newShape tensor.Shape) 
 	}
 
 	// Pack output strides (6 slots)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(outputStrides) {
 			putUint32LE(params[56+i*4:60+i*4], uint32(outputStrides[i])) //nolint:gosec // G115: safe, strides derived from tensor dims
 		} else {
@@ -1457,7 +1457,7 @@ func (b *Backend) runSumLazy(input *tensor.RawTensor) (*tensor.RawTensor, error)
 	switch dtype {
 	case tensor.Float32:
 		var sum float32
-		for i := uint32(0); i < numWorkgroups; i++ {
+		for i := range numWorkgroups {
 			sum += math.Float32frombits(binary.LittleEndian.Uint32(partialData[i*4 : i*4+4]))
 		}
 		result, err := tensor.NewRaw(tensor.Shape{}, tensor.Float32, tensor.WebGPU)
@@ -1469,7 +1469,7 @@ func (b *Backend) runSumLazy(input *tensor.RawTensor) (*tensor.RawTensor, error)
 
 	case tensor.Int32:
 		var sum int32
-		for i := uint32(0); i < numWorkgroups; i++ {
+		for i := range numWorkgroups {
 			sum += int32(binary.LittleEndian.Uint32(partialData[i*4 : i*4+4])) //nolint:gosec // G115: integer overflow conversion uint32 -> int32
 		}
 		result, err := tensor.NewRaw(tensor.Shape{}, tensor.Int32, tensor.WebGPU)
@@ -1737,7 +1737,7 @@ func (b *Backend) runScatterAddLazy(dest *tensor.RawTensor, dim int, indices, sr
 	putUint32LE(params[12:16], uint32(ndim))
 
 	// dest_shape[0..5] — pad with 1 for unused dimensions.
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < ndim {
 			putUint32LE(params[16+i*4:20+i*4], uint32(destShape[i])) //nolint:gosec // G115: shape dim is small positive
 		} else {
@@ -1746,7 +1746,7 @@ func (b *Backend) runScatterAddLazy(dest *tensor.RawTensor, dim int, indices, sr
 	}
 
 	// dest_strides[0..5] — pad with 1.
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < ndim {
 			putUint32LE(params[40+i*4:44+i*4], uint32(destStrides[i])) //nolint:gosec // G115: stride is small positive
 		} else {
@@ -1755,7 +1755,7 @@ func (b *Backend) runScatterAddLazy(dest *tensor.RawTensor, dim int, indices, sr
 	}
 
 	// src_strides[0..5] — pad with 1.
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < ndim {
 			putUint32LE(params[64+i*4:68+i*4], uint32(srcStrides[i])) //nolint:gosec // G115: stride is small positive
 		} else {
@@ -1844,7 +1844,7 @@ func (b *Backend) runSumDimLazy(x *tensor.RawTensor, dim int, keepDim bool) (*te
 
 	// Compute outer_size, dim_size, inner_size.
 	outerSize := 1
-	for i := 0; i < dim; i++ {
+	for i := range dim {
 		outerSize *= shape[i]
 	}
 	dimSize := shape[dim]
@@ -1860,7 +1860,7 @@ func (b *Backend) runSumDimLazy(x *tensor.RawTensor, dim int, keepDim bool) (*te
 		outShape[dim] = 1
 	} else {
 		outShape = make(tensor.Shape, 0, ndim-1)
-		for i := 0; i < ndim; i++ {
+		for i := range ndim {
 			if i != dim {
 				outShape = append(outShape, shape[i])
 			}
@@ -2132,7 +2132,7 @@ func (b *Backend) runChunkLazy(x *tensor.RawTensor, n, dim int) ([]*tensor.RawTe
 		}
 	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		chunkOffset := uint32(i * chunkSize)             //nolint:gosec // G115: safe, offset bounded by tensor dim
 		outerStrideOut := uint32(chunkSize) * innerSizeU //nolint:gosec // G115: safe product of small positive ints
 

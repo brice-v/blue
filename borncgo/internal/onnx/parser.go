@@ -45,7 +45,7 @@ const (
 )
 
 // readMessage reads a protobuf message into the given struct.
-func (p *parser) readMessage(msg interface{}) error {
+func (p *parser) readMessage(msg any) error {
 	switch m := msg.(type) {
 	case *ModelProto:
 		return p.readModelProto(m)

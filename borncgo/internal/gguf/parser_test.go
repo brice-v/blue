@@ -449,73 +449,73 @@ func TestAllNumericValueTypes(t *testing.T) {
 		name      string
 		valueType ValueType
 		writeVal  func(*bytes.Buffer, binary.ByteOrder)
-		checkVal  func(interface{}) bool
+		checkVal  func(any) bool
 	}{
 		{
 			"uint8",
 			ValueTypeUint8,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, uint8(42)) },
-			func(v interface{}) bool { return v.(uint8) == 42 },
+			func(v any) bool { return v.(uint8) == 42 },
 		},
 		{
 			"int8",
 			ValueTypeInt8,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, int8(-10)) },
-			func(v interface{}) bool { return v.(int8) == -10 },
+			func(v any) bool { return v.(int8) == -10 },
 		},
 		{
 			"uint16",
 			ValueTypeUint16,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, uint16(1000)) },
-			func(v interface{}) bool { return v.(uint16) == 1000 },
+			func(v any) bool { return v.(uint16) == 1000 },
 		},
 		{
 			"int16",
 			ValueTypeInt16,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, int16(-500)) },
-			func(v interface{}) bool { return v.(int16) == -500 },
+			func(v any) bool { return v.(int16) == -500 },
 		},
 		{
 			"int32",
 			ValueTypeInt32,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, int32(-100000)) },
-			func(v interface{}) bool { return v.(int32) == -100000 },
+			func(v any) bool { return v.(int32) == -100000 },
 		},
 		{
 			"float32",
 			ValueTypeFloat32,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, float32(3.14)) },
-			func(v interface{}) bool { return v.(float32) > 3.13 && v.(float32) < 3.15 },
+			func(v any) bool { return v.(float32) > 3.13 && v.(float32) < 3.15 },
 		},
 		{
 			"uint64",
 			ValueTypeUint64,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, uint64(1<<40)) },
-			func(v interface{}) bool { return v.(uint64) == 1<<40 },
+			func(v any) bool { return v.(uint64) == 1<<40 },
 		},
 		{
 			"int64",
 			ValueTypeInt64,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, int64(-1<<40)) },
-			func(v interface{}) bool { return v.(int64) == -1<<40 },
+			func(v any) bool { return v.(int64) == -1<<40 },
 		},
 		{
 			"float64",
 			ValueTypeFloat64,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, float64(2.718281828)) },
-			func(v interface{}) bool { return v.(float64) > 2.71 && v.(float64) < 2.72 },
+			func(v any) bool { return v.(float64) > 2.71 && v.(float64) < 2.72 },
 		},
 		{
 			"bool_true",
 			ValueTypeBool,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, uint8(1)) },
-			func(v interface{}) bool { return v.(bool) == true },
+			func(v any) bool { return v.(bool) == true },
 		},
 		{
 			"bool_false",
 			ValueTypeBool,
 			func(buf *bytes.Buffer, order binary.ByteOrder) { _ = binary.Write(buf, order, uint8(0)) },
-			func(v interface{}) bool { return v.(bool) == false },
+			func(v any) bool { return v.(bool) == false },
 		},
 	}
 

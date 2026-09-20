@@ -72,9 +72,9 @@ func TestCrossEntropyOp_Backward(t *testing.T) {
 	// Verify gradient property: sum over classes should be 0 for each sample
 	// This is because softmax outputs sum to 1, so gradients must sum to 0
 	numClasses := 3
-	for b := 0; b < 2; b++ {
+	for b := range 2 {
 		gradSum := float32(0.0)
-		for i := 0; i < numClasses; i++ {
+		for i := range numClasses {
 			gradSum += gradData[b*numClasses+i]
 		}
 		if math.Abs(float64(gradSum)) > 1e-6 {
@@ -229,9 +229,9 @@ func TestCrossEntropyOp_Float64(t *testing.T) {
 	// Verify gradient sum property
 	gradData := inputGrads[0].AsFloat64()
 	numClasses := 3
-	for b := 0; b < 2; b++ {
+	for b := range 2 {
 		gradSum := 0.0
-		for i := 0; i < numClasses; i++ {
+		for i := range numClasses {
 			gradSum += gradData[b*numClasses+i]
 		}
 		if math.Abs(gradSum) > 1e-9 {

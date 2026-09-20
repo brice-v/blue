@@ -14,7 +14,7 @@ func TestMaxPool2DOp_BackwardGradients(t *testing.T) {
 	// Input: [1, 1, 4, 4] with sequential values
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 4, 4}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float32(i + 1)
 	}
 
@@ -86,7 +86,7 @@ func TestMaxPool2DOp_GradientAccumulation(t *testing.T) {
 	// This tests gradient accumulation when same position is max in multiple windows
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 5, 5}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 25; i++ {
+	for i := range 25 {
 		inputData[i] = 1.0 // All same value
 	}
 
@@ -132,7 +132,7 @@ func TestMaxPool2DOp_MultiChannel(t *testing.T) {
 	inputData := input.AsFloat32()
 
 	// Channel 0: sequential 1-16
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float32(i + 1)
 	}
 	// Channel 1: sequential 17-32
@@ -162,7 +162,7 @@ func TestMaxPool2DOp_MultiChannel(t *testing.T) {
 	channel0NonZero := 0
 	channel1NonZero := 0
 
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		if inputGradData[i] != 0.0 {
 			channel0NonZero++
 		}
@@ -193,7 +193,7 @@ func TestMaxPool2DOp_Batch(t *testing.T) {
 	inputData := input.AsFloat32()
 
 	// Fill with distinct values per batch
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		inputData[i] = float32(i + 1)
 	}
 
@@ -219,7 +219,7 @@ func TestMaxPool2DOp_Batch(t *testing.T) {
 	batch0NonZero := 0
 	batch1NonZero := 0
 
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		if inputGradData[i] != 0.0 {
 			batch0NonZero++
 		}
@@ -248,7 +248,7 @@ func TestMaxPool2DOp_Float64(t *testing.T) {
 	// Input: [1, 1, 4, 4] float64
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 4, 4}, tensor.Float64, tensor.CPU)
 	inputData := input.AsFloat64()
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float64(i + 1)
 	}
 

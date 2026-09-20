@@ -169,7 +169,7 @@ func checkSGDNoMomentumParity(t *testing.T, initWeights []float32, lr float32, n
 
 	// Scalar reference.
 	ref := append([]float32{}, initWeights...)
-	for s := 0; s < nSteps; s++ {
+	for s := range nSteps {
 		ref = scalarSGDStep(ref, sgdGradFn(s, len(ref)), lr)
 	}
 
@@ -177,7 +177,7 @@ func checkSGDNoMomentumParity(t *testing.T, initWeights []float32, lr float32, n
 	b := newBackend()
 	param := makeParam(append([]float32{}, initWeights...), b)
 	opt := optim.NewSGD([]*nn.Parameter[cpuBackend]{param}, optim.SGDConfig{LR: lr}, b)
-	for s := 0; s < nSteps; s++ {
+	for s := range nSteps {
 		opt.Step(makeGradMap(sgdGradFn(s, len(initWeights)), param, b))
 	}
 
@@ -196,7 +196,7 @@ func checkSGDMomentumParity(t *testing.T, initWeights []float32, lr, momentum fl
 	// Scalar reference.
 	ref := append([]float32{}, initWeights...)
 	vel := make([]float32, len(initWeights))
-	for s := 0; s < nSteps; s++ {
+	for s := range nSteps {
 		ref = scalarSGDMomentumStep(ref, sgdGradFn(s, len(ref)), vel, lr, momentum)
 	}
 
@@ -205,7 +205,7 @@ func checkSGDMomentumParity(t *testing.T, initWeights []float32, lr, momentum fl
 	param := makeParam(append([]float32{}, initWeights...), b)
 	opt := optim.NewSGD([]*nn.Parameter[cpuBackend]{param},
 		optim.SGDConfig{LR: lr, Momentum: momentum}, b)
-	for s := 0; s < nSteps; s++ {
+	for s := range nSteps {
 		opt.Step(makeGradMap(sgdGradFn(s, len(initWeights)), param, b))
 	}
 
@@ -225,7 +225,6 @@ func TestSGD_GPUNative_Correctness(t *testing.T) {
 	initWeights := []float32{1.0, -2.0, 0.5, 3.0}
 
 	for _, steps := range []int{1, 5, 10} {
-		steps := steps
 		t.Run("no_momentum", func(t *testing.T) {
 			checkSGDNoMomentumParity(t, initWeights, lr, steps)
 		})
@@ -331,7 +330,7 @@ func TestAdam_GPUNative_Correctness_MomentValues(t *testing.T) {
 	copy(refParam, initWeights)
 	refM := make([]float32, len(initWeights))
 	refV := make([]float32, len(initWeights))
-	for s := 0; s < steps; s++ {
+	for s := range steps {
 		g := []float32{float32(s+1) * 0.1, float32(s+1) * 0.2, float32(s+1) * 0.3}
 		refParam = scalarAdamStep(refParam, g, refM, refV, s+1, lr, beta1, beta2, eps)
 	}
@@ -341,7 +340,7 @@ func TestAdam_GPUNative_Correctness_MomentValues(t *testing.T) {
 	param := makeParam(append([]float32{}, initWeights...), b)
 	opt := optim.NewAdam([]*nn.Parameter[cpuBackend]{param},
 		optim.AdamConfig{LR: lr, Betas: [2]float32{beta1, beta2}, Eps: eps}, b)
-	for s := 0; s < steps; s++ {
+	for s := range steps {
 		g := []float32{float32(s+1) * 0.1, float32(s+1) * 0.2, float32(s+1) * 0.3}
 		opt.Step(makeGradMap(g, param, b))
 	}

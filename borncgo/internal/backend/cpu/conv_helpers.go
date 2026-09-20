@@ -62,12 +62,12 @@ func matMulColBufFloat32(outputData, kernelData, colBuf []float32, cOut, colHeig
 		gemmF32(outputData, kernelData, colBufT, cOut, colWidth, colHeight)
 		return
 	}
-	for i := 0; i < cOut; i++ {
+	for i := range cOut {
 		kernelRow := kernelData[i*colWidth : i*colWidth+colWidth]
-		for j := 0; j < colHeight; j++ {
+		for j := range colHeight {
 			colRow := colBuf[j*colWidth : j*colWidth+colWidth]
 			sum := float32(0.0)
-			for k := 0; k < colWidth; k++ {
+			for k := range colWidth {
 				sum += kernelRow[k] * colRow[k]
 			}
 			outputData[i*colHeight+j] = sum
@@ -80,12 +80,12 @@ func matMulColBufFloat32(outputData, kernelData, colBuf []float32, cOut, colHeig
 // Computes output[i*colHeight+j] = sum_k kernel[i*colWidth+k] * col[j*colWidth+k]
 // for all i in [0, cOut) and j in [0, colHeight).
 func matMulColBufFloat64(outputData, kernelData, colBuf []float64, cOut, colHeight, colWidth int) {
-	for i := 0; i < cOut; i++ {
+	for i := range cOut {
 		kernelRow := kernelData[i*colWidth : i*colWidth+colWidth]
-		for j := 0; j < colHeight; j++ {
+		for j := range colHeight {
 			colRow := colBuf[j*colWidth : j*colWidth+colWidth]
 			sum := float64(0.0)
-			for k := 0; k < colWidth; k++ {
+			for k := range colWidth {
 				sum += kernelRow[k] * colRow[k]
 			}
 			outputData[i*colHeight+j] = sum
@@ -98,15 +98,15 @@ func matMulColBufFloat64(outputData, kernelData, colBuf []float64, cOut, colHeig
 // src (tempBuf) holds data in [c, n*hOut*wOut + h*wOut + w] order.
 // dst (outputData) receives data in [n, c, h, w] order.
 func rearrangeOutputFloat32(outputData, tempBuf []float32, n, cOut, hOut, wOut, colHeight int) {
-	for ni := 0; ni < n; ni++ {
+	for ni := range n {
 		nSpatial := ni * hOut * wOut
 		nBase := ni * cOut * hOut * wOut
-		for c := 0; c < cOut; c++ {
+		for c := range cOut {
 			cColBase := c * colHeight
 			cOutBase := nBase + c*hOut*wOut
-			for h := 0; h < hOut; h++ {
+			for h := range hOut {
 				hBase := h * wOut
-				for w := 0; w < wOut; w++ {
+				for w := range wOut {
 					outputData[cOutBase+hBase+w] = tempBuf[cColBase+nSpatial+hBase+w]
 				}
 			}
@@ -119,15 +119,15 @@ func rearrangeOutputFloat32(outputData, tempBuf []float32, n, cOut, hOut, wOut, 
 // src (tempBuf) holds data in [c, n*hOut*wOut + h*wOut + w] order.
 // dst (outputData) receives data in [n, c, h, w] order.
 func rearrangeOutputFloat64(outputData, tempBuf []float64, n, cOut, hOut, wOut, colHeight int) {
-	for ni := 0; ni < n; ni++ {
+	for ni := range n {
 		nSpatial := ni * hOut * wOut
 		nBase := ni * cOut * hOut * wOut
-		for c := 0; c < cOut; c++ {
+		for c := range cOut {
 			cColBase := c * colHeight
 			cOutBase := nBase + c*hOut*wOut
-			for h := 0; h < hOut; h++ {
+			for h := range hOut {
 				hBase := h * wOut
-				for w := 0; w < wOut; w++ {
+				for w := range wOut {
 					outputData[cOutBase+hBase+w] = tempBuf[cColBase+nSpatial+hBase+w]
 				}
 			}
@@ -148,14 +148,14 @@ func accumulateInputGradFloat32(
 	inputH, inputW int,
 	stride, padding int,
 ) {
-	for dkh := 0; dkh < kh; dkh++ {
+	for dkh := range kh {
 		hPos := outH*stride - padding + dkh
 		if hPos < 0 || hPos >= inputH {
 			continue
 		}
 		hBase := hPos * inputW
 		kBase := dkh * kw
-		for dkw := 0; dkw < kw; dkw++ {
+		for dkw := range kw {
 			wPos := outW*stride - padding + dkw
 			if wPos < 0 || wPos >= inputW {
 				continue
@@ -178,14 +178,14 @@ func accumulateInputGradFloat64(
 	inputH, inputW int,
 	stride, padding int,
 ) {
-	for dkh := 0; dkh < kh; dkh++ {
+	for dkh := range kh {
 		hPos := outH*stride - padding + dkh
 		if hPos < 0 || hPos >= inputH {
 			continue
 		}
 		hBase := hPos * inputW
 		kBase := dkh * kw
-		for dkw := 0; dkw < kw; dkw++ {
+		for dkw := range kw {
 			wPos := outW*stride - padding + dkw
 			if wPos < 0 || wPos >= inputW {
 				continue
@@ -204,10 +204,10 @@ func accumulateInputGradFloat32Stride1NoPad(
 	kh, kw int,
 	outH, outW, inputW int,
 ) {
-	for dkh := 0; dkh < kh; dkh++ {
+	for dkh := range kh {
 		hBase := (outH + dkh) * inputW
 		kBase := dkh * kw
-		for dkw := 0; dkw < kw; dkw++ {
+		for dkw := range kw {
 			inputGradCIn[hBase+outW+dkw] += gradVal * kernelCIn[kBase+dkw]
 		}
 	}
@@ -222,10 +222,10 @@ func accumulateInputGradFloat64Stride1NoPad(
 	kh, kw int,
 	outH, outW, inputW int,
 ) {
-	for dkh := 0; dkh < kh; dkh++ {
+	for dkh := range kh {
 		hBase := (outH + dkh) * inputW
 		kBase := dkh * kw
-		for dkw := 0; dkw < kw; dkw++ {
+		for dkw := range kw {
 			inputGradCIn[hBase+outW+dkw] += gradVal * kernelCIn[kBase+dkw]
 		}
 	}
@@ -245,17 +245,17 @@ func kernelGradSumFloat32(
 	stride, padding int,
 ) float32 {
 	sum := float32(0.0)
-	for ni := 0; ni < n; ni++ {
+	for ni := range n {
 		inputNBase := ni * cIn * h * w
 		gradNBase := ni * cOut * hOut * wOut
-		for outH := 0; outH < hOut; outH++ {
+		for outH := range hOut {
 			hPos := outH*stride - padding + kh
 			if hPos < 0 || hPos >= h {
 				continue
 			}
 			gradOutHBase := gradNBase + cOutIdx*hOut*wOut + outH*wOut
 			inputHBase := inputNBase + cInIdx*h*w + hPos*w
-			for outW := 0; outW < wOut; outW++ {
+			for outW := range wOut {
 				wPos := outW*stride - padding + kw
 				if wPos < 0 || wPos >= w {
 					continue
@@ -281,17 +281,17 @@ func kernelGradSumFloat64(
 	stride, padding int,
 ) float64 {
 	sum := float64(0.0)
-	for ni := 0; ni < n; ni++ {
+	for ni := range n {
 		inputNBase := ni * cIn * h * w
 		gradNBase := ni * cOut * hOut * wOut
-		for outH := 0; outH < hOut; outH++ {
+		for outH := range hOut {
 			hPos := outH*stride - padding + kh
 			if hPos < 0 || hPos >= h {
 				continue
 			}
 			gradOutHBase := gradNBase + cOutIdx*hOut*wOut + outH*wOut
 			inputHBase := inputNBase + cInIdx*h*w + hPos*w
-			for outW := 0; outW < wOut; outW++ {
+			for outW := range wOut {
 				wPos := outW*stride - padding + kw
 				if wPos < 0 || wPos >= w {
 					continue
@@ -312,13 +312,13 @@ func kernelGradSumFloat32Stride1NoPad(
 	cOutIdx, cInIdx, kh, kw int,
 ) float32 {
 	sum := float32(0.0)
-	for ni := 0; ni < n; ni++ {
+	for ni := range n {
 		inputNBase := ni * cIn * h * w
 		gradNBase := ni * cOut * hOut * wOut
-		for outH := 0; outH < hOut; outH++ {
+		for outH := range hOut {
 			gradOutHBase := gradNBase + cOutIdx*hOut*wOut + outH*wOut
 			inputHBase := inputNBase + cInIdx*h*w + (outH+kh)*w
-			for outW := 0; outW < wOut; outW++ {
+			for outW := range wOut {
 				sum += inputData[inputHBase+outW+kw] * gradData[gradOutHBase+outW]
 			}
 		}
@@ -335,13 +335,13 @@ func kernelGradSumFloat64Stride1NoPad(
 	cOutIdx, cInIdx, kh, kw int,
 ) float64 {
 	sum := float64(0.0)
-	for ni := 0; ni < n; ni++ {
+	for ni := range n {
 		inputNBase := ni * cIn * h * w
 		gradNBase := ni * cOut * hOut * wOut
-		for outH := 0; outH < hOut; outH++ {
+		for outH := range hOut {
 			gradOutHBase := gradNBase + cOutIdx*hOut*wOut + outH*wOut
 			inputHBase := inputNBase + cInIdx*h*w + (outH+kh)*w
-			for outW := 0; outW < wOut; outW++ {
+			for outW := range wOut {
 				sum += inputData[inputHBase+outW+kw] * gradData[gradOutHBase+outW]
 			}
 		}
@@ -356,10 +356,10 @@ func kernelGradSumFloat64Stride1NoPad(
 func poolWindowMaxFloat32(channelData []float32, hStart, wStart, kernelSize, inputW int) float32 {
 	maxVal := float32(-1e38)
 	rowStart := hStart * inputW
-	for kh := 0; kh < kernelSize; kh++ {
+	for range kernelSize {
 		// Pre-slice row once per kh to eliminate per-kw bounds check.
 		rowData := channelData[rowStart : rowStart+inputW]
-		for kw := 0; kw < kernelSize; kw++ {
+		for kw := range kernelSize {
 			if v := rowData[wStart+kw]; v > maxVal {
 				maxVal = v
 			}
@@ -376,10 +376,10 @@ func poolWindowMaxFloat32(channelData []float32, hStart, wStart, kernelSize, inp
 func poolWindowMaxFloat64(channelData []float64, hStart, wStart, kernelSize, inputW int) float64 {
 	maxVal := float64(-1e308)
 	rowStart := hStart * inputW
-	for kh := 0; kh < kernelSize; kh++ {
+	for range kernelSize {
 		// Pre-slice row once per kh to eliminate per-kw bounds check.
 		rowData := channelData[rowStart : rowStart+inputW]
-		for kw := 0; kw < kernelSize; kw++ {
+		for kw := range kernelSize {
 			if v := rowData[wStart+kw]; v > maxVal {
 				maxVal = v
 			}

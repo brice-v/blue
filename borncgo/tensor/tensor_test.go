@@ -101,53 +101,53 @@ func TestTensorCreationFunctions(t *testing.T) {
 
 	tests := []struct {
 		name string
-		fn   func() interface{}
+		fn   func() any
 	}{
 		{
 			name: "Zeros",
-			fn: func() interface{} {
+			fn: func() any {
 				return tensor.Zeros[float32](tensor.Shape{2, 3}, backend)
 			},
 		},
 		{
 			name: "Ones",
-			fn: func() interface{} {
+			fn: func() any {
 				return tensor.Ones[float32](tensor.Shape{2, 3}, backend)
 			},
 		},
 		{
 			name: "Full",
-			fn: func() interface{} {
+			fn: func() any {
 				return tensor.Full[float32](tensor.Shape{2, 3}, 3.14, backend)
 			},
 		},
 		{
 			name: "Randn",
-			fn: func() interface{} {
+			fn: func() any {
 				return tensor.Randn[float32](tensor.Shape{2, 3}, backend)
 			},
 		},
 		{
 			name: "Rand",
-			fn: func() interface{} {
+			fn: func() any {
 				return tensor.Rand[float32](tensor.Shape{2, 3}, backend)
 			},
 		},
 		{
 			name: "Arange",
-			fn: func() interface{} {
+			fn: func() any {
 				return tensor.Arange[float32](0, 10, backend)
 			},
 		},
 		{
 			name: "Eye",
-			fn: func() interface{} {
+			fn: func() any {
 				return tensor.Eye[float32](3, backend)
 			},
 		},
 		{
 			name: "FromSlice",
-			fn: func() interface{} {
+			fn: func() any {
 				data := []float32{1, 2, 3, 4, 5, 6}
 				t, err := tensor.FromSlice(data, tensor.Shape{2, 3}, backend)
 				if err != nil {

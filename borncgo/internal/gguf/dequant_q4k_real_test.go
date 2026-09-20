@@ -158,7 +158,7 @@ func TestDequantizeQ4K_RealData_ScaleUnpacking(t *testing.T) {
 	wantScales := []uint8{29, 45, 45, 40, 51, 45, 63, 42}
 	wantMins := []uint8{28, 29, 55, 24, 49, 23, 63, 48}
 
-	for j := 0; j < 8; j++ {
+	for j := range 8 {
 		sc, m := getScaleMinK4(j, q)
 		if sc != wantScales[j] {
 			t.Errorf("scales[%d] = %d, want %d", j, sc, wantScales[j])

@@ -5,6 +5,7 @@ import (
 	"blue/object"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"strconv"
@@ -338,7 +339,7 @@ func isWebSocketUpgradeRequest(r *http.Request) bool {
 
 func headerContainsToken(header http.Header, key, token string) bool {
 	for _, line := range header.Values(key) {
-		for _, part := range strings.Split(line, ",") {
+		for part := range strings.SplitSeq(line, ",") {
 			if strings.EqualFold(strings.TrimSpace(part), token) {
 				return true
 			}
@@ -388,9 +389,7 @@ func cloneHandlerClosure(fn *object.Closure) *object.Closure {
 		sfp = make(map[object.NameIndexKey]map[object.NameIndexKey]object.Object, len(fn.Fun.SpecialFunctionParameters))
 		for k, v := range fn.Fun.SpecialFunctionParameters {
 			inner := make(map[object.NameIndexKey]object.Object, len(v))
-			for kk, vv := range v {
-				inner[kk] = vv
-			}
+			maps.Copy(inner, v)
 			sfp[k] = inner
 		}
 	}

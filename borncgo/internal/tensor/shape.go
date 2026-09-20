@@ -96,7 +96,7 @@ func BroadcastShapes(a, b Shape) (Shape, bool, error) {
 	result := make(Shape, maxLen)
 	needsBroadcast := false
 
-	for i := 0; i < maxLen; i++ {
+	for i := range maxLen {
 		aIdx := len(a) - 1 - i
 		bIdx := len(b) - 1 - i
 

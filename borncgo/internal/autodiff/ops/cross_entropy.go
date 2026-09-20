@@ -18,12 +18,12 @@ func buildOneHotIdentity(n int, dtype tensor.DataType, device tensor.Device) *te
 	switch dtype {
 	case tensor.Float32:
 		data := identity.AsFloat32()
-		for i := 0; i < n; i++ {
+		for i := range n {
 			data[i*n+i] = 1.0
 		}
 	case tensor.Float64:
 		data := identity.AsFloat64()
-		for i := 0; i < n; i++ {
+		for i := range n {
 			data[i*n+i] = 1.0
 		}
 	default:
@@ -191,7 +191,7 @@ func CrossEntropyForward(logits, targets *tensor.RawTensor, device tensor.Device
 
 		totalLoss := float32(0.0)
 
-		for b := 0; b < batchSize; b++ {
+		for b := range batchSize {
 			sampleLogits := logitsData[b*numClasses : (b+1)*numClasses]
 			logProbs := computeLogSoftmaxFloat32(sampleLogits)
 
@@ -213,7 +213,7 @@ func CrossEntropyForward(logits, targets *tensor.RawTensor, device tensor.Device
 
 		totalLoss := 0.0
 
-		for b := 0; b < batchSize; b++ {
+		for b := range batchSize {
 			sampleLogits := logitsData[b*numClasses : (b+1)*numClasses]
 			logProbs := computeLogSoftmaxFloat64(sampleLogits)
 
@@ -249,13 +249,13 @@ func computeLogSoftmaxFloat32(logits []float32) []float32 {
 
 	// Compute log-sum-exp: log(Σ exp(z - max))
 	sumExp := float32(0.0)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		sumExp += float32(math.Exp(float64(logits[i] - maxVal)))
 	}
 	logSumExp := maxVal + float32(math.Log(float64(sumExp)))
 
 	// log_softmax = z - log_sum_exp
-	for i := 0; i < n; i++ {
+	for i := range n {
 		result[i] = logits[i] - logSumExp
 	}
 
@@ -277,13 +277,13 @@ func computeLogSoftmaxFloat64(logits []float64) []float64 {
 
 	// Compute log-sum-exp
 	sumExp := 0.0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		sumExp += math.Exp(logits[i] - maxVal)
 	}
 	logSumExp := maxVal + math.Log(sumExp)
 
 	// log_softmax = z - log_sum_exp
-	for i := 0; i < n; i++ {
+	for i := range n {
 		result[i] = logits[i] - logSumExp
 	}
 

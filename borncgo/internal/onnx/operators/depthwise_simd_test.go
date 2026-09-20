@@ -18,11 +18,11 @@ func depthwise3x3NaiveRef(out, in, weight []float32, n, c, hp, wp, hOut, wOut in
 		inBase := plane * planeIn
 		outBase := plane * planeOut
 		w := weight[(plane%c)*9 : (plane%c)*9+9]
-		for oh := 0; oh < hOut; oh++ {
-			for ow := 0; ow < wOut; ow++ {
+		for oh := range hOut {
+			for ow := range wOut {
 				var sum float32
-				for kh := 0; kh < 3; kh++ {
-					for kw := 0; kw < 3; kw++ {
+				for kh := range 3 {
+					for kw := range 3 {
 						sum += in[inBase+(oh+kh)*wp+(ow+kw)] * w[kh*3+kw]
 					}
 				}
@@ -142,11 +142,11 @@ func depthwise3x3StrideRef(out, in, weight []float32, n, c, hp, wp, hOut, wOut, 
 		inBase := plane * planeIn
 		outBase := plane * planeOut
 		w := weight[(plane%c)*9 : (plane%c)*9+9]
-		for oh := 0; oh < hOut; oh++ {
-			for ow := 0; ow < wOut; ow++ {
+		for oh := range hOut {
+			for ow := range wOut {
 				var sum float32
-				for kh := 0; kh < 3; kh++ {
-					for kw := 0; kw < 3; kw++ {
+				for kh := range 3 {
+					for kw := range 3 {
 						sum += in[inBase+(oh*s+kh)*wp+(ow*s+kw)] * w[kh*3+kw]
 					}
 				}

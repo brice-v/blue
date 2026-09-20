@@ -35,7 +35,7 @@ func Dequantize(data []byte, dtype GGMLType, numElements int) ([]float32, error)
 	offset := 0
 	elemIdx := 0
 
-	for i := 0; i < numBlocks; i++ {
+	for i := range numBlocks {
 		blockData := data[offset : offset+trait.TypeSize]
 		block, err := DequantizeBlock(blockData, dtype)
 		if err != nil {
@@ -87,28 +87,28 @@ func dequantizeUnquantized(data []byte, dtype GGMLType, numElements int) ([]floa
 
 	switch dtype {
 	case GGMLTypeF32:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			result[i] = math.Float32frombits(binary.LittleEndian.Uint32(data[i*4:]))
 		}
 
 	case GGMLTypeF16:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			h := binary.LittleEndian.Uint16(data[i*2:])
 			result[i] = half.Float16ToFloat32(h)
 		}
 
 	case GGMLTypeI8:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			result[i] = float32(int8(data[i])) //nolint:gosec // G115: intentional byte-to-signed reinterpretation for GGML I8 format
 		}
 
 	case GGMLTypeI16:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			result[i] = float32(int16(binary.LittleEndian.Uint16(data[i*2:]))) //nolint:gosec // G115: integer overflow conversion uint16 -> int16
 		}
 
 	case GGMLTypeI32:
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			result[i] = float32(int32(binary.LittleEndian.Uint32(data[i*4:]))) //nolint:gosec // G115: integer overflow conversion uint32 -> int32
 		}
 
@@ -132,7 +132,7 @@ func dequantizeBlockQ4_0(data []byte) ([]float32, error) {
 
 	// Read quantized values (4 bits each, 2 per byte).
 	result := make([]float32, 32)
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		qByte := data[2+i]
 
 		// Low 4 bits.
@@ -159,7 +159,7 @@ func dequantizeBlockQ4_1(data []byte) ([]float32, error) {
 	m := half.Float16ToFloat32(binary.LittleEndian.Uint16(data[2:4]))
 
 	result := make([]float32, 32)
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		qByte := data[4+i]
 
 		q0 := qByte & 0x0F
@@ -185,7 +185,7 @@ func dequantizeBlockQ5_0(data []byte) ([]float32, error) {
 	qh := binary.LittleEndian.Uint32(data[2:6])
 
 	result := make([]float32, 32)
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		qByte := data[6+i]
 
 		// Reconstruct 5-bit values.
@@ -216,7 +216,7 @@ func dequantizeBlockQ5_1(data []byte) ([]float32, error) {
 	qh := binary.LittleEndian.Uint32(data[4:8])
 
 	result := make([]float32, 32)
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		qByte := data[8+i]
 
 		q0Low := qByte & 0x0F
@@ -244,7 +244,7 @@ func dequantizeBlockQ8_0(data []byte) ([]float32, error) {
 	d := half.Float16ToFloat32(binary.LittleEndian.Uint16(data[0:2]))
 
 	result := make([]float32, 32)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		q := int8(data[2+i]) //nolint:gosec // G115: intentional byte-to-signed reinterpretation for Q8_0 quantized weights
 		result[i] = d * float32(q)
 	}
@@ -271,7 +271,7 @@ func dequantizeBlockQ8_1(data []byte) ([]float32, error) {
 	// it is intentionally not used in element-wise dequantization.
 
 	result := make([]float32, 32)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		q := int8(data[4+i]) //nolint:gosec // G115: intentional byte-to-signed reinterpretation for Q8_1 quantized weights
 		result[i] = d * float32(q)
 	}
@@ -330,7 +330,7 @@ func dequantizeBlockQ4_K(data []byte) ([]float32, error) {
 	is := 0
 
 	// 4 outer groups of 64 elements, each group advancing qptr by 32 bytes.
-	for j := 0; j < 4; j++ {
+	for j := range 4 {
 		sc0, m0 := getScaleMinK4(is+0, q)
 		sc1, m1 := getScaleMinK4(is+1, q)
 		d1 := d * float64(sc0)
@@ -341,12 +341,12 @@ func dequantizeBlockQ4_K(data []byte) ([]float32, error) {
 		qOffset := j * 32
 
 		// First 32 outputs: lo nibbles, scaled by d1/m1.
-		for l := 0; l < 32; l++ {
+		for l := range 32 {
 			result[y] = float32(d1*float64(qptr[qOffset+l]&0xF) - m1v)
 			y++
 		}
 		// Next 32 outputs: hi nibbles, scaled by d2/m2.
-		for l := 0; l < 32; l++ {
+		for l := range 32 {
 			result[y] = float32(d2*float64(qptr[qOffset+l]>>4) - m2v)
 			y++
 		}
@@ -391,7 +391,7 @@ func dequantizeBlockQ5_K(data []byte) ([]float32, error) {
 	is := 0
 
 	// 4 outer groups of 64 elements, each group advancing ql by 32 bytes.
-	for j := 0; j < 4; j++ {
+	for j := range 4 {
 		sc0, m0 := getScaleMinK4(is+0, q)
 		sc1, m1 := getScaleMinK4(is+1, q)
 		d1 := d * float64(sc0)
@@ -402,7 +402,7 @@ func dequantizeBlockQ5_K(data []byte) ([]float32, error) {
 		qlOffset := j * 32
 
 		// First 32 outputs: lo nibbles + high bit from qh, scaled by d1/m1.
-		for l := 0; l < 32; l++ {
+		for l := range 32 {
 			elemGlobal := j*64 + l
 			highBit := (qh[elemGlobal/8] >> uint(elemGlobal%8)) & 1
 			q5 := (ql[qlOffset+l] & 0xF) | (highBit << 4)
@@ -410,7 +410,7 @@ func dequantizeBlockQ5_K(data []byte) ([]float32, error) {
 			y++
 		}
 		// Next 32 outputs: hi nibbles + high bit from qh, scaled by d2/m2.
-		for l := 0; l < 32; l++ {
+		for l := range 32 {
 			elemGlobal := j*64 + 32 + l
 			highBit := (qh[elemGlobal/8] >> uint(elemGlobal%8)) & 1
 			q5 := (ql[qlOffset+l] >> 4) | (highBit << 4)
@@ -468,7 +468,7 @@ func dequantizeBlockQ6_K(data []byte) ([]float32, error) {
 		scBase := n / 16    // scales section starts at byte 192 (added below); offset: 0, then 8
 		yBase := n
 
-		for l := 0; l < 32; l++ {
+		for l := range 32 {
 			is := l / 16
 			qhByte := int(data[qhBase+l])
 

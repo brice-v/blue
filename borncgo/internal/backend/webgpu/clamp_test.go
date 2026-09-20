@@ -206,7 +206,7 @@ func TestClamp_LargeTensor(t *testing.T) {
 	minVal := float32(100)
 	maxVal := float32(500)
 
-	for i := 0; i < size; i++ {
+	for i := range size {
 		inputData[i] = float32(i - 200) // Range: -200 to 823
 		switch {
 		case inputData[i] < minVal:

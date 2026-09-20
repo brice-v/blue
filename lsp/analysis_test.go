@@ -25,10 +25,7 @@ func firstDiag(diags []diagnostic, want string) (diagnostic, bool) {
 // will underline.
 func highlight(src *docSource, d diagnostic) string {
 	line := src.lineRunes(d.Range.Start.Line)
-	end := int(d.Range.End.Character)
-	if end > len(line) {
-		end = len(line)
-	}
+	end := min(int(d.Range.End.Character), len(line))
 	if int(d.Range.Start.Character) > len(line) {
 		return ""
 	}

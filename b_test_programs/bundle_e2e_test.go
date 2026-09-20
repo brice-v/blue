@@ -111,7 +111,7 @@ func buildBluerunBinary(t *testing.T) string {
 		// passed together.
 		envTags := ""
 		if out, err := exec.Command("go", "env", "GOFLAGS").Output(); err == nil {
-			for _, flag := range strings.Fields(string(out)) {
+			for flag := range strings.FieldsSeq(string(out)) {
 				if v, ok := strings.CutPrefix(flag, "-tags="); ok {
 					envTags = v
 				}

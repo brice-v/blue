@@ -96,7 +96,7 @@ func TestBroadcastFloat32_MatchesOracle(t *testing.T) {
 				bStrides := computeBroadcastStridesForShape(tc.bShape, tc.outShape)
 
 				want := make([]float32, n)
-				for i := 0; i < n; i++ {
+				for i := range n {
 					ai := refFlatIndex(i, outStrides, aStrides)
 					bi := refFlatIndex(i, outStrides, bStrides)
 					want[i] = op.op(a[ai], b[bi])
@@ -105,7 +105,7 @@ func TestBroadcastFloat32_MatchesOracle(t *testing.T) {
 				got := make([]float32, n)
 				op.fn(got, a, b, tc.aShape, tc.bShape, tc.outShape)
 
-				for i := 0; i < n; i++ {
+				for i := range n {
 					if got[i] != want[i] { // bit-exact: same operands, same order
 						t.Fatalf("%s %s: got[%d]=%v want %v", op.name, tc.name, i, got[i], want[i])
 					}
@@ -140,7 +140,7 @@ func TestBroadcastFloat64_MatchesOracle(t *testing.T) {
 				bStrides := computeBroadcastStridesForShape(tc.bShape, tc.outShape)
 
 				want := make([]float64, n)
-				for i := 0; i < n; i++ {
+				for i := range n {
 					ai := refFlatIndex(i, outStrides, aStrides)
 					bi := refFlatIndex(i, outStrides, bStrides)
 					want[i] = op.op(a[ai], b[bi])
@@ -149,7 +149,7 @@ func TestBroadcastFloat64_MatchesOracle(t *testing.T) {
 				got := make([]float64, n)
 				op.fn(got, a, b, tc.aShape, tc.bShape, tc.outShape)
 
-				for i := 0; i < n; i++ {
+				for i := range n {
 					if got[i] != want[i] {
 						t.Fatalf("%s %s: got[%d]=%v want %v", op.name, tc.name, i, got[i], want[i])
 					}

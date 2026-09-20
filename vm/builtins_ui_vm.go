@@ -318,7 +318,7 @@ func createUISliderBuiltin(vm *VM) *object.Builtin {
 				return newInvalidArgCountError("slider", len(args), 4, "")
 			}
 			var min, max, val float64
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				if args[i].Type() == object.FLOAT_OBJ {
 					switch i {
 					case 0:

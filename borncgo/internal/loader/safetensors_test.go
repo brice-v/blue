@@ -30,7 +30,7 @@ func createTestSafeTensorsFile(t *testing.T, path string) {
 	}
 
 	// Create header JSON
-	headerMap := make(map[string]interface{})
+	headerMap := make(map[string]any)
 	headerMap["__metadata__"] = map[string]string{"format": "pt"}
 	for name, info := range tensors {
 		headerMap[name] = info

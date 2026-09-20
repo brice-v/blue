@@ -15,7 +15,7 @@ func TestGreedySampling(t *testing.T) {
 	// [0.1, 0.3, 0.6] after softmax -> should always return 2
 	logits := []float32{-1, 0, 1}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		token := sampler.Sample(logits, nil)
 		assert.Equal(t, int32(2), token, "Greedy should always pick max")
 	}
@@ -48,7 +48,7 @@ func TestTopKSampling(t *testing.T) {
 
 	// Should only sample from top 2 tokens (indices 3, 4)
 	counts := make(map[int32]int)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		token := sampler.Sample(logits, nil)
 		counts[token]++
 	}
@@ -70,7 +70,7 @@ func TestTopPSampling(t *testing.T) {
 	logits := []float32{-10, -10, -10, 0, 5}
 
 	counts := make(map[int32]int)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		token := sampler.Sample(logits, nil)
 		counts[token]++
 	}
@@ -91,7 +91,7 @@ func TestMinPSampling(t *testing.T) {
 	logits := []float32{0, 0, 0, 0, 10}
 
 	counts := make(map[int32]int)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		token := sampler.Sample(logits, nil)
 		counts[token]++
 	}
@@ -112,7 +112,7 @@ func TestTemperatureSampling(t *testing.T) {
 
 		// Low temperature should heavily favor max
 		counts := make(map[int32]int)
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			token := sampler.Sample(logits, nil)
 			counts[token]++
 		}
@@ -130,7 +130,7 @@ func TestTemperatureSampling(t *testing.T) {
 		logits := []float32{1, 2, 3}
 
 		counts := make(map[int32]int)
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			token := sampler.Sample(logits, nil)
 			counts[token]++
 		}
@@ -230,7 +230,7 @@ func TestDeterministicWithSeed(t *testing.T) {
 	sampler1 := NewSampler(config)
 	sampler2 := NewSampler(config)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		t1 := sampler1.Sample(logits, nil)
 		t2 := sampler2.Sample(logits, nil)
 		assert.Equal(t, t1, t2, "Same seed should give same results")

@@ -95,7 +95,7 @@ func validateScatterAdd(dest *tensor.RawTensor, dim int, indices, src *tensor.Ra
 	if len(srcShape) != ndim {
 		panic(fmt.Sprintf("scatteradd: src rank %d != dest rank %d", len(srcShape), ndim))
 	}
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			continue
 		}
@@ -121,7 +121,7 @@ func decomposeCoords(flatIdx int, strides, coords []int) {
 // scatterIndexFlat computes a flat index from coords and strides.
 func scatterIndexFlat(coords []int, ndim int, strides []int) int {
 	idx := 0
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		idx += coords[d] * strides[d]
 	}
 	return idx
@@ -130,7 +130,7 @@ func scatterIndexFlat(coords []int, ndim int, strides []int) int {
 // scatterDstFlat computes the destination flat index, substituting dim coordinate with idx.
 func scatterDstFlat(coords []int, idx, dim, ndim int, dstStrides []int) int {
 	dstIdx := 0
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			dstIdx += idx * dstStrides[d]
 		} else {
@@ -146,7 +146,7 @@ func scatterDstFlat(coords []int, idx, dim, ndim int, dstStrides []int) int {
 func scatterAddCPUFloat32(dst, src []float32, indices []int32, dim, numElements, ndim int,
 	dstShape tensor.Shape, srcStrides, dstStrides, indexStrides []int) {
 	coords := make([]int, ndim)
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		decomposeCoords(i, srcStrides, coords)
 		idx := int(indices[scatterIndexFlat(coords, ndim, indexStrides)])
 		if idx < 0 || idx >= dstShape[dim] {
@@ -162,7 +162,7 @@ func scatterAddCPUFloat32(dst, src []float32, indices []int32, dim, numElements,
 func scatterAddCPUFloat64(dst, src []float64, indices []int32, dim, numElements, ndim int,
 	dstShape tensor.Shape, srcStrides, dstStrides, indexStrides []int) {
 	coords := make([]int, ndim)
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		decomposeCoords(i, srcStrides, coords)
 		idx := int(indices[scatterIndexFlat(coords, ndim, indexStrides)])
 		if idx < 0 || idx >= dstShape[dim] {
@@ -178,7 +178,7 @@ func scatterAddCPUFloat64(dst, src []float64, indices []int32, dim, numElements,
 func scatterAddCPUInt32(dst, src, indices []int32, dim, numElements, ndim int,
 	dstShape tensor.Shape, srcStrides, dstStrides, indexStrides []int) {
 	coords := make([]int, ndim)
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		decomposeCoords(i, srcStrides, coords)
 		idx := int(indices[scatterIndexFlat(coords, ndim, indexStrides)])
 		if idx < 0 || idx >= dstShape[dim] {
@@ -194,7 +194,7 @@ func scatterAddCPUInt32(dst, src, indices []int32, dim, numElements, ndim int,
 func scatterAddCPUInt64(dst, src []int64, indices []int32, dim, numElements, ndim int,
 	dstShape tensor.Shape, srcStrides, dstStrides, indexStrides []int) {
 	coords := make([]int, ndim)
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		decomposeCoords(i, srcStrides, coords)
 		idx := int(indices[scatterIndexFlat(coords, ndim, indexStrides)])
 		if idx < 0 || idx >= dstShape[dim] {

@@ -2,6 +2,7 @@ package generate
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"blue/borncgo/internal/tensor"
@@ -291,10 +292,8 @@ func (g *TextGenerator) checkStopConditions(
 	}
 
 	// Check stop tokens
-	for _, stopToken := range config.StopTokens {
-		if token == stopToken {
-			return true, "stop_token"
-		}
+	if slices.Contains(config.StopTokens, token) {
+		return true, "stop_token"
 	}
 
 	// Check stop strings

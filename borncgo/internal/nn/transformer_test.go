@@ -290,7 +290,7 @@ func TestTransformerBlock_ForwardWithCache(t *testing.T) {
 	cache := NewKVCache[*autodiff.AutodiffBackend[*cpu.CPUBackend]](1, 8, 100, 64, backend)
 
 	// Generate 10 tokens one by one
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		// Input: [batch=1, seq=1, embed_dim=512] (single token)
 		token := tensor.Randn[float32](tensor.Shape{1, 1, 512}, backend)
 

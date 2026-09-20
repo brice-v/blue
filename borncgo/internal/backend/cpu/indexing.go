@@ -40,7 +40,7 @@ func (cpu *CPUBackend) Gather(x *tensor.RawTensor, dim int, index *tensor.RawTen
 	if len(indexShape) != ndim {
 		panic(fmt.Sprintf("gather: index rank %d != input rank %d", len(indexShape), ndim))
 	}
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i != dim && indexShape[i] != x.Shape()[i] {
 			panic(fmt.Sprintf("gather: index shape mismatch at dim %d: %d != %d",
 				i, indexShape[i], x.Shape()[i]))
@@ -83,7 +83,7 @@ func gatherFloat32(dst, src []float32, indices []int32, srcShape, dstShape tenso
 		// Convert flat index to multi-dimensional index
 		multiIdx := make([]int, ndim)
 		remaining := i
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			multiIdx[d] = remaining / dstStrides[d]
 			remaining %= dstStrides[d]
 		}
@@ -97,7 +97,7 @@ func gatherFloat32(dst, src []float32, indices []int32, srcShape, dstShape tenso
 
 		// Compute source flat index
 		srcIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				srcIdx += indexVal * srcStrides[d]
 			} else {
@@ -118,7 +118,7 @@ func gatherFloat64(dst, src []float64, indices []int32, srcShape, dstShape tenso
 	for i := range dst {
 		multiIdx := make([]int, ndim)
 		remaining := i
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			multiIdx[d] = remaining / dstStrides[d]
 			remaining %= dstStrides[d]
 		}
@@ -130,7 +130,7 @@ func gatherFloat64(dst, src []float64, indices []int32, srcShape, dstShape tenso
 		}
 
 		srcIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				srcIdx += indexVal * srcStrides[d]
 			} else {
@@ -150,7 +150,7 @@ func gatherInt32(dst, src, indices []int32, srcShape, dstShape tensor.Shape, dim
 	for i := range dst {
 		multiIdx := make([]int, ndim)
 		remaining := i
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			multiIdx[d] = remaining / dstStrides[d]
 			remaining %= dstStrides[d]
 		}
@@ -162,7 +162,7 @@ func gatherInt32(dst, src, indices []int32, srcShape, dstShape tensor.Shape, dim
 		}
 
 		srcIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				srcIdx += indexVal * srcStrides[d]
 			} else {
@@ -183,7 +183,7 @@ func gatherInt64(dst, src []int64, indices []int32, srcShape, dstShape tensor.Sh
 	for i := range dst {
 		multiIdx := make([]int, ndim)
 		remaining := i
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			multiIdx[d] = remaining / dstStrides[d]
 			remaining %= dstStrides[d]
 		}
@@ -195,7 +195,7 @@ func gatherInt64(dst, src []int64, indices []int32, srcShape, dstShape tensor.Sh
 		}
 
 		srcIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				srcIdx += indexVal * srcStrides[d]
 			} else {
@@ -216,7 +216,7 @@ func gatherUInt8(dst, src []uint8, indices []int32, srcShape, dstShape tensor.Sh
 	for i := range dst {
 		multiIdx := make([]int, ndim)
 		remaining := i
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			multiIdx[d] = remaining / dstStrides[d]
 			remaining %= dstStrides[d]
 		}
@@ -228,7 +228,7 @@ func gatherUInt8(dst, src []uint8, indices []int32, srcShape, dstShape tensor.Sh
 		}
 
 		srcIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				srcIdx += indexVal * srcStrides[d]
 			} else {
@@ -319,7 +319,7 @@ func whereFloat32(dst []float32, condition *tensor.RawTensor, xData, yData []flo
 		// Convert flat index to multi-dimensional index
 		multiIdx := make([]int, len(outShape))
 		remaining := i
-		for d := 0; d < len(outShape); d++ {
+		for d := range outShape {
 			multiIdx[d] = remaining / outStrides[d]
 			remaining %= outStrides[d]
 		}
@@ -351,7 +351,7 @@ func whereFloat64(dst []float64, condition *tensor.RawTensor, xData, yData []flo
 	for i := range dst {
 		multiIdx := make([]int, len(outShape))
 		remaining := i
-		for d := 0; d < len(outShape); d++ {
+		for d := range outShape {
 			multiIdx[d] = remaining / outStrides[d]
 			remaining %= outStrides[d]
 		}
@@ -381,7 +381,7 @@ func whereInt32(dst []int32, condition *tensor.RawTensor, xData, yData []int32,
 	for i := range dst {
 		multiIdx := make([]int, len(outShape))
 		remaining := i
-		for d := 0; d < len(outShape); d++ {
+		for d := range outShape {
 			multiIdx[d] = remaining / outStrides[d]
 			remaining %= outStrides[d]
 		}
@@ -411,7 +411,7 @@ func whereInt64(dst []int64, condition *tensor.RawTensor, xData, yData []int64,
 	for i := range dst {
 		multiIdx := make([]int, len(outShape))
 		remaining := i
-		for d := 0; d < len(outShape); d++ {
+		for d := range outShape {
 			multiIdx[d] = remaining / outStrides[d]
 			remaining %= outStrides[d]
 		}
@@ -441,7 +441,7 @@ func whereUInt8(dst []uint8, condition *tensor.RawTensor, xData, yData []uint8,
 	for i := range dst {
 		multiIdx := make([]int, len(outShape))
 		remaining := i
-		for d := 0; d < len(outShape); d++ {
+		for d := range outShape {
 			multiIdx[d] = remaining / outStrides[d]
 			remaining %= outStrides[d]
 		}
@@ -538,7 +538,7 @@ func (cpu *CPUBackend) Embedding(weight, indices *tensor.RawTensor) *tensor.RawT
 }
 
 func embeddingFloat32(dst, weight []float32, indices []int32, numIndices, numEmbeddings, embeddingDim int) {
-	for i := 0; i < numIndices; i++ {
+	for i := range numIndices {
 		idx := int(indices[i])
 		if idx < 0 || idx >= numEmbeddings {
 			panic(fmt.Sprintf("embedding: index %d out of bounds [0, %d)", idx, numEmbeddings))
@@ -551,7 +551,7 @@ func embeddingFloat32(dst, weight []float32, indices []int32, numIndices, numEmb
 }
 
 func embeddingFloat64(dst, weight []float64, indices []int32, numIndices, numEmbeddings, embeddingDim int) {
-	for i := 0; i < numIndices; i++ {
+	for i := range numIndices {
 		idx := int(indices[i])
 		if idx < 0 || idx >= numEmbeddings {
 			panic(fmt.Sprintf("embedding: index %d out of bounds [0, %d)", idx, numEmbeddings))

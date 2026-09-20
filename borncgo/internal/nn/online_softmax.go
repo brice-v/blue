@@ -97,7 +97,7 @@ func (o *OnlineSoftmax) Update(scores, values []float32) {
 	}
 
 	// 4. Add contributions from this block
-	for i := 0; i < blockSize; i++ {
+	for i := range blockSize {
 		// Compute exp(score - newMax) for numerical stability
 		expScore := float32(math.Exp(float64(scores[i] - newMax)))
 		o.sumExp += expScore

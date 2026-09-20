@@ -39,7 +39,7 @@ func TestRMSNormForward(t *testing.T) {
 
 	// Check first row
 	expected1 := []float32{0.4629, 0.9258, 1.3887}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		got := outputData[i]
 		exp := expected1[i]
 		if math.Abs(float64(got-exp)) > 0.01 {
@@ -87,7 +87,7 @@ func TestRMSNormGamma(t *testing.T) {
 	outputData := output.Data()
 	expected := []float32{2.0, 3.0}
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		got := outputData[i]
 		exp := expected[i]
 		if math.Abs(float64(got-exp)) > 0.01 {
@@ -120,12 +120,12 @@ func TestRMSNorm3D(t *testing.T) {
 	// Check that values are normalized (mean ≈ 0, variance ≈ 1 per last dim)
 	// This is a rough check since RMSNorm normalizes by RMS, not standard deviation
 	outputData := output.Data()
-	for batch := 0; batch < 2; batch++ {
-		for seq := 0; seq < 3; seq++ {
+	for batch := range 2 {
+		for seq := range 3 {
 			// Check that output is not all zeros
 			offset := (batch*3 + seq) * 4
 			hasNonZero := false
-			for i := 0; i < 4; i++ {
+			for i := range 4 {
 				if outputData[offset+i] != 0 {
 					hasNonZero = true
 					break

@@ -99,10 +99,7 @@ func (p *ExclusivePool) Acquire(size uint64) (*wgpu.Buffer, error) {
 	}
 
 	// No reusable page — allocate new.
-	allocSize := size
-	if uint64(p.curAvgSize) > allocSize {
-		allocSize = uint64(p.curAvgSize)
-	}
+	allocSize := max(uint64(p.curAvgSize), size)
 	allocSize = roundUpAlign(allocSize, p.alignment)
 
 	buffer, err := p.device.TryCreateBuffer(&wgpu.BufferDescriptor{
@@ -310,7 +307,7 @@ func generateBucketSizes(startSize, endSize uint64, numBuckets int, alignment ui
 	logRange := logMax - logMin
 
 	buckets := make([]uint64, 0, numBuckets)
-	for i := 0; i < numBuckets; i++ {
+	for i := range numBuckets {
 		p := float64(i) / float64(numBuckets-1)
 		size := uint64(math.Exp(logMin + logRange*p))
 		aligned := clampBucket(roundUpAlign(size, alignment), endSize, alignment)

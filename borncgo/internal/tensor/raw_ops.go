@@ -224,7 +224,7 @@ func Softmax(x *RawTensor, axis int) (*RawTensor, error) {
 func softmaxFloat32(in, out []float32, shape Shape, axis int) {
 	// Calculate strides
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= shape[i]
 	}
 	axisSize := shape[axis]
@@ -237,7 +237,7 @@ func softmaxFloat32(in, out []float32, shape Shape, axis int) {
 		for inner := 0; inner < innerSize; inner++ {
 			// Find max for numerical stability
 			maxVal := float32(-math.MaxFloat32)
-			for a := 0; a < axisSize; a++ {
+			for a := range axisSize {
 				idx := outer*axisSize*innerSize + a*innerSize + inner
 				if in[idx] > maxVal {
 					maxVal = in[idx]
@@ -245,13 +245,13 @@ func softmaxFloat32(in, out []float32, shape Shape, axis int) {
 			}
 			// Compute exp and sum
 			sum := float32(0)
-			for a := 0; a < axisSize; a++ {
+			for a := range axisSize {
 				idx := outer*axisSize*innerSize + a*innerSize + inner
 				out[idx] = float32(math.Exp(float64(in[idx] - maxVal)))
 				sum += out[idx]
 			}
 			// Normalize
-			for a := 0; a < axisSize; a++ {
+			for a := range axisSize {
 				idx := outer*axisSize*innerSize + a*innerSize + inner
 				out[idx] /= sum
 			}
@@ -261,7 +261,7 @@ func softmaxFloat32(in, out []float32, shape Shape, axis int) {
 
 func softmaxFloat64(in, out []float64, shape Shape, axis int) {
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= shape[i]
 	}
 	axisSize := shape[axis]
@@ -273,19 +273,19 @@ func softmaxFloat64(in, out []float64, shape Shape, axis int) {
 	for outer := 0; outer < outerSize; outer++ {
 		for inner := 0; inner < innerSize; inner++ {
 			maxVal := -math.MaxFloat64
-			for a := 0; a < axisSize; a++ {
+			for a := range axisSize {
 				idx := outer*axisSize*innerSize + a*innerSize + inner
 				if in[idx] > maxVal {
 					maxVal = in[idx]
 				}
 			}
 			sum := 0.0
-			for a := 0; a < axisSize; a++ {
+			for a := range axisSize {
 				idx := outer*axisSize*innerSize + a*innerSize + inner
 				out[idx] = math.Exp(in[idx] - maxVal)
 				sum += out[idx]
 			}
-			for a := 0; a < axisSize; a++ {
+			for a := range axisSize {
 				idx := outer*axisSize*innerSize + a*innerSize + inner
 				out[idx] /= sum
 			}
@@ -553,7 +553,7 @@ func transposeData(in, out []float32, oldShape, newShape Shape, axes []int) {
 	total := newShape.NumElements()
 	idx := make([]int, ndim)
 	oldFlat := 0
-	for i := 0; i < total; i++ {
+	for i := range total {
 		out[i] = in[oldFlat]
 		for j := ndim - 1; j >= 0; j-- {
 			idx[j]++
@@ -573,7 +573,7 @@ func transposeDataFloat64(in, out []float64, oldShape, newShape Shape, axes []in
 	total := newShape.NumElements()
 	idx := make([]int, ndim)
 	oldFlat := 0
-	for i := 0; i < total; i++ {
+	for i := range total {
 		out[i] = in[oldFlat]
 		for j := ndim - 1; j >= 0; j-- {
 			idx[j]++
@@ -593,7 +593,7 @@ func transposeDataInt32(in, out []int32, oldShape, newShape Shape, axes []int) {
 	total := newShape.NumElements()
 	idx := make([]int, ndim)
 	oldFlat := 0
-	for i := 0; i < total; i++ {
+	for i := range total {
 		out[i] = in[oldFlat]
 		for j := ndim - 1; j >= 0; j-- {
 			idx[j]++
@@ -613,7 +613,7 @@ func transposeDataInt64(in, out []int64, oldShape, newShape Shape, axes []int) {
 	total := newShape.NumElements()
 	idx := make([]int, ndim)
 	oldFlat := 0
-	for i := 0; i < total; i++ {
+	for i := range total {
 		out[i] = in[oldFlat]
 		for j := ndim - 1; j >= 0; j-- {
 			idx[j]++
@@ -706,7 +706,7 @@ func Unsqueeze(x *RawTensor, axes ...int) (*RawTensor, error) {
 
 	// Build new shape
 	oldIdx := 0
-	for i := 0; i < newNdim; i++ {
+	for i := range newNdim {
 		if axisSet[i] {
 			newShape[i] = 1
 		} else {
@@ -748,7 +748,7 @@ func Concat(tensors []*RawTensor, axis int) (*RawTensor, error) {
 		if t.dtype != first.dtype {
 			return nil, fmt.Errorf("Concat: tensor %d has dtype %v, expected %v", i+1, t.dtype, first.dtype)
 		}
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			if j != axis && t.shape[j] != first.shape[j] {
 				return nil, fmt.Errorf("Concat: tensor %d has shape %v, incompatible with %v on axis %d", i+1, t.shape, first.shape, axis)
 			}
@@ -790,7 +790,7 @@ func concatFloat32(tensors []*RawTensor, result *RawTensor, axis int) {
 
 	// Calculate sizes
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= outShape[i]
 	}
 	innerSize := 1
@@ -816,7 +816,7 @@ func concatFloat64(tensors []*RawTensor, result *RawTensor, axis int) {
 	outShape := result.shape
 
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= outShape[i]
 	}
 	innerSize := 1
@@ -842,7 +842,7 @@ func concatInt64(tensors []*RawTensor, result *RawTensor, axis int) {
 	outShape := result.shape
 
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= outShape[i]
 	}
 	innerSize := 1
@@ -868,7 +868,7 @@ func concatInt32(tensors []*RawTensor, result *RawTensor, axis int) {
 	outShape := result.shape
 
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= outShape[i]
 	}
 	innerSize := 1
@@ -965,7 +965,7 @@ func copySliceFloat32(src, dst *RawTensor, axis, offset, size int) {
 	srcShape := src.shape
 
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= srcShape[i]
 	}
 	innerSize := 1
@@ -976,7 +976,7 @@ func copySliceFloat32(src, dst *RawTensor, axis, offset, size int) {
 
 	dstIdx := 0
 	for outer := 0; outer < outerSize; outer++ {
-		for a := 0; a < size; a++ {
+		for a := range size {
 			for inner := 0; inner < innerSize; inner++ {
 				srcIdx := outer*srcAxisSize*innerSize + (offset+a)*innerSize + inner
 				dstData[dstIdx] = srcData[srcIdx]
@@ -992,7 +992,7 @@ func copySliceFloat64(src, dst *RawTensor, axis, offset, size int) {
 	srcShape := src.shape
 
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= srcShape[i]
 	}
 	innerSize := 1
@@ -1003,7 +1003,7 @@ func copySliceFloat64(src, dst *RawTensor, axis, offset, size int) {
 
 	dstIdx := 0
 	for outer := 0; outer < outerSize; outer++ {
-		for a := 0; a < size; a++ {
+		for a := range size {
 			for inner := 0; inner < innerSize; inner++ {
 				srcIdx := outer*srcAxisSize*innerSize + (offset+a)*innerSize + inner
 				dstData[dstIdx] = srcData[srcIdx]
@@ -1019,7 +1019,7 @@ func copySliceInt64(src, dst *RawTensor, axis, offset, size int) {
 	srcShape := src.shape
 
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= srcShape[i]
 	}
 	innerSize := 1
@@ -1030,7 +1030,7 @@ func copySliceInt64(src, dst *RawTensor, axis, offset, size int) {
 
 	dstIdx := 0
 	for outer := 0; outer < outerSize; outer++ {
-		for a := 0; a < size; a++ {
+		for a := range size {
 			for inner := 0; inner < innerSize; inner++ {
 				srcIdx := outer*srcAxisSize*innerSize + (offset+a)*innerSize + inner
 				dstData[dstIdx] = srcData[srcIdx]
@@ -1046,7 +1046,7 @@ func copySliceInt32(src, dst *RawTensor, axis, offset, size int) {
 	srcShape := src.shape
 
 	outerSize := 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		outerSize *= srcShape[i]
 	}
 	innerSize := 1
@@ -1057,7 +1057,7 @@ func copySliceInt32(src, dst *RawTensor, axis, offset, size int) {
 
 	dstIdx := 0
 	for outer := 0; outer < outerSize; outer++ {
-		for a := 0; a < size; a++ {
+		for a := range size {
 			for inner := 0; inner < innerSize; inner++ {
 				srcIdx := outer*srcAxisSize*innerSize + (offset+a)*innerSize + inner
 				dstData[dstIdx] = srcData[srcIdx]
@@ -1119,7 +1119,7 @@ func Slice(x *RawTensor, starts, ends, axes, steps []int64) (*RawTensor, error) 
 	sliceEnds := make([]int, ndim)
 	sliceSteps := make([]int, ndim)
 
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		sliceStarts[i] = 0
 		sliceEnds[i] = x.shape[i]
 		sliceSteps[i] = 1
@@ -1177,7 +1177,7 @@ func Slice(x *RawTensor, starts, ends, axes, steps []int64) (*RawTensor, error) 
 
 	// Calculate output shape
 	newShape := make(Shape, ndim)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if sliceSteps[i] > 0 {
 			newShape[i] = (sliceEnds[i] - sliceStarts[i] + sliceSteps[i] - 1) / sliceSteps[i]
 		} else {
@@ -1236,14 +1236,14 @@ func sliceDataFloat32(in, out []float32, oldShape, newShape Shape, starts, steps
 
 		// Compute old index
 		oldFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			oldIdx := starts[j] + idx[j]*steps[j]
 			oldFlat += oldIdx * oldStrides[j]
 		}
 
 		// Compute new flat index
 		newFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			newFlat += idx[j] * newStrides[j]
 		}
 
@@ -1271,13 +1271,13 @@ func sliceDataFloat64(in, out []float64, oldShape, newShape Shape, starts, steps
 		}
 
 		oldFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			oldIdx := starts[j] + idx[j]*steps[j]
 			oldFlat += oldIdx * oldStrides[j]
 		}
 
 		newFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			newFlat += idx[j] * newStrides[j]
 		}
 
@@ -1305,13 +1305,13 @@ func sliceDataInt64(in, out []int64, oldShape, newShape Shape, starts, steps []i
 		}
 
 		oldFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			oldIdx := starts[j] + idx[j]*steps[j]
 			oldFlat += oldIdx * oldStrides[j]
 		}
 
 		newFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			newFlat += idx[j] * newStrides[j]
 		}
 
@@ -1339,13 +1339,13 @@ func sliceDataInt32(in, out []int32, oldShape, newShape Shape, starts, steps []i
 		}
 
 		oldFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			oldIdx := starts[j] + idx[j]*steps[j]
 			oldFlat += oldIdx * oldStrides[j]
 		}
 
 		newFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			newFlat += idx[j] * newStrides[j]
 		}
 
@@ -1438,7 +1438,7 @@ func Gather(x, indices *RawTensor, axis int) (*RawTensor, error) {
 // coordinate vector and doing a modulo and division for every output element.
 func gatherDims(xShape Shape, axis int) (pre, axisDim, post int) {
 	pre, post = 1, 1
-	for i := 0; i < axis; i++ {
+	for i := range axis {
 		pre *= xShape[i]
 	}
 	axisDim = xShape[axis]
@@ -1451,7 +1451,7 @@ func gatherDims(xShape Shape, axis int) (pre, axisDim, post int) {
 func gatherFloat32(in, out []float32, xShape Shape, indices []int, axis int) {
 	pre, axisDim, post := gatherDims(xShape, axis)
 	pos := 0
-	for p := 0; p < pre; p++ {
+	for p := range pre {
 		base := p * axisDim * post
 		for _, g := range indices {
 			src := base + g*post
@@ -1464,7 +1464,7 @@ func gatherFloat32(in, out []float32, xShape Shape, indices []int, axis int) {
 func gatherFloat64(in, out []float64, xShape Shape, indices []int, axis int) {
 	pre, axisDim, post := gatherDims(xShape, axis)
 	pos := 0
-	for p := 0; p < pre; p++ {
+	for p := range pre {
 		base := p * axisDim * post
 		for _, g := range indices {
 			src := base + g*post
@@ -1477,7 +1477,7 @@ func gatherFloat64(in, out []float64, xShape Shape, indices []int, axis int) {
 func gatherInt64(in, out []int64, xShape Shape, indices []int, axis int) {
 	pre, axisDim, post := gatherDims(xShape, axis)
 	pos := 0
-	for p := 0; p < pre; p++ {
+	for p := range pre {
 		base := p * axisDim * post
 		for _, g := range indices {
 			src := base + g*post
@@ -1490,7 +1490,7 @@ func gatherInt64(in, out []int64, xShape Shape, indices []int, axis int) {
 func gatherInt32(in, out []int32, xShape Shape, indices []int, axis int) {
 	pre, axisDim, post := gatherDims(xShape, axis)
 	pos := 0
-	for p := 0; p < pre; p++ {
+	for p := range pre {
 		base := p * axisDim * post
 		for _, g := range indices {
 			src := base + g*post
@@ -1547,7 +1547,7 @@ func Expand(x *RawTensor, targetShape Shape) (*RawTensor, error) {
 	// Prepend 1s to source shape if needed
 	paddedShape := make(Shape, len(targetShape))
 	diff := len(targetShape) - len(xShape)
-	for i := 0; i < diff; i++ {
+	for i := range diff {
 		paddedShape[i] = 1
 	}
 	copy(paddedShape[diff:], xShape)
@@ -1600,7 +1600,7 @@ func expandFloat32(in, out []float32, srcShape, dstShape Shape) {
 
 		// Compute source index (with broadcasting)
 		srcFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			if srcShape[j] == 1 {
 				// Broadcast: always use index 0
 				continue
@@ -1630,7 +1630,7 @@ func expandFloat64(in, out []float64, srcShape, dstShape Shape) {
 		}
 
 		srcFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			if srcShape[j] == 1 {
 				continue
 			}
@@ -1659,7 +1659,7 @@ func expandInt64(in, out []int64, srcShape, dstShape Shape) {
 		}
 
 		srcFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			if srcShape[j] == 1 {
 				continue
 			}
@@ -1688,7 +1688,7 @@ func expandInt32(in, out []int32, srcShape, dstShape Shape) {
 		}
 
 		srcFlat := 0
-		for j := 0; j < ndim; j++ {
+		for j := range ndim {
 			if srcShape[j] == 1 {
 				continue
 			}
@@ -2148,7 +2148,7 @@ func whereInt32(cond []bool, x, y, out []int32, condShape, xShape, yShape, outSh
 func broadcastIndex(idx []int, shape Shape, strides []int) int {
 	result := 0
 	diff := len(idx) - len(shape)
-	for i := 0; i < len(shape); i++ {
+	for i := range shape {
 		dimIdx := idx[diff+i]
 		if shape[i] == 1 {
 			dimIdx = 0 // Broadcast

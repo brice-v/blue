@@ -3,6 +3,7 @@ package autodiff
 import (
 	"blue/borncgo/internal/autodiff/ops"
 	"blue/borncgo/internal/tensor"
+	"slices"
 )
 
 // GradientTape records operations during the forward pass and computes
@@ -116,8 +117,8 @@ func (t *GradientTape) BackwardFrom(output *tensor.RawTensor, outputGrad *tensor
 	// Once an op's backward is computed, its saved output (activation) is
 	// no longer needed — releasing immediately prevents accumulating all
 	// 2000+ intermediate buffers simultaneously (ADR-015).
-	for i := len(t.operations) - 1; i >= 0; i-- {
-		op := t.operations[i]
+	for _, op := range slices.Backward(t.operations) {
+
 		inputGrads := t.computeInputGrads(op, grads, backend)
 		if inputGrads == nil {
 			continue

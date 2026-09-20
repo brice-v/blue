@@ -102,7 +102,7 @@ func TestGGMLMapper_AllTinyLlamaNames(t *testing.T) {
 		"attn_q.weight", "attn_k.weight", "attn_v.weight", "attn_output.weight",
 		"ffn_gate.weight", "ffn_up.weight", "ffn_down.weight",
 	}
-	for i := 0; i < 22; i++ {
+	for i := range 22 {
 		for _, part := range layerParts {
 			name := "blk." + itoa(i) + "." + part
 			got, err := m.MapName(name)

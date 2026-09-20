@@ -41,7 +41,7 @@ func TestLayerNorm_Basic(t *testing.T) {
 
 	// Check first row
 	expected1 := []float32{-1.2247, 0.0, 1.2247}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		got := outputData[i]
 		exp := expected1[i]
 		if math.Abs(float64(got-exp)) > 0.01 {
@@ -95,7 +95,7 @@ func TestLayerNorm_GammaAndBeta(t *testing.T) {
 	outputData := output.Data()
 	expected := []float32{-1.5, 4.0}
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		got := outputData[i]
 		exp := expected[i]
 		if math.Abs(float64(got-exp)) > 0.01 {
@@ -127,12 +127,12 @@ func TestLayerNorm_3D(t *testing.T) {
 
 	// Check that values are normalized
 	outputData := output.Data()
-	for batch := 0; batch < 2; batch++ {
-		for seq := 0; seq < 3; seq++ {
+	for batch := range 2 {
+		for seq := range 3 {
 			// For each position, compute mean and variance of the normalized output
 			offset := (batch*3 + seq) * 4
 			var sum, sumSq float64
-			for i := 0; i < 4; i++ {
+			for i := range 4 {
 				val := float64(outputData[offset+i])
 				sum += val
 				sumSq += val * val
@@ -170,7 +170,7 @@ func TestLayerNorm_4D(t *testing.T) {
 	if len(output.Shape()) != 4 {
 		t.Errorf("Expected 4D output, got shape %v", output.Shape())
 	}
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if output.Shape()[i] != expectedShape[i] {
 			t.Errorf("Shape mismatch at dim %d: expected %d, got %d", i, expectedShape[i], output.Shape()[i])
 		}

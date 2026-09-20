@@ -22,7 +22,7 @@ func (cpu *CPUBackend) Expand(x *tensor.RawTensor, newShape tensor.Shape) *tenso
 	// 1. Equal to new dimension
 	// 2. Equal to 1 (can be broadcast)
 	offset := len(newShape) - len(xShape)
-	for i := 0; i < len(xShape); i++ {
+	for i := range xShape {
 		xDim := xShape[i]
 		newDim := newShape[offset+i]
 		if xDim != 1 && xDim != newDim {
@@ -88,18 +88,18 @@ func expandBroadcastFloat32(result, x *tensor.RawTensor, outShape, xShape tensor
 	src := x.AsFloat32()
 	dst := result.AsFloat32()
 
-	for outIdx := 0; outIdx < totalSize; outIdx++ {
+	for outIdx := range totalSize {
 		// Convert linear index to multi-dim coordinates
 		coords := make([]int, len(outShape))
 		remaining := outIdx
-		for i := 0; i < len(outShape); i++ {
+		for i := range outShape {
 			coords[i] = remaining / outStrides[i]
 			remaining %= outStrides[i]
 		}
 
 		// Map to input index
 		inIdx := 0
-		for i := 0; i < len(xShape); i++ {
+		for i := range xShape {
 			outDim := offset + i
 			xDim := xShape[i]
 			coord := coords[outDim]
@@ -118,16 +118,16 @@ func expandBroadcastFloat64(result, x *tensor.RawTensor, outShape, xShape tensor
 	src := x.AsFloat64()
 	dst := result.AsFloat64()
 
-	for outIdx := 0; outIdx < totalSize; outIdx++ {
+	for outIdx := range totalSize {
 		coords := make([]int, len(outShape))
 		remaining := outIdx
-		for i := 0; i < len(outShape); i++ {
+		for i := range outShape {
 			coords[i] = remaining / outStrides[i]
 			remaining %= outStrides[i]
 		}
 
 		inIdx := 0
-		for i := 0; i < len(xShape); i++ {
+		for i := range xShape {
 			outDim := offset + i
 			xDim := xShape[i]
 			coord := coords[outDim]
@@ -146,16 +146,16 @@ func expandBroadcastInt32(result, x *tensor.RawTensor, outShape, xShape tensor.S
 	src := x.AsInt32()
 	dst := result.AsInt32()
 
-	for outIdx := 0; outIdx < totalSize; outIdx++ {
+	for outIdx := range totalSize {
 		coords := make([]int, len(outShape))
 		remaining := outIdx
-		for i := 0; i < len(outShape); i++ {
+		for i := range outShape {
 			coords[i] = remaining / outStrides[i]
 			remaining %= outStrides[i]
 		}
 
 		inIdx := 0
-		for i := 0; i < len(xShape); i++ {
+		for i := range xShape {
 			outDim := offset + i
 			xDim := xShape[i]
 			coord := coords[outDim]
@@ -174,16 +174,16 @@ func expandBroadcastInt64(result, x *tensor.RawTensor, outShape, xShape tensor.S
 	src := x.AsInt64()
 	dst := result.AsInt64()
 
-	for outIdx := 0; outIdx < totalSize; outIdx++ {
+	for outIdx := range totalSize {
 		coords := make([]int, len(outShape))
 		remaining := outIdx
-		for i := 0; i < len(outShape); i++ {
+		for i := range outShape {
 			coords[i] = remaining / outStrides[i]
 			remaining %= outStrides[i]
 		}
 
 		inIdx := 0
-		for i := 0; i < len(xShape); i++ {
+		for i := range xShape {
 			outDim := offset + i
 			xDim := xShape[i]
 			coord := coords[outDim]
@@ -202,16 +202,16 @@ func expandBroadcastBool(result, x *tensor.RawTensor, outShape, xShape tensor.Sh
 	src := x.AsBool()
 	dst := result.AsBool()
 
-	for outIdx := 0; outIdx < totalSize; outIdx++ {
+	for outIdx := range totalSize {
 		coords := make([]int, len(outShape))
 		remaining := outIdx
-		for i := 0; i < len(outShape); i++ {
+		for i := range outShape {
 			coords[i] = remaining / outStrides[i]
 			remaining %= outStrides[i]
 		}
 
 		inIdx := 0
-		for i := 0; i < len(xShape); i++ {
+		for i := range xShape {
 			outDim := offset + i
 			xDim := xShape[i]
 			coord := coords[outDim]

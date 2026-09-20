@@ -66,7 +66,7 @@ func softmaxFloat32(result, x *tensor.RawTensor, dim int) {
 		// Compute base index for this row
 		baseIdx := 0
 		remaining := row
-		for i := 0; i < len(shape); i++ {
+		for i := range shape {
 			if i == dim {
 				continue
 			}
@@ -77,7 +77,7 @@ func softmaxFloat32(result, x *tensor.RawTensor, dim int) {
 
 		// Find max for numerical stability
 		maxVal := float32(math.Inf(-1))
-		for i := 0; i < dimSize; i++ {
+		for i := range dimSize {
 			idx := baseIdx + i*dimStride
 			if src[idx] > maxVal {
 				maxVal = src[idx]
@@ -86,7 +86,7 @@ func softmaxFloat32(result, x *tensor.RawTensor, dim int) {
 
 		// Compute exp(x - max) and sum
 		var sum float32
-		for i := 0; i < dimSize; i++ {
+		for i := range dimSize {
 			idx := baseIdx + i*dimStride
 			expVal := float32(math.Exp(float64(src[idx] - maxVal)))
 			dst[idx] = expVal
@@ -94,7 +94,7 @@ func softmaxFloat32(result, x *tensor.RawTensor, dim int) {
 		}
 
 		// Normalize
-		for i := 0; i < dimSize; i++ {
+		for i := range dimSize {
 			idx := baseIdx + i*dimStride
 			dst[idx] /= sum
 		}
@@ -127,7 +127,7 @@ func softmaxFloat64(result, x *tensor.RawTensor, dim int) {
 	for row := 0; row < numRows; row++ {
 		baseIdx := 0
 		remaining := row
-		for i := 0; i < len(shape); i++ {
+		for i := range shape {
 			if i == dim {
 				continue
 			}
@@ -138,7 +138,7 @@ func softmaxFloat64(result, x *tensor.RawTensor, dim int) {
 
 		// Find max
 		maxVal := math.Inf(-1)
-		for i := 0; i < dimSize; i++ {
+		for i := range dimSize {
 			idx := baseIdx + i*dimStride
 			if src[idx] > maxVal {
 				maxVal = src[idx]
@@ -147,7 +147,7 @@ func softmaxFloat64(result, x *tensor.RawTensor, dim int) {
 
 		// Compute exp and sum
 		var sum float64
-		for i := 0; i < dimSize; i++ {
+		for i := range dimSize {
 			idx := baseIdx + i*dimStride
 			expVal := math.Exp(src[idx] - maxVal)
 			dst[idx] = expVal
@@ -155,7 +155,7 @@ func softmaxFloat64(result, x *tensor.RawTensor, dim int) {
 		}
 
 		// Normalize
-		for i := 0; i < dimSize; i++ {
+		for i := range dimSize {
 			idx := baseIdx + i*dimStride
 			dst[idx] /= sum
 		}

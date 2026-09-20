@@ -48,13 +48,13 @@ func TestDefaultConfig(t *testing.T) {
 func TestConfigFromGGUF_MockMetadata(t *testing.T) {
 	tests := []struct {
 		name     string
-		metadata map[string]interface{}
+		metadata map[string]any
 		tokens   []string
 		wantCfg  Config
 	}{
 		{
 			name: "llama2_7b_style",
-			metadata: map[string]interface{}{
+			metadata: map[string]any{
 				"general.architecture":                   "llama",
 				"llama.embedding_length":                 uint32(4096),
 				"llama.block_count":                      uint32(32),
@@ -81,7 +81,7 @@ func TestConfigFromGGUF_MockMetadata(t *testing.T) {
 		},
 		{
 			name: "llama3_8b_gqa",
-			metadata: map[string]interface{}{
+			metadata: map[string]any{
 				"general.architecture":                   "llama",
 				"llama.embedding_length":                 uint32(4096),
 				"llama.block_count":                      uint32(32),
@@ -108,7 +108,7 @@ func TestConfigFromGGUF_MockMetadata(t *testing.T) {
 		},
 		{
 			name: "missing_rope_defaults_to_10000",
-			metadata: map[string]interface{}{
+			metadata: map[string]any{
 				"general.architecture":          "llama",
 				"llama.embedding_length":        uint32(2048),
 				"llama.block_count":             uint32(22),

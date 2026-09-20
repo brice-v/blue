@@ -365,7 +365,7 @@ func TestEye(t *testing.T) {
 	assertEqualShape(t, Shape{3, 3}, tensor.Shape(), "Eye shape")
 
 	// Check diagonal
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if tensor.At(i, i) != 1.0 {
 			t.Errorf("Eye[%d, %d] = %v, want 1", i, i, tensor.At(i, i))
 		}

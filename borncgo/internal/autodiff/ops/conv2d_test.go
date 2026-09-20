@@ -15,7 +15,7 @@ func TestConv2DOp_BackwardGradients(t *testing.T) {
 	// Input: [1, 1, 3, 3]
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 3, 3}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		inputData[i] = float32(i + 1)
 	}
 
@@ -97,14 +97,14 @@ func TestConv2DOp_NumericalGradient(t *testing.T) {
 	// Input: [1, 1, 3, 3]
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 3, 3}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		inputData[i] = float32(i%3 + 1) // Pattern: [1,2,3,1,2,3,1,2,3]
 	}
 
 	// Kernel: [1, 1, 2, 2]
 	kernel, _ := tensor.NewRaw(tensor.Shape{1, 1, 2, 2}, tensor.Float32, tensor.CPU)
 	kernelData := kernel.AsFloat32()
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		kernelData[i] = float32(i + 1) // [1, 2, 3, 4]
 	}
 
@@ -169,7 +169,7 @@ func TestConv2DOp_NumericalGradient(t *testing.T) {
 
 	// Numerical gradient for kernel
 	t.Log("Checking kernel gradients (numerical vs analytical):")
-	for i := 0; i < len(kernelData); i++ {
+	for i := range kernelData {
 		original := kernelData[i]
 		kernelData[i] = original + epsilon
 		outputPlus := backend.Conv2D(input, kernel, 1, 0)
@@ -207,14 +207,14 @@ func TestConv2DOp_WithPaddingAndStride(t *testing.T) {
 	// Input: [1, 1, 4, 4]
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 4, 4}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float32(i + 1)
 	}
 
 	// Kernel: [1, 1, 3, 3]
 	kernel, _ := tensor.NewRaw(tensor.Shape{1, 1, 3, 3}, tensor.Float32, tensor.CPU)
 	kernelData := kernel.AsFloat32()
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		kernelData[i] = 1.0
 	}
 

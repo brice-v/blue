@@ -59,8 +59,8 @@ func NewSinusoidalPositionalEncoding[B tensor.Backend](maxLen, dim int, backend 
 	// Pre-compute positional encodings
 	encodings := make([]float32, maxLen*dim)
 
-	for pos := 0; pos < maxLen; pos++ {
-		for i := 0; i < dim; i++ {
+	for pos := range maxLen {
+		for i := range dim {
 			// Compute angle: pos / 10000^(2i/dim)
 			angle := float64(pos) / math.Pow(10000.0, float64(2*(i/2))/float64(dim))
 
@@ -117,7 +117,7 @@ func (s *SinusoidalPositionalEncoding[B]) Forward(seqLen int) *tensor.Tensor[flo
 	encData := s.Encoding.Data()
 	seqData := make([]float32, seqLen*s.Dim)
 
-	for pos := 0; pos < seqLen; pos++ {
+	for pos := range seqLen {
 		srcIdx := pos * s.Dim
 		dstIdx := pos * s.Dim
 		copy(seqData[dstIdx:dstIdx+s.Dim], encData[srcIdx:srcIdx+s.Dim])
@@ -211,7 +211,7 @@ func (l *LearnedPositionalEmbedding[B]) Forward(seqLen int) *tensor.Tensor[float
 	// Create position indices: [0, 1, 2, ..., seqLen-1]
 	// seqLen is bounded by MaxLen (typically 2048-8192), safe for int32
 	indices := make([]int32, seqLen)
-	for i := 0; i < seqLen; i++ {
+	for i := range seqLen {
 		indices[i] = int32(i)
 	}
 
@@ -292,7 +292,7 @@ func NewALiBi[B tensor.Backend](numHeads int, backend B) *ALiBi[B] {
 	slopes := make([]float32, numHeads)
 	ratio := math.Pow(2, -8.0/float64(numHeads))
 
-	for i := 0; i < numHeads; i++ {
+	for i := range numHeads {
 		// slope_i = 2^(-8/n * (i+1))
 		slopes[i] = float32(math.Pow(ratio, float64(i+1)))
 	}
@@ -338,8 +338,8 @@ func (a *ALiBi[B]) GetBias(seqLen int) *tensor.Tensor[float32, B] {
 	// Fill bias matrix
 	for h := 0; h < a.NumHeads; h++ {
 		slope := a.Slopes[h]
-		for i := 0; i < seqLen; i++ {
-			for j := 0; j < seqLen; j++ {
+		for i := range seqLen {
+			for j := range seqLen {
 				// bias[i, j] = -slope * |i - j|
 				distance := float32(abs(i - j))
 				idx := h*seqLen*seqLen + i*seqLen + j

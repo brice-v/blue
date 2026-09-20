@@ -61,7 +61,7 @@ func TestDequantizeQ8_0(t *testing.T) {
 	binary.LittleEndian.PutUint16(data[0:2], 0x3800)
 
 	// qs: 32 int8 values.
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		data[2+i] = byte(int8(i - 16))
 	}
 
@@ -76,7 +76,7 @@ func TestDequantizeQ8_0(t *testing.T) {
 
 	// Check first few values: d * q[i].
 	d := float32(0.5)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		expected := d * float32(int8(i-16))
 		if math.Abs(float64(result[i]-expected)) > 1e-6 {
 			t.Errorf("result[%d] = %v, want %v", i, result[i], expected)
@@ -94,7 +94,7 @@ func TestDequantizeQ4_0(t *testing.T) {
 
 	// qs: 16 bytes, each containing two 4-bit values (0-15).
 	// First byte: 0x10 = low=0, high=1.
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		data[2+i] = byte(i) | (byte(i+1) << 4)
 	}
 
@@ -130,7 +130,7 @@ func TestDequantizeQ4_1(t *testing.T) {
 	binary.LittleEndian.PutUint16(data[2:4], 0x3C00)
 
 	// qs: 16 bytes.
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		data[4+i] = 0x00 // All zeros for simplicity.
 	}
 
@@ -145,7 +145,7 @@ func TestDequantizeQ4_1(t *testing.T) {
 
 	// Formula: d * q + m = 0.5 * 0 + 1.0 = 1.0.
 	expected := float32(1.0)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		if math.Abs(float64(result[i]-expected)) > 1e-6 {
 			t.Errorf("result[%d] = %v, want %v", i, result[i], expected)
 		}
@@ -180,7 +180,7 @@ func TestDequantizeQ5_0(t *testing.T) {
 			check: func(t *testing.T, result []float32) {
 				t.Helper()
 				expected := float32(-16.0)
-				for i := 0; i < 32; i++ {
+				for i := range 32 {
 					if math.Abs(float64(result[i]-expected)) > 1e-6 {
 						t.Errorf("result[%d] = %v, want %v", i, result[i], expected)
 					}
@@ -198,7 +198,7 @@ func TestDequantizeQ5_0(t *testing.T) {
 			check: func(t *testing.T, result []float32) {
 				t.Helper()
 				expected := float32(15.0) // d*(31-16)
-				for i := 0; i < 32; i++ {
+				for i := range 32 {
 					if math.Abs(float64(result[i]-expected)) > 1e-6 {
 						t.Errorf("result[%d] = %v, want %v", i, result[i], expected)
 					}
@@ -415,7 +415,7 @@ func TestDequantizeQ5_K(t *testing.T) {
 			check: func(t *testing.T, result []float32) {
 				t.Helper()
 				// Group 0 lo-nibble pass (result[0..31]): d1=1.0, qs=0, qh=0 → 0.0.
-				for i := 0; i < 32; i++ {
+				for i := range 32 {
 					if result[i] != 0.0 {
 						t.Errorf("result[%d] = %v, want 0.0", i, result[i])
 					}
@@ -569,7 +569,7 @@ func TestDequantizeQ6_K(t *testing.T) {
 			name: "all_zero_quants_positive_scale",
 			// ql=0, qh=0 → q = (0|0<<4)-32 = -32; d=1.0, scales=+1 → result = -32.0
 			setup: func(data []byte) {
-				for i := 0; i < 16; i++ {
+				for i := range 16 {
 					data[192+i] = 0x01 // signed int8 scale = +1
 				}
 				binary.LittleEndian.PutUint16(data[208:210], 0x3C00) // d=1.0
@@ -580,7 +580,7 @@ func TestDequantizeQ6_K(t *testing.T) {
 					t.Fatalf("expected 256 elements, got %d", len(result))
 				}
 				expected := float32(-32.0)
-				for i := 0; i < 256; i++ {
+				for i := range 256 {
 					if math.Abs(float64(result[i]-expected)) > 1e-5 {
 						t.Errorf("result[%d] = %v, want %v", i, result[i], expected)
 					}
@@ -600,13 +600,13 @@ func TestDequantizeQ6_K(t *testing.T) {
 			//
 			// All 256 elements = d * sc * 31 = 1.0 * 1 * 31 = 31.0.
 			setup: func(data []byte) {
-				for i := 0; i < 128; i++ {
+				for i := range 128 {
 					data[i] = 0xFF
 				}
-				for i := 0; i < 64; i++ {
+				for i := range 64 {
 					data[128+i] = 0xFF
 				}
-				for i := 0; i < 16; i++ {
+				for i := range 16 {
 					data[192+i] = 0x01
 				}
 				binary.LittleEndian.PutUint16(data[208:210], 0x3C00) // d=1.0
@@ -614,7 +614,7 @@ func TestDequantizeQ6_K(t *testing.T) {
 			check: func(t *testing.T, result []float32) {
 				t.Helper()
 				want := float32(31.0)
-				for i := 0; i < 256; i++ {
+				for i := range 256 {
 					if math.Abs(float64(result[i]-want)) > 1e-5 {
 						t.Errorf("result[%d] = %v, want %v", i, result[i], want)
 					}
@@ -626,7 +626,7 @@ func TestDequantizeQ6_K(t *testing.T) {
 			// scale = -1 (int8 0xFF), d=1.0, ql=0, qh=0 → q=-32.
 			// result = 1.0 * (-1) * (-32) = 32.0 for all elements.
 			setup: func(data []byte) {
-				for i := 0; i < 16; i++ {
+				for i := range 16 {
 					data[192+i] = 0xFF // int8(-1) stored as 0xFF
 				}
 				binary.LittleEndian.PutUint16(data[208:210], 0x3C00) // d=1.0
@@ -634,7 +634,7 @@ func TestDequantizeQ6_K(t *testing.T) {
 			check: func(t *testing.T, result []float32) {
 				t.Helper()
 				expected := float32(32.0) // 1.0 * (-1) * (0 - 32) = 32.0
-				for i := 0; i < 256; i++ {
+				for i := range 256 {
 					if math.Abs(float64(result[i]-expected)) > 1e-5 {
 						t.Errorf("result[%d] = %v, want %v", i, result[i], expected)
 					}
@@ -734,7 +734,7 @@ func TestDequantizeBlockQ8_1(t *testing.T) {
 	binary.LittleEndian.PutUint16(data[2:4], 0x2028) // ~0.008118
 
 	// qs: 32 int8 values [1, 2, 3, ..., 32].
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		data[4+i] = byte(int8(i + 1))
 	}
 
@@ -749,7 +749,7 @@ func TestDequantizeBlockQ8_1(t *testing.T) {
 	// Correct formula: x[i] = d * qs[i].
 	d := half.Float16ToFloat32(0x2E66)
 
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		expected := d * float32(i+1)
 		if math.Abs(float64(result[i]-expected)) > 1e-4 {
 			t.Errorf("result[%d] = %v, want %v (d*%d)", i, result[i], expected, i+1)
@@ -806,13 +806,13 @@ func TestDequantizeMultipleBlocks(t *testing.T) {
 
 	// Block 1: d=1.0, qs=[0, 1, 2, ..., 31].
 	binary.LittleEndian.PutUint16(data[0:2], 0x3C00)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		data[2+i] = byte(int8(i))
 	}
 
 	// Block 2: d=2.0, qs=[0, 1, 2, ..., 31].
 	binary.LittleEndian.PutUint16(data[34:36], 0x4000)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		data[36+i] = byte(int8(i))
 	}
 
@@ -855,7 +855,7 @@ func TestDequantizeQ5_1(t *testing.T) {
 	binary.LittleEndian.PutUint32(data[4:8], 0)
 
 	// qs = 0 (all zeros).
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		data[8+i] = 0
 	}
 
@@ -870,7 +870,7 @@ func TestDequantizeQ5_1(t *testing.T) {
 
 	// Formula: d * q + m = 0.5 * 0 + 1.0 = 1.0.
 	expected := float32(1.0)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		if math.Abs(float64(result[i]-expected)) > 1e-6 {
 			t.Errorf("result[%d] = %v, want %v", i, result[i], expected)
 		}

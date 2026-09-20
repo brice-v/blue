@@ -33,8 +33,8 @@ func TestForBatch(t *testing.T) {
 		results[b][c] = true
 	}, cfg)
 
-	for b := 0; b < batch; b++ {
-		for c := 0; c < channels; c++ {
+	for b := range batch {
+		for c := range channels {
 			if !results[b][c] {
 				t.Errorf("Missing result at [%d][%d]", b, c)
 			}
@@ -77,9 +77,9 @@ func BenchmarkFor(b *testing.B) {
 
 	b.Run("parallel", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			var sum int64
+			var sum atomic.Int64
 			For(n, func(i int) {
-				atomic.AddInt64(&sum, int64(i))
+				sum.Add(int64(i))
 			}, cfg)
 		}
 	})
@@ -88,9 +88,9 @@ func BenchmarkFor(b *testing.B) {
 		cfgSeq := cfg
 		cfgSeq.Enabled = false
 		for i := 0; i < b.N; i++ {
-			var sum int64
+			var sum atomic.Int64
 			For(n, func(i int) {
-				atomic.AddInt64(&sum, int64(i))
+				sum.Add(int64(i))
 			}, cfgSeq)
 		}
 	})
@@ -102,9 +102,9 @@ func BenchmarkForBatch(b *testing.B) {
 
 	b.Run("parallel", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			var sum int64
+			var sum atomic.Int64
 			ForBatch(batch, channels, func(bc, c int) {
-				atomic.AddInt64(&sum, int64(bc*channels+c))
+				sum.Add(int64(bc*channels + c))
 			}, cfg)
 		}
 	})
@@ -113,9 +113,9 @@ func BenchmarkForBatch(b *testing.B) {
 		cfgSeq := cfg
 		cfgSeq.Enabled = false
 		for i := 0; i < b.N; i++ {
-			var sum int64
+			var sum atomic.Int64
 			ForBatch(batch, channels, func(bc, c int) {
-				atomic.AddInt64(&sum, int64(bc*channels+c))
+				sum.Add(int64(bc*channels + c))
 			}, cfgSeq)
 		}
 	})

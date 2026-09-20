@@ -426,7 +426,7 @@ func TestSemanticTokensLegendCoversEverything(t *testing.T) {
 			t.Fatalf("tuple %d uses type id %d outside the legend (%d entries)", i/5, typeIdx, len(semLegendTypes))
 		}
 		mods := data[i+4]
-		for bit := 0; bit < 32; bit++ {
+		for bit := range 32 {
 			if mods&(1<<bit) != 0 && bit >= len(semLegendModifiers) {
 				t.Fatalf("tuple %d sets modifier bit %d but the legend only has %d names", i/5, bit, len(semLegendModifiers))
 			}

@@ -84,7 +84,7 @@ func addBroadcastInt32(dst, a, b []int32, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] + b[bIdx]
@@ -97,7 +97,7 @@ func subBroadcastInt32(dst, a, b []int32, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] - b[bIdx]
@@ -110,7 +110,7 @@ func mulBroadcastInt32(dst, a, b []int32, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] * b[bIdx]
@@ -123,7 +123,7 @@ func divBroadcastInt32(dst, a, b []int32, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] / b[bIdx]
@@ -143,11 +143,11 @@ func transposeInt32(dst, src []int32, shape tensor.Shape, axes []int) {
 
 	// Transpose data
 	n := shape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		// Compute multi-dimensional coordinates in source
 		coords := make([]int, ndim)
 		idx := i
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			coords[dim] = idx / srcStrides[dim]
 			idx %= srcStrides[dim]
 		}
@@ -160,7 +160,7 @@ func transposeInt32(dst, src []int32, shape tensor.Shape, axes []int) {
 
 		// Compute flat index in destination
 		dstIdx := 0
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			dstIdx += permutedCoords[dim] * dstStrides[dim]
 		}
 
@@ -248,7 +248,7 @@ func addBroadcastInt64(dst, a, b []int64, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] + b[bIdx]
@@ -261,7 +261,7 @@ func subBroadcastInt64(dst, a, b []int64, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] - b[bIdx]
@@ -274,7 +274,7 @@ func mulBroadcastInt64(dst, a, b []int64, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] * b[bIdx]
@@ -287,7 +287,7 @@ func divBroadcastInt64(dst, a, b []int64, aShape, bShape, outShape tensor.Shape)
 	bStrides := computeBroadcastStridesForShape(bShape, outShape)
 
 	n := outShape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		aIdx := computeFlatIndex(i, outStrides, aStrides)
 		bIdx := computeFlatIndex(i, outStrides, bStrides)
 		dst[i] = a[aIdx] / b[bIdx]
@@ -307,11 +307,11 @@ func transposeInt64(dst, src []int64, shape tensor.Shape, axes []int) {
 
 	// Transpose data
 	n := shape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		// Compute multi-dimensional coordinates in source
 		coords := make([]int, ndim)
 		idx := i
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			coords[dim] = idx / srcStrides[dim]
 			idx %= srcStrides[dim]
 		}
@@ -324,7 +324,7 @@ func transposeInt64(dst, src []int64, shape tensor.Shape, axes []int) {
 
 		// Compute flat index in destination
 		dstIdx := 0
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			dstIdx += permutedCoords[dim] * dstStrides[dim]
 		}
 

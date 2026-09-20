@@ -116,11 +116,11 @@ func makeTransientLeaf(i int) {
 // shrink the tracked set, so it is bounded by live leaves.
 func TestTrackedLeavesArePruned(t *testing.T) {
 	base := len(liveLeaves())
-	for i := 0; i < 2000; i++ {
+	for i := range 2000 {
 		makeTransientLeaf(i)
 	}
 	// Finalizers run asynchronously after a GC, so retry briefly.
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		runtime.GC()
 		if len(liveLeaves()) <= base+100 {
 			return
@@ -133,7 +133,7 @@ func TestTrackedLeavesArePruned(t *testing.T) {
 // TestBackwardAfterTransientLeaves checks that a backward still finds the live
 // leaves after many transient leaves have come and gone.
 func TestBackwardAfterTransientLeaves(t *testing.T) {
-	for i := 0; i < 500; i++ {
+	for i := range 500 {
 		makeTransientLeaf(i)
 	}
 	x := dense([]float32{1, 2, 3}, 3)

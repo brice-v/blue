@@ -176,15 +176,15 @@ func TestBatchMatMul_vs_LoopWorkaround(t *testing.T) {
 	expected, _ := tensor.NewRaw(tensor.Shape{batchSize, m, n}, tensor.Float32, tensor.CPU)
 	expectedData := expected.AsFloat32()
 
-	for batch := 0; batch < batchSize; batch++ {
+	for batch := range batchSize {
 		aOffset := batch * m * k
 		bOffset := batch * k * n
 		cOffset := batch * m * n
 
-		for i := 0; i < m; i++ {
-			for j := 0; j < n; j++ {
+		for i := range m {
+			for j := range n {
 				sum := float32(0)
-				for kIdx := 0; kIdx < k; kIdx++ {
+				for kIdx := range k {
 					sum += aData[aOffset+i*k+kIdx] * bData[bOffset+kIdx*n+j]
 				}
 				expectedData[cOffset+i*n+j] = sum

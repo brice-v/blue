@@ -82,10 +82,7 @@ func (d *docSource) positionOf(runeIdx int) position {
 	if runeIdx > len(d.runes) {
 		runeIdx = len(d.runes)
 	}
-	line := sort.Search(len(d.lineStarts), func(i int) bool { return d.lineStarts[i] > runeIdx }) - 1
-	if line < 0 {
-		line = 0
-	}
+	line := max(sort.Search(len(d.lineStarts), func(i int) bool { return d.lineStarts[i] > runeIdx })-1, 0)
 	return position{Line: line, Character: utf16Len(d.runes[d.lineStarts[line]:runeIdx])}
 }
 

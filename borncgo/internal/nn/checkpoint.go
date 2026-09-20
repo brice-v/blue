@@ -2,6 +2,7 @@ package nn
 
 import (
 	"fmt"
+	"maps"
 	"time"
 
 	"blue/borncgo/internal/serialization"
@@ -90,9 +91,7 @@ func (c *Checkpoint[B]) Save(path string) (err error) {
 	// Prefix optimizer state with "optimizer."
 	combinedStateDict := make(map[string]*tensor.RawTensor)
 
-	for name, raw := range modelStateDict {
-		combinedStateDict[name] = raw
-	}
+	maps.Copy(combinedStateDict, modelStateDict)
 
 	for name, raw := range optimizerStateDict {
 		combinedStateDict["optimizer."+name] = raw

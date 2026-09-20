@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"testing"
 	"time"
@@ -179,9 +180,7 @@ func (ps *pipeSession) initialize(t *testing.T, extra map[string]any) map[string
 		"rootUri":      nil,
 		"capabilities": map[string]any{},
 	}
-	for k, v := range extra {
-		params[k] = v
-	}
+	maps.Copy(params, extra)
 	ps.send("initialize", 1, params)
 	reply, _ := ps.responseFor(1, 3*time.Second)
 	if reply.Error != nil {

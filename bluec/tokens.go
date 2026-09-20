@@ -95,7 +95,7 @@ func decodeTokens(data []byte) ([]*token.Token, error) {
 		return nil, err
 	}
 	stringTable := make([]string, 0, min(numStrings, 1<<20))
-	for i := uint64(0); i < numStrings; i++ {
+	for range numStrings {
 		s, err := readString()
 		if err != nil {
 			return nil, err
@@ -118,7 +118,7 @@ func decodeTokens(data []byte) ([]*token.Token, error) {
 	}
 	tokens := make([]*token.Token, 0, numTokens)
 	prevLine := int64(0)
-	for i := uint64(0); i < numTokens; i++ {
+	for range numTokens {
 		typeIdx, err := readUvarint()
 		if err != nil {
 			return nil, err

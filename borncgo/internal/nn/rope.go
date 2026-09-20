@@ -83,7 +83,7 @@ func NewRotaryEncoding[B tensor.Backend](cfg RotaryEncodingConfig, backend B) *R
 	// θ_i = base^(-2i/d) for i in [0, d/2)
 	halfDim := cfg.DModel / 2
 	freqs := make([]float32, halfDim)
-	for i := 0; i < halfDim; i++ {
+	for i := range halfDim {
 		// θ_i = theta^(-2i/d)
 		exponent := -2.0 * float64(i) / float64(cfg.DModel)
 		freqs[i] = float32(math.Pow(cfg.Theta, exponent))
@@ -94,7 +94,7 @@ func NewRotaryEncoding[B tensor.Backend](cfg RotaryEncodingConfig, backend B) *R
 	sinData := make([]float32, cfg.MaxSeqLen*halfDim)
 
 	for pos := 0; pos < cfg.MaxSeqLen; pos++ {
-		for i := 0; i < halfDim; i++ {
+		for i := range halfDim {
 			angle := float64(pos) * float64(freqs[i])
 			idx := pos*halfDim + i
 			cosData[idx] = float32(math.Cos(angle))
@@ -277,7 +277,7 @@ func (r *RotaryEncoding[B]) applyRotation(
 
 				// Apply rotation using rotate-half convention (LLaMA/GPT-NeoX standard).
 				// Pairs (x[i], x[i+d/2]) instead of interleaved (x[2i], x[2i+1]).
-				for i := 0; i < halfDim; i++ {
+				for i := range halfDim {
 					xi := xData[baseIdx+i]
 					xiHalf := xData[baseIdx+halfDim+i]
 					cosVal := cosData[cossinBaseIdx+i]

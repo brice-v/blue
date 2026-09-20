@@ -28,7 +28,7 @@ func DefaultConfig() Config {
 func For(n int, f func(i int), cfg Config) {
 	if !cfg.Enabled || n < cfg.MinChunkSize {
 		// Sequential fallback.
-		for i := 0; i < n; i++ {
+		for i := range n {
 			f(i)
 		}
 		return

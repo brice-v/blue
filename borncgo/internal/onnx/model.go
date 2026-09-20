@@ -4,6 +4,7 @@ package onnx
 
 import (
 	"fmt"
+	"maps"
 
 	"blue/borncgo/internal/onnx/operators"
 	"blue/borncgo/internal/tensor"
@@ -77,12 +78,8 @@ func (m *Model) Forward(input *tensor.RawTensor) (*tensor.RawTensor, error) {
 func (m *Model) ForwardNamed(inputs map[string]*tensor.RawTensor) (map[string]*tensor.RawTensor, error) {
 	// Copy weights and set inputs
 	tensors := make(map[string]*tensor.RawTensor)
-	for name, t := range m.tensors {
-		tensors[name] = t
-	}
-	for name, t := range inputs {
-		tensors[name] = t
-	}
+	maps.Copy(tensors, m.tensors)
+	maps.Copy(tensors, inputs)
 
 	// Validate all inputs are provided
 	for _, inputName := range m.inputNames {

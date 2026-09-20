@@ -85,6 +85,8 @@ val __nn_forward = _nn_forward;
 val __nn_parameters = _nn_parameters;
 val __nn_linear_act = _nn_linear_act;
 val __nn_to = _nn_to;
+val __nn_conv2d = _nn_conv2d;
+val __nn_maxpool2d = _nn_maxpool2d;
 val __gpu_is_available = _gpu_is_available;
 val __cast = _cast;
 val __trace_begin = _trace_begin;
@@ -108,13 +110,29 @@ val __index_select = _index_select;
 val __masked_fill = _masked_fill;
 val __optim_set_lr = _optim_set_lr;
 val __optim_clip_grad_norm = _optim_clip_grad_norm;
+val __optim_state_dict = _optim_state_dict;
 val __lr_schedule = _lr_schedule;
+val __retain_grad = _retain_grad;
+val __autograd_grad = _autograd_grad;
+val __contiguous = _contiguous;
+val __view = _view;
 val __clone = _clone;
 val __state_dict = _state_dict;
 val __save_state = _save_state;
 val __load_state = _load_state;
 val __flip = _flip;
 val __masked_select = _masked_select;
+val __max_dim = _max_dim;
+val __min_dim = _min_dim;
+val __variance = _variance;
+val __std = _std;
+val __tile = _tile;
+val __cumsum = _cumsum;
+val __sort = _sort;
+val __topk = _topk;
+val __nonzero = _nonzero;
+val __scatter_add = _scatter_add;
+val __cross_entropy_opts = _cross_entropy_opts;
 
 val dtype = {
     'float32': 'float32',
@@ -342,17 +360,37 @@ fun mean(a, dim=null, keepdim=false) {
 fun max(a, dim=null, keepdim=false) {
     ##std:this,__max
     ## `max` returns the maximum over `dim`, or over every element when `dim` is null.
+    ## Use `max_dim` for the values and indices together, like torch.max(x, dim).
     ##
     ## max(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
     __max(a, dim, keepdim)
 }
 
+fun max_dim(a, dim, keepdim=false) {
+    ##std:this,__max_dim
+    ## `max_dim` returns `[values, indices]` for the maximum along `dim`, matching
+    ## torch.max(x, dim). The indices are int32.
+    ##
+    ## max_dim(a: tensor, dim: int, keepdim: bool=false) -> list[tensor, tensor]
+    __max_dim(a, dim, keepdim)
+}
+
 fun min(a, dim=null, keepdim=false) {
     ##std:this,__min
     ## `min` returns the minimum over `dim`, or over every element when `dim` is null.
+    ## Use `min_dim` for the values and indices together, like torch.min(x, dim).
     ##
     ## min(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
     __min(a, dim, keepdim)
+}
+
+fun min_dim(a, dim, keepdim=false) {
+    ##std:this,__min_dim
+    ## `min_dim` returns `[values, indices]` for the minimum along `dim`, matching
+    ## torch.min(x, dim). The indices are int32.
+    ##
+    ## min_dim(a: tensor, dim: int, keepdim: bool=false) -> list[tensor, tensor]
+    __min_dim(a, dim, keepdim)
 }
 
 fun argmax(a, dim) {
@@ -635,22 +673,22 @@ fun nll_loss(log_probs, target) {
     return __neg(__mean(picked, null, false));
 }
 
-fun variance(a, dim=null, keepdim=false) {
-    ##std:this,__mean,__sub,__mul
-    ## `variance` is the population variance over `dim` (or every element).
+fun variance(a, dim=null, keepdim=false, unbiased=false) {
+    ##std:this,__variance
+    ## `variance` is the variance over `dim` (or every element). `unbiased` divides
+    ## by n-1 instead of n, matching torch.var(unbiased=True). The default is the
+    ## population variance, which differs from torch.var's default.
     ##
-    ## variance(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
-    val m = __mean(a, dim, true);
-    val d = __sub(a, m);
-    return __mean(__mul(d, d), dim, keepdim);
+    ## variance(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false, unbiased: bool=false) -> tensor
+    __variance(a, dim, keepdim, unbiased)
 }
 
-fun std(a, dim=null, keepdim=false) {
-    ##std:this,__sqrt
-    ## `std` is the square root of `variance`.
+fun std(a, dim=null, keepdim=false, unbiased=false) {
+    ##std:this,__std
+    ## `std` is the square root of `variance`; `unbiased` divides by n-1.
     ##
-    ## std(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
-    return __sqrt(variance(a, dim, keepdim));
+    ## std(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false, unbiased: bool=false) -> tensor
+    __std(a, dim, keepdim, unbiased)
 }
 
 fun norm(a, dim=null, keepdim=false) {
@@ -659,6 +697,59 @@ fun norm(a, dim=null, keepdim=false) {
     ##
     ## norm(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor
     return __sqrt(__sum(__mul(a, a), dim, keepdim));
+}
+
+fun tile(a, reps) {
+    ##std:this,__tile
+    ## `tile` repeats `a` along each dim, like torch.tile. It is differentiable.
+    ##
+    ## tile(a: tensor, reps: list[int]) -> tensor
+    __tile(a, reps)
+}
+
+fun cumsum(a, dim) {
+    ##std:this,__cumsum
+    ## `cumsum` is the cumulative sum along `dim`, like torch.cumsum. It is
+    ## differentiable.
+    ##
+    ## cumsum(a: tensor, dim: int) -> tensor
+    __cumsum(a, dim)
+}
+
+fun sort(a, dim=-1, descending=false) {
+    ##std:this,__sort
+    ## `sort` returns `[values, indices]` sorted along `dim`, like torch.sort.
+    ## It is host-computed, so it is inference-only.
+    ##
+    ## sort(a: tensor, dim: int=-1, descending: bool=false) -> list[tensor, tensor]
+    __sort(a, dim, descending)
+}
+
+fun topk(a, k, dim=-1, largest=true) {
+    ##std:this,__topk
+    ## `topk` returns `[values, indices]` of the `k` largest or smallest along
+    ## `dim`, like torch.topk. It is host-computed, so it is inference-only.
+    ##
+    ## topk(a: tensor, k: int, dim: int=-1, largest: bool=true) -> list[tensor, tensor]
+    __topk(a, k, dim, largest)
+}
+
+fun nonzero(a) {
+    ##std:this,__nonzero
+    ## `nonzero` returns the indices of the nonzero elements as an [n, rank]
+    ## tensor, like torch.nonzero. It is host-computed, so it is inference-only.
+    ##
+    ## nonzero(a: tensor) -> tensor
+    __nonzero(a)
+}
+
+fun scatter_add(dest, dim, index, src) {
+    ##std:this,__scatter_add
+    ## `scatter_add` returns `dest` with `src` added at the positions selected by
+    ## `index` along `dim`.
+    ##
+    ## scatter_add(dest: tensor, dim: int, index: tensor, src: tensor) -> tensor
+    __scatter_add(dest, dim, index, src)
 }
 
 fun clip_grad_norm_(params, max_norm) {
@@ -790,6 +881,43 @@ fun zero_grad(a) {
     __zero_grad(a)
 }
 
+fun retain_grad(a) {
+    ##std:this,__retain_grad
+    ## `retain_grad` keeps a non-leaf tensor's gradient after backward, like
+    ## torch.Tensor.retain_grad.
+    ##
+    ## retain_grad(a: tensor) -> null
+    __retain_grad(a)
+}
+
+fun autograd_grad(output, inputs) {
+    ##std:this,__autograd_grad
+    ## `autograd_grad` returns d(output)/d(input) for each input without storing
+    ## them on the inputs, like torch.autograd.grad. The tape is left intact.
+    ##
+    ## autograd_grad(output: tensor, inputs: list[tensor]) -> list[tensor|null]
+    __autograd_grad(output, inputs)
+}
+
+fun contiguous(a) {
+    ##std:this,__contiguous
+    ## `contiguous` returns a tensor with row-major contiguous storage,
+    ## materializing a view if needed.
+    ##
+    ## contiguous(a: tensor) -> tensor
+    __contiguous(a)
+}
+
+fun view(a, shape) {
+    ##std:this,__view
+    ## `view` returns a storage-sharing view with the given shape. It is
+    ## inference-only, so use it under `no_grad`. Shape ops (reshape, transpose,
+    ## permute, unsqueeze, squeeze, slice) already return views under no_grad.
+    ##
+    ## view(a: tensor, shape: list[int]) -> tensor
+    __view(a, shape)
+}
+
 fun no_grad(f) {
     ##std:this,__set_grad_enabled
     ## `no_grad` runs a closure with graph building disabled.
@@ -801,13 +929,15 @@ fun no_grad(f) {
     return out;
 }
 
-fun cross_entropy(logits, target) {
-    ##std:this,__cross_entropy
-    ## `cross_entropy` returns the mean cross-entropy loss between logits
-    ## [batch, classes] and class indices [batch].
+fun cross_entropy(logits, target, reduction='mean', ignore_index=null, weight=null) {
+    ##std:this,__cross_entropy_opts
+    ## `cross_entropy` is the cross-entropy loss between logits [batch, classes]
+    ## and class indices [batch], like torch.nn.functional.cross_entropy.
+    ## `reduction` is 'mean', 'sum', or 'none'. `ignore_index` drops matching
+    ## targets from the mean. `weight` is a [classes] tensor applied per sample.
     ##
-    ## cross_entropy(logits: tensor, target: tensor) -> tensor
-    __cross_entropy(logits, target)
+    ## cross_entropy(logits: tensor, target: tensor, reduction: str='mean', ignore_index: int|null=null, weight: tensor|null=null) -> tensor
+    __cross_entropy_opts(logits, target, reduction, ignore_index, weight)
 }
 
 fun cross_entropy_grad(logits, target) {
@@ -1018,6 +1148,28 @@ val nn = {
         this.to = fun(dev) { __nn_to(h, dev); return this; };
         return this;
     },
+    'Conv2d': fun(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=true, dev=device.cpu) {
+        val h = __nn_conv2d(in_channels, out_channels, kernel_size, stride, padding, bias, dev);
+        var this = {};
+        this.__handle = h;
+        this.kind = 'conv2d';
+        this.forward = fun(x) { return __nn_forward(h, x); };
+        this.parameters = fun() { return __nn_parameters(h); };
+        this.to = fun(dev) { __nn_to(h, dev); return this; };
+        return this;
+    },
+    'MaxPool2d': fun(kernel_size, stride=null, dev=device.cpu) {
+        var s = kernel_size;
+        if (stride != null) { s = stride; }
+        val h = __nn_maxpool2d(kernel_size, s, dev);
+        var this = {};
+        this.__handle = h;
+        this.kind = 'maxpool2d';
+        this.forward = fun(x) { return __nn_forward(h, x); };
+        this.parameters = fun() { return __nn_parameters(h); };
+        this.to = fun(dev) { __nn_to(h, dev); return this; };
+        return this;
+    },
     'SiLU': fun() {
         var this = {};
         this.kind = 'silu';
@@ -1122,6 +1274,7 @@ val optim = {
         this.step = fun() { __optim_step(h); };
         this.zero_grad = fun() { __optim_zero_grad(h); };
         this.set_lr = fun(new_lr) { __optim_set_lr(h, new_lr); return this; };
+        this.state_dict = fun() { return __optim_state_dict(h); };
         return this;
     },
     'Adam': fun(params, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8, weight_decay=0.0) {
@@ -1130,6 +1283,7 @@ val optim = {
         this.step = fun() { __optim_step(h); };
         this.zero_grad = fun() { __optim_zero_grad(h); };
         this.set_lr = fun(new_lr) { __optim_set_lr(h, new_lr); return this; };
+        this.state_dict = fun() { return __optim_state_dict(h); };
         return this;
     },
     # AdamW is Adam with decoupled weight decay on by default.
@@ -1139,6 +1293,7 @@ val optim = {
         this.step = fun() { __optim_step(h); };
         this.zero_grad = fun() { __optim_zero_grad(h); };
         this.set_lr = fun(new_lr) { __optim_set_lr(h, new_lr); return this; };
+        this.state_dict = fun() { return __optim_state_dict(h); };
         return this;
     },
     # Learning-rate schedules are pure functions of the step. Call

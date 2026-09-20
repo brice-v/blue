@@ -195,7 +195,7 @@ func TestInputBufferCache_CorrectResults(t *testing.T) {
 	copy(w.AsFloat32(), []float32{1, 2, 3, 4})
 
 	// Run the same op 10 times; all should produce w+w = [2,4,6,8].
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		result := backend.Add(w, w)
 		got := result.AsFloat32()
 		expected := []float32{2, 4, 6, 8}
@@ -238,7 +238,7 @@ func TestEncoderBatch_AccumulatesMultiplePasses(t *testing.T) {
 	// Issue 5 ops without any readback.
 	const opsToAccumulate = 5
 	result := a
-	for i := 0; i < opsToAccumulate; i++ {
+	for range opsToAccumulate {
 		result = backend.Add(result, a)
 	}
 
@@ -327,7 +327,7 @@ func TestEncoderBatch_AutoFlushAtThreshold(t *testing.T) {
 	totalOps := maxPendingBeforeFlush + 10
 
 	result := a
-	for i := 0; i < totalOps; i++ {
+	for range totalOps {
 		result = backend.Add(result, a)
 	}
 
@@ -383,7 +383,7 @@ func TestEncoderBatch_MatMulWithCachedWeights(t *testing.T) {
 	}
 
 	// Simulate 3 forward passes reusing the same weight tensor.
-	for pass := 0; pass < 3; pass++ {
+	for pass := range 3 {
 		result := backend.MatMul(input, weights)
 		got := result.AsFloat32()
 		// input * 2I = 2*input, so each diagonal output is 2.0, off-diag 0.

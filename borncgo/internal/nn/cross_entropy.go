@@ -92,7 +92,7 @@ func (c *CrossEntropyLoss[B]) Forward(
 	// Compute loss for each sample in batch
 	totalLoss := float32(0.0)
 
-	for b := 0; b < batchSize; b++ {
+	for b := range batchSize {
 		// Extract logits for this sample
 		sampleLogits := logitsData[b*numClasses : (b+1)*numClasses]
 
@@ -149,7 +149,7 @@ func logSoftmax(z []float32) []float32 {
 
 	// Compute sum of exp(z - max)
 	sumExp := float32(0.0)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		sumExp += float32(math.Exp(float64(z[i] - maxZ)))
 	}
 
@@ -157,7 +157,7 @@ func logSoftmax(z []float32) []float32 {
 	logSumExp := maxZ + float32(math.Log(float64(sumExp)))
 
 	// LogSoftmax = z - LogSumExp
-	for i := 0; i < n; i++ {
+	for i := range n {
 		result[i] = z[i] - logSumExp
 	}
 
@@ -224,7 +224,7 @@ func CrossEntropyBackward[B tensor.Backend](
 	gradData := gradRaw.AsFloat32()
 
 	// Compute gradient for each sample
-	for b := 0; b < batchSize; b++ {
+	for b := range batchSize {
 		// Extract logits for this sample
 		sampleLogits := logitsData[b*numClasses : (b+1)*numClasses]
 
@@ -233,7 +233,7 @@ func CrossEntropyBackward[B tensor.Backend](
 
 		// Gradient = softmax(z) - y_one_hot
 		target := int(targetsData[b])
-		for i := 0; i < numClasses; i++ {
+		for i := range numClasses {
 			grad := probs[i]
 			if i == target {
 				grad -= 1.0
@@ -282,7 +282,7 @@ func Accuracy[B tensor.Backend](
 	targetsData := targets.Raw().AsInt32()
 
 	correct := 0
-	for b := 0; b < batchSize; b++ {
+	for b := range batchSize {
 		sampleLogits := logitsData[b*numClasses : (b+1)*numClasses]
 		predicted := argmax(sampleLogits)
 		target := int(targetsData[b])

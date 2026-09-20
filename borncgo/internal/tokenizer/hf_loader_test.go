@@ -15,15 +15,15 @@ func TestDetectHFTokenizerType(t *testing.T) {
 	tmpDir := t.TempDir()
 	tokenizerPath := filepath.Join(tmpDir, "tokenizer.json")
 
-	config := map[string]interface{}{
-		"model": map[string]interface{}{
+	config := map[string]any{
+		"model": map[string]any{
 			"type": "BPE",
 			"vocab": map[string]int{
 				"a": 0,
 				"b": 1,
 			},
 		},
-		"added_tokens": []map[string]interface{}{
+		"added_tokens": []map[string]any{
 			{"id": 2, "content": "<s>", "special": true},
 			{"id": 3, "content": "</s>", "special": true},
 		},
@@ -47,15 +47,15 @@ func TestDetectHFTokenizerType_WordPiece(t *testing.T) {
 	tmpDir := t.TempDir()
 	tokenizerPath := filepath.Join(tmpDir, "tokenizer.json")
 
-	config := map[string]interface{}{
-		"model": map[string]interface{}{
+	config := map[string]any{
+		"model": map[string]any{
 			"type": "WordPiece",
 			"vocab": map[string]int{
 				"[CLS]": 0,
 				"[SEP]": 1,
 			},
 		},
-		"added_tokens": []map[string]interface{}{
+		"added_tokens": []map[string]any{
 			{"id": 0, "content": "[CLS]", "special": true},
 			{"id": 1, "content": "[SEP]", "special": true},
 		},
@@ -155,8 +155,8 @@ func TestAutoLoadTokenizer_HuggingFace(t *testing.T) {
 	tmpDir := t.TempDir()
 	tokenizerPath := filepath.Join(tmpDir, "tokenizer.json")
 
-	config := map[string]interface{}{
-		"model": map[string]interface{}{
+	config := map[string]any{
+		"model": map[string]any{
 			"type": "BPE",
 			"vocab": map[string]int{
 				"a": 0,
@@ -167,7 +167,7 @@ func TestAutoLoadTokenizer_HuggingFace(t *testing.T) {
 				"a b",
 			},
 		},
-		"added_tokens": []map[string]interface{}{},
+		"added_tokens": []map[string]any{},
 	}
 
 	data, err := json.Marshal(config)
@@ -191,8 +191,8 @@ func TestLoadFromHuggingFace_BPE(t *testing.T) {
 	tmpDir := t.TempDir()
 	tokenizerPath := filepath.Join(tmpDir, "tokenizer.json")
 
-	config := map[string]interface{}{
-		"model": map[string]interface{}{
+	config := map[string]any{
+		"model": map[string]any{
 			"type": "BPE",
 			"vocab": map[string]int{
 				"hello": 0,
@@ -200,7 +200,7 @@ func TestLoadFromHuggingFace_BPE(t *testing.T) {
 			},
 			"merges": []string{},
 		},
-		"added_tokens": []map[string]interface{}{
+		"added_tokens": []map[string]any{
 			{"id": 100, "content": "<bos>", "special": true},
 			{"id": 101, "content": "<eos>", "special": true},
 		},
@@ -223,8 +223,8 @@ func TestLoadFromHuggingFace_WordPiece(t *testing.T) {
 	tmpDir := t.TempDir()
 	tokenizerPath := filepath.Join(tmpDir, "tokenizer.json")
 
-	config := map[string]interface{}{
-		"model": map[string]interface{}{
+	config := map[string]any{
+		"model": map[string]any{
 			"type": "WordPiece",
 			"vocab": map[string]int{
 				"a": 0,

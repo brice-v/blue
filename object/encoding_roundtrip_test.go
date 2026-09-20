@@ -484,7 +484,7 @@ func TestEncodingRejections(t *testing.T) {
 	})
 	t.Run("encode depth limit", func(t *testing.T) {
 		var cur Object = NewInteger(1)
-		for i := 0; i < maxSerializeDepth+10; i++ {
+		for range maxSerializeDepth + 10 {
 			cur = &List{Elements: []Object{cur}}
 		}
 		if _, err := marshalObject(cur); err != errTooDeep {

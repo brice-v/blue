@@ -27,7 +27,7 @@ func TestRuneAtIndex(t *testing.T) {
 
 	// Invalid UTF-8 decodes like []rune conversion: one U+FFFD per bad byte
 	bad := string([]byte{0xff, 'x', 0xfe})
-	for idx := int64(0); idx < 3; idx++ {
+	for idx := range int64(3) {
 		got, ok := RuneAtIndex(bad, idx)
 		if !ok {
 			t.Fatalf("invalid utf8 index %d should decode", idx)

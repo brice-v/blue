@@ -20,9 +20,9 @@ func TestTensorSoftmax(t *testing.T) {
 	assertEqualShape(t, Shape{2, 3}, result.Shape(), "Softmax shape")
 
 	// Check that each row sums to 1
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		sum := float32(0)
-		for j := 0; j < 3; j++ {
+		for j := range 3 {
 			val := result.At(i, j)
 			if val < 0 || val > 1 {
 				t.Errorf("Softmax[%d,%d] = %v, should be in [0, 1]", i, j, val)
@@ -35,8 +35,8 @@ func TestTensorSoftmax(t *testing.T) {
 	}
 
 	// Check that values are in increasing order in each row (since input is increasing)
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 2; j++ {
+	for i := range 2 {
+		for j := range 2 {
 			if result.At(i, j) >= result.At(i, j+1) {
 				t.Errorf("Softmax[%d,%d] = %v should be < Softmax[%d,%d] = %v",
 					i, j, result.At(i, j), i, j+1, result.At(i, j+1))
@@ -59,9 +59,9 @@ func TestTensorSoftmaxDim0(t *testing.T) {
 	assertEqualShape(t, Shape{2, 2}, result.Shape(), "Softmax dim 0 shape")
 
 	// Check that each column sums to 1
-	for j := 0; j < 2; j++ {
+	for j := range 2 {
 		sum := float32(0)
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			val := result.At(i, j)
 			sum += val
 		}
@@ -93,7 +93,7 @@ func TestTensorSoftmax1D(t *testing.T) {
 	}
 
 	// Check values are monotonically increasing (since input is increasing)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if data[i] >= data[i+1] {
 			t.Errorf("Softmax[%d] = %v should be < Softmax[%d] = %v",
 				i, data[i], i+1, data[i+1])

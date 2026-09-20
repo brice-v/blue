@@ -56,7 +56,7 @@ const (
 )
 
 // GGUFMetadata stores GGUF metadata key-value pairs.
-type GGUFMetadata map[string]interface{}
+type GGUFMetadata map[string]any
 
 // GGUFTensorInfo describes a tensor in GGUF format.
 type GGUFTensorInfo struct {
@@ -173,7 +173,7 @@ func (r *GGUFReader) readString() (string, error) {
 }
 
 // readMetadataKV reads a single metadata key-value pair.
-func (r *GGUFReader) readMetadataKV() (string, interface{}, error) {
+func (r *GGUFReader) readMetadataKV() (string, any, error) {
 	// Read key
 	key, err := r.readString()
 	if err != nil {
@@ -196,7 +196,7 @@ func (r *GGUFReader) readMetadataKV() (string, interface{}, error) {
 }
 
 // readMetadataValue reads a metadata value based on its type.
-func (r *GGUFReader) readMetadataValue(valueType GGUFType) (interface{}, error) {
+func (r *GGUFReader) readMetadataValue(valueType GGUFType) (any, error) {
 	switch valueType {
 	case GGUFTypeUint8:
 		var v uint8
@@ -252,7 +252,7 @@ func (r *GGUFReader) readMetadataValue(valueType GGUFType) (interface{}, error) 
 }
 
 // readArray reads a GGUF array: element type (uint32) + length (uint64) + elements.
-func (r *GGUFReader) readArray() (interface{}, error) {
+func (r *GGUFReader) readArray() (any, error) {
 	var elemType GGUFType
 	if err := binary.Read(r.file, binary.LittleEndian, &elemType); err != nil {
 		return nil, fmt.Errorf("read array element type: %w", err)
@@ -298,7 +298,7 @@ func readBinaryArray[T any](src io.Reader, length uint64) ([]T, error) {
 }
 
 // readNumericArray reads an array of fixed-width numeric or bool elements.
-func (r *GGUFReader) readNumericArray(elemType GGUFType, length uint64) (interface{}, error) {
+func (r *GGUFReader) readNumericArray(elemType GGUFType, length uint64) (any, error) {
 	switch elemType {
 	case GGUFTypeUint8:
 		return readBinaryArray[uint8](r.file, length)

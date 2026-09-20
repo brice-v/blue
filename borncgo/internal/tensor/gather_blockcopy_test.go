@@ -42,7 +42,7 @@ func gatherSrcMap(xShape, idxShape, indices []int, axis int) []int {
 	idxNdim := len(idxShape)
 
 	srcMap := make([]int, total)
-	for i := 0; i < total; i++ {
+	for i := range total {
 		outIdx := make([]int, len(outShape))
 		tmp := i
 		for j := len(outShape) - 1; j >= 0; j-- {
@@ -50,12 +50,12 @@ func gatherSrcMap(xShape, idxShape, indices []int, axis int) []int {
 			tmp /= outShape[j]
 		}
 		idxFlat := 0
-		for j := 0; j < idxNdim; j++ {
+		for j := range idxNdim {
 			idxFlat += outIdx[axis+j] * idxStr[j]
 		}
 		g := indices[idxFlat]
 		srcFlat := 0
-		for j := 0; j < axis; j++ {
+		for j := range axis {
 			srcFlat += outIdx[j] * xStr[j]
 		}
 		srcFlat += g * xStr[axis]

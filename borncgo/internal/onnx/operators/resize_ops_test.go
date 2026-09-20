@@ -537,7 +537,7 @@ func TestResize_LinearAsymmetric(t *testing.T) {
 	// Corners must match input exactly (asymmetric maps (0,0)→(0,0))
 	assertApproxEqual(t, data[:1], []float32{1.0}, 1e-5, "top-left")
 	// Verify smooth interpolation: values should increase monotonically along each row
-	for i := 0; i < 7; i++ {
+	for i := range 7 {
 		if data[i] > data[i+1] {
 			t.Errorf("row 0 not monotonic: data[%d]=%f > data[%d]=%f", i, data[i], i+1, data[i+1])
 		}

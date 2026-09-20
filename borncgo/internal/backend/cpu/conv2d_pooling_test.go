@@ -110,7 +110,7 @@ func TestConv2DPooledReuseDeterministic(t *testing.T) {
 			t.Run(dt.String()+"/"+c.name, func(t *testing.T) {
 				_, input, kernel, _ := buildConvScratch(c, dt)
 				first := backend.Conv2D(input, kernel, c.stride, c.padding)
-				for i := 0; i < 8; i++ {
+				for i := range 8 {
 					got := backend.Conv2D(input, kernel, c.stride, c.padding)
 					if idx, ok := convDataEqual(first, got); !ok {
 						t.Fatalf("run %d diverged from first at index %d", i+1, idx)

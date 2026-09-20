@@ -26,14 +26,14 @@ func TestOnlineSoftmax(t *testing.T) {
 	// Compute using standard softmax
 	weights := attentionSoftmax(scores)
 	expected := make([]float32, headDim)
-	for i := 0; i < len(scores); i++ {
-		for d := 0; d < headDim; d++ {
+	for i := range scores {
+		for d := range headDim {
 			expected[d] += weights[i] * values[i*headDim+d]
 		}
 	}
 
 	// Compare
-	for d := 0; d < headDim; d++ {
+	for d := range headDim {
 		if math.Abs(float64(result[d]-expected[d])) > 1e-5 {
 			t.Errorf("Dimension %d: OnlineSoftmax = %v, expected %v", d, result[d], expected[d])
 		}
@@ -73,13 +73,13 @@ func TestOnlineSoftmaxMultipleBlocks(t *testing.T) {
 
 	expected := make([]float32, headDim)
 	for i := 0; i < len(allScores); i++ {
-		for d := 0; d < headDim; d++ {
+		for d := range headDim {
 			expected[d] += weights[i] * allValues[i*headDim+d]
 		}
 	}
 
 	// Compare
-	for d := 0; d < headDim; d++ {
+	for d := range headDim {
 		if math.Abs(float64(result[d]-expected[d])) > 1e-5 {
 			t.Errorf("Dimension %d: OnlineSoftmax = %v, expected %v", d, result[d], expected[d])
 		}
@@ -104,7 +104,7 @@ func TestOnlineSoftmaxReset(t *testing.T) {
 	result2 := os.Normalize()
 
 	// Should get identical results
-	for d := 0; d < headDim; d++ {
+	for d := range headDim {
 		if math.Abs(float64(result1[d]-result2[d])) > 1e-7 {
 			t.Errorf("After reset: dimension %d differs: %v vs %v", d, result1[d], result2[d])
 		}

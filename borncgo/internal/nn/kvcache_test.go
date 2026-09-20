@@ -213,7 +213,7 @@ func TestMHA_ForwardWithCache_Sequential_Generation(t *testing.T) {
 	cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, maxSeq, headDim, backend)
 
 	// Generate sequence token by token
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
 		output := mha.ForwardWithCache(token, cache)
 
@@ -250,7 +250,7 @@ func TestMHA_ForwardWithCache_OutputShape(t *testing.T) {
 	cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, seqLen, headDim, backend)
 	outputsCached := make([]*tensor.Tensor[float32, *cpu.CPUBackend], 0, seqLen)
 
-	for i := 0; i < seqLen; i++ {
+	for range seqLen {
 		token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
 		output := mha.ForwardWithCache(token, cache)
 		outputsCached = append(outputsCached, output)
@@ -283,7 +283,7 @@ func TestMHA_ForwardWithCache_Reset(t *testing.T) {
 	cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, maxSeq, headDim, backend)
 
 	// Generate first sequence
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
 		mha.ForwardWithCache(token, cache)
 	}
@@ -300,7 +300,7 @@ func TestMHA_ForwardWithCache_Reset(t *testing.T) {
 	}
 
 	// Generate new sequence
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
 		mha.ForwardWithCache(token, cache)
 	}
@@ -344,7 +344,7 @@ func BenchmarkMHA_WithCache_10Tokens(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, 100, headDim, backend)
 		// With cache: only compute new token
-		for t := 0; t < numTokens; t++ {
+		for range numTokens {
 			token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
 			mha.ForwardWithCache(token, cache)
 		}
@@ -382,7 +382,7 @@ func BenchmarkMHA_WithCache_50Tokens(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, 200, headDim, backend)
-		for t := 0; t < numTokens; t++ {
+		for range numTokens {
 			token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
 			mha.ForwardWithCache(token, cache)
 		}
@@ -420,7 +420,7 @@ func BenchmarkMHA_WithCache_100Tokens(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, 200, headDim, backend)
-		for t := 0; t < numTokens; t++ {
+		for range numTokens {
 			token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
 			mha.ForwardWithCache(token, cache)
 		}

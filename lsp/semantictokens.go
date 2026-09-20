@@ -1,5 +1,7 @@
 package lsp
 
+import "slices"
+
 import "unicode"
 
 // semLegendTypes are the semantic token type names this server emits, in the exact
@@ -226,8 +228,8 @@ func visibleDeclaration(candidates []*declaration, offset int) *declaration {
 
 	// The closest preceding binding wins. That is what makes a parameter used inside
 	// its own body resolve, and what makes a later top level rebinding take over.
-	for i := len(candidates) - 1; i >= 0; i-- {
-		d := candidates[i]
+	for _, d := range slices.Backward(candidates) {
+
 		if d.nameStart >= offset {
 			continue
 		}

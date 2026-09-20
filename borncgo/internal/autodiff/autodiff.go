@@ -905,7 +905,7 @@ func (b *AutodiffBackend[B]) Squeeze(x *tensor.RawTensor, dim int) *tensor.RawTe
 
 	// Compute new shape without the squeezed dimension
 	newShape := make(tensor.Shape, 0, ndim-1)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i != dim {
 			newShape = append(newShape, oldShape[i])
 		}

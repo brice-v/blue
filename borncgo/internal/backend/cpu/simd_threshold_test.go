@@ -27,7 +27,7 @@ func TestSIMDThreshold_DispatchSkippedBelowMinLen(t *testing.T) {
 	t.Cleanup(func() { simdAddInplaceFloat32 = saved })
 
 	// All lengths strictly below simdMinLen must use the scalar path.
-	for n := 0; n < simdMinLen; n++ {
+	for n := range simdMinLen {
 		a := make([]float32, n)
 		b := make([]float32, n)
 		for i := range a {

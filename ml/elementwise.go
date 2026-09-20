@@ -64,7 +64,7 @@ func (g *Graph) fuseElementwise() int {
 	fused := 0
 
 	// Iterate to a fixed point: folding a chain can expose another one.
-	for pass := 0; pass < 8; pass++ {
+	for range 8 {
 		progress := false
 		for i := range g.nodes {
 			n := &g.nodes[i]

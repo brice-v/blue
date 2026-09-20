@@ -1280,7 +1280,7 @@ func (b *Backend) runSumGPU(input *tensor.RawTensor) (*tensor.RawTensor, error) 
 	switch dtype {
 	case tensor.Float32:
 		var sum float32
-		for i := uint32(0); i < numWorkgroups; i++ {
+		for i := range numWorkgroups {
 			sum += math.Float32frombits(binary.LittleEndian.Uint32(partialData[i*4 : i*4+4]))
 		}
 		result, err := tensor.NewRaw(tensor.Shape{}, tensor.Float32, tensor.WebGPU)
@@ -1292,7 +1292,7 @@ func (b *Backend) runSumGPU(input *tensor.RawTensor) (*tensor.RawTensor, error) 
 
 	case tensor.Int32:
 		var sum int32
-		for i := uint32(0); i < numWorkgroups; i++ {
+		for i := range numWorkgroups {
 			sum += int32(binary.LittleEndian.Uint32(partialData[i*4 : i*4+4])) //nolint:gosec // G115: integer overflow conversion uint32 -> int32
 		}
 		result, err := tensor.NewRaw(tensor.Shape{}, tensor.Int32, tensor.WebGPU)
@@ -1719,7 +1719,7 @@ func (b *Backend) gatherNonLastDim(input *tensor.RawTensor, dim int, indices *te
 	// Build transpose axes: move dim to last position
 	// e.g., for dim=1, ndim=3: [0, 2, 1] (swap 1 and 2)
 	axes := make([]int, ndim)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		axes[i] = i
 	}
 	axes[dim] = ndim - 1
@@ -1766,18 +1766,18 @@ func (b *Backend) transposeInt32(t *tensor.RawTensor, axes []int) *tensor.RawTen
 	dstStrides := newShape.ComputeStrides()
 	numElements := shape.NumElements()
 
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		// Convert flat index to dst coordinates
 		dstIdx := i
 		coords := make([]int, ndim)
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			coords[d] = dstIdx / dstStrides[d]
 			dstIdx %= dstStrides[d]
 		}
 
 		// Map to src index
 		srcIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			srcIdx += coords[d] * srcStrides[axes[d]]
 		}
 
@@ -1802,7 +1802,7 @@ func (b *Backend) runTransposeND(input *tensor.RawTensor, axes []int) (*tensor.R
 	// Default axes: reverse all dimensions
 	if len(axes) == 0 {
 		axes = make([]int, ndim)
-		for i := 0; i < ndim; i++ {
+		for i := range ndim {
 			axes[i] = ndim - 1 - i
 		}
 	}
@@ -1867,28 +1867,28 @@ func (b *Backend) runTransposeND(input *tensor.RawTensor, axes []int) (*tensor.R
 	binary.LittleEndian.PutUint32(params[0:4], uint32(ndim))
 	binary.LittleEndian.PutUint32(params[4:8], uint32(shape.NumElements())) //nolint:gosec // G115: integer overflow conversion int -> uint32
 
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(shape) {
 			binary.LittleEndian.PutUint32(params[8+i*4:12+i*4], uint32(shape[i])) //nolint:gosec // G115: safe, shape values are non-negative and fit in uint32
 		} else {
 			binary.LittleEndian.PutUint32(params[8+i*4:12+i*4], 1)
 		}
 	}
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(inputStrides) {
 			binary.LittleEndian.PutUint32(params[32+i*4:36+i*4], uint32(inputStrides[i])) //nolint:gosec // G115: safe, stride values are non-negative and fit in uint32
 		} else {
 			binary.LittleEndian.PutUint32(params[32+i*4:36+i*4], 1)
 		}
 	}
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(outputStrides) {
 			binary.LittleEndian.PutUint32(params[56+i*4:60+i*4], uint32(outputStrides[i])) //nolint:gosec // G115: safe, stride values are non-negative and fit in uint32
 		} else {
 			binary.LittleEndian.PutUint32(params[56+i*4:60+i*4], 1)
 		}
 	}
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(axes) {
 			binary.LittleEndian.PutUint32(params[80+i*4:84+i*4], uint32(axes[i])) //nolint:gosec // G115: safe, axis indices are non-negative and fit in uint32
 		} else {
@@ -1940,15 +1940,15 @@ func (b *Backend) runExpand(input *tensor.RawTensor, newShape tensor.Shape) (*te
 	// Pad source shape to match destination dimensions
 	dimDiff := len(newShape) - len(shape)
 	paddedShape := make(tensor.Shape, len(newShape))
-	for i := 0; i < dimDiff; i++ {
+	for i := range dimDiff {
 		paddedShape[i] = 1
 	}
-	for i := 0; i < len(shape); i++ {
+	for i := range shape {
 		paddedShape[dimDiff+i] = shape[i]
 	}
 
 	// Validate broadcasting compatibility
-	for i := 0; i < len(newShape); i++ {
+	for i := range newShape {
 		if paddedShape[i] != 1 && paddedShape[i] != newShape[i] {
 			return nil, fmt.Errorf("webgpu: expand incompatible shapes: %v -> %v", shape, newShape)
 		}
@@ -1995,21 +1995,21 @@ func (b *Backend) runExpand(input *tensor.RawTensor, newShape tensor.Shape) (*te
 	binary.LittleEndian.PutUint32(params[0:4], uint32(len(newShape)))     //nolint:gosec // G115: integer overflow conversion int -> uint32
 	binary.LittleEndian.PutUint32(params[4:8], uint32(resultNumElements)) //nolint:gosec // G115: integer overflow conversion int -> uint32
 
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(paddedShape) {
 			binary.LittleEndian.PutUint32(params[8+i*4:12+i*4], uint32(paddedShape[i])) //nolint:gosec // G115: safe, shape values are non-negative and fit in uint32
 		} else {
 			binary.LittleEndian.PutUint32(params[8+i*4:12+i*4], 1)
 		}
 	}
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(inputStrides) {
 			binary.LittleEndian.PutUint32(params[32+i*4:36+i*4], uint32(inputStrides[i])) //nolint:gosec // G115: safe, stride values are non-negative and fit in uint32
 		} else {
 			binary.LittleEndian.PutUint32(params[32+i*4:36+i*4], 1)
 		}
 	}
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if i < len(outputStrides) {
 			binary.LittleEndian.PutUint32(params[56+i*4:60+i*4], uint32(outputStrides[i])) //nolint:gosec // G115: safe, stride values are non-negative and fit in uint32
 		} else {

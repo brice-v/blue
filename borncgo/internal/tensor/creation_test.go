@@ -175,15 +175,15 @@ func TestEyeSquare(t *testing.T) {
 	assertEqualShape(t, Shape{4, 4}, tensor.Shape(), "Eye 4x4 shape")
 
 	// Check diagonal
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if tensor.At(i, i) != 1.0 {
 			t.Errorf("Eye[%d, %d] = %v, want 1", i, i, tensor.At(i, i))
 		}
 	}
 
 	// Check off-diagonal
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
+	for i := range 4 {
+		for j := range 4 {
 			if i != j {
 				if tensor.At(i, j) != 0 {
 					t.Errorf("Eye[%d, %d] = %v, want 0", i, j, tensor.At(i, j))
@@ -200,7 +200,7 @@ func TestEyeInt(t *testing.T) {
 	assertEqualShape(t, Shape{3, 3}, tensor.Shape(), "Eye int32 shape")
 
 	// Check diagonal
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if tensor.At(i, i) != 1 {
 			t.Errorf("Eye[%d, %d] = %v, want 1", i, i, tensor.At(i, i))
 		}

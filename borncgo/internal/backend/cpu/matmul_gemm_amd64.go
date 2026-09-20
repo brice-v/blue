@@ -93,7 +93,7 @@ func gemmAVX2F32(c, a, b []float32, m, k, n int) {
 // tiles. Each B element feeds only one output row, so packing B would double its
 // traffic for no reuse; the 1x16 kernel streams B with its native stride.
 func gemvStridedF32(c, a, b []float32, m, k, n, nFull int) {
-	for i := 0; i < m; i++ {
+	for i := range m {
 		for j := 0; j < nFull; j += gemmNr {
 			gemmMicroKernel1x16StridedAVX2(c[i*n+j:], a[i*k:], b[j:], k, n)
 		}
@@ -114,10 +114,10 @@ func gemmPackedF32(c, a, b []float32, m, k, n, mFull, nFull int, sc *gemmScratch
 	packB16(bp, b, k, n, nTiles)
 	packA6(ap, a, k, nBlocks)
 
-	for t := 0; t < nTiles; t++ {
+	for t := range nTiles {
 		jt := t * gemmNr
 		bpt := bp[t*k*gemmNr:]
-		for bi := 0; bi < nBlocks; bi++ {
+		for bi := range nBlocks {
 			gemmMicroKernel6x16AVX2(c[bi*gemmMr*n+jt:], ap[bi*k*gemmMr:], bpt, k, n)
 		}
 		// Remainder rows [mFull, m): one per call, reusing the already-packed panel
@@ -139,7 +139,7 @@ func gemmTailF32(c, a, b []float32, m, k, n, nFull, nrem int, sc *gemmScratch) {
 	packTailB(bt, b, k, n, nFull, nrem)
 
 	var scratch [gemmNr]float32
-	for i := 0; i < m; i++ {
+	for i := range m {
 		gemmMicroKernel1x16AVX2(scratch[:], a[i*k:], bt, k)
 		copy(c[i*n+nFull:i*n+n], scratch[:nrem])
 	}
@@ -149,7 +149,7 @@ func gemmTailF32(c, a, b []float32, m, k, n, nFull, nrem int, sc *gemmScratch) {
 // a contiguous [k][gemmNr] panel, zero-filling the unused columns so the 1x16
 // kernel reads a full 16-wide row.
 func packTailB(bt, b []float32, k, n, nFull, nrem int) {
-	for kk := 0; kk < k; kk++ {
+	for kk := range k {
 		d := bt[kk*gemmNr : kk*gemmNr+gemmNr : kk*gemmNr+gemmNr]
 		copy(d[:nrem], b[kk*n+nFull:kk*n+nFull+nrem])
 		for j := nrem; j < gemmNr; j++ {
@@ -162,10 +162,10 @@ func packTailB(bt, b []float32, k, n, nFull, nrem int) {
 // [nTiles][k][gemmNr] contiguous, so the micro-kernel reads each panel's k rows
 // sequentially (stride gemmNr) instead of with B's column stride n.
 func packB16(bp, b []float32, k, n, nTiles int) {
-	for t := 0; t < nTiles; t++ {
+	for t := range nTiles {
 		jt := t * gemmNr
 		dst := bp[t*k*gemmNr:]
-		for kk := 0; kk < k; kk++ {
+		for kk := range k {
 			copy(dst[kk*gemmNr:kk*gemmNr+gemmNr], b[kk*n+jt:kk*n+jt+gemmNr])
 		}
 	}
@@ -179,7 +179,7 @@ func packB16(bp, b []float32, k, n, nTiles int) {
 // source rows are sliced up front and the destination window is 3-index sliced,
 // so the inner loop carries a single bounds check per k instead of twelve.
 func packA6(ap, a []float32, k, nBlocks int) {
-	for bi := 0; bi < nBlocks; bi++ {
+	for bi := range nBlocks {
 		base := bi * gemmMr * k
 		dst := ap[base : base+gemmMr*k]
 		r0 := a[base+0*k : base+1*k]
@@ -188,7 +188,7 @@ func packA6(ap, a []float32, k, nBlocks int) {
 		r3 := a[base+3*k : base+4*k]
 		r4 := a[base+4*k : base+5*k]
 		r5 := a[base+5*k : base+6*k]
-		for kk := 0; kk < k; kk++ {
+		for kk := range k {
 			d := dst[kk*gemmMr : kk*gemmMr+gemmMr : kk*gemmMr+gemmMr]
 			d[0], d[1], d[2] = r0[kk], r1[kk], r2[kk]
 			d[3], d[4], d[5] = r3[kk], r4[kk], r5[kk]

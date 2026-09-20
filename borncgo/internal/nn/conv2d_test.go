@@ -84,7 +84,7 @@ func TestConv2D_ForwardValues(t *testing.T) {
 	// Input: [1, 1, 3, 3] with values 1-9
 	input := tensor.Zeros[float32](tensor.Shape{1, 1, 3, 3}, backend)
 	inputData := input.Raw().AsFloat32()
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		inputData[i] = float32(i + 1)
 	}
 

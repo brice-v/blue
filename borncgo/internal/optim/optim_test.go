@@ -292,7 +292,7 @@ func TestConvergence_SimpleQuadratic(t *testing.T) {
 
 		// Train for 100 steps
 		// f(x) = x², df/dx = 2x
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			// Compute gradient manually: df/dx = 2x
 			currentX := param.Tensor().Raw().AsFloat32()[0]
 			gradValue := 2.0 * currentX
@@ -330,7 +330,7 @@ func TestConvergence_SimpleQuadratic(t *testing.T) {
 		)
 
 		// Train for 100 steps
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			currentX := param.Tensor().Raw().AsFloat32()[0]
 			gradValue := 2.0 * currentX
 

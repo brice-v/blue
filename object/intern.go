@@ -36,7 +36,7 @@ func internHashString(s string) uint32 {
 
 func internHashBytes(b []byte) uint32 {
 	h := uint32(internFnvOffset)
-	for i := 0; i < len(b); i++ {
+	for i := range b {
 		h ^= uint32(b[i])
 		h *= internFnvPrime
 	}
@@ -49,7 +49,7 @@ func internBytesEq(s string, b []byte) bool {
 	if len(s) != len(b) {
 		return false
 	}
-	for i := 0; i < len(b); i++ {
+	for i := range b {
 		if s[i] != b[i] {
 			return false
 		}

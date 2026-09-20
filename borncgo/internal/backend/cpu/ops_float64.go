@@ -100,7 +100,7 @@ func addBroadcastFloat64(dst, a, b []float64, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] + b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -124,7 +124,7 @@ func subBroadcastFloat64(dst, a, b []float64, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] - b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -152,7 +152,7 @@ func mulBroadcastFloat64(dst, a, b []float64, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] * b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -176,7 +176,7 @@ func divBroadcastFloat64(dst, a, b []float64, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] / b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -205,11 +205,11 @@ func transposeFloat64(dst, src []float64, shape tensor.Shape, axes []int) {
 
 	// Transpose data
 	n := shape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		// Compute multi-dimensional coordinates in source
 		coords := make([]int, ndim)
 		idx := i
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			coords[dim] = idx / srcStrides[dim]
 			idx %= srcStrides[dim]
 		}
@@ -222,7 +222,7 @@ func transposeFloat64(dst, src []float64, shape tensor.Shape, axes []int) {
 
 		// Compute flat index in destination
 		dstIdx := 0
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			dstIdx += permutedCoords[dim] * dstStrides[dim]
 		}
 

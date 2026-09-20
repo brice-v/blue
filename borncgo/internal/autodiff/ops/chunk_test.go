@@ -29,7 +29,7 @@ func TestChunkOp_BackwardMulti_Simple(t *testing.T) {
 
 	// Create gradients for all outputs (all ones)
 	gradOutputs := make([]*tensor.RawTensor, 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		gradOut, err := tensor.NewRaw(tensor.Shape{2}, tensor.Float32, backend.Device())
 		if err != nil {
 			t.Fatalf("Failed to create gradOutput %d: %v", i, err)
@@ -54,7 +54,7 @@ func TestChunkOp_BackwardMulti_Simple(t *testing.T) {
 
 	// Check values (all should be 1)
 	gradData := grads[0].AsFloat32()
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if gradData[i] != 1.0 {
 			t.Errorf("grad[%d] = %f, expected 1.0", i, gradData[i])
 		}
@@ -84,7 +84,7 @@ func TestChunkOp_BackwardMulti_2D(t *testing.T) {
 
 	// Create gradients for all outputs (sequential values)
 	gradOutputs := make([]*tensor.RawTensor, 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		gradOut, err := tensor.NewRaw(tensor.Shape{2, 2}, tensor.Float32, backend.Device())
 		if err != nil {
 			t.Fatalf("Failed to create gradOutput %d: %v", i, err)
@@ -141,7 +141,7 @@ func TestChunkOp_BackwardMulti_3D(t *testing.T) {
 
 	// Create gradients for all outputs (all ones)
 	gradOutputs := make([]*tensor.RawTensor, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		gradOut, err := tensor.NewRaw(tensor.Shape{2, 3, 3}, tensor.Float32, backend.Device())
 		if err != nil {
 			t.Fatalf("Failed to create gradOutput %d: %v", i, err)
@@ -193,7 +193,7 @@ func TestChunkOp_BackwardMulti_NegativeDim(t *testing.T) {
 
 	// Create gradients for all outputs
 	gradOutputs := make([]*tensor.RawTensor, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		gradOut, err := tensor.NewRaw(tensor.Shape{2, 2}, tensor.Float32, backend.Device())
 		if err != nil {
 			t.Fatalf("Failed to create gradOutput %d: %v", i, err)
@@ -277,7 +277,7 @@ func TestChunkOp_BackwardMulti_WrongNumberOfGradients(t *testing.T) {
 
 	// Create only 2 gradients (should be 3)
 	gradOutputs := make([]*tensor.RawTensor, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		gradOut, err := tensor.NewRaw(tensor.Shape{2}, tensor.Float32, backend.Device())
 		if err != nil {
 			t.Fatalf("Failed to create gradOutput: %v", err)

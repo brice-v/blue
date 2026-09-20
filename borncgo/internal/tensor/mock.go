@@ -71,7 +71,7 @@ func (m *MockBackend) elementWise(a, b *RawTensor, op func(float64, float64) flo
 	bData := m.toFloat64Slice(b)
 	resultData := m.toFloat64Slice(result)
 
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 
@@ -110,10 +110,10 @@ func (m *MockBackend) MatMul(a, b *RawTensor) *RawTensor {
 	resultData := m.toFloat64Slice(result)
 
 	// Naive matrix multiplication
-	for i := 0; i < M; i++ {
-		for j := 0; j < N; j++ {
+	for i := range M {
+		for j := range N {
 			sum := 0.0
-			for k := 0; k < K; k++ {
+			for k := range K {
 				sum += aData[i*K+k] * bData[k*N+j]
 			}
 			resultData[i*N+j] = sum
@@ -186,10 +186,10 @@ func (m *MockBackend) BatchMatMul(a, b *RawTensor) *RawTensor {
 		bOffset := batch * matrixSizeB
 		cOffset := batch * matrixSizeC
 
-		for i := 0; i < rows; i++ {
-			for j := 0; j < cols; j++ {
+		for i := range rows {
+			for j := range cols {
 				sum := 0.0
-				for kIdx := 0; kIdx < k1; kIdx++ {
+				for kIdx := range k1 {
 					sum += aData[aOffset+i*k1+kIdx] * bData[bOffset+kIdx*cols+j]
 				}
 				resultData[cOffset+i*cols+j] = sum
@@ -235,16 +235,16 @@ func (m *MockBackend) Conv2D(input, kernel *RawTensor, stride, padding int) *Raw
 	outputData := m.toFloat64Slice(output)
 
 	// Naive convolution (direct implementation)
-	for n := 0; n < N; n++ {
-		for cOut := 0; cOut < COut; cOut++ {
-			for outH := 0; outH < HOut; outH++ {
-				for outW := 0; outW < WOut; outW++ {
+	for n := range N {
+		for cOut := range COut {
+			for outH := range HOut {
+				for outW := range WOut {
 					sum := 0.0
 
 					// Convolve over input patch
-					for cIn := 0; cIn < CIn; cIn++ {
-						for kh := 0; kh < KH; kh++ {
-							for kw := 0; kw < KW; kw++ {
+					for cIn := range CIn {
+						for kh := range KH {
+							for kw := range KW {
 								h := outH*stride - padding + kh
 								w := outW*stride - padding + kw
 
@@ -294,17 +294,17 @@ func (m *MockBackend) MaxPool2D(input *RawTensor, kernelSize, stride int) *RawTe
 	outputData := m.toFloat64Slice(output)
 
 	// Naive max pooling
-	for n := 0; n < N; n++ {
-		for c := 0; c < C; c++ {
-			for outH := 0; outH < HOut; outH++ {
-				for outW := 0; outW < WOut; outW++ {
+	for n := range N {
+		for c := range C {
+			for outH := range HOut {
+				for outW := range WOut {
 					hStart := outH * stride
 					wStart := outW * stride
 
 					// Find max in pooling window
 					maxVal := -1e308 // Negative infinity
-					for kh := 0; kh < kernelSize; kh++ {
-						for kw := 0; kw < kernelSize; kw++ {
+					for kh := range kernelSize {
+						for kw := range kernelSize {
 							h := hStart + kh
 							w := wStart + kw
 							inputIdx := n*C*H*W + c*H*W + h*W + w
@@ -388,7 +388,7 @@ func (m *MockBackend) Transpose(t *RawTensor, axes ...int) *RawTensor {
 		// Convert flat index to multi-dimensional indices
 		indices := make([]int, len(shape))
 		temp := i
-		for j := 0; j < len(shape); j++ {
+		for j := range shape {
 			indices[j] = temp / oldStrides[j]
 			temp %= oldStrides[j]
 		}
@@ -472,7 +472,7 @@ func (m *MockBackend) broadcastIndex(flatIdx int, outShape, inShape Shape) int {
 	indices := make([]int, len(outShape))
 
 	temp := flatIdx
-	for i := 0; i < len(outShape); i++ {
+	for i := range outShape {
 		indices[i] = temp / outStrides[i]
 		temp %= outStrides[i]
 	}
@@ -482,7 +482,7 @@ func (m *MockBackend) broadcastIndex(flatIdx int, outShape, inShape Shape) int {
 	inIdx := 0
 
 	offset := len(outShape) - len(inShape)
-	for i := 0; i < len(inShape); i++ {
+	for i := range inShape {
 		outDimIdx := indices[offset+i]
 		inDim := inShape[i]
 
@@ -598,7 +598,7 @@ func (m *MockBackend) SumDim(x *RawTensor, dim int, keepDim bool) *RawTensor {
 		outShape[dim] = 1
 	} else {
 		outShape = make(Shape, 0, ndim-1)
-		for i := 0; i < ndim; i++ {
+		for i := range ndim {
 			if i != dim {
 				outShape = append(outShape, shape[i])
 			}
@@ -625,11 +625,11 @@ func (m *MockBackend) SumDim(x *RawTensor, dim int, keepDim bool) *RawTensor {
 	outStrides := outShapeWithDim.ComputeStrides()
 
 	// Sum along dimension
-	for i := 0; i < len(xData); i++ {
+	for i := range xData {
 		// Compute output index
 		outIdx := 0
 		temp := i
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			coord := temp / strides[d]
 			temp %= strides[d]
 
@@ -699,7 +699,7 @@ func (m *MockBackend) Cat(tensors []*RawTensor, dim int) *RawTensor {
 			panic(fmt.Sprintf("cat: tensor %d has dtype %s, expected %s", i, t.DType(), dtype))
 		}
 
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				totalDim += tShape[d]
 			} else if tShape[d] != shape[d] {
@@ -727,11 +727,11 @@ func (m *MockBackend) Cat(tensors []*RawTensor, dim int) *RawTensor {
 		tShape := t.Shape()
 		tStrides := tShape.ComputeStrides()
 
-		for i := 0; i < len(tData); i++ {
+		for i := range tData {
 			// Compute multi-dimensional index
 			outIdx := 0
 			temp := i
-			for d := 0; d < ndim; d++ {
+			for d := range ndim {
 				coord := temp / tStrides[d]
 				temp %= tStrides[d]
 
@@ -781,7 +781,7 @@ func (m *MockBackend) Chunk(x *RawTensor, n, dim int) []*RawTensor {
 
 	// Create result tensors
 	results := make([]*RawTensor, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		chunk, err := NewRaw(chunkShape, x.DType(), m.Device())
 		if err != nil {
 			panic(err)
@@ -793,11 +793,11 @@ func (m *MockBackend) Chunk(x *RawTensor, n, dim int) []*RawTensor {
 	xData := m.toFloat64Slice(x)
 	strides := shape.ComputeStrides()
 
-	for i := 0; i < len(xData); i++ {
+	for i := range xData {
 		// Compute multi-dimensional index
 		temp := i
 		coords := make([]int, ndim)
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			coords[d] = temp / strides[d]
 			temp %= strides[d]
 		}
@@ -809,7 +809,7 @@ func (m *MockBackend) Chunk(x *RawTensor, n, dim int) []*RawTensor {
 		// Compute output index
 		outStrides := chunkShape.ComputeStrides()
 		outIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				outIdx += localCoord * outStrides[d]
 			} else {
@@ -874,7 +874,7 @@ func (m *MockBackend) Squeeze(x *RawTensor, dim int) *RawTensor {
 
 	// Create new shape
 	newShape := make(Shape, 0, ndim-1)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i != dim {
 			newShape = append(newShape, shape[i])
 		}
@@ -908,7 +908,7 @@ func (m *MockBackend) Gather(x *RawTensor, dim int, index *RawTensor) *RawTensor
 	}
 
 	// Validate index shape
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i != dim && indexShape[i] != shape[i] {
 			panic(fmt.Sprintf("gather: index shape mismatch at dim %d: %d != %d", i, indexShape[i], shape[i]))
 		}
@@ -927,11 +927,11 @@ func (m *MockBackend) Gather(x *RawTensor, dim int, index *RawTensor) *RawTensor
 	strides := shape.ComputeStrides()
 	indexStrides := indexShape.ComputeStrides()
 
-	for i := 0; i < len(resultData); i++ {
+	for i := range resultData {
 		// Compute multi-dimensional index
 		coords := make([]int, ndim)
 		temp := i
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			coords[d] = temp / indexStrides[d]
 			temp %= indexStrides[d]
 		}
@@ -944,7 +944,7 @@ func (m *MockBackend) Gather(x *RawTensor, dim int, index *RawTensor) *RawTensor
 
 		// Compute source index
 		srcIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				srcIdx += idx * strides[d]
 			} else {
@@ -1002,7 +1002,7 @@ func (m *MockBackend) Where(condition, x, y *RawTensor) *RawTensor {
 	yData := m.toFloat64Slice(y)
 	resultData := m.toFloat64Slice(result)
 
-	for i := 0; i < len(resultData); i++ {
+	for i := range resultData {
 		condIdx := m.broadcastIndex(i, outShape, condition.Shape())
 		xIdx := m.broadcastIndex(i, outShape, x.Shape())
 		yIdx := m.broadcastIndex(i, outShape, y.Shape())
@@ -1080,7 +1080,7 @@ func (m *MockBackend) Embedding(weight, indices *RawTensor) *RawTensor {
 	resultData := m.toFloat64Slice(result)
 
 	numIndices := indices.NumElements()
-	for i := 0; i < numIndices; i++ {
+	for i := range numIndices {
 		idx := int(indicesData[i])
 		if idx < 0 || idx >= numEmbeddings {
 			panic(fmt.Sprintf("embedding: index %d out of bounds [0, %d)", idx, numEmbeddings))
@@ -1234,7 +1234,7 @@ func (m *MockBackend) Greater(a, b *RawTensor) *RawTensor {
 	bData := m.toFloat64Slice(b)
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] > bData[bIdx]
@@ -1259,7 +1259,7 @@ func (m *MockBackend) Lower(a, b *RawTensor) *RawTensor {
 	bData := m.toFloat64Slice(b)
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] < bData[bIdx]
@@ -1284,7 +1284,7 @@ func (m *MockBackend) GreaterEqual(a, b *RawTensor) *RawTensor {
 	bData := m.toFloat64Slice(b)
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] >= bData[bIdx]
@@ -1309,7 +1309,7 @@ func (m *MockBackend) LowerEqual(a, b *RawTensor) *RawTensor {
 	bData := m.toFloat64Slice(b)
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] <= bData[bIdx]
@@ -1334,7 +1334,7 @@ func (m *MockBackend) Equal(a, b *RawTensor) *RawTensor {
 	bData := m.toFloat64Slice(b)
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] == bData[bIdx]
@@ -1359,7 +1359,7 @@ func (m *MockBackend) NotEqual(a, b *RawTensor) *RawTensor {
 	bData := m.toFloat64Slice(b)
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] != bData[bIdx]
@@ -1386,7 +1386,7 @@ func (m *MockBackend) Or(a, b *RawTensor) *RawTensor {
 	bData := b.AsBool()
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] || bData[bIdx]
@@ -1411,7 +1411,7 @@ func (m *MockBackend) And(a, b *RawTensor) *RawTensor {
 	bData := b.AsBool()
 	resultBool := result.AsBool()
 
-	for i := 0; i < len(resultBool); i++ {
+	for i := range resultBool {
 		aIdx := m.broadcastIndex(i, outShape, a.Shape())
 		bIdx := m.broadcastIndex(i, outShape, b.Shape())
 		resultBool[i] = aData[aIdx] && bData[bIdx]
@@ -1546,7 +1546,7 @@ func (m *MockBackend) SelectAdd(dest *RawTensor, dim int, indices, src *RawTenso
 	if srcShape[dim] != numIndices {
 		panic(fmt.Sprintf("selectadd: src dim %d (%d) != len(indices) (%d)", dim, srcShape[dim], numIndices))
 	}
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			continue
 		}
@@ -1576,17 +1576,17 @@ func (m *MockBackend) SelectAdd(dest *RawTensor, dim int, indices, src *RawTenso
 	srcDimStride := srcStrides[dim]
 	dstDimStride := dstStrides[dim]
 
-	for i := 0; i < numIndices; i++ {
+	for i := range numIndices {
 		idx := int(idxData[i])
 		if idx < 0 || idx >= destShape[dim] {
 			panic(fmt.Sprintf("selectadd: index %d out of bounds [0, %d)", idx, destShape[dim]))
 		}
 
-		for j := 0; j < innerSize; j++ {
+		for j := range innerSize {
 			// Compute flat-index offset for non-scatter dimensions.
 			nonDimFlat := 0
 			rem := j
-			for d := 0; d < ndim; d++ {
+			for d := range ndim {
 				if d == dim {
 					continue
 				}
@@ -1646,7 +1646,7 @@ func (m *MockBackend) ScatterAdd(dest *RawTensor, dim int, indices, src *RawTens
 	if len(srcShape) != ndim {
 		panic(fmt.Sprintf("scatteradd: src rank %d != dest rank %d", len(srcShape), ndim))
 	}
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			continue
 		}
@@ -1673,18 +1673,18 @@ func (m *MockBackend) ScatterAdd(dest *RawTensor, dim int, indices, src *RawTens
 	indexStrides := indexShape.ComputeStrides()
 	numElements := src.NumElements()
 
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		// Decompose flat index into multi-dimensional coordinates.
 		rem := i
 		coords := make([]int, ndim)
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			coords[d] = rem / srcStrides[d]
 			rem %= srcStrides[d]
 		}
 
 		// Compute index into the indices tensor.
 		indexIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			indexIdx += coords[d] * indexStrides[d]
 		}
 		idx := int(idxData[indexIdx])
@@ -1694,7 +1694,7 @@ func (m *MockBackend) ScatterAdd(dest *RawTensor, dim int, indices, src *RawTens
 
 		// Compute destination flat index.
 		dstIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				dstIdx += idx * dstStrides[d]
 			} else {

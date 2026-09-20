@@ -547,7 +547,7 @@ func (b *Backend) SumDim(x *tensor.RawTensor, dim int, keepDim bool) *tensor.Raw
 		outShape[dim] = 1
 	} else {
 		outShape = make(tensor.Shape, 0, ndim-1)
-		for i := 0; i < ndim; i++ {
+		for i := range ndim {
 			if i != dim {
 				outShape = append(outShape, shape[i])
 			}
@@ -581,10 +581,10 @@ func sumDimFloat32(data, result []float32, shape tensor.Shape, dim int) {
 	outShape[dim] = 1
 	outStrides := outShape.ComputeStrides()
 
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		outIdx := 0
 		temp := i
-		for d := 0; d < len(shape); d++ {
+		for d := range shape {
 			coord := temp / strides[d]
 			temp %= strides[d]
 
@@ -692,10 +692,10 @@ func catFloat32WebGPU(tensors []*tensor.RawTensor, result *tensor.RawTensor, dim
 		strides := shape.ComputeStrides()
 		numElements := shape.NumElements()
 
-		for i := 0; i < numElements; i++ {
+		for i := range numElements {
 			outIdx := 0
 			temp := i
-			for d := 0; d < len(shape); d++ {
+			for d := range shape {
 				coord := temp / strides[d]
 				temp %= strides[d]
 
@@ -751,7 +751,7 @@ func (b *Backend) Chunk(x *tensor.RawTensor, n, dim int) []*tensor.RawTensor {
 	chunkShape[dim] = chunkSize
 
 	results := make([]*tensor.RawTensor, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		chunk, err := tensor.NewRaw(chunkShape, x.DType(), tensor.WebGPU)
 		if err != nil {
 			panic("webgpu: Chunk: " + err.Error())
@@ -774,10 +774,10 @@ func chunkFloat32WebGPU(x *tensor.RawTensor, results []*tensor.RawTensor, dim, c
 	strides := shape.ComputeStrides()
 	numElements := shape.NumElements()
 
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		temp := i
 		coords := make([]int, len(shape))
-		for d := 0; d < len(shape); d++ {
+		for d := range shape {
 			coords[d] = temp / strides[d]
 			temp %= strides[d]
 		}
@@ -788,7 +788,7 @@ func chunkFloat32WebGPU(x *tensor.RawTensor, results []*tensor.RawTensor, dim, c
 		outShape := results[chunkIdx].Shape()
 		outStrides := outShape.ComputeStrides()
 		outIdx := 0
-		for d := 0; d < len(coords); d++ {
+		for d := range coords {
 			if d == dim {
 				outIdx += localCoord * outStrides[d]
 			} else {
@@ -892,12 +892,12 @@ func (b *Backend) selectAddCPU(
 	case tensor.Float32:
 		dst := result.AsFloat32()
 		srcData := src.AsFloat32()
-		for i := 0; i < numIndices; i++ {
+		for i := range numIndices {
 			idx := int(idxData[i])
 			if idx < 0 || idx >= destShape[dim] {
 				panic(fmt.Sprintf("webgpu: SelectAdd: index %d out of bounds [0, %d)", idx, destShape[dim]))
 			}
-			for j := 0; j < innerSize; j++ {
+			for j := range innerSize {
 				nonDimFlat := webgpuSelectAddNonDimFlat(j, srcShape, dstStrides, dim)
 				dst[idx*dstDimStride+nonDimFlat] += srcData[i*srcDimStride+nonDimFlat]
 			}
@@ -917,7 +917,7 @@ func webgpuSelectAddNonDimFlat(j int, srcShape tensor.Shape, dstStrides []int, d
 	ndim := len(srcShape)
 	flat := 0
 	rem := j
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			continue
 		}
@@ -952,7 +952,7 @@ func (b *Backend) Squeeze(x *tensor.RawTensor, dim int) *tensor.RawTensor {
 	}
 
 	newShape := make(tensor.Shape, 0, ndim-1)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i != dim {
 			newShape = append(newShape, shape[i])
 		}
@@ -1045,7 +1045,7 @@ func webgpuValidateScatterAdd(dest *tensor.RawTensor, dim int, indices, src *ten
 	if len(srcShape) != ndim {
 		panic(fmt.Sprintf("webgpu: ScatterAdd: src rank %d != dest rank %d", len(srcShape), ndim))
 	}
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			continue
 		}
@@ -1059,15 +1059,15 @@ func webgpuValidateScatterAdd(dest *tensor.RawTensor, dim int, indices, src *ten
 // webgpuScatterAddFloat32 performs the CPU-fallback scatter-add loop for float32.
 func webgpuScatterAddFloat32(dst, srcData []float32, idxData []int32, dim, numElements, ndim int,
 	destShape tensor.Shape, srcStrides, dstStrides, indexStrides []int) {
-	for i := 0; i < numElements; i++ {
+	for i := range numElements {
 		rem := i
 		coords := make([]int, ndim)
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			coords[d] = rem / srcStrides[d]
 			rem %= srcStrides[d]
 		}
 		indexIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			indexIdx += coords[d] * indexStrides[d]
 		}
 		idx := int(idxData[indexIdx])
@@ -1075,7 +1075,7 @@ func webgpuScatterAddFloat32(dst, srcData []float32, idxData []int32, dim, numEl
 			panic(fmt.Sprintf("webgpu: ScatterAdd: index %d out of bounds [0, %d)", idx, destShape[dim]))
 		}
 		dstIdx := 0
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				dstIdx += idx * dstStrides[d]
 			} else {

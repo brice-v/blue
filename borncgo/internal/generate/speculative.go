@@ -153,7 +153,7 @@ func (sg *SpeculativeGenerator) Generate(
 		numAccepted, resampledToken := sg.accept(draftTokens, draftLogits, targetLogits)
 
 		// Add accepted tokens
-		for i := 0; i < numAccepted; i++ {
+		for i := range numAccepted {
 			generated = append(generated, draftTokens[i])
 			prevTokens = append(prevTokens, draftTokens[i])
 		}
@@ -187,7 +187,7 @@ func (sg *SpeculativeGenerator) speculate(
 	allLogits := make([][]float32, 0, numTokens)
 	prevTokens := append([]int32{}, inputIDs...)
 
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		// Forward pass
 		lastToken := prevTokens[len(prevTokens)-1]
 		input := createInputTensor([]int32{lastToken})
@@ -228,7 +228,7 @@ func (sg *SpeculativeGenerator) verify(
 	data := logits.AsFloat32()
 
 	result := make([][]float32, seqLen)
-	for i := 0; i < seqLen; i++ {
+	for i := range seqLen {
 		start := i * vocabSize
 		result[i] = append([]float32{}, data[start:start+vocabSize]...)
 	}

@@ -40,7 +40,7 @@ func TestDeferredStaging_NoStagingDuringOps(t *testing.T) {
 
 	// Chain 100 Add ops without any readback.
 	result := raw
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		result = backend.Add(result, raw)
 	}
 
@@ -205,7 +205,7 @@ func TestDeferredStaging_ChainedOpsNumericalCorrectness(t *testing.T) {
 	// Chain 500 Add ops: result = raw + raw + ... (500 times)
 	// After 500 iterations: result[i] = raw[i] * 501
 	result := raw
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		result = backend.Add(result, raw)
 	}
 
@@ -252,7 +252,7 @@ func TestDeferredStaging_MemoryBounded(t *testing.T) {
 	// Run 200 independent ops (each takes CPU tensor as input, not chained).
 	// These accumulate in the encoder batch up to maxPendingBeforeFlush, then auto-flush.
 	var lastResult *tensor.RawTensor
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		lastResult = backend.Add(raw, raw)
 	}
 
@@ -414,7 +414,7 @@ func TestDeferredStaging_ReadbackAfterChain(t *testing.T) {
 	// After N adds of raw to result: result = (N+1) * raw.
 	result := raw
 	const nChain = 10
-	for i := 0; i < nChain; i++ {
+	for range nChain {
 		result = backend.Add(result, raw)
 	}
 
@@ -458,7 +458,7 @@ func TestDeferredStaging_ResultBufferNotReleasedByBatch(t *testing.T) {
 	// Build a chain where intermediate tensors may be GC'd.
 	// Only the final result is kept alive.
 	var finalResult *tensor.RawTensor
-	for step := 0; step < 5; step++ {
+	for range 5 {
 		intermediate := backend.Add(raw, raw)
 		// Force GC to try to collect the intermediate — it must NOT release the buffer
 		// before addComputePassToEncoder has tracked it in lazyDatas.

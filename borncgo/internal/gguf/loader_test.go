@@ -36,7 +36,7 @@ func createTestGGUFFile(t *testing.T, tensorCount int) *File {
 	tensors := make([]TensorInfo, tensorCount)
 	currentOffset := uint64(0)
 
-	for i := 0; i < tensorCount; i++ {
+	for i := range tensorCount {
 		name := "tensor" + string(rune('0'+i))
 		tensors[i] = TensorInfo{
 			Name:       name,
@@ -73,8 +73,8 @@ func createTestGGUFFile(t *testing.T, tensorCount int) *File {
 	}
 
 	// Write tensor data (float32 values)
-	for i := 0; i < tensorCount; i++ {
-		for j := 0; j < 6; j++ { // 2x3 = 6 elements
+	for i := range tensorCount {
+		for j := range 6 { // 2x3 = 6 elements
 			value := float32(i*10 + j)
 			if err := binary.Write(f, order, value); err != nil {
 				t.Fatalf("write tensor data: %v", err)
@@ -90,7 +90,7 @@ func createTestGGUFFile(t *testing.T, tensorCount int) *File {
 			TensorCount:     uint64(tensorCount),
 			MetadataKVCount: 0,
 		},
-		Metadata:         make(map[string]interface{}),
+		Metadata:         make(map[string]any),
 		TensorInfo:       tensors,
 		Alignment:        DefaultAlignment,
 		TensorDataOffset: tensorDataOffset,
@@ -169,7 +169,7 @@ func TestLoadAllTensors(t *testing.T) {
 	}
 
 	// Check names
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		name := "tensor" + string(rune('0'+i))
 		if _, ok := tensors[name]; !ok {
 			t.Errorf("Tensor %s not found", name)

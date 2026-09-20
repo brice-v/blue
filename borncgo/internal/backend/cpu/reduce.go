@@ -38,7 +38,7 @@ func (cpu *CPUBackend) SumDim(x *tensor.RawTensor, dim int, keepDim bool) *tenso
 		outShape[dim] = 1
 	} else {
 		outShape = make(tensor.Shape, 0, ndim-1)
-		for i := 0; i < ndim; i++ {
+		for i := range ndim {
 			if i != dim {
 				outShape = append(outShape, shape[i])
 			}
@@ -126,11 +126,11 @@ func sumDimFloat32(data, result []float32, shape tensor.Shape, dim int) {
 	dimSize := shape[dim]
 	inner, outer := innerOuter(shape, dim)
 
-	for o := 0; o < outer; o++ {
-		for i := 0; i < inner; i++ {
+	for o := range outer {
+		for i := range inner {
 			outIdx := o*inner + i
 			base := o * dimSize * inner
-			for d := 0; d < dimSize; d++ {
+			for d := range dimSize {
 				result[outIdx] += data[base+d*inner+i]
 			}
 		}
@@ -149,11 +149,11 @@ func sumDimFloat64(data, result []float64, shape tensor.Shape, dim int) {
 	dimSize := shape[dim]
 	inner, outer := innerOuter(shape, dim)
 
-	for o := 0; o < outer; o++ {
-		for i := 0; i < inner; i++ {
+	for o := range outer {
+		for i := range inner {
 			outIdx := o*inner + i
 			base := o * dimSize * inner
-			for d := 0; d < dimSize; d++ {
+			for d := range dimSize {
 				result[outIdx] += data[base+d*inner+i]
 			}
 		}
@@ -234,7 +234,7 @@ func (cpu *CPUBackend) Argmax(x *tensor.RawTensor, dim int) *tensor.RawTensor {
 
 	// Calculate output shape (remove the reduced dimension)
 	outShape := make(tensor.Shape, 0, ndim-1)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i != dim {
 			outShape = append(outShape, shape[i])
 		}
@@ -282,7 +282,7 @@ func argmaxFloat32(data []float32, result []int32, shape tensor.Shape, dim int) 
 		// Compute base index for this group
 		baseIdx := 0
 		remaining := group
-		for i := 0; i < len(shape); i++ {
+		for i := range shape {
 			if i == dim {
 				continue
 			}
@@ -323,7 +323,7 @@ func argmaxFloat64(data []float64, result []int32, shape tensor.Shape, dim int) 
 	for group := 0; group < numGroups; group++ {
 		baseIdx := 0
 		remaining := group
-		for i := 0; i < len(shape); i++ {
+		for i := range shape {
 			if i == dim {
 				continue
 			}
@@ -363,7 +363,7 @@ func argmaxInt32(data, result []int32, shape tensor.Shape, dim int) {
 	for group := 0; group < numGroups; group++ {
 		baseIdx := 0
 		remaining := group
-		for i := 0; i < len(shape); i++ {
+		for i := range shape {
 			if i == dim {
 				continue
 			}
@@ -403,7 +403,7 @@ func argmaxInt64(data []int64, result []int32, shape tensor.Shape, dim int) {
 	for group := 0; group < numGroups; group++ {
 		baseIdx := 0
 		remaining := group
-		for i := 0; i < len(shape); i++ {
+		for i := range shape {
 			if i == dim {
 				continue
 			}

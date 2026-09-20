@@ -14,10 +14,10 @@ import (
 // out[i*colHeight+j] = sum_k kernel[i*colWidth+k] * colBuf[j*colWidth+k].
 func naiveColBufMatMul(kernel, colBuf []float32, cOut, colHeight, colWidth int) []float32 {
 	out := make([]float32, cOut*colHeight)
-	for i := 0; i < cOut; i++ {
-		for j := 0; j < colHeight; j++ {
+	for i := range cOut {
+		for j := range colHeight {
 			var s float32
-			for k := 0; k < colWidth; k++ {
+			for k := range colWidth {
 				s += kernel[i*colWidth+k] * colBuf[j*colWidth+k]
 			}
 			out[i*colHeight+j] = s

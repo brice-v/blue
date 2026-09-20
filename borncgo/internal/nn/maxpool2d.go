@@ -89,6 +89,19 @@ func (m *MaxPool2D[B]) Parameters() []*Parameter[B] {
 	return []*Parameter[B]{}
 }
 
+// StateDict returns an empty state dictionary. MaxPool2D has no parameters.
+//
+// It exists so MaxPool2D satisfies the Module interface and can be composed
+// with other modules and saved alongside them.
+func (m *MaxPool2D[B]) StateDict() map[string]*tensor.RawTensor {
+	return map[string]*tensor.RawTensor{}
+}
+
+// LoadStateDict is a no-op. MaxPool2D has no parameters to load.
+func (m *MaxPool2D[B]) LoadStateDict(map[string]*tensor.RawTensor) error {
+	return nil
+}
+
 // String returns a string representation of the layer.
 func (m *MaxPool2D[B]) String() string {
 	return fmt.Sprintf("MaxPool2D(kernel_size=%d, stride=%d)",

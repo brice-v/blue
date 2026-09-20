@@ -26,6 +26,25 @@ func NNLinear(inFeatures, outFeatures int, device Device) (Module, error) {
 func NNReLU() Module    { return nn.NewReLU[tensor.Backend]() }
 func NNSigmoid() Module { return nn.NewSigmoid[tensor.Backend]() }
 
+// NNConv2D builds a 2D convolution on the requested device. The kernel is
+// square (kernelH == kernelW), matching the common PyTorch default.
+func NNConv2D(inChannels, outChannels, kernelSize, stride, padding int, useBias bool, device Device) (Module, error) {
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	return nn.NewConv2D(inChannels, outChannels, kernelSize, kernelSize, stride, padding, useBias, be), nil
+}
+
+// NNMaxPool2D builds a 2D max pooling layer on the requested device.
+func NNMaxPool2D(kernelSize, stride int, device Device) (Module, error) {
+	be, err := backendFor(device)
+	if err != nil {
+		return nil, err
+	}
+	return nn.NewMaxPool2D(kernelSize, stride, be), nil
+}
+
 // NNForward runs a module on a blue tensor. Linear layers go through the fused
 // matmul+bias path so their weight stays a rebindable parameter (an optimizer
 // replaces a parameter's tensor each step) and so a compiled graph can fuse the

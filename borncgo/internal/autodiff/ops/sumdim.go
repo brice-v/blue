@@ -69,7 +69,7 @@ func unsqueezeDimShape(gradShape tensor.Shape, dim int, targetShape tensor.Shape
 	}
 
 	newShape := make(tensor.Shape, 0, len(gradShape)+1)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i == dim {
 			newShape = append(newShape, 1)
 		} else {

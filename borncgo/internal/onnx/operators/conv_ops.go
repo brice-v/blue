@@ -232,12 +232,12 @@ func depthwiseConvForward3x3Float32(out, in, weight []float32, n, c, hp, wp, hOu
 		w0, w1, w2 := w[0], w[1], w[2]
 		w3, w4, w5 := w[3], w[4], w[5]
 		w6, w7 := w[6], w[7]
-		for oh := 0; oh < hOut; oh++ {
+		for oh := range hOut {
 			r0 := inBase + oh*s*wp
 			r1 := r0 + wp
 			r2 := r1 + wp
 			outRow := outBase + oh*wOut
-			for ow := 0; ow < wOut; ow++ {
+			for ow := range wOut {
 				iw := ow * s
 				a0, a1, a2 := r0+iw, r1+iw, r2+iw
 				out[outRow+ow] = in[a0]*w0 + in[a0+1]*w1 + in[a0+2]*w2 +
@@ -256,16 +256,16 @@ func depthwiseConvForwardGenericFloat32(out, in, weight []float32, n, c, hp, wp,
 		inBase := plane * planeIn
 		outBase := plane * planeOut
 		wBase := (plane % c) * kh * kw
-		for oh := 0; oh < hOut; oh++ {
+		for oh := range hOut {
 			ihBase := inBase + oh*s*wp
 			outRow := outBase + oh*wOut
-			for ow := 0; ow < wOut; ow++ {
+			for ow := range wOut {
 				iw := ow * s
 				var sum float32
-				for r := 0; r < kh; r++ {
+				for r := range kh {
 					inRow := ihBase + r*wp + iw
 					wRow := wBase + r*kw
-					for q := 0; q < kw; q++ {
+					for q := range kw {
 						sum += in[inRow+q] * weight[wRow+q]
 					}
 				}

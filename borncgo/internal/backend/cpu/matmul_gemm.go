@@ -29,9 +29,9 @@ var gemmF32 func(c, a, b []float32, m, k, n int)
 // dst[c*rows+r] = src[r*cols+c]. Used to recast the conv im2col product
 // out = kernel @ colBuf^T into the GEMM kernel's A @ B form.
 func transposeF32(dst, src []float32, rows, cols int) {
-	for r := 0; r < rows; r++ {
+	for r := range rows {
 		base := r * cols
-		for c := 0; c < cols; c++ {
+		for c := range cols {
 			dst[c*rows+r] = src[base+c]
 		}
 	}

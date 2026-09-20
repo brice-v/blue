@@ -243,12 +243,12 @@ func TestRepeatKV_Repeat4x(t *testing.T) {
 	nKV := 2
 	nRep := 4
 
-	for h := 0; h < nKV; h++ {
-		for r := 0; r < nRep; r++ {
-			for s := 0; s < seqLen; s++ {
+	for h := range nKV {
+		for r := range nRep {
+			for s := range seqLen {
 				srcBase := h*seqLen*headDim + s*headDim
 				dstBase := (h*nRep+r)*seqLen*headDim + s*headDim
-				for d := 0; d < headDim; d++ {
+				for d := range headDim {
 					assert.Equal(t, kvDataOrig[srcBase+d], resultData[dstBase+d],
 						"mismatch at h=%d, r=%d, s=%d, d=%d", h, r, s, d)
 				}

@@ -2,6 +2,7 @@ package ml
 
 import (
 	"fmt"
+	"slices"
 
 	"blue/borncgo/tensor"
 )
@@ -262,13 +263,13 @@ func (b *backwardBuilder) backwardElementwise(n *graphNode, og int) error {
 		return id
 	}
 
-	for i := len(chain.steps) - 1; i >= 0; i-- {
+	for i, s := range slices.Backward(chain.steps) {
 		slot := nInputs + i
 		if !has[slot] {
 			continue
 		}
 		g := grad[slot]
-		s := chain.steps[i]
+
 		add := func(target, partial int) {
 			if !has[target] {
 				grad[target] = partial

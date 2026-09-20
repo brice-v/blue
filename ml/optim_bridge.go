@@ -204,3 +204,16 @@ func (o *Optimizer) SetLR(lr float32) {
 func (o *Optimizer) LR() float32 {
 	return o.inner.GetLR()
 }
+
+// StateDict returns the optimizer's internal buffers (SGD momentum, Adam
+// moments) as name to tensor views. The views share storage with the optimizer,
+// so saving them with SaveState checkpoints the optimizer, and loading into the
+// same views with LoadState restores it in place.
+func (o *Optimizer) StateDict() map[string]*Tensor {
+	inner := o.inner.StateDict()
+	out := make(map[string]*Tensor, len(inner))
+	for k, raw := range inner {
+		out[k] = wrapRaw(o.backend, raw)
+	}
+	return out
+}

@@ -311,7 +311,7 @@ func TestLargeAdd(t *testing.T) {
 	aData := make([]float32, size)
 	bData := make([]float32, size)
 	expected := make([]float32, size)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		aData[i] = float32(i)
 		bData[i] = float32(i * 2)
 		expected[i] = float32(i * 3)

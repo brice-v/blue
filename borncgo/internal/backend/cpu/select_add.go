@@ -53,7 +53,7 @@ func (cpu *CPUBackend) SelectAdd(dest *tensor.RawTensor, dim int, indices, src *
 		panic(fmt.Sprintf("selectadd: src dim %d (%d) != len(indices) (%d)", dim, srcShape[dim], numIndices))
 	}
 	// All non-scatter dims must match between src and dest.
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			continue
 		}
@@ -98,13 +98,13 @@ func selectAddFloat32(dst []float32, indices []int32, src []float32, dstShape, s
 	srcDimStride := srcStrides[dim]
 	dstDimStride := dstStrides[dim]
 
-	for i := 0; i < numIndices; i++ {
+	for i := range numIndices {
 		idx := int(indices[i])
 		if idx < 0 || idx >= dstShape[dim] {
 			panic(fmt.Sprintf("selectadd: index %d out of bounds [0, %d)", idx, dstShape[dim]))
 		}
 
-		for j := 0; j < innerSize; j++ {
+		for j := range innerSize {
 			// Compute the flat-index contribution from dimensions other than dim,
 			// given a linear index j that enumerates elements in those dimensions.
 			nonDimFlat := computeNonDimFlat(j, srcShape, srcStrides, dim)
@@ -127,13 +127,13 @@ func selectAddFloat64(dst []float64, indices []int32, src []float64, dstShape, s
 	srcDimStride := srcStrides[dim]
 	dstDimStride := dstStrides[dim]
 
-	for i := 0; i < numIndices; i++ {
+	for i := range numIndices {
 		idx := int(indices[i])
 		if idx < 0 || idx >= dstShape[dim] {
 			panic(fmt.Sprintf("selectadd: index %d out of bounds [0, %d)", idx, dstShape[dim]))
 		}
 
-		for j := 0; j < innerSize; j++ {
+		for j := range innerSize {
 			nonDimFlat := computeNonDimFlat(j, srcShape, srcStrides, dim)
 			srcFlat := i*srcDimStride + nonDimFlat
 			dstFlat := idx*dstDimStride + nonDimFlat
@@ -153,7 +153,7 @@ func computeNonDimFlat(j int, shape tensor.Shape, strides []int, dim int) int {
 
 	flat := 0
 	rem := j
-	for d := 0; d < ndim; d++ {
+	for d := range ndim {
 		if d == dim {
 			continue
 		}

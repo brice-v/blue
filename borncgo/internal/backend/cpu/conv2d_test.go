@@ -18,7 +18,7 @@ func TestConv2D_BasicForward(t *testing.T) {
 	// 1 2 3
 	// 4 5 6
 	// 7 8 9
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		inputData[i] = float32(i + 1)
 	}
 
@@ -67,14 +67,14 @@ func TestConv2D_WithPadding(t *testing.T) {
 	// Input: [1, 1, 3, 3]
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 3, 3}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		inputData[i] = 1.0 // All ones
 	}
 
 	// Kernel: [1, 1, 3, 3] - full 3x3 kernel
 	kernel, _ := tensor.NewRaw(tensor.Shape{1, 1, 3, 3}, tensor.Float32, tensor.CPU)
 	kernelData := kernel.AsFloat32()
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		kernelData[i] = 1.0 // All ones (sum kernel)
 	}
 
@@ -114,14 +114,14 @@ func TestConv2D_WithStride(t *testing.T) {
 	// Input: [1, 1, 4, 4]
 	input, _ := tensor.NewRaw(tensor.Shape{1, 1, 4, 4}, tensor.Float32, tensor.CPU)
 	inputData := input.AsFloat32()
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float32(i + 1)
 	}
 
 	// Kernel: [1, 1, 2, 2]
 	kernel, _ := tensor.NewRaw(tensor.Shape{1, 1, 2, 2}, tensor.Float32, tensor.CPU)
 	kernelData := kernel.AsFloat32()
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		kernelData[i] = 1.0 // Sum kernel
 	}
 
@@ -160,7 +160,7 @@ func TestConv2D_MultiChannel(t *testing.T) {
 	inputData := input.AsFloat32()
 	// Channel 0: all 1s
 	// Channel 1: all 2s
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		inputData[i] = 1.0   // channel 0
 		inputData[9+i] = 2.0 // channel 1
 	}
@@ -170,7 +170,7 @@ func TestConv2D_MultiChannel(t *testing.T) {
 	kernelData := kernel.AsFloat32()
 	// Output channel 0: all 1s (sums both input channels)
 	// Output channel 1: all 0.5s
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		kernelData[i] = 1.0   // out channel 0
 		kernelData[8+i] = 0.5 // out channel 1
 	}
@@ -194,7 +194,7 @@ func TestConv2D_MultiChannel(t *testing.T) {
 	// Each patch: 0.5 * (4*1 + 4*2) = 6
 
 	// Channel 0 outputs
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if outputData[i] != 12.0 {
 			t.Errorf("Output channel 0 [%d]: expected 12.0, got %.1f", i, outputData[i])
 		}
@@ -217,7 +217,7 @@ func TestConv2D_Batch(t *testing.T) {
 	inputData := input.AsFloat32()
 	// Batch 0: [1,2,3,4]
 	// Batch 1: [5,6,7,8]
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		inputData[i] = float32(i + 1)
 		inputData[4+i] = float32(i + 5)
 	}
@@ -225,7 +225,7 @@ func TestConv2D_Batch(t *testing.T) {
 	// Kernel: [1, 1, 2, 2] - sum kernel
 	kernel, _ := tensor.NewRaw(tensor.Shape{1, 1, 2, 2}, tensor.Float32, tensor.CPU)
 	kernelData := kernel.AsFloat32()
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		kernelData[i] = 1.0
 	}
 

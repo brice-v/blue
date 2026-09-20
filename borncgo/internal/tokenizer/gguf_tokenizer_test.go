@@ -79,7 +79,7 @@ func TestGGUFTokenizer_SentencePiece(t *testing.T) {
 
 func TestGPT2ByteToUnicode_RoundTrip(t *testing.T) {
 	// Every byte should round-trip through byte-level encoding.
-	for b := 0; b < 256; b++ {
+	for b := range 256 {
 		encoded := byteLevelEncode(string([]byte{byte(b)}))
 		decoded := byteLevelDecode(encoded)
 		if decoded != string([]byte{byte(b)}) {

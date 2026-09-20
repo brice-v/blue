@@ -350,9 +350,9 @@ func TestEmbedding_Backward_1D(t *testing.T) {
 	// Indices 0, 2, 4 each appear once → their rows get grad [1, 1, 1].
 	// Indices 1, 3 never appear → their rows stay [0, 0, 0].
 	usedRows := map[int]float32{0: 1.0, 2: 1.0, 4: 1.0}
-	for row := 0; row < 5; row++ {
+	for row := range 5 {
 		want := usedRows[row] // 0.0 if not in map
-		for col := 0; col < 3; col++ {
+		for col := range 3 {
 			got := gradData[row*3+col]
 			if got < want-eps || got > want+eps {
 				t.Errorf("gradWeight[%d, %d] = %f, want %f", row, col, got, want)
@@ -405,7 +405,7 @@ func TestEmbedding_Backward_2D(t *testing.T) {
 	const eps = 1e-5
 
 	// Index 0 appears twice → row 0 accumulates 2 grad rows of all-ones → [2, 2, 2, 2]
-	for col := 0; col < 4; col++ {
+	for col := range 4 {
 		got := gradData[0*4+col]
 		if got < 2.0-eps || got > 2.0+eps {
 			t.Errorf("gradWeight[0, %d] = %f, want 2.0 (index 0 appears twice)", col, got)
@@ -414,7 +414,7 @@ func TestEmbedding_Backward_2D(t *testing.T) {
 
 	// Indices 1–4 each appear once → rows 1–4 get [1, 1, 1, 1]
 	for row := 1; row <= 4; row++ {
-		for col := 0; col < 4; col++ {
+		for col := range 4 {
 			got := gradData[row*4+col]
 			if got < 1.0-eps || got > 1.0+eps {
 				t.Errorf("gradWeight[%d, %d] = %f, want 1.0", row, col, got)
@@ -454,7 +454,7 @@ func TestEmbedding_Backward_DuplicateIndices(t *testing.T) {
 	const eps = 1e-5
 
 	// Row 0: index 0 appears at positions 0 and 2 → accumulated grad = 2.0 per dim
-	for col := 0; col < 2; col++ {
+	for col := range 2 {
 		got := gradData[0*2+col]
 		if got < 2.0-eps || got > 2.0+eps {
 			t.Errorf("gradWeight[0, %d] = %f, want 2.0 (duplicate accumulation)", col, got)
@@ -462,7 +462,7 @@ func TestEmbedding_Backward_DuplicateIndices(t *testing.T) {
 	}
 
 	// Row 1: index 1 appears once → grad = 1.0 per dim
-	for col := 0; col < 2; col++ {
+	for col := range 2 {
 		got := gradData[1*2+col]
 		if got < 1.0-eps || got > 1.0+eps {
 			t.Errorf("gradWeight[1, %d] = %f, want 1.0", col, got)
@@ -470,7 +470,7 @@ func TestEmbedding_Backward_DuplicateIndices(t *testing.T) {
 	}
 
 	// Row 2: index 2 never appears → grad = 0.0
-	for col := 0; col < 2; col++ {
+	for col := range 2 {
 		got := gradData[2*2+col]
 		if got < -eps || got > eps {
 			t.Errorf("gradWeight[2, %d] = %f, want 0.0 (unused index)", col, got)
@@ -580,8 +580,8 @@ func TestEmbedding_Backward_ScalarMul(t *testing.T) {
 
 	// All four indices appear once; output grad through MulScalar is scale × 1.0.
 	// So every row of gradWeight should equal [scale, scale, scale].
-	for row := 0; row < 4; row++ {
-		for col := 0; col < 3; col++ {
+	for row := range 4 {
+		for col := range 3 {
 			got := gradData[row*3+col]
 			if got < scale-eps || got > scale+eps {
 				t.Errorf("gradWeight[%d, %d] = %f, want %f (scale factor)", row, col, got, scale)

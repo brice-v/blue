@@ -667,7 +667,7 @@ func TestSoftmaxOp_Forward(t *testing.T) {
 	sum1 := e1 + e2 + e3
 	expected1 := []float32{float32(e1 / sum1), float32(e2 / sum1), float32(e3 / sum1)}
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if math.Abs(float64(outputData[i]-expected1[i])) > 1e-6 {
 			t.Errorf("Softmax batch1: expected %f, got %f at index %d", expected1[i], outputData[i], i)
 		}
@@ -683,7 +683,7 @@ func TestSoftmaxOp_Forward(t *testing.T) {
 
 	// Verify probabilities sum to 1
 	sum := float32(0.0)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		sum += outputData[i]
 	}
 	if math.Abs(float64(sum-1.0)) > 1e-6 {
@@ -986,7 +986,7 @@ func TestSoftmaxOp_Backward_GradientCorrectness(t *testing.T) {
 	numericalGrad := make([]float32, 3)
 	inputData := input.Raw().AsFloat32()
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		// Forward perturbation: input[i] + epsilon
 		inputData[i] += epsilon
 		outPlus := backend.Inner().Softmax(input.Raw(), -1)
@@ -1013,7 +1013,7 @@ func TestSoftmaxOp_Backward_GradientCorrectness(t *testing.T) {
 	}
 
 	// Compare analytical and numerical gradients
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		diff := math.Abs(float64(analyticalGrad[i] - numericalGrad[i]))
 		if diff > 1e-3 {
 			t.Errorf("Gradient mismatch at index %d: analytical=%f, numerical=%f, diff=%f",

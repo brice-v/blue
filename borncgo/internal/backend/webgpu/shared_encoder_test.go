@@ -198,7 +198,7 @@ func TestSharedEncoder_AutoFlush(t *testing.T) {
 	// Issue maxPendingBeforeFlush+1 ops — auto-flush must fire at least once.
 	total := maxPendingBeforeFlush + 1
 	result := a
-	for i := 0; i < total; i++ {
+	for range total {
 		result = backend.Add(result, a)
 	}
 
@@ -333,7 +333,7 @@ func TestSharedEncoder_Correctness(t *testing.T) {
 	}
 
 	result := a
-	for i := 0; i < addOps; i++ {
+	for range addOps {
 		result = backend.Add(result, a)
 	}
 
@@ -452,9 +452,9 @@ func TestSharedEncoder_MixedOps(t *testing.T) {
 	}
 
 	// Validate Softmax: rows must sum to 1.
-	for row := 0; row < 2; row++ {
+	for row := range 2 {
 		var sum float64
-		for col := 0; col < 4; col++ {
+		for col := range 4 {
 			sum += float64(softmaxGot[row*4+col])
 		}
 		if math.Abs(sum-1.0) > 1e-5 {

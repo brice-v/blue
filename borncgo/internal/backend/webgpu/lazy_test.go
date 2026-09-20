@@ -132,7 +132,7 @@ func TestLazyModeChain(t *testing.T) {
 	eData := e.AsFloat32()
 	expected := float32(10.0)
 	tolerance := float32(0.001)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if eData[i] < expected-tolerance || eData[i] > expected+tolerance {
 			t.Errorf("e[%d] = %v, expected ~%v", i, eData[i], expected)
 		}
@@ -181,7 +181,7 @@ func TestEagerModeAdd(t *testing.T) {
 
 	// Verify data is immediately available
 	resultData := result.AsFloat32()
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		expected := float32(i + i*2)
 		if resultData[i] != expected {
 			t.Errorf("result[%d] = %v, expected %v", i, resultData[i], expected)

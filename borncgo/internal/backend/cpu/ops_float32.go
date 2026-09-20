@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"blue/borncgo/internal/tensor"
+	"slices"
 )
 
 // Float32 inplace operations
@@ -106,7 +107,7 @@ func addBroadcastFloat32(dst, a, b []float32, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] + b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -130,7 +131,7 @@ func subBroadcastFloat32(dst, a, b []float32, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] - b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -164,7 +165,7 @@ func mulBroadcastFloat32(dst, a, b []float32, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] * b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -231,11 +232,11 @@ func mulBroadcastFullFloat32(dst, full, bc []float32, fullShape, bcShape, outSha
 // dimension is not broadcast.
 func trailingBroadcastRun(bStrides []int, outShape tensor.Shape) int {
 	run := 1
-	for d := len(outShape) - 1; d >= 0; d-- {
+	for d, o := range slices.Backward(outShape) {
 		if bStrides[d] != 0 {
 			break
 		}
-		run *= outShape[d]
+		run *= o
 	}
 	return run
 }
@@ -275,7 +276,7 @@ func divBroadcastFloat32(dst, a, b []float32, aShape, bShape, outShape tensor.Sh
 	ndim := len(outShape)
 	coords := make([]int, ndim)
 	aIdx, bIdx := 0, 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = a[aIdx] / b[bIdx]
 		for d := ndim - 1; d >= 0; d-- {
 			coords[d]++
@@ -305,11 +306,11 @@ func transposeFloat32(dst, src []float32, shape tensor.Shape, axes []int) {
 
 	// Transpose data
 	n := shape.NumElements()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		// Compute multi-dimensional coordinates in source
 		coords := make([]int, ndim)
 		idx := i
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			coords[dim] = idx / srcStrides[dim]
 			idx %= srcStrides[dim]
 		}
@@ -322,7 +323,7 @@ func transposeFloat32(dst, src []float32, shape tensor.Shape, axes []int) {
 
 		// Compute flat index in destination
 		dstIdx := 0
-		for dim := 0; dim < ndim; dim++ {
+		for dim := range ndim {
 			dstIdx += permutedCoords[dim] * dstStrides[dim]
 		}
 

@@ -109,7 +109,7 @@ func conv2dInputBackwardFloat32(
 	}
 
 	// For each batch
-	for batch := 0; batch < n; batch++ {
+	for batch := range n {
 		// Pre-slice batch planes
 		inputGradBatchOffset := batch * cIn * h * w
 		inputGradBatch := inputGradData[inputGradBatchOffset : inputGradBatchOffset+cIn*h*w]
@@ -118,10 +118,10 @@ func conv2dInputBackwardFloat32(
 		gradBatch := gradData[gradBatchOffset : gradBatchOffset+cOut*hOut*wOut]
 
 		// For each output gradient position
-		for outH := 0; outH < hOut; outH++ {
-			for outW := 0; outW < wOut; outW++ {
+		for outH := range hOut {
+			for outW := range wOut {
 				// For each output channel
-				for outChan := 0; outChan < cOut; outChan++ {
+				for outChan := range cOut {
 					gradIdx := outChan*hOut*wOut + outH*wOut + outW
 					gradVal := gradBatch[gradIdx]
 
@@ -130,7 +130,7 @@ func conv2dInputBackwardFloat32(
 					kernelCOut := kernelData[kernelCOutOffset : kernelCOutOffset+cIn*kH*kW]
 
 					// Distribute this gradient to all input positions via helper.
-					for inChan := 0; inChan < cIn; inChan++ {
+					for inChan := range cIn {
 						// Pre-slice input gradient channel
 						inputGradCInOffset := inChan * h * w
 						inputGradCIn := inputGradBatch[inputGradCInOffset : inputGradCInOffset+h*w]
@@ -181,7 +181,7 @@ func conv2dInputBackwardFloat64(
 		inputGradData[i] = 0.0
 	}
 
-	for n := 0; n < N; n++ {
+	for n := range N {
 		// Pre-slice batch planes
 		inputGradBatchOffset := n * CIn * H * W
 		inputGradBatch := inputGradData[inputGradBatchOffset : inputGradBatchOffset+CIn*H*W]
@@ -189,9 +189,9 @@ func conv2dInputBackwardFloat64(
 		gradBatchOffset := n * COut * HOut * WOut
 		gradBatch := gradData[gradBatchOffset : gradBatchOffset+COut*HOut*WOut]
 
-		for outH := 0; outH < HOut; outH++ {
-			for outW := 0; outW < WOut; outW++ {
-				for cOut := 0; cOut < COut; cOut++ {
+		for outH := range HOut {
+			for outW := range WOut {
+				for cOut := range COut {
 					gradIdx := cOut*HOut*WOut + outH*WOut + outW
 					gradVal := gradBatch[gradIdx]
 
@@ -199,7 +199,7 @@ func conv2dInputBackwardFloat64(
 					kernelCOutOffset := cOut * CIn * KH * KW
 					kernelCOut := kernelData[kernelCOutOffset : kernelCOutOffset+CIn*KH*KW]
 
-					for cIn := 0; cIn < CIn; cIn++ {
+					for cIn := range CIn {
 						// Pre-slice input gradient channel
 						inputGradCInOffset := cIn * H * W
 						inputGradCIn := inputGradBatch[inputGradCInOffset : inputGradCInOffset+H*W]
@@ -251,7 +251,7 @@ func conv2dInputBackwardFloat32Stride1NoPad(
 	}
 
 	// For each batch
-	for batch := 0; batch < n; batch++ {
+	for batch := range n {
 		inputGradBatchOffset := batch * cIn * h * w
 		inputGradBatch := inputGradData[inputGradBatchOffset : inputGradBatchOffset+cIn*h*w]
 
@@ -259,10 +259,10 @@ func conv2dInputBackwardFloat32Stride1NoPad(
 		gradBatch := gradData[gradBatchOffset : gradBatchOffset+cOut*hOut*wOut]
 
 		// For each output gradient position
-		for outH := 0; outH < hOut; outH++ {
-			for outW := 0; outW < wOut; outW++ {
+		for outH := range hOut {
+			for outW := range wOut {
 				// For each output channel
-				for outChan := 0; outChan < cOut; outChan++ {
+				for outChan := range cOut {
 					gradIdx := outChan*hOut*wOut + outH*wOut + outW
 					gradVal := gradBatch[gradIdx]
 
@@ -270,7 +270,7 @@ func conv2dInputBackwardFloat32Stride1NoPad(
 					kernelCOut := kernelData[kernelCOutOffset : kernelCOutOffset+cIn*kH*kW]
 
 					// Distribute this gradient to all input positions via helper.
-					for inChan := 0; inChan < cIn; inChan++ {
+					for inChan := range cIn {
 						inputGradCInOffset := inChan * h * w
 						inputGradCIn := inputGradBatch[inputGradCInOffset : inputGradCInOffset+h*w]
 
@@ -316,23 +316,23 @@ func conv2dInputBackwardFloat64Stride1NoPad(
 		inputGradData[i] = 0.0
 	}
 
-	for n := 0; n < N; n++ {
+	for n := range N {
 		inputGradBatchOffset := n * CIn * H * W
 		inputGradBatch := inputGradData[inputGradBatchOffset : inputGradBatchOffset+CIn*H*W]
 
 		gradBatchOffset := n * COut * HOut * WOut
 		gradBatch := gradData[gradBatchOffset : gradBatchOffset+COut*HOut*WOut]
 
-		for outH := 0; outH < HOut; outH++ {
-			for outW := 0; outW < WOut; outW++ {
-				for cOut := 0; cOut < COut; cOut++ {
+		for outH := range HOut {
+			for outW := range WOut {
+				for cOut := range COut {
 					gradIdx := cOut*HOut*WOut + outH*WOut + outW
 					gradVal := gradBatch[gradIdx]
 
 					kernelCOutOffset := cOut * CIn * KH * KW
 					kernelCOut := kernelData[kernelCOutOffset : kernelCOutOffset+CIn*KH*KW]
 
-					for cIn := 0; cIn < CIn; cIn++ {
+					for cIn := range CIn {
 						inputGradCInOffset := cIn * H * W
 						inputGradCIn := inputGradBatch[inputGradCInOffset : inputGradCInOffset+H*W]
 
@@ -453,10 +453,10 @@ func conv2dKernelBackwardFloat32(
 	}
 
 	// For each kernel weight — accumulate via helper.
-	for cOut := 0; cOut < COut; cOut++ {
-		for cIn := 0; cIn < CIn; cIn++ {
-			for kh := 0; kh < KH; kh++ {
-				for kw := 0; kw < KW; kw++ {
+	for cOut := range COut {
+		for cIn := range CIn {
+			for kh := range KH {
+				for kw := range KW {
 					sum := kernelGradSumFloat32(
 						inputData, gradData,
 						N, CIn, H, W, COut, HOut, WOut,
@@ -499,10 +499,10 @@ func conv2dKernelBackwardFloat64(
 	}
 
 	// For each kernel weight — accumulate via helper.
-	for cOut := 0; cOut < COut; cOut++ {
-		for cIn := 0; cIn < CIn; cIn++ {
-			for kh := 0; kh < KH; kh++ {
-				for kw := 0; kw < KW; kw++ {
+	for cOut := range COut {
+		for cIn := range CIn {
+			for kh := range KH {
+				for kw := range KW {
 					sum := kernelGradSumFloat64(
 						inputData, gradData,
 						N, CIn, H, W, COut, HOut, WOut,
@@ -545,10 +545,10 @@ func conv2dKernelBackwardFloat32Stride1NoPad(
 	}
 
 	// For each kernel weight — accumulate via helper (stride=1, padding=0 fast path).
-	for cOut := 0; cOut < COut; cOut++ {
-		for cIn := 0; cIn < CIn; cIn++ {
-			for kh := 0; kh < KH; kh++ {
-				for kw := 0; kw < KW; kw++ {
+	for cOut := range COut {
+		for cIn := range CIn {
+			for kh := range KH {
+				for kw := range KW {
 					sum := kernelGradSumFloat32Stride1NoPad(
 						inputData, gradData,
 						N, CIn, H, W, COut, HOut, WOut,
@@ -589,10 +589,10 @@ func conv2dKernelBackwardFloat64Stride1NoPad(
 	}
 
 	// For each kernel weight — accumulate via helper (stride=1, padding=0 fast path).
-	for cOut := 0; cOut < COut; cOut++ {
-		for cIn := 0; cIn < CIn; cIn++ {
-			for kh := 0; kh < KH; kh++ {
-				for kw := 0; kw < KW; kw++ {
+	for cOut := range COut {
+		for cIn := range CIn {
+			for kh := range KH {
+				for kw := range KW {
 					sum := kernelGradSumFloat64Stride1NoPad(
 						inputData, gradData,
 						N, CIn, H, W, COut, HOut, WOut,

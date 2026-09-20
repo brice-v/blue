@@ -6,6 +6,7 @@ import (
 	"math"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 type tensorData struct {
@@ -2286,6 +2287,560 @@ var MlBuiltins = []*Builtin{
 			example:     "argreduce('argmax', ml.tensor([1.0, 3.0]), 0) => Tensor{shape: [1]}",
 		}.String(),
 	},
+	{
+		Name: "_nn_conv2d",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("conv2d", 7, args); err != nil {
+				return err
+			}
+			ints := make([]int, 5)
+			for i := range ints {
+				n, ok := args[i].(*Integer)
+				if !ok {
+					return newPositionalTypeError("conv2d", i+1, INTEGER_OBJ, args[i].Type())
+				}
+				ints[i] = int(n.Value)
+			}
+			useBias, ok := args[5].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("conv2d", 6, BOOLEAN_OBJ, args[5].Type())
+			}
+			devStr, ok := args[6].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("conv2d", 7, STRING_OBJ, args[6].Type())
+			}
+			dev, derr := ml.ParseDevice(devStr.Value)
+			if derr != nil {
+				return newError("`conv2d` error: %s", derr.Error())
+			}
+			m, err := ml.NNConv2D(ints[0], ints[1], ints[2], ints[3], ints[4], useBias.Value, dev)
+			if err != nil {
+				return newError("`conv2d` error: %s", err.Error())
+			}
+			return &GoObj[ml.Module]{Value: m}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`conv2d` builds a 2D convolution module with a square kernel",
+			signature:   "conv2d(in_channels: int, out_channels: int, kernel_size: int, stride: int, padding: int, bias: bool, dev: str) -> module",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "conv2d(1, 8, 3, 1, 1, true, 'cpu') => module",
+		}.String(),
+	},
+	{
+		Name: "_nn_maxpool2d",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("maxpool2d", 3, args); err != nil {
+				return err
+			}
+			kernel, ok := args[0].(*Integer)
+			if !ok {
+				return newPositionalTypeError("maxpool2d", 1, INTEGER_OBJ, args[0].Type())
+			}
+			stride, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("maxpool2d", 2, INTEGER_OBJ, args[1].Type())
+			}
+			devStr, ok := args[2].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("maxpool2d", 3, STRING_OBJ, args[2].Type())
+			}
+			dev, derr := ml.ParseDevice(devStr.Value)
+			if derr != nil {
+				return newError("`maxpool2d` error: %s", derr.Error())
+			}
+			m, err := ml.NNMaxPool2D(int(kernel.Value), int(stride.Value), dev)
+			if err != nil {
+				return newError("`maxpool2d` error: %s", err.Error())
+			}
+			return &GoObj[ml.Module]{Value: m}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`maxpool2d` builds a 2D max pooling module",
+			signature:   "maxpool2d(kernel_size: int, stride: int, dev: str) -> module",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "maxpool2d(2, 2, 'cpu') => module",
+		}.String(),
+	},
+	{
+		Name: "_max_dim",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("max_dim", 3, args); err != nil {
+				return err
+			}
+			if err := checkArgType("max_dim", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("max_dim", 2, INTEGER_OBJ, args[1].Type())
+			}
+			keep, ok := args[2].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("max_dim", 3, BOOLEAN_OBJ, args[2].Type())
+			}
+			v, i, err := ml.MaxDim(args[0].(*Tensor).T, int(d.Value), keep.Value)
+			if err != nil {
+				return newError("`max_dim` error: %s", err.Error())
+			}
+			return &List{Elements: []Object{&Tensor{T: v}, &Tensor{T: i}}}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`max_dim` returns [values, indices] for the maximum along dim, like torch.max(x, dim)",
+			signature:   "max_dim(a: tensor, dim: int, keepdim: bool) -> list[tensor, tensor]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "max_dim(ml.tensor([1.0, 3.0]), 0, false) => [tensor, tensor]",
+		}.String(),
+	},
+	{
+		Name: "_min_dim",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("min_dim", 3, args); err != nil {
+				return err
+			}
+			if err := checkArgType("min_dim", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("min_dim", 2, INTEGER_OBJ, args[1].Type())
+			}
+			keep, ok := args[2].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("min_dim", 3, BOOLEAN_OBJ, args[2].Type())
+			}
+			v, i, err := ml.MinDim(args[0].(*Tensor).T, int(d.Value), keep.Value)
+			if err != nil {
+				return newError("`min_dim` error: %s", err.Error())
+			}
+			return &List{Elements: []Object{&Tensor{T: v}, &Tensor{T: i}}}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`min_dim` returns [values, indices] for the minimum along dim, like torch.min(x, dim)",
+			signature:   "min_dim(a: tensor, dim: int, keepdim: bool) -> list[tensor, tensor]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "min_dim(ml.tensor([1.0, 3.0]), 0, false) => [tensor, tensor]",
+		}.String(),
+	},
+	{
+		Name: "_variance",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("variance", 4, args); err != nil {
+				return err
+			}
+			if err := checkArgType("variance", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			dims, errObj := dimsFromObject("variance", args[1])
+			if errObj != nil {
+				return errObj
+			}
+			keep, ok := args[2].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("variance", 3, BOOLEAN_OBJ, args[2].Type())
+			}
+			unbiased, ok := args[3].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("variance", 4, BOOLEAN_OBJ, args[3].Type())
+			}
+			out, err := ml.Variance(args[0].(*Tensor).T, dims, keep.Value, unbiased.Value)
+			if err != nil {
+				return newError("`variance` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`variance` is the variance over dim; unbiased divides by n-1 like torch.var(unbiased=True)",
+			signature:   "variance(a: tensor, dim: int|list[int]|null, keepdim: bool, unbiased: bool) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "variance(ml.tensor([1.0, 2.0, 3.0]), null, false, true) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_std",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("std", 4, args); err != nil {
+				return err
+			}
+			if err := checkArgType("std", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			dims, errObj := dimsFromObject("std", args[1])
+			if errObj != nil {
+				return errObj
+			}
+			keep, ok := args[2].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("std", 3, BOOLEAN_OBJ, args[2].Type())
+			}
+			unbiased, ok := args[3].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("std", 4, BOOLEAN_OBJ, args[3].Type())
+			}
+			out, err := ml.Std(args[0].(*Tensor).T, dims, keep.Value, unbiased.Value)
+			if err != nil {
+				return newError("`std` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`std` is the square root of variance; unbiased divides by n-1",
+			signature:   "std(a: tensor, dim: int|list[int]|null, keepdim: bool, unbiased: bool) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "std(ml.tensor([1.0, 2.0, 3.0]), null, false, true) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_tile",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("tile", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("tile", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			l, ok := args[1].(*List)
+			if !ok {
+				return newPositionalTypeError("tile", 2, LIST_OBJ, args[1].Type())
+			}
+			reps, err := toIntList("tile", l)
+			if err != nil {
+				return newError("%s", err.Error())
+			}
+			out, ferr := ml.Tile(args[0].(*Tensor).T, reps)
+			if ferr != nil {
+				return newError("`tile` error: %s", ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`tile` repeats a along each dim, like torch.tile; it is differentiable",
+			signature:   "tile(a: tensor, reps: list[int]) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "tile(ml.tensor([[1.0, 2.0]]), [2, 1]) => Tensor{shape: [2 2]}",
+		}.String(),
+	},
+	{
+		Name: "_cumsum",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("cumsum", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("cumsum", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("cumsum", 2, INTEGER_OBJ, args[1].Type())
+			}
+			out, err := ml.Cumsum(args[0].(*Tensor).T, int(d.Value))
+			if err != nil {
+				return newError("`cumsum` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`cumsum` is the cumulative sum along dim, like torch.cumsum; it is differentiable",
+			signature:   "cumsum(a: tensor, dim: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "cumsum(ml.tensor([1.0, 2.0, 3.0]), 0) => Tensor{shape: [3]}",
+		}.String(),
+	},
+	{
+		Name: "_sort",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("sort", 3, args); err != nil {
+				return err
+			}
+			if err := checkArgType("sort", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("sort", 2, INTEGER_OBJ, args[1].Type())
+			}
+			desc, ok := args[2].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("sort", 3, BOOLEAN_OBJ, args[2].Type())
+			}
+			v, i, err := ml.Sort(args[0].(*Tensor).T, int(d.Value), desc.Value)
+			if err != nil {
+				return newError("`sort` error: %s", err.Error())
+			}
+			return &List{Elements: []Object{&Tensor{T: v}, &Tensor{T: i}}}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`sort` returns [values, indices] sorted along dim; host-computed, so inference-only",
+			signature:   "sort(a: tensor, dim: int, descending: bool) -> list[tensor, tensor]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "sort(ml.tensor([3.0, 1.0, 2.0]), 0, false) => [tensor, tensor]",
+		}.String(),
+	},
+	{
+		Name: "_topk",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("topk", 4, args); err != nil {
+				return err
+			}
+			if err := checkArgType("topk", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			k, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("topk", 2, INTEGER_OBJ, args[1].Type())
+			}
+			d, ok := args[2].(*Integer)
+			if !ok {
+				return newPositionalTypeError("topk", 3, INTEGER_OBJ, args[2].Type())
+			}
+			largest, ok := args[3].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("topk", 4, BOOLEAN_OBJ, args[3].Type())
+			}
+			v, i, err := ml.TopK(args[0].(*Tensor).T, int(k.Value), int(d.Value), largest.Value)
+			if err != nil {
+				return newError("`topk` error: %s", err.Error())
+			}
+			return &List{Elements: []Object{&Tensor{T: v}, &Tensor{T: i}}}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`topk` returns [values, indices] of the k largest or smallest along dim; host-computed, so inference-only",
+			signature:   "topk(a: tensor, k: int, dim: int, largest: bool) -> list[tensor, tensor]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "topk(ml.tensor([1.0, 3.0, 2.0]), 2, 0, true) => [tensor, tensor]",
+		}.String(),
+	},
+	{
+		Name: "_nonzero",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("nonzero", 1, args); err != nil {
+				return err
+			}
+			if err := checkArgType("nonzero", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			out, err := ml.Nonzero(args[0].(*Tensor).T)
+			if err != nil {
+				return newError("`nonzero` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`nonzero` returns the indices of the nonzero elements as [n, rank]; host-computed, so inference-only",
+			signature:   "nonzero(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "nonzero(ml.tensor([0.0, 2.0, 0.0, 3.0])) => Tensor{shape: [2 1]}",
+		}.String(),
+	},
+	{
+		Name: "_scatter_add",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("scatter_add", 4, args); err != nil {
+				return err
+			}
+			if _, ok := args[0].(*Tensor); !ok {
+				return newPositionalTypeError("scatter_add", 1, TENSOR_OBJ, args[0].Type())
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("scatter_add", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if _, ok := args[2].(*Tensor); !ok {
+				return newPositionalTypeError("scatter_add", 3, TENSOR_OBJ, args[2].Type())
+			}
+			if _, ok := args[3].(*Tensor); !ok {
+				return newPositionalTypeError("scatter_add", 4, TENSOR_OBJ, args[3].Type())
+			}
+			out, err := ml.ScatterAdd(args[0].(*Tensor).T, int(d.Value), args[2].(*Tensor).T, args[3].(*Tensor).T)
+			if err != nil {
+				return newError("`scatter_add` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`scatter_add` returns dest with src added at the positions selected by index along dim",
+			signature:   "scatter_add(dest: tensor, dim: int, index: tensor, src: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "scatter_add(ml.zeros([3, 2]), 0, ml.tensor([[0,1]], datatype=ml.dtype.int32), ml.ones([1, 2])) => tensor",
+		}.String(),
+	},
+	{
+		Name: "_cross_entropy_opts",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("cross_entropy", 5, args); err != nil {
+				return err
+			}
+			if err := checkArgType("cross_entropy", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("cross_entropy", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			opts := ml.CrossEntropyOpts{Reduction: "mean"}
+			s, ok := args[2].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("cross_entropy", 3, STRING_OBJ, args[2].Type())
+			}
+			opts.Reduction = s.Value
+			if _, isNull := args[3].(*Null); !isNull {
+				n, ok := args[3].(*Integer)
+				if !ok {
+					return newPositionalTypeError("cross_entropy", 4, "INTEGER or NULL", args[3].Type())
+				}
+				opts.HasIgnore = true
+				opts.IgnoreIndex = int(n.Value)
+			}
+			if _, isNull := args[4].(*Null); !isNull {
+				w, ok := args[4].(*Tensor)
+				if !ok {
+					return newPositionalTypeError("cross_entropy", 5, "TENSOR or NULL", args[4].Type())
+				}
+				opts.Weight = w.T
+			}
+			out, err := ml.CrossEntropyWith(args[0].(*Tensor).T, args[1].(*Tensor).T, opts)
+			if err != nil {
+				return newError("`cross_entropy` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`cross_entropy` with reduction, ignore_index, and class weights, like torch.nn.functional.cross_entropy",
+			signature:   "cross_entropy(logits: tensor, target: tensor, reduction: str, ignore_index: int|null, weight: tensor|null) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "cross_entropy(logits, target, 'mean', null, null) => tensor",
+		}.String(),
+	},
+	{
+		Name: "_optim_state_dict",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("optim_state_dict", 1, args); err != nil {
+				return err
+			}
+			opt, ok := args[0].(*GoObj[*ml.Optimizer])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("optim_state_dict", 1, "*ml.Optimizer", args[0])
+			}
+			out := NewOrderedMap[string, Object]()
+			for k, t := range opt.Value.StateDict() {
+				out.Set(k, &Tensor{T: t})
+			}
+			return CreateMapObjectForGoMap(*out)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`optim_state_dict` returns the optimizer's internal buffers as a name to tensor map; the tensors share storage, so saving and loading them checkpoints the optimizer",
+			signature:   "optim_state_dict(optimizer: GoObj[*ml.Optimizer]) -> map[str]tensor",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "optim_state_dict(opt) => {'m.0': tensor, ...}",
+		}.String(),
+	},
+	{
+		Name: "_retain_grad",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("retain_grad", 1, args); err != nil {
+				return err
+			}
+			if err := checkArgType("retain_grad", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			args[0].(*Tensor).T.RetainGrad()
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`retain_grad` keeps a non-leaf tensor's gradient after backward, like torch.Tensor.retain_grad",
+			signature:   "retain_grad(a: tensor) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "retain_grad(ml.mul(x, x)) => null",
+		}.String(),
+	},
+	{
+		Name: "_autograd_grad",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("autograd_grad", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("autograd_grad", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			l, ok := args[1].(*List)
+			if !ok {
+				return newPositionalTypeError("autograd_grad", 2, LIST_OBJ, args[1].Type())
+			}
+			inputs := make([]*ml.Tensor, len(l.Elements))
+			for i, e := range l.Elements {
+				t, ok := e.(*Tensor)
+				if !ok {
+					return newPositionalTypeError("autograd_grad", 2, TENSOR_OBJ, e.Type())
+				}
+				inputs[i] = t.T
+			}
+			grads, err := ml.AutogradGrad(args[0].(*Tensor).T, inputs)
+			if err != nil {
+				return newError("`autograd_grad` error: %s", err.Error())
+			}
+			elems := make([]Object, len(grads))
+			for i, g := range grads {
+				if g == nil {
+					elems[i] = NULL
+				} else {
+					elems[i] = &Tensor{T: g}
+				}
+			}
+			return &List{Elements: elems}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`autograd_grad` returns d(output)/d(input) for each input without storing them, like torch.autograd.grad",
+			signature:   "autograd_grad(output: tensor, inputs: list[tensor]) -> list[tensor|null]",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "autograd_grad(ml.sum(y), [x]) => [tensor]",
+		}.String(),
+	},
+	{
+		Name: "_contiguous",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("contiguous", 1, args); err != nil {
+				return err
+			}
+			if err := checkArgType("contiguous", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			return &Tensor{T: args[0].(*Tensor).T.Contiguous()}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`contiguous` returns a tensor with row-major contiguous storage, materializing a view if needed",
+			signature:   "contiguous(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "contiguous(ml.transpose(x, 0, 1)) => tensor",
+		}.String(),
+	},
+	{
+		Name: "_view",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("view", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("view", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			l, ok := args[1].(*List)
+			if !ok {
+				return newPositionalTypeError("view", 2, LIST_OBJ, args[1].Type())
+			}
+			shape, err := toIntList("view", l)
+			if err != nil {
+				return newError("%s", err.Error())
+			}
+			out, ferr := ml.View(args[0].(*Tensor).T, shape)
+			if ferr != nil {
+				return newError("`view` error: %s", ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`view` returns a storage-sharing view with the given shape; inference-only, so it works under no_grad",
+			signature:   "view(a: tensor, shape: list[int]) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "view(ml.zeros([4]), [2, 2]) => Tensor{shape: [2 2]}",
+		}.String(),
+	},
 }
 
 // asTensorArg accepts either a tensor or a scalar (int, float, or bool), which
@@ -2517,6 +3072,11 @@ func collectState(name string, o Object, seen map[Object]bool, out *OrderedMap2[
 			child := ks.Value
 			if name != "" {
 				child = name + "." + ks.Value
+			}
+			// Internal keys such as a module's "__handle" are not part of the
+			// user-facing name; descend into the value without adding the key.
+			if strings.HasPrefix(ks.Value, "__") {
+				child = name
 			}
 			if errObj := collectState(child, mp.Value, seen, out); errObj != nil {
 				return errObj

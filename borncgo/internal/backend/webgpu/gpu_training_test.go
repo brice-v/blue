@@ -55,7 +55,7 @@ func TestGPUTraining_MLP_OOM(t *testing.T) {
 
 	var baselineHeap uint64
 
-	for step := 0; step < numSteps; step++ {
+	for step := range numSteps {
 		inputData := make([]float32, batchSize*inputDim)
 		for i := range inputData {
 			inputData[i] = rng.Float32()*2 - 1
@@ -142,7 +142,7 @@ func TestGPUTraining_PoolReuse(t *testing.T) {
 
 	var warmupPages int
 
-	for step := 0; step < numSteps; step++ {
+	for step := range numSteps {
 		inputData := make([]float32, batchSize*dim)
 		for i := range inputData {
 			inputData[i] = rng.Float32()

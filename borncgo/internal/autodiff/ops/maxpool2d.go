@@ -95,10 +95,10 @@ func computeMaxIndicesFloat32(maxIndices []int, input *tensor.RawTensor, dims *t
 	stride := dims.Stride
 
 	outIdx := 0
-	for n := 0; n < N; n++ {
-		for c := 0; c < C; c++ {
-			for outH := 0; outH < HOut; outH++ {
-				for outW := 0; outW < WOut; outW++ {
+	for n := range N {
+		for c := range C {
+			for outH := range HOut {
+				for outW := range WOut {
 					hStart := outH * stride
 					wStart := outW * stride
 
@@ -106,8 +106,8 @@ func computeMaxIndicesFloat32(maxIndices []int, input *tensor.RawTensor, dims *t
 					maxVal := float32(-1e38)
 					maxPos := 0
 
-					for kh := 0; kh < kernelSize; kh++ {
-						for kw := 0; kw < kernelSize; kw++ {
+					for kh := range kernelSize {
+						for kw := range kernelSize {
 							h := hStart + kh
 							w := wStart + kw
 
@@ -143,10 +143,10 @@ func computeMaxIndicesFloat64(maxIndices []int, input *tensor.RawTensor, dims *t
 	stride := dims.Stride
 
 	outIdx := 0
-	for n := 0; n < N; n++ {
-		for c := 0; c < C; c++ {
-			for outH := 0; outH < HOut; outH++ {
-				for outW := 0; outW < WOut; outW++ {
+	for n := range N {
+		for c := range C {
+			for outH := range HOut {
+				for outW := range WOut {
 					hStart := outH * stride
 					wStart := outW * stride
 
@@ -154,8 +154,8 @@ func computeMaxIndicesFloat64(maxIndices []int, input *tensor.RawTensor, dims *t
 					maxVal := float64(-1e308)
 					maxPos := 0
 
-					for kh := 0; kh < kernelSize; kh++ {
-						for kw := 0; kw < kernelSize; kw++ {
+					for kh := range kernelSize {
+						for kw := range kernelSize {
 							h := hStart + kh
 							w := wStart + kw
 

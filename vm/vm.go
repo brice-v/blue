@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -114,10 +115,7 @@ func (vm *VM) growFramesIfNeeded() {
 	if vm.framesIndex < len(vm.frames) || len(vm.frames) >= MaxFrames {
 		return
 	}
-	newSize := len(vm.frames) * 2
-	if newSize > MaxFrames {
-		newSize = MaxFrames
-	}
+	newSize := min(len(vm.frames)*2, MaxFrames)
 	newFrames := make([]Frame, newSize)
 	copy(newFrames, vm.frames[:vm.framesIndex])
 	vm.frames = newFrames
@@ -666,8 +664,8 @@ func (vm *VM) Run() error {
 				// clobber poppedFrame.deferFuns mid-iteration.
 				deferFuns := poppedFrame.deferFuns
 				poppedFrame.deferFuns = nil
-				for i := len(deferFuns) - 1; i >= 0; i-- {
-					err := vm.callClosure(deferFuns[i], 0)
+				for _, deferFun := range slices.Backward(deferFuns) {
+					err := vm.callClosure(deferFun, 0)
 					if err != nil {
 						err = vm.PushAndReturnError(err)
 						if err != nil {
@@ -709,8 +707,8 @@ func (vm *VM) Run() error {
 				// clobber poppedFrame.deferFuns mid-iteration.
 				deferFuns := poppedFrame.deferFuns
 				poppedFrame.deferFuns = nil
-				for i := len(deferFuns) - 1; i >= 0; i-- {
-					err := vm.callClosure(deferFuns[i], 0)
+				for _, deferFun := range slices.Backward(deferFuns) {
+					err := vm.callClosure(deferFun, 0)
 					if err != nil {
 						err = vm.PushAndReturnError(err)
 						if err != nil {

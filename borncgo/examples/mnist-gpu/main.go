@@ -249,7 +249,7 @@ func addBias(backend *cpu.Backend, x, bias *tensor.RawTensor) *tensor.RawTensor 
 	broadcastBias, _ := tensor.NewRaw(tensor.Shape{batchSize, features}, tensor.Float32, tensor.CPU)
 	biasData := bias.AsFloat32()
 	broadcastData := broadcastBias.AsFloat32()
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		copy(broadcastData[i*features:(i+1)*features], biasData)
 	}
 
@@ -266,7 +266,7 @@ func addBiasGPU(backend *webgpu.Backend, x, bias *tensor.RawTensor) *tensor.RawT
 	broadcastBias, _ := tensor.NewRaw(tensor.Shape{batchSize, features}, tensor.Float32, tensor.WebGPU)
 	biasData := bias.AsFloat32()
 	broadcastData := broadcastBias.AsFloat32()
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		copy(broadcastData[i*features:(i+1)*features], biasData)
 	}
 

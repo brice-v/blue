@@ -60,7 +60,7 @@ func TestMaxPool2D_ForwardValues(t *testing.T) {
 	// Input: [1, 1, 4, 4] with sequential values 1-16
 	input := tensor.Zeros[float32](tensor.Shape{1, 1, 4, 4}, backend)
 	inputData := input.Raw().AsFloat32()
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		inputData[i] = float32(i + 1)
 	}
 

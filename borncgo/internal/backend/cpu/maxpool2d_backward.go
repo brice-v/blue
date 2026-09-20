@@ -93,10 +93,10 @@ func maxPool2DBackwardFloat32(
 
 	// Route gradients
 	outIdx := 0
-	for n := 0; n < N; n++ {
-		for c := 0; c < C; c++ {
-			for outH := 0; outH < HOut; outH++ {
-				for outW := 0; outW < WOut; outW++ {
+	for n := range N {
+		for c := range C {
+			for outH := range HOut {
+				for outW := range WOut {
 					// Get max position from forward pass
 					maxPos := maxIndices[outIdx]
 
@@ -133,10 +133,10 @@ func maxPool2DBackwardFloat64(
 	}
 
 	outIdx := 0
-	for n := 0; n < N; n++ {
-		for c := 0; c < C; c++ {
-			for outH := 0; outH < HOut; outH++ {
-				for outW := 0; outW < WOut; outW++ {
+	for n := range N {
+		for c := range C {
+			for outH := range HOut {
+				for outW := range WOut {
 					maxPos := maxIndices[outIdx]
 
 					gradIdx := n*C*HOut*WOut + c*HOut*WOut + outH*WOut + outW

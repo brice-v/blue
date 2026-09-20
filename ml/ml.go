@@ -176,6 +176,12 @@ type Tensor struct {
 	dtype        DType
 	device       Device
 
+	// retainGrad keeps a non-leaf tensor's gradient after Backward, matching
+	// torch.Tensor.retain_grad. hooks run during Backward, matching
+	// torch.Tensor.register_hook.
+	retainGrad bool
+	hooks      []func(*Tensor) *Tensor
+
 	// viewStrides lets view ops (transpose/permute) report PyTorch-style strides
 	// even though borncgo materializes the data behind them. nil means "use the
 	// raw strides". See Strides and Offset for the materialization caveat.
@@ -205,6 +211,7 @@ func (t *Tensor) Backend() tensor.Backend { return t.be }
 
 // WrapRaw wraps a raw tensor produced by a known backend.
 func WrapRaw(be tensor.Backend, raw *tensor.RawTensor) *Tensor { return wrapRaw(be, raw) }
+
 // Strides reports the tensor's strides. View ops (transpose/permute) record
 // PyTorch-style strides in viewStrides, because borncgo materializes the data
 // behind them; the reported layout matches what a PyTorch user expects even
@@ -219,7 +226,7 @@ func (t *Tensor) Strides() []int {
 // Offset is always 0. borncgo materializes view ops, so every blue tensor owns
 // a buffer whose first element is index 0. PyTorch reports a nonzero offset for
 // some views; blue never creates those views.
-func (t *Tensor) Offset() int { return 0 }
+func (t *Tensor) Offset() int    { return 0 }
 func (t *Tensor) DType() DType   { return t.dtype }
 func (t *Tensor) Device() Device { return t.device }
 func (t *Tensor) Numel() int     { return t.t.NumElements() }
@@ -227,11 +234,11 @@ func (t *Tensor) Numel() int     { return t.t.NumElements() }
 func (t *Tensor) IsContiguous() bool {
 	s, st := t.Shape(), t.Strides()
 	acc := 1
-	for i := len(s) - 1; i >= 0; i-- {
-		if s[i] != 1 && st[i] != acc {
+	for i, v := range slices.Backward(s) {
+		if v != 1 && st[i] != acc {
 			return false
 		}
-		acc *= s[i]
+		acc *= v
 	}
 	return true
 }
@@ -246,6 +253,9 @@ func (t *Tensor) String() string {
 // 0/1/values so the object layer can read every dtype the same way.
 func (t *Tensor) ContiguousData() []float32 {
 	raw := t.t.Raw()
+	if !t.isRawContiguous() {
+		return t.stridedData()
+	}
 	switch raw.DType() {
 	case tensor.Bool:
 		b := raw.AsBool()
@@ -359,6 +369,47 @@ func liveLeaves() []*Tensor {
 	return out
 }
 
+// retained holds a weak reference to tensors that asked for a non-leaf gradient
+// (RetainGrad) or registered a hook, so Backward can find them after the graph
+// walk. Like tracked, it does not keep tensors alive.
+var (
+	retainedMu sync.Mutex
+	retained   = map[weak.Pointer[Tensor]]struct{}{}
+)
+
+func liveRetained() []*Tensor {
+	retainedMu.Lock()
+	defer retainedMu.Unlock()
+	out := make([]*Tensor, 0, len(retained))
+	for wp := range retained {
+		if t := wp.Value(); t != nil {
+			out = append(out, t)
+		} else {
+			delete(retained, wp)
+		}
+	}
+	return out
+}
+
+// RetainGrad keeps this tensor's gradient after Backward even though it is not a
+// leaf, matching torch.Tensor.retain_grad.
+func (t *Tensor) RetainGrad() {
+	t.retainGrad = true
+	retainedMu.Lock()
+	retained[weak.Make(t)] = struct{}{}
+	retainedMu.Unlock()
+}
+
+// RegisterHook adds a function that Backward calls with this tensor's gradient.
+// The value a hook returns replaces the gradient passed to the next hook,
+// matching torch.Tensor.register_hook.
+func (t *Tensor) RegisterHook(fn func(grad *Tensor) *Tensor) {
+	t.hooks = append(t.hooks, fn)
+	retainedMu.Lock()
+	retained[weak.Make(t)] = struct{}{}
+	retainedMu.Unlock()
+}
+
 // Backward runs reverse-mode autodiff on borncgo's tape and stores the leaf
 // gradients on the tensors.
 //
@@ -372,7 +423,7 @@ func liveLeaves() []*Tensor {
 // models on the same backend still share the most recent backward, which is the
 // single-graph-at-a-time model blue documents.
 var (
-	lastGradsMu       sync.Mutex
+	lastGradsMu        sync.Mutex
 	lastGradsByBackend = map[tensor.Backend]map[*tensor.RawTensor]*tensor.RawTensor{}
 )
 
@@ -436,22 +487,75 @@ func (t *Tensor) Backward() error {
 		}
 	}()
 
-	for _, tt := range liveLeaves() {
-		if !tt.requiresGrad {
-			continue
+	// Attach gradients to leaves and to retained non-leaves, and run hooks.
+	processed := map[*Tensor]bool{}
+	attach := func(tt *Tensor) {
+		if processed[tt] {
+			return
 		}
+		processed[tt] = true
 		g, ok := grads[tt.t.Raw()]
 		if !ok || g == nil {
-			continue
+			return
 		}
 		gt := wrapRaw(be, g)
-		if tt.grad == nil {
-			tt.grad = gt
-		} else {
-			tt.grad = wrapRaw(be, be.Add(tt.grad.t.Raw(), gt.t.Raw()))
+		if tt.requiresGrad || tt.retainGrad {
+			if tt.grad == nil {
+				tt.grad = gt
+			} else {
+				tt.grad = wrapRaw(be, be.Add(tt.grad.t.Raw(), gt.t.Raw()))
+			}
+		}
+		for _, h := range tt.hooks {
+			gt = h(gt)
 		}
 	}
+	for _, tt := range liveLeaves() {
+		attach(tt)
+	}
+	for _, tt := range liveRetained() {
+		attach(tt)
+	}
 	return nil
+}
+
+// AutogradGrad computes the gradients of a scalar output with respect to the
+// given inputs and returns them without storing anything on the inputs,
+// matching torch.autograd.grad. The tape is left intact, so a later Backward
+// still works. An input that is not part of the graph gets a nil entry.
+func AutogradGrad(output *Tensor, inputs []*Tensor) ([]*Tensor, error) {
+	if output.Numel() != 1 {
+		return nil, fmt.Errorf("autograd_grad: output must be a scalar, got shape %v", output.Shape())
+	}
+	be := output.be
+	tp := tapeOf(be)
+	if tp == nil {
+		return nil, fmt.Errorf("autograd_grad: no tape for device %s", output.Device())
+	}
+	if tp.NumOps() == 0 {
+		return nil, fmt.Errorf("autograd_grad: output is not part of a graph")
+	}
+	one := tensor.Ones[float32](tensor.Shape(output.Shape()), be)
+	var grads map[*tensor.RawTensor]*tensor.RawTensor
+	err := func() (e error) {
+		defer func() {
+			if r := recover(); r != nil {
+				e = fmt.Errorf("%v", r)
+			}
+		}()
+		grads = tp.BackwardFrom(output.t.Raw(), one.Raw(), be)
+		return nil
+	}()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*Tensor, len(inputs))
+	for i, in := range inputs {
+		if g, ok := grads[in.t.Raw()]; ok && g != nil {
+			out[i] = wrapRaw(be, g)
+		}
+	}
+	return out, nil
 }
 
 // SetGradEnabled turns tape recording on or off and returns the previous value,
@@ -541,7 +645,17 @@ func (t *Tensor) To(device Device) (*Tensor, error) {
 	if t.device == device {
 		return t, nil
 	}
-	return NewTensor(t.ContiguousData(), t.Shape(), t.dtype, device)
+	out, err := NewTensor(t.ContiguousData(), t.Shape(), t.dtype, device)
+	if err != nil {
+		return nil, err
+	}
+	// A device move is a host copy, so the graph is not carried across devices
+	// (the engine has no cross-device autodiff). The tracking flag is preserved
+	// so the moved tensor can start a new graph.
+	if t.requiresGrad {
+		out.SetRequiresGrad(true)
+	}
+	return out, nil
 }
 
 // Cast returns a tensor with a different dtype on the same device, matching
@@ -596,6 +710,7 @@ func descendingDims(dims []int) []int {
 // asFloat casts a non-float tensor (bool masks, int indices) to float32 so it
 // can take part in arithmetic and reductions.
 func asFloat(a *Tensor) *Tensor {
+	a = a.contig()
 	if a.dtype == Float32 {
 		return a
 	}

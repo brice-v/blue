@@ -59,12 +59,12 @@ func depthwise3x3Stride1AVX2(out, in, weight []float32, n, c, hp, wp, hOut, wOut
 		w0, w1, w2 := wch[0], wch[1], wch[2]
 		w3, w4, w5 := wch[3], wch[4], wch[5]
 		w6, w7, w8 := wch[6], wch[7], wch[8]
-		for oh := 0; oh < hOut; oh++ {
+		for oh := range hOut {
 			r0 := inBase + oh*wp
 			r1 := r0 + wp
 			r2 := r1 + wp
 			outRow := outBase + oh*wOut
-			for ow := 0; ow < wOut; ow++ {
+			for ow := range wOut {
 				out[outRow+ow] = in[r0+ow]*w0 + in[r0+ow+1]*w1 + in[r0+ow+2]*w2 +
 					in[r1+ow]*w3 + in[r1+ow+1]*w4 + in[r1+ow+2]*w5 +
 					in[r2+ow]*w6 + in[r2+ow+1]*w7 + in[r2+ow+2]*w8

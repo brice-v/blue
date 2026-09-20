@@ -438,10 +438,10 @@ func (m *Model[B]) cpuLMHead(hidden *tensor.Tensor[float32, B], seqLen int) *ten
 	lastRow := hData[(seqLen-1)*hs : seqLen*hs]
 
 	logits := make([]float32, vocab)
-	for j := 0; j < vocab; j++ {
+	for j := range vocab {
 		var sum float32
 		wOff := j * hs
-		for k := 0; k < hs; k++ {
+		for k := range hs {
 			sum += lastRow[k] * m.cpuLMHeadData[wOff+k]
 		}
 		logits[j] = sum

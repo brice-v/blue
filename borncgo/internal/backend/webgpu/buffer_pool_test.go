@@ -349,7 +349,7 @@ func TestBufferPoolIntegration(t *testing.T) {
 	}
 
 	// Phase 2: Release half of them
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		pool.Release(buffers[i], sizes[i], usage)
 	}
 
@@ -361,7 +361,7 @@ func TestBufferPoolIntegration(t *testing.T) {
 	// Phase 3: Acquire some more (should hit pool)
 	initialHits := stats.PoolHits
 	acquiredBufs := make([]*wgpu.Buffer, 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		acquiredBufs[i] = pool.Acquire(sizes[i], usage)
 	}
 

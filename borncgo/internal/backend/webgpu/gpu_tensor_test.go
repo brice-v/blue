@@ -120,7 +120,7 @@ func TestGPUTensorItem(t *testing.T) {
 	tests := []struct {
 		name     string
 		dtype    tensor.DataType
-		setValue interface{}
+		setValue any
 		want     float32
 	}{
 		{"Float32", tensor.Float32, float32(42.5), 42.5},

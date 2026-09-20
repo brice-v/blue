@@ -80,7 +80,7 @@ func LoadMNISTCSV(filename string, maxSamples int) (*MNISTData, error) {
 
 		// Parse pixels and normalize to [0, 1]
 		images[i] = make([]float32, 784)
-		for j := 0; j < 784; j++ {
+		for j := range 784 {
 			pixel, err := strconv.Atoi(record[j+1])
 			if err != nil {
 				return nil, fmt.Errorf("invalid pixel at row %d, column %d: %w", i+1, j+1, err)
@@ -152,7 +152,7 @@ func LoadMNIST(dataDir string, train bool, maxSamples int) (*MNISTData, error) {
 	for i := 0; i < numSamples; i++ {
 		// Convert image bytes to float32 and normalize to [0, 1]
 		images[i] = make([]float32, 784)
-		for j := 0; j < 784; j++ {
+		for j := range 784 {
 			// Each pixel is 0-255, normalize to [0, 1]
 			images[i][j] = float32(imagesRaw[i][j]) / 255.0
 		}
@@ -179,7 +179,7 @@ func CreateEmbeddedMNIST() *MNISTData {
 	labels := make([]int32, numSamples)
 
 	// Create simple synthetic patterns for each digit
-	for i := 0; i < numSamples; i++ {
+	for i := range numSamples {
 		images[i] = make([]float32, 784)
 		labels[i] = int32(i) // digit 0-9
 
@@ -240,10 +240,9 @@ func CreateBatches[B tensor.Backend](
 	if shuffle {
 		// Simple Fisher-Yates shuffle
 		for i := numSamples - 1; i > 0; i-- {
-			j := int(float32(i+1) * float32(len(indices)) / float32(len(indices))) // deterministic for now
-			if j > i {
-				j = i
-			}
+			j := min(
+				// deterministic for now
+				int(float32(i+1)*float32(len(indices))/float32(len(indices))), i)
 			indices[i], indices[j] = indices[j], indices[i]
 		}
 	}
@@ -253,10 +252,7 @@ func CreateBatches[B tensor.Backend](
 	batches := make([]*Batch[B], 0, numBatches)
 
 	for i := 0; i < numSamples; i += batchSize {
-		end := i + batchSize
-		if end > numSamples {
-			end = numSamples
-		}
+		end := min(i+batchSize, numSamples)
 		currentBatchSize := end - i
 
 		// Allocate batch tensors

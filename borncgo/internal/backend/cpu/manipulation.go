@@ -48,7 +48,7 @@ func (cpu *CPUBackend) Cat(tensors []*tensor.RawTensor, dim int) *tensor.RawTens
 		}
 
 		// Check all dimensions except concat dim match
-		for d := 0; d < ndim; d++ {
+		for d := range ndim {
 			if d == dim {
 				totalDim += tShape[d]
 			} else if tShape[d] != shape[d] {
@@ -129,7 +129,7 @@ func (cpu *CPUBackend) Chunk(x *tensor.RawTensor, n, dim int) []*tensor.RawTenso
 
 	// Create result tensors
 	results := make([]*tensor.RawTensor, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		chunk, err := tensor.NewRaw(chunkShape, x.DType(), cpu.device)
 		if err != nil {
 			panic(fmt.Sprintf("chunk: %v", err))
@@ -226,7 +226,7 @@ func (cpu *CPUBackend) Squeeze(x *tensor.RawTensor, dim int) *tensor.RawTensor {
 
 	// Create new shape without the squeezed dimension
 	newShape := make(tensor.Shape, 0, ndim-1)
-	for i := 0; i < ndim; i++ {
+	for i := range ndim {
 		if i != dim {
 			newShape = append(newShape, shape[i])
 		}
@@ -245,7 +245,7 @@ func innerOuter(shape tensor.Shape, dim int) (inner, outer int) {
 	for d := dim + 1; d < len(shape); d++ {
 		inner *= shape[d]
 	}
-	for d := 0; d < dim; d++ {
+	for d := range dim {
 		outer *= shape[d]
 	}
 	return inner, outer
@@ -263,7 +263,7 @@ func catFloat32(tensors []*tensor.RawTensor, result *tensor.RawTensor, dim int) 
 	for _, t := range tensors {
 		data := t.AsFloat32()
 		block := t.Shape()[dim] * inner
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			d := o*outDimStride + offset*inner
 			copy(outData[d:d+block], data[o*block:o*block+block])
 		}
@@ -282,7 +282,7 @@ func catFloat64(tensors []*tensor.RawTensor, result *tensor.RawTensor, dim int) 
 	for _, t := range tensors {
 		data := t.AsFloat64()
 		block := t.Shape()[dim] * inner
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			d := o*outDimStride + offset*inner
 			copy(outData[d:d+block], data[o*block:o*block+block])
 		}
@@ -301,7 +301,7 @@ func catInt32(tensors []*tensor.RawTensor, result *tensor.RawTensor, dim int) {
 	for _, t := range tensors {
 		data := t.AsInt32()
 		block := t.Shape()[dim] * inner
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			d := o*outDimStride + offset*inner
 			copy(outData[d:d+block], data[o*block:o*block+block])
 		}
@@ -320,7 +320,7 @@ func catInt64(tensors []*tensor.RawTensor, result *tensor.RawTensor, dim int) {
 	for _, t := range tensors {
 		data := t.AsInt64()
 		block := t.Shape()[dim] * inner
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			d := o*outDimStride + offset*inner
 			copy(outData[d:d+block], data[o*block:o*block+block])
 		}
@@ -339,7 +339,7 @@ func catUint8(tensors []*tensor.RawTensor, result *tensor.RawTensor, dim int) {
 	for _, t := range tensors {
 		data := t.AsUint8()
 		block := t.Shape()[dim] * inner
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			d := o*outDimStride + offset*inner
 			copy(outData[d:d+block], data[o*block:o*block+block])
 		}
@@ -358,7 +358,7 @@ func catBool(tensors []*tensor.RawTensor, result *tensor.RawTensor, dim int) {
 	for _, t := range tensors {
 		data := t.AsBool()
 		block := t.Shape()[dim] * inner
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			d := o*outDimStride + offset*inner
 			copy(outData[d:d+block], data[o*block:o*block+block])
 		}
@@ -378,7 +378,7 @@ func chunkFloat32(x *tensor.RawTensor, results []*tensor.RawTensor, dim int) {
 		out := results[ci].AsFloat32()
 		block := results[ci].Shape()[dim] * inner
 		srcBase := ci * block
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			s := o*srcDimStride + srcBase
 			copy(out[o*block:o*block+block], data[s:s+block])
 		}
@@ -395,7 +395,7 @@ func chunkFloat64(x *tensor.RawTensor, results []*tensor.RawTensor, dim int) {
 		out := results[ci].AsFloat64()
 		block := results[ci].Shape()[dim] * inner
 		srcBase := ci * block
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			s := o*srcDimStride + srcBase
 			copy(out[o*block:o*block+block], data[s:s+block])
 		}
@@ -412,7 +412,7 @@ func chunkInt32(x *tensor.RawTensor, results []*tensor.RawTensor, dim int) {
 		out := results[ci].AsInt32()
 		block := results[ci].Shape()[dim] * inner
 		srcBase := ci * block
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			s := o*srcDimStride + srcBase
 			copy(out[o*block:o*block+block], data[s:s+block])
 		}
@@ -429,7 +429,7 @@ func chunkInt64(x *tensor.RawTensor, results []*tensor.RawTensor, dim int) {
 		out := results[ci].AsInt64()
 		block := results[ci].Shape()[dim] * inner
 		srcBase := ci * block
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			s := o*srcDimStride + srcBase
 			copy(out[o*block:o*block+block], data[s:s+block])
 		}
@@ -446,7 +446,7 @@ func chunkUint8(x *tensor.RawTensor, results []*tensor.RawTensor, dim int) {
 		out := results[ci].AsUint8()
 		block := results[ci].Shape()[dim] * inner
 		srcBase := ci * block
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			s := o*srcDimStride + srcBase
 			copy(out[o*block:o*block+block], data[s:s+block])
 		}
@@ -463,7 +463,7 @@ func chunkBool(x *tensor.RawTensor, results []*tensor.RawTensor, dim int) {
 		out := results[ci].AsBool()
 		block := results[ci].Shape()[dim] * inner
 		srcBase := ci * block
-		for o := 0; o < outer; o++ {
+		for o := range outer {
 			s := o*srcDimStride + srcBase
 			copy(out[o*block:o*block+block], data[s:s+block])
 		}

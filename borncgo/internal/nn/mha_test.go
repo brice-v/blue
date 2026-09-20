@@ -218,11 +218,11 @@ func TestMultiHeadAttention_ForwardWithWeights(t *testing.T) {
 
 	// Attention weights should sum to 1.0 along last dimension
 	weightsData := weights.Data()
-	for b := 0; b < batch; b++ {
-		for h := 0; h < numHeads; h++ {
-			for q := 0; q < seq; q++ {
+	for b := range batch {
+		for h := range numHeads {
+			for q := range seq {
 				sum := float32(0.0)
-				for k := 0; k < seq; k++ {
+				for k := range seq {
 					// Index: [b, h, q, k]
 					idx := b*numHeads*seq*seq + h*seq*seq + q*seq + k
 					sum += weightsData[idx]

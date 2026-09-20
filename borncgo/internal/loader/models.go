@@ -2,6 +2,7 @@ package loader
 
 import (
 	"fmt"
+	"maps"
 	"path/filepath"
 	"strings"
 
@@ -43,7 +44,7 @@ type ModelReader interface {
 	Architecture() string
 
 	// Metadata returns model metadata.
-	Metadata() map[string]interface{}
+	Metadata() map[string]any
 
 	// TensorNames returns all tensor names in the model.
 	TensorNames() []string
@@ -73,8 +74,8 @@ func (m *safeTensorsModel) Architecture() string {
 }
 
 // Metadata returns model metadata.
-func (m *safeTensorsModel) Metadata() map[string]interface{} {
-	result := make(map[string]interface{})
+func (m *safeTensorsModel) Metadata() map[string]any {
+	result := make(map[string]any)
 	for k, v := range m.reader.Metadata() {
 		result[k] = v
 	}
@@ -121,11 +122,9 @@ func (m *ggufModel) Architecture() string {
 }
 
 // Metadata returns model metadata.
-func (m *ggufModel) Metadata() map[string]interface{} {
-	result := make(map[string]interface{})
-	for k, v := range m.reader.Metadata() {
-		result[k] = v
-	}
+func (m *ggufModel) Metadata() map[string]any {
+	result := make(map[string]any)
+	maps.Copy(result, m.reader.Metadata())
 	return result
 }
 

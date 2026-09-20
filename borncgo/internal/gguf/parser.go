@@ -52,7 +52,7 @@ type parser struct {
 
 func (p *parser) parse() (*File, error) {
 	file := &File{
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 		Alignment: DefaultAlignment,
 	}
 
@@ -162,7 +162,7 @@ func (p *parser) parseMetadataKV() (*MetadataKV, error) {
 }
 
 // parseValue reads a metadata value of the given type.
-func (p *parser) parseValue(t ValueType) (interface{}, error) {
+func (p *parser) parseValue(t ValueType) (any, error) {
 	// Handle special cases first.
 	switch t {
 	case ValueTypeBool:
@@ -184,7 +184,7 @@ func (p *parser) parseValue(t ValueType) (interface{}, error) {
 }
 
 // parseNumericValue reads a numeric metadata value.
-func (p *parser) parseNumericValue(t ValueType) (interface{}, error) {
+func (p *parser) parseNumericValue(t ValueType) (any, error) {
 	switch t {
 	case ValueTypeUint8:
 		var v uint8
@@ -241,7 +241,7 @@ func (p *parser) parseNumericValue(t ValueType) (interface{}, error) {
 	}
 }
 
-func (p *parser) parseArray() (interface{}, error) {
+func (p *parser) parseArray() (any, error) {
 	// Read element type.
 	var elemType uint32
 	if err := binary.Read(p.r, p.order, &elemType); err != nil {
@@ -266,7 +266,7 @@ func (p *parser) parseArray() (interface{}, error) {
 }
 
 // parseArrayOfType parses an array of the given element type.
-func (p *parser) parseArrayOfType(vt ValueType, length uint64) (interface{}, error) {
+func (p *parser) parseArrayOfType(vt ValueType, length uint64) (any, error) {
 	switch vt {
 	case ValueTypeUint8:
 		return p.readUint8Array(length)
@@ -299,7 +299,7 @@ func (p *parser) parseArrayOfType(vt ValueType, length uint64) (interface{}, err
 
 func (p *parser) readUint8Array(length uint64) ([]uint8, error) {
 	arr := make([]uint8, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -309,7 +309,7 @@ func (p *parser) readUint8Array(length uint64) ([]uint8, error) {
 
 func (p *parser) readInt8Array(length uint64) ([]int8, error) {
 	arr := make([]int8, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -319,7 +319,7 @@ func (p *parser) readInt8Array(length uint64) ([]int8, error) {
 
 func (p *parser) readUint16Array(length uint64) ([]uint16, error) {
 	arr := make([]uint16, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -329,7 +329,7 @@ func (p *parser) readUint16Array(length uint64) ([]uint16, error) {
 
 func (p *parser) readInt16Array(length uint64) ([]int16, error) {
 	arr := make([]int16, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -339,7 +339,7 @@ func (p *parser) readInt16Array(length uint64) ([]int16, error) {
 
 func (p *parser) readUint32Array(length uint64) ([]uint32, error) {
 	arr := make([]uint32, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -349,7 +349,7 @@ func (p *parser) readUint32Array(length uint64) ([]uint32, error) {
 
 func (p *parser) readInt32Array(length uint64) ([]int32, error) {
 	arr := make([]int32, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -359,7 +359,7 @@ func (p *parser) readInt32Array(length uint64) ([]int32, error) {
 
 func (p *parser) readFloat32Array(length uint64) ([]float32, error) {
 	arr := make([]float32, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -369,7 +369,7 @@ func (p *parser) readFloat32Array(length uint64) ([]float32, error) {
 
 func (p *parser) readUint64Array(length uint64) ([]uint64, error) {
 	arr := make([]uint64, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -379,7 +379,7 @@ func (p *parser) readUint64Array(length uint64) ([]uint64, error) {
 
 func (p *parser) readInt64Array(length uint64) ([]int64, error) {
 	arr := make([]int64, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -389,7 +389,7 @@ func (p *parser) readInt64Array(length uint64) ([]int64, error) {
 
 func (p *parser) readFloat64Array(length uint64) ([]float64, error) {
 	arr := make([]float64, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		if err := binary.Read(p.r, p.order, &arr[i]); err != nil {
 			return nil, err
 		}
@@ -399,7 +399,7 @@ func (p *parser) readFloat64Array(length uint64) ([]float64, error) {
 
 func (p *parser) readBoolArray(length uint64) ([]bool, error) {
 	arr := make([]bool, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		var v uint8
 		if err := binary.Read(p.r, p.order, &v); err != nil {
 			return nil, err
@@ -411,7 +411,7 @@ func (p *parser) readBoolArray(length uint64) ([]bool, error) {
 
 func (p *parser) readStringArray(length uint64) ([]string, error) {
 	arr := make([]string, length)
-	for i := uint64(0); i < length; i++ {
+	for i := range length {
 		s, err := readString(p.r, p.order)
 		if err != nil {
 			return nil, err

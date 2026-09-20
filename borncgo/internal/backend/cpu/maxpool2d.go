@@ -109,18 +109,18 @@ func maxpool2dFloat32(output, input *tensor.RawTensor, dims *PoolDims) {
 	stride := dims.Stride
 
 	// For each batch
-	for n := 0; n < N; n++ {
+	for n := range N {
 		// For each channel
-		for c := 0; c < C; c++ {
+		for c := range C {
 			// Pre-slice channel plane: eliminates (n*C+c)*H*W bounds check
 			channelOffset := (n*C + c) * H * W
 			channelData := inputData[channelOffset : channelOffset+H*W]
 
 			// For each output position
-			for outH := 0; outH < HOut; outH++ {
+			for outH := range HOut {
 				hStart := outH * stride
 
-				for outW := 0; outW < WOut; outW++ {
+				for outW := range WOut {
 					wStart := outW * stride
 
 					// Find max value in pooling window via helper.
@@ -147,18 +147,18 @@ func maxpool2dFloat64(output, input *tensor.RawTensor, dims *PoolDims) {
 	stride := dims.Stride
 
 	// For each batch
-	for n := 0; n < N; n++ {
+	for n := range N {
 		// For each channel
-		for c := 0; c < C; c++ {
+		for c := range C {
 			// Pre-slice channel plane: eliminates (n*C+c)*H*W bounds check
 			channelOffset := (n*C + c) * H * W
 			channelData := inputData[channelOffset : channelOffset+H*W]
 
 			// For each output position
-			for outH := 0; outH < HOut; outH++ {
+			for outH := range HOut {
 				hStart := outH * stride
 
-				for outW := 0; outW < WOut; outW++ {
+				for outW := range WOut {
 					wStart := outW * stride
 
 					// Find max value in pooling window via helper.

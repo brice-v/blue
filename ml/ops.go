@@ -40,6 +40,7 @@ func promoteDType(a, b DType) (DType, error) {
 // promote casts both operands to their common dtype so mixed-type arithmetic
 // and comparisons work the way PyTorch's promotion does.
 func promote(a, b *Tensor) (*Tensor, *Tensor, error) {
+	a, b = a.contig(), b.contig()
 	d, err := promoteDType(a.dtype, b.dtype)
 	if err != nil {
 		return nil, nil, err
@@ -169,7 +170,7 @@ func powInt(a *Tensor, n int) *Tensor {
 	return wrap(out)
 }
 
-func Neg(a *Tensor) (*Tensor, error) { return wrap(a.t.MulScalar(float32(-1))), nil }
+func Neg(a *Tensor) (*Tensor, error) { return wrap(a.contig().t.MulScalar(float32(-1))), nil }
 
 // In-place ops compute the result and copy it into a's buffer, keeping the
 // tensor's identity (PyTorch in-place semantics). They are not tape-aware.
@@ -194,16 +195,25 @@ func copyInto(a *Tensor, f func(a, b *Tensor) (*Tensor, error), b *Tensor) error
 
 // Unary math and activations.
 
-func Exp(a *Tensor) (*Tensor, error)  { return wrap(a.t.Exp()), nil }
-func Log(a *Tensor) (*Tensor, error)  { return wrap(a.t.Log()), nil }
-func Sqrt(a *Tensor) (*Tensor, error) { return wrap(a.t.Sqrt()), nil }
-func Abs(a *Tensor) (*Tensor, error)  { return wrap(a.t.Abs()), nil }
+func Exp(a *Tensor) (*Tensor, error)  { return wrap(a.contig().t.Exp()), nil }
+func Log(a *Tensor) (*Tensor, error)  { return wrap(a.contig().t.Log()), nil }
+func Sqrt(a *Tensor) (*Tensor, error) { return wrap(a.contig().t.Sqrt()), nil }
+func Abs(a *Tensor) (*Tensor, error)  { return wrap(a.contig().t.Abs()), nil }
 
-func Relu(a *Tensor) (*Tensor, error)    { return wrapRaw(a.be, a.be.ReLU(a.t.Raw())), nil }
-func Sigmoid(a *Tensor) (*Tensor, error) { return wrapRaw(a.be, a.be.Sigmoid(a.t.Raw())), nil }
-func Tanh(a *Tensor) (*Tensor, error)    { return wrapRaw(a.be, a.be.Tanh(a.t.Raw())), nil }
+func Relu(a *Tensor) (*Tensor, error) {
+	a = a.contig()
+	return wrapRaw(a.be, a.be.ReLU(a.t.Raw())), nil
+}
+func Sigmoid(a *Tensor) (*Tensor, error) {
+	a = a.contig()
+	return wrapRaw(a.be, a.be.Sigmoid(a.t.Raw())), nil
+}
+func Tanh(a *Tensor) (*Tensor, error) {
+	a = a.contig()
+	return wrapRaw(a.be, a.be.Tanh(a.t.Raw())), nil
+}
 
-func Softmax(a *Tensor, dim int) (*Tensor, error) { return wrap(a.t.Softmax(dim)), nil }
+func Softmax(a *Tensor, dim int) (*Tensor, error) { return wrap(a.contig().t.Softmax(dim)), nil }
 
 // Comparisons promote to a common dtype, then return borncgo bool tensors, so
 // blue reports dtype "bool" and to_list yields booleans, matching PyTorch.
@@ -350,17 +360,26 @@ func extremumDim(a *Tensor, dim int, keepdim bool, better func(v, best float32) 
 // ArgMax/ArgMin return int32 index tensors, matching PyTorch (which returns
 // int64; blue's index dtype is int32).
 func ArgMax(a *Tensor, dim int) (*Tensor, error) {
+	a = a.contig()
 	return wrapRaw(a.be, a.t.Argmax(dim).Raw()), nil
 }
 
 func ArgMin(a *Tensor, dim int) (*Tensor, error) {
+	a = a.contig()
 	n := a.t.MulScalar(float32(-1))
 	return wrapRaw(a.be, n.Argmax(dim).Raw()), nil
 }
 
 // Shape ops.
 
-func Reshape(a *Tensor, shape ...int) (*Tensor, error) { return wrap(a.t.Reshape(shape...)), nil }
+func Reshape(a *Tensor, shape ...int) (*Tensor, error) {
+	if canView() && a.device == CPU {
+		if v, err := viewReshape(a, shape); err == nil {
+			return v, nil
+		}
+	}
+	return wrap(a.t.Reshape(shape...)), nil
+}
 
 func Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
 	n := len(a.Shape())
@@ -377,10 +396,15 @@ func Transpose(a *Tensor, dim0, dim1 int) (*Tensor, error) {
 		perm[i] = i
 	}
 	perm[d0], perm[d1] = perm[d1], perm[d0]
-	return permuted(a, perm), nil
+	return Permute(a, perm...)
 }
 
 func Permute(a *Tensor, perm ...int) (*Tensor, error) {
+	if canView() && a.device == CPU {
+		if v, err := viewPermute(a, perm); err == nil {
+			return v, nil
+		}
+	}
 	return permuted(a, perm), nil
 }
 
@@ -399,7 +423,14 @@ func permuted(a *Tensor, perm []int) *Tensor {
 
 func Flatten(a *Tensor) (*Tensor, error) { return wrap(a.t.Reshape(a.Numel())), nil }
 
-func Unsqueeze(a *Tensor, dim int) (*Tensor, error) { return wrap(a.t.Unsqueeze(dim)), nil }
+func Unsqueeze(a *Tensor, dim int) (*Tensor, error) {
+	if canView() && a.device == CPU {
+		if v, err := viewUnsqueeze(a, dim); err == nil {
+			return v, nil
+		}
+	}
+	return wrap(a.t.Unsqueeze(dim)), nil
+}
 
 // Squeeze drops size-1 dims. dims nil drops every size-1 dim.
 func Squeeze(a *Tensor, dims []int) (*Tensor, error) {
@@ -423,6 +454,11 @@ func Squeeze(a *Tensor, dims []int) (*Tensor, error) {
 			drop = append(drop, rd)
 		}
 	}
+	if canView() && a.device == CPU {
+		if v, err := viewSqueeze(a, drop); err == nil {
+			return v, nil
+		}
+	}
 	out := a
 	for _, d := range descendingDims(drop) {
 		out = wrap(out.t.Squeeze(d))
@@ -438,6 +474,7 @@ func BroadcastTo(a *Tensor, shape []int) (*Tensor, error) {
 // the index must have the same rank as the input and its shape is the output
 // shape, so the index is materialized over the full output.
 func gatherAlong(a *Tensor, d int, indices []int) (*Tensor, error) {
+	a = a.contig()
 	shape := a.Shape()
 	outShape := slices.Clone(shape)
 	outShape[d] = len(indices)
@@ -470,6 +507,11 @@ func gatherAlong(a *Tensor, d int, indices []int) (*Tensor, error) {
 // at start and stops before end, and end == -1 means "through index 0", which
 // is the usual full reverse.
 func Slice(a *Tensor, dim, start, end, step int) (*Tensor, error) {
+	if canView() && a.device == CPU {
+		if v, err := viewSlice(a, dim, start, end, step); err == nil {
+			return v, nil
+		}
+	}
 	shape := a.Shape()
 	d, err := normalizeDim(shape, dim)
 	if err != nil {
@@ -593,6 +635,7 @@ func MaskedSelect(a *Tensor, mask *Tensor) (*Tensor, error) {
 // Embedding looks up rows of weight by index, matching
 // torch.nn.functional.embedding. It is differentiable.
 func Embedding(weight, indices *Tensor) (*Tensor, error) {
+	weight, indices = weight.contig(), indices.contig()
 	it := indices.t.Raw()
 	if indices.dtype != Int32 {
 		it = weight.be.Cast(it, tensor.Int32)
@@ -611,9 +654,13 @@ func BMM(a, b *Tensor) (*Tensor, error) {
 }
 
 // Silu is the Sigmoid Linear Unit, x * sigmoid(x).
-func Silu(a *Tensor) (*Tensor, error) { return wrapRaw(a.be, a.be.SiLU(a.t.Raw())), nil }
+func Silu(a *Tensor) (*Tensor, error) {
+	a = a.contig()
+	return wrapRaw(a.be, a.be.SiLU(a.t.Raw())), nil
+}
 
 func Clamp(a *Tensor, lo, hi float32) (*Tensor, error) {
+	a = a.contig()
 	return wrapRaw(a.be, a.be.Clamp(a.t.Raw(), lo, hi)), nil
 }
 
@@ -635,6 +682,7 @@ func Cat(tensors []*Tensor, dim int) (*Tensor, error) {
 	dtype := tensors[0].dtype
 	raws := make([]*tensor.RawTensor, len(tensors))
 	for i, t := range tensors {
+		t = t.contig()
 		if t.be != be {
 			return nil, fmt.Errorf("cat: all tensors must be on the same device")
 		}
@@ -658,8 +706,8 @@ func Cat(tensors []*Tensor, dim int) (*Tensor, error) {
 	}
 	if dtype != tensors[0].dtype {
 		casted := make([]*tensor.RawTensor, len(tensors))
-		for i, t := range tensors {
-			casted[i] = be.Cast(t.t.Raw(), dtype)
+		for i := range tensors {
+			casted[i] = be.Cast(raws[i], dtype)
 		}
 		raws = casted
 	}
@@ -672,6 +720,7 @@ func Cat(tensors []*Tensor, dim int) (*Tensor, error) {
 // torch.gather: out[i][j] = input[i][index[i][j]] for dim=1. It is
 // differentiable, so it can be used inside models.
 func Gather(a *Tensor, dim int, index *Tensor) (*Tensor, error) {
+	a, index = a.contig(), index.contig()
 	shape := a.Shape()
 	d, err := normalizeDim(shape, dim)
 	if err != nil {
@@ -686,6 +735,7 @@ func Gather(a *Tensor, dim int, index *Tensor) (*Tensor, error) {
 }
 
 func Where(cond, a, b *Tensor) (*Tensor, error) {
+	cond, a, b = cond.contig(), a.contig(), b.contig()
 	// blue's condition may be a float 0/1 tensor (from ml.tensor) or a bool
 	// tensor (from a comparison); borncgo's Where needs a bool.
 	c := cond.t.Raw()

@@ -16,11 +16,11 @@ func naiveDepthwise(in, weight []float32, n, c, hp, wp, kh, kw, hOut, wOut, s in
 	out := make([]float32, n*c*hOut*wOut)
 	for plane := 0; plane < n*c; plane++ {
 		ci := plane % c
-		for oh := 0; oh < hOut; oh++ {
-			for ow := 0; ow < wOut; ow++ {
+		for oh := range hOut {
+			for ow := range wOut {
 				var sum float32
-				for r := 0; r < kh; r++ {
-					for q := 0; q < kw; q++ {
+				for r := range kh {
+					for q := range kw {
 						sum += in[(plane*hp+oh*s+r)*wp+ow*s+q] * weight[(ci*kh+r)*kw+q]
 					}
 				}

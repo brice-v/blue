@@ -168,6 +168,11 @@ func (t *Tensor) Get(property string) (Object, error) {
 		return t.noArgMethod("clone", func() Object {
 			return &Tensor{T: t.T.Clone()}
 		}), nil
+	case "retain_grad":
+		return t.noArgMethod("retain_grad", func() Object {
+			t.T.RetainGrad()
+			return NULL
+		}), nil
 	case "to":
 		return t.toMethod(), nil
 	case "cast":

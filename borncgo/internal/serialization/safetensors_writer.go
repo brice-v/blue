@@ -75,7 +75,7 @@ func (w *SafeTensorsWriter) WriteStateDict(stateDict map[string]*tensor.RawTenso
 	sort.Strings(tensorNames)
 
 	// Build header with tensor metadata
-	header := make(map[string]interface{})
+	header := make(map[string]any)
 
 	// Add metadata if provided
 	if len(metadata) > 0 {

@@ -136,7 +136,7 @@ func CausalMask[B tensor.Backend](seqLen int, backend B) *tensor.Tensor[float32,
 	negInf := float32(math.Inf(-1))
 	data := mask.Data()
 
-	for i := 0; i < seqLen; i++ {
+	for i := range seqLen {
 		for j := i + 1; j < seqLen; j++ {
 			// Index in flattened array: [0, 0, i, j]
 			// For shape [1, 1, seq_len, seq_len]:
@@ -186,15 +186,15 @@ func StandardAttention(
 	output := make([]float32, batch*seqLen*numHeads*headDim)
 
 	// Process each batch and head independently
-	for b := 0; b < batch; b++ {
-		for h := 0; h < numHeads; h++ {
+	for b := range batch {
+		for h := range numHeads {
 			// For each query position
-			for i := 0; i < seqLen; i++ {
+			for i := range seqLen {
 				// 1. Compute attention scores: Q @ K^T
 				scores := make([]float32, kvLen)
-				for j := 0; j < kvLen; j++ {
+				for j := range kvLen {
 					score := float32(0)
-					for d := 0; d < headDim; d++ {
+					for d := range headDim {
 						qIdx := b*seqLen*numHeads*headDim + i*numHeads*headDim + h*headDim + d
 						kIdx := b*kvLen*numHeads*headDim + j*numHeads*headDim + h*headDim + d
 						score += q[qIdx] * k[kIdx]
@@ -213,9 +213,9 @@ func StandardAttention(
 				weights := attentionSoftmax(scores)
 
 				// 4. Compute weighted sum of values
-				for d := 0; d < headDim; d++ {
+				for d := range headDim {
 					sum := float32(0)
-					for j := 0; j < kvLen; j++ {
+					for j := range kvLen {
 						vIdx := b*kvLen*numHeads*headDim + j*numHeads*headDim + h*headDim + d
 						sum += weights[j] * v[vIdx]
 					}
