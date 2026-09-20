@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 )
 
 type tensorData struct {
@@ -179,176 +180,6 @@ var MlBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "_matmul",
-		Fun:  tensorBinaryBuiltin("matmul", ml.MatMul),
-		HelpStr: helpStrArgs{
-			explanation: "`matmul` returns the matrix product of two tensors",
-			signature:   "matmul(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "matmul(tensor([[1.0, 2.0]]), tensor([[3.0], [4.0]])) => Tensor{shape: [1 1]}",
-		}.String(),
-	},
-	{
-		Name: "_add",
-		Fun:  tensorBinaryBuiltin("add", ml.Add),
-		HelpStr: helpStrArgs{
-			explanation: "`add` returns the elementwise sum of two tensors, with scalar broadcast",
-			signature:   "add(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "add(tensor([[1.0, 2.0]]), tensor([[3.0, 4.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_sub",
-		Fun:  tensorBinaryBuiltin("sub", ml.Sub),
-		HelpStr: helpStrArgs{
-			explanation: "`sub` returns the elementwise difference of two tensors, with scalar broadcast",
-			signature:   "sub(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "sub(tensor([[1.0, 2.0]]), tensor([[1.0, 1.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_mul",
-		Fun:  tensorBinaryBuiltin("mul", ml.Mul),
-		HelpStr: helpStrArgs{
-			explanation: "`mul` returns the elementwise product of two tensors, with scalar broadcast",
-			signature:   "mul(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "mul(tensor([[1.0, 2.0]]), tensor([[3.0, 4.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_div",
-		Fun:  tensorBinaryBuiltin("div", ml.Div),
-		HelpStr: helpStrArgs{
-			explanation: "`div` returns the elementwise quotient of two tensors, with scalar broadcast",
-			signature:   "div(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "div(tensor([[2.0, 4.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_pow",
-		Fun:  tensorBinaryBuiltin("pow", ml.Pow),
-		HelpStr: helpStrArgs{
-			explanation: "`pow` returns the elementwise power of two tensors, with scalar broadcast; a negative base is allowed when the exponent is an integer",
-			signature:   "pow(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "pow(tensor([[2.0, 4.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_neg",
-		Fun:  tensorUnaryBuiltin("neg", ml.Neg),
-		HelpStr: helpStrArgs{
-			explanation: "`neg` returns the negation of each element",
-			signature:   "neg(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "neg(tensor([[1.0, -2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_relu",
-		Fun:  tensorUnaryBuiltin("relu", ml.Relu),
-		HelpStr: helpStrArgs{
-			explanation: "`relu` returns max(0, x) elementwise",
-			signature:   "relu(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "relu(tensor([[-1.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_exp",
-		Fun:  tensorUnaryBuiltin("exp", ml.Exp),
-		HelpStr: helpStrArgs{
-			explanation: "`exp` returns e to the power of each element",
-			signature:   "exp(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "exp(tensor([[0.0]])) => Tensor{shape: [1 1]}",
-		}.String(),
-	},
-	{
-		Name: "_log",
-		Fun:  tensorUnaryBuiltin("log", ml.Log),
-		HelpStr: helpStrArgs{
-			explanation: "`log` returns the natural logarithm of each element",
-			signature:   "log(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "log(tensor([[1.0]])) => Tensor{shape: [1 1]}",
-		}.String(),
-	},
-	{
-		Name: "_sqrt",
-		Fun:  tensorUnaryBuiltin("sqrt", ml.Sqrt),
-		HelpStr: helpStrArgs{
-			explanation: "`sqrt` returns the square root of each element",
-			signature:   "sqrt(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "sqrt(tensor([[4.0]])) => Tensor{shape: [1 1]}",
-		}.String(),
-	},
-	{
-		Name: "_eq",
-		Fun:  tensorBinaryBuiltin("eq", ml.Eq),
-		HelpStr: helpStrArgs{
-			explanation: "`eq` returns a bool tensor that is true where a == b, with scalar broadcast; comparisons are not differentiable",
-			signature:   "eq(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "eq(tensor([[1.0, 3.0]]), tensor([[2.0, 3.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_ne",
-		Fun:  tensorBinaryBuiltin("ne", ml.Ne),
-		HelpStr: helpStrArgs{
-			explanation: "`ne` returns a bool tensor that is true where a != b, with scalar broadcast; comparisons are not differentiable",
-			signature:   "ne(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "ne(tensor([[1.0, 3.0]]), tensor([[1.0, 3.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_gt",
-		Fun:  tensorBinaryBuiltin("gt", ml.Gt),
-		HelpStr: helpStrArgs{
-			explanation: "`gt` returns a bool tensor that is true where a > b, with scalar broadcast; comparisons are not differentiable",
-			signature:   "gt(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "gt(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_ge",
-		Fun:  tensorBinaryBuiltin("ge", ml.Ge),
-		HelpStr: helpStrArgs{
-			explanation: "`ge` returns a bool tensor that is true where a >= b, with scalar broadcast; comparisons are not differentiable",
-			signature:   "ge(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "ge(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_lt",
-		Fun:  tensorBinaryBuiltin("lt", ml.Lt),
-		HelpStr: helpStrArgs{
-			explanation: "`lt` returns a bool tensor that is true where a < b, with scalar broadcast; comparisons are not differentiable",
-			signature:   "lt(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "lt(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_le",
-		Fun:  tensorBinaryBuiltin("le", ml.Le),
-		HelpStr: helpStrArgs{
-			explanation: "`le` returns a bool tensor that is true where a <= b, with scalar broadcast; comparisons are not differentiable",
-			signature:   "le(a: tensor, b: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "le(tensor([[1.0, 3.0]]), tensor([[2.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
 		Name: "_reshape",
 		Fun: func(args ...Object) Object {
 			err := checkArgCount("reshape", 2, args)
@@ -489,76 +320,6 @@ var MlBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "_sum",
-		Fun: func(args ...Object) Object {
-			err := checkArgCount("sum", 3, args)
-			if err != nil {
-				return err
-			}
-			err = checkArgType("sum", 1, TENSOR_OBJ, args)
-			if err != nil {
-				return err
-			}
-			return tensorSum(args[0].(*Tensor).T, args[1], args[2])
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`sum` returns the sum over `dim`, or over every element when `dim` is null",
-			signature:   "sum(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "sum(tensor([[1.0, 2.0], [3.0, 4.0]]), 0) => Tensor{shape: [2]}",
-		}.String(),
-	},
-	{
-		Name: "_mean",
-		Fun:  reductionBuiltin("mean", ml.Mean),
-		HelpStr: helpStrArgs{
-			explanation: "`mean` returns the average over `dim`, or over every element when `dim` is null",
-			signature:   "mean(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "mean(tensor([[1.0, 2.0], [3.0, 4.0]]), 0) => Tensor{shape: [2]}",
-		}.String(),
-	},
-	{
-		Name: "_max",
-		Fun:  reductionBuiltin("max", ml.Max),
-		HelpStr: helpStrArgs{
-			explanation: "`max` returns the maximum over `dim`, or over every element when `dim` is null",
-			signature:   "max(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "max(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
-		}.String(),
-	},
-	{
-		Name: "_min",
-		Fun:  reductionBuiltin("min", ml.Min),
-		HelpStr: helpStrArgs{
-			explanation: "`min` returns the minimum over `dim`, or over every element when `dim` is null",
-			signature:   "min(a: tensor, dim: int|list[int]|null=null, keepdim: bool=false) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "min(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
-		}.String(),
-	},
-	{
-		Name: "_argmax",
-		Fun:  argBuiltin("argmax", ml.ArgMax),
-		HelpStr: helpStrArgs{
-			explanation: "`argmax` returns the index of the maximum along `dim`",
-			signature:   "argmax(a: tensor, dim: int) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "argmax(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
-		}.String(),
-	},
-	{
-		Name: "_argmin",
-		Fun:  argBuiltin("argmin", ml.ArgMin),
-		HelpStr: helpStrArgs{
-			explanation: "`argmin` returns the index of the minimum along `dim`",
-			signature:   "argmin(a: tensor, dim: int) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "argmin(tensor([[1.0, 3.0]]), 1) => Tensor{shape: [1]}",
-		}.String(),
-	},
-	{
 		Name: "_softmax",
 		Fun:  argBuiltin("softmax", ml.Softmax),
 		HelpStr: helpStrArgs{
@@ -566,36 +327,6 @@ var MlBuiltins = []*Builtin{
 			signature:   "softmax(a: tensor, dim: int) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "softmax(tensor([[1.0, 2.0, 3.0]]), 1) => Tensor{shape: [1 3]}",
-		}.String(),
-	},
-	{
-		Name: "_abs",
-		Fun:  tensorUnaryBuiltin("abs", ml.Abs),
-		HelpStr: helpStrArgs{
-			explanation: "`abs` returns the absolute value of each element",
-			signature:   "abs(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "abs(tensor([[-1.0, 2.0]])) => Tensor{shape: [1 2]}",
-		}.String(),
-	},
-	{
-		Name: "_sigmoid",
-		Fun:  tensorUnaryBuiltin("sigmoid", ml.Sigmoid),
-		HelpStr: helpStrArgs{
-			explanation: "`sigmoid` returns 1/(1+exp(-x)) elementwise",
-			signature:   "sigmoid(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "sigmoid(tensor([0.0])) => Tensor{shape: [1]}",
-		}.String(),
-	},
-	{
-		Name: "_tanh",
-		Fun:  tensorUnaryBuiltin("tanh", ml.Tanh),
-		HelpStr: helpStrArgs{
-			explanation: "`tanh` returns the hyperbolic tangent elementwise",
-			signature:   "tanh(a: tensor) -> tensor",
-			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "tanh(tensor([0.0])) => Tensor{shape: [1]}",
 		}.String(),
 	},
 	{
@@ -853,13 +584,13 @@ var MlBuiltins = []*Builtin{
 	{
 		Name: "_slice",
 		Fun: func(args ...Object) Object {
-			if err := checkArgCount("slice", 4, args); err != nil {
+			if err := checkArgCount("slice", 5, args); err != nil {
 				return err
 			}
 			if err := checkArgType("slice", 1, TENSOR_OBJ, args); err != nil {
 				return err
 			}
-			iv := make([]int, 3)
+			iv := make([]int, 4)
 			for i := range iv {
 				n, ok := args[i+1].(*Integer)
 				if !ok {
@@ -867,17 +598,17 @@ var MlBuiltins = []*Builtin{
 				}
 				iv[i] = int(n.Value)
 			}
-			out, err := ml.Slice(args[0].(*Tensor).T, iv[0], iv[1], iv[2])
+			out, err := ml.Slice(args[0].(*Tensor).T, iv[0], iv[1], iv[2], iv[3])
 			if err != nil {
 				return newError("`slice` error: %s", err.Error())
 			}
 			return &Tensor{T: out}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`slice` returns a view of `dim` from `start` to `end`",
-			signature:   "slice(a: tensor, dim: int, start: int, end: int) -> tensor",
+			explanation: "`slice` returns a view of `dim` from `start` to `end` with `step`, matching a[start:end:step]",
+			signature:   "slice(a: tensor, dim: int, start: int, end: int, step: int=1) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "slice(tensor([[1.0, 2.0], [3.0, 4.0]]), 0, 0, 1) => Tensor{shape: [1 2]}",
+			example:     "slice(tensor([[1.0, 2.0], [3.0, 4.0]]), 0, 0, 1, 1) => Tensor{shape: [1 2]}",
 		}.String(),
 	},
 	{
@@ -1319,10 +1050,10 @@ var MlBuiltins = []*Builtin{
 	{
 		Name: "_optim_sgd",
 		Fun: func(args ...Object) Object {
-			if err := checkArgCount("optim_sgd", 3, args); err != nil {
+			if err := checkArgCount("optim_sgd", 4, args); err != nil {
 				return err
 			}
-			params, errObj := paramList("optim_sgd", args[0])
+			params, errObj := optimParams("optim_sgd", args[0])
 			if errObj != nil {
 				return errObj
 			}
@@ -1334,26 +1065,30 @@ var MlBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeError("optim_sgd", 3, FLOAT_OBJ, args[2].Type())
 			}
-			opt, err := ml.SGD(params, lr, momentum)
+			weightDecay, ok := toFloatArg(args[3])
+			if !ok {
+				return newPositionalTypeError("optim_sgd", 4, FLOAT_OBJ, args[3].Type())
+			}
+			opt, err := ml.SGD(params, lr, momentum, weightDecay)
 			if err != nil {
 				return newError("`sgd` error: %s", err.Error())
 			}
 			return &GoObj[*ml.Optimizer]{Value: opt}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`optim_sgd` builds a borncgo SGD optimizer over a module's parameters",
-			signature:   "optim_sgd(params: list[GoObj[*ml.Param]], lr: float, momentum: float) -> GoObj[*ml.Optimizer]",
+			explanation: "`optim_sgd` builds an SGD optimizer over tensors or module parameters",
+			signature:   "optim_sgd(params: list, lr: float, momentum: float, weight_decay: float) -> GoObj[*ml.Optimizer]",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "optim_sgd(params, 0.01, 0.0) => GoObj[*ml.Optimizer]",
+			example:     "optim_sgd(params, 0.01, 0.0, 0.0) => GoObj[*ml.Optimizer]",
 		}.String(),
 	},
 	{
 		Name: "_optim_adam",
 		Fun: func(args ...Object) Object {
-			if err := checkArgCount("optim_adam", 5, args); err != nil {
+			if err := checkArgCount("optim_adam", 6, args); err != nil {
 				return err
 			}
-			params, errObj := paramList("optim_adam", args[0])
+			params, errObj := optimParams("optim_adam", args[0])
 			if errObj != nil {
 				return errObj
 			}
@@ -1373,17 +1108,21 @@ var MlBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeError("optim_adam", 5, FLOAT_OBJ, args[4].Type())
 			}
-			opt, err := ml.Adam(params, lr, beta1, beta2, eps)
+			weightDecay, ok := toFloatArg(args[5])
+			if !ok {
+				return newPositionalTypeError("optim_adam", 6, FLOAT_OBJ, args[5].Type())
+			}
+			opt, err := ml.Adam(params, lr, beta1, beta2, eps, weightDecay)
 			if err != nil {
 				return newError("`adam` error: %s", err.Error())
 			}
 			return &GoObj[*ml.Optimizer]{Value: opt}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`optim_adam` builds a borncgo Adam optimizer over a module's parameters",
-			signature:   "optim_adam(params: list[GoObj[*ml.Param]], lr: float, beta1: float, beta2: float, eps: float) -> GoObj[*ml.Optimizer]",
+			explanation: "`optim_adam` builds an Adam (AdamW when weight_decay is nonzero) optimizer over tensors or module parameters",
+			signature:   "optim_adam(params: list, lr: float, beta1: float, beta2: float, eps: float, weight_decay: float) -> GoObj[*ml.Optimizer]",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "optim_adam(params, 0.001, 0.9, 0.999, 1e-8) => GoObj[*ml.Optimizer]",
+			example:     "optim_adam(params, 0.001, 0.9, 0.999, 1e-8, 0.0) => GoObj[*ml.Optimizer]",
 		}.String(),
 	},
 	{
@@ -1526,22 +1265,20 @@ var MlBuiltins = []*Builtin{
 			if err := checkArgCount("parameters", 1, args); err != nil {
 				return err
 			}
-			m, ok := args[0].(*GoObj[ml.Module])
-			if !ok {
-				return newPositionalTypeErrorForGoObj("parameters", 1, "*ml.Module", args[0])
+			var out []Object
+			if errObj := collectParams("parameters", args[0], map[Object]bool{}, &out); errObj != nil {
+				return errObj
 			}
-			ps := ml.NNParameters(m.Value)
-			elems := make([]Object, len(ps))
-			for i, p := range ps {
-				elems[i] = &GoObj[*ml.Param]{Value: p}
+			if out == nil {
+				out = []Object{}
 			}
-			return &List{Elements: elems}
+			return &List{Elements: out}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`parameters` returns a module's trainable parameters",
-			signature:   "parameters(module: GoObj[*ml.Module]) -> list[GoObj[*ml.Param]]",
+			explanation: "`parameters` collects trainable leaves from a model: a map or list is walked recursively, tensors with requires_grad are kept, and nn module parameters are returned as handles",
+			signature:   "parameters(model: map|list|tensor|GoObj[*ml.Module]) -> list[tensor|GoObj[*ml.Param]]",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "parameters(linear) => list[GoObj[*ml.Param]]",
+			example:     "parameters({'w': ml.randn([2, 2], requires_grad=true)}) => list[tensor]",
 		}.String(),
 	},
 	{
@@ -1877,6 +1614,678 @@ var MlBuiltins = []*Builtin{
 			example:     "compiled_backward(compiled, x) => null",
 		}.String(),
 	},
+	{
+		Name: "_embedding",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("embedding", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("embedding", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("embedding", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			out, err := ml.Embedding(args[0].(*Tensor).T, args[1].(*Tensor).T)
+			if err != nil {
+				return newError("`embedding` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`embedding` looks up rows of a [vocab, dim] weight tensor by an index tensor, matching torch.nn.functional.embedding",
+			signature:   "embedding(weight: tensor, indices: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "embedding(ml.randn([10, 4]), ml.tensor([1, 3])) => Tensor{shape: [2 4]}",
+		}.String(),
+	},
+	{
+		Name: "_rand",
+		Fun:  creationBuiltin("rand", ml.Rand),
+		HelpStr: helpStrArgs{
+			explanation: "`rand` returns uniform samples in [0, 1) from the shared engine RNG",
+			signature:   "rand(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "rand([2, 2]) => Tensor{shape: [2 2]}",
+		}.String(),
+	},
+	{
+		Name: "_randperm",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("randperm", 2, args); err != nil {
+				return err
+			}
+			n, ok := args[0].(*Integer)
+			if !ok {
+				return newPositionalTypeError("randperm", 1, INTEGER_OBJ, args[0].Type())
+			}
+			s, ok := args[1].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("randperm", 2, STRING_OBJ, args[1].Type())
+			}
+			dev, derr := ml.ParseDevice(s.Value)
+			if derr != nil {
+				return newError("`randperm` error: %s", derr.Error())
+			}
+			out, err := ml.RandPerm(int(n.Value), dev)
+			if err != nil {
+				return newError("`randperm` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`randperm` returns a random permutation of 0..n-1, reproducible after manual_seed",
+			signature:   "randperm(n: int, dev: str='cpu') -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "randperm(4) => Tensor{shape: [4]}",
+		}.String(),
+	},
+	{
+		Name: "_shuffle",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("shuffle", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("shuffle", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("shuffle", 2, INTEGER_OBJ, args[1].Type())
+			}
+			out, err := ml.Shuffle(args[0].(*Tensor).T, int(d.Value))
+			if err != nil {
+				return newError("`shuffle` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`shuffle` returns a copy of a with dim permuted by a random permutation",
+			signature:   "shuffle(a: tensor, dim: int=0) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "shuffle(ml.randn([4, 2]), 0) => Tensor{shape: [4 2]}",
+		}.String(),
+	},
+	{
+		Name: "_select",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("select", 3, args); err != nil {
+				return err
+			}
+			if err := checkArgType("select", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("select", 2, INTEGER_OBJ, args[1].Type())
+			}
+			idx, ok := args[2].(*Integer)
+			if !ok {
+				return newPositionalTypeError("select", 3, INTEGER_OBJ, args[2].Type())
+			}
+			out, err := ml.Select(args[0].(*Tensor).T, int(d.Value), int(idx.Value))
+			if err != nil {
+				return newError("`select` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`select` returns the entries at index along dim with that dim removed, covering x[i] and x[:, j]",
+			signature:   "select(a: tensor, dim: int, index: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "select(ml.randn([3, 4]), 0, 1) => Tensor{shape: [4]}",
+		}.String(),
+	},
+	{
+		Name: "_index_select",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("index_select", 3, args); err != nil {
+				return err
+			}
+			if err := checkArgType("index_select", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[1].(*Integer)
+			if !ok {
+				return newPositionalTypeError("index_select", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if err := checkArgType("index_select", 3, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			out, err := ml.IndexSelect(args[0].(*Tensor).T, int(d.Value), args[2].(*Tensor).T)
+			if err != nil {
+				return newError("`index_select` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`index_select` gathers rows or slices along dim using a 1d index tensor, matching torch.index_select",
+			signature:   "index_select(a: tensor, dim: int, index: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "index_select(ml.randn([3, 4]), 0, ml.tensor([2, 0])) => Tensor{shape: [2 4]}",
+		}.String(),
+	},
+	{
+		Name: "_masked_fill",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("masked_fill", 3, args); err != nil {
+				return err
+			}
+			if err := checkArgType("masked_fill", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("masked_fill", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			v, ok := toFloatArg(args[2])
+			if !ok {
+				return newPositionalTypeError("masked_fill", 3, FLOAT_OBJ, args[2].Type())
+			}
+			out, err := ml.MaskedFill(args[0].(*Tensor).T, args[1].(*Tensor).T, v)
+			if err != nil {
+				return newError("`masked_fill` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`masked_fill` replaces elements where mask is true with value, matching torch.Tensor.masked_fill",
+			signature:   "masked_fill(a: tensor, mask: tensor, value: float) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "masked_fill(ml.tensor([1.0, 2.0]), ml.tensor([0.0, 1.0]), 0.0) => Tensor{shape: [2]}",
+		}.String(),
+	},
+	{
+		Name: "_optim_set_lr",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("optim_set_lr", 2, args); err != nil {
+				return err
+			}
+			opt, ok := args[0].(*GoObj[*ml.Optimizer])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("optim_set_lr", 1, "*ml.Optimizer", args[0])
+			}
+			lr, ok := toFloatArg(args[1])
+			if !ok {
+				return newPositionalTypeError("optim_set_lr", 2, FLOAT_OBJ, args[1].Type())
+			}
+			opt.Value.SetLR(lr)
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`optim_set_lr` sets the optimizer learning rate, for a schedule driven from blue",
+			signature:   "optim_set_lr(optimizer: GoObj[*ml.Optimizer], lr: float) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "optim_set_lr(opt, 0.001) => null",
+		}.String(),
+	},
+	{
+		Name: "_optim_clip_grad_norm",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("clip_grad_norm", 2, args); err != nil {
+				return err
+			}
+			bindings, errObj := optimParams("clip_grad_norm", args[0])
+			if errObj != nil {
+				return errObj
+			}
+			maxNorm, ok := toFloatArg(args[1])
+			if !ok {
+				return newPositionalTypeError("clip_grad_norm", 2, FLOAT_OBJ, args[1].Type())
+			}
+			norm, err := ml.ClipGradNorm(bindings, maxNorm)
+			if err != nil {
+				return newError("`clip_grad_norm` error: %s", err.Error())
+			}
+			return &Float{Value: float64(norm)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`clip_grad_norm` scales the last backward's gradients in place so their global L2 norm is at most max_norm, and returns the norm before clipping",
+			signature:   "clip_grad_norm(params: list, max_norm: float) -> float",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "clip_grad_norm(params, 1.0) => 1.0",
+		}.String(),
+	},
+	{
+		Name: "_lr_schedule",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("lr_schedule", 5, args); err != nil {
+				return err
+			}
+			kind, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("lr_schedule", 1, STRING_OBJ, args[0].Type())
+			}
+			base, ok := toFloatArg(args[1])
+			if !ok {
+				return newPositionalTypeError("lr_schedule", 2, FLOAT_OBJ, args[1].Type())
+			}
+			step, ok := args[2].(*Integer)
+			if !ok {
+				return newPositionalTypeError("lr_schedule", 3, INTEGER_OBJ, args[2].Type())
+			}
+			a, ok := toFloatArg(args[3])
+			if !ok {
+				return newPositionalTypeError("lr_schedule", 4, FLOAT_OBJ, args[3].Type())
+			}
+			b, ok := toFloatArg(args[4])
+			if !ok {
+				return newPositionalTypeError("lr_schedule", 5, FLOAT_OBJ, args[4].Type())
+			}
+			lr, err := ml.LRSchedule(kind.Value, base, int(step.Value), a, b)
+			if err != nil {
+				return newError("`lr_schedule` error: %s", err.Error())
+			}
+			return &Float{Value: float64(lr)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`lr_schedule` computes a learning rate for a step; kinds are constant, step (a=step_size, b=gamma), cosine (a=total_steps, b=min_lr), and warmup (a=warmup_steps)",
+			signature:   "lr_schedule(kind: str, base_lr: float, step: int, a: float, b: float) -> float",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "lr_schedule('cosine', 0.1, 5, 100.0, 0.0) => 0.0997",
+		}.String(),
+	},
+	{
+		Name: "_clone",
+		Fun: tensorUnaryBuiltin("clone", func(a *ml.Tensor) (*ml.Tensor, error) {
+			return a.Clone(), nil
+		}),
+		HelpStr: helpStrArgs{
+			explanation: "`clone` returns a deep copy that stays in the autograd graph, like torch.Tensor.clone; use detach for a copy cut out of the graph",
+			signature:   "clone(a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "clone(ml.tensor([1.0, 2.0])) => Tensor{shape: [2]}",
+		}.String(),
+	},
+	{
+		Name: "_state_dict",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("state_dict", 1, args); err != nil {
+				return err
+			}
+			state, errObj := stateDictOf(args[0])
+			if errObj != nil {
+				return errObj
+			}
+			return CreateMapObjectForGoMap(*state)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`state_dict` returns a map of dotted names to the tensors in a model, walking maps, lists, tensors, and module parameters",
+			signature:   "state_dict(model: map|list|tensor|module) -> map[str]tensor",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "state_dict({'w': ml.randn([2, 2], requires_grad=true)}) => {'w': tensor}",
+		}.String(),
+	},
+	{
+		Name: "_save_state",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("save_state", 2, args); err != nil {
+				return err
+			}
+			path, ok := args[1].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("save_state", 2, STRING_OBJ, args[1].Type())
+			}
+			state, errObj := stateDictOf(args[0])
+			if errObj != nil {
+				return errObj
+			}
+			entries := make([]ml.NamedTensor, 0, state.Len())
+			for _, k := range state.Keys {
+				v, ok := state.Get(k)
+				if !ok {
+					continue
+				}
+				t, ok := v.(*Tensor)
+				if !ok {
+					continue
+				}
+				entries = append(entries, ml.NamedTensor{Name: k, Tensor: t.T})
+			}
+			if err := ml.SaveState(entries, path.Value); err != nil {
+				return newError("`save_state` error: %s", err.Error())
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`save_state` writes a model's named tensors to one file",
+			signature:   "save_state(model: map|list|tensor|module, path: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "save_state(model, 'model.state') => null",
+		}.String(),
+	},
+	{
+		Name: "_load_state",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("load_state", 2, args); err != nil {
+				return err
+			}
+			path, ok := args[1].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("load_state", 2, STRING_OBJ, args[1].Type())
+			}
+			loaded, err := ml.LoadState(path.Value)
+			if err != nil {
+				return newError("`load_state` error: %s", err.Error())
+			}
+			state, errObj := stateDictOf(args[0])
+			if errObj != nil {
+				return errObj
+			}
+			for _, nt := range loaded {
+				v, ok := state.Get(nt.Name)
+				if !ok {
+					continue
+				}
+				dst, ok := v.(*Tensor)
+				if !ok {
+					continue
+				}
+				if err := ml.CopyInto(dst.T, nt.Tensor); err != nil {
+					return newError("`load_state` error for %q: %s", nt.Name, err.Error())
+				}
+			}
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`load_state` loads named tensors from a file into a model in place, matching names; missing names are skipped and shape mismatches error",
+			signature:   "load_state(model: map|list|tensor|module, path: str) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "load_state(model, 'model.state') => null",
+		}.String(),
+	},
+	{
+		Name: "_flip",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("flip", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("flip", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			l, ok := args[1].(*List)
+			if !ok {
+				return newPositionalTypeError("flip", 2, LIST_OBJ, args[1].Type())
+			}
+			dims, err := toIntList("flip", l)
+			if err != nil {
+				return newError("%s", err.Error())
+			}
+			out, ferr := ml.Flip(args[0].(*Tensor).T, dims)
+			if ferr != nil {
+				return newError("`flip` error: %s", ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`flip` reverses elements along each dim, matching torch.flip; it is differentiable",
+			signature:   "flip(a: tensor, dims: list[int]) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "flip(ml.tensor([1.0, 2.0, 3.0]), [0]) => Tensor{shape: [3]}",
+		}.String(),
+	},
+	{
+		Name: "_masked_select",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("masked_select", 2, args); err != nil {
+				return err
+			}
+			if err := checkArgType("masked_select", 1, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			if err := checkArgType("masked_select", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			out, err := ml.MaskedSelect(args[0].(*Tensor).T, args[1].(*Tensor).T)
+			if err != nil {
+				return newError("`masked_select` error: %s", err.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`masked_select` returns the elements where mask is nonzero as a 1d tensor; inference-only because the output length depends on data",
+			signature:   "masked_select(a: tensor, mask: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "masked_select(ml.tensor([1.0, 2.0]), ml.tensor([0.0, 1.0])) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	// Generic dispatchers. The named ml.* functions in lib/std/ml.b are thin
+	// wrappers over these, so one builtin covers a whole family instead of one
+	// builtin per op. New ops are added here, not as new entries.
+	{
+		Name: "_binary",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("binary", 3, args); err != nil {
+				return err
+			}
+			op, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("binary", 1, STRING_OBJ, args[0].Type())
+			}
+			device := ml.CPU
+			if t, ok := args[1].(*Tensor); ok {
+				device = t.T.Device()
+			} else if t, ok := args[2].(*Tensor); ok {
+				device = t.T.Device()
+			}
+			a, ok := asTensorArg(args[1], device)
+			if !ok {
+				return newPositionalTypeError("binary", 2, TENSOR_OBJ, args[1].Type())
+			}
+			b, ok := asTensorArg(args[2], device)
+			if !ok {
+				return newPositionalTypeError("binary", 3, TENSOR_OBJ, args[2].Type())
+			}
+			var out *ml.Tensor
+			var ferr error
+			switch op.Value {
+			case "add":
+				out, ferr = ml.Add(a, b)
+			case "sub":
+				out, ferr = ml.Sub(a, b)
+			case "mul":
+				out, ferr = ml.Mul(a, b)
+			case "div":
+				out, ferr = ml.Div(a, b)
+			case "pow":
+				out, ferr = ml.Pow(a, b)
+			case "matmul":
+				out, ferr = ml.MatMul(a, b)
+			case "bmm":
+				out, ferr = ml.BMM(a, b)
+			default:
+				return newError("`binary` error: unknown op %q", op.Value)
+			}
+			if ferr != nil {
+				return newError("`%s` error: %s", op.Value, ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`binary` dispatches an elementwise or matrix binary op by name",
+			signature:   "binary(op: str, a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "binary('add', ml.tensor([1.0]), ml.tensor([2.0])) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_compare",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("compare", 3, args); err != nil {
+				return err
+			}
+			op, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("compare", 1, STRING_OBJ, args[0].Type())
+			}
+			device := ml.CPU
+			if t, ok := args[1].(*Tensor); ok {
+				device = t.T.Device()
+			} else if t, ok := args[2].(*Tensor); ok {
+				device = t.T.Device()
+			}
+			a, ok := asTensorArg(args[1], device)
+			if !ok {
+				return newPositionalTypeError("compare", 2, TENSOR_OBJ, args[1].Type())
+			}
+			b, ok := asTensorArg(args[2], device)
+			if !ok {
+				return newPositionalTypeError("compare", 3, TENSOR_OBJ, args[2].Type())
+			}
+			var out *ml.Tensor
+			var ferr error
+			switch op.Value {
+			case "eq":
+				out, ferr = ml.Eq(a, b)
+			case "ne":
+				out, ferr = ml.Ne(a, b)
+			case "gt":
+				out, ferr = ml.Gt(a, b)
+			case "ge":
+				out, ferr = ml.Ge(a, b)
+			case "lt":
+				out, ferr = ml.Lt(a, b)
+			case "le":
+				out, ferr = ml.Le(a, b)
+			default:
+				return newError("`compare` error: unknown op %q", op.Value)
+			}
+			if ferr != nil {
+				return newError("`%s` error: %s", op.Value, ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compare` dispatches an elementwise comparison by name, returning a bool tensor",
+			signature:   "compare(op: str, a: tensor, b: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "compare('gt', ml.tensor([2.0]), 0.0) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_unary",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("unary", 2, args); err != nil {
+				return err
+			}
+			op, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("unary", 1, STRING_OBJ, args[0].Type())
+			}
+			if err := checkArgType("unary", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			a := args[1].(*Tensor).T
+			var out *ml.Tensor
+			var ferr error
+			switch op.Value {
+			case "neg":
+				out, ferr = ml.Neg(a)
+			case "relu":
+				out, ferr = ml.Relu(a)
+			case "exp":
+				out, ferr = ml.Exp(a)
+			case "log":
+				out, ferr = ml.Log(a)
+			case "sqrt":
+				out, ferr = ml.Sqrt(a)
+			case "abs":
+				out, ferr = ml.Abs(a)
+			case "sigmoid":
+				out, ferr = ml.Sigmoid(a)
+			case "tanh":
+				out, ferr = ml.Tanh(a)
+			case "silu":
+				out, ferr = ml.Silu(a)
+			default:
+				return newError("`unary` error: unknown op %q", op.Value)
+			}
+			if ferr != nil {
+				return newError("`%s` error: %s", op.Value, ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`unary` dispatches an elementwise unary op by name",
+			signature:   "unary(op: str, a: tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "unary('relu', ml.tensor([-1.0, 2.0])) => Tensor{shape: [2]}",
+		}.String(),
+	},
+	{
+		Name: "_reduce",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("reduce", 4, args); err != nil {
+				return err
+			}
+			op, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("reduce", 1, STRING_OBJ, args[0].Type())
+			}
+			if err := checkArgType("reduce", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			t := args[1].(*Tensor).T
+			dim, keepdim := args[2], args[3]
+			switch op.Value {
+			case "sum":
+				return tensorReduction("sum", t, dim, keepdim, ml.Sum)
+			case "mean":
+				return tensorReduction("mean", t, dim, keepdim, ml.Mean)
+			case "max":
+				return tensorReduction("max", t, dim, keepdim, ml.Max)
+			case "min":
+				return tensorReduction("min", t, dim, keepdim, ml.Min)
+			default:
+				return newError("`reduce` error: unknown op %q", op.Value)
+			}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`reduce` dispatches a reduction by name over a dim or list of dims, with keepdim",
+			signature:   "reduce(op: str, a: tensor, dim: int|list[int]|null, keepdim: bool) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "reduce('sum', ml.tensor([1.0, 2.0]), null, false) => Tensor{shape: [1]}",
+		}.String(),
+	},
+	{
+		Name: "_argreduce",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("argreduce", 3, args); err != nil {
+				return err
+			}
+			op, ok := args[0].(*Stringo)
+			if !ok {
+				return newPositionalTypeError("argreduce", 1, STRING_OBJ, args[0].Type())
+			}
+			if err := checkArgType("argreduce", 2, TENSOR_OBJ, args); err != nil {
+				return err
+			}
+			d, ok := args[2].(*Integer)
+			if !ok {
+				return newPositionalTypeError("argreduce", 3, INTEGER_OBJ, args[2].Type())
+			}
+			t := args[1].(*Tensor).T
+			var out *ml.Tensor
+			var ferr error
+			switch op.Value {
+			case "argmax":
+				out, ferr = ml.ArgMax(t, int(d.Value))
+			case "argmin":
+				out, ferr = ml.ArgMin(t, int(d.Value))
+			default:
+				return newError("`argreduce` error: unknown op %q", op.Value)
+			}
+			if ferr != nil {
+				return newError("`%s` error: %s", op.Value, ferr.Error())
+			}
+			return &Tensor{T: out}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`argreduce` dispatches an index reduction by name",
+			signature:   "argreduce(op: str, a: tensor, dim: int) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "argreduce('argmax', ml.tensor([1.0, 3.0]), 0) => Tensor{shape: [1]}",
+		}.String(),
+	},
 }
 
 // asTensorArg accepts either a tensor or a scalar (int, float, or bool), which
@@ -1904,35 +2313,6 @@ func asTensorArg(o Object, device ml.Device) (*ml.Tensor, bool) {
 		return nil, false
 	}
 	return t, true
-}
-
-func tensorBinaryBuiltin(name string, f func(a, b *ml.Tensor) (*ml.Tensor, error)) func(...Object) Object {
-	return func(args ...Object) Object {
-		err := checkArgCount(name, 2, args)
-		if err != nil {
-			return err
-		}
-		// a scalar on either side is built on the other operand's device
-		device := ml.CPU
-		if t, ok := args[0].(*Tensor); ok {
-			device = t.T.Device()
-		} else if t, ok := args[1].(*Tensor); ok {
-			device = t.T.Device()
-		}
-		a, ok := asTensorArg(args[0], device)
-		if !ok {
-			return newPositionalTypeError(name, 1, TENSOR_OBJ, args[0].Type())
-		}
-		b, ok := asTensorArg(args[1], device)
-		if !ok {
-			return newPositionalTypeError(name, 2, TENSOR_OBJ, args[1].Type())
-		}
-		out, ferr := f(a, b)
-		if ferr != nil {
-			return newError("`%s` error: %s", name, ferr.Error())
-		}
-		return &Tensor{T: out}
-	}
 }
 
 func tensorUnaryBuiltin(name string, f func(a *ml.Tensor) (*ml.Tensor, error)) func(...Object) Object {
@@ -1990,18 +2370,6 @@ func tensorSum(t *ml.Tensor, dim, keepdim Object) Object {
 	return tensorReduction("sum", t, dim, keepdim, ml.Sum)
 }
 
-func reductionBuiltin(name string, f func(*ml.Tensor, []int, bool) (*ml.Tensor, error)) func(...Object) Object {
-	return func(args ...Object) Object {
-		if err := checkArgCount(name, 3, args); err != nil {
-			return err
-		}
-		if err := checkArgType(name, 1, TENSOR_OBJ, args); err != nil {
-			return err
-		}
-		return tensorReduction(name, args[0].(*Tensor).T, args[1], args[2], f)
-	}
-}
-
 // argBuiltin builds a single-dim index reduction like argmax(a, dim).
 func argBuiltin(name string, f func(*ml.Tensor, int) (*ml.Tensor, error)) func(...Object) Object {
 	return func(args ...Object) Object {
@@ -2053,19 +2421,140 @@ func toFloatArg(o Object) (float32, bool) {
 	return 0, false
 }
 
-// paramList extracts a list of borncgo parameter handles (from ml.nn.parameters).
-func paramList(name string, o Object) ([]*ml.Param, Object) {
+// optimParams extracts optimizer bindings from a parameter list. Each element
+// may be a raw tensor (a leaf the user owns) or a module parameter handle from
+// ml.parameters. Raw tensors are bound directly, which is what lets custom
+// models train without an nn module.
+func optimParams(name string, o Object) ([]ml.OptimBinding, Object) {
 	l, ok := o.(*List)
 	if !ok {
 		return nil, newPositionalTypeError(name, 1, LIST_OBJ, o.Type())
 	}
-	out := make([]*ml.Param, len(l.Elements))
+	out := make([]ml.OptimBinding, len(l.Elements))
 	for i, e := range l.Elements {
-		g, ok := e.(*GoObj[*ml.Param])
-		if !ok {
-			return nil, newPositionalTypeErrorForGoObj(name, 1, "*ml.Param", e)
+		switch v := e.(type) {
+		case *Tensor:
+			out[i] = ml.BindTensor(fmt.Sprintf("param_%d", i), v.T)
+		case *GoObj[*ml.Param]:
+			out[i] = ml.BindParam(v.Value)
+		default:
+			return nil, newPositionalTypeError(name, 1, "TENSOR or PARAM", e.Type())
 		}
-		out[i] = g.Value
+	}
+	return out, nil
+}
+
+// collectParams walks a model (map, list, tensor, or nn module handle) and
+// collects trainable leaves. Raw tensors with requires_grad are returned as-is;
+// module parameters are returned as handles. Non-tensor values are skipped, so
+// a model map may hold config and closures alongside weights. seen guards
+// against cycles in self-referential maps and lists.
+func collectParams(name string, o Object, seen map[Object]bool, out *[]Object) Object {
+	switch v := o.(type) {
+	case *Tensor:
+		if v.T.RequiresGrad() {
+			*out = append(*out, v)
+		}
+	case *Map:
+		if seen[v] {
+			return nil
+		}
+		seen[v] = true
+		for _, k := range v.Pairs.Keys {
+			mp, ok := v.Pairs.Get(k)
+			if !ok {
+				continue
+			}
+			if errObj := collectParams(name, mp.Value, seen, out); errObj != nil {
+				return errObj
+			}
+		}
+	case *List:
+		if seen[v] {
+			return nil
+		}
+		seen[v] = true
+		for _, e := range v.Elements {
+			if errObj := collectParams(name, e, seen, out); errObj != nil {
+				return errObj
+			}
+		}
+	case *GoObj[ml.Module]:
+		for _, p := range ml.NNParameters(v.Value) {
+			*out = append(*out, &GoObj[*ml.Param]{Value: p})
+		}
+	default:
+		// Scalars, strings, functions, and null are not parameters.
+	}
+	return nil
+}
+
+// collectState walks a model and records every tensor it finds under a dotted
+// name (map keys joined with ".", list indices as numbers). Module parameters
+// are recorded as views that share the parameter's storage, so copying into the
+// view updates the parameter in place. Non-string map keys and non-tensor
+// values are skipped.
+func collectState(name string, o Object, seen map[Object]bool, out *OrderedMap2[string, Object]) Object {
+	switch v := o.(type) {
+	case *Tensor:
+		if name != "" {
+			out.Set(name, v)
+		}
+	case *Map:
+		if seen[v] {
+			return nil
+		}
+		seen[v] = true
+		for _, k := range v.Pairs.Keys {
+			mp, ok := v.Pairs.Get(k)
+			if !ok {
+				continue
+			}
+			ks, ok := mp.Key.(*Stringo)
+			if !ok {
+				continue
+			}
+			child := ks.Value
+			if name != "" {
+				child = name + "." + ks.Value
+			}
+			if errObj := collectState(child, mp.Value, seen, out); errObj != nil {
+				return errObj
+			}
+		}
+	case *List:
+		if seen[v] {
+			return nil
+		}
+		seen[v] = true
+		for i, e := range v.Elements {
+			child := strconv.Itoa(i)
+			if name != "" {
+				child = name + "." + child
+			}
+			if errObj := collectState(child, e, seen, out); errObj != nil {
+				return errObj
+			}
+		}
+	case *GoObj[ml.Module]:
+		for _, p := range ml.NNParameters(v.Value) {
+			pn := p.Name()
+			if name != "" {
+				pn = name + "." + pn
+			}
+			out.Set(pn, &Tensor{T: ml.WrapRaw(p.Tensor().Backend(), p.Tensor().Raw())})
+		}
+	default:
+		// Scalars, strings, functions, and null carry no state.
+	}
+	return nil
+}
+
+// stateDictOf builds the name to tensor map for a model.
+func stateDictOf(model Object) (*OrderedMap2[string, Object], Object) {
+	out := NewOrderedMap[string, Object]()
+	if errObj := collectState("", model, map[Object]bool{}, out); errObj != nil {
+		return nil, errObj
 	}
 	return out, nil
 }

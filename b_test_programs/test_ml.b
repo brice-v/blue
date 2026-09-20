@@ -49,16 +49,18 @@ assert(ml.tensor(5.0).shape == [1]);
 # every optional parameter can be passed by keyword, in any order
 assert(ml.tensor([[1.0]], datatype="float32", dev="cpu", requires_grad=false).shape == [1, 1]);
 
-# --- 2. methods -------------------------------------------------------------
+# --- 2. binary operators ----------------------------------------------------
 
-val c = a.matmul(b);                                                       # 2x2
+# Binary arithmetic and comparisons have one spelling each: the operators and
+# the ml.* functions. There are no a.add(b)-style methods for them.
+val c = a @ b;                                                             # 2x2
 assert(c.shape == [2, 2]);
 assert(same(c, ml.tensor([[58.0, 64.0], [139.0, 154.0]])));
 
-assert(same(c.add(c), ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
-assert(same(c.sub(c), ml.tensor([[0.0, 0.0], [0.0, 0.0]])));
-assert(same(c.mul(c), ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]])));
-assert(same(c.div(c), ml.tensor([[1.0, 1.0], [1.0, 1.0]])));
+assert(same(c + c, ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
+assert(same(c - c, ml.tensor([[0.0, 0.0], [0.0, 0.0]])));
+assert(same(c * c, ml.tensor([[3364.0, 4096.0], [19321.0, 23716.0]])));
+assert(same(c / c, ml.tensor([[1.0, 1.0], [1.0, 1.0]])));
 
 # unary methods
 assert(same(a.relu(), a));
@@ -78,7 +80,7 @@ assert(same(a @ b, c));
 
 val w = ml.tensor([[2.0]], requires_grad=true);
 val x = ml.tensor([[3.0]]);
-val y = x.matmul(w); # [[6.0]]
+val y = x @ w; # [[6.0]]
 
 assert(y.item() == 6.0);
 assert(w.grad == null);
@@ -92,7 +94,7 @@ assert(w.grad == null);
 
 # --- 5. module-level functions ----------------------------------------------
 
-val e = c.add(c);
+val e = c + c;
 val m = ml.matmul(a, b);
 assert(same(m, c));
 val n = ml.add(c, c);
@@ -154,7 +156,7 @@ assert(prop.requires_grad == true);
 # to_list is the core builtin, extended to accept a tensor; the method form too
 assert(to_list(c) == [[58.0, 64.0], [139.0, 154.0]]);
 assert(c.to_list() == [[58.0, 64.0], [139.0, 154.0]]);
-assert(to_list(c == a.matmul(b)) == [[true, true], [true, true]]);
+assert(to_list(c == (a @ b)) == [[true, true], [true, true]]);
 assert(to_list(c > 0.0) == [[true, true], [true, true]]);
 assert(to_list(c < 0.0) == [[false, false], [false, false]]);
 assert(to_list(c != c) == [[false, false], [false, false]]);
@@ -165,8 +167,7 @@ assert(same(c >= 0.0, ml.ge(c, 0.0)));
 assert(same(c < 0.0, ml.lt(c, 0.0)));
 assert(same(c <= 0.0, ml.le(c, 0.0)));
 assert(same(c != c, ml.ne(c, c)));
-assert(same(c == a.matmul(b), ml.eq(c, a.matmul(b))));
-assert(same(c.gt(0.0), ml.gt(c, 0.0)));
+assert(same(c == (a @ b), ml.eq(c, a @ b)));
 assert(same(c.neg(), -c));
 
 # keyword arguments on comparisons and on the tolerance-based helpers
@@ -212,7 +213,7 @@ assert(ml.tensor([[1.0, 2.0]]).broadcast_to([3, 2]).shape == [3, 2]);
 val u = ml.tensor([[-1.0, 0.0, 4.0]]);
 assert(same(u.abs(), ml.tensor([[1.0, 0.0, 4.0]])));
 assert(same(u.neg(), ml.tensor([[1.0, 0.0, -4.0]])));
-assert(same(u.pow(ml.tensor([[2.0, 2.0, 2.0]])), ml.tensor([[1.0, 0.0, 16.0]])));
+assert(same(u ** ml.tensor([[2.0, 2.0, 2.0]]), ml.tensor([[1.0, 0.0, 16.0]])));
 assert(ml.tensor([0.0]).sigmoid().item() == 0.5);
 assert(ml.tensor([0.0]).tanh().item() == 0.0);
 assert(close(ml.softmax(ml.tensor([[1.0, 2.0, 3.0]]), 1),
@@ -253,7 +254,7 @@ val det = ml.tensor([[1.0]], requires_grad=true).detach();
 assert(det.requires_grad == false);
 
 # no_grad disables graph building inside the closure
-val ng = ml.no_grad(fun() { ml.tensor([[1.0]], requires_grad=true).mul(ml.tensor([[2.0]])) });
+val ng = ml.no_grad(fun() { ml.mul(ml.tensor([[1.0]], requires_grad=true), ml.tensor([[2.0]])) });
 assert(ng.requires_grad == false);
 
 # --- 14. TARGET: losses -----------------------------------------------------
@@ -266,7 +267,7 @@ assert(ml.mse_loss(ml.tensor([[1.0, 2.0]]), ml.tensor([[0.0, 0.0]])).item() > 0.
 # a loss is differentiable end to end
 val lw = ml.tensor([[1.0], [2.0]], requires_grad=true);
 val lx = ml.tensor([[1.0, 2.0]]);
-val lloss = ml.mse_loss(lx.matmul(lw), ml.tensor([[1.0]]));
+val lloss = ml.mse_loss(lx @ lw, ml.tensor([[1.0]]));
 lloss.backward();
 assert(type(lw.grad) == "TENSOR");
 
@@ -323,7 +324,7 @@ assert(same(ml.load("test_ml_tensor.bin"), a));
 
 val A = ml.tensor([[1.0, 2.0], [3.0, 4.0]]);
 val B = ml.randn([2, 2], requires_grad=true);
-val C = A.matmul(B).relu();
+val C = (A @ B).relu();
 val L = C.sum();
 L.backward();
 assert(type(B.grad) == "TENSOR");
@@ -483,3 +484,172 @@ assert(fbc.stats() == "eager-fallback");
 # A traceable model stays compiled (no fallback).
 val okc = ml.compile(ml.nn.Sequential([ml.nn.Linear(4, 4), ml.nn.ReLU(), ml.nn.Linear(4, 2)]), fbx);
 assert(!okc.is_eager());
+
+# --- 25. TARGET: indexing ---------------------------------------------------
+
+val ixs = ml.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0]);
+assert(same(ml.slice(ixs, 0, 1, 6, 2), ml.tensor([1.0, 3.0, 5.0])));
+assert(same(ml.slice(ixs, 0, 5, -1, -1), ml.tensor([5.0, 4.0, 3.0, 2.0, 1.0, 0.0])));
+assert(same(ml.slice(ixs, 0, -2, 6), ml.tensor([4.0, 5.0])));
+assert(same(ml.batch(ml.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]), 1, 3),
+    ml.tensor([[3.0, 4.0], [5.0, 6.0]])));
+
+val ixm = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+assert(same(ml.select(ixm, 0, 1), ml.tensor([4.0, 5.0, 6.0])));
+assert(same(ml.select(ixm, 1, -1), ml.tensor([3.0, 6.0])));
+assert(same(ml.index_select(ixm, 0, ml.tensor([1, 0], datatype=ml.dtype.int32)),
+    ml.tensor([[4.0, 5.0, 6.0], [1.0, 2.0, 3.0]])));
+assert(same(ml.masked_fill(ixm, ml.tensor([[0.0, 1.0, 0.0], [1.0, 0.0, 1.0]]), -1.0),
+    ml.tensor([[1.0, -1.0, 3.0], [-1.0, 5.0, -1.0]])));
+
+# select is differentiable
+val selx = ml.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=true);
+ml.sum(ml.select(selx, 0, 1)).backward();
+assert(same(selx.grad, ml.tensor([[0.0, 0.0], [1.0, 1.0]])));
+
+# --- 26. TARGET: embedding / bmm / silu -------------------------------------
+
+val emb_w = ml.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]);
+assert(same(ml.embedding(emb_w, ml.tensor([2, 0], datatype=ml.dtype.int32)),
+    ml.tensor([[5.0, 6.0], [1.0, 2.0]])));
+
+val bm_a = ml.full([2, 2, 3], 1.0);
+val bm_b = ml.full([2, 3, 2], 1.0);
+assert(ml.bmm(bm_a, bm_b).shape == [2, 2, 2]);
+assert(same(ml.bmm(bm_a, bm_b), ml.full([2, 2, 2], 3.0)));
+
+assert(close(ml.silu(ml.tensor([0.0, 1.0])), ml.tensor([0.0, 0.7310586])));
+
+# --- 27. TARGET: randperm / shuffle -----------------------------------------
+
+ml.manual_seed(5);
+val perm = ml.randperm(5);
+assert(perm.shape == [5]);
+# 0..4 sums to 10 and the squares sum to 30, which a permutation must satisfy
+assert(ml.sum(perm).item() == 10.0);
+assert(ml.sum(ml.mul(perm, perm)).item() == 30.0);
+
+val sh = ml.shuffle(ml.tensor([[0.0, 1.0], [2.0, 3.0], [4.0, 5.0]]), 0);
+assert(sh.shape == [3, 2]);
+
+# --- 28. TARGET: losses and stats -------------------------------------------
+
+val lg = ml.tensor([[1.0, 2.0, 3.0]]);
+val lsm = ml.log_softmax(lg, 1);
+assert(close(ml.exp(lsm), ml.softmax(lg, 1)));
+
+val tgt = ml.tensor([2], datatype=ml.dtype.int32);
+assert(close(ml.nll_loss(lsm, tgt), ml.neg(ml.mean(ml.select(lsm, 1, 2)))));
+
+val vx = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+assert(close(ml.variance(vx, 1), ml.tensor([0.6666667, 0.6666667])));
+assert(close(ml.std(vx, 1), ml.sqrt(ml.variance(vx, 1))));
+assert(close(ml.norm(ml.tensor([[3.0, 4.0]]), 1), ml.tensor([5.0])));
+
+# --- 29. TARGET: nn layers --------------------------------------------------
+
+val emb = ml.nn.Embedding(10, 4);
+assert(emb.forward(ml.tensor([1, 2], datatype=ml.dtype.int32)).shape == [2, 4]);
+assert(ml.nn.parameters(emb).len() == 1);
+
+val ln = ml.nn.LayerNorm(4);
+assert(ln.forward(ml.tensor([[1.0, 2.0, 3.0, 4.0]])).shape == [1, 4]);
+assert(ml.nn.parameters(ln).len() == 2);
+
+val rn = ml.nn.RMSNorm(4);
+assert(rn.forward(ml.tensor([[1.0, 2.0, 3.0, 4.0]])).shape == [1, 4]);
+assert(ml.nn.parameters(rn).len() == 1);
+
+val dr = ml.nn.Dropout(0.5);
+dr.set_training(false);
+assert(same(dr.forward(ml.tensor([1.0, 2.0])), ml.tensor([1.0, 2.0])));
+dr.set_training(true);
+assert(dr.forward(ml.tensor([1.0, 2.0])).shape == [2]);
+
+val sq = ml.nn.Sequential([ml.nn.Linear(2, 4), ml.nn.SiLU(), ml.nn.Linear(4, 1)]);
+assert(sq.forward(ml.tensor([[1.0, 2.0]])).shape == [1, 1]);
+
+# --- 30. TARGET: custom model training with ml.parameters -------------------
+
+# A model is a plain map of tensors plus a forward. ml.parameters finds the
+# leaves, and the optimizer updates them in place, so no nn module is needed.
+val cw1 = ml.randn([2, 16], requires_grad=true);
+val cw2 = ml.randn([16, 1], requires_grad=true);
+fun cforward(x) {
+    return ml.matmul(ml.relu(ml.matmul(x, cw1)), cw2);
+}
+val cparams = ml.parameters({'w1': cw1, 'w2': cw2});
+assert(cparams.len() == 2);
+val cmopt = ml.optim.Adam(cparams, lr=0.05);
+var cm0 = 0.0;
+var cm1 = 0.0;
+for (i in 1..300) {
+    cmopt.zero_grad();
+    val pred = cforward(X);
+    val loss = ml.mse_loss(pred, Y);
+    loss.backward();
+    cmopt.step();
+    if (i == 1) { cm0 = loss.item(); }
+    cm1 = loss.item();
+}
+assert(cm1 < cm0);
+
+# AdamW is Adam with decoupled weight decay
+val wopt = ml.optim.AdamW(ml.parameters({'w': ml.randn([2, 2], requires_grad=true)}), lr=0.01);
+wopt.zero_grad();
+
+# --- 31. TARGET: grad clipping and LR schedules -----------------------------
+
+val cgx = ml.tensor([[1.0, 2.0]], requires_grad=true);
+val cgw = ml.tensor([[3.0, 4.0]]);
+ml.sum(ml.mul(cgx, cgw)).backward();
+val cgnorm = ml.clip_grad_norm_([cgx], 1.0);
+assert(close(ml.tensor([cgnorm]), ml.tensor([5.0])));
+assert(close(ml.norm(cgx.grad, 1), ml.tensor([1.0])));
+
+assert(close(ml.tensor([ml.optim.step_lr(1.0, 0, 10, 0.1)]), ml.tensor([1.0])));
+assert(close(ml.tensor([ml.optim.step_lr(1.0, 25, 10, 0.1)]), ml.tensor([0.01])));
+assert(close(ml.tensor([ml.optim.warmup_lr(1.0, 0, 10)]), ml.tensor([0.1])));
+assert(close(ml.tensor([ml.optim.cosine_lr(1.0, 0, 10)]), ml.tensor([1.0])));
+assert(close(ml.tensor([ml.optim.cosine_lr(1.0, 10, 10)]), ml.tensor([0.0])));
+
+# --- 32. TARGET: dtype honesty and clone ------------------------------------
+
+val z32 = ml.zeros([2, 2], datatype=ml.dtype.int32);
+assert(z32.dtype == "int32");
+assert(z32.to_list()[0][0] == 0);
+
+val o64 = ml.ones([2], datatype=ml.dtype.float64);
+assert(o64.dtype == "float64");
+assert(o64.to_list()[0] == 1.0);
+
+# clone stays in the graph, detach does not
+val clx = ml.tensor([[1.0, 2.0]], requires_grad=true);
+ml.sum(ml.clone(clx)).backward();
+assert(same(clx.grad, ml.tensor([[1.0, 1.0]])));
+
+val dlx = ml.tensor([[1.0, 2.0]], requires_grad=true);
+ml.sum(dlx.detach()).backward();
+assert(dlx.grad == null);
+
+# --- 33. TARGET: state_dict save/load ---------------------------------------
+
+val sd_w = ml.randn([3, 4], requires_grad=true);
+val sd_b = ml.zeros([4], requires_grad=true);
+val sd_model = {'w': sd_w, 'b': sd_b};
+val sd = ml.state_dict(sd_model);
+assert(sd.len() == 2);
+ml.save_state(sd_model, "test_ml_state.bin");
+
+# a freshly initialized model loads the saved values in place
+val sd_model2 = {'w': ml.randn([3, 4], requires_grad=true), 'b': ml.randn([4], requires_grad=true)};
+ml.load_state(sd_model2, "test_ml_state.bin");
+assert(same(sd_model2['w'], sd_model['w']));
+assert(same(sd_model2['b'], sd_model['b']));
+
+# --- 34. TARGET: flip / masked_select ---------------------------------------
+
+val fx = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+assert(same(ml.flip(fx, [1]), ml.tensor([[3.0, 2.0, 1.0], [6.0, 5.0, 4.0]])));
+assert(same(ml.masked_select(fx, ml.tensor([[1.0, 0.0, 1.0], [0.0, 1.0, 0.0]])),
+    ml.tensor([1.0, 3.0, 5.0])));

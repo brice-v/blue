@@ -197,8 +197,8 @@ func (c *Compiled) BackwardWithSeed(x *Tensor, seed *Tensor) error {
 
 	// Store the gradients where the optimizer reads them, then hand each
 	// tracked tensor its .grad, matching Tensor.Backward.
-	lastGrads = grads
-	for tt := range tracked {
+	setLastGrads(be, grads)
+	for _, tt := range liveLeaves() {
 		if !tt.requiresGrad {
 			continue
 		}

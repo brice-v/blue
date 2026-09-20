@@ -50,7 +50,7 @@ func TestCompiledBackwardGPU(t *testing.T) {
 	for _, m := range []Module{l1, l2} {
 		for _, p := range NNParameters(m) {
 			params = append(params, p)
-			want[p] = append([]float32(nil), wrapRaw(xg.be, lastGrads[p.Tensor().Raw()]).ContiguousData()...)
+			want[p] = append([]float32(nil), wrapRaw(xg.be, lastGradsFor(xg.be)[p.Tensor().Raw()]).ContiguousData()...)
 		}
 	}
 
@@ -76,7 +76,7 @@ func TestCompiledBackwardGPU(t *testing.T) {
 	t.Logf("forward %s | backward %s", fg.Stats(), bp.graph.Stats())
 
 	for _, p := range params {
-		g := lastGrads[p.Tensor().Raw()]
+		g := lastGradsFor(xg.be)[p.Tensor().Raw()]
 		if g == nil {
 			t.Fatalf("compiled gpu backward left a parameter without a gradient")
 		}

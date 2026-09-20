@@ -434,34 +434,13 @@ func BroadcastTo(a *Tensor, shape []int) (*Tensor, error) {
 	return wrap(a.t.Expand(tensor.Shape(shape))), nil
 }
 
-// Slice selects [start:end) along dim using borncgo's Gather.
-func Slice(a *Tensor, dim, start, end int) (*Tensor, error) {
+// gatherAlong gathers indices along dim d. borncgo's Gather is PyTorch-style:
+// the index must have the same rank as the input and its shape is the output
+// shape, so the index is materialized over the full output.
+func gatherAlong(a *Tensor, d int, indices []int) (*Tensor, error) {
 	shape := a.Shape()
-	d, err := normalizeDim(shape, dim)
-	if err != nil {
-		return nil, err
-	}
-	n := shape[d]
-	if start < 0 {
-		start += n
-	}
-	if end < 0 {
-		end += n
-	}
-	if start < 0 {
-		start = 0
-	}
-	if end > n {
-		end = n
-	}
-	if end < start {
-		end = start
-	}
-	// borncgo's Gather is PyTorch-style: the index must have the same rank as
-	// the input and its shape is the output shape. Build an index that walks
-	// start..end along dim.
 	outShape := slices.Clone(shape)
-	outShape[d] = end - start
+	outShape[d] = len(indices)
 	total := 1
 	for _, s := range outShape {
 		total *= s
@@ -473,9 +452,11 @@ func Slice(a *Tensor, dim, start, end int) (*Tensor, error) {
 		acc *= outShape[i]
 	}
 	idx := make([]int32, total)
-	for flat := range idx {
-		coord := (flat / strides[d]) % (end - start)
-		idx[flat] = int32(start + coord)
+	if len(indices) > 0 {
+		for flat := range idx {
+			coord := (flat / strides[d]) % len(indices)
+			idx[flat] = int32(indices[coord])
+		}
 	}
 	it, err := tensor.FromSlice[int32](idx, tensor.Shape(outShape), a.be)
 	if err != nil {
@@ -483,6 +464,154 @@ func Slice(a *Tensor, dim, start, end int) (*Tensor, error) {
 	}
 	return wrapRaw(a.be, a.be.Gather(a.t.Raw(), d, it.Raw())), nil
 }
+
+// Slice selects [start:end:step] along dim. Negative start and end count from
+// the end of the dim. step defaults to 1. For a negative step the walk starts
+// at start and stops before end, and end == -1 means "through index 0", which
+// is the usual full reverse.
+func Slice(a *Tensor, dim, start, end, step int) (*Tensor, error) {
+	shape := a.Shape()
+	d, err := normalizeDim(shape, dim)
+	if err != nil {
+		return nil, err
+	}
+	if step == 0 {
+		return nil, fmt.Errorf("slice: step must be nonzero")
+	}
+	n := shape[d]
+	if start < 0 {
+		start += n
+	}
+	if end < 0 && (step >= 0 || end != -1) {
+		end += n
+	}
+	var indices []int
+	if step > 0 {
+		if start < 0 {
+			start = 0
+		}
+		if end > n {
+			end = n
+		}
+		for i := start; i < end; i += step {
+			indices = append(indices, i)
+		}
+	} else {
+		if start > n-1 {
+			start = n - 1
+		}
+		for i := start; i > end; i += step {
+			if i >= 0 && i < n {
+				indices = append(indices, i)
+			}
+		}
+	}
+	return gatherAlong(a, d, indices)
+}
+
+// Select returns the entries at index along dim with the dim removed, covering
+// x[i] and x[:, j].
+func Select(a *Tensor, dim, index int) (*Tensor, error) {
+	shape := a.Shape()
+	d, err := normalizeDim(shape, dim)
+	if err != nil {
+		return nil, err
+	}
+	n := shape[d]
+	if index < 0 {
+		index += n
+	}
+	if index < 0 || index >= n {
+		return nil, fmt.Errorf("select: index %d out of range for dim %d of size %d", index, d, n)
+	}
+	s, err := Slice(a, d, index, index+1, 1)
+	if err != nil {
+		return nil, err
+	}
+	return Squeeze(s, []int{d})
+}
+
+// IndexSelect gathers rows (or slices) along dim using a 1d index tensor,
+// matching torch.index_select.
+func IndexSelect(a *Tensor, dim int, index *Tensor) (*Tensor, error) {
+	shape := a.Shape()
+	d, err := normalizeDim(shape, dim)
+	if err != nil {
+		return nil, err
+	}
+	data := index.ContiguousData()
+	indices := make([]int, len(data))
+	for i, v := range data {
+		indices[i] = int(v)
+	}
+	return gatherAlong(a, d, indices)
+}
+
+// MaskedFill replaces elements where mask is true with value, matching
+// torch.Tensor.masked_fill.
+func MaskedFill(a *Tensor, mask *Tensor, value float32) (*Tensor, error) {
+	fill := tensor.Full[float32](tensor.Shape(a.Shape()), value, a.be)
+	return Where(mask, wrap(fill), a)
+}
+
+// Flip reverses the order of elements along each dim, matching torch.flip. It is
+// differentiable because it is built from a negative-step slice (a gather).
+func Flip(a *Tensor, dims []int) (*Tensor, error) {
+	ds, err := normalizeDims(a.Shape(), dims)
+	if err != nil {
+		return nil, err
+	}
+	out := a
+	for _, d := range ds {
+		n := out.Shape()[d]
+		out, err = Slice(out, d, n-1, -1, -1)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+// MaskedSelect returns the elements of a where mask is nonzero, flattened to
+// 1-D, matching torch.masked_select. The output length depends on the data, so
+// this is inference-only: it reads host data and is not differentiable.
+func MaskedSelect(a *Tensor, mask *Tensor) (*Tensor, error) {
+	if !slices.Equal(a.Shape(), mask.Shape()) {
+		return nil, fmt.Errorf("masked_select: shape mismatch %v vs %v", a.Shape(), mask.Shape())
+	}
+	data := a.ContiguousData()
+	m := mask.ContiguousData()
+	out := make([]float32, 0, len(data))
+	for i := range data {
+		if m[i] != 0 {
+			out = append(out, data[i])
+		}
+	}
+	return NewTensor(out, []int{len(out)}, a.dtype, a.Device())
+}
+
+// Embedding looks up rows of weight by index, matching
+// torch.nn.functional.embedding. It is differentiable.
+func Embedding(weight, indices *Tensor) (*Tensor, error) {
+	it := indices.t.Raw()
+	if indices.dtype != Int32 {
+		it = weight.be.Cast(it, tensor.Int32)
+	}
+	return wrapRaw(weight.be, weight.be.Embedding(weight.t.Raw(), it)), nil
+}
+
+// BMM is batched matrix multiplication over the last two dims, matching
+// torch.bmm.
+func BMM(a, b *Tensor) (*Tensor, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return nil, err
+	}
+	return wrap(a.t.BatchMatMul(b.t)), nil
+}
+
+// Silu is the Sigmoid Linear Unit, x * sigmoid(x).
+func Silu(a *Tensor) (*Tensor, error) { return wrapRaw(a.be, a.be.SiLU(a.t.Raw())), nil }
 
 func Clamp(a *Tensor, lo, hi float32) (*Tensor, error) {
 	return wrapRaw(a.be, a.be.Clamp(a.t.Raw(), lo, hi)), nil

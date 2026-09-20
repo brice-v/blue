@@ -43,5 +43,7 @@ vendor/github.com/oliverbestmann/webgpu/libs-*/arm64/
 vendor/github.com/oliverbestmann/webgpu/libs-*/386/
 
 b_test_programs/test_ml_tensor.bin
+b_test_programs/test_ml_state.bin
 manual_tests/mnist_data/*.bin
 test_ml_tensor.bin
+test_ml_state.bin

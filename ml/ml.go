@@ -5,6 +5,8 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
+	"weak"
 
 	"blue/borncgo/autodiff"
 	"blue/borncgo/backend/cpu"
@@ -174,8 +176,9 @@ type Tensor struct {
 	dtype        DType
 	device       Device
 
-	// viewStrides lets view ops report PyTorch-style strides even though
-	// borncgo materializes the data behind them. nil means "use the raw strides".
+	// viewStrides lets view ops (transpose/permute) report PyTorch-style strides
+	// even though borncgo materializes the data behind them. nil means "use the
+	// raw strides". See Strides and Offset for the materialization caveat.
 	viewStrides []int
 }
 
@@ -202,13 +205,21 @@ func (t *Tensor) Backend() tensor.Backend { return t.be }
 
 // WrapRaw wraps a raw tensor produced by a known backend.
 func WrapRaw(be tensor.Backend, raw *tensor.RawTensor) *Tensor { return wrapRaw(be, raw) }
+// Strides reports the tensor's strides. View ops (transpose/permute) record
+// PyTorch-style strides in viewStrides, because borncgo materializes the data
+// behind them; the reported layout matches what a PyTorch user expects even
+// though the underlying buffer is contiguous.
 func (t *Tensor) Strides() []int {
 	if t.viewStrides != nil {
 		return t.viewStrides
 	}
 	return t.t.Raw().Strides()
 }
-func (t *Tensor) Offset() int    { return 0 }
+
+// Offset is always 0. borncgo materializes view ops, so every blue tensor owns
+// a buffer whose first element is index 0. PyTorch reports a nonzero offset for
+// some views; blue never creates those views.
+func (t *Tensor) Offset() int { return 0 }
 func (t *Tensor) DType() DType   { return t.dtype }
 func (t *Tensor) Device() Device { return t.device }
 func (t *Tensor) Numel() int     { return t.t.NumElements() }
@@ -291,26 +302,62 @@ func (t *Tensor) RequiresGrad() bool { return t.requiresGrad }
 
 func (t *Tensor) SetRequiresGrad(on bool) {
 	t.requiresGrad = on
+	trackedMu.Lock()
 	if on {
-		tracked[t] = true
+		tracked[weak.Make(t)] = struct{}{}
 	} else {
-		delete(tracked, t)
+		delete(tracked, weak.Make(t))
 	}
+	trackedMu.Unlock()
 }
 
 func (t *Tensor) Grad() *Tensor     { return t.grad }
 func (t *Tensor) SetGrad(g *Tensor) { t.grad = g }
 func (t *Tensor) ZeroGrad()         { t.grad = nil }
 
-// Detach shares data and drops the graph (borncgo clones the raw buffer).
+// Detach returns a copy that shares the value but is cut out of the graph, like
+// torch.Tensor.detach.
 func (t *Tensor) Detach() *Tensor { return wrap(t.t.Detach()) }
 
-// Clone is a detached deep copy, matching the previous blue behavior.
-func (t *Tensor) Clone() *Tensor { return wrap(t.t.Detach()) }
+// Clone returns a deep copy that stays connected to the autograd graph, like
+// torch.Tensor.clone: the copy records an identity op, so gradients flow back to
+// the original. Use Detach for a copy cut out of the graph. Non-float tensors
+// have nothing to differentiate, so they are deep copied without tracking.
+func (t *Tensor) Clone() *Tensor {
+	if t.dtype != Float32 && t.dtype != Float64 {
+		return wrap(t.t.Detach())
+	}
+	out := wrapRaw(t.be, t.be.AddScalar(t.t.Raw(), float32(0)))
+	out.requiresGrad = t.requiresGrad
+	return out
+}
 
-// tracked holds every leaf that requires grad, so Backward can pick its
-// gradient out of borncgo's map.
-var tracked = map[*Tensor]bool{}
+// tracked holds a weak reference to every leaf that requires grad, so Backward
+// can attach its gradient to the blue tensor. Because the reference is weak,
+// the set does not keep leaves alive and is bounded by live leaves rather than
+// by every leaf ever created. liveLeaves prunes entries whose tensor has been
+// collected. The mutex guards the map.
+var (
+	trackedMu sync.Mutex
+	tracked   = map[weak.Pointer[Tensor]]struct{}{}
+)
+
+// liveLeaves snapshots the tracked leaves, dropping the ones the garbage
+// collector has reclaimed, so the graph walk does not hold the lock while it
+// calls into the engine.
+func liveLeaves() []*Tensor {
+	trackedMu.Lock()
+	defer trackedMu.Unlock()
+	out := make([]*Tensor, 0, len(tracked))
+	for wp := range tracked {
+		if t := wp.Value(); t != nil {
+			out = append(out, t)
+		} else {
+			delete(tracked, wp)
+		}
+	}
+	return out
+}
 
 // Backward runs reverse-mode autodiff on borncgo's tape and stores the leaf
 // gradients on the tensors.
@@ -318,9 +365,28 @@ var tracked = map[*Tensor]bool{}
 // borncgo's tape seeds the *last recorded operation*, not the tensor passed in,
 // so we append one connected op (loss + 0) to make the loss graph the walk root
 // even when other operations ran after the loss was built.
-// lastGrads is the raw gradient map from the most recent Backward. borncgo's
-// optimizers consume it directly, so it is kept until the next Backward.
-var lastGrads map[*tensor.RawTensor]*tensor.RawTensor
+// lastGradsByBackend holds the raw gradient map from the most recent Backward,
+// keyed by the backend that produced it. borncgo's optimizers consume the map
+// directly, so it is kept until the next Backward on that backend. Keying by
+// backend keeps a CPU graph and a GPU graph from clobbering each other; two
+// models on the same backend still share the most recent backward, which is the
+// single-graph-at-a-time model blue documents.
+var (
+	lastGradsMu       sync.Mutex
+	lastGradsByBackend = map[tensor.Backend]map[*tensor.RawTensor]*tensor.RawTensor{}
+)
+
+func setLastGrads(be tensor.Backend, grads map[*tensor.RawTensor]*tensor.RawTensor) {
+	lastGradsMu.Lock()
+	lastGradsByBackend[be] = grads
+	lastGradsMu.Unlock()
+}
+
+func lastGradsFor(be tensor.Backend) map[*tensor.RawTensor]*tensor.RawTensor {
+	lastGradsMu.Lock()
+	defer lastGradsMu.Unlock()
+	return lastGradsByBackend[be]
+}
 
 func (t *Tensor) Backward() error {
 	if t.Numel() != 1 {
@@ -337,9 +403,9 @@ func (t *Tensor) Backward() error {
 
 	// Free the previous step's gradient buffers (held for the optimizer) before
 	// computing new ones, so GPU grad memory does not accumulate across steps.
-	if lastGrads != nil {
-		autodiff.ReleaseGradients(lastGrads)
-		lastGrads = nil
+	if prev := lastGradsFor(be); prev != nil {
+		autodiff.ReleaseGradients(prev)
+		setLastGrads(be, nil)
 	}
 
 	one := tensor.Ones[float32](tensor.Shape(t.Shape()), be)
@@ -358,7 +424,7 @@ func (t *Tensor) Backward() error {
 		return err
 	}
 	tp.Clear()
-	lastGrads = grads
+	setLastGrads(be, grads)
 
 	// Accumulate outside the tape so gradient bookkeeping never becomes part of
 	// the next graph.
@@ -370,7 +436,7 @@ func (t *Tensor) Backward() error {
 		}
 	}()
 
-	for tt := range tracked {
+	for _, tt := range liveLeaves() {
 		if !tt.requiresGrad {
 			continue
 		}
@@ -400,9 +466,50 @@ func SetGradEnabled(on bool) bool {
 	return prev
 }
 
-// NewTensor builds a tensor, keeping dtype as a blue-facing tag (borncgo always
-// stores float32 today).
+// NewTensor builds a tensor of the requested dtype from float32 data. The
+// storage matches the dtype, so a float64 tensor holds a float64 buffer and an
+// int32 tensor holds an int32 buffer; the dtype tag is not cosmetic. Float32
+// (and the zero value Invalid) is the fast path.
 func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
+	switch dtype {
+	case Float32, Invalid:
+		return newFloat32Tensor(data, shape, device)
+	case Float64:
+		d := make([]float64, len(data))
+		for i, v := range data {
+			d[i] = float64(v)
+		}
+		return NewFloat64Tensor(d, shape, device)
+	case Int32:
+		d := make([]int32, len(data))
+		for i, v := range data {
+			d[i] = int32(v)
+		}
+		return NewInt32Tensor(d, shape, device)
+	case Int64:
+		d := make([]int64, len(data))
+		for i, v := range data {
+			d[i] = int64(v)
+		}
+		return NewInt64Tensor(d, shape, device)
+	case Uint8:
+		d := make([]uint8, len(data))
+		for i, v := range data {
+			d[i] = uint8(v)
+		}
+		return NewUint8Tensor(d, shape, device)
+	case Bool:
+		d := make([]bool, len(data))
+		for i, v := range data {
+			d[i] = v != 0
+		}
+		return NewBoolTensor(d, shape, device)
+	default:
+		return nil, fmt.Errorf("NewTensor: unsupported dtype %s", dtype)
+	}
+}
+
+func newFloat32Tensor(data []float32, shape []int, device Device) (*Tensor, error) {
 	be, err := backendFor(device)
 	if err != nil {
 		return nil, err
@@ -412,7 +519,7 @@ func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor
 		return nil, err
 	}
 	tt := wrap(bt)
-	tt.dtype = dtype
+	tt.dtype = Float32
 	tt.device = device
 	return tt, nil
 }

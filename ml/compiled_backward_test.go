@@ -45,7 +45,7 @@ func TestCompiledBackwardDrivesOptimizer(t *testing.T) {
 	for _, m := range layers {
 		for _, p := range NNParameters(m) {
 			params = append(params, p)
-			g, ok := lastGrads[p.Tensor().Raw()]
+			g, ok := lastGradsFor(x.be)[p.Tensor().Raw()]
 			if !ok || g == nil {
 				t.Fatalf("eager backward produced no gradient for a parameter")
 			}
@@ -77,7 +77,7 @@ func TestCompiledBackwardDrivesOptimizer(t *testing.T) {
 	t.Logf("stats: %s | forward %s | backward %s", c.Stats(), fg.Stats(), bp.graph.Stats())
 
 	for _, p := range params {
-		g, ok := lastGrads[p.Tensor().Raw()]
+		g, ok := lastGradsFor(x.be)[p.Tensor().Raw()]
 		if !ok || g == nil {
 			t.Fatalf("compiled backward produced no gradient for a parameter")
 		}

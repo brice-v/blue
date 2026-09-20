@@ -41,7 +41,7 @@ func TestCompiledBackwardWithSeed(t *testing.T) {
 	for _, m := range []Module{l1, l2} {
 		for _, p := range NNParameters(m) {
 			params = append(params, p)
-			g := lastGrads[p.Tensor().Raw()]
+			g := lastGradsFor(x.be)[p.Tensor().Raw()]
 			want[p] = append([]float32(nil), wrapRaw(x.be, g).ContiguousData()...)
 		}
 	}
@@ -66,7 +66,7 @@ func TestCompiledBackwardWithSeed(t *testing.T) {
 		t.Fatalf("BackwardWithSeed: %v", err)
 	}
 	for _, p := range params {
-		g := lastGrads[p.Tensor().Raw()]
+		g := lastGradsFor(x.be)[p.Tensor().Raw()]
 		if g == nil {
 			t.Fatalf("compiled backward left a parameter without a gradient")
 		}
