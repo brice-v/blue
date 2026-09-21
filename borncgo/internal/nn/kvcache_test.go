@@ -320,8 +320,7 @@ func BenchmarkMHA_WithoutCache_10Tokens(b *testing.B) {
 
 	mha := NewMultiHeadAttention[*cpu.CPUBackend](embedDim, numHeads, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		// Without cache: recompute full sequence for each new token
 		for t := 1; t <= numTokens; t++ {
 			input := tensor.Randn[float32](tensor.Shape{batch, t, embedDim}, backend)
@@ -340,8 +339,7 @@ func BenchmarkMHA_WithCache_10Tokens(b *testing.B) {
 
 	mha := NewMultiHeadAttention[*cpu.CPUBackend](embedDim, numHeads, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, 100, headDim, backend)
 		// With cache: only compute new token
 		for range numTokens {
@@ -360,8 +358,7 @@ func BenchmarkMHA_WithoutCache_50Tokens(b *testing.B) {
 
 	mha := NewMultiHeadAttention[*cpu.CPUBackend](embedDim, numHeads, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for t := 1; t <= numTokens; t++ {
 			input := tensor.Randn[float32](tensor.Shape{batch, t, embedDim}, backend)
 			mha.Forward(input, input, input, nil)
@@ -379,8 +376,7 @@ func BenchmarkMHA_WithCache_50Tokens(b *testing.B) {
 
 	mha := NewMultiHeadAttention[*cpu.CPUBackend](embedDim, numHeads, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, 200, headDim, backend)
 		for range numTokens {
 			token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)
@@ -398,8 +394,7 @@ func BenchmarkMHA_WithoutCache_100Tokens(b *testing.B) {
 
 	mha := NewMultiHeadAttention[*cpu.CPUBackend](embedDim, numHeads, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for t := 1; t <= numTokens; t++ {
 			input := tensor.Randn[float32](tensor.Shape{batch, t, embedDim}, backend)
 			mha.Forward(input, input, input, nil)
@@ -417,8 +412,7 @@ func BenchmarkMHA_WithCache_100Tokens(b *testing.B) {
 
 	mha := NewMultiHeadAttention[*cpu.CPUBackend](embedDim, numHeads, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		cache := NewKVCache[*cpu.CPUBackend](batch, numHeads, 200, headDim, backend)
 		for range numTokens {
 			token := tensor.Randn[float32](tensor.Shape{batch, 1, embedDim}, backend)

@@ -430,8 +430,7 @@ func BenchmarkV2WriteWithChecksum(b *testing.B) {
 		"large_weight": raw,
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		path := filepath.Join(tmpDir, fmt.Sprintf("bench_%d.born", i))
 		writer, err := NewBornWriter(path)
 		if err != nil {
@@ -480,8 +479,8 @@ func BenchmarkV2ReadWithChecksum(b *testing.B) {
 	_ = writer.Close()
 
 	// Benchmark reading
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		reader, err := NewBornReader(path)
 		if err != nil {
 			b.Fatalf("Failed to open: %v", err)

@@ -1,10 +1,12 @@
 package generate
 
 import (
+	"strings"
 	"testing"
 
 	"blue/borncgo/internal/tensor"
 	"blue/borncgo/internal/tokenizer"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,13 +78,13 @@ func (t *mockTokenizer) Encode(text string) ([]int32, error) {
 }
 
 func (t *mockTokenizer) Decode(tokens []int32) (string, error) {
-	result := ""
+	var result strings.Builder
 	for _, tok := range tokens {
 		if s, ok := t.invVocab[tok]; ok {
-			result += s
+			result.WriteString(s)
 		}
 	}
-	return result, nil
+	return result.String(), nil
 }
 
 func (t *mockTokenizer) VocabSize() int                  { return len(t.vocab) }
@@ -97,11 +99,14 @@ func (t *mockTokenizer) IsSpecialToken(token int32) bool { return token < 4 }
 type mockChatTemplate struct{}
 
 func (t *mockChatTemplate) Apply(messages []tokenizer.ChatMessage) string {
-	result := ""
+	var result strings.Builder
 	for _, m := range messages {
-		result += m.Role + ": " + m.Content + "\n"
+		result.WriteString(m.Role)
+		result.WriteString(": ")
+		result.WriteString(m.Content)
+		result.WriteString("\n")
 	}
-	return result
+	return result.String()
 }
 
 func (t *mockChatTemplate) Name() string {
@@ -441,8 +446,7 @@ func BenchmarkGenerator_Generate(b *testing.B) {
 
 	gen := NewTextGenerator(model, tok, config)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		model.Reset()
 		_, _ = gen.Generate("test", GenerateConfig{
 			MaxTokens: 10,

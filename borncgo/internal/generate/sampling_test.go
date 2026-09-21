@@ -329,8 +329,7 @@ func BenchmarkSampling(b *testing.B) {
 		prev[i] = int32(i * 500)
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		sampler.Sample(logits, prev)
 	}
 }
@@ -341,8 +340,7 @@ func BenchmarkSoftmax(b *testing.B) {
 		logits[i] = float32(i) * 0.0001
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		softmax(logits)
 	}
 }

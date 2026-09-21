@@ -17,8 +17,8 @@ func BenchmarkReduce_SumDim_LastDim(b *testing.B) {
 	for i := range data {
 		data[i] = float32(i) * 0.001
 	}
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		_ = backend.SumDim(x, 2, true)
 	}
 }
@@ -31,8 +31,8 @@ func BenchmarkReduce_SumDim_MiddleDim(b *testing.B) {
 	for i := range data {
 		data[i] = float32(i) * 0.001
 	}
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		_ = backend.SumDim(x, 1, false)
 	}
 }
@@ -45,8 +45,8 @@ func BenchmarkReduce_SumDim_FirstDim(b *testing.B) {
 	for i := range data {
 		data[i] = float32(i) * 0.001
 	}
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		_ = backend.SumDim(x, 0, false)
 	}
 }
@@ -61,8 +61,8 @@ func BenchmarkReduce_MeanDim_BirdNET(b *testing.B) {
 	for i := range data {
 		data[i] = float32(i) * 0.001
 	}
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		_ = backend.MeanDim(x, 2, true)
 	}
 }
@@ -90,8 +90,7 @@ func BenchmarkScatterAdd_3D(b *testing.B) {
 		idxData[i] = int32(i % 64)
 	}
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_ = backend.ScatterAdd(dest, 2, indices, src)
 	}
 }
@@ -117,8 +116,7 @@ func BenchmarkScatterAdd_2D(b *testing.B) {
 		idxData[i] = int32(i % 8192)
 	}
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_ = backend.ScatterAdd(dest, 0, indices, src)
 	}
 }
@@ -144,8 +142,7 @@ func BenchmarkBatchMatMul_Broadcast_SingletonA(b *testing.B) {
 	}
 	bRaw, _ := tensor.FromSlice(bData, tensor.Shape{16, 64, 64}, backend)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_ = backend.BatchMatMul(a.Raw(), bRaw.Raw())
 	}
 }
@@ -168,8 +165,7 @@ func BenchmarkBatchMatMul_Broadcast_BothSides(b *testing.B) {
 	}
 	bRaw, _ := tensor.FromSlice(bData, tensor.Shape{1, 4, 32, 32}, backend)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_ = backend.BatchMatMul(a.Raw(), bRaw.Raw())
 	}
 }
@@ -192,8 +188,7 @@ func BenchmarkBatchMatMul_Broadcast_MultiHead(b *testing.B) {
 	}
 	k, _ := tensor.FromSlice(kData, tensor.Shape{2, 8, 64, 64}, backend)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_ = backend.BatchMatMul(q.Raw(), k.Raw())
 	}
 }

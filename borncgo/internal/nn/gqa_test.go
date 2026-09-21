@@ -320,8 +320,7 @@ func BenchmarkGQA_Forward(b *testing.B) {
 
 	x := tensor.Randn[float32](tensor.Shape{1, 64, 256}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		gqa.Forward(x, nil, 0)
 	}
 }
@@ -331,8 +330,7 @@ func BenchmarkRepeatKV_4x(b *testing.B) {
 
 	kv := tensor.Randn[float32](tensor.Shape{1, 8, 128, 64}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		RepeatKV(kv, 4)
 	}
 }

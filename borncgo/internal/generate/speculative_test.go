@@ -491,8 +491,7 @@ func BenchmarkSpeculativeVsStandard(b *testing.B) {
 	sg := NewSpeculativeGenerator(config)
 	sg.SetCaches(&mockCache{}, &mockCache{})
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		sg.ClearCaches()
 		_, _, _ = sg.Generate([]int32{0, 1, 2}, 20)
 	}
@@ -516,8 +515,7 @@ func BenchmarkSpeculativeAcceptance(b *testing.B) {
 	}
 	targetLogits[5] = make([]float32, vocabSize)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = sg.accept(draftTokens, draftLogits, targetLogits)
 	}
 }

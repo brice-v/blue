@@ -76,7 +76,7 @@ func (ps *pipeSession) send(method string, id any, params any) {
 	if err != nil {
 		ps.t.Fatalf("marshal %s: %s", method, err)
 	}
-	frame := []byte(fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(body), body))
+	frame := fmt.Appendf(nil, "Content-Length: %d\r\n\r\n%s", len(body), body)
 	select {
 	case ps.out <- frame:
 	case <-time.After(5 * time.Second):
@@ -374,7 +374,7 @@ func TestGarbageOnTheWire(t *testing.T) {
 	ps.initialize(t, nil)
 
 	body := []byte("this is not json")
-	frame := []byte(fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(body), body))
+	frame := fmt.Appendf(nil, "Content-Length: %d\r\n\r\n%s", len(body), body)
 	select {
 	case ps.out <- frame:
 	case <-time.After(5 * time.Second):

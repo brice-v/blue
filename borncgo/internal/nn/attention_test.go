@@ -324,8 +324,7 @@ func BenchmarkScaledDotProductAttention(b *testing.B) {
 	K := tensor.Randn[float32](tensor.Shape{8, 12, 512, 64}, backend)
 	V := tensor.Randn[float32](tensor.Shape{8, 12, 512, 64}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ScaledDotProductAttention(Q, K, V, nil, 0)
 	}
 }
@@ -340,8 +339,7 @@ func BenchmarkScaledDotProductAttention_WithMask(b *testing.B) {
 	V := tensor.Randn[float32](tensor.Shape{8, 12, seqLen, 64}, backend)
 	mask := CausalMask(seqLen, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ScaledDotProductAttention(Q, K, V, mask, 0)
 	}
 }
@@ -350,8 +348,7 @@ func BenchmarkScaledDotProductAttention_WithMask(b *testing.B) {
 func BenchmarkCausalMask(b *testing.B) {
 	backend := cpu.New()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		CausalMask(512, backend)
 	}
 }

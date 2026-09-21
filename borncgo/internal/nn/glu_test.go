@@ -387,8 +387,7 @@ func BenchmarkSwiGLU(b *testing.B) {
 	x := tensor.Randn[float32](tensor.Shape{1024, 2048}, backend)
 	gate := tensor.Randn[float32](tensor.Shape{1024, 2048}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = SwiGLU(x, gate)
 	}
 }
@@ -399,8 +398,7 @@ func BenchmarkGeGLU(b *testing.B) {
 	x := tensor.Randn[float32](tensor.Shape{1024, 2048}, backend)
 	gate := tensor.Randn[float32](tensor.Shape{1024, 2048}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = GeGLU(x, gate)
 	}
 }
@@ -417,8 +415,7 @@ func BenchmarkSwiGLUFFN_Forward(b *testing.B) {
 
 	input := tensor.Randn[float32](tensor.Shape{8, 512, 4096}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = ffn.Forward(input)
 	}
 }
@@ -428,8 +425,7 @@ func BenchmarkGELUFunc(b *testing.B) {
 	backend := autodiff.New(cpu.New())
 	input := tensor.Randn[float32](tensor.Shape{1024, 2048}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = GELUFunc(input)
 	}
 }

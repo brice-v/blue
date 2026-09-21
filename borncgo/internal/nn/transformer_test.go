@@ -444,8 +444,7 @@ func BenchmarkFFN_Forward(b *testing.B) {
 	ffn := NewFFN[*autodiff.AutodiffBackend[*cpu.CPUBackend]](768, 3072, backend)
 	x := tensor.Randn[float32](tensor.Shape{16, 768}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ffn.Forward(x)
 	}
 }
@@ -464,8 +463,7 @@ func BenchmarkTransformerBlock_PreNorm(b *testing.B) {
 	block := NewTransformerBlock(config, backend)
 	x := tensor.Randn[float32](tensor.Shape{4, 32, 768}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		block.Forward(x, nil)
 	}
 }
@@ -484,8 +482,7 @@ func BenchmarkTransformerBlock_PostNorm(b *testing.B) {
 	block := NewTransformerBlock(config, backend)
 	x := tensor.Randn[float32](tensor.Shape{4, 32, 768}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		block.Forward(x, nil)
 	}
 }
@@ -505,8 +502,7 @@ func BenchmarkTransformerBlock_WithCache(b *testing.B) {
 	cache := NewKVCache[*autodiff.AutodiffBackend[*cpu.CPUBackend]](1, 12, 512, 64, backend)
 	token := tensor.Randn[float32](tensor.Shape{1, 1, 768}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		if i%512 == 0 {
 			cache.Reset() // Reset when full
 		}
@@ -533,8 +529,7 @@ func BenchmarkTransformerBlock_Stack3(b *testing.B) {
 
 	x := tensor.Randn[float32](tensor.Shape{2, 16, 512}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		out := x
 		for _, block := range blocks {
 			out = block.Forward(out, nil)

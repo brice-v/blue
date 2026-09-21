@@ -19,7 +19,14 @@ import (
 // tooling. No generated artifact is committed, so a binary always carries the
 // exact source of the checkout it was built from.
 //
-//go:embed go.mod go.sum LICENSE main.go ast bd bluec blueutil cmd code compiler consts lexer lib lsp object parser repl runner token util vm wasmmain
+// The ML/GPU packages must ship too: object imports ml, and the GPU backend is
+// built from the vendored WebGPU binding. borncgo is listed directory by
+// directory so its examples folder, whose MNIST sample data is tens of
+// megabytes, stays out of the binary. The WebGPU native libraries themselves are
+// not embedded; `blue install` runs `go mod download`, which fetches the
+// libs-<system> modules that provide the .a files in module mode.
+//
+//go:embed go.mod go.sum LICENSE main.go ast bd bluec blueutil cmd code compiler consts lexer lib lsp ml object parser repl runner token util vm wasmmain borncgo/autodiff borncgo/backend borncgo/internal borncgo/loader borncgo/models borncgo/nn borncgo/onnx borncgo/optim borncgo/tensor borncgo/tokenizer
 var srcTree embed.FS
 
 func main() {

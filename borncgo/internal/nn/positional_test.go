@@ -474,8 +474,7 @@ func BenchmarkSinusoidalPositionalEncodingForward(b *testing.B) {
 	backend := cpu.New()
 	pe := NewSinusoidalPositionalEncoding(2048, 512, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = pe.Forward(128)
 	}
 }
@@ -484,8 +483,7 @@ func BenchmarkLearnedPositionalEmbeddingForward(b *testing.B) {
 	backend := cpu.New()
 	pe := NewLearnedPositionalEmbedding(2048, 512, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = pe.Forward(128)
 	}
 }
@@ -494,8 +492,7 @@ func BenchmarkALiBiGetBias(b *testing.B) {
 	backend := cpu.New()
 	alibi := NewALiBi(12, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = alibi.GetBias(128)
 	}
 }
@@ -504,8 +501,7 @@ func BenchmarkALiBiGetBiasLarge(b *testing.B) {
 	backend := cpu.New()
 	alibi := NewALiBi(16, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = alibi.GetBias(512)
 	}
 }

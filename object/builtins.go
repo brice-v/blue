@@ -1936,10 +1936,7 @@ var Builtins = []*Builtin{
 				if args[1].Type() == STRING_OBJ {
 					indent = args[1].(*Stringo).Value
 				} else {
-					n := max(args[1].(*Integer).Value, 0)
-					if n > 16 {
-						n = 16
-					}
+					n := min(max(args[1].(*Integer).Value, 0), 16)
 					indent = strings.Repeat(" ", int(n))
 				}
 			}

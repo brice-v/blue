@@ -327,8 +327,7 @@ func BenchmarkLayerNorm_768(b *testing.B) {
 	// Input: [32, 128, 768] (batch=32, seq_len=128, d_model=768)
 	input := tensor.Randn[float32](tensor.Shape{32, 128, 768}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = layernorm.Forward(input)
 	}
 }
@@ -341,8 +340,7 @@ func BenchmarkLayerNorm_1024(b *testing.B) {
 	// Input: [32, 128, 1024] (batch=32, seq_len=128, d_model=1024)
 	input := tensor.Randn[float32](tensor.Shape{32, 128, 1024}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = layernorm.Forward(input)
 	}
 }

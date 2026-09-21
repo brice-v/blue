@@ -447,8 +447,7 @@ func BenchmarkFlashAttentionCausal(b *testing.B) {
 	}
 	fa := NewFlashAttention[float32](config, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		fa.Forward(Q, K, V, nil)
 	}
 }

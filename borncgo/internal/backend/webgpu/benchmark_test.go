@@ -216,8 +216,7 @@ func BenchmarkWebGPU_Transfer_Upload_1M(b *testing.B) {
 	size := 1024 * 1024
 	data := make([]byte, size*4) // float32
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		// Simulate upload by creating buffer with data
 		_ = gpuBackend.createBuffer(data, 0x80) // BufferUsageStorage
 	}

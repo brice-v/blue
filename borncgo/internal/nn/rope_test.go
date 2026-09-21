@@ -407,8 +407,7 @@ func BenchmarkRotaryEncodingForward3D(b *testing.B) {
 
 	x := tensor.Randn[float32](tensor.Shape{32, 128, 64}, backend) // batch=32, seq=128, dim=64
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = rope.Forward(x)
 	}
 }
@@ -424,8 +423,7 @@ func BenchmarkRotaryEncodingForward4D(b *testing.B) {
 
 	x := tensor.Randn[float32](tensor.Shape{16, 12, 128, 64}, backend) // batch=16, heads=12, seq=128, dim=64
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = rope.Forward(x)
 	}
 }
@@ -441,8 +439,7 @@ func BenchmarkRotaryEncodingForwardWithOffset(b *testing.B) {
 
 	x := tensor.Randn[float32](tensor.Shape{16, 12, 1, 64}, backend) // KV-cache: single new token
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = rope.ForwardWithOffset(x, 100)
 	}
 }

@@ -25,7 +25,19 @@ func TestEmbeddedSourceTreeHasWhatInstallingNeeds(t *testing.T) {
 	for _, name := range names {
 		found[name] = true
 	}
-	for _, want := range []string{"go.mod", "go.sum", "main.go", filepath.Join("cmd", "bluerun", "main.go"), filepath.Join("lib", "core", "core.b")} {
+	wants := []string{
+		"go.mod",
+		"go.sum",
+		"main.go",
+		filepath.Join("cmd", "bluerun", "main.go"),
+		filepath.Join("lib", "core", "core.b"),
+		// object imports ml and the GPU backend needs borncgo, so both have to
+		// be part of the installed tree for bundle (and any rebuild) to work.
+		filepath.Join("ml", "ml.go"),
+		filepath.Join("borncgo", "tensor", "tensor.go"),
+		filepath.Join("borncgo", "internal", "backend", "webgpu", "backend.go"),
+	}
+	for _, want := range wants {
 		if !found[filepath.ToSlash(want)] {
 			t.Errorf("embedded tree missing %s", want)
 		}
@@ -38,7 +50,7 @@ func TestEmbeddedSourceTreeLeavesOutJunk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	excludedPrefixes := []string{"vendor/", "ignored/", "playground/", "man/", "b_test_programs/", "manual_tests/", ".github/", "tools/"}
+	excludedPrefixes := []string{"vendor/", "ignored/", "playground/", "man/", "b_test_programs/", "manual_tests/", ".github/", "tools/", "borncgo/examples/", "borncgo/docs/"}
 	for _, name := range names {
 		for _, prefix := range excludedPrefixes {
 			if strings.HasPrefix(name, prefix) {

@@ -249,8 +249,7 @@ func BenchmarkMultiHeadAttention_768dim_12heads(b *testing.B) {
 
 	input := tensor.Randn[float32](tensor.Shape{batch, seq, embedDim}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = mha.Forward(input, input, input, nil)
 	}
 }
@@ -268,8 +267,7 @@ func BenchmarkMultiHeadAttention_1024dim_16heads(b *testing.B) {
 
 	input := tensor.Randn[float32](tensor.Shape{batch, seq, embedDim}, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = mha.Forward(input, input, input, nil)
 	}
 }
@@ -288,8 +286,7 @@ func BenchmarkMultiHeadAttention_WithMask(b *testing.B) {
 	input := tensor.Randn[float32](tensor.Shape{batch, seq, embedDim}, backend)
 	mask := CausalMask(seq, backend)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = mha.Forward(input, input, input, mask)
 	}
 }

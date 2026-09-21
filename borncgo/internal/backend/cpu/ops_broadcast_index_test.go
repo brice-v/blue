@@ -171,8 +171,8 @@ func BenchmarkMulBroadcastFloat32(b *testing.B) {
 	dst := make([]float32, benchOutShape.NumElements())
 	fillSeqF32(a, 1, 1)
 	fillSeqF32(bb, 2, 2)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		mulBroadcastFloat32(dst, a, bb, benchAShape, benchBShape, benchOutShape)
 	}
 }
@@ -183,8 +183,8 @@ func BenchmarkAddBroadcastFloat32(b *testing.B) {
 	dst := make([]float32, benchOutShape.NumElements())
 	fillSeqF32(a, 1, 1)
 	fillSeqF32(bb, 2, 2)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		addBroadcastFloat32(dst, a, bb, benchAShape, benchBShape, benchOutShape)
 	}
 }
@@ -195,8 +195,8 @@ func BenchmarkSubBroadcastFloat32(b *testing.B) {
 	dst := make([]float32, benchOutShape.NumElements())
 	fillSeqF32(a, 1, 1)
 	fillSeqF32(bb, 2, 2)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		subBroadcastFloat32(dst, a, bb, benchAShape, benchBShape, benchOutShape)
 	}
 }
@@ -207,8 +207,8 @@ func BenchmarkDivBroadcastFloat32(b *testing.B) {
 	dst := make([]float32, benchOutShape.NumElements())
 	fillSeqF32(a, 1, 1)
 	fillSeqF32(bb, 2, 2)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		divBroadcastFloat32(dst, a, bb, benchAShape, benchBShape, benchOutShape)
 	}
 }

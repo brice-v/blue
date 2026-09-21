@@ -98,8 +98,8 @@ func BenchmarkMatmulMicroKernelF32_Scalar(b *testing.B) {
 
 	saved := simdMicroKernelF32
 	simdMicroKernelF32 = nil
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		for i := range c {
 			c[i] = 0
 		}
@@ -127,8 +127,7 @@ func BenchmarkMatmulMicroKernelF32_SIMD(b *testing.B) {
 		bMat[i] = rng.Float32()
 	}
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		for i := range c {
 			c[i] = 0
 		}
