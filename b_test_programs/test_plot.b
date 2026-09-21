@@ -1,3 +1,4 @@
+# STATIC IGNORE
 ## End-state integration test for the `plot` module.
 ##
 ## The VM stops at the first error, so the file lights up top to bottom.

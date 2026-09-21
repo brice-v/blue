@@ -81,6 +81,9 @@ func executeBlueTestFileWithVm(dir string, f fs.DirEntry, t *testing.T) {
 	if strings.HasPrefix(stringData, "#VM IGNORE") || strings.HasPrefix(stringData, "# VM IGNORE") {
 		t.Skip("ignored by header")
 	}
+	if staticBuild && (strings.HasPrefix(stringData, "#STATIC IGNORE") || strings.HasPrefix(stringData, "# STATIC IGNORE")) {
+		t.Skip("ignored in static builds")
+	}
 	defer object.ClearGlobalState()
 	l := lexer.New(stringData, fpath)
 

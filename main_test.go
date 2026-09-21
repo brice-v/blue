@@ -36,6 +36,11 @@ func TestEmbeddedSourceTreeHasWhatInstallingNeeds(t *testing.T) {
 		filepath.Join("ml", "ml.go"),
 		filepath.Join("borncgo", "tensor", "tensor.go"),
 		filepath.Join("borncgo", "internal", "backend", "webgpu", "backend.go"),
+		// The num and plot std modules ship as blue source plus their Go
+		// builtins, so both halves must be in the installed tree.
+		filepath.Join("lib", "std", "num.b"),
+		filepath.Join("lib", "std", "plot.b"),
+		filepath.Join("object", "std_num.go"),
 	}
 	for _, want := range wants {
 		if !found[filepath.ToSlash(want)] {

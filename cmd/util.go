@@ -124,7 +124,7 @@ func buildRunnerWithGo(outPath string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to build runner template with go: %w", err)
+		return fmt.Errorf("failed to build runner template with go: %w\nif the source tree at %s is older than this blue binary, refresh it with `blue install --force`", err, sourceDir)
 	}
 	return nil
 }
