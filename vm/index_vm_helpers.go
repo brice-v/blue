@@ -237,7 +237,7 @@ func (vm *VM) executeProcessIndexExpression(process *object.Process, name string
 			}.String(),
 		})
 	}
-	panic("Unsupported Process Index Operation: " + name)
+	return vm.push(newError("process.%s error: field not found", name))
 }
 
 func (vm *VM) executeGoObjIndexExpression(goObj object.Object, name string) error {

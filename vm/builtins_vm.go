@@ -569,7 +569,7 @@ func GetBuiltinFunWithVm(name string, vm *VM) func(args ...object.Object) object
 	case "load":
 		builtinFun = createLoadBuiltinFun(vm)
 	default:
-		panic(name + " is not supported in GetBuiltinWithVm")
+		builtinFun = unresolvableBuiltin(name)
 	}
 	vm.builtinFuns[name] = builtinFun
 	return builtinFun

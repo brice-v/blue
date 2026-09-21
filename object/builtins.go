@@ -62,6 +62,8 @@ const (
 	BuiltinUiType     BuiltinType = "UI"
 	BuiltinGgType     BuiltinType = "GG"
 	BuiltinMlType     BuiltinType = "ML"
+	BuiltinNumType    BuiltinType = "NUM"
+	BuiltinPlotType   BuiltinType = "PLOT"
 )
 
 type BuiltinMapType struct {
@@ -4016,6 +4018,8 @@ var AllBuiltins = []struct {
 	{Name: "ui", Builtins: UiBuiltins},
 	{Name: "gg", Builtins: GgBuiltins},
 	{Name: "ml", Builtins: MlBuiltins},
+	{Name: "num", Builtins: NumBuiltins},
+	{Name: "plot", Builtins: PlotBuiltins},
 }
 
 func GetNameOfModuleByIndex(index int) string {
@@ -4149,6 +4153,10 @@ func getBuiltinMap(bt BuiltinType) []*Builtin {
 		return GgBuiltins
 	case BuiltinMlType:
 		return MlBuiltins
+	case BuiltinNumType:
+		return NumBuiltins
+	case BuiltinPlotType:
+		return PlotBuiltins
 	}
 	log.Fatalf("Unsupported Builtin Type: %s", bt)
 	return nil

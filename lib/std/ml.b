@@ -116,6 +116,9 @@ val __retain_grad = _retain_grad;
 val __autograd_grad = _autograd_grad;
 val __contiguous = _contiguous;
 val __view = _view;
+val __from_matrix = _from_matrix;
+val __from_list = _from_list;
+val __from_matrix_f64 = _from_matrix_f64;
 val __clone = _clone;
 val __state_dict = _state_dict;
 val __save_state = _save_state;
@@ -916,6 +919,34 @@ fun view(a, shape) {
     ##
     ## view(a: tensor, shape: list[int]) -> tensor
     __view(a, shape)
+}
+
+fun from_matrix(m) {
+    ##std:this,__from_matrix
+    ## `from_matrix` converts a `num` matrix or a nested list into an ml float32
+    ## tensor, so numerics results feed straight into a model. The precision is
+    ## float32; use `from_matrix_f64` when an exact round trip matters.
+    ##
+    ## from_matrix(m: matrix|list|tensor) -> tensor
+    __from_matrix(m)
+}
+
+fun from_list(values) {
+    ##std:this,__from_list
+    ## `from_list` converts a list of numbers into a 1d ml tensor, so `num`
+    ## statistics and samples feed straight into a model.
+    ##
+    ## from_list(values: list) -> tensor
+    __from_list(values)
+}
+
+fun from_matrix_f64(m) {
+    ##std:this,__from_matrix_f64
+    ## `from_matrix_f64` converts a `num` matrix into an ml float64 tensor, so a
+    ## round trip through `num` is exact.
+    ##
+    ## from_matrix_f64(m: matrix|list) -> tensor
+    __from_matrix_f64(m)
 }
 
 fun no_grad(f) {

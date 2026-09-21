@@ -36,6 +36,8 @@ var _std_mods = map[string]*StdModFile{
 	"ui":     {File: lib.ReadStdFileToString("ui-static.b")},
 	"gg":     {File: lib.ReadStdFileToString("gg-static.b")},
 	"ml":     {File: lib.ReadStdFileToString("ml.b")},
+	"num":    {File: lib.ReadStdFileToString("num.b")},
+	"plot":   {File: lib.ReadStdFileToString("plot-static.b")},
 }
 
 func IsStd(name string) bool {

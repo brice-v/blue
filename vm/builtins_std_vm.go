@@ -15,6 +15,15 @@ import (
 	"golang.org/x/net/html"
 )
 
+func unresolvableStdBuiltin(mod, name string) func(args ...object.Object) object.Object {
+	return func(args ...object.Object) object.Object {
+		if name == "" {
+			return newError("internal error: no such builtin module %q", mod)
+		}
+		return newError("internal error: builtin %s.%s is not available in this build", mod, name)
+	}
+}
+
 func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) object.Object {
 	switch mod {
 	case "http":
@@ -35,16 +44,26 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 			}
 			return createHttpHandleWSBuiltin(vm.wsTemplate).Fun
 		default:
-			panic("GetStdBuiltinWithVm called with incorrect builtin function name '" + name + "' for module: " + mod)
+			return unresolvableStdBuiltin(mod, name)
 		}
 	case "ui":
 		builtin := getUIStdBuiltin(name, vm)
 		if builtin == nil {
-			panic("GetStdBuiltinWithVm called with incorrect builtin function name '" + name + "' for module: " + mod)
+			return unresolvableStdBuiltin(mod, name)
 		}
 		return builtin.Fun
+	case "num":
+		if builtin := numVmBuiltin(name, vm); builtin != nil {
+			return builtin.Fun
+		}
+		return unresolvableStdBuiltin(mod, name)
+	case "plot":
+		if builtin := plotVmBuiltin(name, vm); builtin != nil {
+			return builtin.Fun
+		}
+		return unresolvableStdBuiltin(mod, name)
 	}
-	panic("GetStdBuiltinWithVm called with incorrect module: " + mod)
+	return unresolvableStdBuiltin(mod, name)
 }
 
 func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
@@ -405,4 +424,17 @@ func cloneHandlerClosure(fn *object.Closure) *object.Closure {
 		HelpStr:                   fn.Fun.HelpStr,
 	}
 	return &object.Closure{Fun: fun, Free: fn.Free}
+}
+
+// unresolvableBuiltin returns a builtin that reports an unresolvable name.
+//
+// It is the core-module counterpart to unresolvableStdBuiltin: a name that the
+// builtin table does not know becomes a blue error rather than a process crash.
+func unresolvableBuiltin(name string) func(args ...object.Object) object.Object {
+	return func(args ...object.Object) object.Object {
+		if name == "" {
+			return newError("internal error: no builtin name given")
+		}
+		return newError("internal error: builtin %s is not available in this build", name)
+	}
 }

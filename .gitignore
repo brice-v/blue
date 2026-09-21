@@ -49,3 +49,4 @@ manual_tests/mnist_data/*.bin
 test_ml_tensor.bin
 test_ml_state.bin
 test_ml_optim.bin
+b_test_programs/lines.svg

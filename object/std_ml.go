@@ -2841,6 +2841,119 @@ var MlBuiltins = []*Builtin{
 			example:     "view(ml.zeros([4]), [2, 2]) => Tensor{shape: [2 2]}",
 		}.String(),
 	},
+	{
+		Name: "_from_matrix",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("from_matrix", 1, args); err != nil {
+				return err
+			}
+			var data []float32
+			var shape []int
+			switch v := args[0].(type) {
+			case *GoObj[*NumMatrix]:
+				if v.Value == nil {
+					return newError("`from_matrix` error: nil matrix")
+				}
+				r, c := v.Value.Dims()
+				data = matrixToFloat32Data(v.Value)
+				shape = []int{r, c}
+			case *List:
+				m, err := listToMatrix(v)
+				if err != nil {
+					return newError("`from_matrix` error: %s", err.Error())
+				}
+				r, c := m.Dims()
+				data = matrixToFloat32Data(m)
+				shape = []int{r, c}
+			case *Tensor:
+				return args[0] // already a tensor, nothing to do
+			default:
+				return newPositionalTypeError("from_matrix", 1, "MATRIX, LIST, or TENSOR", args[0].Type())
+			}
+			t, err := ml.NewTensor(data, shape, ml.Float32, ml.CPU)
+			if err != nil {
+				return newError("`from_matrix` error: %s", err.Error())
+			}
+			return &Tensor{T: t}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`from_matrix` converts a num matrix or a nested list into an ml float32 tensor, so num results feed straight into ml models",
+			signature:   "from_matrix(m: matrix|list|tensor) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "from_matrix(num.eye(2)) => Tensor{shape: [2 2]}",
+		}.String(),
+	},
+	{
+		Name: "_from_list",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("from_list", 1, args); err != nil {
+				return err
+			}
+			l, ok := args[0].(*List)
+			if !ok {
+				return newPositionalTypeError("from_list", 1, LIST_OBJ, args[0].Type())
+			}
+			data := make([]float32, len(l.Elements))
+			for i, e := range l.Elements {
+				f, ok := objectToFloat64(e)
+				if !ok {
+					return newPositionalTypeError("from_list", 1, "LIST of numbers", e.Type())
+				}
+				data[i] = float32(f)
+			}
+			t, err := ml.NewTensor(data, []int{len(data)}, ml.Float32, ml.CPU)
+			if err != nil {
+				return newError("`from_list` error: %s", err.Error())
+			}
+			return &Tensor{T: t}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`from_list` converts a list of numbers into a 1d ml tensor, so num statistics and sampling feed straight into ml",
+			signature:   "from_list(values: list) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "from_list([1.0, 2.0, 3.0]) => Tensor{shape: [3]}",
+		}.String(),
+	},
+	{
+		Name: "_from_matrix_f64",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("from_matrix_f64", 1, args); err != nil {
+				return err
+			}
+			var data []float64
+			var shape []int
+			switch v := args[0].(type) {
+			case *GoObj[*NumMatrix]:
+				if v.Value == nil {
+					return newError("`from_matrix_f64` error: nil matrix")
+				}
+				r, c := v.Value.Dims()
+				data = matrixToFloat64Data(v.Value)
+				shape = []int{r, c}
+			case *List:
+				m, err := listToMatrix(v)
+				if err != nil {
+					return newError("`from_matrix_f64` error: %s", err.Error())
+				}
+				r, c := m.Dims()
+				data = matrixToFloat64Data(m)
+				shape = []int{r, c}
+			default:
+				return newPositionalTypeError("from_matrix_f64", 1, "MATRIX or LIST", args[0].Type())
+			}
+			t, err := ml.NewFloat64Tensor(data, shape, ml.CPU)
+			if err != nil {
+				return newError("`from_matrix_f64` error: %s", err.Error())
+			}
+			return &Tensor{T: t}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`from_matrix_f64` converts a num matrix into an ml float64 tensor, so a round trip through num is exact",
+			signature:   "from_matrix_f64(m: matrix|list) -> tensor",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "from_matrix_f64(num.eye(2)) => Tensor{shape: [2 2]}",
+		}.String(),
+	},
 }
 
 // asTensorArg accepts either a tensor or a scalar (int, float, or bool), which
