@@ -478,21 +478,15 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return c.addNodeToErrorTrace(err, node.Token)
 			}
 		}
-		// Note: this is needed for list comp literals to work properly
-		// a similar thing is done in evaluator
-		if !c.lastInstructionIs(code.OpListCompLiteral) {
-			c.emit(code.OpList, len(node.Elements))
-		}
+		c.emit(code.OpList, len(node.Elements))
 	case *ast.SetLiteral:
-		if !c.lastInstructionIs(code.OpSetCompLiteral) {
-			for _, exp := range node.Elements {
-				err := c.Compile(exp)
-				if err != nil {
-					return c.addNodeToErrorTrace(err, node.Token)
-				}
+		for _, exp := range node.Elements {
+			err := c.Compile(exp)
+			if err != nil {
+				return c.addNodeToErrorTrace(err, node.Token)
 			}
-			c.emit(code.OpSet, len(node.Elements))
 		}
+		c.emit(code.OpSet, len(node.Elements))
 	case *ast.MapLiteral:
 		c.emitNode(node)
 		indices := make([]int, 0, len(node.PairsIndex))

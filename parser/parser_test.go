@@ -2419,6 +2419,41 @@ func TestSetComprehensionWithIf(t *testing.T) {
 	}
 }
 
+func TestNestedListComprehensionStringRoundTrips(t *testing.T) {
+	input := `[[j for (j in 1..i)] for (i in 1..3)]`
+
+	p := New(lexer.New(input, "<internal:test>"))
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("statement is not *ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+	outer, ok := stmt.Expression.(*ast.ListCompLiteral)
+	if !ok {
+		t.Fatalf("expression is not *ast.ListCompLiteral. got=%T", stmt.Expression)
+	}
+	if outer.Source == "" {
+		t.Fatal("nested comprehension has no Source")
+	}
+
+	// Rendering the outer comprehension must produce source that parses back
+	// into a comprehension. Before Source existed it rendered the desugared
+	// statement program, which is not valid in expression position.
+	reparser := New(lexer.New(outer.String(), "<internal:test>"))
+	reparsed := reparser.ParseProgram()
+	checkParserErrors(t, reparser)
+
+	reStmt, ok := reparsed.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("reparsed statement is not *ast.ExpressionStatement. got=%T", reparsed.Statements[0])
+	}
+	if _, ok := reStmt.Expression.(*ast.ListCompLiteral); !ok {
+		t.Fatalf("rendered comprehension did not parse back into a comprehension. got=%T", reStmt.Expression)
+	}
+}
+
 func TestElseIfChain(t *testing.T) {
 	input := `if (x < y) { x } else if (x == y) { y } else { z }`
 

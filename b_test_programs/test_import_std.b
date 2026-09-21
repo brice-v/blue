@@ -17,14 +17,3 @@ try {
     }
     assert(true);
 }
-
-try {
-    println(http._get(url));
-    println("This should be unreachable");
-    assert(false);
-} catch (e) {
-    println("Hit exception as expected");
-    assert(true);
-}
-
-assert(true);

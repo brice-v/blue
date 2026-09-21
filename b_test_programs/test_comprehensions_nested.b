@@ -171,6 +171,33 @@ assert(times3 == [3, 6, 9, 12, 15])
 val times5 = multiplier(5)
 assert(times5 == [5, 10, 15, 20, 25])
 
-println("  edge cases: OK")
+# Comprehension inside a comprehension (expression position)
+val pyramid = [[j for j in 1..i] for i in 1..3]
+assert(pyramid == [[1], [1, 2], [1, 2, 3]])
 
-println("ALL COMPREHENSION TESTS PASSED")
+# Inner comprehension used as the iterable
+val fromComprehension = [i for i in [j for j in 1..3]]
+assert(fromComprehension == [1, 2, 3])
+
+# Inner comprehension used in a filter condition
+val filteredByComprehension = [i for i in 1..5 if i in [j for j in 1..3]]
+assert(filteredByComprehension == [1, 2, 3])
+
+# Three levels deep
+val deepNested = [[[k for k in 1..j] for j in 1..i] for i in 1..2]
+assert(deepNested == [[[1]], [[1], [1, 2]]])
+
+# Map and set comprehensions nesting a list comprehension
+val mapNested = {i: [j * i for j in 1..2] for i in 1..2}
+assert(mapNested == {1: [1, 2], 2: [2, 4]})
+val setNested = {[j for j in 1..i] for i in 1..2}
+assert(setNested == {[1], [1, 2]})
+
+# A list/set that holds a comprehension result keeps its own wrapper instead of
+# collapsing into the comprehension
+val listWithComp = [[x for x in 1..3]]
+assert(listWithComp == [[1, 2, 3]])
+val mixedList = [1, [x for x in 1..2]]
+assert(mixedList == [1, [1, 2]])
+val setWithComp = {{x for x in 1..2}}
+assert(setWithComp == {{1, 2}})

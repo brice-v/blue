@@ -264,6 +264,10 @@ func (ll *ListLiteral) String() string {
 type ListCompLiteral struct {
 	Token               token.Token // Doesnt really have a token
 	NonEvaluatedProgram string      // The program we will evaluate in evaluator
+	// Source is the comprehension written back as source. It is what a nested
+	// comprehension embeds through String(), since embedding the desugared
+	// statement program would not be valid in expression position.
+	Source string
 }
 
 func (lcl *ListCompLiteral) TokenToken() token.Token { return token.Token{} }
@@ -271,8 +275,12 @@ func (lcl *ListCompLiteral) TokenToken() token.Token { return token.Token{} }
 // expressionNode satisfies the expression interface
 func (lcl *ListCompLiteral) expressionNode() {}
 
-// String returns the program to execute
+// String returns the comprehension as source so it can be nested inside another
+// comprehension, falling back to the stored program when no source was kept.
 func (lcl *ListCompLiteral) String() string {
+	if lcl.Source != "" {
+		return lcl.Source
+	}
 	return lcl.NonEvaluatedProgram
 }
 
@@ -322,6 +330,8 @@ func (ml *MapLiteral) String() string {
 type MapCompLiteral struct {
 	Token               token.Token // Doesnt really have a token
 	NonEvaluatedProgram string      // The program we will evaluate in evaluator
+	// Source is the comprehension written back as source, see ListCompLiteral.
+	Source string
 }
 
 func (mcl *MapCompLiteral) TokenToken() token.Token { return token.Token{} }
@@ -334,8 +344,12 @@ func (mcl *MapCompLiteral) TokenLiteral() string {
 	return mcl.Token.Literal
 }
 
-// String returns the program to execute
+// String returns the comprehension as source so it can be nested inside another
+// comprehension, falling back to the stored program when no source was kept.
 func (mcl *MapCompLiteral) String() string {
+	if mcl.Source != "" {
+		return mcl.Source
+	}
 	return mcl.NonEvaluatedProgram
 }
 
@@ -372,6 +386,8 @@ func (set *SetLiteral) String() string {
 type SetCompLiteral struct {
 	Token               token.Token // Doesnt really have a token
 	NonEvaluatedProgram string      // The program we will evaluate in evaluator
+	// Source is the comprehension written back as source, see ListCompLiteral.
+	Source string
 }
 
 func (scl *SetCompLiteral) TokenToken() token.Token { return token.Token{} }
@@ -384,8 +400,12 @@ func (scl *SetCompLiteral) TokenLiteral() string {
 	return scl.Token.Literal
 }
 
-// String returns the program to execute
+// String returns the comprehension as source so it can be nested inside another
+// comprehension, falling back to the stored program when no source was kept.
 func (scl *SetCompLiteral) String() string {
+	if scl.Source != "" {
+		return scl.Source
+	}
 	return scl.NonEvaluatedProgram
 }
 

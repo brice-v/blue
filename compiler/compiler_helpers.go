@@ -418,6 +418,87 @@ func (c *Compiler) createFilePathFromImportPath(importPath string) string {
 	return fpath.String()
 }
 
+// isPublicName reports whether a top level name may be pulled into an importing
+// scope. Names starting with an underscore are private to their module, which is
+// the same rule explicit imports enforce.
+func isPublicName(name string) bool {
+	return !strings.HasPrefix(name, "_")
+}
+
+// isCompilingModule reports whether name is the module currently being
+// compiled. A module that refers to itself should keep access to its own
+// members, including private ones.
+func (c *Compiler) isCompilingModule(name string) bool {
+	return c.importNestLevel >= 0 && c.importNestLevel < len(c.modName) && c.modName[c.importNestLevel] == name
+}
+
+// topLevelDeclaredNames returns the name bound by every top level function,
+// var and val declaration in program, including destructured ones.
+func topLevelDeclaredNames(program *ast.Program) []string {
+	names := []string{}
+	for _, statement := range program.Statements {
+		switch node := statement.(type) {
+		case *ast.FunctionStatement:
+			if node.Name != nil {
+				names = append(names, node.Name.Value)
+			}
+		case ast.VarValStatement:
+			for _, name := range node.VVNames() {
+				names = append(names, name.Value)
+			}
+			for _, name := range node.VVKeyValueNames() {
+				names = append(names, name.Value)
+			}
+		}
+	}
+	return names
+}
+
+// savedPrivateSymbol remembers what the symbol table held for one private top
+// level name before a wildcard import compiled over it.
+type savedPrivateSymbol struct {
+	name    string
+	symbol  Symbol
+	existed bool
+}
+
+// snapshotPrivateTopLevelNames captures the current binding of every private
+// (underscore prefixed) top level declaration in program. A wildcard import
+// compiles the module straight into the importing scope, so without this the
+// module's private helpers would be defined (and existing names shadowed) where
+// the importer can see them.
+func (c *Compiler) snapshotPrivateTopLevelNames(program *ast.Program) []savedPrivateSymbol {
+	saved := []savedPrivateSymbol{}
+	seen := map[string]struct{}{}
+	for _, name := range topLevelDeclaredNames(program) {
+		if isPublicName(name) {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		symbol, existed := c.symbolTable.LookupDirect(name)
+		saved = append(saved, savedPrivateSymbol{name: name, symbol: symbol, existed: existed})
+	}
+	return saved
+}
+
+// restorePrivateTopLevelNames undoes the effect a wildcard import had on the
+// module's private names. Names the module introduced are removed again; names
+// it shadowed are restored to the symbol the importing scope had before. The
+// compiled code keeps working because it captured the module's own global slots
+// when it was emitted, only the names stop being addressable.
+func (c *Compiler) restorePrivateTopLevelNames(saved []savedPrivateSymbol) {
+	for _, entry := range saved {
+		if entry.existed {
+			c.symbolTable.SetDirect(entry.name, entry.symbol)
+		} else {
+			c.symbolTable.Remove(entry.name)
+		}
+	}
+}
+
 func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	name := node.Path.Value
 	if IsStd(name) {
@@ -466,31 +547,42 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 		return fmt.Errorf("%sFile '%s' contains Parser Errors", consts.PARSER_ERROR_PREFIX, name)
 	}
 	if node.ImportAll {
-		// Import All acts as if everything is in the current file
-		return c.Compile(program)
+		// Import All acts as if everything is in the current file, except that
+		// private (underscore prefixed) top level names stay out of the
+		// importing scope instead of being pulled in automatically.
+		saved := c.snapshotPrivateTopLevelNames(program)
+		err := c.Compile(program)
+		if err != nil {
+			return err
+		}
+		c.restorePrivateTopLevelNames(saved)
+		return nil
 	}
 	checkNodeIdentsToImport := len(node.IdentsToImport) > 0
 	if checkNodeIdentsToImport {
 		for _, ident := range node.IdentsToImport {
-			if strings.HasPrefix(ident.Value, "_") {
+			if !isPublicName(ident.Value) {
 				return fmt.Errorf("imports must be public to import them. failed to import %s from %s", ident.Value, modName)
 			}
 		}
-		// TODO: Add test case trying to call method such as abc._hello() => this should ideally fail to compile
-		// when called from the file importing abc
 	}
 	if node.Alias != nil {
 		modName = node.Alias.Value
 	}
 	c.importNestLevel++
 	c.modName = append(c.modName, modName)
-	err := c.Compile(program)
+	var err error
+	if checkNodeIdentsToImport {
+		err = c.compileModuleForImportRoots(program, node.IdentsToImport, modName)
+	} else {
+		err = c.Compile(program)
+	}
 	if err != nil {
 		return err
 	}
 	if checkNodeIdentsToImport {
 		for _, ident := range node.IdentsToImport {
-			err := c.symbolTable.UpdateName(fmt.Sprintf("%s.%s", name, ident.Value), ident.Value)
+			err := c.symbolTable.UpdateName(fmt.Sprintf("%s.%s", modName, ident.Value), ident.Value)
 			if err != nil {
 				return err
 			}
@@ -498,6 +590,13 @@ func (c *Compiler) compileImportStatement(node *ast.ImportStatement) error {
 	}
 	c.modName = c.modName[:c.importNestLevel]
 	c.importNestLevel--
+	if checkNodeIdentsToImport {
+		// A selective `from mod import {..}` only pulls the requested names into
+		// scope, so there is no module namespace to define. This also avoids a
+		// clash when a member shares the module's base name such as
+		// `from foo.bar import {bar}`.
+		return nil
+	}
 	c.ValidModuleNames = append(c.ValidModuleNames, modName)
 	// So the problem now is that index operator, needs to work based off available modules
 	// while compiling, if we encounter a identifier that is a module, we must pull it in
@@ -524,8 +623,16 @@ func (c *Compiler) compileIndexExpression(node *ast.IndexExpression) error {
 	leftIdent, leftIsIdent := node.Left.(*ast.Identifier)
 	rightStr, rightIsStr := node.Index.(*ast.StringLiteral)
 	if leftIsIdent && rightIsStr {
-		// Check if left is a module and if together this can be resolved
-		if sym, ok := c.symbolTable.Resolve(fmt.Sprintf("%s.%s", leftIdent.Value, rightStr.Value)); ok {
+		// Only qualified names produced by a module compile can resolve here, so a
+		// hit means this really is a module member. Underscore prefixed members
+		// are private to their module and must not be reachable through the
+		// namespace any more than through an explicit import. Map keys such as
+		// `this._x` or `obj._x` do not resolve this way and keep working.
+		qualified := fmt.Sprintf("%s.%s", leftIdent.Value, rightStr.Value)
+		if sym, ok := c.symbolTable.Resolve(qualified); ok {
+			if strings.HasPrefix(rightStr.Value, "_") && !c.isCompilingModule(leftIdent.Value) {
+				return fmt.Errorf("module member '%s' is private and cannot be accessed", qualified)
+			}
 			c.loadSymbol(sym)
 			return nil
 		}
@@ -623,7 +730,10 @@ func (c *Compiler) compileCompLiteral(t, nonEvaluatedProgram string) error {
 	if err != nil {
 		return err
 	}
-	sym, ok := c.symbolTable.Resolve(symName)
+	// The accumulator is defined through getName like any other local, so inside
+	// an imported module it lives under the module prefix. Resolve it the same
+	// way instead of looking for the bare __internal__ name.
+	sym, ok := c.symbolTable.Resolve(c.getName(symName))
 	if !ok {
 		return fmt.Errorf("this should never occur, failed to resolve: %s", symName)
 	}
@@ -631,31 +741,23 @@ func (c *Compiler) compileCompLiteral(t, nonEvaluatedProgram string) error {
 	return nil
 }
 
+// compileListCompLiteral, compileSetCompLiteral and compileMapCompLiteral all
+// compile the comprehension's deferred program. They used to emit a
+// OpListCompLiteral/OpSetCompLiteral/OpMapCompLiteral marker that an enclosing
+// list/set literal looked for to avoid adding a wrapper. Comprehensions are now
+// returned as expression nodes by the parser, so there is no wrapper to skip and
+// no marker to emit. The opcodes are kept in code/VM for older .bluec images,
+// where they decode as no-ops.
 func (c *Compiler) compileListCompLiteral(node *ast.ListCompLiteral) error {
-	err := c.compileCompLiteral("ListCompLiteral", node.NonEvaluatedProgram)
-	if err != nil {
-		return err
-	}
-	c.emit(code.OpListCompLiteral)
-	return nil
+	return c.compileCompLiteral("ListCompLiteral", node.NonEvaluatedProgram)
 }
 
 func (c *Compiler) compileSetCompLiteral(node *ast.SetCompLiteral) error {
-	err := c.compileCompLiteral("SetCompLiteral", node.NonEvaluatedProgram)
-	if err != nil {
-		return err
-	}
-	c.emit(code.OpSetCompLiteral)
-	return nil
+	return c.compileCompLiteral("SetCompLiteral", node.NonEvaluatedProgram)
 }
 
 func (c *Compiler) compileMapCompLiteral(node *ast.MapCompLiteral) error {
-	err := c.compileCompLiteral("MapCompLiteral", node.NonEvaluatedProgram)
-	if err != nil {
-		return err
-	}
-	c.emit(code.OpMapCompLiteral)
-	return nil
+	return c.compileCompLiteral("MapCompLiteral", node.NonEvaluatedProgram)
 }
 
 func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {

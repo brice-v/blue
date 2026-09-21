@@ -724,3 +724,63 @@ func TestVarShadowingAtRuntime(t *testing.T) {
 	assert(mutable == "mutable")`
 	vmStringWithCore(t, s)
 }
+
+// compileAndRunWithBasePath compiles src with file imports resolved relative to
+// dir and then runs it, returning the compile or runtime error (if any).
+func compileAndRunWithBasePath(t *testing.T, dir, src string) error {
+	t.Helper()
+	defer object.ClearGlobalState()
+	program := parseString(t, src)
+	c := compiler.NewFromCore()
+	c.CompilerBasePath = dir
+	if err := c.Compile(program); err != nil {
+		return err
+	}
+	v := vm.NewWithGlobalsStore(c.Bytecode(), make([]object.Object, vm.GlobalsSize))
+	return v.Run()
+}
+
+func TestWildcardImportDoesNotLeakPrivateTopLevelNames(t *testing.T) {
+	dir := t.TempDir()
+	modSrc := `val _private = "secret"
+fun _hidden() { "hidden" }
+fun used() { _hidden() }
+fun secret() { _private }
+`
+	if err := os.WriteFile(filepath.Join(dir, "privatemod.b"), []byte(modSrc), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("public functions keep working through private helpers", func(t *testing.T) {
+		err := compileAndRunWithBasePath(t, dir, `from privatemod import *
+assert(used() == "hidden")
+assert(secret() == "secret")`)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err.Error())
+		}
+	})
+
+	t.Run("private function is not importable by name", func(t *testing.T) {
+		err := compileAndRunWithBasePath(t, dir, `from privatemod import *
+println(_hidden())`)
+		if err == nil || !strings.Contains(err.Error(), "identifier not found _hidden") {
+			t.Fatalf("expected `identifier not found _hidden`, got %v", err)
+		}
+	})
+
+	t.Run("private variable is not importable by name", func(t *testing.T) {
+		err := compileAndRunWithBasePath(t, dir, `from privatemod import *
+println(_private)`)
+		if err == nil || !strings.Contains(err.Error(), "identifier not found _private") {
+			t.Fatalf("expected `identifier not found _private`, got %v", err)
+		}
+	})
+
+	t.Run("std private alias is not importable by name", func(t *testing.T) {
+		err := compileAndRunWithBasePath(t, dir, `from time import *
+println(__now)`)
+		if err == nil || !strings.Contains(err.Error(), "identifier not found __now") {
+			t.Fatalf("expected `identifier not found __now`, got %v", err)
+		}
+	})
+}

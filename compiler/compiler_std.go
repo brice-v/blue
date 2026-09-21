@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strings"
 )
 
 type StdModFile struct {
@@ -114,22 +113,32 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		}
 	}(fb.Builtins)
 	if shouldImportAll {
-		// Import All acts as if everything is in the current file
-		return c.Compile(programToCompile)
+		// Import All acts as if everything is in the current file, except that
+		// private (underscore prefixed) top level names stay out of the
+		// importing scope instead of being pulled in automatically.
+		saved := c.snapshotPrivateTopLevelNames(programToCompile)
+		if err := c.Compile(programToCompile); err != nil {
+			return err
+		}
+		c.restorePrivateTopLevelNames(saved)
+		return nil
 	}
 	checkNodeIdentsToImport := len(nodeIdentsToImport) > 0
 	if checkNodeIdentsToImport {
 		for _, ident := range nodeIdentsToImport {
-			if strings.HasPrefix(ident.Value, "_") {
+			if !isPublicName(ident.Value) {
 				return fmt.Errorf("imports must be public to import them. failed to import %s from %s", ident.Value, name)
 			}
 		}
-		// TODO: Add test case trying to call method such as abc._hello() => this should ideally fail to compile
-		// when called from the file importing abc
 	}
 	c.importNestLevel++
 	c.modName = append(c.modName, name)
-	err := c.Compile(programToCompile)
+	var err error
+	if checkNodeIdentsToImport {
+		err = c.compileModuleForImportRoots(programToCompile, nodeIdentsToImport, name)
+	} else {
+		err = c.Compile(programToCompile)
+	}
 	if err != nil {
 		return err
 	}
@@ -143,6 +152,11 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 	}
 	c.modName = c.modName[:c.importNestLevel]
 	c.importNestLevel--
+	if checkNodeIdentsToImport {
+		// A selective `from mod import {..}` only pulls the requested names into
+		// scope, so there is no module namespace to define.
+		return nil
+	}
 	c.ValidModuleNames = append(c.ValidModuleNames, name)
 	// So the problem now is that index operator, needs to work based off available modules
 	// while compiling, if we encounter a identifier that is a module, we must pull it in

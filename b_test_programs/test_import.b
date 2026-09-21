@@ -13,13 +13,6 @@ abc.returnTrue()
 println("---------------------");
 
 println(abc.useInternalFun());
-try {
-    println(abc._internalFun());
-    println("This should be unreachable");
-    return false;
-} catch (e) {
-    println("Hit exception as expected");
-}
 
 
 println("---------------------");

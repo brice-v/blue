@@ -1084,7 +1084,7 @@ func (p *Parser) parseSpawnExpression() ast.Expression {
 		Token: p.curToken,
 	}
 	p.nextToken()
-	se.Arguments, _ = p.parseExpressionList(token.RPAREN)
+	se.Arguments, _, _ = p.parseExpressionList(token.RPAREN)
 	return se
 }
 
@@ -1093,7 +1093,7 @@ func (p *Parser) parseDeferExpression() ast.Expression {
 		Token: p.curToken,
 	}
 	p.nextToken()
-	se.Arguments, _ = p.parseExpressionList(token.RPAREN)
+	se.Arguments, _, _ = p.parseExpressionList(token.RPAREN)
 	return se
 }
 
@@ -1450,7 +1450,7 @@ func (p *Parser) parseLambdaParameters() []*ast.Identifier {
 // parseCallExpression will parse the call expression and return the ast node
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	exp := &ast.CallExpression{Token: p.curToken, Function: function}
-	exp.Arguments, exp.DefaultArguments = p.parseExpressionList(token.RPAREN)
+	exp.Arguments, exp.DefaultArguments, _ = p.parseExpressionList(token.RPAREN)
 	return exp
 }
 
@@ -1491,12 +1491,17 @@ func (p *Parser) parseRegexLiteral() ast.Expression {
 
 // parseListLiteral parses a list literal and returns the ast node
 func (p *Parser) parseListLiteral() ast.Expression {
-	elems, _ := p.parseExpressionList(token.RBRACKET)
-	exp := &ast.ListLiteral{
+	elems, _, isComprehension := p.parseExpressionList(token.RBRACKET)
+	if isComprehension && len(elems) == 1 {
+		// A comprehension is an expression in its own right. Returning it
+		// directly keeps `[[x for x in y]]` (a list holding the result) distinct
+		// from `[x for x in y]` (the comprehension itself).
+		return elems[0]
+	}
+	return &ast.ListLiteral{
 		Token:    p.curToken,
 		Elements: elems,
 	}
-	return exp
 }
 
 // parseSetLiteral tries to parse and return a Set Literal ast node
@@ -1892,14 +1897,16 @@ func (p *Parser) parseTryCatchBlock() *ast.TryCatchStatement {
 // Helper functions
 
 // parseExpressionList takes an end token and returns the slice
-// of expressions that make up the list
-func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[string]ast.Expression) {
+// of expressions that make up the list. The final bool reports that the list was
+// actually a comprehension parsed at this level, which lets the caller return the
+// comprehension node directly instead of wrapping it in a list literal.
+func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[string]ast.Expression, bool) {
 	list := []ast.Expression{}
 	defaultArgs := make(map[string]ast.Expression)
 
 	if p.peekTokenIs(end) {
 		p.nextToken()
-		return list, defaultArgs
+		return list, defaultArgs, false
 	}
 
 	p.nextToken()
@@ -1910,7 +1917,7 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 		defaultArgs[identString] = assignmentExpression.Value
 	} else {
 		if p.peekTokenIs(token.FOR) {
-			return p.parseListComprehension(val), nil
+			return p.parseListComprehension(val), nil, true
 		}
 		list = append(list, val)
 	}
@@ -1934,18 +1941,37 @@ func (p *Parser) parseExpressionList(end token.Type) ([]ast.Expression, map[stri
 	}
 
 	if !skipEndPeek && !p.expectPeekIs(end) {
-		return nil, nil
+		return nil, nil, false
 	} else if skipEndPeek && !p.curTokenIs(end) {
 		p.error(fmt.Sprintf("expected %s got %s instead", token.RPAREN.UserFriendlyName(), p.curToken.Type.UserFriendlyName()), p.curToken)
-		return nil, nil
+		return nil, nil, false
 	}
 
-	return list, defaultArgs
+	return list, defaultArgs, false
 }
 
 type comprehensionClause struct {
 	condStr string
 	ifCond  ast.Expression
+}
+
+// comprehensionSource rebuilds the for/if part of a comprehension as source. An
+// outer comprehension builds its body from String() calls, so a nested
+// comprehension has to render as an expression such as `[x for (x in y)]`
+// rather than as its desugared statement program.
+func comprehensionSource(leading string, clauses []comprehensionClause, trailing string) string {
+	var sb strings.Builder
+	sb.WriteString(leading)
+	for _, c := range clauses {
+		sb.WriteString(" for ")
+		sb.WriteString(c.condStr)
+		if c.ifCond != nil {
+			sb.WriteString(" if ")
+			sb.WriteString(c.ifCond.String())
+		}
+	}
+	sb.WriteString(trailing)
+	return sb.String()
 }
 
 func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expression {
@@ -2028,7 +2054,10 @@ func (p *Parser) parseListComprehension(valueToBind ast.Expression) []ast.Expres
 	if !p.expectPeekIs(token.RBRACKET) {
 		return nil
 	}
-	return []ast.Expression{&ast.ListCompLiteral{NonEvaluatedProgram: program}}
+	return []ast.Expression{&ast.ListCompLiteral{
+		NonEvaluatedProgram: program,
+		Source:              comprehensionSource("["+valueToBind.String(), clauses, "]"),
+	}}
 }
 
 func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expression) ast.Expression {
@@ -2109,7 +2138,11 @@ func (p *Parser) parseMapComprehension(tok token.Token, key, value ast.Expressio
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil
 	}
-	return &ast.MapCompLiteral{Token: tok, NonEvaluatedProgram: program}
+	return &ast.MapCompLiteral{
+		Token:               tok,
+		NonEvaluatedProgram: program,
+		Source:              comprehensionSource("{"+key.String()+": "+value.String(), clauses, "}"),
+	}
 }
 
 func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) ast.Expression {
@@ -2190,7 +2223,11 @@ func (p *Parser) parseSetComprehension(tok token.Token, value ast.Expression) as
 	if !p.expectPeekIs(token.RBRACE) {
 		return nil
 	}
-	return &ast.SetCompLiteral{Token: tok, NonEvaluatedProgram: program}
+	return &ast.SetCompLiteral{
+		Token:               tok,
+		NonEvaluatedProgram: program,
+		Source:              comprehensionSource("{"+value.String(), clauses, "}"),
+	}
 }
 
 // stringLexer is used to parse string interpolation values

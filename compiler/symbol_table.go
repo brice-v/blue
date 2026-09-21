@@ -175,6 +175,21 @@ func (s *SymbolTable) Remove(name string) {
 	delete(s.store, name)
 }
 
+// LookupDirect finds name in this table only, without walking out to enclosing
+// tables. Import handling uses it to snapshot an entry before a wildcard import
+// compiles a module into the current scope.
+func (s *SymbolTable) LookupDirect(name string) (Symbol, bool) {
+	symbol, ok := s.store[name]
+	return symbol, ok
+}
+
+// SetDirect stores symbol under name in this table only, without touching any
+// counters. It is the counterpart to LookupDirect, letting a wildcard import
+// restore an entry it temporarily shadowed while compiling a module.
+func (s *SymbolTable) SetDirect(name string, symbol Symbol) {
+	s.store[name] = symbol
+}
+
 func (s *SymbolTable) ResolveSpecial(name string, scopeIndex int) (Symbol, bool, bool) {
 	indexMap, ok := s.specialStoreParamIndexMap[name]
 	if ok {
