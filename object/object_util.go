@@ -433,7 +433,9 @@ func medianBucket(h *metrics.Float64Histogram) float64 {
 			return h.Buckets[i]
 		}
 	}
-	panic("medianBucket: should not happen")
+	// No bucket crossed the threshold (an empty histogram). Returning zero
+	// keeps the metrics builtin from taking the process down.
+	return 0
 }
 
 func createStringList(input []string) []Object {

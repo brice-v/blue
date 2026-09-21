@@ -2512,7 +2512,11 @@ var NumBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`ifft` error: %s", err.Error())
 			}
-			return &Tensor{T: mustFloat64Tensor(out)}
+			t, err := mlFloat64Tensor(out)
+			if err != nil {
+				return newError("`ifft` error: %s", err.Error())
+			}
+			return &Tensor{T: t}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ifft` inverts `fft`, taking the real and imaginary parts and returning the reconstructed sequence",
@@ -2535,7 +2539,11 @@ var NumBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`dct` error: %s", err.Error())
 			}
-			return &Tensor{T: mustFloat64Tensor(out)}
+			t, err := mlFloat64Tensor(out)
+			if err != nil {
+				return newError("`dct` error: %s", err.Error())
+			}
+			return &Tensor{T: t}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`dct` is the discrete cosine transform",
@@ -2558,7 +2566,11 @@ var NumBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`fft_freqs` error: %s", err.Error())
 			}
-			return &Tensor{T: mustFloat64Tensor(out)}
+			t, err := mlFloat64Tensor(out)
+			if err != nil {
+				return newError("`fft_freqs` error: %s", err.Error())
+			}
+			return &Tensor{T: t}
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`fft_freqs` returns the sample frequencies for a length n transform, which pair with `fft` output",
@@ -2687,13 +2699,13 @@ func numMatrixObject(m *mat.Dense) Object {
 // numMapObject builds an ordered blue map from alternating key, value pairs.
 func numMapObject(pairs ...any) Object {
 	if len(pairs)%2 != 0 {
-		panic("numMapObject: odd number of arguments")
+		return newError("numMapObject: odd number of arguments")
 	}
 	out := NewOrderedMap[string, Object]()
 	for i := 0; i < len(pairs); i += 2 {
 		key, ok := pairs[i].(string)
 		if !ok {
-			panic("numMapObject: keys must be strings")
+			return newError("numMapObject: keys must be strings")
 		}
 		out.Set(key, pairs[i+1].(Object))
 	}
@@ -2793,16 +2805,6 @@ func numIntegrateBuiltin(name string, f func(xs, ys []float64) (float64, error))
 		}
 		return &Float{Value: v}
 	}
-}
-
-// mustFloat64Tensor wraps a []float64 as a 1d tensor, panicking only on a
-// programming error (a shape that cannot hold the data).
-func mustFloat64Tensor(vs []float64) *ml.Tensor {
-	t, err := mlFloat64Tensor(vs)
-	if err != nil {
-		panic("num: failed to build tensor from float64 slice: " + err.Error())
-	}
-	return t
 }
 
 var _ = interp.PiecewiseLinear{}

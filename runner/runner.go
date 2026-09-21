@@ -29,10 +29,20 @@ import (
 // printed to stderr using the same colored trace formatting as the full
 // binary. When printResult is set (the `vm` command behavior), the value of
 // the last evaluated expression is written to stdout.
-func RunBytecode(bc *bluec.Bytecode, noExec, printResult bool) int {
+func RunBytecode(bc *bluec.Bytecode, noExec, printResult bool) (exitCode int) {
 	globals := make([]object.Object, vm.GlobalsSize)
 	v := vm.NewWithGlobalsStore(bc, globals)
 	object.NoExec = noExec
+	// A panic that escapes the VM loop (a bug, or a native dependency that
+	// does not go through the builtin boundary) is still reported as a normal
+	// blue runtime error instead of crashing the process with a Go stack
+	// trace.
+	defer func() {
+		if r := recover(); r != nil {
+			printVMError(v.TokensForErrorTrace, fmt.Sprintf("panic: %v", r))
+			exitCode = 1
+		}
+	}()
 	if err := v.Run(); err != nil {
 		printVMError(v.TokensForErrorTrace, err.Error())
 		return 1

@@ -422,14 +422,9 @@ func TestEncodingSentinelObjects(t *testing.T) {
 	}
 
 	for _, obj := range []Object{BREAK, CONTINUE} {
-		func() {
-			defer func() {
-				if recover() == nil {
-					t.Errorf("%T.Encode() should panic", obj)
-				}
-			}()
-			_, _ = obj.Encode()
-		}()
+		if _, err := obj.Encode(); err == nil {
+			t.Errorf("%T.Encode() should error", obj)
+		}
 	}
 }
 
@@ -493,7 +488,7 @@ func TestEncodingRejections(t *testing.T) {
 	})
 }
 
-func TestEncodingPanicOnlyTypes(t *testing.T) {
+func TestEncodingRejectedOnlyTypes(t *testing.T) {
 	cases := []Object{
 		&Error{Message: "boom"},
 		&ListCompLiteral{},
@@ -507,14 +502,9 @@ func TestEncodingPanicOnlyTypes(t *testing.T) {
 		&GoObjectGob{T: "t"},
 	}
 	for _, obj := range cases {
-		func() {
-			defer func() {
-				if recover() == nil {
-					t.Errorf("%T.Encode() should panic", obj)
-				}
-			}()
-			_, _ = obj.Encode()
-		}()
+		if _, err := obj.Encode(); err == nil {
+			t.Errorf("%T.Encode() should error", obj)
+		}
 	}
 }
 

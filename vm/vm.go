@@ -1659,8 +1659,23 @@ func (vm *VM) pushClosure(constIndex, numFree int) error {
 	return vm.push(closure)
 }
 
-func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
+func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) (err error) {
+	savedSP := vm.sp
 	args := vm.stack[vm.sp-numArgs : vm.sp]
+	// Builtins are native Go code, so a bad argument or an internal bug can
+	// panic. Convert that into a normal blue error so try/catch (or the usual
+	// runtime error path) handles it instead of the panic escaping and
+	// crashing the whole process.
+	defer func() {
+		if r := recover(); r != nil {
+			name := builtin.Name
+			if name == "" {
+				name = "anonymous"
+			}
+			vm.sp = savedSP - numArgs - 1
+			err = vm.push(newError("builtin `%s` panicked: %v", name, r))
+		}
+	}()
 	// A map can take over a builtin by defining the matching dunder, which is
 	// how a custom iterable answers `__get` and `__len` during a `for in`.
 	if builtin.OverrideDunder != object.DunderInvalid && numArgs > 0 {

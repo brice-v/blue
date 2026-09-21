@@ -2767,8 +2767,9 @@ var Builtins = []*Builtin{
 					fmt.Fprintf(&out, "%s: %f\n", name, medianBucket(value.Float64Histogram()))
 				case metrics.KindBad:
 					// This should never happen because all metrics are supported
-					// by construction.
-					panic("bug in runtime/metrics package!")
+					// by construction, but report it instead of taking the
+					// process down if the runtime ever disagrees.
+					fmt.Fprintf(&out, "%s: bad metric Kind\n", name)
 				default:
 					// This may happen as new metrics get added.
 					//

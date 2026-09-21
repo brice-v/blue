@@ -818,7 +818,7 @@ func (x *DefaultArgs) IType() iType {
 // The Objects Below cannot be encoded but are included to satisfy the Object interface
 
 func (x *Error) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *Error) IType() iType {
@@ -826,7 +826,7 @@ func (x *Error) IType() iType {
 }
 
 func (x *ListCompLiteral) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *ListCompLiteral) IType() iType {
@@ -834,7 +834,7 @@ func (x *ListCompLiteral) IType() iType {
 }
 
 func (x *MapCompLiteral) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *MapCompLiteral) IType() iType {
@@ -842,7 +842,7 @@ func (x *MapCompLiteral) IType() iType {
 }
 
 func (x *SetCompLiteral) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *SetCompLiteral) IType() iType {
@@ -850,7 +850,7 @@ func (x *SetCompLiteral) IType() iType {
 }
 
 func (x *Builtin) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *Builtin) IType() iType {
@@ -858,7 +858,7 @@ func (x *Builtin) IType() iType {
 }
 
 func (x *BuiltinObj) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *BuiltinObj) IType() iType {
@@ -866,7 +866,7 @@ func (x *BuiltinObj) IType() iType {
 }
 
 func (x *Process) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *Process) IType() iType {
@@ -874,7 +874,7 @@ func (x *Process) IType() iType {
 }
 
 func (x *StringFunction) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *StringFunction) IType() iType {
@@ -882,7 +882,7 @@ func (x *StringFunction) IType() iType {
 }
 
 func (x *ReturnValue) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *ReturnValue) IType() iType {
@@ -890,7 +890,7 @@ func (x *ReturnValue) IType() iType {
 }
 
 func (x *GoObjectGob) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *GoObjectGob) IType() iType {
@@ -898,7 +898,7 @@ func (x *GoObjectGob) IType() iType {
 }
 
 func (x *BreakStatement) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *BreakStatement) IType() iType {
@@ -906,7 +906,7 @@ func (x *BreakStatement) IType() iType {
 }
 
 func (x *ContinueStatement) Encode() ([]byte, error) {
-	panic(fmt.Sprintf("%T cannot be encoded", x))
+	return nil, fmt.Errorf("%T cannot be encoded", x)
 }
 
 func (x *ContinueStatement) IType() iType {

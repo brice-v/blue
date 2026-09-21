@@ -10,7 +10,6 @@ package astjson
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"sort"
 
@@ -92,7 +91,7 @@ func ParseJson(expr ast.Expression) object.Object {
 		return parseListLiteral(t)
 	case *ast.PrefixExpression:
 		if t.TokenLiteral() != "-" {
-			panic("Unexpected Prefix Expression Token " + t.TokenLiteral())
+			return newErr("unexpected prefix expression token %q", t.TokenLiteral())
 		}
 		right := ParseJson(t.Right)
 		switch rt := right.(type) {
@@ -106,13 +105,12 @@ func ParseJson(expr ast.Expression) object.Object {
 		case *object.BigFloat:
 			rt.Value = rt.Value.Neg()
 		default:
-			panic("Unexpected Type for Prefix Expression " + right.Type())
+			return newErr("unexpected type for prefix expression %s", right.Type())
 		}
 		return right
 	default:
-		log.Fatalf("ParseJson: UNHANDLED t = %#+v (%T)", t, t)
+		return newErr("ParseJson: unhandled %T", t)
 	}
-	panic("UNREACHABLE")
 }
 
 func newErr(format string, a ...any) object.Object {

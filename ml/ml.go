@@ -574,7 +574,8 @@ func SetGradEnabled(on bool) bool {
 // storage matches the dtype, so a float64 tensor holds a float64 buffer and an
 // int32 tensor holds an int32 buffer; the dtype tag is not cosmetic. Float32
 // (and the zero value Invalid) is the fast path.
-func NewTensor(data []float32, shape []int, dtype DType, device Device) (*Tensor, error) {
+func NewTensor(data []float32, shape []int, dtype DType, device Device) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	switch dtype {
 	case Float32, Invalid:
 		return newFloat32Tensor(data, shape, device)

@@ -57,7 +57,8 @@ func fillValue(raw *tensor.RawTensor, v float32) {
 	}
 }
 
-func Zeros(shape []int, dtype DType, device Device) (*Tensor, error) {
+func Zeros(shape []int, dtype DType, device Device) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	be, err := backendFor(device)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,8 @@ func Zeros(shape []int, dtype DType, device Device) (*Tensor, error) {
 	return buildRaw(shape, tensor.DataType(dtype), be, nil)
 }
 
-func Ones(shape []int, dtype DType, device Device) (*Tensor, error) {
+func Ones(shape []int, dtype DType, device Device) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	be, err := backendFor(device)
 	if err != nil {
 		return nil, err
@@ -80,7 +82,8 @@ func Ones(shape []int, dtype DType, device Device) (*Tensor, error) {
 	return buildRaw(shape, tensor.DataType(dtype), be, func(raw *tensor.RawTensor) { fillValue(raw, 1) })
 }
 
-func Full(shape []int, v float32, dtype DType, device Device) (*Tensor, error) {
+func Full(shape []int, v float32, dtype DType, device Device) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	be, err := backendFor(device)
 	if err != nil {
 		return nil, err
@@ -91,7 +94,8 @@ func Full(shape []int, v float32, dtype DType, device Device) (*Tensor, error) {
 	return buildRaw(shape, tensor.DataType(dtype), be, func(raw *tensor.RawTensor) { fillValue(raw, v) })
 }
 
-func Eye(n int, dtype DType, device Device) (*Tensor, error) {
+func Eye(n int, dtype DType, device Device) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	be, err := backendFor(device)
 	if err != nil {
 		return nil, err
@@ -103,7 +107,8 @@ func Eye(n int, dtype DType, device Device) (*Tensor, error) {
 	return wrapRaw(be, be.Cast(base.Raw(), tensor.DataType(dtype))), nil
 }
 
-func Randn(shape []int, dtype DType, device Device) (*Tensor, error) {
+func Randn(shape []int, dtype DType, device Device) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	be, err := backendFor(device)
 	if err != nil {
 		return nil, err
@@ -116,7 +121,8 @@ func Randn(shape []int, dtype DType, device Device) (*Tensor, error) {
 }
 
 // Rand returns uniform samples in [0, 1) from the shared engine RNG.
-func Rand(shape []int, dtype DType, device Device) (*Tensor, error) {
+func Rand(shape []int, dtype DType, device Device) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	be, err := backendFor(device)
 	if err != nil {
 		return nil, err
@@ -176,7 +182,8 @@ func Shuffle(a *Tensor, dim int) (*Tensor, error) {
 // buildRaw allocates a raw tensor of the given dtype and device, fills it, and
 // wraps it. The wrapper's Go type parameter stays float32, but the raw buffer
 // and dtype tag are the requested type; every op dispatches on the raw dtype.
-func buildRaw(shape []int, dtype tensor.DataType, be tensor.Backend, fill func(*tensor.RawTensor)) (*Tensor, error) {
+func buildRaw(shape []int, dtype tensor.DataType, be tensor.Backend, fill func(*tensor.RawTensor)) (out *Tensor, err error) {
+	defer recoverAsError(&err)
 	raw, err := tensor.NewRaw(tensor.Shape(shape), dtype, be.Device())
 	if err != nil {
 		return nil, err
