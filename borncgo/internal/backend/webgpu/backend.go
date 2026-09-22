@@ -467,6 +467,28 @@ func (b *Backend) AdapterInfo() *wgpu.AdapterInfo {
 	return b.adapterInfo
 }
 
+// Info returns a plain string description of the adapter for diagnostics
+// (blue's `ml.gpu.info()`). It avoids exposing the wgpu binding type to
+// callers, and returns an empty map when no adapter info was recorded.
+func (b *Backend) Info() map[string]string {
+	out := map[string]string{
+		"name":   b.Name(),
+		"device": b.Device().String(),
+	}
+	if b.adapterInfo == nil {
+		return out
+	}
+	out["vendor"] = b.adapterInfo.Vendor
+	out["architecture"] = b.adapterInfo.Architecture
+	out["adapter_device"] = b.adapterInfo.Device
+	out["description"] = b.adapterInfo.Description
+	out["adapter_type"] = b.adapterInfo.AdapterType.String()
+	out["backend_type"] = b.adapterInfo.BackendType.String()
+	out["vendor_id"] = fmt.Sprintf("0x%04x", b.adapterInfo.VendorId)
+	out["device_id"] = fmt.Sprintf("0x%04x", b.adapterInfo.DeviceId)
+	return out
+}
+
 // IsAvailable checks if WebGPU with compute shader support is available.
 // Returns false on software renderers that don't support compute pipelines,
 // and also returns false if the underlying driver panics (e.g., missing GPU

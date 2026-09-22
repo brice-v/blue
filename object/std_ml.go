@@ -1298,6 +1298,37 @@ var MlBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_gpu_info",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("info", 0, args); err != nil {
+				return err
+			}
+			info, ok := ml.GPUInfo()
+			m := NewOrderedMap[string, Object]()
+			m.Set("available", nativeToBooleanObject(ok))
+			if !ok {
+				return CreateMapObjectForGoMap(*m)
+			}
+			// Fixed key order keeps the printed map stable across runs.
+			for _, key := range []string{
+				"name", "device", "vendor", "architecture",
+				"adapter_device", "description", "adapter_type",
+				"backend_type", "vendor_id", "device_id",
+			} {
+				if v, present := info[key]; present && v != "" {
+					m.Set(key, &Stringo{Value: v})
+				}
+			}
+			return CreateMapObjectForGoMap(*m)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`info` reports the GPU adapter in use (name, vendor, backend); `available` is false when no GPU backend is built in",
+			signature:   "info() -> map",
+			errors:      "InvalidArgCount",
+			example:     "info() => {available: true, name: 'WebGPU (NVIDIA ...)', device: 'WebGPU'}",
+		}.String(),
+	},
+	{
 		Name: "_nn_to",
 		Fun: func(args ...Object) Object {
 			if err := checkArgCount("nn_to", 2, args); err != nil {

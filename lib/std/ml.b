@@ -88,6 +88,7 @@ val __nn_to = _nn_to;
 val __nn_conv2d = _nn_conv2d;
 val __nn_maxpool2d = _nn_maxpool2d;
 val __gpu_is_available = _gpu_is_available;
+val __gpu_info = _gpu_info;
 val __cast = _cast;
 val __trace_begin = _trace_begin;
 val __trace_input = _trace_input;
@@ -152,8 +153,12 @@ val device = {
 };
 
 ## `gpu.is_available()` mirrors torch.cuda.is_available().
+## `gpu.info()` reports the adapter blue would use (name, vendor, backend), so
+## GPU execution can be verified without external tools. `available` is false in
+## static or non-cgo builds.
 val gpu = {
     'is_available': fun() { __gpu_is_available(); },
+    'info': fun() { __gpu_info(); },
 };
 
 fun tensor(data, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {

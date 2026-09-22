@@ -18,3 +18,8 @@ func newGPUEngine() (tensor.Backend, error) {
 func gpuIsAvailable() bool {
 	return false
 }
+
+// GPUInfo has no adapter to describe in static and non-cgo builds.
+func GPUInfo() (map[string]string, bool) {
+	return nil, false
+}
