@@ -31,8 +31,8 @@ func equalMatrix(a, b *mat.Dense) bool {
 	if ar != br || ac != bc {
 		return false
 	}
-	for i := 0; i < ar; i++ {
-		for j := 0; j < ac; j++ {
+	for i := range ar {
+		for j := range ac {
 			if a.At(i, j) != b.At(i, j) {
 				return false
 			}
@@ -49,8 +49,8 @@ func closeMatrix(a, b *mat.Dense, tol float64) bool {
 	if ar != br || ac != bc {
 		return false
 	}
-	for i := 0; i < ar; i++ {
-		for j := 0; j < ac; j++ {
+	for i := range ar {
+		for j := range ac {
 			d := a.At(i, j) - b.At(i, j)
 			if d < 0 {
 				d = -d

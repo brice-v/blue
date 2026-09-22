@@ -1190,7 +1190,7 @@ func numBoxGroups(name string, o Object) ([][]float64, Object) {
 			return nil, errObj
 		}
 		out := make([][]float64, r)
-		for i := 0; i < r; i++ {
+		for i := range r {
 			out[i] = flat[i*c : (i+1)*c]
 		}
 		return out, nil
@@ -1213,8 +1213,8 @@ func contourLevels(m interface {
 		return nil
 	}
 	lo, hi := math.Inf(1), math.Inf(-1)
-	for i := 0; i < r; i++ {
-		for j := 0; j < c; j++ {
+	for i := range r {
+		for j := range c {
 			v := m.At(i, j)
 			if math.IsNaN(v) {
 				continue

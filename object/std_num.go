@@ -208,8 +208,8 @@ func listToMatrix(l *List) (*mat.Dense, error) {
 func matrixToFloat32Data(m *mat.Dense) []float32 {
 	r, c := m.Dims()
 	out := make([]float32, r*c)
-	for i := 0; i < r; i++ {
-		for j := 0; j < c; j++ {
+	for i := range r {
+		for j := range c {
 			out[i*c+j] = float32(m.At(i, j))
 		}
 	}
@@ -220,8 +220,8 @@ func matrixToFloat32Data(m *mat.Dense) []float32 {
 func matrixToFloat64Data(m *mat.Dense) []float64 {
 	r, c := m.Dims()
 	out := make([]float64, r*c)
-	for i := 0; i < r; i++ {
-		for j := 0; j < c; j++ {
+	for i := range r {
+		for j := range c {
 			out[i*c+j] = m.At(i, j)
 		}
 	}
@@ -242,9 +242,9 @@ func float64ObjectList(vs []float64) Object {
 func float64ObjectMatrix(m *mat.Dense) Object {
 	r, c := m.Dims()
 	rows := make([]Object, r)
-	for i := 0; i < r; i++ {
+	for i := range r {
 		row := make([]Object, c)
-		for j := 0; j < c; j++ {
+		for j := range c {
 			row[j] = &Float{Value: m.At(i, j)}
 		}
 		rows[i] = &List{Elements: row}
@@ -262,8 +262,8 @@ func denseAdd(a, b *mat.Dense, sign float64) (*mat.Dense, error) {
 		return nil, fmt.Errorf("shape mismatch: %dx%d vs %dx%d", ar, ac, br, bc)
 	}
 	out := mat.NewDense(ar, ac, nil)
-	for i := 0; i < ar; i++ {
-		for j := 0; j < ac; j++ {
+	for i := range ar {
+		for j := range ac {
 			out.Set(i, j, a.At(i, j)+sign*b.At(i, j))
 		}
 	}
@@ -277,8 +277,8 @@ func denseElemMul(a, b *mat.Dense) (*mat.Dense, error) {
 		return nil, fmt.Errorf("shape mismatch: %dx%d vs %dx%d", ar, ac, br, bc)
 	}
 	out := mat.NewDense(ar, ac, nil)
-	for i := 0; i < ar; i++ {
-		for j := 0; j < ac; j++ {
+	for i := range ar {
+		for j := range ac {
 			out.Set(i, j, a.At(i, j)*b.At(i, j))
 		}
 	}
@@ -299,8 +299,8 @@ func denseMatMul(a, b *mat.Dense) (*mat.Dense, error) {
 func denseScale(m *mat.Dense, f float64) *mat.Dense {
 	r, c := m.Dims()
 	out := mat.NewDense(r, c, nil)
-	for i := 0; i < r; i++ {
-		for j := 0; j < c; j++ {
+	for i := range r {
+		for j := range c {
 			out.Set(i, j, m.At(i, j)*f)
 		}
 	}
@@ -368,7 +368,7 @@ func denseCholesky(m *mat.Dense) (*mat.Dense, error) {
 	sym := mat.NewSymDense(r, nil)
 	// Copy the dense values into the symmetric wrapper by hand: gonum's CopySym
 	// wants a Symmetric, which a *mat.Dense is not.
-	for i := 0; i < r; i++ {
+	for i := range r {
 		for j := 0; j <= i; j++ {
 			sym.SetSym(i, j, m.At(i, j))
 		}
@@ -380,7 +380,7 @@ func denseCholesky(m *mat.Dense) (*mat.Dense, error) {
 	var lower mat.TriDense
 	col.LTo(&lower)
 	out := mat.NewDense(r, c, nil)
-	for i := 0; i < r; i++ {
+	for i := range r {
 		for j := 0; j <= i; j++ {
 			out.Set(i, j, lower.At(i, j))
 		}
@@ -403,7 +403,7 @@ func denseEigObject(m *mat.Dense) Object {
 	}
 	vals := eig.Values(nil)
 	v := mat.NewDense(r, 2, nil)
-	for i := 0; i < r; i++ {
+	for i := range r {
 		v.Set(i, 0, real(vals[i]))
 		v.Set(i, 1, imag(vals[i]))
 	}
@@ -413,8 +413,8 @@ func denseEigObject(m *mat.Dense) Object {
 	// are float64: `vectors_real` and `vectors_imag`.
 	vr := mat.NewDense(r, r, nil)
 	vi := mat.NewDense(r, r, nil)
-	for i := 0; i < r; i++ {
-		for j := 0; j < r; j++ {
+	for i := range r {
+		for j := range r {
 			z := vectors.At(i, j)
 			vr.Set(i, j, real(z))
 			vi.Set(i, j, imag(z))
@@ -470,8 +470,8 @@ func denseLUObject(m *mat.Dense) Object {
 	lu.UTo(&ut)
 	l := mat.NewDense(r, c, nil)
 	u := mat.NewDense(r, c, nil)
-	for i := 0; i < r; i++ {
-		for j := 0; j < c; j++ {
+	for i := range r {
+		for j := range c {
 			l.Set(i, j, lt.At(i, j))
 			u.Set(i, j, ut.At(i, j))
 		}
@@ -953,7 +953,7 @@ func ifftInverse(re, im []float64) ([]float64, error) {
 	}
 	n := 2 * (half - 1)
 	coeff := make([]complex128, half)
-	for i := 0; i < half; i++ {
+	for i := range half {
 		coeff[i] = complex(re[i], im[i])
 	}
 	t := fourier.NewFFT(n)
@@ -1097,7 +1097,7 @@ var NumBuiltins = []*Builtin{
 			}
 			sz := int(n.Value)
 			m := mat.NewDense(sz, sz, nil)
-			for i := 0; i < sz; i++ {
+			for i := range sz {
 				m.Set(i, i, 1)
 			}
 			return &GoObj[*NumMatrix]{Value: m}
@@ -1339,7 +1339,7 @@ var NumBuiltins = []*Builtin{
 				return newError("`trace` error: matrix is %dx%d, want square", r, c)
 			}
 			sum := 0.0
-			for i := 0; i < r; i++ {
+			for i := range r {
 				sum += m.At(i, i)
 			}
 			return &Float{Value: sum}
