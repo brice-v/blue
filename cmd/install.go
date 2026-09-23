@@ -231,18 +231,31 @@ func copyFile(src, dst string) error {
 	defer func() {
 		_ = in.Close()
 	}()
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o755)
+
+	tmp, err := os.CreateTemp(filepath.Dir(dst), filepath.Base(dst)+".tmp-*")
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(out, in); err != nil {
-		_ = out.Close()
+	tmpName := tmp.Name()
+	if _, err := io.Copy(tmp, in); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
 		return err
 	}
-	if err := out.Close(); err != nil {
+	if err := tmp.Chmod(0o755); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
 		return err
 	}
-	return os.Chmod(dst, 0o755)
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := os.Rename(tmpName, dst); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	return nil
 }
 
 // printInstallEnv prints the shell setup for the new install.
