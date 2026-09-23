@@ -11,8 +11,12 @@ import (
 
 type tensorData struct {
 	// leaves are collected as float64 (which holds int64 exactly up to 2^53)
-	// and converted to the requested dtype when the tensor is built.
-	data []float64
+	// and converted to the requested dtype when the tensor is built. The kind
+	// flags drive dtype inference when the caller does not name a dtype.
+	data     []float64
+	hasFloat bool
+	hasInt   bool
+	hasBool  bool
 }
 
 func inferShape(l *List) []int {
@@ -45,10 +49,13 @@ func appendToData(tdata *tensorData, l *List, shape []int) error {
 			}
 			switch v := e.(type) {
 			case *Float:
+				tdata.hasFloat = true
 				tdata.data = append(tdata.data, v.Value)
 			case *Integer:
+				tdata.hasInt = true
 				tdata.data = append(tdata.data, float64(v.Value))
 			case *Boolean:
+				tdata.hasBool = true
 				if v.Value {
 					tdata.data = append(tdata.data, 1)
 				} else {
@@ -67,6 +74,22 @@ func appendToData(tdata *tensorData, l *List, shape []int) error {
 		}
 	}
 	return nil
+}
+
+// inferDType mirrors torch.tensor's dtype inference: a float present makes the
+// tensor float32, otherwise integers make it int64, otherwise bools make it
+// bool. The empty case falls back to float32.
+func inferDType(tdata *tensorData) ml.DType {
+	switch {
+	case tdata.hasFloat:
+		return ml.Float32
+	case tdata.hasInt:
+		return ml.Int64
+	case tdata.hasBool:
+		return ml.Bool
+	default:
+		return ml.Float32
+	}
 }
 
 // newTypedTensor builds a tensor of the requested dtype from collected leaves.
@@ -130,12 +153,15 @@ var MlBuiltins = []*Builtin{
 					return newError("`tensor` error: %s", err.Error())
 				}
 			case *Float:
+				tdata.hasFloat = true
 				tdata.data = append(tdata.data, v.Value)
 				shape = []int{}
 			case *Integer:
+				tdata.hasInt = true
 				tdata.data = append(tdata.data, float64(v.Value))
 				shape = []int{}
 			case *Boolean:
+				tdata.hasBool = true
 				if v.Value {
 					tdata.data = append(tdata.data, 1)
 				} else {
@@ -143,9 +169,19 @@ var MlBuiltins = []*Builtin{
 				}
 				shape = []int{}
 			}
-			err = checkArgType("tensor", 2, STRING_OBJ, args)
-			if err != nil {
-				return err
+			var dtype ml.DType
+			switch args[1].Type() {
+			case NULL_OBJ:
+				dtype = inferDType(tdata)
+			case STRING_OBJ:
+				dtypeS := args[1].(*Stringo).Value
+				parsed, derr := ml.ParseDType(dtypeS)
+				if derr != nil {
+					return newError("`tensor` error: %s", derr.Error())
+				}
+				dtype = parsed
+			default:
+				return newPositionalTypeError("tensor", 2, "string or null", args[1].Type())
 			}
 			err = checkArgType("tensor", 3, STRING_OBJ, args)
 			if err != nil {
@@ -154,11 +190,6 @@ var MlBuiltins = []*Builtin{
 			err = checkArgType("tensor", 4, BOOLEAN_OBJ, args)
 			if err != nil {
 				return err
-			}
-			dtypeS := args[1].(*Stringo).Value
-			dtype, derr := ml.ParseDType(dtypeS)
-			if derr != nil {
-				return newError("`tensor` error: %s", derr.Error())
 			}
 			deviceS := args[2].(*Stringo).Value
 			device, derr := ml.ParseDevice(deviceS)
@@ -174,8 +205,8 @@ var MlBuiltins = []*Builtin{
 			return &Tensor{T: tt}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`tensor` builds a tensor from nested lists, inferring the shape from the nesting",
-			signature:   "tensor(data: list, datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
+			explanation: "`tensor` builds a tensor from nested lists, inferring the shape from the nesting and the dtype from the values (float32 for floats, int64 for integers, bool for booleans)",
+			signature:   "tensor(data: list, datatype: str=null, dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "tensor([[1.0, 2.0], [3.0, 4.0]]) => Tensor{shape: [2 2]}",
 		}.String(),

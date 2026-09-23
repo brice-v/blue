@@ -161,11 +161,13 @@ val gpu = {
     'info': fun() { __gpu_info(); },
 };
 
-fun tensor(data, datatype=dtype.float32, dev=device.cpu, requires_grad=false) {
+fun tensor(data, datatype=null, dev=device.cpu, requires_grad=false) {
     ##std:this,__tensor
     ## `tensor` builds a tensor from nested lists, inferring the shape from the nesting
+    ## and the dtype from the values like torch.tensor (float32 for floats, int64 for
+    ## integers, bool for booleans). Pass `datatype` to force a dtype.
     ##
-    ## tensor(data: list, datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor
+    ## tensor(data: list, datatype: str=null, dev: str='cpu', requires_grad: bool=false) -> tensor
     __tensor(data, datatype, dev, requires_grad)
 }
 

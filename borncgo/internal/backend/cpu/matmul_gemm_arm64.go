@@ -100,11 +100,11 @@ func gemmNEONF32(c, a, b []float32, m, k, n int) {
 // scratch, keeping the fast path allocation free.
 func gemvStridedNEONF32(c, a, b []float32, m, k, n, nFull int, sc *gemmScratch) {
 	bpRow := ensureCap(&sc.gemv, k*gemmNr)
-	for i := 0; i < m; i++ {
+	for i := range m {
 		for j := 0; j < nFull; j += gemmNr {
 			// Pack one column tile of B into bpRow.
 			jt := j
-			for kk := 0; kk < k; kk++ {
+			for kk := range k {
 				copy(bpRow[kk*gemmNr:kk*gemmNr+gemmNr], b[kk*n+jt:kk*n+jt+gemmNr])
 			}
 			gemmMicroKernel1x8NEON(c[i*n+j:], a[i*k:], bpRow, k)
@@ -126,10 +126,10 @@ func gemmPackedNEONF32(c, a, b []float32, m, k, n, mFull, nFull int, sc *gemmScr
 	packB8(bp, b, k, n, nTiles)
 	packA4(ap, a, k, nBlocks)
 
-	for t := 0; t < nTiles; t++ {
+	for t := range nTiles {
 		jt := t * gemmNr
 		bpt := bp[t*k*gemmNr:]
-		for bi := 0; bi < nBlocks; bi++ {
+		for bi := range nBlocks {
 			gemmMicroKernel4x8NEON(c[bi*gemmMr*n+jt:], ap[bi*k*gemmMr:], bpt, k, n)
 		}
 		// Remainder rows [mFull, m): one per call, reusing the packed B panel.
@@ -147,7 +147,7 @@ func gemmTailNEONF32(c, a, b []float32, m, k, n, nFull, nrem int, sc *gemmScratc
 	packTailB(bt, b, k, n, nFull, nrem)
 
 	var scratch [gemmNr]float32
-	for i := 0; i < m; i++ {
+	for i := range m {
 		gemmMicroKernel1x8NEON(scratch[:], a[i*k:], bt, k)
 		copy(c[i*n+nFull:i*n+n], scratch[:nrem])
 	}
@@ -157,10 +157,10 @@ func gemmTailNEONF32(c, a, b []float32, m, k, n, nFull, nrem int, sc *gemmScratc
 // [nTiles][k][gemmNr] contiguous, so the micro-kernel reads each panel sequentially
 // (stride gemmNr) instead of with B's column stride n.
 func packB8(bp, b []float32, k, n, nTiles int) {
-	for t := 0; t < nTiles; t++ {
+	for t := range nTiles {
 		jt := t * gemmNr
 		dst := bp[t*k*gemmNr:]
-		for kk := 0; kk < k; kk++ {
+		for kk := range k {
 			copy(dst[kk*gemmNr:kk*gemmNr+gemmNr], b[kk*n+jt:kk*n+jt+gemmNr])
 		}
 	}
@@ -170,7 +170,7 @@ func packB8(bp, b []float32, k, n, nTiles int) {
 // contiguous [k][gemmNr] panel, zero-filling the unused columns so the 1×8 kernel
 // reads a full 8-wide row. This mirrors the amd64 packTailB but uses gemmNr==8.
 func packTailB(bt, b []float32, k, n, nFull, nrem int) {
-	for kk := 0; kk < k; kk++ {
+	for kk := range k {
 		d := bt[kk*gemmNr : kk*gemmNr+gemmNr : kk*gemmNr+gemmNr]
 		copy(d[:nrem], b[kk*n+nFull:kk*n+nFull+nrem])
 		for j := nrem; j < gemmNr; j++ {
@@ -186,14 +186,14 @@ func packTailB(bt, b []float32, k, n, nFull, nrem int) {
 // Specialized to gemmMr==4: the four source rows are sliced upfront so the inner
 // loop carries a single bounds check per k instead of eight.
 func packA4(ap, a []float32, k, nBlocks int) {
-	for bi := 0; bi < nBlocks; bi++ {
+	for bi := range nBlocks {
 		base := bi * gemmMr * k
 		dst := ap[base : base+gemmMr*k]
 		r0 := a[base+0*k : base+1*k]
 		r1 := a[base+1*k : base+2*k]
 		r2 := a[base+2*k : base+3*k]
 		r3 := a[base+3*k : base+4*k]
-		for kk := 0; kk < k; kk++ {
+		for kk := range k {
 			d := dst[kk*gemmMr : kk*gemmMr+gemmMr : kk*gemmMr+gemmMr]
 			d[0], d[1] = r0[kk], r1[kk]
 			d[2], d[3] = r2[kk], r3[kk]

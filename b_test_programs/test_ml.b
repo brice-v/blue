@@ -47,6 +47,19 @@ assert(a.T.strides == [1, 3]);
 assert(ml.tensor(5.0).shape == []);
 assert(ml.tensor(5.0).ndim == 0);
 
+# dtype is inferred from the values, like torch.tensor
+assert(ml.tensor([1, 2, 3]).dtype == "int64");
+assert(ml.tensor(7).dtype == "int64");
+assert(ml.tensor(7.0).dtype == "float32");
+assert(ml.tensor([1, 2.5]).dtype == "float32");
+assert(ml.tensor([true, false]).dtype == "bool");
+assert(ml.tensor([true, 1]).dtype == "int64");
+
+# the repr matches PyTorch's for the inferred dtype (bools use blue's spelling)
+assert(str(ml.tensor([1, 2])) == "tensor([1, 2])");
+assert(str(ml.tensor([1.0, 2.0])) == "tensor([1., 2.])");
+assert(str(ml.tensor([true, false])) == "tensor([ true, false])");
+
 # every optional parameter can be passed by keyword, in any order
 assert(ml.tensor([[1.0]], datatype="float32", dev="cpu", requires_grad=false).shape == [1, 1]);
 

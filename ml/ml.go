@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"weak"
@@ -244,8 +245,7 @@ func (t *Tensor) IsContiguous() bool {
 }
 
 func (t *Tensor) String() string {
-	return fmt.Sprintf("Tensor{shape: %v, strides: %v, offset: %d, dtype: %s, device: %s}",
-		t.Shape(), t.Strides(), 0, t.DType(), t.Device())
+	return t.repr()
 }
 
 // ContiguousData returns the logical elements in row-major order as float32.
@@ -718,4 +718,369 @@ func asFloat(a *Tensor) *Tensor {
 	f := wrapRaw(a.be, a.be.Cast(a.t.Raw(), tensor.Float32))
 	f.dtype = Float32
 	return f
+}
+
+// The tensor repr mirrors PyTorch's (torch/_tensor_str.py): the same
+// int_mode/sci_mode formatting, the same column padding, the same line wrapping
+// at 80 columns, and the same summarization of tensors larger than 1000
+// elements. The goal is that tensor([[...]]) looks the way a PyTorch user
+// expects, including the trailing "." on integral floats. Booleans are the one
+// exception: blue spells them "true"/"false".
+
+const (
+	printPrecision = 4
+	printThreshold = 1000
+	printEdgeItems = 3
+	printLineWidth = 80
+)
+
+type printKind int
+
+const (
+	pkFloat printKind = iota
+	pkInt
+	pkBool
+)
+
+// pval is one printable element. Only the field matching kind is valid.
+type pval struct {
+	kind printKind
+	f    float64
+	i    int64
+	b    bool
+}
+
+func (v pval) raw() string {
+	switch v.kind {
+	case pkBool:
+		if v.b {
+			return "true"
+		}
+		return "false"
+	case pkInt:
+		return strconv.FormatInt(v.i, 10)
+	default:
+		return strconv.FormatFloat(v.f, 'g', -1, 64)
+	}
+}
+
+// printElements reads the tensor's logical elements in row-major order. It
+// returns the values and whether the dtype is floating point.
+func (t *Tensor) printElements() ([]pval, bool) {
+	raw := t.t.Raw()
+	n := t.Numel()
+	out := make([]pval, n)
+
+	// A strided view is materialized to row-major float32 by ContiguousData;
+	// such views are float32 in practice, so the cast is lossless.
+	if !t.isRawContiguous() {
+		data := t.ContiguousData()
+		for i, f := range data {
+			out[i] = pval{kind: pkFloat, f: float64(f)}
+		}
+		dt := raw.DType()
+		return out, dt == Float32 || dt == Float64
+	}
+
+	switch raw.DType() {
+	case Float64:
+		d := raw.AsFloat64()
+		for i, v := range d {
+			out[i] = pval{kind: pkFloat, f: v}
+		}
+		return out, true
+	case Int32:
+		d := raw.AsInt32()
+		for i, v := range d {
+			out[i] = pval{kind: pkInt, i: int64(v)}
+		}
+		return out, false
+	case Int64:
+		d := raw.AsInt64()
+		for i, v := range d {
+			out[i] = pval{kind: pkInt, i: v}
+		}
+		return out, false
+	case Uint8:
+		d := raw.AsUint8()
+		for i, v := range d {
+			out[i] = pval{kind: pkInt, i: int64(v)}
+		}
+		return out, false
+	case Bool:
+		d := raw.AsBool()
+		for i, v := range d {
+			out[i] = pval{kind: pkBool, b: v}
+		}
+		return out, false
+	default:
+		d := raw.AsFloat32()
+		for i, v := range d {
+			out[i] = pval{kind: pkFloat, f: float64(v)}
+		}
+		return out, true
+	}
+}
+
+// tensorPrinter holds the computed column width and format mode for one tensor.
+type tensorPrinter struct {
+	floating  bool
+	intMode   bool
+	sciMode   bool
+	maxWidth  int
+	precision int
+}
+
+func newTensorPrinter(vals []pval, floating bool) *tensorPrinter {
+	p := &tensorPrinter{
+		floating:  floating,
+		intMode:   true,
+		maxWidth:  1,
+		precision: printPrecision,
+	}
+	if !floating {
+		for _, v := range vals {
+			if s := v.raw(); len(s) > p.maxWidth {
+				p.maxWidth = len(s)
+			}
+		}
+		return p
+	}
+
+	nonzero := make([]float64, 0, len(vals))
+	for _, v := range vals {
+		if math.IsInf(v.f, 0) || math.IsNaN(v.f) || v.f == 0 {
+			continue
+		}
+		nonzero = append(nonzero, v.f)
+	}
+	if len(nonzero) == 0 {
+		return p
+	}
+
+	minAbs, maxAbs := math.Abs(nonzero[0]), math.Abs(nonzero[0])
+	for _, f := range nonzero {
+		if a := math.Abs(f); a < minAbs {
+			minAbs = a
+		} else if a > maxAbs {
+			maxAbs = a
+		}
+	}
+	for _, f := range nonzero {
+		if f != math.Ceil(f) {
+			p.intMode = false
+			break
+		}
+	}
+	p.sciMode = maxAbs/minAbs > 1000.0 || maxAbs > 1.0e8 || minAbs < 1.0e-4
+
+	for _, f := range nonzero {
+		var w int
+		switch {
+		case p.intMode && !p.sciMode:
+			w = len(fmt.Sprintf("%.0f", f)) + 1 // room for the trailing "."
+		case p.sciMode:
+			w = len(fmt.Sprintf("%.*e", p.precision, f))
+		default:
+			w = len(fmt.Sprintf("%.*f", p.precision, f))
+		}
+		if w > p.maxWidth {
+			p.maxWidth = w
+		}
+	}
+	return p
+}
+
+func (p *tensorPrinter) format(v pval) string {
+	var ret string
+	if p.floating {
+		switch {
+		case p.sciMode:
+			ret = fmt.Sprintf("%.*e", p.precision, v.f)
+		case p.intMode:
+			ret = fmt.Sprintf("%.0f", v.f)
+			if !math.IsInf(v.f, 0) && !math.IsNaN(v.f) {
+				ret += "."
+			}
+		default:
+			ret = fmt.Sprintf("%.*f", p.precision, v.f)
+		}
+	} else {
+		ret = v.raw()
+	}
+	if pad := p.maxWidth - len(ret); pad > 0 {
+		return strings.Repeat(" ", pad) + ret
+	}
+	return ret
+}
+
+// render formats a sub-tensor with the given dimensions and row-major elements.
+// indent is the column at which this sub-tensor's opening "[" sits, which fixes
+// where continuation lines are indented.
+func (p *tensorPrinter) render(shape []int, vals []pval, indent int, summarize bool) string {
+	dim := len(shape)
+	if dim == 0 {
+		return p.format(vals[0])
+	}
+	if dim == 1 {
+		return p.renderVector(vals, indent, summarize)
+	}
+
+	rowSize := 1
+	for _, s := range shape[1:] {
+		rowSize *= s
+	}
+	sliceAt := func(i int) string {
+		return p.render(shape[1:], vals[i*rowSize:(i+1)*rowSize], indent+1, summarize)
+	}
+	var slices []string
+	if n := shape[0]; summarize && n > 2*printEdgeItems {
+		for i := range printEdgeItems {
+			slices = append(slices, sliceAt(i))
+		}
+		slices = append(slices, "...")
+		for i := n - printEdgeItems; i < n; i++ {
+			slices = append(slices, sliceAt(i))
+		}
+	} else {
+		for i := 0; i < shape[0]; i++ {
+			slices = append(slices, sliceAt(i))
+		}
+	}
+	sep := "," + strings.Repeat("\n", dim-1) + strings.Repeat(" ", indent+1)
+	return "[" + strings.Join(slices, sep) + "]"
+}
+
+func (p *tensorPrinter) renderVector(vals []pval, indent int, summarize bool) string {
+	elementLength := p.maxWidth + 2
+	elementsPerLine := max((printLineWidth-indent)/elementLength, 1)
+
+	n := len(vals)
+	var data []string
+	switch {
+	case summarize && printEdgeItems == 0:
+		data = []string{"..."}
+	case summarize && n > 2*printEdgeItems:
+		for i := range printEdgeItems {
+			data = append(data, p.format(vals[i]))
+		}
+		data = append(data, " ...")
+		for i := n - printEdgeItems; i < n; i++ {
+			data = append(data, p.format(vals[i]))
+		}
+	default:
+		for _, v := range vals {
+			data = append(data, p.format(v))
+		}
+	}
+
+	var lines []string
+	for i := 0; i < len(data); i += elementsPerLine {
+		end := min(i+elementsPerLine, len(data))
+		lines = append(lines, strings.Join(data[i:end], ", "))
+	}
+	sep := "," + "\n" + strings.Repeat(" ", indent+1)
+	return "[" + strings.Join(lines, sep) + "]"
+}
+
+// summarizeValues returns the elements PyTorch would keep for a summarized
+// tensor: the first and last printEdgeItems along every dimension.
+func summarizeValues(shape []int, vals []pval) []pval {
+	out := make([]pval, 0, len(vals))
+	var walk func(dim, offset int)
+	walk = func(dim, offset int) {
+		if dim == len(shape) {
+			out = append(out, vals[offset])
+			return
+		}
+		// Offset of the next element along dim in the row-major layout.
+		step := 1
+		for _, s := range shape[dim+1:] {
+			step *= s
+		}
+		n := shape[dim]
+		if n > 2*printEdgeItems {
+			for i := range printEdgeItems {
+				walk(dim+1, offset+i*step)
+			}
+			for i := n - printEdgeItems; i < n; i++ {
+				walk(dim+1, offset+i*step)
+			}
+			return
+		}
+		for i := range n {
+			walk(dim+1, offset+i*step)
+		}
+	}
+	walk(0, 0)
+	return out
+}
+
+// repr renders the tensor the way PyTorch's repr does.
+func (t *Tensor) repr() string {
+	shape := t.Shape()
+	vals, floating := t.printElements()
+	summarize := len(vals) > printThreshold
+	shown := vals
+	if summarize {
+		shown = summarizeValues(shape, vals)
+	}
+	p := newTensorPrinter(shown, floating)
+
+	prefix := "tensor("
+	var tensorStr string
+	if len(vals) == 0 {
+		tensorStr = "[]"
+	} else {
+		tensorStr = p.render(shape, vals, len(prefix), summarize)
+	}
+
+	var suffixes []string
+	if t.device != CPU {
+		suffixes = append(suffixes, "device='"+t.device.String()+"'")
+	}
+	if len(vals) == 0 && len(shape) != 1 {
+		suffixes = append(suffixes, "size="+shapeString(shape))
+	}
+	if !isDefaultDType(t.dtype) {
+		suffixes = append(suffixes, "dtype="+t.dtype.String())
+	}
+	if t.requiresGrad {
+		suffixes = append(suffixes, "requires_grad=True")
+	}
+	return addSuffixes(prefix+tensorStr, suffixes, len(prefix))
+}
+
+// isDefaultDType reports the dtypes PyTorch prints without an explicit suffix:
+// float32 (blue's default), bool, and int64. Invalid is blue's zero value for
+// float32.
+func isDefaultDType(d DType) bool {
+	return d == Float32 || d == Invalid || d == Int64 || d == Bool
+}
+
+func shapeString(shape []int) string {
+	parts := make([]string, len(shape))
+	for i, s := range shape {
+		parts[i] = strconv.Itoa(s)
+	}
+	return "(" + strings.Join(parts, ", ") + ")"
+}
+
+// addSuffixes appends ", suffix" clauses, wrapping to a new line when the line
+// would exceed printLineWidth, then closes the repr with ")".
+func addSuffixes(tensorStr string, suffixes []string, indent int) string {
+	var b strings.Builder
+	b.WriteString(tensorStr)
+	lastLineLen := len(tensorStr) - strings.LastIndex(tensorStr, "\n") + 1
+	for _, s := range suffixes {
+		if lastLineLen+len(s)+2 > printLineWidth {
+			b.WriteString(",\n" + strings.Repeat(" ", indent) + s)
+			lastLineLen = indent + len(s)
+		} else {
+			b.WriteString(", " + s)
+			lastLineLen += len(s) + 2
+		}
+	}
+	b.WriteString(")")
+	return b.String()
 }

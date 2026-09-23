@@ -338,8 +338,11 @@ func TestEncodingTensor(t *testing.T) {
 	if got.Type() != TENSOR_OBJ {
 		t.Errorf("Type() = %s, want %s", got.Type(), TENSOR_OBJ)
 	}
-	if got.Inspect() != obj.Inspect() {
-		t.Errorf("Inspect() = %q, want %q", got.Inspect(), obj.Inspect())
+	// autograd state does not survive, so the decoded tensor matches a detached
+	// copy of the original (the repr includes requires_grad).
+	want := (&Tensor{T: base.Detach()}).Inspect()
+	if got.Inspect() != want {
+		t.Errorf("Inspect() = %q, want %q", got.Inspect(), want)
 	}
 	if got.T.RequiresGrad() {
 		t.Error("requires_grad should not survive a round trip")

@@ -196,3 +196,117 @@ func TestShapeOps(t *testing.T) {
 	fl, err := Flatten(x)
 	check(t, "flatten", fl, err, []int{6}, []float32{1, 2, 3, 4, 5, 6})
 }
+
+func TestTensorRepr(t *testing.T) {
+	f32 := func(data []float32, shape ...int) *Tensor {
+		tt, err := NewTensor(data, shape, Float32, CPU)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tt
+	}
+	tests := []struct {
+		name string
+		got  *Tensor
+		want string
+	}{
+		{
+			name: "scalar int",
+			got: func() *Tensor {
+				tt, err := NewInt64Tensor([]int64{7}, nil, CPU)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return tt
+			}(),
+			want: "tensor(7)",
+		},
+		{
+			name: "scalar float",
+			got:  f32([]float32{7}, []int{}...),
+			want: "tensor(7.)",
+		},
+		{
+			name: "vector float",
+			got:  f32([]float32{1, 2, 3}, 3),
+			want: "tensor([1., 2., 3.])",
+		},
+		{
+			name: "matrix float",
+			got:  f32([]float32{1, 2, 3, 4, 5, 6}, 2, 3),
+			want: "tensor([[1., 2., 3.],\n        [4., 5., 6.]])",
+		},
+		{
+			name: "non integral precision",
+			got:  f32([]float32{1.5, 2.25}, 2),
+			want: "tensor([1.5000, 2.2500])",
+		},
+		{
+			name: "bool padding",
+			got: func() *Tensor {
+				tt, err := NewBoolTensor([]bool{true, false}, []int{2}, CPU)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return tt
+			}(),
+			want: "tensor([ true, false])",
+		},
+		{
+			name: "int32 suffix",
+			got: func() *Tensor {
+				tt, err := NewInt32Tensor([]int32{1, 2, 3}, []int{3}, CPU)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return tt
+			}(),
+			want: "tensor([1, 2, 3], dtype=int32)",
+		},
+		{
+			name: "float64 suffix",
+			got: func() *Tensor {
+				tt, err := NewFloat64Tensor([]float64{1, 2}, []int{2}, CPU)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return tt
+			}(),
+			want: "tensor([1., 2.], dtype=float64)",
+		},
+		{
+			name: "requires grad",
+			got: func() *Tensor {
+				tt := f32([]float32{1, 2}, 2)
+				tt.SetRequiresGrad(true)
+				return tt
+			}(),
+			want: "tensor([1., 2.], requires_grad=True)",
+		},
+		{
+			name: "three dims",
+			got:  f32([]float32{1, 2, 3, 4, 5, 6, 7, 8}, 2, 2, 2),
+			want: "tensor([[[1., 2.],\n         [3., 4.]],\n\n        [[5., 6.],\n         [7., 8.]]])",
+		},
+		{
+			name: "summarized int",
+			got: func() *Tensor {
+				data := make([]int64, 2000)
+				for i := range data {
+					data[i] = int64(i)
+				}
+				tt, err := NewInt64Tensor(data, []int{2000}, CPU)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return tt
+			}(),
+			want: "tensor([   0,    1,    2,  ..., 1997, 1998, 1999])",
+		},
+	}
+	for _, tt := range tests {
+		if got := tt.got.String(); got != tt.want {
+			t.Errorf("%s:\n got: %q\nwant: %q", tt.name, got, tt.want)
+		}
+	}
+}
