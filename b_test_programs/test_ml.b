@@ -43,8 +43,9 @@ assert(a.grad == null);
 assert(a.T.shape == [3, 2]);
 assert(a.T.strides == [1, 3]);
 
-# a scalar literal becomes a shape [1] tensor
-assert(ml.tensor(5.0).shape == [1]);
+# a scalar literal becomes a 0-D tensor, like PyTorch
+assert(ml.tensor(5.0).shape == []);
+assert(ml.tensor(5.0).ndim == 0);
 
 # every optional parameter can be passed by keyword, in any order
 assert(ml.tensor([[1.0]], datatype="float32", dev="cpu", requires_grad=false).shape == [1, 1]);

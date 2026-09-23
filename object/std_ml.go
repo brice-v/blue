@@ -131,17 +131,17 @@ var MlBuiltins = []*Builtin{
 				}
 			case *Float:
 				tdata.data = append(tdata.data, v.Value)
-				shape = []int{1}
+				shape = []int{}
 			case *Integer:
 				tdata.data = append(tdata.data, float64(v.Value))
-				shape = []int{1}
+				shape = []int{}
 			case *Boolean:
 				if v.Value {
 					tdata.data = append(tdata.data, 1)
 				} else {
 					tdata.data = append(tdata.data, 0)
 				}
-				shape = []int{1}
+				shape = []int{}
 			}
 			err = checkArgType("tensor", 2, STRING_OBJ, args)
 			if err != nil {
