@@ -310,3 +310,43 @@ func TestTensorRepr(t *testing.T) {
 		}
 	}
 }
+
+func TestNewScalarTensorDTypePolicy(t *testing.T) {
+	references := map[string]*Tensor{}
+	for _, dtype := range []DType{Float32, Float64, Int32, Int64} {
+		reference, err := Zeros([]int{1}, dtype, CPU)
+		if err != nil {
+			t.Fatalf("Zeros(%s): %v", dtype, err)
+		}
+		references[dtype.String()] = reference
+	}
+
+	tests := []struct {
+		name      string
+		value     any
+		reference *Tensor
+		want      DType
+	}{
+		{name: "default integer", value: int64(1), want: Int64},
+		{name: "default float", value: float64(1), want: Float32},
+		{name: "integer in float32", value: int64(1), reference: references["float32"], want: Float32},
+		{name: "integer in float64", value: int64(1), reference: references["float64"], want: Float64},
+		{name: "integer in int32", value: int64(1), reference: references["int32"], want: Int32},
+		{name: "integer in int64", value: int64(1), reference: references["int64"], want: Int64},
+		{name: "out of range int32", value: int64(1) << 31, reference: references["int32"], want: Int64},
+		{name: "float in float64", value: float64(0.5), reference: references["float64"], want: Float64},
+		{name: "float in int64", value: float64(0.5), reference: references["int64"], want: Float32},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewScalarTensor(tt.value, tt.reference)
+			if err != nil {
+				t.Fatalf("NewScalarTensor: %v", err)
+			}
+			if got.DType() != tt.want {
+				t.Fatalf("NewScalarTensor dtype = %s, want %s", got.DType(), tt.want)
+			}
+		})
+	}
+}

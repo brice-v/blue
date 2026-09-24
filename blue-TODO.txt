@@ -1,5 +1,6 @@
 TODO:
 
+- [ ] Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [ ] Maybe get rid of cache?
 - [ ] Fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
 - [ ] Implement: b"" for quick conversion to bytes

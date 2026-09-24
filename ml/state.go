@@ -139,6 +139,28 @@ func CopyInto(dst, src *Tensor) error {
 	if !slices.Equal(dst.Shape(), src.Shape()) {
 		return fmt.Errorf("copy: shape mismatch %v vs %v", dst.Shape(), src.Shape())
 	}
+	src = src.contig()
+	if dst.dtype == src.dtype {
+		dstRaw, srcRaw := dst.t.Raw(), src.t.Raw()
+		switch dst.dtype {
+		case Float32:
+			copy(dstRaw.AsFloat32(), srcRaw.AsFloat32())
+		case Float64:
+			copy(dstRaw.AsFloat64(), srcRaw.AsFloat64())
+		case Int32:
+			copy(dstRaw.AsInt32(), srcRaw.AsInt32())
+		case Int64:
+			copy(dstRaw.AsInt64(), srcRaw.AsInt64())
+		case Uint8:
+			copy(dstRaw.AsUint8(), srcRaw.AsUint8())
+		case Bool:
+			copy(dstRaw.AsBool(), srcRaw.AsBool())
+		default:
+			return fmt.Errorf("copy: unsupported dtype %s", dst.dtype)
+		}
+		return nil
+	}
+
 	data := src.ContiguousData()
 	raw := dst.t.Raw()
 	switch raw.DType() {

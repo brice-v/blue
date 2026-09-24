@@ -134,6 +134,40 @@ assert(same(c + 1, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
 assert(same(1 + c, ml.tensor([[59.0, 65.0], [140.0, 155.0]])));
 assert(same(2 * c, ml.tensor([[116.0, 128.0], [278.0, 308.0]])));
 
+# compatible scalars keep the tensor dtype across arithmetic operators
+val ints = ml.tensor([1, 2, 3]);
+assert((ints + 10).dtype == "int64");
+assert((ints - 10).dtype == "int64");
+assert((ints * 10).dtype == "int64");
+assert((ints / 2).dtype == "int64");
+assert((ints ** 2).dtype == "int64");
+assert((-ints).dtype == "int64");
+assert(same(10 - ints, ml.tensor([9, 8, 7])));
+assert(same(ints / 2, ml.tensor([0, 1, 1])));
+assert(same(ints ** 2, ml.tensor([1, 4, 9])));
+assert(same(-ints, ml.tensor([-1, -2, -3])));
+
+# the module-level arithmetic helpers use the same scalar dtype policy
+assert((ml.add(ints, 10)).dtype == "int64");
+assert((ml.sub(10, ints)).dtype == "int64");
+assert((ml.mul(ints, 10)).dtype == "int64");
+assert((ml.div(ints, 2)).dtype == "int64");
+assert((ml.pow(ints, 2)).dtype == "int64");
+
+# cast only when the scalar does not fit or the operation needs a float
+val int32s = ml.tensor([1, 2, 3], datatype=ml.dtype.int32);
+assert((int32s + 10).dtype == "int32");
+assert((int32s + 2147483648).dtype == "int64");
+val float64s = ml.tensor([1.0, 2.0, 3.0], datatype=ml.dtype.float64);
+assert((float64s + 10).dtype == "float64");
+assert((float64s + 0.5).dtype == "float64");
+assert((ints + 0.5).dtype == "float32");
+
+# integer matrix multiplication keeps its dtype too
+val int_matrix = ml.tensor([[1, 2], [3, 4]], datatype=ml.dtype.int32);
+assert((int_matrix @ int_matrix).dtype == "int32");
+assert((ml.matmul(int_matrix, int_matrix)).dtype == "int32");
+
 # scalar on the left for the non-commutative operators: operand order matters
 assert(same(1.0 - c, ml.tensor([[-57.0, -63.0], [-138.0, -153.0]])));
 assert(same(c - 1.0, ml.tensor([[57.0, 63.0], [138.0, 153.0]])));
@@ -208,6 +242,10 @@ assert(same(r.min(1), ml.tensor([1.0, 4.0])));
 assert(to_list(r.argmax(1)) == [2, 2]);
 assert(to_list(r.argmin(1)) == [0, 0]);
 assert(r.argmax(1).dtype == "int32");
+# argmin negates internally and must use a scalar matching every numeric dtype
+assert(to_list(ints.argmin(0)) == 0);
+assert(ints.argmin(0).dtype == "int32");
+assert(to_list(ml.argmin(ml.tensor([3, 1, 2]), 0)) == 1);
 assert(ml.sum(r).item() == 21.0);
 assert(ml.mean(r).item() == 3.5);
 
@@ -296,6 +334,16 @@ ml.sub_(ip, 1.0);
 assert(same(ip, ml.tensor([[3.0, 7.0]])));
 ml.div_(ip, 1.0);
 assert(same(ip, ml.tensor([[3.0, 7.0]])));
+
+# integer in-place arithmetic keeps its dtype and values too
+val int_ip = ml.tensor([1, 2, 3]);
+ml.add_(int_ip, 10);
+assert(int_ip.dtype == "int64");
+assert(same(int_ip, ml.tensor([11, 12, 13])));
+ml.sub_(int_ip, 1);
+ml.mul_(int_ip, 2);
+ml.div_(int_ip, 1);
+assert(same(int_ip, ml.tensor([20, 22, 24])));
 
 # --- 16. TARGET: nn and optim -----------------------------------------------
 

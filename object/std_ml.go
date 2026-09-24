@@ -2124,17 +2124,17 @@ var MlBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeError("binary", 1, STRING_OBJ, args[0].Type())
 			}
-			device := ml.CPU
+			var reference *Tensor
 			if t, ok := args[1].(*Tensor); ok {
-				device = t.T.Device()
+				reference = t
 			} else if t, ok := args[2].(*Tensor); ok {
-				device = t.T.Device()
+				reference = t
 			}
-			a, ok := asTensorArg(args[1], device)
+			a, ok := AsTensorArg(args[1], reference)
 			if !ok {
 				return newPositionalTypeError("binary", 2, TENSOR_OBJ, args[1].Type())
 			}
-			b, ok := asTensorArg(args[2], device)
+			b, ok := AsTensorArg(args[2], reference)
 			if !ok {
 				return newPositionalTypeError("binary", 3, TENSOR_OBJ, args[2].Type())
 			}
@@ -2180,17 +2180,17 @@ var MlBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeError("compare", 1, STRING_OBJ, args[0].Type())
 			}
-			device := ml.CPU
+			var reference *Tensor
 			if t, ok := args[1].(*Tensor); ok {
-				device = t.T.Device()
+				reference = t
 			} else if t, ok := args[2].(*Tensor); ok {
-				device = t.T.Device()
+				reference = t
 			}
-			a, ok := asTensorArg(args[1], device)
+			a, ok := AsTensorArg(args[1], reference)
 			if !ok {
 				return newPositionalTypeError("compare", 2, TENSOR_OBJ, args[1].Type())
 			}
-			b, ok := asTensorArg(args[2], device)
+			b, ok := AsTensorArg(args[2], reference)
 			if !ok {
 				return newPositionalTypeError("compare", 3, TENSOR_OBJ, args[2].Type())
 			}
@@ -3018,27 +3018,34 @@ var MlBuiltins = []*Builtin{
 	},
 }
 
-// asTensorArg accepts either a tensor or a scalar (int, float, or bool), which
-// is coerced to a one element tensor on device. This lets the module functions
-// take scalars the way PyTorch does, for example `ml.gt(a, 0.0)`.
-func asTensorArg(o Object, device ml.Device) (*ml.Tensor, bool) {
+// AsTensorArg accepts either a tensor or a scalar (int, float, or bool).
+// Scalars become one-element tensors on the reference tensor's device and keep
+// its dtype whenever the value is representable. A nil reference uses CPU and
+// the language defaults. This keeps scalar broadcasts consistent across the VM
+// operators and the ml.* helper functions.
+func AsTensorArg(o Object, reference *Tensor) (*ml.Tensor, bool) {
 	if t, ok := o.(*Tensor); ok {
 		return t.T, true
 	}
-	var v float32
+	var value any
 	switch n := o.(type) {
 	case *Integer:
-		v = float32(n.Value)
+		value = n.Value
 	case *Float:
-		v = float32(n.Value)
+		value = n.Value
 	case *Boolean:
+		value = int64(0)
 		if n.Value {
-			v = 1
+			value = int64(1)
 		}
 	default:
 		return nil, false
 	}
-	t, err := ml.NewTensor([]float32{v}, []int{1}, ml.Float32, device)
+	var tensorRef *ml.Tensor
+	if reference != nil {
+		tensorRef = reference.T
+	}
+	t, err := ml.NewScalarTensor(value, tensorRef)
 	if err != nil {
 		return nil, false
 	}
@@ -3368,7 +3375,7 @@ func inPlaceBuiltin(name string, f func(a, b *ml.Tensor) error) func(...Object) 
 		if !ok {
 			return newPositionalTypeError(name, 1, TENSOR_OBJ, args[0].Type())
 		}
-		b, ok := asTensorArg(args[1], at.T.Device())
+		b, ok := AsTensorArg(args[1], at)
 		if !ok {
 			return newPositionalTypeError(name, 2, TENSOR_OBJ, args[1].Type())
 		}

@@ -808,29 +808,19 @@ func (vm *VM) executeBinaryOperationDifferentTypes(op code.Opcode, left, right o
 	}
 	if (leftType == object.TENSOR_OBJ && (rightType == object.INTEGER_OBJ || rightType == object.FLOAT_OBJ)) ||
 		(rightType == object.TENSOR_OBJ && (leftType == object.INTEGER_OBJ || leftType == object.FLOAT_OBJ)) {
-		// When mismatched with scalar value (either float or int) convert to 1d tensor
-		tt, scalar := left, right
+		tensorObj, scalar := left, right
 		if rightType == object.TENSOR_OBJ {
-			tt, scalar = right, left
+			tensorObj, scalar = right, left
 		}
-		st := &object.Tensor{}
-		if scalar.Type() == object.INTEGER_OBJ {
-			t, err := ml.NewTensor([]float32{float32(scalar.(*object.Integer).Value)}, []int{1}, ml.Float32, tt.(*object.Tensor).T.Device())
-			if err != nil {
-				return vm.push(newError("failed to create tensor from scalar %s, error: %s", scalar.Inspect(), err.Error()))
-			}
-			st.T = t
-		} else {
-			t, err := ml.NewTensor([]float32{float32(scalar.(*object.Float).Value)}, []int{1}, ml.Float32, tt.(*object.Tensor).T.Device())
-			if err != nil {
-				return vm.push(newError("failed to create tensor from scalar %s, error: %s", scalar.Inspect(), err.Error()))
-			}
-			st.T = t
+		st, ok := object.AsTensorArg(scalar, tensorObj.(*object.Tensor))
+		if !ok {
+			return vm.push(newError("failed to create tensor from scalar %s", scalar.Inspect()))
 		}
+		scalarTensor := &object.Tensor{T: st}
 		if leftType == object.TENSOR_OBJ {
-			return binaryTensorOp(vm, op, left, st)
+			return binaryTensorOp(vm, op, left, scalarTensor)
 		}
-		return binaryTensorOp(vm, op, st, right)
+		return binaryTensorOp(vm, op, scalarTensor, right)
 	}
 	if (op == code.OpIn || op == code.OpNotin) && (rightType == object.LIST_OBJ || rightType == object.SET_OBJ || rightType == object.MAP_OBJ) {
 		return vm.executeInNotInOperation(op, left, right)

@@ -2,6 +2,7 @@ package ml
 
 import (
 	"fmt"
+	"math"
 	"sort"
 
 	"blue/borncgo/tensor"
@@ -192,6 +193,43 @@ func buildRaw(shape []int, dtype tensor.DataType, be tensor.Backend, fill func(*
 		fill(raw)
 	}
 	return wrapRaw(be, raw), nil
+}
+
+// NewScalarTensor builds a one-element tensor for scalar broadcasting. An
+// integer scalar keeps a compatible tensor reference's dtype, while a float
+// scalar keeps float64 and otherwise uses float32. A nil reference uses the
+// language defaults, int64 for integers and float32 for floats.
+func NewScalarTensor(value any, reference *Tensor) (*Tensor, error) {
+	device := CPU
+	dtype := Invalid
+	if reference != nil {
+		device = reference.Device()
+		dtype = reference.DType()
+	}
+
+	switch v := value.(type) {
+	case int64:
+		switch dtype {
+		case Float32:
+			return NewTensor([]float32{float32(v)}, []int{1}, Float32, device)
+		case Float64:
+			return NewFloat64Tensor([]float64{float64(v)}, []int{1}, device)
+		case Int32:
+			if v >= math.MinInt32 && v <= math.MaxInt32 {
+				return NewInt32Tensor([]int32{int32(v)}, []int{1}, device)
+			}
+		case Int64:
+			return NewInt64Tensor([]int64{v}, []int{1}, device)
+		}
+		return NewInt64Tensor([]int64{v}, []int{1}, device)
+	case float64:
+		if dtype == Float64 {
+			return NewFloat64Tensor([]float64{v}, []int{1}, device)
+		}
+		return NewTensor([]float32{float32(v)}, []int{1}, Float32, device)
+	default:
+		return nil, fmt.Errorf("NewScalarTensor: unsupported scalar type %T", value)
+	}
 }
 
 // NewFloat64Tensor builds a float64-backed tensor.

@@ -118,7 +118,7 @@ func Pow(a, b *Tensor) (out *Tensor, err error) {
 	// same value) uses repeated multiplication: correct for a negative base and
 	// differentiable, and it never calls log on a non-positive value.
 	if n, ok := uniformIntExponent(b); ok && n <= 64 {
-		return powInt(a, n), nil
+		return powInt(a, n)
 	}
 	// General case needs log(a). borncgo's Log panics on non-positive input, so
 	// reject it rather than crash.
@@ -161,24 +161,50 @@ func minFloat(data []float32) float32 {
 	return m
 }
 
-func powInt(a *Tensor, n int) *Tensor {
-	out := tensor.Ones[float32](tensor.Shape(a.Shape()), a.be)
+func powInt(a *Tensor, n int) (*Tensor, error) {
+	out, err := buildRaw(a.Shape(), tensor.DataType(a.dtype), a.be, func(raw *tensor.RawTensor) {
+		fillValue(raw, 1)
+	})
+	if err != nil {
+		return nil, err
+	}
+	bornOut := out.t
 	base := a.t
 	for n > 0 {
 		if n&1 == 1 {
-			out = out.Mul(base)
+			bornOut = bornOut.Mul(base)
 		}
 		n >>= 1
 		if n > 0 {
 			base = base.Mul(base)
 		}
 	}
-	return wrap(out)
+	return wrap(bornOut), nil
+}
+
+func negativeScalar(dtype DType) (any, error) {
+	switch dtype {
+	case Float32:
+		return float32(-1), nil
+	case Float64:
+		return float64(-1), nil
+	case Int32:
+		return int32(-1), nil
+	case Int64:
+		return int64(-1), nil
+	default:
+		return nil, fmt.Errorf("negative scalar: unsupported dtype %s", dtype)
+	}
 }
 
 func Neg(a *Tensor) (out *Tensor, err error) {
 	defer recoverAsError(&err)
-	return wrap(a.contig().t.MulScalar(float32(-1))), nil
+	a = a.contig()
+	scalar, err := negativeScalar(a.dtype)
+	if err != nil {
+		return nil, err
+	}
+	return wrapRaw(a.be, a.be.MulScalar(a.t.Raw(), scalar)), nil
 }
 
 // In-place ops compute the result and copy it into a's buffer, keeping the
@@ -193,13 +219,7 @@ func copyInto(a *Tensor, f func(a, b *Tensor) (*Tensor, error), b *Tensor) error
 	if err != nil {
 		return err
 	}
-	dst := a.t.Raw().AsFloat32()
-	src := out.ContiguousData()
-	if len(src) != len(dst) {
-		return fmt.Errorf("in-place: size mismatch %d vs %d", len(src), len(dst))
-	}
-	copy(dst, src)
-	return nil
+	return CopyInto(a, out)
 }
 
 // Unary math and activations.
@@ -403,8 +423,12 @@ func ArgMax(a *Tensor, dim int) (out *Tensor, err error) {
 func ArgMin(a *Tensor, dim int) (out *Tensor, err error) {
 	defer recoverAsError(&err)
 	a = a.contig()
-	n := a.t.MulScalar(float32(-1))
-	return wrapRaw(a.be, n.Argmax(dim).Raw()), nil
+	scalar, err := negativeScalar(a.dtype)
+	if err != nil {
+		return nil, err
+	}
+	n := a.be.MulScalar(a.t.Raw(), scalar)
+	return wrapRaw(a.be, a.be.Argmax(n, dim)), nil
 }
 
 // Shape ops.
