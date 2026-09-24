@@ -899,3 +899,34 @@ func TestMixedUIntegerNegativeRightErrors(t *testing.T) {
 		t.Fatalf("error %q does not contain %q", err.Error(), want)
 	}
 }
+
+func TestSetInstructionOffsetRunsOnlyNewInstructions(t *testing.T) {
+	comp := compiler.New()
+	if err := comp.Compile(parse("var a = 99")); err != nil {
+		t.Fatalf("compile first chunk: %s", err)
+	}
+	firstLen := len(comp.Bytecode().Instructions)
+
+	if err := comp.Compile(parse("1 + 2")); err != nil {
+		t.Fatalf("compile second chunk: %s", err)
+	}
+	bc := comp.Bytecode()
+	if len(bc.Instructions) <= firstLen {
+		t.Fatalf("second chunk added no instructions")
+	}
+
+	vm := New(bc)
+	vm.SetInstructionOffset(firstLen)
+	if err := vm.Run(); err != nil {
+		t.Fatalf("run: %s", err)
+	}
+	got := vm.LastPoppedStackElem()
+	if got == nil || got.Inspect() != "3" {
+		t.Fatalf("last popped = %v, want 3", got)
+	}
+	for i, g := range vm.globals {
+		if g != nil {
+			t.Fatalf("global %d = %v, first chunk should not have run", i, g)
+		}
+	}
+}

@@ -195,6 +195,13 @@ func NewWithGlobalsStore(bytecode *bluec.Bytecode, s []object.Object) *VM {
 	return vm
 }
 
+func (vm *VM) SetInstructionOffset(offset int) {
+	if vm.framesIndex != 1 {
+		return
+	}
+	vm.frames[0].ip = offset - 1
+}
+
 // Clone returns a vm suitable for running blue code concurrently with this
 // one (process spawn, ws registration snapshot). Immutable program data
 // (constants, tokens) is shared instead of deep cloned, globals are deep

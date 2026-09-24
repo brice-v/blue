@@ -79,8 +79,20 @@ func TestStartVmReplExitsOnDotExit(t *testing.T) {
 
 func TestStartVmReplSurfacesRuntimeErrors(t *testing.T) {
 	var out bytes.Buffer
-	if err := startVmRepl(scriptedReplInput(t, "1 + true\n"), &out, "tester", "", ""); err != nil {
+	if err := startVmRepl(scriptedReplInput(t, "1 + true\n\n# comment\n2 + 3\n4 + 5\n"), &out, "tester", "", ""); err != nil {
 		t.Fatalf("runtime errors should not end the session, got %v", err)
+	}
+	s := out.String()
+	if got := strings.Count(s, "type mismatch"); got != 1 {
+		t.Fatalf("runtime error reported %d times, want 1: %s", got, s)
+	}
+	for _, want := range []string{"_1 => 5", "_2 => 9"} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("expected %q in output, got: %s", want, s)
+		}
+	}
+	if strings.Contains(s, "_3") {
+		t.Fatalf("empty lines should not bind a result var: %s", s)
 	}
 }
 

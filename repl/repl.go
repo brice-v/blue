@@ -70,6 +70,7 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 	// in this session (by any line's vm or by the repl result vars), so new
 	// per-line vms seed their spawn snapshots correctly.
 	replGlobalsHwm := 0
+	instructionsRun := 0
 	var c *compiler.Compiler = nil
 	for {
 		line, done, err := readLine(rl)
@@ -121,22 +122,27 @@ func startVmRepl(in io.ReadCloser, out io.Writer, username, nodeName, address st
 		// Globals written by earlier lines (vm sets and repl result vars)
 		// must be visible to spawn-time snapshots taken by this vm.
 		v.SetGlobalsHighWater(replGlobalsHwm)
+		v.SetInstructionOffset(instructionsRun)
+		instructionsRun = len(bc.Instructions)
 		err = v.Run()
 		if err == nil {
-			replVar := fmt.Sprintf("_%d", replVarIndx)
-			symbol := symbolTable.Define(replVar, true)
-			globals[symbol.Index] = v.LastPoppedStackElem()
-			// Written outside the vm loop; keep future spawn snapshots
-			// correct. The result var index and anything this line's vm
-			// wrote both raise the watermark.
-			replGlobalsHwm = symbol.Index + 1
-			if hw := v.GlobalsHighWater(); hw > replGlobalsHwm {
-				replGlobalsHwm = hw
-			}
-			replVarIndx++
-			_, errr := fmt.Fprintf(out, "%s => %s\n", replVar, v.LastPoppedStackElem().Inspect())
-			if errr != nil {
-				log.Printf("Failed to write to repl output, error: %s", errr.Error())
+			result := v.LastPoppedStackElem()
+			if result != nil {
+				replVar := fmt.Sprintf("_%d", replVarIndx)
+				symbol := symbolTable.Define(replVar, true)
+				globals[symbol.Index] = result
+				// Written outside the vm loop; keep future spawn snapshots
+				// correct. The result var index and anything this line's vm
+				// wrote both raise the watermark.
+				replGlobalsHwm = symbol.Index + 1
+				if hw := v.GlobalsHighWater(); hw > replGlobalsHwm {
+					replGlobalsHwm = hw
+				}
+				replVarIndx++
+				_, errr := fmt.Fprintf(out, "%s => %s\n", replVar, result.Inspect())
+				if errr != nil {
+					log.Printf("Failed to write to repl output, error: %s", errr.Error())
+				}
 			}
 		} else {
 			_, errr := fmt.Fprintf(out, "%s\n", err.Error())

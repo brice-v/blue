@@ -1,21 +1,9 @@
 TODO:
 
-- [ ] Issue with REPL:
-    _1 => Module 'ml'
-    > ml.tensor(7)
-    _2 => tensor(7)
-    > _2.size()
-    tensor.size error: unsupported property on tensor: size
-    > _2.size
-    tensor.size error: unsupported property on tensor: size
-    > _2.shape
-    tensor.size error: unsupported property on tensor: size
-    > _2
-    tensor.size error: unsupported property on tensor: size
-- [ ] Include .size() as property on tensor
 - [ ] Maybe get rid of cache?
 - [ ] Fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
 - [ ] Implement: b"" for quick conversion to bytes
+- [ ] Add a binary pack/unpack equivalent to python's struct.pack/unpack. blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back. Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
 - [ ] Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
@@ -759,3 +747,16 @@ COMPLETED TASKS:
     - Every augmented assignment operator is exercised at the end of b_test_programs/test_dunder_fun.b.
 - [x] Potentially Optimize new match arms conds, if first is true skip second
     - Multi-condition arms now compile their consequence once and jump to it from the first true condition, instead of emitting a copy per condition. Covered by b_test_programs/test_match_short_circuit.b.
+- [x] Issue with REPL:
+    _1 => Module 'ml'
+    > ml.tensor(7)
+    _2 => tensor(7)
+    > _2.size()
+    tensor.size error: unsupported property on tensor: size
+    > _2.size
+    tensor.size error: unsupported property on tensor: size
+    > _2.shape
+    tensor.size error: unsupported property on tensor: size
+    > _2
+    tensor.size error: unsupported property on tensor: size
+- [x] Include .size() as property on tensor

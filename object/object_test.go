@@ -2,6 +2,7 @@ package object
 
 import (
 	"math"
+	"slices"
 	"testing"
 
 	"blue/ml"
@@ -159,5 +160,62 @@ func TestFloatInspectFormatting(t *testing.T) {
 		if got := f.Inspect(); got != tt.want {
 			t.Errorf("Float(%v).Inspect() = %q, want %q", tt.value, got, tt.want)
 		}
+	}
+}
+
+func intListValues(t *testing.T, o Object) []int64 {
+	t.Helper()
+	l, ok := o.(*List)
+	if !ok {
+		t.Fatalf("got %T, want *List", o)
+	}
+	vals := make([]int64, len(l.Elements))
+	for i, e := range l.Elements {
+		n, ok := e.(*Integer)
+		if !ok {
+			t.Fatalf("element %d is %T, want *Integer", i, e)
+		}
+		vals[i] = n.Value
+	}
+	return vals
+}
+
+func TestTensorSize(t *testing.T) {
+	tests := []struct {
+		name  string
+		data  []float32
+		shape []int
+		want  []int64
+	}{
+		{name: "matrix", data: []float32{1, 2, 3, 4}, shape: []int{2, 2}, want: []int64{2, 2}},
+		{name: "scalar", data: []float32{7}, shape: []int{}, want: []int64{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tObj := &Tensor{T: newTensorForTest(t, tt.data, tt.shape)}
+
+			prop, err := tObj.Get("size")
+			if err != nil {
+				t.Fatalf("Get(size): %v", err)
+			}
+			fn, ok := prop.(*Builtin)
+			if !ok {
+				t.Fatalf("size property is %T, want *Builtin", prop)
+			}
+			if got := intListValues(t, fn.Fun()); !slices.Equal(got, tt.want) {
+				t.Fatalf("size() = %v, want %v", got, tt.want)
+			}
+			if out := fn.Fun(NewInteger(0)); out.Type() != ERROR_OBJ {
+				t.Fatalf("size(0) returned %T, want an error", out)
+			}
+
+			shape, err := tObj.Get("shape")
+			if err != nil {
+				t.Fatalf("Get(shape): %v", err)
+			}
+			if got := intListValues(t, shape); !slices.Equal(got, tt.want) {
+				t.Fatalf("shape = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

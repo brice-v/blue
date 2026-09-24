@@ -61,6 +61,10 @@ func (t *Tensor) Get(property string) (Object, error) {
 	switch property {
 	case "shape":
 		return intList(t.T.Shape()), nil
+	case "size":
+		return t.noArgMethod("size", func() Object {
+			return intList(t.T.Shape())
+		}), nil
 	case "strides":
 		return intList(t.T.Strides()), nil
 	case "grad":
