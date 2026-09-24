@@ -648,15 +648,6 @@ func checkArgType(name string, position int, expectedType Type, args []Object) O
 	return nil
 }
 
-func checkGoObjType[T any](name string, position int, expectedType string, args []Object) (*GoObj[T], Object) {
-	arg := args[position-1]
-	obj, ok := arg.(*GoObj[T])
-	if !ok {
-		return obj, newPositionalTypeErrorForGoObj(name, position, Type(expectedType), arg)
-	}
-	return obj, nil
-}
-
 func CreateHelpStringFromBodyTokens(functionName string, funObj Object, helpStrTokens []string) string {
 	explanation := ""
 	if len(helpStrTokens) > 0 && helpStrTokens[0] == "core:ignore" {

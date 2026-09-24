@@ -10,6 +10,15 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+func checkGoObjType[T any](name string, position int, expectedType string, args []Object) (*GoObj[T], Object) {
+	arg := args[position-1]
+	obj, ok := arg.(*GoObj[T])
+	if !ok {
+		return obj, newPositionalTypeErrorForGoObj(name, position, Type(expectedType), arg)
+	}
+	return obj, nil
+}
+
 var GgBuiltins = []*Builtin{
 	{
 		Name: "_init_window",

@@ -122,13 +122,20 @@ func ensureGPU() tensor.Backend {
 		return gpuEngine
 	}
 	be, err := newGPUEngine()
-	if err != nil {
-		gpuErr = err
+	if be == nil {
+		setGPUError(err)
 		return nil
 	}
 	gpuEngine = be
 	setRecording(gpuEngine, recording)
 	return gpuEngine
+}
+
+func setGPUError(err error) {
+	if err == nil {
+		err = fmt.Errorf("gpu backend unavailable")
+	}
+	gpuErr = err
 }
 
 // backendFor returns the backend for a blue device, erroring when the device is
