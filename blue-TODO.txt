@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] Implement slice behavior such as [0:10] or [0..10..1] (start,stop,step)
+    - Maybe use : as .. is used elsewhere for "range"
 - [ ] Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [ ] Maybe get rid of cache?
 - [ ] Fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
