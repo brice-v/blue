@@ -1,6 +1,7 @@
 package object
 
 import (
+	"blue/ml"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -110,6 +111,15 @@ func inspectArgs(args []Object) string {
 	return strings.Join(parts, ", ")
 }
 
+func newTestTensor(t *testing.T, data []float32, shape []int) *Tensor {
+	t.Helper()
+	tn, err := ml.NewTensor(data, shape, ml.Float32, ml.CPU)
+	if err != nil {
+		t.Fatalf("ml.NewTensor: %v", err)
+	}
+	return &Tensor{T: tn}
+}
+
 func TestBuiltinRegistry(t *testing.T) {
 	seen := make(map[string]bool)
 	for _, b := range Builtins {
@@ -205,6 +215,10 @@ func TestLenNew(t *testing.T) {
 		{name: "map", args: []Object{newTestMap(&Stringo{Value: "a"}, &Integer{Value: 1})}, want: "1"},
 		{name: "set", args: []Object{newTestSet(intObjs(1, 2)...)}, want: "2"},
 		{name: "bytes", args: []Object{&Bytes{Value: []byte("abcd")}}, want: "4"},
+		{name: "tensor uses first dim", args: []Object{newTestTensor(t, []float32{1, 2, 3, 4, 5, 6}, []int{2, 3})}, want: "2"},
+		{name: "one dimensional tensor", args: []Object{newTestTensor(t, []float32{1, 2, 3}, []int{3})}, want: "3"},
+		{name: "three dimensional tensor", args: []Object{newTestTensor(t, []float32{1, 2, 3, 4, 5, 6, 7, 8}, []int{2, 2, 2})}, want: "2"},
+		{name: "zero dimensional tensor", args: []Object{newTestTensor(t, []float32{7}, []int{})}, err: "len() of a 0-d tensor"},
 		{name: "unsupported type", args: []Object{&Integer{Value: 1}}, err: "PositionalTypeError"},
 		{name: "wrong arg count", args: []Object{}, err: "InvalidArgCountError"},
 	})

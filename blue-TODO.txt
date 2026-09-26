@@ -1,6 +1,8 @@
 TODO:
 
-- [ ] Implement len() for TENSOR
+- [ ] val ttt2 = ml.tensor();
+    - Causes just [ERROR] VMError: wrong number of arguments: want=4, got=0
+    - with nothing else, probably want to resolve this
 - [ ] Implement slice behavior such as [0:10] or [0..10..1] (start,stop,step)
     - Maybe use : as .. is used elsewhere for "range"
 - [ ] Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
@@ -764,3 +766,4 @@ COMPLETED TASKS:
     > _2
     tensor.size error: unsupported property on tensor: size
 - [x] Include .size() as property on tensor
+- [x] Implement len() for TENSOR

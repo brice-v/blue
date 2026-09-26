@@ -814,3 +814,14 @@ ml.no_grad(fun() {
     assert(ml.view(ml.tensor([1.0, 2.0, 3.0, 4.0]), [2, 2]).shape == [2, 2]);
     return null;
 });
+
+val ttt = ml.tensor([1,2,3])
+assert(len(ttt) == 3);
+assert(ttt.len() == 3);
+val ttt1 = ml.tensor([[1],[2]]);
+assert(len(ttt1) == 2);
+assert(ttt1.len() == 2)
+val ttt3 = ml.tensor([[1,2,3],[4,5,6,]]);
+assert(len(ttt3) == 2);
+val ttt4 = ml.tensor([[1,2,3],[4,5,6,],[7,8,9],[10,11,12]]);
+assert(len(ttt4) == 4);

@@ -239,6 +239,15 @@ func (t *Tensor) DType() DType   { return t.dtype }
 func (t *Tensor) Device() Device { return t.device }
 func (t *Tensor) Numel() int     { return t.t.NumElements() }
 
+// Len returns the size of the first dimension
+func (t *Tensor) Len() (int, error) {
+	s := t.Shape()
+	if len(s) == 0 {
+		return 0, fmt.Errorf("len() of a 0-d tensor")
+	}
+	return s[0], nil
+}
+
 func (t *Tensor) IsContiguous() bool {
 	s, st := t.Shape(), t.Strides()
 	acc := 1

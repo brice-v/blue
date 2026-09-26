@@ -326,13 +326,19 @@ var Builtins = []*Builtin{
 				return NewInteger(int64(arg.Elements.Len()))
 			case *Bytes:
 				return NewInteger(int64(len(arg.Value)))
+			case *Tensor:
+				n, terr := arg.T.Len()
+				if terr != nil {
+					return newError("`len` error: %s", terr.Error())
+				}
+				return NewInteger(int64(n))
 			default:
-				return newPositionalTypeError("len", 1, "STRING, LIST, MAP, SET, or BYTES", args[0].Type())
+				return newPositionalTypeError("len", 1, "STRING, LIST, MAP, SET, BYTES, or TENSOR", args[0].Type())
 			}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`len` returns the INTEGER length of the given STRING, LIST, MAP, or SET",
-			signature:   "len(arg: str|list|map|set) -> int",
+			explanation: "`len` returns the INTEGER length of the given STRING, LIST, MAP, SET, BYTES, or TENSOR",
+			signature:   "len(arg: str|list|map|set|bytes|tensor) -> int",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "len([1,2,3]) => 3",
 		}.String(),

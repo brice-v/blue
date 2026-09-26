@@ -350,3 +350,70 @@ func TestNewScalarTensorDTypePolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestTensorLen(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []float32
+		shape   []int
+		want    int
+		wantErr string
+	}{
+		{name: "one dimensional", data: []float32{1, 2, 3}, shape: []int{3}, want: 3},
+		{name: "two dimensional uses dim 0", data: []float32{1, 2, 3, 4, 5, 6}, shape: []int{2, 3}, want: 2},
+		{name: "three dimensional uses dim 0", data: make([]float32, 24), shape: []int{2, 3, 4}, want: 2},
+		{name: "zero dimensional is an error", data: []float32{7}, shape: []int{}, wantErr: "len() of a 0-d tensor"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tn, err := NewTensor(tt.data, tt.shape, Float32, CPU)
+			if err != nil {
+				t.Fatalf("NewTensor: %v", err)
+			}
+			got, err := tn.Len()
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("Len() = %d, want error %q", got, tt.wantErr)
+				}
+				if err.Error() != tt.wantErr {
+					t.Fatalf("Len() error = %q, want %q", err.Error(), tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Len(): %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("Len() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTensorLenTracksViews(t *testing.T) {
+	base, err := NewTensor([]float32{1, 2, 3, 4, 5, 6}, []int{2, 3}, Float32, CPU)
+	if err != nil {
+		t.Fatalf("NewTensor: %v", err)
+	}
+	transposed, err := Transpose(base, 0, 1)
+	if err != nil {
+		t.Fatalf("Transpose: %v", err)
+	}
+	if got, err := transposed.Len(); err != nil || got != 3 {
+		t.Fatalf("len(transposed) = %d, %v, want 3", got, err)
+	}
+	flat, err := Flatten(base)
+	if err != nil {
+		t.Fatalf("Flatten: %v", err)
+	}
+	if got, err := flat.Len(); err != nil || got != 6 {
+		t.Fatalf("len(flattened) = %d, %v, want 6", got, err)
+	}
+	reduced, err := Sum(base, []int{0, 1}, false)
+	if err != nil {
+		t.Fatalf("Sum: %v", err)
+	}
+	if got, err := reduced.Len(); err == nil || got != 0 {
+		t.Fatalf("len(0-d sum) = %d, %v, want an error", got, err)
+	}
+}
