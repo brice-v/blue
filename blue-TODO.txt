@@ -21,14 +21,12 @@ TODO:
 - [ ] FEAT: Integrate duckdb as option for db package
     - allows reading of parquet files
     - non-static build, need to ensure static build continues to work
-- [ ] Add \u0000 for unicode bytes in strings
-- [ ] FIX: val ttt2 = ml.tensor();
-    - Causes just [ERROR] VMError: wrong number of arguments: want=4, got=0
-    - with nothing else, probably want to resolve this
+- [ ] FEAT: Add \u0000 for unicode bytes in strings
 - [ ] FEAT: Implement slice behavior such as [0:10] or [0..10..1] (start,stop,step)
     - Maybe use : as .. is used elsewhere for "range"
 - [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [ ] Maybe get rid of cache?
+    - why when I edit things in the compiler does it sometimes re-use the cache incorrectly
 - [ ] Fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
 - [ ] Add a binary pack/unpack equivalent to python's struct.pack/unpack. blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back. Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
 - [ ] Would be good to have an error hint for this pattern
@@ -793,3 +791,6 @@ COMPLETED TASKS:
 - [x] FEAT: Update `color` so that constants are created that can be reused by anything, gg, ui, plot, etc.
     - Update its module comment as its no longer going to be just for console printing
 - [x] FIX: In lsp, hide _ functions on <ctrl+space>
+- [x] FIX: val ttt2 = ml.tensor();
+    - Causes just [ERROR] VMError: wrong number of arguments: want=4, got=0
+    - with nothing else, probably want to resolve this

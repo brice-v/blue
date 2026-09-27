@@ -481,6 +481,49 @@ func TestCallingFunctionsWithWrongArguments(t *testing.T) {
 	}
 }
 
+func TestCallingFunctionsWithWrongArgumentsRecordsErrorTrace(t *testing.T) {
+	input := `fun f(a) {
+		a;
+	}
+	f();`
+	program := parse(input)
+	comp := compiler.New()
+	if err := comp.Compile(program); err != nil {
+		t.Fatalf("compiler error: %s", err)
+	}
+	v := New(comp.Bytecode())
+	err := v.Run()
+	if err == nil {
+		t.Fatal("expected VM error but resulted in none.")
+	}
+	if !strings.Contains(err.Error(), "wrong number of arguments: want=1, got=0") {
+		t.Fatalf("unexpected VM error: %q", err.Error())
+	}
+	if len(v.TokensForErrorTrace) == 0 {
+		t.Fatal("expected error trace tokens to be recorded, got none")
+	}
+}
+
+func TestCallingFunctionsWithWrongArgumentsInsideTryIsCaught(t *testing.T) {
+	input := `fun f(a) {
+		a;
+	}
+	try {
+		f();
+	} catch (e) {
+		assert(e == "wrong number of arguments: want=1, got=0");
+	};`
+	program := parse(input)
+	comp := compiler.NewFromCore()
+	if err := comp.Compile(program); err != nil {
+		t.Fatalf("compiler error: %s", err)
+	}
+	v := New(comp.Bytecode())
+	if err := v.Run(); err != nil {
+		t.Fatalf("expected error to be caught, got: %s", err.Error())
+	}
+}
+
 func TestClosures(t *testing.T) {
 	tests := []vmTestCase{
 		{

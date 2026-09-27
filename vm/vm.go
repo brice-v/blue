@@ -1524,7 +1524,10 @@ func (vm *VM) executeCall(numArgs int) error {
 	case nil:
 		return vm.prepareStackTraceAndReturnError(fmt.Errorf("calling non-closure and non-builtin. got=%s", object.NULL_OBJ))
 	case *object.Closure:
-		return vm.callClosure(callee, numArgs)
+		if err := vm.callClosure(callee, numArgs); err != nil {
+			return vm.push(newError("%s", err.Error()))
+		}
+		return nil
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
