@@ -81,6 +81,10 @@ const (
 
 	// REGEX is the string rep. of the regex literal start token
 	REGEX Type = "r/"
+	// BYTE_STRING_SINGLE_QUOTE is the string rep. of the byte string literal start token
+	BYTE_STRING_SINGLE_QUOTE Type = `b'`
+	// BYTE_STRING_DOUBLE_QUOTE is the string rep. of the byte string literal start token
+	BYTE_STRING_DOUBLE_QUOTE Type = `b"`
 
 	// NOTE: ANDEQ, OREQ, and XOREQ might also be used for sets and other data types eventually
 

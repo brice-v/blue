@@ -231,6 +231,25 @@ func (rl *RegexLiteral) String() string {
 	return "r/" + strings.ReplaceAll(rl.Value, "\\", "\\\\") + "/"
 }
 
+type ByteStringLiteral struct {
+	Token token.Token
+	Value string
+}
+
+func (bsl *ByteStringLiteral) expressionNode()         {}
+func (bsl *ByteStringLiteral) TokenLiteral() string    { return bsl.Token.Literal }
+func (bsl *ByteStringLiteral) TokenToken() token.Token { return bsl.Token }
+func (bsl *ByteStringLiteral) String() string {
+	val := fmt.Sprintf("%q", bsl.Value)
+	if bsl.Token.Type == token.BYTE_STRING_DOUBLE_QUOTE {
+		return "b" + val
+	} else {
+		val = strings.TrimPrefix(val, "\"")
+		val = strings.TrimSuffix(val, "\"")
+		return fmt.Sprintf("%s%v'", string(bsl.Token.Type), val)
+	}
+}
+
 // ListLiteral is the list literal ast node representation
 type ListLiteral struct {
 	Token    token.Token  // Token == [ (LBRACE)

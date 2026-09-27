@@ -431,7 +431,7 @@ func (l *Lexer) readRegexLiteral() (string, error) {
 	}
 
 	if l.ch != '/' {
-		return "", fmt.Errorf("string is not ended")
+		return "", fmt.Errorf("regex is not ended")
 	}
 	l.readChar()
 
@@ -660,6 +660,22 @@ func (l *Lexer) NextToken() token.Token {
 		if l.ch == 'r' && l.peekChar() == '/' {
 			tok = l.makeTwoCharToken(token.REGEX)
 			str, err := l.readRegexLiteral()
+			if err != nil {
+				tok = l.newToken(token.ILLEGAL, l.prevCh)
+				tok.Filepath = l.fname
+				tok.LineNumber = l.lineNo
+				tok.PositionInLine = l.posInLine
+			}
+			tok.Literal = str
+			return tok
+		} else if l.ch == 'b' && (l.peekChar() == '\'' || l.peekChar() == '"') {
+			if l.peekChar() == '\'' {
+				tok = l.makeTwoCharToken(token.BYTE_STRING_SINGLE_QUOTE)
+			} else {
+				tok = l.makeTwoCharToken(token.BYTE_STRING_DOUBLE_QUOTE)
+			}
+			str, err := l.readString()
+			l.readChar() // consume ending char (readString doesnt do that)
 			if err != nil {
 				tok = l.newToken(token.ILLEGAL, l.prevCh)
 				tok.Filepath = l.fname

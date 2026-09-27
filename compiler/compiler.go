@@ -465,6 +465,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		literal := &object.Regex{Value: r}
 		c.emit(code.OpConstant, c.addConstant(literal))
+	case *ast.ByteStringLiteral:
+		literal := &object.Bytes{Value: []byte(node.Token.Literal)}
+		c.emit(code.OpConstant, c.addConstant(literal))
 	case *ast.StringLiteral:
 		err := c.compileStringLiteral(node)
 		if err != nil {
