@@ -1,5 +1,29 @@
 TODO:
 
+- [ ] FEAT: Update `color` so that constants are created that can be reused by anything, gg, ui, plot, etc.
+    - Update its module comment as its no longer going to be just for console printing
+- [ ] FIX: Figure out ui content fill strategies, what works correctly
+- [ ] FIX: Make the path of plot.render to ui.image easier, render to image?
+- [ ] FEAT: Add len for dunder methods
+    - Any other builtins like that?
+    - If its on the map already as a function does it just work?
+- [ ] FEAT: For dunder methods, how can they be done with primitives? (if necessary will need to implement like python does it)
+    - Meaning, primitive on 1 side, and map obj on the other: 1 + a (want to call __add)
+- [ ] MAYBE: Build pseduo jupyter style notebook for blue via `blue nb` or `blue notebook` using ui and other things?
+- [ ] FIX: Fix up plot api
+    - plot.new() is fine, but the functions to update it should be on map returned by that function, similar to http server
+    - in general want to make it more like matplotlib but just putting the apis on the fig will probably help with that
+    - FIX: Missing legend
+    - Missing sizes for things or handled at 'render'?
+    - Sizes are in inches but I sort of expect pixels? (might not be issue)
+- [ ] FIX: In lsp, hide _ functions on <ctrl+space>
+- [ ] FIX: In ml docs, instead of showing tensor shape for ops, show what the tensor actually looks like
+- [ ] FIX: Hovering over import statement in lsp/vscode should show module level docs
+- [ ] `blue doc` for std lib needs to be a bit better
+    - Ideally need to make it look like the help() output but also 
+- [ ] FEAT: Integrate duckdb as option for db package
+    - allows reading of parquet files
+    - non-static build, need to ensure static build continues to work
 - [ ] Add \u0000 for unicode bytes in strings
 - [ ] val ttt2 = ml.tensor();
     - Causes just [ERROR] VMError: wrong number of arguments: want=4, got=0
@@ -37,8 +61,6 @@ TODO:
     - [ ] Add compression
     - [ ] Add limiter
     - [ ] Add encrypt cookie
-- [ ] Build with tinygo for wasm
-    - [ ] Update associated files/std lib that cant be built
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
@@ -59,7 +81,6 @@ TODO:
     - And by this time we can add a `blue init` command to generate the initial scaffolding
         - maybe allow it to accept some sort of template (or have options for type of project)
 - [ ] Add serialization lib (optional path for kv to write it to file? like kv in deno)
-- [ ] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
 - [ ] Add variadic arguments (...)
 - [ ] Add formatting options for string interpolation?
     - [ ] Support string interpolation helper to print out objects
@@ -72,13 +93,13 @@ TODO:
 - [ ] Replace println with just print and pass endln char to builtin (simplifies things a bit)
 - STD Updates:
     - [ ] Add WebView
-    - [ ] Add plotting library
-    - [ ] Add ML Libs?
+    - [x] Add plotting library
+    - [x] Add ML Libs?
     - [ ] Server Side Events?
     - [ ] ECSDA support/ pub/priv keys? for crypto
     - [x] Date parsing code (this is one of the key missing areas at the moment as mentioned elsewhere in TODO)
     - [-] 2d game library - Started
-        - [ ] Add raylib bindings https://github.com/gen2brain/raylib-go
+        - [x] Add raylib bindings https://github.com/gen2brain/raylib-go
     - [ ] 3d game library
     - [x] UUID somewhere
     - [ ] TUI (charm.sh?) - maybe even tui game lib?
@@ -99,7 +120,7 @@ TODO:
         - https://github.com/JoelOtter/termloop
         - https://github.com/youthlin/stream
         - https://github.com/go-echarts/go-echarts
-        - https://github.com/gonum/plot
+        - [x] https://github.com/gonum/plot
         - https://github.com/benhoyt/goawk
 - [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
     - Also add `blue test` command to specify file or maybe just run everything
@@ -155,7 +176,7 @@ func main() {
 - [ ] Tagged Unions/ enums working properly with match
 - [ ] See if we can add streams properly as its own object type?
     - Use go generator pattern maybe?
-    - Until go has yielding functions I think this will wait
+    - Maybe this? https://github.com/youthlin/stream
 - [ ] Day 11 part 2 aoc2022 might be good to use as a benchmark
 - allow ! onto function names so that I can name methods that mutate with an !
 - [ ] BUG: maybe bug in for loop using var and len of split lines (failing in d4 when I didnt subtract 1 [it shoudlve ended at 140 ])
@@ -768,3 +789,7 @@ COMPLETED TASKS:
 - [x] Include .size() as property on tensor
 - [x] Implement len() for TENSOR
 - [x] Implement: b"" for quick conversion to bytes
+- [-] Build with tinygo for wasm
+    - [-] Update associated files/std lib that cant be built
+- [-] Allow user defined operators so that a dsl can be defined easily (think like lua/ruby)
+    - Started via "dunder" methods, still likely others to handle, like builtin len()

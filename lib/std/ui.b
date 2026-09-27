@@ -635,12 +635,12 @@ fun select_entry(options, on_change) {
     __select_entry(options, on_change)
 }
 
-fun canvas_image(path) {
+fun canvas_image(path_or_img_bytes) {
     ##std:this,__canvas_image
-    ## `canvas_image` creates an image canvas object from a file path
+    ## `canvas_image` creates an image canvas object from a file path or image bytes
     ##
-    ## canvas_image(path: str) -> {t: 'ui', v: uint}
-    __canvas_image(path)
+    ## canvas_image(path_or_img_bytes: str|bytes) -> {t: 'ui', v: uint}
+    __canvas_image(path_or_img_bytes)
 }
 
 fun canvas_arc(col, start_angle, end_angle, cutout=0.0) {

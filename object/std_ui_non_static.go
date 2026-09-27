@@ -3,6 +3,7 @@
 package object
 
 import (
+	"bytes"
 	"image/color"
 	"net/url"
 
@@ -2623,18 +2624,27 @@ var UiBuiltins = []*Builtin{
 			if len(args) != 1 {
 				return newInvalidArgCountError("canvas_image", len(args), 1, "")
 			}
-			if args[0].Type() != STRING_OBJ {
-				return newPositionalTypeError("canvas_image", 1, STRING_OBJ, args[0].Type())
+			if args[0].Type() != STRING_OBJ && args[0].Type() != BYTES_OBJ {
+				return newPositionalTypeError("canvas_image", 1, "STRING or BYTES", args[0].Type())
 			}
-			path := args[0].(*Stringo).Value
-			img := canvas.NewImageFromFile(path)
-			img.FillMode = canvas.ImageFillContain
+			if args[0].Type() == STRING_OBJ {
+				path := args[0].(*Stringo).Value
+				img := canvas.NewImageFromFile(path)
+				img.FillMode = canvas.ImageFillContain
+				return NewGoObj[fyne.CanvasObject](img)
+			}
+			bs := args[0].(*Bytes).Value
+			img := canvas.NewImageFromReader(bytes.NewReader(bs), "canvas_image")
+			if img == nil {
+				return newError("`canvas_image` error: failed to read image bytes")
+			}
+			img.FillMode = canvas.ImageFillOriginal
 			return NewGoObj[fyne.CanvasObject](img)
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`canvas_image` creates an image canvas object from a file path (PNG/JPEG/SVG)",
-			signature:   "canvas_image(path: str) -> GoObj[fyne.CanvasObject](Value: *canvas.Image)",
-			errors:      "InvalidArgCount,PositionalType",
+			explanation: "`canvas_image` creates an image canvas object from a file path (PNG/JPEG/SVG) or image bytes",
+			signature:   "canvas_image(path_or_img_bytes: str|bytes) -> GoObj[fyne.CanvasObject](Value: *canvas.Image)",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "canvas_image('./photo.png') => GoObj[fyne.CanvasObject](Value: *canvas.Image)",
 		}.String(),
 	},
