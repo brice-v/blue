@@ -1,4 +1,5 @@
 import gg
+import color
 
 val SCREEN_WIDTH = 800;
 val SCREEN_HEIGHT = 640;
@@ -23,11 +24,11 @@ val ENEMY_WIDTH = 70;
 
 
 val COLOR_MAP = {
-    0: gg.color.blue,
-    1: gg.color.dark_green,
-    2: gg.color.violet,
-    3: gg.color.brown,
-    4: gg.color.sky_blue,
+    0: color.blue,
+    1: color.dark_green,
+    2: color.violet,
+    3: color.brown,
+    4: color.sky_blue,
 };
 
 fun reset() {
@@ -205,16 +206,16 @@ fun g_update() {
 fun g_render() {
     gg.begin_drawing()
 
-    gg.clear_background(gg.color.black)
+    gg.clear_background(color.black)
     if G.lost {
         var posx = (SCREEN_WIDTH/3);
         var posy = (SCREEN_HEIGHT/2);
-        gg.draw_text("YOU LOST", pos_x=posx, pos_y=posy, text_color=gg.color.white);
+        gg.draw_text("YOU LOST", pos_x=posx, pos_y=posy, text_color=color.white);
         gg.draw_text("press down to continue...", pos_x=posx, pos_y=posy+20);
     } else if G.won {
         var posx = (SCREEN_WIDTH/3);
         var posy = (SCREEN_HEIGHT/2);
-        gg.draw_text("YOU WIN!", pos_x=posx, pos_y=posy, text_color=gg.color.white);
+        gg.draw_text("YOU WIN!", pos_x=posx, pos_y=posy, text_color=color.white);
         gg.draw_text("press down to continue...", pos_x=posx, pos_y=posy+20);
     } else {
         G.rec.draw()

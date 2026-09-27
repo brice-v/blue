@@ -1,3 +1,4 @@
+import color
 import ui
 
 # =============================================================
@@ -114,14 +115,11 @@ var acc_item2 = ui.accordion_item("Section 2", ui.row([ui.label("Row in accordio
 var acc = ui.accordion([acc_item1, acc_item2])
 
 # ---------- canvas primitives ----------
+var bluec  = color.new(40, 80, 220, 255)
+var dark  = color.new(20, 20, 20, 255)
 
-var red   = ui.new_color(220, 40, 40, 255)
-var green = ui.new_color(40, 180, 40, 255)
-var bluec  = ui.new_color(40, 80, 220, 255)
-var dark  = ui.new_color(20, 20, 20, 255)
-
-var rect = ui.canvas_rectangle(red)
-var circ = ui.canvas_circle(green)
+var rect = ui.canvas_rectangle(color.red)
+var circ = ui.canvas_circle(color.green)
 var line = ui.canvas_line(bluec)
 var ctext = ui.canvas_text("Canvas Text", dark, 18)
 var canvas_row = ui.grid(2, children=[rect, circ, line, ctext])
@@ -150,8 +148,8 @@ var inner_win = ui.inner_window("Inner Window", ui.col([ui.label("Draggable inne
 var inner_demo = ui.stack([ui.label("Behind inner"), inner_win])
 
 # canvas extras - fixed width via padded containers (arc/poly/image each ~200px)
-var arc_demo = ui.canvas_arc(ui.new_color(255, 128, 0, 255), 0, 270, 0.4)
-var poly_demo = ui.canvas_polygon(6, ui.new_color(0, 128, 255, 255))
+var arc_demo = ui.canvas_arc(color.new(255, 128, 0, 255), 0, 270, 0.4)
+var poly_demo = ui.canvas_polygon(6, color.new(0, 128, 255, 255))
 var img_demo = ui.canvas_image("manual_tests/test_img.png")
 # give image a fixed width by wrapping in padded/center; row distributes equally
 var canvas_extras_row = ui.grid(3, children=[arc_demo, poly_demo, img_demo])
@@ -176,9 +174,9 @@ fun on_file_open(p) {
     println("[handler] file_open => '#{p}'")
 }
 
-var grad_linear = ui.canvas_linear_gradient(ui.new_color(255,0,0,255), ui.new_color(0,0,255,255), 90)
-var grad_radial = ui.canvas_radial_gradient(ui.new_color(255,255,0,255), ui.new_color(255,0,0,0))
-var square_demo = ui.canvas_square(ui.new_color(128,0,128,255))
+var grad_linear = ui.canvas_linear_gradient(color.new(255,0,0,255), color.new(0,0,255,255), 90)
+var grad_radial = ui.canvas_radial_gradient(color.new(255,255,0,255), color.new(255,0,0,0))
+var square_demo = ui.canvas_square(color.new(128,0,128,255))
 var grad_row = ui.grid(3, children=[grad_linear, grad_radial, square_demo])
 var grad_demo = ui.padded(grad_row)
 
@@ -234,7 +232,7 @@ var border_demo = ui.border(
     ui.center(ui.label("Center"))
 )
 
-var stacked = ui.stack([ui.canvas_rectangle(ui.new_color(255,0,0,80)), ui.center(ui.label("Stacked!"))])
+var stacked = ui.stack([ui.canvas_rectangle(color.new(255,0,0,80)), ui.center(ui.label("Stacked!"))])
 var stack_demo = ui.padded(stacked)
 
 # ---------- form (old) + toolbar ----------

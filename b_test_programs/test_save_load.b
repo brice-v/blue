@@ -231,7 +231,8 @@ if (type(original) == Type.FUN) {
 
 ###
 import gg
-original = gg.color.light_gray;
+import color
+original = color.light_gray;
 
 saved = original.save();
 loaded = saved.load();

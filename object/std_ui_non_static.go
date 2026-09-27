@@ -2365,31 +2365,6 @@ var UiBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "_new_color",
-		Fun: func(args ...Object) Object {
-			if len(args) != 4 {
-				return newInvalidArgCountError("new_color", len(args), 4, "")
-			}
-			for i, a := range args {
-				if a.Type() != INTEGER_OBJ {
-					return newPositionalTypeError("new_color", i+1, INTEGER_OBJ, a.Type())
-				}
-			}
-			r := uint8(args[0].(*Integer).Value)
-			g := uint8(args[1].(*Integer).Value)
-			b := uint8(args[2].(*Integer).Value)
-			aVal := uint8(args[3].(*Integer).Value)
-			col := color.NRGBA{R: r, G: g, B: b, A: aVal}
-			return NewGoObj[color.Color](color.Color(col))
-		},
-		HelpStr: helpStrArgs{
-			explanation: "`new_color` creates a color from RGBA bytes (0-255 each) for use with canvas primitives",
-			signature:   "new_color(r: int, g: int, b: int, a: int) -> GoObj[color.Color]",
-			errors:      "InvalidArgCount,PositionalType",
-			example:     "new_color(255, 0, 0, 255) => GoObj[color.Color](Value: color.NRGBA{R:255 G:0 ...})",
-		}.String(),
-	},
-	{
 		Name: "_canvas_rectangle",
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
@@ -2398,15 +2373,15 @@ var UiBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("canvas_rectangle", 1, GO_OBJ, args[0].Type())
 			}
-			co, ok := args[0].(*GoObj[color.Color])
+			co, ok := args[0].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_rectangle", 1, "color.Color", args[0])
+				return newPositionalTypeErrorForGoObj("canvas_rectangle", 1, "color.RGBA", args[0])
 			}
 			return NewGoObj[fyne.CanvasObject](canvas.NewRectangle(co.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_rectangle` creates a canvas rectangle primitive filled with the given color",
-			signature:   "canvas_rectangle(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
+			signature:   "canvas_rectangle(color: GoObj[color.RGBA]) -> GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_rectangle(new_color(255,0,0,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
 		}.String(),
@@ -2420,15 +2395,15 @@ var UiBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("canvas_circle", 1, GO_OBJ, args[0].Type())
 			}
-			co, ok := args[0].(*GoObj[color.Color])
+			co, ok := args[0].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_circle", 1, "color.Color", args[0])
+				return newPositionalTypeErrorForGoObj("canvas_circle", 1, "color.RGBA", args[0])
 			}
 			return NewGoObj[fyne.CanvasObject](canvas.NewCircle(co.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_circle` creates a canvas circle primitive filled with the given color",
-			signature:   "canvas_circle(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Circle)",
+			signature:   "canvas_circle(color: GoObj[color.RGBA]) -> GoObj[fyne.CanvasObject](Value: *canvas.Circle)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_circle(new_color(0,255,0,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Circle)",
 		}.String(),
@@ -2442,15 +2417,15 @@ var UiBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("canvas_line", 1, GO_OBJ, args[0].Type())
 			}
-			co, ok := args[0].(*GoObj[color.Color])
+			co, ok := args[0].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_line", 1, "color.Color", args[0])
+				return newPositionalTypeErrorForGoObj("canvas_line", 1, "color.RGBA", args[0])
 			}
 			return NewGoObj[fyne.CanvasObject](canvas.NewLine(co.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_line` creates a canvas line primitive stroked with the given color",
-			signature:   "canvas_line(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Line)",
+			signature:   "canvas_line(color: GoObj[color.RGBA]) -> GoObj[fyne.CanvasObject](Value: *canvas.Line)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_line(new_color(0,0,255,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Line)",
 		}.String(),
@@ -2468,9 +2443,9 @@ var UiBuiltins = []*Builtin{
 				return newPositionalTypeError("canvas_text", 2, GO_OBJ, args[1].Type())
 			}
 			txt := args[0].(*Stringo).Value
-			co, ok := args[1].(*GoObj[color.Color])
+			co, ok := args[1].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_text", 2, "color.Color", args[1])
+				return newPositionalTypeErrorForGoObj("canvas_text", 2, "color.RGBA", args[1])
 			}
 			t := canvas.NewText(txt, co.Value)
 			if len(args) == 3 {
@@ -2489,7 +2464,7 @@ var UiBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_text` creates a canvas text primitive with optional text size",
-			signature:   "canvas_text(text: str, color: GoObj[color.Color], size: int|float=theme.TextSize) -> GoObj[fyne.CanvasObject](Value: *canvas.Text)",
+			signature:   "canvas_text(text: str, color: GoObj[color.RGBA], size: int|float=theme.TextSize) -> GoObj[fyne.CanvasObject](Value: *canvas.Text)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_text('hello', new_color(0,0,0,255), 14) => GoObj[fyne.CanvasObject](Value: *canvas.Text)",
 		}.String(),
@@ -2657,9 +2632,9 @@ var UiBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("canvas_arc", 1, GO_OBJ, args[0].Type())
 			}
-			co, ok := args[0].(*GoObj[color.Color])
+			co, ok := args[0].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_arc", 1, "color.Color", args[0])
+				return newPositionalTypeErrorForGoObj("canvas_arc", 1, "color.RGBA", args[0])
 			}
 			parseFloat := func(o Object, pos int) (float32, Object) {
 				if o.Type() == FLOAT_OBJ {
@@ -2686,7 +2661,7 @@ var UiBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_arc` creates an arc/circle-sector canvas primitive (degrees, cutout 0..1)",
-			signature:   "canvas_arc(color: GoObj[color.Color], startAngle: float|int, endAngle: float|int, cutout: float|int) -> GoObj[fyne.CanvasObject](Value: *canvas.Arc)",
+			signature:   "canvas_arc(color: GoObj[color.RGBA], startAngle: float|int, endAngle: float|int, cutout: float|int) -> GoObj[fyne.CanvasObject](Value: *canvas.Arc)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_arc(new_color(255,0,0,255), 0, 270, 0.3) => GoObj[fyne.CanvasObject](Value: *canvas.Arc)",
 		}.String(),
@@ -2707,15 +2682,15 @@ var UiBuiltins = []*Builtin{
 			if sides < 3 {
 				return newError("`canvas_polygon` error: sides must be >=3. got=%d", sides)
 			}
-			co, ok := args[1].(*GoObj[color.Color])
+			co, ok := args[1].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_polygon", 2, "color.Color", args[1])
+				return newPositionalTypeErrorForGoObj("canvas_polygon", 2, "color.RGBA", args[1])
 			}
 			return NewGoObj[fyne.CanvasObject](canvas.NewPolygon(sides, co.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_polygon` creates a regular polygon canvas primitive (n sides)",
-			signature:   "canvas_polygon(sides: int, color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Polygon)",
+			signature:   "canvas_polygon(sides: int, color: GoObj[color.RGBA]) -> GoObj[fyne.CanvasObject](Value: *canvas.Polygon)",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "canvas_polygon(6, new_color(0,0,255,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Polygon)",
 		}.String(),
@@ -2908,13 +2883,13 @@ var UiBuiltins = []*Builtin{
 			if args[1].Type() != GO_OBJ {
 				return newPositionalTypeError("canvas_linear_gradient", 2, GO_OBJ, args[1].Type())
 			}
-			c1, ok := args[0].(*GoObj[color.Color])
+			c1, ok := args[0].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_linear_gradient", 1, "color.Color", args[0])
+				return newPositionalTypeErrorForGoObj("canvas_linear_gradient", 1, "color.RGBA", args[0])
 			}
-			c2, ok := args[1].(*GoObj[color.Color])
+			c2, ok := args[1].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_linear_gradient", 2, "color.Color", args[1])
+				return newPositionalTypeErrorForGoObj("canvas_linear_gradient", 2, "color.RGBA", args[1])
 			}
 			var angle float64
 			if args[2].Type() == FLOAT_OBJ {
@@ -2928,7 +2903,7 @@ var UiBuiltins = []*Builtin{
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_linear_gradient` creates a linear gradient canvas object (angle in degrees)",
-			signature:   "canvas_linear_gradient(start: GoObj[color.Color], end: GoObj[color.Color], angle: float|int) -> GoObj[fyne.CanvasObject](Value: *canvas.LinearGradient)",
+			signature:   "canvas_linear_gradient(start: GoObj[color.RGBA], end: GoObj[color.RGBA], angle: float|int) -> GoObj[fyne.CanvasObject](Value: *canvas.LinearGradient)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_linear_gradient(new_color(255,0,0,255), new_color(0,0,255,255), 90) => GoObj[fyne.CanvasObject](Value: *canvas.LinearGradient)",
 		}.String(),
@@ -2945,19 +2920,19 @@ var UiBuiltins = []*Builtin{
 			if args[1].Type() != GO_OBJ {
 				return newPositionalTypeError("canvas_radial_gradient", 2, GO_OBJ, args[1].Type())
 			}
-			c1, ok := args[0].(*GoObj[color.Color])
+			c1, ok := args[0].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_radial_gradient", 1, "color.Color", args[0])
+				return newPositionalTypeErrorForGoObj("canvas_radial_gradient", 1, "color.RGBA", args[0])
 			}
-			c2, ok := args[1].(*GoObj[color.Color])
+			c2, ok := args[1].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_radial_gradient", 2, "color.Color", args[1])
+				return newPositionalTypeErrorForGoObj("canvas_radial_gradient", 2, "color.RGBA", args[1])
 			}
 			return NewGoObj[fyne.CanvasObject](canvas.NewRadialGradient(c1.Value, c2.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_radial_gradient` creates a radial gradient canvas object (center outward)",
-			signature:   "canvas_radial_gradient(start: GoObj[color.Color], end: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.RadialGradient)",
+			signature:   "canvas_radial_gradient(start: GoObj[color.RGBA], end: GoObj[color.RGBA]) -> GoObj[fyne.CanvasObject](Value: *canvas.RadialGradient)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_radial_gradient(new_color(255,255,0,255), new_color(255,0,0,0)) => GoObj[fyne.CanvasObject](Value: *canvas.RadialGradient)",
 		}.String(),
@@ -2971,15 +2946,15 @@ var UiBuiltins = []*Builtin{
 			if args[0].Type() != GO_OBJ {
 				return newPositionalTypeError("canvas_square", 1, GO_OBJ, args[0].Type())
 			}
-			co, ok := args[0].(*GoObj[color.Color])
+			co, ok := args[0].(*GoObj[color.RGBA])
 			if !ok {
-				return newPositionalTypeErrorForGoObj("canvas_square", 1, "color.Color", args[0])
+				return newPositionalTypeErrorForGoObj("canvas_square", 1, "color.RGBA", args[0])
 			}
 			return NewGoObj[fyne.CanvasObject](canvas.NewRectangle(co.Value))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`canvas_square` creates a square rectangle (1:1 aspect) canvas primitive",
-			signature:   "canvas_square(color: GoObj[color.Color]) -> GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
+			signature:   "canvas_square(color: GoObj[color.RGBA]) -> GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "canvas_square(new_color(128,0,128,255)) => GoObj[fyne.CanvasObject](Value: *canvas.Rectangle)",
 		}.String(),

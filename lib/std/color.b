@@ -12,21 +12,48 @@
 ## bold, italic, underlined
 ##
 ## All of these are available in the color module as integer constants
+##
+## Additionally, these color constants can be used anywhere else
+## throughout blue that accepts a color.
 
+val _cm = _color_map();
 
 # no styling
 val normal = _normal();
 
 # colors
-val red = _red();
-val cyan = _cyan();
-val gray =  _gray();
-val blue = _blue();
-val black = _black();
-val green = _green();
-val white = _white();
-val yellow = _yellow();
-val magenta = _magenta();
+val beige = _cm.beige;
+val black = _cm.black;
+val blank = _cm.blank;
+val blue = _cm.blue;
+val brown = _cm.brown;
+val cyan = _cm.cyan;
+val dark_blue = _cm.dark_blue;
+val dark_brown = _cm.dark_brown;
+val dark_gray = _cm.dark_gray;
+val dark_green = _cm.dark_green;
+val dark_grey = _cm.dark_grey;
+val dark_purple = _cm.dark_purple;
+val gold = _cm.gold;
+val gray = _cm.gray;
+val green = _cm.green;
+val grey = _cm.grey;
+val light_gray = _cm.light_gray;
+val light_grey = _cm.light_grey;
+val lime = _cm.lime;
+val magenta = _cm.magenta;
+val maroon = _cm.maroon;
+val orange = _cm.orange;
+val pink = _cm.pink;
+val purple = _cm.purple;
+val ray_white = _cm.ray_white;
+val red = _cm.red;
+val sky_blue = _cm.sky_blue;
+val violet = _cm.violet;
+val white = _cm.white;
+val yellow = _cm.yellow;
+val new = _new;
+println("_cm.new_color = #{_cm.new_color}")
 
 # styles
 val bold = _bold();

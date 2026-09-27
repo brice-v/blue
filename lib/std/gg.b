@@ -1,5 +1,6 @@
 ## `gg` is the module that contains functions needed to
 ## run the games graphics library (Raylib)
+import color
 
 val __init_window = _init_window;
 val __window_should_close = _window_should_close;
@@ -46,7 +47,6 @@ val __disable_cursor = _disable_cursor;
 val __is_cursor_on_screen = _is_cursor_on_screen;
 
 val __clear_background = _clear_background;
-val color = _color_map();
 val begin_drawing = _begin_drawing;
 val end_drawing = _end_drawing;
 val set_target_fps = _set_target_fps;

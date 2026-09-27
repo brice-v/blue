@@ -53,7 +53,6 @@ val __border = _border;
 val __center = _center;
 val __padded = _padded;
 val __stack = _stack;
-val __new_color = _new_color;
 val __canvas_rectangle = _canvas_rectangle;
 val __canvas_circle = _canvas_circle;
 val __canvas_line = _canvas_line;
@@ -550,14 +549,6 @@ fun stack(children) {
     ##
     ## stack(children: list[{t: 'ui', v: uint}]) -> {t: 'ui', v: uint}
     __stack(children)
-}
-
-fun new_color(r, g, b, a=255) {
-    ##std:this,__new_color
-    ## `new_color` creates a color for canvas primitives
-    ##
-    ## new_color(r: int, g: int, b: int, a: int=255) -> GoObj[color.Color]
-    __new_color(r, g, b, a)
 }
 
 fun canvas_rectangle(col) {
