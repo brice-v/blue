@@ -14,7 +14,6 @@ TODO:
     - FIX: Missing legend
     - Missing sizes for things or handled at 'render'?
     - Sizes are in inches but I sort of expect pixels? (might not be issue)
-- [ ] FIX: In lsp, hide _ functions on <ctrl+space>
 - [ ] FIX: In ml docs, instead of showing tensor shape for ops, show what the tensor actually looks like
 - [ ] FIX: Hovering over import statement in lsp/vscode should show module level docs
 - [ ] `blue doc` for std lib needs to be a bit better
@@ -793,3 +792,4 @@ COMPLETED TASKS:
     - Started via "dunder" methods, still likely others to handle, like builtin len()
 - [x] FEAT: Update `color` so that constants are created that can be reused by anything, gg, ui, plot, etc.
     - Update its module comment as its no longer going to be just for console printing
+- [x] FIX: In lsp, hide _ functions on <ctrl+space>

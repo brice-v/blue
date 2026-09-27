@@ -258,7 +258,7 @@ func (b *completionBuilder) addBuiltinGroup(group string) {
 	}
 	b.rank = 60
 	for _, blt := range builtinGroupMembers(group) {
-		if blt == nil || blt.Name == "" || !b.matches(blt.Name) || b.seen(blt.Name) {
+		if blt == nil || blt.Name == "" || isPrivateName(blt.Name) || !b.matches(blt.Name) || b.seen(blt.Name) {
 			continue
 		}
 		b.markSeen(blt.Name)
@@ -319,7 +319,7 @@ func (b *completionBuilder) addImportCandidates(c editContext) {
 func (b *completionBuilder) addModuleMembers(entry *moduleEntry) {
 	b.rank = 20
 	for _, d := range entry.topLevelDecls() {
-		if !b.matches(d.name) || b.seen(d.name) {
+		if isPrivateName(d.name) || !b.matches(d.name) || b.seen(d.name) {
 			continue
 		}
 		b.markSeen(d.name)
@@ -346,7 +346,7 @@ func (b *completionBuilder) addModuleMembers(entry *moduleEntry) {
 	// Some std modules expose members that only exist as go builtins.
 	if group := stdGroupName(entry); group != "" {
 		for _, blt := range builtinGroupMembers(group) {
-			if !b.matches(blt.Name) || b.seen(blt.Name) {
+			if isPrivateName(blt.Name) || !b.matches(blt.Name) || b.seen(blt.Name) {
 				continue
 			}
 			b.markSeen(blt.Name)

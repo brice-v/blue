@@ -53,6 +53,10 @@ func isBuiltinName(name string) bool {
 	return ok
 }
 
+func isPrivateName(name string) bool {
+	return strings.HasPrefix(name, "_")
+}
+
 // wrappedBuiltins returns the go builtins a module function wraps through its
 // help directive, such as `std:this,__style` meaning "my own docs plus
 // _style's help". The leading underscore is trimmed the way the compiler trims

@@ -240,3 +240,52 @@ func TestCompletionSnippetGating(t *testing.T) {
 		t.Errorf("with snippet support insertTextFormat = %d, want %d", item2.InsertTextFormat, completionSnippet)
 	}
 }
+
+func TestCompletionHidesPrivateBuiltins(t *testing.T) {
+	s, uri := openDoc(t, "val x = 1\n")
+	res := s.completion(completionParams{TextDocument: textDocumentIdentifier{URI: uri}, Position: position{Line: 1, Character: 0}})
+	list, ok := res.(*completionList)
+	if !ok {
+		t.Fatalf("completion returned %T, want *completionList", res)
+	}
+
+	for _, banned := range []string{"_path_join", "_sort", "_fetch"} {
+		if hasLabel(list, banned) {
+			t.Errorf("private builtin %q offered on completion: %v", banned, labelItems(list))
+		}
+	}
+	if !hasLabel(list, "len") {
+		t.Errorf("public builtin len missing from completion: %v", labelItems(list))
+	}
+}
+
+func TestCompletionShowsLocalPrivateNames(t *testing.T) {
+	s, uri := openDoc(t, "fun _helper() {\n\t1\n}\n")
+	res := s.completion(completionParams{TextDocument: textDocumentIdentifier{URI: uri}, Position: position{Line: 3, Character: 0}})
+	list, ok := res.(*completionList)
+	if !ok {
+		t.Fatalf("completion returned %T, want *completionList", res)
+	}
+
+	if !hasLabel(list, "_helper") {
+		t.Errorf("local private function _helper missing from completion: %v", labelItems(list))
+	}
+}
+
+func TestCompletionHidesImportedPrivateMembers(t *testing.T) {
+	s, uri := openDoc(t, "import color\ncolor.\n")
+	res := s.completion(completionParams{TextDocument: textDocumentIdentifier{URI: uri}, Position: position{Line: 1, Character: 6}})
+	list, ok := res.(*completionList)
+	if !ok {
+		t.Fatalf("completion returned %T, want *completionList", res)
+	}
+
+	for _, banned := range []string{"_cm", "_style", "_color_map", "_normal"} {
+		if hasLabel(list, banned) {
+			t.Errorf("private module member %q offered after `color.`: %v", banned, labelItems(list))
+		}
+	}
+	if !hasLabel(list, "red") {
+		t.Errorf("public module member red missing after `color.`: %v", labelItems(list))
+	}
+}
