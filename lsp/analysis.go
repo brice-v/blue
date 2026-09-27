@@ -633,7 +633,7 @@ func blueFilesIn(root string, limit int) []string {
 		}
 		if entry.IsDir() {
 			name := entry.Name()
-			if path != root && (strings.HasPrefix(name, ".") || name == "__blue_cache" || name == "vendor" || name == "node_modules") {
+			if path != root && (strings.HasPrefix(name, ".") || name == "vendor" || name == "node_modules") {
 				return fs.SkipDir
 			}
 			return nil

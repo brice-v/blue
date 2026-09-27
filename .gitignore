@@ -23,8 +23,6 @@ playground/*.wasm
 bluerun-darwin-*
 bluerun-linux-*
 bluerun-windows-*
-__blue_cache/
-__blue_cache/
 
 # editor extension build artifacts
 node_modules/

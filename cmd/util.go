@@ -458,14 +458,11 @@ func vmFileOrString(inputOrFpath string, isFpath, noExec, allErrors, printResult
 			return failf("error loading binary image `%s`: %w", inputOrFpath, err)
 		}
 		bc = img
-	} else if cached := lookupCachedProgram(inputOrFpath, allErrors); cached != nil {
-		bc = cached
 	} else {
 		c, err := instantiateCompiler(inputOrFpath, isFpath, allErrors)
 		if err != nil {
 			return err
 		}
-		storeCachedProgram(c, inputOrFpath, allErrors)
 		bc = c.Bytecode()
 	}
 	return runBytecode(bc, noExec, printResult)

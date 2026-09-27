@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"blue/consts"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -107,7 +106,6 @@ func TestRunDocCommand(t *testing.T) {
 
 func TestRunDefaultFallsBackToProgramFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv(consts.BLUE_NO_CACHE, "1")
 	t.Chdir(dir)
 	if err := Run("blue", writeTempProgram(t, "println(42)\n")); err != nil {
 		t.Fatalf("expected no error running a program file, got %v", err)
