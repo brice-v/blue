@@ -781,6 +781,90 @@ func TestNextTokenRegexUnfinished(t *testing.T) {
 	}
 }
 
+func TestNextTokenByteString(t *testing.T) {
+	input := `b"double";b'single';b"";b'';b"a\nb";b'it\'s';`
+	l := New(input, "<internal:test>")
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.BYTE_STRING_DOUBLE_QUOTE, "double"},
+		{token.SEMICOLON, ";"},
+		{token.BYTE_STRING_SINGLE_QUOTE, "single"},
+		{token.SEMICOLON, ";"},
+		{token.BYTE_STRING_DOUBLE_QUOTE, ""},
+		{token.SEMICOLON, ";"},
+		{token.BYTE_STRING_SINGLE_QUOTE, ""},
+		{token.SEMICOLON, ";"},
+		{token.BYTE_STRING_DOUBLE_QUOTE, "a\nb"},
+		{token.SEMICOLON, ";"},
+		{token.BYTE_STRING_SINGLE_QUOTE, "it's"},
+		{token.SEMICOLON, ";"},
+		{token.EOF, ""},
+	}
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+// A b only opens a byte string when a quote follows it right away. Everything
+// else has to keep lexing as an identifier, or names ending in b would stop
+// working just because a string happens to follow them.
+func TestNextTokenBareBIsStillIdentifier(t *testing.T) {
+	input := `b b1 bb b_;b"x"`
+
+	l := New(input, "<internal:test>")
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.IDENT, "b"},
+		{token.IDENT, "b1"},
+		{token.IDENT, "bb"},
+		{token.IDENT, "b_"},
+		{token.SEMICOLON, ";"},
+		{token.BYTE_STRING_DOUBLE_QUOTE, "x"},
+		{token.EOF, ""},
+	}
+
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("test[%d] - tokenType wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("test[%d] - tokenLiteral wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+func TestNextTokenByteStringUnfinished(t *testing.T) {
+	for _, input := range []string{`b"unclosed`, `b'unclosed`} {
+		l := New(input, "<internal:test>")
+		tok := l.NextToken()
+		if tok.Type != token.ILLEGAL {
+			t.Errorf("%s: expected ILLEGAL for unterminated byte string, got %v", input, tok.Type)
+		}
+	}
+}
+
 func TestNextTokenBigInt(t *testing.T) {
 	input := `123456789012345678901234567890n`
 	l := New(input, "<internal:test>")

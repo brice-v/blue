@@ -152,6 +152,103 @@ stuff"""
 	}
 }
 
+// A byte string is one string token starting at the b. Splitting the b off as an
+// identifier would put it outside the string region, which makes the prefix look
+// like a name to hover, completion and go to definition, and makes the quotes
+// start a second string.
+func TestTokenizeByteStrings(t *testing.T) {
+	literals := []string{`b"double"`, `b'single'`, `b""`, `b''`, `b"esc\"aped"`, `b"tail\n"`}
+
+	var text strings.Builder
+	for _, lit := range literals {
+		text.WriteString("val v = " + lit + "\n")
+	}
+	// A plain string and a regex keep their own behaviour.
+	text.WriteString("val plain = 'not a byte string'\n")
+	text.WriteString("val re = r/a\\/b/\n")
+
+	src := newDocSource("t.b", text.String())
+	tokens := tokenize(src.runes)
+
+	// Every byte string has to be covered by exactly one token, and that token has
+	// to be a string spanning the whole literal, the b included.
+	for _, lit := range literals {
+		start := strings.Index(src.text, lit)
+		if start < 0 {
+			t.Fatalf("literal %q missing from the test source", lit)
+		}
+
+		covering := tokensCovering(tokens, start)
+		if len(covering) != 1 {
+			t.Fatalf("literal %q is covered by %d tokens, want 1: %#v", lit, len(covering), covering)
+		}
+		if covering[0].kind != kString {
+			t.Errorf("literal %q is kind %d, want a string", lit, covering[0].kind)
+		}
+		if covering[0].text != lit {
+			t.Errorf("token text = %q, want the whole literal %q", covering[0].text, lit)
+		}
+	}
+
+	// No identifier may be scanned out of a byte string prefix.
+	for _, tok := range tokens {
+		if tok.kind == kIdent && tok.text == "b" {
+			t.Errorf("a b was scanned as an identifier at offset %d", tok.start)
+		}
+	}
+
+	// The whole literal, b included, counts as string contents.
+	index := buildIndex(src)
+	index.resolveExtents()
+	first := strings.Index(src.text, `b"double"`)
+	for at := first + 1; at < first+len(`b"double"`); at++ {
+		if !index.insideStringOrComment(at) {
+			t.Errorf("offset %d is inside a byte string and should be reported", at)
+		}
+	}
+	// The name the byte string is bound to is still code.
+	if index.insideStringOrComment(0) {
+		t.Error("the name v is code and must not be reported as inside a string")
+	}
+}
+
+// Only a b directly followed by a quote opens a byte string, which is what the
+// real lexer does. Names that merely contain a b have to keep scanning as
+// identifiers, otherwise a variable would stop resolving next to a string.
+func TestTokenizeBareBIsStillIdentifier(t *testing.T) {
+	src := newDocSource("t.b", "val b = 1\nval b1 = 'x'\nval bb = 'y'\nval b_ = 'z'\nval e = b\"w\"\n")
+	tokens := tokenize(src.runes)
+
+	idents := map[string]bool{}
+	for _, tok := range tokens {
+		if tok.kind == kIdent {
+			idents[tok.text] = true
+		}
+	}
+	for _, name := range []string{"b", "b1", "bb", "b_", "e"} {
+		if !idents[name] {
+			t.Errorf("%q should still be scanned as an identifier, got %v", name, idents)
+		}
+	}
+	// The trailing byte string is the one place a b must not be an identifier.
+	if start := strings.Index(src.text, `b"w"`); len(tokensCovering(tokens, start)) != 1 {
+		t.Errorf(`b"w" should be covered by exactly one token`)
+	} else if tok := tokensCovering(tokens, start)[0]; tok.kind != kString || tok.text != `b"w"` {
+		t.Errorf(`b"w" should be one string token, got kind %d text %q`, tok.kind, tok.text)
+	}
+}
+
+// tokensCovering returns the tokens that cover a rune offset.
+func tokensCovering(tokens []scanToken, idx int) []scanToken {
+	var out []scanToken
+	for _, tok := range tokens {
+		if tok.start <= idx && idx < tok.end {
+			out = append(out, tok)
+		}
+	}
+	return out
+}
+
 func TestTokenizeNumbersKeepRangesSeparate(t *testing.T) {
 	src := newDocSource("t.b", "x = 0x1F\ny = 1..5\nz = 2..<10\nw = 1.5e3\n")
 	tokens := tokenize(src.runes)

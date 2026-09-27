@@ -116,6 +116,48 @@
           ]
         },
         {
+          "name": "string.quoted.single.bytes.blue",
+          "begin": "\\bb'",
+          "end": "'",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.blue"
+            }
+          },
+          "contentName": "meta.string-contents.single.blue",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.bytes.blue",
+          "begin": "\\bb\"",
+          "end": "(\"|$)",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.blue"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.blue"
+            }
+          },
+          "contentName": "meta.string-contents.double.blue",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        },
+        {
           "name": "string.quoted.single.blue",
           "begin": "'",
           "end": "'",

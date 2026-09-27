@@ -3,6 +3,7 @@ package parser
 import (
 	"blue/ast"
 	"blue/lexer"
+	"blue/token"
 	"fmt"
 	"math/big"
 	"os"
@@ -2283,6 +2284,101 @@ func TestRegexLiteral(t *testing.T) {
 	}
 	if regex.Value != "^[a-z]+$" {
 		t.Errorf("regex.Value not ^[a-z]+$. got=%s", regex.Value)
+	}
+}
+
+func TestByteStringLiteral(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedValue string
+		expectedType  token.Type
+	}{
+		{`b"hello";`, "hello", token.BYTE_STRING_DOUBLE_QUOTE},
+		{`b'hello';`, "hello", token.BYTE_STRING_SINGLE_QUOTE},
+		{`b"";`, "", token.BYTE_STRING_DOUBLE_QUOTE},
+		{`b'';`, "", token.BYTE_STRING_SINGLE_QUOTE},
+		{`b"\x10";`, "\x10", token.BYTE_STRING_DOUBLE_QUOTE},
+		{`b'quote"inside';`, `quote"inside`, token.BYTE_STRING_SINGLE_QUOTE},
+		{`b"quote'inside";`, "quote'inside", token.BYTE_STRING_DOUBLE_QUOTE},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input, "<internal:test>")
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		bsl, ok := stmt.Expression.(*ast.ByteStringLiteral)
+		if !ok {
+			t.Fatalf("%s: stmt.Expression is not *ast.ByteStringLiteral. got=%T", tt.input, stmt.Expression)
+		}
+		if bsl.Value != tt.expectedValue {
+			t.Errorf("%s: ByteStringLiteral.Value not %q. got=%q", tt.input, tt.expectedValue, bsl.Value)
+		}
+		if bsl.Token.Type != tt.expectedType {
+			t.Errorf("%s: ByteStringLiteral.Token.Type not %q. got=%q", tt.input, tt.expectedType, bsl.Token.Type)
+		}
+	}
+}
+
+// A byte string is a value like any other literal, so it has to be usable
+// everywhere an expression is: assigned, passed along, nested in collections.
+func TestByteStringLiteralInExpressions(t *testing.T) {
+	input := `val x = b"a";[b"b", b'c'];{"k": b"d"};`
+
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	assign, ok := program.Statements[0].(*ast.ValStatement)
+	if !ok {
+		t.Fatalf("statement 0 is not *ast.ValStatement. got=%T", program.Statements[0])
+	}
+	if bsl, ok := assign.Value.(*ast.ByteStringLiteral); !ok || bsl.Value != "a" {
+		t.Fatalf("assignment value is not a *ast.ByteStringLiteral of %q. got=%T", "a", assign.Value)
+	}
+
+	list, ok := program.Statements[1].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("statement 1 is not *ast.ExpressionStatement. got=%T", program.Statements[1])
+	}
+	listLit, ok := list.Expression.(*ast.ListLiteral)
+	if !ok {
+		t.Fatalf("statement 1 is not *ast.ListLiteral. got=%T", list.Expression)
+	}
+	if len(listLit.Elements) != 2 {
+		t.Fatalf("list has wrong length. got=%d", len(listLit.Elements))
+	}
+	for i, want := range []string{"b", "c"} {
+		bsl, ok := listLit.Elements[i].(*ast.ByteStringLiteral)
+		if !ok {
+			t.Fatalf("element %d is not *ast.ByteStringLiteral. got=%T", i, listLit.Elements[i])
+		}
+		if bsl.Value != want {
+			t.Errorf("element %d value not %q. got=%q", i, want, bsl.Value)
+		}
+	}
+
+	hash, ok := program.Statements[2].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("statement 2 is not *ast.ExpressionStatement. got=%T", program.Statements[2])
+	}
+	hashLit, ok := hash.Expression.(*ast.MapLiteral)
+	if !ok {
+		t.Fatalf("statement 2 is not *ast.MapLiteral. got=%T", hash.Expression)
+	}
+	if len(hashLit.Pairs) != 1 {
+		t.Fatalf("hash has wrong length. got=%d", len(hashLit.Pairs))
+	}
+	for k, v := range hashLit.Pairs {
+		if key, ok := k.(*ast.StringLiteral); !ok || key.Value != "k" {
+			t.Errorf("hash key is not the string literal %q. got=%T", "k", k)
+		}
+		if val, ok := v.(*ast.ByteStringLiteral); !ok || val.Value != "d" {
+			t.Errorf("hash value is not a *ast.ByteStringLiteral of %q. got=%T", "d", v)
+		}
 	}
 }
 

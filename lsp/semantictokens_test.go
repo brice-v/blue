@@ -176,6 +176,41 @@ func TestSemanticTokensClassifyKinds(t *testing.T) {
 	}
 }
 
+// A byte string is painted as one string token covering the b as well. The b
+// must never be painted as a name, not even when a variable called b is in scope,
+// which is exactly the case where the prefix used to light up as a variable.
+func TestSemanticTokensByteString(t *testing.T) {
+	text := "val b = 1\nval payload = b\"raw bytes\"\nval other = b'raw bytes'\n"
+	got := decodeSemantic(t, text)
+
+	for _, tc := range []struct {
+		lit  string
+		line int
+	}{{"b\"raw bytes\"", 1}, {"b'raw bytes'", 2}} {
+		matches := tokensNamed(t, text, got, tc.lit)
+		if len(matches) != 1 {
+			t.Fatalf("expected exactly one token covering %q, got %+v", tc.lit, matches)
+		}
+		if matches[0].typ != "string" {
+			t.Errorf("%q typed %s, want string", tc.lit, matches[0].typ)
+		}
+		if matches[0].line != tc.line {
+			t.Errorf("%q reported on line %d, want %d", tc.lit, matches[0].line, tc.line)
+		}
+	}
+
+	// The b of each byte string is part of the string, so the only b left as a
+	// name is the one bound on line 0.
+	for _, tok := range tokensNamed(t, text, got, "b") {
+		if tok.line != 0 {
+			t.Errorf("the byte string prefix on line %d was painted as a name (%s)", tok.line, tok.typ)
+		}
+	}
+	if names := tokensNamed(t, text, got, "b"); len(names) != 1 {
+		t.Errorf("expected 1 b token, got %d: %+v", len(names), names)
+	}
+}
+
 func TestSemanticTokensDeclarationSites(t *testing.T) {
 	text := "fun helper(x) {\n\treturn x * 2\n}\n\nval total = helper(21)\n"
 	got := decodeSemantic(t, text)

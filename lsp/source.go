@@ -217,7 +217,7 @@ func isIdentRune(r rune) bool {
 // delimiter rules mirror the real lexer: '#' line comments, '###' block comments
 // ended by another '###', '##' docstring comments up to end of line, "..." and
 // '...' strings with backslash escapes, `"""` raw strings, backtick exec
-// strings and r/.../ regex literals.
+// strings, r/.../ regex literals and b"..." / b'...' byte strings.
 func tokenize(rs []rune) []scanToken {
 	out := []scanToken{}
 	i := 0
@@ -283,34 +283,13 @@ func tokenize(rs []rune) []scanToken {
 				i = j
 				continue
 			}
-			j := i + 1
-			for j < len(rs) && rs[j] != '"' {
-				if rs[j] == '\\' && j+1 < len(rs) {
-					j += 2
-					continue
-				}
-				j++
-			}
-			if j < len(rs) {
-				j++ // closing quote
-			}
-			out = append(out, scanToken{kind: kString, text: string(rs[start:j]), start: start, end: j})
+			j := quotedEnd(rs, i+1, '"')
+			out = append(out, scanToken{kind: kString, text: string(rs[i:j]), start: i, end: j})
 			i = j
 
 		case r == '\'':
-			start := i
-			j := i + 1
-			for j < len(rs) && rs[j] != '\'' {
-				if rs[j] == '\\' && j+1 < len(rs) {
-					j += 2
-					continue
-				}
-				j++
-			}
-			if j < len(rs) {
-				j++
-			}
-			out = append(out, scanToken{kind: kString, text: string(rs[start:j]), start: start, end: j})
+			j := quotedEnd(rs, i+1, '\'')
+			out = append(out, scanToken{kind: kString, text: string(rs[i:j]), start: i, end: j})
 			i = j
 
 		case r == '`':
@@ -342,6 +321,11 @@ func tokenize(rs []rune) []scanToken {
 			out = append(out, scanToken{kind: kString, text: string(rs[start:j]), start: start, end: j})
 			i = j
 
+		case r == 'b' && i+1 < len(rs) && (rs[i+1] == '\'' || rs[i+1] == '"'):
+			j := quotedEnd(rs, i+2, rs[i+1])
+			out = append(out, scanToken{kind: kString, text: string(rs[i:j]), start: i, end: j})
+			i = j
+
 		case isIdentStartRune(r):
 			start := i
 			j := i + 1
@@ -369,6 +353,25 @@ func tokenize(rs []rune) []scanToken {
 	}
 
 	return out
+}
+
+// quotedEnd returns the offset just past the closing quote of a quoted literal
+// whose body starts at i. A backslash escapes the next character, and an
+// unterminated literal runs to the end of the buffer because the editor must
+// keep working on half typed code.
+func quotedEnd(rs []rune, i int, quote rune) int {
+	j := i
+	for j < len(rs) && rs[j] != quote {
+		if rs[j] == '\\' && j+1 < len(rs) {
+			j += 2
+			continue
+		}
+		j++
+	}
+	if j < len(rs) {
+		j++ // closing quote
+	}
+	return j
 }
 
 // numericEnd consumes a numeric literal starting at i, including hex, binary and

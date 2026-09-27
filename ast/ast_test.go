@@ -923,6 +923,67 @@ func TestRegexLiteralStringWithBackslash(t *testing.T) {
 	}
 }
 
+func TestByteStringLiteralTokenLiteral(t *testing.T) {
+	for _, typ := range []token.Type{token.BYTE_STRING_DOUBLE_QUOTE, token.BYTE_STRING_SINGLE_QUOTE} {
+		bsl := &ByteStringLiteral{
+			Token: token.Token{Type: typ, Literal: string(typ)},
+			Value: "hello",
+		}
+		if bsl.TokenLiteral() != string(typ) {
+			t.Errorf("TokenLiteral() = %q, want %q", bsl.TokenLiteral(), string(typ))
+		}
+		if bsl.TokenToken().Type != typ {
+			t.Errorf("TokenToken().Type = %q, want %q", bsl.TokenToken().Type, typ)
+		}
+	}
+}
+
+func TestByteStringLiteralString(t *testing.T) {
+	bsl := &ByteStringLiteral{
+		Token: token.Token{Type: token.BYTE_STRING_DOUBLE_QUOTE, Literal: `b"`},
+		Value: "hello",
+	}
+	expected := `b"hello"`
+	if bsl.String() != expected {
+		t.Errorf("String() = %q, want %q", bsl.String(), expected)
+	}
+}
+
+func TestByteStringLiteralStringSingleQuote(t *testing.T) {
+	bsl := &ByteStringLiteral{
+		Token: token.Token{Type: token.BYTE_STRING_SINGLE_QUOTE, Literal: "b'"},
+		Value: "hello",
+	}
+	expected := `b'hello'`
+	if bsl.String() != expected {
+		t.Errorf("String() = %q, want %q", bsl.String(), expected)
+	}
+}
+
+func TestByteStringLiteralStringWithBackslash(t *testing.T) {
+	bsl := &ByteStringLiteral{
+		Token: token.Token{Type: token.BYTE_STRING_DOUBLE_QUOTE, Literal: `b"`},
+		Value: `\x10`,
+	}
+	expected := `b"\\x10"`
+	if bsl.String() != expected {
+		t.Errorf("String() = %q, want %q", bsl.String(), expected)
+	}
+}
+
+// A quote of the other kind is part of the value, not a delimiter, so String has
+// to keep it in without letting it close the literal early.
+func TestByteStringLiteralStringWithQuotesInValue(t *testing.T) {
+	bsl := &ByteStringLiteral{
+		Token: token.Token{Type: token.BYTE_STRING_SINGLE_QUOTE, Literal: "b'"},
+		Value: `\x10`,
+	}
+	expected := `b'\\x10'`
+	if bsl.String() != expected {
+		t.Errorf("String() = %q, want %q", bsl.String(), expected)
+	}
+}
+
 func TestListLiteralTokenLiteral(t *testing.T) {
 	ll := &ListLiteral{
 		Token:    token.Token{Type: token.LBRACKET, Literal: "["},

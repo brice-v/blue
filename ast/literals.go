@@ -244,9 +244,8 @@ func (bsl *ByteStringLiteral) String() string {
 	if bsl.Token.Type == token.BYTE_STRING_DOUBLE_QUOTE {
 		return "b" + val
 	} else {
-		val = strings.TrimPrefix(val, "\"")
-		val = strings.TrimSuffix(val, "\"")
-		return fmt.Sprintf("%s%v'", string(bsl.Token.Type), val)
+		val = string([]byte(val)[1 : len(val)-1])
+		return "b'" + val + "'"
 	}
 }
 

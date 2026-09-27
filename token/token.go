@@ -506,6 +506,10 @@ func (t Type) UserFriendlyName() string {
 		return "a string"
 	case STRING_SINGLE_QUOTE:
 		return "a string"
+	case BYTE_STRING_DOUBLE_QUOTE:
+		return "a byte string"
+	case BYTE_STRING_SINGLE_QUOTE:
+		return "a byte string"
 	case RAW_STRING:
 		return "a raw string"
 	case BACKTICK:
@@ -567,6 +571,8 @@ func (t Type) TokenDescription(literal string) string {
 		return fmt.Sprintf("float %q", literal)
 	case STRING_DOUBLE_QUOTE, STRING_SINGLE_QUOTE, RAW_STRING, BACKTICK:
 		return fmt.Sprintf("string %q", literal)
+	case BYTE_STRING_DOUBLE_QUOTE, BYTE_STRING_SINGLE_QUOTE:
+		return fmt.Sprintf("byte string %q", literal)
 	case IDENT:
 		return fmt.Sprintf("identifier %q", literal)
 	case REGEX:
