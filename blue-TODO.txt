@@ -16,17 +16,19 @@ TODO:
     - Sizes are in inches but I sort of expect pixels? (might not be issue)
 - [ ] FIX: In ml docs, instead of showing tensor shape for ops, show what the tensor actually looks like
 - [ ] FIX: Hovering over import statement in lsp/vscode should show module level docs
-- [ ] `blue doc` for std lib needs to be a bit better
-    - Ideally need to make it look like the help() output but also 
+- [ ] FIX: help() should look more consistent
+    - Add | to all the outputted lines so that its consistent all the way down
+    - (this function is mainly accessible when running but will maybe can be used for `blue doc` command as well)
+    - [ ] `blue doc` for std lib needs to be a bit better (make it consistent with help() output)
 - [ ] FEAT: Integrate duckdb as option for db package
     - allows reading of parquet files
     - non-static build, need to ensure static build continues to work
 - [ ] FEAT: Implement slice behavior such as [0:10] or [0..10..1] (start,stop,step)
     - Maybe use : as .. is used elsewhere for "range"
 - [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
-- [ ] Fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
-- [ ] Add a binary pack/unpack equivalent to python's struct.pack/unpack. blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back. Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
-- [ ] Would be good to have an error hint for this pattern
+- [ ] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
+- [ ] FEAT: Add a binary pack/unpack equivalent to python's struct.pack/unpack. blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back. Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
+- [ ] FEAT: Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
     - similarly occurs for range as well 1..10-4 or 1..<10-4
@@ -163,9 +165,6 @@ func main() {
 - go tool cover -html=c.out
 - [ ] Add code for CLI arg parser
 - [ ] Add way to print out ast by node name rather than strings
-- [ ] Look into the performance benefits of different hashing algorthims
-- [ ] Look into the performance benefits of enum of types rather than strings
-- [ ] Tagged Unions/ enums working properly with match
 - [ ] See if we can add streams properly as its own object type?
     - Use go generator pattern maybe?
     - Maybe this? https://github.com/youthlin/stream
@@ -794,3 +793,6 @@ COMPLETED TASKS:
 - [x] Maybe get rid of cache?
     - why when I edit things in the compiler does it sometimes re-use the cache incorrectly
 - [x] FEAT: Add \u0000 for unicode bytes in strings
+- [-] Look into the performance benefits of different hashing algorthims
+- [-] Look into the performance benefits of enum of types rather than strings
+- [-] Tagged Unions/ enums working properly with match
