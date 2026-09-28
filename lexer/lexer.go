@@ -8,7 +8,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"unicode/utf16"
 	"unicode/utf8"
 )
 
@@ -390,6 +392,13 @@ func (l *Lexer) readString() (string, error) {
 				}
 				b.Write(dst)
 				continue
+			case 'u':
+				r, err := l.readUnicodeEscape()
+				if err != nil {
+					return "", err
+				}
+				b.WriteRune(r)
+				continue
 			}
 
 			// Skip over the '\\' and the matched single escape char
@@ -409,6 +418,43 @@ func (l *Lexer) readString() (string, error) {
 	}
 
 	return b.String(), nil
+}
+
+func (l *Lexer) readUnicodeEscape() (rune, error) {
+	l.readChar()
+	r, err := l.readHexRunes(4)
+	if err != nil {
+		return 0, err
+	}
+	if r < 0xD800 || r > 0xDBFF {
+		return r, nil
+	}
+	if l.peekChar() != '\\' || l.peekSecondChar() != 'u' {
+		return utf8.RuneError, nil
+	}
+	l.readChar()
+	l.readChar()
+	r2, err := l.readHexRunes(4)
+	if err != nil {
+		return 0, err
+	}
+	return utf16.DecodeRune(r, r2), nil
+}
+
+func (l *Lexer) readHexRunes(n int) (rune, error) {
+	rs := make([]rune, 0, n)
+	for range n {
+		l.readChar()
+		if !isHexChar(l.ch) {
+			return 0, fmt.Errorf("invalid unicode escape: expected %d hex digits", n)
+		}
+		rs = append(rs, l.ch)
+	}
+	value, err := strconv.ParseInt(string(rs), 16, 32)
+	if err != nil {
+		return 0, err
+	}
+	return rune(value), nil
 }
 
 // readRegexLiteral will consume tokens until the regex literal is fully read

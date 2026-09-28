@@ -21,7 +21,6 @@ TODO:
 - [ ] FEAT: Integrate duckdb as option for db package
     - allows reading of parquet files
     - non-static build, need to ensure static build continues to work
-- [ ] FEAT: Add \u0000 for unicode bytes in strings
 - [ ] FEAT: Implement slice behavior such as [0:10] or [0..10..1] (start,stop,step)
     - Maybe use : as .. is used elsewhere for "range"
 - [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
@@ -794,3 +793,4 @@ COMPLETED TASKS:
     - with nothing else, probably want to resolve this
 - [x] Maybe get rid of cache?
     - why when I edit things in the compiler does it sometimes re-use the cache incorrectly
+- [x] FEAT: Add \u0000 for unicode bytes in strings

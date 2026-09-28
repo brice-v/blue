@@ -730,6 +730,51 @@ func TestNextTokenEscapeHex(t *testing.T) {
 	}
 }
 
+func TestNextTokenEscapeUnicode(t *testing.T) {
+	input := `"\u0041\u263A\u4E2D\u6587"`
+	l := New(input, "<internal:test>")
+	tok := l.NextToken()
+	if tok.Type != token.STRING_DOUBLE_QUOTE {
+		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
+	}
+	if tok.Literal != "A\u263A\u4E2D\u6587" {
+		t.Errorf("expected unicode decoded string, got %q", tok.Literal)
+	}
+}
+
+func TestNextTokenEscapeUnicodeDoesNotSkipNextChar(t *testing.T) {
+	input := `"\u0041BC"`
+	l := New(input, "<internal:test>")
+	tok := l.NextToken()
+	if tok.Type != token.STRING_DOUBLE_QUOTE {
+		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
+	}
+	if tok.Literal != "ABC" {
+		t.Errorf("expected ABC, got %q", tok.Literal)
+	}
+}
+
+func TestNextTokenEscapeUnicodeSurrogatePair(t *testing.T) {
+	input := `"\uD83D\uDE00"`
+	l := New(input, "<internal:test>")
+	tok := l.NextToken()
+	if tok.Type != token.STRING_DOUBLE_QUOTE {
+		t.Fatalf("expected STRING_DOUBLE_QUOTE, got %v", tok.Type)
+	}
+	if tok.Literal != "\U0001F600" {
+		t.Errorf("expected emoji, got %q", tok.Literal)
+	}
+}
+
+func TestNextTokenEscapeUnicodeInvalid(t *testing.T) {
+	input := `"\u00G1"`
+	l := New(input, "<internal:test>")
+	tok := l.NextToken()
+	if tok.Type != token.ILLEGAL {
+		t.Fatalf("expected ILLEGAL for invalid unicode escape, got %v", tok.Type)
+	}
+}
+
 func TestNextTokenUnfinishedString(t *testing.T) {
 	input := `"hello`
 	l := New(input, "<internal:test>")
