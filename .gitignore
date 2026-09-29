@@ -23,6 +23,7 @@ playground/*.wasm
 bluerun-darwin-*
 bluerun-linux-*
 bluerun-windows-*
+lines.svg
 
 # editor extension build artifacts
 node_modules/

@@ -9,7 +9,7 @@ TODO:
     - Meaning, primitive on 1 side, and map obj on the other: 1 + a (want to call __add)
 - [ ] MAYBE: Build pseduo jupyter style notebook for blue via `blue nb` or `blue notebook` using ui and other things?
 - [ ] FIX: Fix up plot api
-    - plot.new() is fine, but the functions to update it should be on map returned by that function, similar to http server
+    - [x] plot.new() is fine, but the functions to update it should be on map returned by that function, similar to http server
     - in general want to make it more like matplotlib but just putting the apis on the fig will probably help with that
     - FIX: Missing legend
     - Missing sizes for things or handled at 'render'?

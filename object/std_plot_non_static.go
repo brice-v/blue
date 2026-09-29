@@ -25,8 +25,21 @@ type NumFigure struct {
 	Plot *plot.Plot
 }
 
+func getFigFromMap(m *Map) Object {
+	hk := HashKey{
+		Type:  STRING_OBJ,
+		Value: HashObject(&Stringo{Value: "_figure"}),
+	}
+	mp, _ := m.Pairs.Get(hk)
+	return mp.Value
+}
+
 // numFigureArg accepts a figure handle.
 func numFigureArg(name string, pos int, o Object) (*NumFigure, Object) {
+	if o.Type() == MAP_OBJ {
+		m := o.(*Map)
+		o = getFigFromMap(m)
+	}
 	g, ok := o.(*GoObj[*NumFigure])
 	if !ok || g.Value == nil {
 		return nil, newPositionalTypeError(name, pos, "FIGURE", o.Type())
