@@ -1,6 +1,8 @@
 package lsp
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -188,6 +190,156 @@ func TestHoverModuleMemberDocs(t *testing.T) {
 	}
 	if strings.Index(got2, "`rand` returns") > strings.Index(got2, "```blue") {
 		t.Errorf("hover = %q, want the docstring above the signature code sample", got2)
+	}
+}
+
+// The module name in an import statement is explained by the docs the module
+// writes about itself at the top of its source, and by nothing else.
+func TestHoverImportShowsModuleDocs(t *testing.T) {
+	text := "import math\nimport color\nimport time as clock\nprint(math.pi)\nprint(clock.now())\n"
+	s, uri := openDoc(t, text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 0, "math"))
+	if !ok {
+		t.Fatalf("hover over `import math` returned nothing")
+	}
+	if !strings.Contains(got, "**module** `math`") {
+		t.Errorf("hover = %q, want it labelled as the math module", got)
+	}
+	if !strings.Contains(got, "deals with most math related") {
+		t.Errorf("hover = %q, want the module's own docs", got)
+	}
+	// Only module level docs, no member signatures.
+	if strings.Contains(got, "```blue") {
+		t.Errorf("hover = %q, want docs alone without any member signature", got)
+	}
+
+	// A local module documents itself the same way a std one does.
+	got2, ok := hoverValue(hoverAt(t, s, uri, text, 1, "color"))
+	if !ok {
+		t.Fatalf("hover over `import color` returned nothing")
+	}
+	if !strings.Contains(got2, "print to the console with colors") {
+		t.Errorf("hover = %q, want the module's own docs", got2)
+	}
+
+	// An aliased import answers for the path and for the alias alike.
+	for _, at := range []string{"time", "clock"} {
+		got3, ok := hoverValue(hoverAt(t, s, uri, text, 2, at))
+		if !ok {
+			t.Fatalf("hover over %q in `import time as clock` returned nothing", at)
+		}
+		if !strings.Contains(got3, "**module** `time`") || !strings.Contains(got3, "time related functions") {
+			t.Errorf("hover over %q = %q, want the time module's docs", at, got3)
+		}
+	}
+
+	// Reaching for the module in code explains it the same way.
+	got4, ok := hoverValue(hoverAt(t, s, uri, text, 4, "clock"))
+	if !ok {
+		t.Fatalf("hover over a module used in code returned nothing")
+	}
+	if !strings.Contains(got4, "time related functions") {
+		t.Errorf("hover = %q, want the module's own docs", got4)
+	}
+}
+
+// A member must keep its own docs: hovering `math.pi` is about pi, and the names
+// inside `from x import {a, b}` are members of the module, not the module itself.
+func TestHoverImportKeepsMemberDocs(t *testing.T) {
+	text := "import math\nprint(math.pi)\nfrom color import {style}\nprint(style)\n"
+	s, uri := openDoc(t, text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 1, "pi"))
+	if !ok {
+		t.Fatalf("hover over math.pi returned nothing")
+	}
+	if strings.Contains(got, "deals with most math related") {
+		t.Errorf("hover over math.pi = %q, want pi's docs rather than the module's", got)
+	}
+	if !strings.Contains(got, "val pi =") {
+		t.Errorf("hover over math.pi = %q, want pi's declaration", got)
+	}
+
+	// `style` is not bound in this buffer, so it gets no hover, but the module
+	// docs of its import statement must not stand in for it either.
+	if res := hoverAt(t, s, uri, text, 3, "style"); res != nil {
+		t.Errorf("hover over an imported name = %v, want nil", res)
+	}
+	if got, ok := hoverValue(hoverAt(t, s, uri, text, 2, "color")); !ok ||
+		!strings.Contains(got, "print to the console with colors") {
+		t.Errorf("hover over `from color import` = %q, want the color module's docs", got)
+	}
+}
+
+// A local module documents itself the same way a std one does, and every segment
+// of a dotted import names it, so hovering any of them answers the same way.
+func TestHoverImportLocalModuleDocs(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "pkg"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	module := "## `pkg.tool` does tool things\n\n## and more about it\n\nval x = 1\n"
+	if err := os.WriteFile(filepath.Join(dir, "pkg", "tool.b"), []byte(module), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	text := strings.Join([]string{
+		"import pkg.tool",
+		"import pkg.tool as t2",
+		"from pkg.tool import {x}",
+		"print(t2.x)",
+	}, "\n")
+	s, uri := openDocIn(t, dir, "main.b", text)
+
+	// Any segment of the path names the module, including the last one, which
+	// looks like a `module.member` reference because of the dot before it.
+	for _, at := range []string{"pkg", "tool"} {
+		got, ok := hoverValue(hoverAt(t, s, uri, text, 0, at))
+		if !ok {
+			t.Fatalf("hover over %q in `import pkg.tool` returned nothing", at)
+		}
+		if !strings.Contains(got, "**module** `pkg.tool`") || !strings.Contains(got, "does tool things") {
+			t.Errorf("hover over %q = %q, want the module's own docs", at, got)
+		}
+	}
+
+	// The alias and a `from` import answer the same way.
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 1, "t2"))
+	if !ok || !strings.Contains(got, "does tool things") {
+		t.Errorf("hover over the alias = %q, want the module's own docs", got)
+	}
+	got2, ok := hoverValue(hoverAt(t, s, uri, text, 2, "tool"))
+	if !ok || !strings.Contains(got2, "does tool things") {
+		t.Errorf("hover over `from pkg.tool import` = %q, want the module's own docs", got2)
+	}
+	got3, ok := hoverValue(hoverAt(t, s, uri, text, 3, "t2"))
+	if !ok || !strings.Contains(got3, "and more about it") {
+		t.Errorf("hover over a module used in code = %q, want the module's own docs", got3)
+	}
+}
+
+// A module that documents itself nowhere has nothing to show, and a name the
+// buffer binds itself keeps explaining itself through its own declaration.
+func TestHoverModuleWithoutDocs(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "bare.b"), []byte("val x = 1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	text := "import bare\nprint(bare.x)\n"
+	s, uri := openDocIn(t, dir, "main.b", text)
+	if res := hoverAt(t, s, uri, text, 0, "bare"); res != nil {
+		t.Errorf("hover over a module with no docs = %v, want nil", res)
+	}
+
+	// A name this buffer binds itself is not a module, even when an import
+	// happens to share the name, so its own declaration keeps explaining it.
+	text2 := "import math\nval math = 1\nprint(math)\n"
+	s2, uri2 := openDoc(t, text2)
+	got, ok := hoverValue(hoverAt(t, s2, uri2, text2, 1, "math"))
+	if !ok || !strings.Contains(got, "val math = 1") {
+		t.Errorf("hover over a locally bound math = %q, want its own declaration", got)
 	}
 }
 

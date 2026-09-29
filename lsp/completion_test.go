@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 )
 
@@ -22,6 +23,20 @@ func openDoc(t *testing.T, text string) (*session, string) {
 	idx.resolveExtents()
 	uri := "file:///tmp/s.b"
 	s.docs[uri] = &document{uri: uri, name: "s.b", src: src, index: idx}
+	return s, uri
+}
+
+// openDocIn is openDoc for a buffer that lives in a directory, which is what
+// relative imports of local modules resolve against.
+func openDocIn(t *testing.T, dir string, name string, text string) (*session, string) {
+	t.Helper()
+	s := newSession(nopRW{}, Options{DiagnosticsDelay: 0})
+	path := filepath.Join(dir, name)
+	src := newDocSource(path, text)
+	idx := buildIndex(src)
+	idx.resolveExtents()
+	uri := pathToURI(path)
+	s.docs[uri] = &document{uri: uri, name: path, src: src, index: idx}
 	return s, uri
 }
 

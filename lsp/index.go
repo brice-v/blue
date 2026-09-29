@@ -72,6 +72,18 @@ type importEntry struct {
 	names []string // explicit names for `from path import {a, b}`
 	start int
 	end   int
+	// Extent of the part of the statement that names the module, which is the
+	// dotted path plus any alias after it. The names inside `from x import
+	// {a, b}` are members of the module rather than the module itself, so they
+	// fall outside it.
+	nameStart int
+	nameEnd   int
+}
+
+// coversModuleName reports whether an offset sits on the part of an import
+// statement that names the module.
+func (e importEntry) coversModuleName(off int) bool {
+	return e.nameStart <= off && off <= e.nameEnd
 }
 
 // fileIndex holds what the LSP knows about a document buffer. It comes from the
@@ -230,18 +242,21 @@ func docstringFor(rs []rune, tokens []scanToken, declStart int, bodyOpenTok int)
 		}
 	}
 
+	return cleanDocstring(lines)
+}
+
+// cleanDocstring tidies collected docstring lines: compiler directives are not
+// prose and never belong in what a reader sees, and blank `##` lines that only
+// pad the ends of the block are dropped while the ones separating a description
+// from its signature are kept.
+func cleanDocstring(lines []string) string {
 	picked := []string{}
 	for _, l := range lines {
-		// Compiler directives such as `std:this,__style` steer how blue
-		// assembles help text and are not prose, so they never belong in a
-		// docstring a reader sees.
 		if isHelpDirective(strings.TrimSpace(l)) {
 			continue
 		}
 		picked = append(picked, l)
 	}
-	// Blank `##` lines separate a description from its signature, so keep the
-	// ones between text but drop any that pad the docstring's ends.
 	for len(picked) > 0 && strings.TrimSpace(picked[0]) == "" {
 		picked = picked[1:]
 	}
@@ -249,6 +264,29 @@ func docstringFor(rs []rune, tokens []scanToken, declStart int, bodyOpenTok int)
 		picked = picked[:len(picked)-1]
 	}
 	return strings.Join(picked, "\n")
+}
+
+// moduleDocstring collects the `##` comment lines a module opens its source
+// with, which document the module as a whole. Blue's standard library writes one
+// like that in every module, and it is what a reader wants when the module name
+// itself is hovered. Only the comment block ahead of the module's first
+// declaration is considered, so the docstring of some later declaration can
+// never be mistaken for the module's own description. Plain `#` lines sitting
+// in that block, such as a shebang or a licence header, are stepped over rather
+// than ending it, since a `##` block below one is still the module's docs.
+func moduleDocstring(tokens []scanToken) string {
+	lines := []string{}
+	for _, t := range tokens {
+		if t.kind != kComment {
+			break
+		}
+		text := strings.TrimRight(t.text, " \t")
+		if !strings.HasPrefix(text, "##") {
+			continue
+		}
+		lines = append(lines, commentBody(text))
+	}
+	return cleanDocstring(lines)
 }
 
 // isHelpDirective reports whether a docstring line is one of blue's compiler
@@ -476,6 +514,7 @@ func parseImport(tokens []scanToken, idx int) (importEntry, int, bool) {
 
 	var path strings.Builder
 	path.WriteString(tokens[i].text)
+	entry.nameStart = tokens[i].start
 	i++
 	for i+1 < len(tokens) && isPunct(tokens[i], ".") && tokens[i+1].kind == kIdent {
 		path.WriteString(".")
@@ -483,11 +522,13 @@ func parseImport(tokens []scanToken, idx int) (importEntry, int, bool) {
 		i += 2
 	}
 	entry.path = path.String()
+	entry.nameEnd = tokens[i-1].end
 
 	if !fromStmt {
 		// import path [as alias]
 		if i+1 < len(tokens) && tokens[i].kind == kWord && tokens[i].text == "as" && tokens[i+1].kind == kIdent {
 			entry.alias = tokens[i+1].text
+			entry.nameEnd = tokens[i+1].end
 			i += 2
 		}
 		if entry.alias == "" {

@@ -265,10 +265,21 @@ func (s *session) resolveModuleEntry(c editContext, name string) (*moduleEntry, 
 		// there is nothing sensible to resolve here.
 		return nil, false
 	}
-	found := s.modules.get(c.doc.src.dir(), entry.path, func(p string) *docSource {
+	return s.moduleEntryFor(c, entry.path)
+}
+
+// moduleEntryFor resolves the module an import entry names. Going through the
+// entry's path rather than a name means a dotted import such as `foo.bar` can be
+// resolved from any of its segments.
+func (s *session) moduleEntryFor(c editContext, path string) (*moduleEntry, bool) {
+	if isStdModule(path) {
+		entry := s.modules.std(path)
+		return entry, entry != nil
+	}
+	entry := s.modules.get(c.doc.src.dir(), path, func(p string) *docSource {
 		return s.openSourceAt(p)
 	})
-	return found, found != nil
+	return entry, entry != nil
 }
 
 // openSourceAt returns the live text of an already open buffer for a path.
@@ -315,6 +326,15 @@ func (s *session) hover(p textDocumentHoverParams) any {
 
 	wordRange := &rangeStruct{Start: c.src.positionOf(c.tok.start), End: c.src.positionOf(c.tok.end)}
 
+	// The module name itself, in its import statement or where code reaches for
+	// it, is explained by the docs the module writes about itself. This comes
+	// before the `module.member` branch below because a dotted import such as
+	// `import foo.bar` leaves the cursor sitting on `foo.bar` with `foo` looking
+	// like a module receiver, when the name is really the module.
+	if res := s.moduleHover(c, word); res != nil {
+		return res
+	}
+
 	// `module.member` references explain the member inside the module.
 	if c.module != "" {
 		entry, found := s.resolveModuleEntry(c, c.module)
@@ -353,6 +373,56 @@ func (s *session) hover(p textDocumentHoverParams) any {
 		Contents: markupContent{Kind: hoverMarkdown, Value: declarationMarkdown(c.src.runes, decl)},
 		Range:    wordRange,
 	}
+}
+
+// moduleHover explains a module by the docs it writes about itself at the top of
+// its source, which is all a hover on the module name has to show. Nothing is
+// invented for a module that documents itself nowhere, and a name this buffer
+// binds keeps explaining itself through its own declaration instead.
+func (s *session) moduleHover(c editContext, word string) any {
+	module, name, ok := s.hoveredModule(c, word)
+	if !ok {
+		return nil
+	}
+	docs := module.docs()
+	if docs == "" {
+		return nil
+	}
+	return &hoverResult{
+		Contents: markupContent{Kind: hoverMarkdown, Value: moduleMarkdown(name, docs)},
+		Range:    &rangeStruct{Start: c.src.positionOf(c.tok.start), End: c.src.positionOf(c.tok.end)},
+	}
+}
+
+// hoveredModule works out which module a hovered name refers to and the name to
+// show for it. An import statement settles the question on its own, including
+// when the cursor sits on one segment of a dotted path or on an alias, so the
+// names inside `from x import {a, b}` are left for the member hover to answer.
+func (s *session) hoveredModule(c editContext, word string) (*moduleEntry, string, bool) {
+	if entry, found := importEntryAt(c.index, c.offset); found && entry.coversModuleName(c.offset) {
+		module, ok := s.moduleEntryFor(c, entry.path)
+		return module, entry.path, ok
+	}
+
+	if c.index.definitionFor(word, c.offset) != nil {
+		// This buffer binds the name itself, so the declaration explains it.
+		return nil, "", false
+	}
+	if isStdModule(word) {
+		module := s.modules.std(word)
+		return module, word, module != nil
+	}
+	if entry, found := c.index.importedModule(word); found {
+		if module, ok := s.moduleEntryFor(c, entry.path); ok {
+			return module, entry.path, true
+		}
+	}
+	return nil, "", false
+}
+
+// moduleMarkdown renders the module level docs of a module.
+func moduleMarkdown(name string, docs string) string {
+	return "**module** `" + name + "`\n\n" + docs
 }
 
 // dotCallHover explains `value.name` when blue cannot tell that value is a module. It looks up name as a plain function or builtin first, which is what such a call compiles to: the receiver simply becomes the first argument.

@@ -15,7 +15,6 @@ TODO:
     - Missing sizes for things or handled at 'render'?
     - Sizes are in inches but I sort of expect pixels? (might not be issue)
 - [ ] FIX: In ml docs, instead of showing tensor shape for ops, show what the tensor actually looks like
-- [ ] FIX: Hovering over import statement in lsp/vscode should show module level docs
 - [ ] FIX: help() should look more consistent
     - Add | to all the outputted lines so that its consistent all the way down
     - (this function is mainly accessible when running but will maybe can be used for `blue doc` command as well)
@@ -796,3 +795,4 @@ COMPLETED TASKS:
 - [-] Look into the performance benefits of different hashing algorthims
 - [-] Look into the performance benefits of enum of types rather than strings
 - [-] Tagged Unions/ enums working properly with match
+- [x] FIX: Hovering over import statement in lsp/vscode should show module level docs

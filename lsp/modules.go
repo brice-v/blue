@@ -227,6 +227,15 @@ func (me *moduleEntry) topLevelDecls() []*declaration {
 	return out
 }
 
+// docs returns what the module says about itself in the `##` block it opens its
+// source with. It is empty for a module that documents itself nowhere.
+func (me *moduleEntry) docs() string {
+	if me == nil || me.ix == nil {
+		return ""
+	}
+	return moduleDocstring(me.ix.tokens)
+}
+
 // builtinGroupMembers returns the builtins defined in one group.
 func builtinGroupMembers(group string) []*object.Builtin {
 	_, builtins := object.GetIndexAndBuiltinsOf(group)
