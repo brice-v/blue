@@ -1,7 +1,9 @@
 TODO:
 
+- [ ] FIX: When from ui import {window} is used inside a function (inside a function) it fails to initialize _app causing failure
+    - Need to make this work, look at compileModuleForImportRoots, compileImportStatement, compileAssignmentWithIdent, etc.
+- [ ] FIX: LSP, if map has member that is function literal, should be able to hover for docs
 - [ ] FIX: Figure out ui content fill strategies, what works correctly
-- [ ] FIX: Make the path of plot.render to ui.image easier, render to image?
 - [ ] FEAT: Add len for dunder methods
     - Any other builtins like that?
     - If its on the map already as a function does it just work?
@@ -11,7 +13,7 @@ TODO:
 - [ ] FIX: Fix up plot api
     - [x] plot.new() is fine, but the functions to update it should be on map returned by that function, similar to http server
     - in general want to make it more like matplotlib but just putting the apis on the fig will probably help with that
-    - FIX: Missing legend
+    - [ ] FIX: Missing legend
     - Missing sizes for things or handled at 'render'?
     - Sizes are in inches but I sort of expect pixels? (might not be issue)
 - [ ] FIX: In ml docs, instead of showing tensor shape for ops, show what the tensor actually looks like
@@ -796,3 +798,4 @@ COMPLETED TASKS:
 - [-] Look into the performance benefits of enum of types rather than strings
 - [-] Tagged Unions/ enums working properly with match
 - [x] FIX: Hovering over import statement in lsp/vscode should show module level docs
+- [x] FIX: Make the path of plot.render to ui.image easier, render to image?

@@ -36,6 +36,8 @@ val __plot_align = _plot_align;
 val __plot_time_x = _plot_time_x;
 val __plot_function = _plot_function;
 
+from ui import { window, row, canvas_image }
+
 fun new() {
     ##std:this,__plot_new
     ## `new` returns a new empty figure.
@@ -143,6 +145,10 @@ fun new() {
         ##
         ## render(f: figure, format: str='png', width: float=6.0, height: float=4.0) -> bytes
         __plot_render(this._figure, format, width, height)
+    };
+    this.render_to_ui = fun(format='png', width=6.0, height=4.0) {
+        val rendered = __plot_render(this._figure, format, width, height);
+        window(content=row([canvas_image(rendered)]));
     };
     this.save = fun(path, width=6.0, height=4.0) {
         ##std:this,__plot_save

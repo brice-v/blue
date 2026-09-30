@@ -53,7 +53,6 @@ val violet = _cm.violet;
 val white = _cm.white;
 val yellow = _cm.yellow;
 val new = _new;
-println("_cm.new_color = #{_cm.new_color}")
 
 # styles
 val bold = _bold();

@@ -7,9 +7,7 @@ and developing it since then. The language draws inspiration from many others
 but mostly I just wanted a scripting language that was fun to use and fun to
 develop.
 
-Note: Its **not** _blazingly fast_ but that was never the point. It may be
-practical to eventually compile the language to `go` which could improve its
-speed?!
+Note: Its **not** _blazingly fast_ but that was never the point.
 
 ## Details
 
@@ -76,28 +74,6 @@ clean. `BLUE_INSTALL_PATH` matters for the server process as well: launch the ed
 from an environment where it is already set, or put it in the launcher, so std module
 lookups (`import math`, `import csv`, ...) resolve to your local checkout instead of
 whatever was embedded at build time.
-
-What works:
-
-- diagnostics published on open, change and save, anchored at the offending token
-  (a missing closing brace points at the line that needs the fix), re-published
-  as an empty list so editors clear stale markers
-- completion for keywords, buffers (`env`, `args`, ...), builtins, imported
-  modules and their members after `.`, std modules already present in the source,
-  and sibling `.b` files while completing an `import`
-- snippets only when the client declares `snippetSupport`, otherwise plain text
-  inserts are sent so no `${1:...}` leaks into editors that cannot handle it
-- hover documentation above declarations, including function headers kept verbatim
-  from the source (no invented signatures)
-- go to definition and find references (`includeDeclaration` is honored), plus
-  read/write highlights (`=` assignments, `for ... in ...` loop variables)
-- document symbols nested under enclosing functions, and `workspace/symbol`
-  covering open buffers plus `.b` files under the root folder
-
-What is deliberately missing: formatting and rename. Both would need a
-transformation that still compiles, which cannot be guaranteed for partial or
-syntactically broken files. Only `.b` files are indexed by name since every blue
-source file uses that extension.
 
 Neovim example:
 
@@ -184,19 +160,6 @@ paints names through semantic tokens using the legend it advertises on initializ
 types:     comment keyword number string function variable constant parameter module property
 modifiers: declaration readonly
 ```
-
-That split is deliberate. Comments and strings are lexically obvious so the
-grammar owns them, while whether a name is a parameter, a module member or a
-read-only `val` requires the bindings only the server has.
-
-Quick checks worth doing after install:
-
-- type `fun helper(` in an empty buffer and confirm completion inserts a snippet
-  with tab stops rather than literal `${1:...}` text
-- break a file on purpose (drop a closing brace) and confirm the marker points at
-  the line that needs it, then fix it and confirm markers clear
-- hover `print` or `math.sqrt` where those are already imported, and hover an
-  unknown name to confirm nothing is invented
 
 If the server process dies, run `Blue: Restart language server` from the command
 palette instead of reloading the window.
