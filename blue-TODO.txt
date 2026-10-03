@@ -4,9 +4,6 @@ TODO:
     - Need to make this work, look at compileModuleForImportRoots, compileImportStatement, compileAssignmentWithIdent, etc.
 - [ ] FIX: LSP, if map has member that is function literal, should be able to hover for docs
 - [ ] FIX: Figure out ui content fill strategies, what works correctly
-- [ ] FEAT: Add len for dunder methods
-    - Any other builtins like that?
-    - If its on the map already as a function does it just work?
 - [ ] FEAT: For dunder methods, how can they be done with primitives? (if necessary will need to implement like python does it)
     - Meaning, primitive on 1 side, and map obj on the other: 1 + a (want to call __add)
 - [ ] MAYBE: Build pseduo jupyter style notebook for blue via `blue nb` or `blue notebook` using ui and other things?
@@ -17,7 +14,7 @@ TODO:
     - Missing sizes for things or handled at 'render'?
     - Sizes are in inches but I sort of expect pixels? (might not be issue)
 - [ ] FIX: In ml docs, instead of showing tensor shape for ops, show what the tensor actually looks like
-- [ ] FIX: help() should look more consistent
+- [x] FIX: help() should look more consistent
     - Add | to all the outputted lines so that its consistent all the way down
     - (this function is mainly accessible when running but will maybe can be used for `blue doc` command as well)
     - [ ] `blue doc` for std lib needs to be a bit better (make it consistent with help() output)
@@ -799,3 +796,6 @@ COMPLETED TASKS:
 - [-] Tagged Unions/ enums working properly with match
 - [x] FIX: Hovering over import statement in lsp/vscode should show module level docs
 - [x] FIX: Make the path of plot.render to ui.image easier, render to image?
+- [x] FEAT: Add len for dunder methods
+    - Any other builtins like that?
+    - If its on the map already as a function does it just work?

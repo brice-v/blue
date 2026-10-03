@@ -343,9 +343,6 @@ func (s *SymbolTable) GetOrderedPublicFunctionHelpString(modName string) string 
 		}
 		value := s.store[keyToUse]
 		v := value.HelpStr
-		// if v == "" {
-		// 	continue
-		// }
 		vSplit, _, _ := strings.Cut(v, "\ntype(")
 		// remove the trailing \n
 		vSplit = vSplit[:len(vSplit)-1]
@@ -357,7 +354,7 @@ func (s *SymbolTable) GetOrderedPublicFunctionHelpString(modName string) string 
 				fmt.Fprintf(&out, "\n%s%s| %s", k, initialPad, partStr)
 				continue
 			}
-			pad := strings.Repeat(" ", lengthOfLargestString+2)
+			pad := strings.Repeat(" ", lengthOfLargestString) + "| "
 			nl := "\n"
 			if i == len(vSplitFurther)-1 {
 				nl = ""
@@ -370,6 +367,8 @@ func (s *SymbolTable) GetOrderedPublicFunctionHelpString(modName string) string 
 			}
 			fmt.Fprintf(&out, "%s%s %s%s", prefixNl, pad, partStr, nl)
 		}
+		pad2 := strings.Repeat("-", lengthOfLargestString) + "|" + strings.Repeat("-", 100)
+		fmt.Fprintf(&out, "\n%s", pad2)
 	}
 	return out.String()
 }

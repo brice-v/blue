@@ -2,6 +2,7 @@
 fun o() {
     var this = {};
     this._x = 0;
+    this._y = [];
     this.incr = fun() {
         this._x += 1;
     }
@@ -42,6 +43,7 @@ fun o() {
         "#{this} #{other} __rshift"
     }
     this.__lshift = fun(other) {
+        this._y << other;
         "#{this} #{other} __lshift"
     }
     this.__neg = fun() {
@@ -61,6 +63,9 @@ fun o() {
     }
     this.__gte = fun(other) {
         return this._x >= other._x;
+    }
+    this.__len = fun() {
+        return len(this._y);
     }
     return this;
 }
@@ -187,3 +192,9 @@ var l1 = o(); l1.incr(); l1.incr();
 var l2 = o(); l2.incr();
 l1 <<= l2;
 assert(l1 == "{x: 2} {x: 1} __lshift")
+
+var ooo = o();
+ooo << o();
+ooo << o();
+ooo << o();
+assert(len(ooo) == 3);
