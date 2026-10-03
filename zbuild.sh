@@ -1,0 +1,15 @@
+#!/bin/sh
+set -o errexit
+set -o nounset
+
+
+LD_FLAGS='-s -w'
+PACK=true
+if [ "$(uname)" = "Darwin" ]; then
+    LD_FLAGS='-s -w -extldflags=-Wl,-no_warn_duplicate_libraries'
+    PACK=false
+fi
+
+# must stop blue extension in vscode, restart extensions, and then ./blue install should work
+# go install golang.org/x/vuln/cmd/govulncheck@latest
+./scripts/fetch-wgpu-libs.sh && cd editors/code && npm i && yes | npx @vscode/vsce package --allow-missing-repository && codium --install-extension blue-vscode-*.vsix && cd ../.. && go env -w CGO_ENABLED=1 && govulncheck ./... && go vet ./... && golangci-lint run --timeout=5m && go clean -testcache && go test -tags="rgfw" -race ./... && rm -f blue && go build -tags="rgfw" -ldflags="$LD_FLAGS" && strip blue && if [ "$PACK" = true ]; then upx blue; fi && ./blue install --force && ./gen-man.sh && sudo mkdir -p /usr/local/man/man1 && sudo cp man/blue.1 /usr/local/man/man1 && go build -tags="minivm,rgfw" -ldflags="$LD_FLAGS" -o "bluerun-$(go env GOOS)-$(go env GOARCH)" ./cmd/bluerun
