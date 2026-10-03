@@ -120,14 +120,13 @@ func TestMapBinaryOperations(t *testing.T) {
 	}{
 		{`var a = {"__add": fun(o) { 100 }}; var b = {"__add": fun(o) { 5 }}; a + b`, "100"},
 		{`var a = {"__eq": fun(o) { true }}; var b = {"__eq": fun(o) { false }}; a == b`, "true"},
+		{`var m = {"__add": fun(o) { 1 }}; m + 21`, "1"},
 	}
 	for _, tt := range tests2 {
 		if got := runInspect(t, tt.input); got != tt.want {
 			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
 		}
 	}
-
-	runExpectVmError(t, `var m = {"__add": fun(o) { 1 }}; m + 21`, "type mismatch")
 }
 
 func TestNullCoalescingAndBooleanOps(t *testing.T) {
