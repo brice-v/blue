@@ -1,11 +1,11 @@
 TODO:
 
+- [ ] FEAT: Add @= for matmul equal
+    - [ ] Wire in support for dunder
 - [ ] FIX: When from ui import {window} is used inside a function (inside a function) it fails to initialize _app causing failure
     - Need to make this work, look at compileModuleForImportRoots, compileImportStatement, compileAssignmentWithIdent, etc.
 - [ ] FIX: LSP, if map has member that is function literal, should be able to hover for docs
 - [ ] FIX: Figure out ui content fill strategies, what works correctly
-- [ ] FEAT: For dunder methods, how can they be done with primitives? (if necessary will need to implement like python does it)
-    - Meaning, primitive on 1 side, and map obj on the other: 1 + a (want to call __add)
 - [ ] MAYBE: Build pseduo jupyter style notebook for blue via `blue nb` or `blue notebook` using ui and other things?
 - [ ] FIX: Fix up plot api
     - [x] plot.new() is fine, but the functions to update it should be on map returned by that function, similar to http server
@@ -799,3 +799,5 @@ COMPLETED TASKS:
 - [x] FEAT: Add len for dunder methods
     - Any other builtins like that?
     - If its on the map already as a function does it just work?
+- [x] FEAT: For dunder methods, how can they be done with primitives? (if necessary will need to implement like python does it)
+    - Meaning, primitive on 1 side, and map obj on the other: 1 + a (want to call __add)

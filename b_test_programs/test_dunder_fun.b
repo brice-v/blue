@@ -201,3 +201,150 @@ ooo << o();
 assert(len(ooo) == 3);
 
 assert(type(ooo) == "O object")
+
+fun box() {
+    var this = {};
+    this._x = 10;
+    this.__str = fun() {
+        "box(#{this._x})";
+    }
+    this.__add = fun(other) {
+        "add:#{this._x},#{other}";
+    }
+    this.__radd = fun(other) {
+        "radd:#{this._x},#{other}";
+    }
+    this.__sub = fun(other) {
+        "sub:#{this._x},#{other}";
+    }
+    this.__rsub = fun(other) {
+        "rsub:#{this._x},#{other}";
+    }
+    this.__mul = fun(other) {
+        "mul:#{this._x},#{other}";
+    }
+    this.__rmul = fun(other) {
+        "rmul:#{this._x},#{other}";
+    }
+    this.__div = fun(other) {
+        "div:#{this._x},#{other}";
+    }
+    this.__rdiv = fun(other) {
+        "rdiv:#{this._x},#{other}";
+    }
+    this.__mod = fun(other) {
+        "mod:#{this._x},#{other}";
+    }
+    this.__rmod = fun(other) {
+        "rmod:#{this._x},#{other}";
+    }
+    this.__fdiv = fun(other) {
+        "fdiv:#{this._x},#{other}";
+    }
+    this.__rfdiv = fun(other) {
+        "rfdiv:#{this._x},#{other}";
+    }
+    this.__pow = fun(other) {
+        "pow:#{this._x},#{other}";
+    }
+    this.__rpow = fun(other) {
+        "rpow:#{this._x},#{other}";
+    }
+    this.__and = fun(other) {
+        "and:#{this._x},#{other}";
+    }
+    this.__rand = fun(other) {
+        "rand:#{this._x},#{other}";
+    }
+    this.__or = fun(other) {
+        "or:#{this._x},#{other}";
+    }
+    this.__ror = fun(other) {
+        "ror:#{this._x},#{other}";
+    }
+    this.__xor = fun(other) {
+        "xor:#{this._x},#{other}";
+    }
+    this.__rxor = fun(other) {
+        "rxor:#{this._x},#{other}";
+    }
+    this.__rshift = fun(other) {
+        "rshift:#{this._x},#{other}";
+    }
+    this.__rrshift = fun(other) {
+        "rrshift:#{this._x},#{other}";
+    }
+    this.__lshift = fun(other) {
+        "lshift:#{this._x},#{other}";
+    }
+    this.__rlshift = fun(other) {
+        "rlshift:#{this._x},#{other}";
+    }
+    this.__matmul = fun(other) {
+        "matmul:#{this._x},#{other}";
+    }
+    this.__rmatmul = fun(other) {
+        "rmatmul:#{this._x},#{other}";
+    }
+    this.__gt = fun(other) {
+        "gt:#{this._x},#{other}";
+    }
+    this.__gte = fun(other) {
+        "gte:#{this._x},#{other}";
+    }
+    this.__rgt = fun(other) {
+        "rgt:#{this._x},#{other}";
+    }
+    this.__rgte = fun(other) {
+        "rgte:#{this._x},#{other}";
+    }
+    return this;
+}
+
+fun checkDunder(actual, expected, label, fails) {
+    if (actual != expected) {
+        fails << "#{label}: expected #{expected}, got #{actual}";
+    }
+}
+
+val b1 = box();
+val b2 = box();
+
+assert((b1 + 1) == "add:10,1");
+assert((b1 - 1) == "sub:10,1");
+assert((b1 * 2) == "mul:10,2");
+assert((b1 / 2) == "div:10,2");
+assert((b1 % 3) == "mod:10,3");
+assert((b1 // 3) == "fdiv:10,3");
+assert((b1 ** 2) == "pow:10,2");
+assert((b1 & 3) == "and:10,3");
+assert((b1 | 3) == "or:10,3");
+assert((b1 ^ 3) == "xor:10,3");
+assert((b1 >> 2) == "rshift:10,2");
+assert((b1 << 2) == "lshift:10,2");
+assert((b1 @ 2) == "matmul:10,2");
+assert((b1 @ b2) == "matmul:10,box(10)");
+assert((b1 > 5) == "gt:10,5");
+assert((b1 >= 5) == "gte:10,5");
+assert((5 < b1) == "gt:10,5");
+assert((5 <= b1) == "gte:10,5");
+
+val dunderFails = [];
+checkDunder(1 + b1, "radd:10,1", "1 + b1", dunderFails);
+checkDunder(1 - b1, "rsub:10,1", "1 - b1", dunderFails);
+checkDunder(2 * b1, "rmul:10,2", "2 * b1", dunderFails);
+checkDunder(2 / b1, "rdiv:10,2", "2 / b1", dunderFails);
+checkDunder(3 % b1, "rmod:10,3", "3 % b1", dunderFails);
+checkDunder(3 // b1, "rfdiv:10,3", "3 // b1", dunderFails);
+checkDunder(2 ** b1, "rpow:10,2", "2 ** b1", dunderFails);
+checkDunder(3 & b1, "rand:10,3", "3 & b1", dunderFails);
+checkDunder(3 | b1, "ror:10,3", "3 | b1", dunderFails);
+checkDunder(3 ^ b1, "rxor:10,3", "3 ^ b1", dunderFails);
+checkDunder(2 >> b1, "rrshift:10,2", "2 >> b1", dunderFails);
+checkDunder(2 << b1, "rlshift:10,2", "2 << b1", dunderFails);
+checkDunder(2 @ b1, "rmatmul:10,2", "2 @ b1", dunderFails);
+checkDunder(b1 < 5, "rgt:10,5", "b1 < 5", dunderFails);
+checkDunder(b1 <= 5, "rgte:10,5", "b1 <= 5", dunderFails);
+checkDunder(5 > b1, "rgt:10,5", "5 > b1", dunderFails);
+checkDunder(5 >= b1, "rgte:10,5", "5 >= b1", dunderFails);
+assert(len(dunderFails) == 0, str(dunderFails));

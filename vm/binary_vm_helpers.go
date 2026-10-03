@@ -773,6 +773,29 @@ func (vm *VM) executeBinaryOperationDifferentTypes(op code.Opcode, left, right o
 	if op == code.OpAdd && (leftType == object.SET_OBJ || rightType == object.SET_OBJ) {
 		return binaryOperationFunctions[object.SET_OBJ](vm, op, left, right)
 	}
+	if leftType == object.MAP_OBJ || rightType == object.MAP_OBJ {
+		t := GetBinaryOpDunderType(op)
+		if t != object.DunderInvalid && leftType == object.MAP_OBJ {
+			if fn, ok := object.HasDunderFun(t, left); ok {
+				resultObj := vm.applyFunctionFast(fn, right)
+				if resultObj == nil {
+					return fmt.Errorf("failed to execute function on %s and %s", left.Inspect(), right.Inspect())
+				}
+				return vm.push(resultObj)
+			}
+		} else if t != object.DunderInvalid && rightType == object.MAP_OBJ {
+			rt := t.GetRightVariant()
+			if rt != object.DunderInvalid {
+				if fn, ok := object.HasDunderFun(rt, right); ok {
+					resultObj := vm.applyFunctionFast(fn, left)
+					if resultObj == nil {
+						return fmt.Errorf("failed to execute function on %s and %s", left.Inspect(), right.Inspect())
+					}
+					return vm.push(resultObj)
+				}
+			}
+		}
+	}
 	if leftType == object.BIG_INTEGER_OBJ && rightType == object.INTEGER_OBJ ||
 		leftType == object.INTEGER_OBJ && rightType == object.BIG_INTEGER_OBJ ||
 		leftType == object.UINTEGER_OBJ && rightType == object.BIG_INTEGER_OBJ ||
@@ -1003,7 +1026,7 @@ func (vm *VM) executeSpecialLshiftForListAndSet(left, right object.Object) error
 	return nil
 }
 
-func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Object) error {
+func GetBinaryOpDunderType(op code.Opcode) object.DunderType {
 	t := object.DunderInvalid
 	switch op {
 	case code.OpAdd:
@@ -1030,6 +1053,8 @@ func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Objec
 		t = object.DunderRshift
 	case code.OpLshift:
 		t = object.DunderLshift
+	case code.OpMatMul:
+		t = object.DunderMatmul
 	case code.OpEqual:
 		t = object.DunderEq
 	case code.OpNotEqual:
@@ -1039,6 +1064,11 @@ func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Objec
 	case code.OpGreaterThanOrEqual:
 		t = object.DunderGte
 	}
+	return t
+}
+
+func (vm *VM) executeMapBinaryOperation(op code.Opcode, left, right object.Object) error {
+	t := GetBinaryOpDunderType(op)
 	if fn, ok := object.HasDunderFun(t, left); ok {
 		if _, ok := object.HasDunderFun(t, right); ok {
 			resultObj := vm.applyFunctionFast(fn, right)
