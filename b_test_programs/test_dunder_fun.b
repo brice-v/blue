@@ -3,6 +3,7 @@ fun o() {
     var this = {};
     this._x = 0;
     this._y = [];
+    this.__type = || => "O object"
     this.incr = fun() {
         this._x += 1;
     }
@@ -198,3 +199,5 @@ ooo << o();
 ooo << o();
 ooo << o();
 assert(len(ooo) == 3);
+
+assert(type(ooo) == "O object")

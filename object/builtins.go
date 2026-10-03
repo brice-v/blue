@@ -1046,7 +1046,8 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "type",
+		Name:           "type",
+		OverrideDunder: DunderTType,
 		Fun: func(args ...Object) Object {
 			if len(args) != 1 {
 				return newInvalidArgCountError("type", len(args), 1, "")
