@@ -653,6 +653,8 @@ func (l *Lexer) NextToken() token.Token {
 	case '@':
 		if l.peekChar() == '{' {
 			tok = l.makeTwoCharToken(token.ATLBRACE)
+		} else if l.peekChar() == '=' {
+			tok = l.makeTwoCharToken(token.ATSIGNEQ)
 		} else {
 			tok = l.newToken(token.ATSIGN, l.ch)
 		}

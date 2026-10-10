@@ -1230,6 +1230,14 @@ func TestNextTokenAtSign(t *testing.T) {
 	}
 }
 
+func TestNextTokenAtSignEq(t *testing.T) {
+	l := New("@=", "<internal:test>")
+	tok := l.NextToken()
+	if tok.Type != token.ATSIGNEQ {
+		t.Fatalf("expected ATSIGNEQ for @=, got %v", tok.Type)
+	}
+}
+
 func TestNextTokenLineNumberTracking(t *testing.T) {
 	input := `line1
 line2

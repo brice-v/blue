@@ -1,6 +1,6 @@
 TODO:
 
-- [ ] FEAT: Add @= for matmul equal
+- [x] FEAT: Add @= for matmul equal
     - [ ] Wire in support for dunder
 - [ ] FIX: When from ui import {window} is used inside a function (inside a function) it fails to initialize _app causing failure
     - Need to make this work, look at compileModuleForImportRoots, compileImportStatement, compileAssignmentWithIdent, etc.

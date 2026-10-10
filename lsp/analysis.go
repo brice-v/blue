@@ -911,7 +911,7 @@ func operatorAfter(tokens []scanToken, i int) string {
 // '=', and `=>` is an arrow, not an assignment either.
 func isAssignOp(op string) bool {
 	switch op {
-	case "=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", "&&=", "||=":
+	case "=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", "&&=", "||=", "@=":
 		return true
 	}
 	return false

@@ -241,6 +241,7 @@ var assignmentToInfixOperator = map[string]string{
 	"^=":  "^",
 	"&&=": "&&",
 	"||=": "||",
+	"@=":  "@",
 }
 
 func (c *Compiler) compileAssignmentWithIndex(index *ast.IndexExpression, operator string, v ast.Expression) error {

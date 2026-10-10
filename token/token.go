@@ -201,6 +201,8 @@ const (
 
 	// ATSIGN is the string rep. of the @ tok.
 	ATSIGN Type = "@"
+	// ATSIGNEQ is the string rep. of the @= tok.
+	ATSIGNEQ Type = "@="
 
 	// Keywords
 
@@ -442,6 +444,8 @@ func (t Type) UserFriendlyName() string {
 		return "..."
 	case ATSIGN:
 		return "@"
+	case ATSIGNEQ:
+		return "@="
 
 	// Keywords
 	case VAR:

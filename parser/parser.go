@@ -96,6 +96,7 @@ var precedences = map[token.Type]int{
 	token.RSHIFTEQ:    COMPOUND_ASSIGNMENT,
 	token.PERCENTEQ:   COMPOUND_ASSIGNMENT,
 	token.XOREQ:       COMPOUND_ASSIGNMENT,
+	token.ATSIGNEQ:    COMPOUND_ASSIGNMENT,
 	token.RANGE:       RANGE_P,
 	token.NONINCRANGE: RANGE_P,
 	token.IN:          IN_P,
@@ -490,6 +491,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LSHIFTEQ, p.parseAssignmentExpression)
 	p.registerInfix(token.RSHIFTEQ, p.parseAssignmentExpression)
 	p.registerInfix(token.XOREQ, p.parseAssignmentExpression)
+	p.registerInfix(token.ATSIGNEQ, p.parseAssignmentExpression)
 
 	// Read two tokens to give values to curToken and peekToken
 	p.nextToken()
