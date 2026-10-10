@@ -208,7 +208,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`tensor` builds a tensor from nested lists, inferring the shape from the nesting and the dtype from the values (float32 for floats, int64 for integers, bool for booleans)",
 			signature:   "tensor(data: list, datatype: str=null, dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "tensor([[1.0, 2.0], [3.0, 4.0]]) => Tensor{shape: [2 2]}",
+			example:     "tensor([[1.0, 2.0], [3.0, 4.0]]) => tensor([[1., 2.],[3., 4.]])",
 		}.String(),
 	},
 	{
@@ -240,7 +240,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`reshape` returns a view of the tensor with a new shape; the element count must match",
 			signature:   "reshape(a: tensor, shape: list[int]) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "reshape(tensor([[1.0, 2.0], [3.0, 4.0]]), [4]) => Tensor{shape: [4]}",
+			example:     "reshape(tensor([[1.0, 2.0], [3.0, 4.0]]), [4]) => tensor([1., 2., 3., 4.])",
 		}.String(),
 	},
 	{
@@ -272,7 +272,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`transpose` returns a view with two dimensions swapped (metadata only)",
 			signature:   "transpose(a: tensor, dim0: int=0, dim1: int=1) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "transpose(tensor([[1.0, 2.0], [3.0, 4.0]]), 0, 1) => Tensor{shape: [2 2]}",
+			example:     "transpose(tensor([[1.0, 2.0], [3.0, 4.0]]), 0, 1) => tensor([[1., 3.],[2., 4.]])",
 		}.String(),
 	},
 	{
@@ -358,7 +358,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`softmax` returns a numerically stable softmax along `dim`",
 			signature:   "softmax(a: tensor, dim: int) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "softmax(tensor([[1.0, 2.0, 3.0]]), 1) => Tensor{shape: [1 3]}",
+			example:     "softmax(tensor([[1.0, 2.0, 3.0]]), 1) => tensor([[0.0900, 0.2447, 0.6652]])",
 		}.String(),
 	},
 	{
@@ -368,7 +368,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`flatten` returns a 1d view of the tensor",
 			signature:   "flatten(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "flatten(tensor([[1.0, 2.0]])) => Tensor{shape: [2]}",
+			example:     "flatten(tensor([[1.0, 2.0]])) => tensor([1., 2.])",
 		}.String(),
 	},
 	{
@@ -378,7 +378,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`unsqueeze` inserts a size-1 dimension at `dim`",
 			signature:   "unsqueeze(a: tensor, dim: int) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "unsqueeze(tensor([1.0, 2.0]), 0) => Tensor{shape: [1 2]}",
+			example:     "unsqueeze(tensor([1.0, 2.0]), 0) => tensor([[1., 2.]])",
 		}.String(),
 	},
 	{
@@ -400,7 +400,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`broadcast_to` expands size-1 dims to the given shape",
 			signature:   "broadcast_to(a: tensor, shape: list[int]) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "broadcast_to(tensor([[1.0, 2.0]]), [3, 2]) => Tensor{shape: [3 2]}",
+			example:     "broadcast_to(tensor([[1.0, 2.0]]), [3, 2]) => tensor([[1., 2.],[1., 2.],[1., 2.]])",
 		}.String(),
 	},
 	{
@@ -430,7 +430,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`squeeze` removes size-1 dimensions; `dim` null removes every size-1 dim",
 			signature:   "squeeze(a: tensor, dim: int|list[int]|null=null) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "squeeze(tensor([[[1.0, 2.0]]])) => Tensor{shape: [2]}",
+			example:     "squeeze(tensor([[[1.0, 2.0]]])) => tensor([1., 2.])",
 		}.String(),
 	},
 	{
@@ -440,7 +440,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`zeros` returns a tensor of zeros with the given shape",
 			signature:   "zeros(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "zeros([2, 2]) => Tensor{shape: [2 2]}",
+			example:     "zeros([2, 2]) => tensor([[0., 0.],[0., 0.]])",
 		}.String(),
 	},
 	{
@@ -450,7 +450,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`ones` returns a tensor of ones with the given shape",
 			signature:   "ones(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "ones([2, 2]) => Tensor{shape: [2 2]}",
+			example:     "ones([2, 2]) => tensor([[1., 1.],[1., 1.]])",
 		}.String(),
 	},
 	{
@@ -460,7 +460,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`randn` returns a tensor of standard normal samples",
 			signature:   "randn(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "randn([2, 2]) => Tensor{shape: [2 2]}",
+			example:     "randn([2, 2]) => tensor([[-0.1270,  0.0791],[-0.7736, -0.9399]])",
 		}.String(),
 	},
 	{
@@ -508,7 +508,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`full` returns a tensor filled with a value",
 			signature:   "full(shape: list[int], fill_value: float, datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "full([2, 2], 5.0) => Tensor{shape: [2 2]}",
+			example:     "full([2, 2], 5.0) => tensor([[5., 5.],[5., 5.]])",
 		}.String(),
 	},
 	{
@@ -553,7 +553,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`arange` returns evenly spaced values in [start, end)",
 			signature:   "arange(start: float, end: float, step: float=1.0, datatype: str='float32', dev: str='cpu') -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "arange(0.0, 5.0, 1.0) => Tensor{shape: [5]}",
+			example:     "arange(0.0, 5.0, 1.0) => tensor([0., 1., 2., 3., 4.])",
 		}.String(),
 	},
 	{
@@ -590,7 +590,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`eye` returns an n by n identity matrix",
 			signature:   "eye(n: int, datatype: str='float32', dev: str='cpu') -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "eye(2) => Tensor{shape: [2 2]}",
+			example:     "eye(2) => tensor([[1., 0.],[0., 1.]])",
 		}.String(),
 	},
 	{
@@ -640,7 +640,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`slice` returns a view of `dim` from `start` to `end` with `step`, matching a[start:end:step]",
 			signature:   "slice(a: tensor, dim: int, start: int, end: int, step: int=1) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "slice(tensor([[1.0, 2.0], [3.0, 4.0]]), 0, 0, 1, 1) => Tensor{shape: [1 2]}",
+			example:     "slice(tensor([[1.0, 2.0], [3.0, 4.0]]), 0, 0, 1, 1) => tensor([[1., 2.]])",
 		}.String(),
 	},
 	{
@@ -670,7 +670,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`clamp` limits each element to [min, max]",
 			signature:   "clamp(a: tensor, min: float, max: float) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "clamp(tensor([[-5.0, 0.5, 5.0]]), 0.0, 1.0) => Tensor{shape: [1 3]}",
+			example:     "clamp(tensor([[-5.0, 0.5, 5.0]]), 0.0, 1.0) => tensor([[0.0000, 0.5000, 1.0000]])",
 		}.String(),
 	},
 	{
@@ -788,7 +788,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`onehot` turns a 1d label tensor into a [n, classes] matrix",
 			signature:   "onehot(labels: tensor, classes: int) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "onehot(tensor([0.0, 2.0]), 3) => Tensor{shape: [2 3]}",
+			example:     "onehot(tensor([0.0, 2.0]), 3) => tensor([[1., 0., 0.],[0., 0., 1.]])",
 		}.String(),
 	},
 	{
@@ -933,7 +933,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`cross_entropy` returns the mean cross-entropy loss between logits [batch, classes] and class indices [batch]",
 			signature:   "cross_entropy(logits: tensor, target: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "cross_entropy(tensor([[2.0, 1.0, 0.1]]), tensor([0.0])) => Tensor{shape: [1]}",
+			example:     "cross_entropy(tensor([[2.0, 1.0, 0.1]]), tensor([0.0])) => tensor([0.4170])",
 		}.String(),
 	},
 	{
@@ -958,7 +958,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`cross_entropy_grad` returns the gradient of the mean cross-entropy loss with respect to the logits, for use as a compiled-backward seed",
 			signature:   "cross_entropy_grad(logits: tensor, target: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "cross_entropy_grad(tensor([[2.0, 1.0, 0.1]]), tensor([0.0])) => Tensor{shape: [1 3]}",
+			example:     "cross_entropy_grad(tensor([[2.0, 1.0, 0.1]]), tensor([0.0])) => tensor([[-0.3410,  0.2424,  0.0986]])",
 		}.String(),
 	},
 	{
@@ -983,7 +983,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`mse_loss` returns the mean squared error between two tensors of equal shape",
 			signature:   "mse_loss(predictions: tensor, targets: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "mse_loss(tensor([[1.0, 2.0]]), tensor([[0.0, 0.0]])) => Tensor{shape: [1]}",
+			example:     "mse_loss(tensor([[1.0, 2.0]]), tensor([[0.0, 0.0]])) => tensor(2.5000)",
 		}.String(),
 	},
 	{
@@ -1414,7 +1414,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`cast` converts a tensor to another dtype",
 			signature:   "cast(a: tensor, datatype: str) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "cast(tensor([1.0]), 'int32') => Tensor{shape: [1]}",
+			example:     "cast(tensor([1.0]), 'int32') => tensor([1], dtype=int32)",
 		}.String(),
 	},
 	{
@@ -1699,7 +1699,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`embedding` looks up rows of a [vocab, dim] weight tensor by an index tensor, matching torch.nn.functional.embedding",
 			signature:   "embedding(weight: tensor, indices: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "embedding(ml.randn([10, 4]), ml.tensor([1, 3])) => Tensor{shape: [2 4]}",
+			example:     "embedding(ml.randn([10, 4]), ml.tensor([1, 3])) => tensor([[-1.5529, -0.2960, -0.4968, -0.0542],[-1.0182, -0.4545, -0.9114,  0.3582]])",
 		}.String(),
 	},
 	{
@@ -1709,7 +1709,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`rand` returns uniform samples in [0, 1) from the shared engine RNG",
 			signature:   "rand(shape: list[int], datatype: str='float32', dev: str='cpu', requires_grad: bool=false) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "rand([2, 2]) => Tensor{shape: [2 2]}",
+			example:     "rand([2, 2]) => tensor([[0.4542, 0.1512],[0.1909, 0.4775]])",
 		}.String(),
 	},
 	{
@@ -1740,7 +1740,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`randperm` returns a random permutation of 0..n-1, reproducible after manual_seed",
 			signature:   "randperm(n: int, dev: str='cpu') -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "randperm(4) => Tensor{shape: [4]}",
+			example:     "randperm(4) => tensor([1., 0., 2., 3.])",
 		}.String(),
 	},
 	{
@@ -1766,7 +1766,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`shuffle` returns a copy of a with dim permuted by a random permutation",
 			signature:   "shuffle(a: tensor, dim: int=0) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "shuffle(ml.randn([4, 2]), 0) => Tensor{shape: [4 2]}",
+			example:     "shuffle(ml.randn([4, 2]), 0) => tensor([[-0.5389,  1.2110],[-1.7540, -0.4915],[-0.5651, -0.7135],[-1.9172,  1.1184]])",
 		}.String(),
 	},
 	{
@@ -1796,7 +1796,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`select` returns the entries at index along dim with that dim removed, covering x[i] and x[:, j]",
 			signature:   "select(a: tensor, dim: int, index: int) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "select(ml.randn([3, 4]), 0, 1) => Tensor{shape: [4]}",
+			example:     "select(ml.randn([3, 4]), 0, 1) => tensor([-0.6686,  1.3572,  0.7689,  0.4692])",
 		}.String(),
 	},
 	{
@@ -1825,7 +1825,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`index_select` gathers rows or slices along dim using a 1d index tensor, matching torch.index_select",
 			signature:   "index_select(a: tensor, dim: int, index: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "index_select(ml.randn([3, 4]), 0, ml.tensor([2, 0])) => Tensor{shape: [2 4]}",
+			example:     "index_select(ml.randn([3, 4]), 0, ml.tensor([2, 0])) => tensor([[ 0.7867,  1.2077, -1.0298, -1.2218],[ 0.6897, -1.0155,  0.5650, -1.1632]])",
 		}.String(),
 	},
 	{
@@ -1956,7 +1956,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`clone` returns a deep copy that stays in the autograd graph, like torch.Tensor.clone; use detach for a copy cut out of the graph",
 			signature:   "clone(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType",
-			example:     "clone(ml.tensor([1.0, 2.0])) => Tensor{shape: [2]}",
+			example:     "clone(ml.tensor([1.0, 2.0])) => tensor([1., 2.])",
 		}.String(),
 	},
 	{
@@ -2083,7 +2083,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`flip` reverses elements along each dim, matching torch.flip; it is differentiable",
 			signature:   "flip(a: tensor, dims: list[int]) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "flip(ml.tensor([1.0, 2.0, 3.0]), [0]) => Tensor{shape: [3]}",
+			example:     "flip(ml.tensor([1.0, 2.0, 3.0]), [0]) => tensor([3., 2., 1.])",
 		}.String(),
 	},
 	{
@@ -2108,7 +2108,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`masked_select` returns the elements where mask is nonzero as a 1d tensor; inference-only because the output length depends on data",
 			signature:   "masked_select(a: tensor, mask: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "masked_select(ml.tensor([1.0, 2.0]), ml.tensor([0.0, 1.0])) => Tensor{shape: [1]}",
+			example:     "masked_select(ml.tensor([1.0, 2.0]), ml.tensor([0.0, 1.0])) => tensor([2.])",
 		}.String(),
 	},
 	// Generic dispatchers. The named ml.* functions in lib/std/ml.b are thin
@@ -2514,7 +2514,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`variance` is the variance over dim; unbiased divides by n-1 like torch.var(unbiased=True)",
 			signature:   "variance(a: tensor, dim: int|list[int]|null, keepdim: bool, unbiased: bool) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "variance(ml.tensor([1.0, 2.0, 3.0]), null, false, true) => Tensor{shape: [1]}",
+			example:     "variance(ml.tensor([1.0, 2.0, 3.0]), null, false, true) => tensor(1.)",
 		}.String(),
 	},
 	{
@@ -2548,7 +2548,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`std` is the square root of variance; unbiased divides by n-1",
 			signature:   "std(a: tensor, dim: int|list[int]|null, keepdim: bool, unbiased: bool) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "std(ml.tensor([1.0, 2.0, 3.0]), null, false, true) => Tensor{shape: [1]}",
+			example:     "std(ml.tensor([1.0, 2.0, 3.0]), null, false, true) => tensor(1.)",
 		}.String(),
 	},
 	{
@@ -2578,7 +2578,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`tile` repeats a along each dim, like torch.tile; it is differentiable",
 			signature:   "tile(a: tensor, reps: list[int]) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "tile(ml.tensor([[1.0, 2.0]]), [2, 1]) => Tensor{shape: [2 2]}",
+			example:     "tile(ml.tensor([[1.0, 2.0]]), [2, 1]) => tensor([[1., 2.],[1., 2.]])",
 		}.String(),
 	},
 	{
@@ -2604,7 +2604,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`cumsum` is the cumulative sum along dim, like torch.cumsum; it is differentiable",
 			signature:   "cumsum(a: tensor, dim: int) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "cumsum(ml.tensor([1.0, 2.0, 3.0]), 0) => Tensor{shape: [3]}",
+			example:     "cumsum(ml.tensor([1.0, 2.0, 3.0]), 0) => tensor([1., 3., 6.])",
 		}.String(),
 	},
 	{
@@ -2690,7 +2690,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`nonzero` returns the indices of the nonzero elements as [n, rank]; host-computed, so inference-only",
 			signature:   "nonzero(a: tensor) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "nonzero(ml.tensor([0.0, 2.0, 0.0, 3.0])) => Tensor{shape: [2 1]}",
+			example:     "nonzero(ml.tensor([0.0, 2.0, 0.0, 3.0])) => tensor([[1],[3]], dtype=int32)",
 		}.String(),
 	},
 	{
@@ -2900,7 +2900,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`view` returns a storage-sharing view with the given shape; inference-only, so it works under no_grad",
 			signature:   "view(a: tensor, shape: list[int]) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "view(ml.zeros([4]), [2, 2]) => Tensor{shape: [2 2]}",
+			example:     "view(ml.zeros([4]), [2, 2]) => tensor([[0., 0.],[0., 0.]])",
 		}.String(),
 	},
 	{
@@ -2973,7 +2973,7 @@ var MlBuiltins = []*Builtin{
 			explanation: "`from_list` converts a list of numbers into a 1d ml tensor, so num statistics and sampling feed straight into ml",
 			signature:   "from_list(values: list) -> tensor",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
-			example:     "from_list([1.0, 2.0, 3.0]) => Tensor{shape: [3]}",
+			example:     "from_list([1.0, 2.0, 3.0]) => tensor([1., 2., 3.])",
 		}.String(),
 	},
 	{
