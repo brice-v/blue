@@ -1,7 +1,7 @@
 TODO:
 
 - [ ] FIX: Vscode extension breaks a bit with heavy use of string interpolation, even when valid
-    - Neex to investigate
+    - Need to investigate, seemed to recover after a restart but still
 - [x] FEAT: Add @= for matmul equal
     - [ ] Wire in support for dunder
 - [ ] FIX: LSP, if map has member that is function literal, should be able to hover for docs
