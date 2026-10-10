@@ -10,10 +10,10 @@
 ## to attach and show the window
 
 val __new_app = _new_app;
-var __app = null;
+var __app = {};
 val _app = fun() {
-    if (__app == null) {
-        __app = __new_app();
+    if (__app == {}) {
+        __app.this = __new_app();
     }
     return __app;
 }();
@@ -117,7 +117,7 @@ fun window(width=400, height=400, title="blue ui window", content=null) {
     } else {
         return error("`window` expects content to be a GO_OBJ[fyne.CanvasObject] or MAP, got=#{type(content)}");
     }
-    return __window(_app, width, height, title, id);
+    return __window(_app.this, width, height, title, id);
 }
 
 fun row(children=[]) {
@@ -127,6 +127,9 @@ fun row(children=[]) {
     ## the layout for row is vertical such that the first item is on top of the second item
     ##
     ## row(children: list[{t: "ui*", v: uint}]=[]) -> {t: "ui", v: uint}
+    if type(children) != Type.LIST {
+        return error("ui row: children must be a #{Type.LIST}. got=#{type(children)}")
+    }
     if (children.len() == 0) {
         return error("ui row: children length should be greater than 0")
     }
@@ -163,6 +166,9 @@ fun col(children=[]) {
     ## the layout for col is horizontal such that the first item is to the left of the second item
     ##
     ## col(children: list[{t: "ui*", v: uint}]=[]) -> {t: "ui", v: uint}
+    if type(children) != Type.LIST {
+        return error("ui col: children must be a #{Type.LIST}. got=#{type(children)}")
+    }
     if (children.len() == 0) {
         return error("ui col: children length should be greater than 0")
     }
@@ -204,6 +210,9 @@ fun grid(rowcols, t=GridType.COLS, children=[]) {
     ## as well as the rowcols value which determins the # of rows, or cols
     ##
     ## grid(rowcols: int, t: 'ROWS'|'COLS', children: list[{t: "ui*", v: uint}]=[]) -> {t: "ui", v: uint}
+    if type(children) != Type.LIST {
+        return error("ui grid: children must be a #{Type.LIST}. got=#{type(children)}")
+    }
     if (children.len() == 0) {
         return error("ui grid: children length should be greater than 0")
     }
@@ -312,6 +321,9 @@ fun form(children=[], on_submit=null) {
     ## on_submit is just a regular function that will be called when submitted
     ##
     ## form(children: list[{label: str, widget: {t: 'ui*', v: uint}}]=[]) -> {t: 'ui', v: uint}
+    if type(children) != Type.LIST {
+        return error("ui form: children must be a #{Type.LIST}. got=#{type(children)}")
+    }
     var this = {};
     if (on_submit == null) {
         return error("`form` on_submit handler was not given");

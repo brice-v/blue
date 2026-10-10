@@ -89,11 +89,6 @@ func (c *Compiler) CompileStdModule(name string, nodeIdentsToImport []*ast.Ident
 		return fmt.Errorf("failed to compile std module: '%s' is not in std lib map", name)
 	}
 	fb := _std_mods[name]
-	// Note: the parsed program is intentionally NOT cached across
-	// compilations. Compiling mutates AST nodes (for-in desugaring rewrites
-	// Condition/PostExp/IterableSetters), so a shared program would already
-	// be desugared for the second importer and fail to compile. Only the
-	// builtin definitions are cached; the (cheap) lex+parse runs per import.
 	l := lexer.New(fb.File, "<std/"+name+".b>")
 	p := parser.New(l)
 	programToCompile := p.ParseProgram()

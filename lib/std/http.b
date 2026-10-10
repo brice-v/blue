@@ -16,11 +16,11 @@ val __new_ws = _new_ws;
 val __ws_client_send = _ws_client_send;
 val __ws_client_recv = _ws_client_recv;
 # _server is an id that corresponds to the gofiber server object
-var __server = null;
+var __server = {};
 val __new_server = _new_server;
 val _server = fun() {
-    if (__server == null) {
-        __server = __new_server('tcp4');
+    if (__server == {}) {
+        __server.this = __new_server('tcp4');
     }
     return __server;
 }();
@@ -143,7 +143,7 @@ fun serve(addr_port="localhost:3001", use_embedded_lib_web=true) {
     ##                       or water-light.css or water.css which uses system theme
     ##
     ## serve(addr_port: str='localhost:3001', use_embedded_lib_web: bool=true) -> null
-    __serve(_server, addr_port, use_embedded_lib_web)
+    __serve(_server.this, addr_port, use_embedded_lib_web)
 }
 
 fun handle(pattern, fn, method="GET") {
@@ -172,7 +172,7 @@ fun handle(pattern, fn, method="GET") {
     ## passed in
     ##
     ## handle(pattern: str, fn: fun, method: str='GET') -> null
-    __handle(_server, pattern, fn, method)
+    __handle(_server.this, pattern, fn, method)
 }
 
 fun handle_use(pattern="", fn) {
@@ -197,7 +197,7 @@ fun handle_use(pattern="", fn) {
     ## passed in
     ##
     ## handle(pattern: str, fn: fun, method: str='GET') -> null
-    __handle_use(_server, pattern, fn, "")
+    __handle_use(_server.this, pattern, fn, "")
 }
 
 fun handle_ws(pattern, fn) {
@@ -216,7 +216,7 @@ fun handle_ws(pattern, fn) {
     ## handler_ws("/ws", fun(ws) { for (true) { val x = ws.recv(); ws.send(x); } })
     ##
     ## handle_ws(pattern: str, fn: fun) -> null
-    __handle_ws(_server, pattern, fn)
+    __handle_ws(_server.this, pattern, fn)
 }
 
 fun static(prefix="/", dir_path=".", browse=false) {
@@ -233,7 +233,7 @@ fun static(prefix="/", dir_path=".", browse=false) {
     ## should be browsable by the end user, usually for ftp style sites
     ##
     ## static(prefix: str='/', dir_path: str='.', browse: bool=false) -> null
-    __static(_server, prefix, dir_path, browse)
+    __static(_server.this, prefix, dir_path, browse)
 }
 
 fun handle_monitor(path, should_show=true) {
@@ -247,7 +247,7 @@ fun handle_monitor(path, should_show=true) {
     ## display, mostly used if it should be hidden from end users
     ##
     ## handle_monitor(path: str, should_show: bool=false) -> null
-    __handle_monitor(_server, path, should_show)
+    __handle_monitor(_server.this, path, should_show)
 }
 
 fun sanitize_and_minify(content, should_sanitize=true, should_minify=true) {
