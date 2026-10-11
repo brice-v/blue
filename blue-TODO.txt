@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] FEAT: Better support time.Time struct in general
+    - CreateObjectFromDbInterface currently creates string from it (can get a time.Time from duckdb)
 - [ ] FIX: Vscode extension breaks a bit with heavy use of string interpolation, even when valid
     - Need to investigate, seemed to recover after a restart but still
 - [x] FEAT: Add @= for matmul equal
@@ -18,8 +20,9 @@ TODO:
     - (this function is mainly accessible when running but will maybe can be used for `blue doc` command as well)
     - [ ] `blue doc` for std lib needs to be a bit better (make it consistent with help() output)
 - [ ] FEAT: Integrate duckdb as option for db package
-    - allows reading of parquet files
-    - non-static build, need to ensure static build continues to work
+    - [ ] allows reading of parquet files
+    - [x] non-static build, need to ensure static build continues to work
+    - Support all the datatypes, currently only have some scaffolding in place
 - [ ] FEAT: Add slicing functionality for tensors
 - [ ] FEAT: For slices, optimize so that "slicesIndexes" not needed, if always integer can likely fast track that
     - [ ] See if step needed for other sliceable types

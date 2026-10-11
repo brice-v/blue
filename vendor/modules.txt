@@ -117,6 +117,31 @@ github.com/antchfx/htmlquery
 # github.com/antchfx/xpath v1.3.6
 ## explicit; go 1.14
 github.com/antchfx/xpath
+# github.com/apache/arrow-go/v18 v18.5.1
+## explicit; go 1.24.0
+github.com/apache/arrow-go/v18/arrow
+github.com/apache/arrow-go/v18/arrow/array
+github.com/apache/arrow-go/v18/arrow/arrio
+github.com/apache/arrow-go/v18/arrow/bitutil
+github.com/apache/arrow-go/v18/arrow/cdata
+github.com/apache/arrow-go/v18/arrow/decimal
+github.com/apache/arrow-go/v18/arrow/decimal128
+github.com/apache/arrow-go/v18/arrow/decimal256
+github.com/apache/arrow-go/v18/arrow/encoded
+github.com/apache/arrow-go/v18/arrow/endian
+github.com/apache/arrow-go/v18/arrow/float16
+github.com/apache/arrow-go/v18/arrow/internal
+github.com/apache/arrow-go/v18/arrow/internal/debug
+github.com/apache/arrow-go/v18/arrow/internal/dictutils
+github.com/apache/arrow-go/v18/arrow/internal/flatbuf
+github.com/apache/arrow-go/v18/arrow/ipc
+github.com/apache/arrow-go/v18/arrow/memory
+github.com/apache/arrow-go/v18/arrow/memory/internal/cgoalloc
+github.com/apache/arrow-go/v18/arrow/memory/mallocator
+github.com/apache/arrow-go/v18/internal/bitutils
+github.com/apache/arrow-go/v18/internal/hashing
+github.com/apache/arrow-go/v18/internal/json
+github.com/apache/arrow-go/v18/internal/utils
 # github.com/aymerick/douceur v0.2.0
 ## explicit
 github.com/aymerick/douceur/css
@@ -127,7 +152,7 @@ github.com/chzyer/readline
 # github.com/clbanning/mxj/v2 v2.7.0
 ## explicit; go 1.15
 github.com/clbanning/mxj/v2
-# github.com/davecgh/go-spew v1.1.1
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
 # github.com/dlclark/regexp2 v1.10.0
@@ -141,6 +166,30 @@ github.com/dromara/carbon/v2/calendar
 github.com/dromara/carbon/v2/calendar/julian
 github.com/dromara/carbon/v2/calendar/lunar
 github.com/dromara/carbon/v2/calendar/persian
+# github.com/duckdb/duckdb-go-bindings v0.10506.0
+## explicit; go 1.24
+github.com/duckdb/duckdb-go-bindings
+github.com/duckdb/duckdb-go-bindings/include
+# github.com/duckdb/duckdb-go-bindings/lib/darwin-amd64 v0.10506.0
+## explicit; go 1.24
+github.com/duckdb/duckdb-go-bindings/lib/darwin-amd64
+# github.com/duckdb/duckdb-go-bindings/lib/darwin-arm64 v0.10506.0
+## explicit; go 1.24
+github.com/duckdb/duckdb-go-bindings/lib/darwin-arm64
+# github.com/duckdb/duckdb-go-bindings/lib/linux-amd64 v0.10506.0
+## explicit; go 1.24
+github.com/duckdb/duckdb-go-bindings/lib/linux-amd64
+# github.com/duckdb/duckdb-go-bindings/lib/linux-arm64 v0.10506.0
+## explicit; go 1.24
+github.com/duckdb/duckdb-go-bindings/lib/linux-arm64
+# github.com/duckdb/duckdb-go-bindings/lib/windows-amd64 v0.10506.0
+## explicit; go 1.24
+github.com/duckdb/duckdb-go-bindings/lib/windows-amd64
+# github.com/duckdb/duckdb-go/v2 v2.10506.0
+## explicit; go 1.24.0
+github.com/duckdb/duckdb-go/v2
+github.com/duckdb/duckdb-go/v2/arrowmapping
+github.com/duckdb/duckdb-go/v2/mapping
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize
@@ -223,7 +272,7 @@ github.com/go-text/typesetting/internal/unicodedata
 github.com/go-text/typesetting/language
 github.com/go-text/typesetting/segmenter
 github.com/go-text/typesetting/shaping
-# github.com/go-viper/mapstructure/v2 v2.4.0
+# github.com/go-viper/mapstructure/v2 v2.5.0
 ## explicit; go 1.18
 github.com/go-viper/mapstructure/v2
 github.com/go-viper/mapstructure/v2/internal/errors
@@ -277,6 +326,17 @@ github.com/gobuffalo/tags/v3/form/bootstrap
 ## explicit; go 1.16
 github.com/gobuffalo/validate/v3
 github.com/gobuffalo/validate/v3/validators
+# github.com/goccy/go-json v0.10.5
+## explicit; go 1.19
+github.com/goccy/go-json
+github.com/goccy/go-json/internal/decoder
+github.com/goccy/go-json/internal/encoder
+github.com/goccy/go-json/internal/encoder/vm
+github.com/goccy/go-json/internal/encoder/vm_color
+github.com/goccy/go-json/internal/encoder/vm_color_indent
+github.com/goccy/go-json/internal/encoder/vm_indent
+github.com/goccy/go-json/internal/errors
+github.com/goccy/go-json/internal/runtime
 # github.com/goccy/go-yaml v1.19.2
 ## explicit; go 1.21.0
 github.com/goccy/go-yaml
@@ -305,6 +365,9 @@ github.com/golang/freetype/raster
 # github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 ## explicit; go 1.20
 github.com/golang/groupcache/lru
+# github.com/google/flatbuffers v25.12.19+incompatible
+## explicit
+github.com/google/flatbuffers/go
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
@@ -390,6 +453,19 @@ github.com/jsummers/gobmp
 # github.com/jupiterrider/ffi v0.7.0
 ## explicit; go 1.18
 github.com/jupiterrider/ffi
+# github.com/klauspost/compress v1.18.3
+## explicit; go 1.23
+github.com/klauspost/compress
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/le
+github.com/klauspost/compress/internal/snapref
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/klauspost/cpuid/v2 v2.3.0
+## explicit; go 1.22
+github.com/klauspost/cpuid/v2
 # github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e
 ## explicit; go 1.21
 github.com/lufia/plan9stats
@@ -431,13 +507,20 @@ github.com/oliverbestmann/webgpu/libs-linux
 # github.com/oliverbestmann/webgpu/libs-windows v0.0.0-20260628152801-f47d1b682eb8
 ## explicit
 github.com/oliverbestmann/webgpu/libs-windows
+# github.com/pierrec/lz4/v4 v4.1.25
+## explicit; go 1.17
+github.com/pierrec/lz4/v4
+github.com/pierrec/lz4/v4/internal/lz4block
+github.com/pierrec/lz4/v4/internal/lz4errors
+github.com/pierrec/lz4/v4/internal/lz4stream
+github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
 # github.com/pkoukk/tiktoken-go v0.1.8
 ## explicit; go 1.19
 github.com/pkoukk/tiktoken-go
-# github.com/pmezard/go-difflib v1.0.0
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
 # github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55
@@ -573,14 +656,18 @@ github.com/yuin/goldmark/util
 # github.com/yusufpapurcu/wmi v1.2.4
 ## explicit; go 1.16
 github.com/yusufpapurcu/wmi
+# github.com/zeebo/xxh3 v1.1.0
+## explicit; go 1.22
+github.com/zeebo/xxh3
 # golang.org/x/crypto v0.53.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/scrypt
-# golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
+# golang.org/x/exp v0.0.0-20260112195511-716be5621a96
 ## explicit; go 1.24.0
+golang.org/x/exp/constraints
 golang.org/x/exp/slices
 # golang.org/x/image v0.43.0
 ## explicit; go 1.25.0
@@ -601,6 +688,11 @@ golang.org/x/image/math/fixed
 golang.org/x/image/tiff
 golang.org/x/image/tiff/lzw
 golang.org/x/image/vector
+# golang.org/x/mod v0.37.0
+## explicit; go 1.25.0
+golang.org/x/mod/internal/lazyregexp
+golang.org/x/mod/module
+golang.org/x/mod/semver
 # golang.org/x/net v0.56.0
 ## explicit; go 1.25.0
 golang.org/x/net/html
@@ -616,6 +708,12 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
+# golang.org/x/telemetry v0.0.0-20260625142307-59b4966ccb57
+## explicit; go 1.25.0
+golang.org/x/telemetry/counter
+golang.org/x/telemetry/internal/counter
+golang.org/x/telemetry/internal/mmap
+golang.org/x/telemetry/internal/telemetry
 # golang.org/x/term v0.44.0
 ## explicit; go 1.25.0
 golang.org/x/term
@@ -645,7 +743,35 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/tools v0.47.0
 ## explicit; go 1.25.0
+golang.org/x/tools/cmd/goimports
+golang.org/x/tools/cmd/stringer
 golang.org/x/tools/container/intsets
+golang.org/x/tools/go/ast/astutil
+golang.org/x/tools/go/ast/edge
+golang.org/x/tools/go/ast/inspector
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/packages
+golang.org/x/tools/go/types/objectpath
+golang.org/x/tools/go/types/typeutil
+golang.org/x/tools/internal/aliases
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gcimporter
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/pkgbits
+golang.org/x/tools/internal/stdlib
+golang.org/x/tools/internal/typeparams
+golang.org/x/tools/internal/typesinternal
+golang.org/x/tools/internal/versions
+# golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
+## explicit; go 1.18
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
 # gonum.org/v1/gonum v0.17.0
 ## explicit; go 1.24.0
 gonum.org/v1/gonum/blas

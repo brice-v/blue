@@ -88,3 +88,5 @@ func DisableColorIfNoColorEnvVarSet() {
 		color.Disable()
 	}
 }
+
+const DuckDbLinkNote = "'duckdb' is not available in the static build of blue, use 'sqlite'"

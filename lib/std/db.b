@@ -52,14 +52,14 @@ fun db_close(db_id) {
     __db_close(db_id)
 }
 
-fun open(db_name=":memory:") {
+fun open(db_name=":memory:", db_type="sqlite") {
     ##std:this,__db_open
     ## `open` will return a core db object that can be used
     ## to execute sql queries against
     ##
     ## open(db_name: str=":memory") -> DB_OBj
     var this = {};
-    this._db = __db_open(db_name);
+    this._db = __db_open(db_name, db_type);
     this.ping = fun() {
         db_ping(this._db)
     };

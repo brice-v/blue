@@ -37,7 +37,3 @@ val result_query_named_cols = x.query("select * from t;", named_cols=true);
 println("result_query_named_cols = #{result_query_named_cols}");
 val expected_result_query_named_cols = [{i: 42, a: "Hello", b: 3.14159, c: null, d: bytes_example}, {i: 314, a: "World!", b: 0.09991234, c: "asf", d: bytes_example}];
 assert(result_query_named_cols == expected_result_query_named_cols);
-
-println("AFTER QUERY");
-println("END");
-assert(true);

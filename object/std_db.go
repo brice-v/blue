@@ -3,6 +3,7 @@
 package object
 
 import (
+	"blue/consts"
 	"database/sql"
 	"log"
 
@@ -13,25 +14,35 @@ var DbBuiltins = []*Builtin{
 	{
 		Name: "_db_open",
 		Fun: func(args ...Object) Object {
-			if len(args) != 1 {
+			if len(args) != 2 {
 				return newInvalidArgCountError("db_open", len(args), 1, "")
 			}
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("db_open", 1, STRING_OBJ, args[0].Type())
 			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("db_open", 2, STRING_OBJ, args[1].Type())
+			}
 			dbName := args[0].(*Stringo).Value
 			if dbName == "" {
 				return newError("`db_open` error: db_name argument is empty")
 			}
-			db, err := sql.Open("sqlite", dbName)
+			dbType := args[1].(*Stringo).Value
+			if dbType == "duckdb" && !duckdbAvailable {
+				return newError("`db_open` error: %s. got=%s", consts.DuckDbLinkNote, dbType)
+			}
+			if dbType != "sqlite" && dbType != "duckdb" {
+				return newError("`db_open` error: db_type must be 'sqlite' or 'duckdb'. got=%s", dbType)
+			}
+			db, err := sql.Open(dbType, dbName)
 			if err != nil {
 				return newError("`db_open` error: %s", err.Error())
 			}
 			return NewGoObj(db)
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`db_open` opens a connection to the builtin sqlite db and returns the DB obj",
-			signature:   "db_open(db_name: str=':memory:') -> GoObj[*sql.DB]",
+			explanation: "`db_open` opens a connection to the builtin sqlite/duckdb db and returns the DB obj" + duckdbHelpNote,
+			signature:   "db_open(db_name: str=':memory:', db_type: str='sqlite') -> GoObj[*sql.DB]",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "db_open() => GoObj[*sql.DB]",
 		}.String(),
