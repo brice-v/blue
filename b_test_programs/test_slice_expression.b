@@ -33,3 +33,11 @@ val z2 = 'bcd';
 
 assert(y2 == z2);
 assert(yy2 == z2);
+
+
+val xx = 1..20;
+val yt = xx[0..10]
+val zt = xx[0..<20..2]
+
+assert(yt == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+assert(zt == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19])

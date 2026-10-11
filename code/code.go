@@ -209,7 +209,7 @@ var definitions = map[Opcode]*Definition{
 	OpEval:               {"OpEval", []int{}},
 	OpDefaultArgs:        {"OpDefaultArgs", []int{2}},
 	OpCoreCompiled:       {"OpCoreCompiled", []int{}},
-	OpSlice:              {"OpSlice", []int{}},
+	OpSlice:              {"OpSlice", []int{1}},
 
 	OpJumpNotTruthyAndPushTrue:  {"OpJumpNotTruthyAndPushTrue", []int{2}},
 	OpJumpNotTruthyAndPushFalse: {"OpJumpNotTruthyAndPushFalse", []int{2}},

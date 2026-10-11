@@ -696,16 +696,59 @@ func (c *Compiler) loadSymbolOrSpecialCaseForProcess(s Symbol) {
 	c.loadSymbol(s)
 }
 
+func isInfix(node ast.Expression) *ast.InfixExpression {
+	if inf, ok := node.(*ast.InfixExpression); ok {
+		return inf
+	}
+	return nil
+}
+
+func (c *Compiler) compileSliceWithStep(node *ast.IndexExpression) (ok bool, err error) {
+	// If left is an infix expression with range as the operator
+	// and this operator is a range operator
+	// Then we have to build a slice with end
+	ok = false
+	err = nil
+	compileLeft := false
+	indexAsInfix := isInfix(node.Index)
+	if indexAsInfix != nil {
+		leftSide := isInfix(indexAsInfix.Left)
+		if leftSide != nil {
+			if leftSide.Operator == ".." || leftSide.Operator == "..<" {
+				compileLeft = true
+			}
+		}
+		if compileLeft && indexAsInfix.Operator == ".." {
+			err = c.Compile(leftSide)
+			if err != nil {
+				return
+			}
+			err = c.Compile(indexAsInfix.Right)
+			if err == nil {
+				ok = true
+			}
+		}
+	}
+	return
+}
+
 func (c *Compiler) compileSliceExpression(node *ast.IndexExpression) error {
 	err := c.Compile(node.Left)
 	if err != nil {
+		return err
+	}
+	ok, err := c.compileSliceWithStep(node)
+	if ok && err == nil {
+		c.emit(code.OpSlice, 2)
+		return nil
+	} else if err != nil {
 		return err
 	}
 	err = c.Compile(node.Index)
 	if err != nil {
 		return err
 	}
-	c.emit(code.OpSlice)
+	c.emit(code.OpSlice, 1)
 	return nil
 }
 

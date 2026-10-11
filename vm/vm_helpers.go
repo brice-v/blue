@@ -530,16 +530,32 @@ func blueObjectToGoObject(blueObject object.Object) (any, error) {
 	}
 }
 
-func (vm *VM) buildSliceFrom(maybeSliceable object.Object, sliceIndexes object.Object) object.Object {
+func (vm *VM) buildSliceFrom(maybeSliceable object.Object, sliceIndexes object.Object, step object.Object) object.Object {
 	if maybeSliceable.Type() != object.LIST_OBJ && maybeSliceable.Type() != object.STRING_OBJ && maybeSliceable.Type() != object.SET_OBJ {
 		return newError("slice cannot be created with type: %s", maybeSliceable.Type())
+	}
+	if step != nil && step.Type() != object.INTEGER_OBJ {
+		return newError("slice cannot be created with step size type: %s", step.Type())
 	}
 	sliceIndexesList := sliceIndexes.(*object.List).Elements
 	minSliceIndex := sliceIndexesList[0].(*object.Integer).Value
 	maxSliceIndex := sliceIndexesList[len(sliceIndexesList)-1].(*object.Integer).Value + 1
+	stepInt := -1
+	if step != nil {
+		stepInt = int(step.(*object.Integer).Value)
+	}
 	if maybeSliceable.Type() == object.LIST_OBJ {
-		result := make([]object.Object, len(sliceIndexesList))
-		copy(result[:], maybeSliceable.(*object.List).Elements[minSliceIndex:maxSliceIndex])
+		var result []object.Object
+		elems := maybeSliceable.(*object.List).Elements
+		if stepInt == -1 {
+			result = make([]object.Object, len(sliceIndexesList))
+			copy(result[:], elems[minSliceIndex:maxSliceIndex])
+		} else {
+			result = []object.Object{}
+			for i := minSliceIndex; i < maxSliceIndex; i += int64(stepInt) {
+				result = append(result, elems[i])
+			}
+		}
 		return &object.List{Elements: result}
 	} else if maybeSliceable.Type() == object.SET_OBJ {
 		result := object.NewSetElementsWithSize(len(sliceIndexesList))
