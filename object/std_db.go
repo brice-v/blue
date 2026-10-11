@@ -5,8 +5,11 @@ package object
 import (
 	"blue/consts"
 	"database/sql"
+	"fmt"
 	"log"
+	"time"
 
+	"github.com/golang-module/carbon/v2"
 	_ "modernc.org/sqlite"
 )
 
@@ -123,25 +126,10 @@ var DbBuiltins = []*Builtin{
 
 			var result sql.Result
 			var err error
-			if len(l) > 1 {
-				execArgs := make([]any, len(l))
-				for idx, e := range l {
-					switch e.Type() {
-					case STRING_OBJ:
-						execArgs[idx] = e.(*Stringo).Value
-					case INTEGER_OBJ:
-						execArgs[idx] = e.(*Integer).Value
-					case FLOAT_OBJ:
-						execArgs[idx] = e.(*Float).Value
-					case NULL_OBJ:
-						execArgs[idx] = nil
-					case BOOLEAN_OBJ:
-						execArgs[idx] = e.(*Boolean).Value
-					case BYTES_OBJ:
-						execArgs[idx] = e.(*Bytes).Value
-					default:
-						return newError("argument list to `db_exec` included invalid type. got=%s", e.Type())
-					}
+			if len(l) >= 1 {
+				execArgs, err := getArgsAsGoObjs("db_exec", l)
+				if err != nil {
+					return newError("%s", err.Error())
 				}
 				result, err = db.Value.Exec(s, execArgs...)
 			} else {
@@ -198,24 +186,9 @@ var DbBuiltins = []*Builtin{
 			var rows *sql.Rows
 			var err error
 			if len(l) >= 1 {
-				execArgs := make([]any, len(l))
-				for idx, e := range l {
-					switch e.Type() {
-					case STRING_OBJ:
-						execArgs[idx] = e.(*Stringo).Value
-					case INTEGER_OBJ:
-						execArgs[idx] = e.(*Integer).Value
-					case FLOAT_OBJ:
-						execArgs[idx] = e.(*Float).Value
-					case NULL_OBJ:
-						execArgs[idx] = nil
-					case BOOLEAN_OBJ:
-						execArgs[idx] = e.(*Boolean).Value
-					case BYTES_OBJ:
-						execArgs[idx] = e.(*Bytes).Value
-					default:
-						return newError("argument list to `db_query` included invalid type. got=%s", e.Type())
-					}
+				execArgs, err := getArgsAsGoObjs("db_query", l)
+				if err != nil {
+					return newError("%s", err.Error())
 				}
 				rows, err = db.Value.Query(s, execArgs...)
 			} else {
@@ -264,10 +237,7 @@ var DbBuiltins = []*Builtin{
 					rowMap = NewOrderedMap[string, Object]()
 				}
 				for idx, e := range cols {
-					obj := CreateObjectFromDbInterface(e)
-					if obj == nil {
-						obj = NULL
-					}
+					obj := createObjectFromDbInterface(e)
 					if !isNamedCols {
 						rowList.Elements[idx] = obj
 					} else {
@@ -289,4 +259,66 @@ var DbBuiltins = []*Builtin{
 			example:     "db_query(db, 'SELECT * FROM ABC;', [], false) => list[any]",
 		}.String(),
 	},
+}
+
+func getArgsAsGoObjs(name string, l []Object) ([]any, error) {
+	args := make([]any, len(l))
+	for idx, e := range l {
+		switch e.Type() {
+		case STRING_OBJ:
+			args[idx] = e.(*Stringo).Value
+		case INTEGER_OBJ:
+			args[idx] = e.(*Integer).Value
+		case FLOAT_OBJ:
+			args[idx] = e.(*Float).Value
+		case NULL_OBJ:
+			args[idx] = nil
+		case BOOLEAN_OBJ:
+			args[idx] = e.(*Boolean).Value
+		case BYTES_OBJ:
+			args[idx] = e.(*Bytes).Value
+		default:
+			return nil, fmt.Errorf("argument list to `%s` included invalid type. got=%s", name, e.Type())
+		}
+	}
+	return args, nil
+}
+
+func createObjectFromDbInterface(input any) Object {
+	switch x := input.(type) {
+	case int64:
+		return NewInteger(x)
+	case int32:
+		return NewInteger(int64(x))
+	case int16:
+		return NewInteger(int64(x))
+	case int8:
+		return NewInteger(int64(x))
+	case uint64:
+		return &UInteger{Value: x}
+	case uint32:
+		return &UInteger{Value: uint64(x)}
+	case uint16:
+		return &UInteger{Value: uint64(x)}
+	case uint8:
+		return &UInteger{Value: uint64(x)}
+	case string:
+		return &Stringo{Value: x}
+	case float64:
+		return &Float{Value: x}
+	case float32:
+		return &Float{Value: float64(x)}
+	case []byte:
+		return &Bytes{Value: x}
+	case bool:
+		return &Boolean{Value: x}
+	case time.Time:
+		// TODO: Return time.Time as GoObj if this starts to be better supported
+		return &Stringo{Value: carbon.CreateFromStdTime(x).ToDateTimeMilliString()}
+	case nil:
+		return NULL
+	default:
+		panic("Unsupported type in CreateObjectFromDbInterface: " + fmt.Sprintf("%T", x))
+		// TODO: return nil once everything supported properly
+	}
 }

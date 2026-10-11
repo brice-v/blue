@@ -11,9 +11,6 @@ import (
 	"runtime"
 	"runtime/metrics"
 	"strings"
-	"time"
-
-	"github.com/golang-module/carbon/v2"
 )
 
 // CreateBasicMapObject creates an object that looks like {'t': objType, 'v': objValue}
@@ -90,43 +87,6 @@ func CreateMapObjectForGoMap(input OrderedMap2[string, Object]) *Map {
 	}
 
 	return m
-}
-
-func CreateObjectFromDbInterface(input any) Object {
-	switch x := input.(type) {
-	case int64:
-		return &Integer{Value: x}
-	case int32:
-		return &Integer{Value: int64(x)}
-	case int16:
-		return &Integer{Value: int64(x)}
-	case int8:
-		return &Integer{Value: int64(x)}
-	case uint64:
-		return &UInteger{Value: x}
-	case uint32:
-		return &UInteger{Value: uint64(x)}
-	case uint16:
-		return &UInteger{Value: uint64(x)}
-	case uint8:
-		return &UInteger{Value: uint64(x)}
-	case string:
-		return &Stringo{Value: x}
-	case float64:
-		return &Float{Value: x}
-	case float32:
-		return &Float{Value: float64(x)}
-	case []byte:
-		return &Bytes{Value: x}
-	case bool:
-		return &Boolean{Value: x}
-	case time.Time:
-		// TODO: Return time.Time as GoObj if this starts to be better supported
-		return &Stringo{Value: carbon.CreateFromStdTime(x).ToDateTimeMilliString()}
-	default:
-		panic("Unsupported type in CreateObjectFromDbInterface: " + fmt.Sprintf("%T", x))
-		// TODO: return nil once everything supported properly
-	}
 }
 
 func createHelpStringForObject(name, desc string, obj Object) string {
