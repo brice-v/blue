@@ -703,6 +703,22 @@ func isInfix(node ast.Expression) *ast.InfixExpression {
 	return nil
 }
 
+func (c *Compiler) compileInfixRangeForSlice(node *ast.InfixExpression) error {
+	err := c.Compile(node.Left) // start
+	if err != nil {
+		return err
+	}
+	err = c.Compile(node.Right) // stop
+	if err != nil {
+		return err
+	}
+	if node.Operator == "..<" {
+		c.emit(code.OpConstant, c.addConstant(object.NewInteger(1)))
+		c.emit(code.OpMinus)
+	}
+	return nil
+}
+
 func (c *Compiler) compileSliceWithStep(node *ast.InfixExpression) (ok bool, err error) {
 	// If left is an infix expression with range as the operator
 	// and this operator is a range operator
@@ -717,7 +733,7 @@ func (c *Compiler) compileSliceWithStep(node *ast.InfixExpression) (ok bool, err
 		}
 	}
 	if compileLeft && node.Operator == ".." {
-		err = c.Compile(leftSide)
+		err = c.compileInfixRangeForSlice(leftSide)
 		if err != nil {
 			return
 		}
@@ -742,7 +758,7 @@ func (c *Compiler) compileSliceExpression(node *ast.IndexExpression) error {
 	} else if err != nil {
 		return err
 	}
-	err = c.Compile(node.Index)
+	err = c.compileInfixRangeForSlice(infixExpr)
 	if err != nil {
 		return err
 	}

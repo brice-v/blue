@@ -5,7 +5,7 @@ val yy = x[1..<4];
 println("y = #{y}");
 println("yy = #{yy}");
 
-val z = [2,3,4];
+val z = [2,3];
 
 assert(y == z);
 assert(yy == z);
@@ -17,7 +17,7 @@ val yy1 = a[1..<4];
 println("y1 = #{y1}");
 println("yy1 = #{yy1}");
 
-val z1 = {2,3,4};
+val z1 = {2,3};
 
 assert(y1 == z1);
 assert(yy1 == z1);
@@ -29,7 +29,7 @@ val yy2 = aa[1..<4];
 println("y2 = #{y2}");
 println("yy2 = #{yy2}");
 
-val z2 = 'bcd';
+val z2 = 'bc';
 
 assert(y2 == z2);
 assert(yy2 == z2);
@@ -39,5 +39,5 @@ val xx = 1..20;
 val yt = xx[0..10]
 val zt = xx[0..<20..2]
 
-assert(yt == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+assert(yt == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 assert(zt == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19])

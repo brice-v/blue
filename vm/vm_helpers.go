@@ -530,48 +530,53 @@ func blueObjectToGoObject(blueObject object.Object) (any, error) {
 	}
 }
 
-func (vm *VM) buildSliceFrom(maybeSliceable object.Object, sliceIndexes object.Object, step object.Object) object.Object {
+func (vm *VM) buildSliceFrom(maybeSliceable, start, stop, step object.Object) object.Object {
 	if maybeSliceable.Type() != object.LIST_OBJ && maybeSliceable.Type() != object.STRING_OBJ && maybeSliceable.Type() != object.SET_OBJ {
 		return newError("slice cannot be created with type: %s", maybeSliceable.Type())
 	}
 	if step != nil && step.Type() != object.INTEGER_OBJ {
 		return newError("slice cannot be created with step size type: %s", step.Type())
 	}
-	sliceIndexesList := sliceIndexes.(*object.List).Elements
-	minSliceIndex := sliceIndexesList[0].(*object.Integer).Value
-	maxSliceIndex := sliceIndexesList[len(sliceIndexesList)-1].(*object.Integer).Value + 1
-	stepInt := -1
+	minSliceIndex := int(start.(*object.Integer).Value)
+	maxSliceIndex := int(stop.(*object.Integer).Value)
+	stepInt := 1
 	if step != nil {
 		stepInt = int(step.(*object.Integer).Value)
 	}
 	if maybeSliceable.Type() == object.LIST_OBJ {
 		var result []object.Object
 		elems := maybeSliceable.(*object.List).Elements
-		if stepInt == -1 {
-			result = make([]object.Object, len(sliceIndexesList))
-			copy(result[:], elems[minSliceIndex:maxSliceIndex])
-		} else {
-			result = []object.Object{}
-			for i := minSliceIndex; i < maxSliceIndex; i += int64(stepInt) {
-				result = append(result, elems[i])
-			}
+		elemLen := len(elems)
+		if minSliceIndex < 0 || maxSliceIndex > elemLen {
+			return newError("slice index out of bounds. %d, %d for len %d", minSliceIndex, maxSliceIndex, elemLen)
+		}
+		result = []object.Object{}
+		for i := minSliceIndex; i < maxSliceIndex; i += stepInt {
+			result = append(result, elems[i])
 		}
 		return &object.List{Elements: result}
 	} else if maybeSliceable.Type() == object.SET_OBJ {
-		result := object.NewSetElementsWithSize(len(sliceIndexesList))
 		s := maybeSliceable.(*object.Set)
-		for _, o := range sliceIndexesList {
-			index := o.(*object.Integer).Value
-			sp := s.Elements.Keys[index]
+		elemLen := s.Elements.Len()
+		if minSliceIndex < 0 || maxSliceIndex > elemLen {
+			return newError("slice index out of bounds. %d, %d for len %d", minSliceIndex, maxSliceIndex, elemLen)
+		}
+		result := object.NewSetElementsWithSize(elemLen)
+		for i := minSliceIndex; i < maxSliceIndex; i += stepInt {
+			sp := s.Elements.Keys[i]
 			obj, _ := s.Elements.Get(sp)
 			result.Set(sp, obj)
 		}
 		return &object.Set{Elements: result}
 	} else {
 		s := maybeSliceable.(*object.Stringo).Value
+		elemLen := utf8.RuneCountInString(s)
+		if minSliceIndex < 0 || maxSliceIndex > elemLen {
+			return newError("slice index out of bounds. %d, %d for len %d", minSliceIndex, maxSliceIndex, elemLen)
+		}
 		// Slice by byte range of the requested runes instead of copying
 		// the whole string into a []rune first.
-		if sub, ok := object.RuneRange(s, minSliceIndex, maxSliceIndex); ok {
+		if sub, ok := object.RuneRange(s, int64(minSliceIndex), int64(maxSliceIndex)); ok {
 			return object.NewString(sub)
 		}
 		// Out-of-range indexes: reproduce the previous []rune slicing

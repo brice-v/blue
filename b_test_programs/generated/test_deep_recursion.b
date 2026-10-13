@@ -132,7 +132,7 @@ fun isPalindrome(s) {
     if (s[0] != s[len(s) - 1]) {
         return false
     }
-    return isPalindrome(s[1..<(len(s) - 1)])
+    return isPalindrome(s[1..(len(s) - 1)])
 }
 
 assert(isPalindrome("racecar"))

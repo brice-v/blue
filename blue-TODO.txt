@@ -24,10 +24,7 @@ TODO:
     - [x] non-static build, need to ensure static build continues to work
     - Support all the datatypes, currently only have some scaffolding in place
 - [ ] FEAT: Add slicing functionality for tensors
-- [ ] FEAT: For slices, optimize so that "slicesIndexes" not needed, if always integer can likely fast track that
-    - [ ] See if step needed for other sliceable types
-    - [ ] Make slices work like go by default, 1..X is not including X, ..< can still be 1 less but makes it easier to reason about typically
-    - [ ] After optimizing, avoid panic when OOB slice index used, check start/end when doing the OpSlice
+- [ ] See if step needed for other sliceable types
 - [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [ ] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
 - [ ] FEAT: Add a binary pack/unpack equivalent to python's struct.pack/unpack. blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back. Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
@@ -814,3 +811,6 @@ COMPLETED TASKS:
 - [x] FEAT: Implement slice behavior such as [0:10] or [0..10..1] (start,stop,step)
     - Maybe use : as .. is used elsewhere for "range"
     - already had slices that i forgot about, added "step"
+- [x] FEAT: For slices, optimize so that "slicesIndexes" not needed, if always integer can likely fast track that
+    - [x] Make slices work like go by default, 1..X is not including X, ..< can still be 1 less but makes it easier to reason about typically
+    - [x] After optimizing, avoid panic when OOB slice index used, check start/end when doing the OpSlice

@@ -269,7 +269,7 @@ func TestBrokenVmSlices(t *testing.T) {
 	s := `val x = [1,2,3,4,5,6];
 	val y = x[1..3];
 	val yy = x[1..<4];
-	val z = [2,3,4];
+	val z = [2,3];
 	assert(y == z);
 	assert(yy == z);`
 	vmStringWithCore(t, s)

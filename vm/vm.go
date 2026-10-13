@@ -961,16 +961,17 @@ func (vm *VM) Run() error {
 			numItems := int(code.ReadUint8(ins[ip+1:]))
 			ip++
 			frame.ip = ip
-			var sliceIndexes object.Object
-			var step object.Object
+			var stop, start, step object.Object
 			if numItems == 1 {
-				sliceIndexes = vm.pop()
+				stop = vm.pop()
+				start = vm.pop()
 			} else {
 				step = vm.pop()
-				sliceIndexes = vm.pop()
+				stop = vm.pop()
+				start = vm.pop()
 			}
 			left := vm.pop()
-			err := vm.push(vm.buildSliceFrom(left, sliceIndexes, step))
+			err := vm.push(vm.buildSliceFrom(left, start, stop, step))
 			if err != nil {
 				err = vm.PushAndReturnError(err)
 				if err != nil {
