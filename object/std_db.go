@@ -127,9 +127,9 @@ var DbBuiltins = []*Builtin{
 			var result sql.Result
 			var err error
 			if len(l) >= 1 {
-				execArgs, err := getArgsAsGoObjs("db_exec", l)
-				if err != nil {
-					return newError("%s", err.Error())
+				execArgs, err1 := getArgsAsGoObjs("db_exec", l)
+				if err1 != nil {
+					return newError("%s", err1.Error())
 				}
 				result, err = db.Value.Exec(s, execArgs...)
 			} else {
@@ -186,9 +186,9 @@ var DbBuiltins = []*Builtin{
 			var rows *sql.Rows
 			var err error
 			if len(l) >= 1 {
-				execArgs, err := getArgsAsGoObjs("db_query", l)
-				if err != nil {
-					return newError("%s", err.Error())
+				execArgs, err1 := getArgsAsGoObjs("db_query", l)
+				if err1 != nil {
+					return newError("%s", err1.Error())
 				}
 				rows, err = db.Value.Query(s, execArgs...)
 			} else {
