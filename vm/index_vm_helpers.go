@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"blue/ml"
 	"blue/object"
 	"blue/util"
 	"reflect"
@@ -281,10 +282,44 @@ func (vm *VM) executeBlueStructIndexExpression(blueStruct *object.BlueStruct, fi
 	return vm.push(result)
 }
 
-func (vm *VM) executeTensorIndexExpression(t *object.Tensor, property string) error {
-	result, err := t.Get(property)
-	if err != nil {
-		return vm.push(newError("tensor.%s error: %s", property, err.Error()))
+func (vm *VM) executeTensorIndexExpression(t *object.Tensor, indx object.Object) error {
+	switch indx.Type() {
+	case object.STRING_OBJ:
+		result, err := t.Get(indx.(*object.Stringo).Value)
+		if err != nil {
+			return vm.push(newError("tensor.%s error: %s", indx.(*object.Stringo).Value, err.Error()))
+		}
+		return vm.push(result)
+	case object.INTEGER_OBJ:
+		out, err := ml.Select(t.T, 0, int(indx.(*object.Integer).Value))
+		if err != nil {
+			return vm.push(newError("tensor index error: %s", err.Error()))
+		}
+		return vm.push(&object.Tensor{T: out})
 	}
-	return vm.push(result)
+	return vm.push(newError("tensor index error: unsupported index type: %s", indx.Type()))
+}
+
+func (vm *VM) buildTensorSlice(t *object.Tensor, start, stop, step object.Object) object.Object {
+	if start.Type() != object.INTEGER_OBJ {
+		return newError("slice cannot be created with start index type: %s", start.Type())
+	}
+	if stop.Type() != object.INTEGER_OBJ {
+		return newError("slice cannot be created with stop index type: %s", stop.Type())
+	}
+	stepInt := 1
+	if step != nil {
+		if step.Type() != object.INTEGER_OBJ {
+			return newError("slice cannot be created with step size type: %s", step.Type())
+		}
+		stepInt = int(step.(*object.Integer).Value)
+		if stepInt == 0 {
+			return newError("slice cannot be created with a step size of 0")
+		}
+	}
+	out, err := ml.Slice(t.T, 0, int(start.(*object.Integer).Value), int(stop.(*object.Integer).Value), stepInt)
+	if err != nil {
+		return newError("tensor slice error: %s", err.Error())
+	}
+	return &object.Tensor{T: out}
 }

@@ -553,6 +553,9 @@ fun slice(a, dim, start, end, step=1) {
     ## a[start:end:step]. Negative start and end count from the end of the dim.
     ## A negative step reverses, and end=-1 means through index 0.
     ##
+    ## The `[]` range syntax does the same along dim 0, so `a[1..4]` is
+    ## `slice(a, 0, 1, 4, 1)` and `a[i]` is a scalar select.
+    ##
     ## slice(a: tensor, dim: int, start: int, end: int, step: int=1) -> tensor
     __slice(a, dim, start, end, step)
 }

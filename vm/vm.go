@@ -1511,8 +1511,8 @@ func (vm *VM) executeIndexExpression(left, indx object.Object) error {
 		return vm.executeGoObjIndexExpression(left, indx.(*object.Stringo).Value)
 	case left.Type() == object.BLUE_STRUCT_OBJ && indx.Type() == object.STRING_OBJ:
 		return vm.executeBlueStructIndexExpression(left.(*object.BlueStruct), indx.(*object.Stringo).Value)
-	case left.Type() == object.TENSOR_OBJ && indx.Type() == object.STRING_OBJ:
-		return vm.executeTensorIndexExpression(left.(*object.Tensor), indx.(*object.Stringo).Value)
+	case left.Type() == object.TENSOR_OBJ:
+		return vm.executeTensorIndexExpression(left.(*object.Tensor), indx)
 	default:
 		return vm.push(newError("index operator not supported: %s.%s (%s.%s)", left.Type(), indx.Type(), left.Inspect(), indx.Inspect()))
 	}

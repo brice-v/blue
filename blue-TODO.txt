@@ -23,7 +23,6 @@ TODO:
     - [ ] allows reading of parquet files
     - [x] non-static build, need to ensure static build continues to work
     - Support all the datatypes, currently only have some scaffolding in place
-- [ ] FEAT: Add slicing functionality for tensors
 - [ ] See if step needed for other sliceable types
 - [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [ ] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
@@ -814,3 +813,5 @@ COMPLETED TASKS:
 - [x] FEAT: For slices, optimize so that "slicesIndexes" not needed, if always integer can likely fast track that
     - [x] Make slices work like go by default, 1..X is not including X, ..< can still be 1 less but makes it easier to reason about typically
     - [x] After optimizing, avoid panic when OOB slice index used, check start/end when doing the OpSlice
+- [x] FEAT: Add slicing functionality for tensors
+    - slices from dim 0, to match what pytorch does

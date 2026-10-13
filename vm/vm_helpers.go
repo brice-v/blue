@@ -531,6 +531,9 @@ func blueObjectToGoObject(blueObject object.Object) (any, error) {
 }
 
 func (vm *VM) buildSliceFrom(maybeSliceable, start, stop, step object.Object) object.Object {
+	if maybeSliceable.Type() == object.TENSOR_OBJ {
+		return vm.buildTensorSlice(maybeSliceable.(*object.Tensor), start, stop, step)
+	}
 	if maybeSliceable.Type() != object.LIST_OBJ && maybeSliceable.Type() != object.STRING_OBJ && maybeSliceable.Type() != object.SET_OBJ {
 		return newError("slice cannot be created with type: %s", maybeSliceable.Type())
 	}

@@ -880,7 +880,7 @@ func TestSliceErrors(t *testing.T) {
 		{`[1, 2, 3][0..[2]]`, `slice cannot be created with stop index type: LIST`},
 		// Bad steps are errors, not a hang (0) or a Go index panic (negative)
 		{`[1, 2, 3][0..2..0]`, `slice cannot be created with a step size of 0`},
-		{`[1, 2, 3][0..2..-1]`, `slice cannot be created with a negative step size: -1`},
+		{`[1, 2, 3][0..2..-1]`, `slice cannot be created with a step size of -1`},
 		{`[1, 2, 3][0..2..1.5]`, `slice cannot be created with step size type: FLOAT`},
 		// Only list, set and string are sliceable
 		{`5[0..1]`, `slice cannot be created with type: INTEGER`},
@@ -1028,5 +1028,44 @@ func TestSetInstructionOffsetRunsOnlyNewInstructions(t *testing.T) {
 		if g != nil {
 			t.Fatalf("global %d = %v, first chunk should not have run", i, g)
 		}
+	}
+}
+
+func TestTensorSliceOperations(t *testing.T) {
+	const x = `import ml; val x = ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]); `
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{x + `ml.equal(x[0..2], ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))`, "true"},
+		{x + `ml.equal(x[0..<3], ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))`, "true"},
+		{x + `ml.equal(x[0..3..2], ml.tensor([[1.0, 2.0, 3.0], [7.0, 8.0, 9.0]]))`, "true"},
+		{x + `ml.equal(x[-1..3], ml.tensor([[7.0, 8.0, 9.0]]))`, "true"},
+		{x + `ml.equal(x[0..-1], ml.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))`, "true"},
+		{x + `ml.equal(x[0..100], x)`, "true"},
+		{x + `ml.equal(x[2..-1..-1], ml.tensor([[7.0, 8.0, 9.0], [4.0, 5.0, 6.0], [1.0, 2.0, 3.0]]))`, "true"},
+		{x + `ml.equal(x[1], ml.tensor([4.0, 5.0, 6.0]))`, "true"},
+		{x + `ml.equal(x[-1], ml.tensor([7.0, 8.0, 9.0]))`, "true"},
+		{x + `x[1][2].item()`, "6.0"},
+		{`import ml; ml.equal(ml.tensor([1.0, 2.0, 3.0, 4.0, 5.0])[1..3], ml.tensor([2.0, 3.0]))`, "true"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestTensorSliceErrors(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`import ml; ml.tensor([1.0, 2.0, 3.0])[0..3..0]`, `step size of 0`},
+		{`import ml; ml.tensor([1.0, 2.0, 3.0])[1.5..2]`, `slice cannot be created with start index type: FLOAT`},
+		{`import ml; ml.tensor([1.0, 2.0, 3.0])[0..2.5]`, `slice cannot be created with stop index type: FLOAT`},
+	}
+	for _, tt := range tests {
+		runExpectVmError(t, tt.input, tt.want)
 	}
 }
