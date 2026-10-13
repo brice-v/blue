@@ -703,30 +703,27 @@ func isInfix(node ast.Expression) *ast.InfixExpression {
 	return nil
 }
 
-func (c *Compiler) compileSliceWithStep(node *ast.IndexExpression) (ok bool, err error) {
+func (c *Compiler) compileSliceWithStep(node *ast.InfixExpression) (ok bool, err error) {
 	// If left is an infix expression with range as the operator
 	// and this operator is a range operator
 	// Then we have to build a slice with end
 	ok = false
 	err = nil
 	compileLeft := false
-	indexAsInfix := isInfix(node.Index)
-	if indexAsInfix != nil {
-		leftSide := isInfix(indexAsInfix.Left)
-		if leftSide != nil {
-			if leftSide.Operator == ".." || leftSide.Operator == "..<" {
-				compileLeft = true
-			}
+	leftSide := isInfix(node.Left)
+	if leftSide != nil {
+		if leftSide.Operator == ".." || leftSide.Operator == "..<" {
+			compileLeft = true
 		}
-		if compileLeft && indexAsInfix.Operator == ".." {
-			err = c.Compile(leftSide)
-			if err != nil {
-				return
-			}
-			err = c.Compile(indexAsInfix.Right)
-			if err == nil {
-				ok = true
-			}
+	}
+	if compileLeft && node.Operator == ".." {
+		err = c.Compile(leftSide)
+		if err != nil {
+			return
+		}
+		err = c.Compile(node.Right)
+		if err == nil {
+			ok = true
 		}
 	}
 	return
@@ -737,7 +734,8 @@ func (c *Compiler) compileSliceExpression(node *ast.IndexExpression) error {
 	if err != nil {
 		return err
 	}
-	ok, err := c.compileSliceWithStep(node)
+	infixExpr := node.Index.(*ast.InfixExpression)
+	ok, err := c.compileSliceWithStep(infixExpr)
 	if ok && err == nil {
 		c.emit(code.OpSlice, 2)
 		return nil
