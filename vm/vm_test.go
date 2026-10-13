@@ -773,17 +773,6 @@ func TestForLoops(t *testing.T) {
 	runVmTests(t, tests)
 }
 
-func TestMatchExpressions(t *testing.T) {
-	// Match expressions are tested via integration tests in b_test_programs/
-	// This test verifies the VM can handle the basic case
-	t.Skip("match expressions tested via integration tests")
-}
-
-func TestNestedFunctions(t *testing.T) {
-	// Nested function tests are covered by TestCallingFunctionsWithBindings in the existing tests
-	// which already test closures with makeAdder-style patterns
-}
-
 func TestErrorCases(t *testing.T) {
 	tests := []vmTestCase{
 		{`fun() { 1; }(1)`, `wrong number of arguments: want=0, got=1`},
@@ -830,7 +819,75 @@ func TestListOperations(t *testing.T) {
 }
 
 func TestSliceOperations(t *testing.T) {
-	// Slice operations are tested via integration tests in b_test_programs/
+	tests := []struct {
+		input string
+		want  string
+	}{
+		// Lists
+		{`[1, 2, 3, 4, 5][1..3]`, `[2, 3]`},
+		{`[1, 2, 3, 4, 5][1..<4]`, `[2, 3]`},
+		{`[1, 2, 3, 4, 5][1..4]`, `[2, 3, 4]`},
+		{`[1, 2, 3, 4, 5][0..5]`, `[1, 2, 3, 4, 5]`},
+		{`[1, 2, 3, 4, 5][0..0]`, `[]`},
+		{`[1, 2, 3, 4, 5][5..5]`, `[]`},
+		{`[1, 2, 3][3..3]`, `[]`},
+		{`[1, 2, 3][2..1]`, `[]`},
+		// Stepped slices
+		{`[1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..10..3]`, `[1, 4, 7, 10]`},
+		{`[1, 2, 3, 4, 5, 6, 7, 8, 9, 10][1..9..2]`, `[2, 4, 6, 8]`},
+		{`[1, 2, 3, 4, 5][0..<5..2]`, `[1, 3]`},
+		{`val r = 1..20; r[0..<20..2]`, `[1, 3, 5, 7, 9, 11, 13, 15, 17, 19]`},
+		// Strings (indexed by rune, not byte)
+		{`'abcdef'[1..3]`, `bc`},
+		{`'abcdef'[1..<4]`, `bc`},
+		{`'abcdef'[1..4]`, `bcd`},
+		{`'abcdef'[0..6]`, `abcdef`},
+		{`'abcdef'[0..0]`, ``},
+		{`'abcdef'[6..6]`, ``},
+		{`'abcdef'[0..6..2]`, `ace`},
+		{`'abcdef'[1..6..3]`, `be`},
+		{`'héllo'[0..2]`, `hé`},
+		{`'héllo'[1..3]`, `él`},
+		{`'héllo'[0..5..2]`, `hlo`},
+		// Sets preserve insertion order
+		{`{1, 2, 3, 4, 5}[1..3]`, `{2, 3}`},
+		{`{1, 2, 3, 4, 5}[1..<4]`, `{2, 3}`},
+		{`{1, 2, 3, 4, 5, 6}[0..6..2]`, `{1, 3, 5}`},
+		{`{1, 2, 3}[3..3]`, `{}`},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestSliceErrors(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		// Out-of-bounds start/stop
+		{`[1, 2, 3][0..10]`, `slice index out of bounds. 0, 10 for len 3`},
+		{`[1, 2, 3][-1..2]`, `slice index out of bounds. -1, 2 for len 3`},
+		{`'abc'[0..5]`, `slice index out of bounds. 0, 5 for len 3`},
+		{`'abc'[-1..2]`, `slice index out of bounds. -1, 2 for len 3`},
+		{`{1, 2, 3}[0..10]`, `slice index out of bounds. 0, 10 for len 3`},
+		// Non-integer bounds are errors, not Go interface-conversion panics
+		{`[1, 2, 3][1.5..2]`, `slice cannot be created with start index type: FLOAT`},
+		{`[1, 2, 3][0..2.5]`, `slice cannot be created with stop index type: FLOAT`},
+		{`[1, 2, 3][[1]..2]`, `slice cannot be created with start index type: LIST`},
+		{`[1, 2, 3][0..[2]]`, `slice cannot be created with stop index type: LIST`},
+		// Bad steps are errors, not a hang (0) or a Go index panic (negative)
+		{`[1, 2, 3][0..2..0]`, `slice cannot be created with a step size of 0`},
+		{`[1, 2, 3][0..2..-1]`, `slice cannot be created with a negative step size: -1`},
+		{`[1, 2, 3][0..2..1.5]`, `slice cannot be created with step size type: FLOAT`},
+		// Only list, set and string are sliceable
+		{`5[0..1]`, `slice cannot be created with type: INTEGER`},
+	}
+	for _, tt := range tests {
+		runExpectVmError(t, tt.input, tt.want)
+	}
 }
 
 func TestDefaultArgs(t *testing.T) {

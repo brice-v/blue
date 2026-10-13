@@ -534,6 +534,12 @@ func (vm *VM) buildSliceFrom(maybeSliceable, start, stop, step object.Object) ob
 	if maybeSliceable.Type() != object.LIST_OBJ && maybeSliceable.Type() != object.STRING_OBJ && maybeSliceable.Type() != object.SET_OBJ {
 		return newError("slice cannot be created with type: %s", maybeSliceable.Type())
 	}
+	if start.Type() != object.INTEGER_OBJ {
+		return newError("slice cannot be created with start index type: %s", start.Type())
+	}
+	if stop.Type() != object.INTEGER_OBJ {
+		return newError("slice cannot be created with stop index type: %s", stop.Type())
+	}
 	if step != nil && step.Type() != object.INTEGER_OBJ {
 		return newError("slice cannot be created with step size type: %s", step.Type())
 	}
@@ -542,6 +548,9 @@ func (vm *VM) buildSliceFrom(maybeSliceable, start, stop, step object.Object) ob
 	stepInt := 1
 	if step != nil {
 		stepInt = int(step.(*object.Integer).Value)
+		if stepInt <= 0 {
+			return newError("slice cannot be created with a step size of %d", stepInt)
+		}
 	}
 	if maybeSliceable.Type() == object.LIST_OBJ {
 		var result []object.Object
@@ -574,16 +583,29 @@ func (vm *VM) buildSliceFrom(maybeSliceable, start, stop, step object.Object) ob
 		if minSliceIndex < 0 || maxSliceIndex > elemLen {
 			return newError("slice index out of bounds. %d, %d for len %d", minSliceIndex, maxSliceIndex, elemLen)
 		}
-		// Slice by byte range of the requested runes instead of copying
-		// the whole string into a []rune first.
-		if sub, ok := object.RuneRange(s, int64(minSliceIndex), int64(maxSliceIndex)); ok {
-			return object.NewString(sub)
+		if stepInt == 1 {
+			// Slice by byte range of the requested runes instead of copying
+			// the whole string into a []rune first.
+			if sub, ok := object.RuneRange(s, int64(minSliceIndex), int64(maxSliceIndex)); ok {
+				return object.NewString(sub)
+			}
+			// Invalid UTF-8 in the window: reproduce the previous []rune
+			// slicing behavior exactly.
+			sliceable := []rune(s)
+			result := sliceable[minSliceIndex:maxSliceIndex]
+			return &object.Stringo{Value: string(result)}
 		}
-		// Out-of-range indexes: reproduce the previous []rune slicing
-		// behavior (including its panic) exactly.
-		sliceable := []rune(s)
-		result := sliceable[minSliceIndex:maxSliceIndex]
-		return &object.Stringo{Value: string(result)}
+		// Stepped slice: walk the selected runes one at a time so strings honor
+		// the step the same way lists and sets do.
+		var b strings.Builder
+		for i := minSliceIndex; i < maxSliceIndex; i += stepInt {
+			sub, ok := object.RuneAtIndex(s, int64(i))
+			if !ok {
+				break
+			}
+			b.WriteString(sub)
+		}
+		return object.NewString(b.String())
 	}
 }
 

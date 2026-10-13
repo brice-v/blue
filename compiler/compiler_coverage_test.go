@@ -954,19 +954,45 @@ arr[0];
 }
 
 func TestSliceExpression(t *testing.T) {
-	// Just verify compilation doesn't panic
-	program := parse(`
-var arr = [1, 2, 3, 4, 5];
-arr[1..3];
-`)
-	compiler := New()
-	err := compiler.Compile(program)
-	if err != nil {
-		t.Fatalf("compiler error: %s", err)
+	inputs := []string{
+		"[1, 2, 3, 4, 5][1..3]",
+		"[1, 2, 3, 4, 5][1..<4]",
+		"[1, 2, 3, 4, 5][1..4..2]",
+		"[1, 2, 3, 4, 5][1..<4..2]",
+		"[1, 2, 3, 4, 5][0..<5..2]",
+		"val r = 1..20; r[0..<20..2]",
 	}
-	bc := compiler.Bytecode()
-	if len(bc.Instructions) == 0 {
-		t.Error("expected non-empty instructions")
+	for _, input := range inputs {
+		program := parse(input)
+		compiler := New()
+		if err := compiler.Compile(program); err != nil {
+			t.Errorf("compiler error for %q: %s", input, err)
+			continue
+		}
+		if len(compiler.Bytecode().Instructions) == 0 {
+			t.Errorf("%q produced empty instructions", input)
+		}
+	}
+}
+
+func TestSliceHalfOpenRangeLowersToMinusOne(t *testing.T) {
+	constantsOf := func(input string) []object.Object {
+		t.Helper()
+		compiler := New()
+		if err := compiler.Compile(parse(input)); err != nil {
+			t.Fatalf("compiler error for %q: %s", input, err)
+		}
+		return compiler.Bytecode().Constants
+	}
+
+	open := constantsOf("[1, 2, 3, 4, 5][1..4]")
+	halfOpen := constantsOf("[1, 2, 3, 4, 5][1..<4]")
+	if len(halfOpen) != len(open)+1 {
+		t.Fatalf("[1, 2, 3, 4, 5][1..<4] should append one constant over [1, 2, 3, 4, 5][1..4]: got %d vs %d", len(halfOpen), len(open))
+	}
+	last, ok := halfOpen[len(halfOpen)-1].(*object.Integer)
+	if !ok || last.Value != 1 {
+		t.Fatalf("[1, 2, 3, 4, 5][1..<4] should append integer 1 (stop - 1), got %#v", halfOpen[len(halfOpen)-1])
 	}
 }
 

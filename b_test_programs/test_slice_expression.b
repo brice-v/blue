@@ -35,6 +35,19 @@ assert(y2 == z2);
 assert(yy2 == z2);
 
 
+val y3 = aa[0..10..3];
+val yy3 = aa[0..<10..3];
+val z3 = 'adgj';
+val zz3 = 'adg';
+
+assert(y3 == z3);
+assert(yy3 == zz3);
+
+val y4 = a[0..10..3];
+val z4 = {1, 4, 7, 10};
+
+assert(y4 == z4);
+
 val xx = 1..20;
 val yt = xx[0..10]
 val zt = xx[0..<20..2]
