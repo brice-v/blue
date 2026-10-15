@@ -7,9 +7,13 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/big"
+	"sort"
 	"time"
 
+	"github.com/duckdb/duckdb-go/v2"
 	"github.com/golang-module/carbon/v2"
+	"github.com/shopspring/decimal"
 	_ "modernc.org/sqlite"
 )
 
@@ -315,6 +319,46 @@ func createObjectFromDbInterface(input any) Object {
 	case time.Time:
 		// TODO: Return time.Time as GoObj if this starts to be better supported
 		return &Stringo{Value: carbon.CreateFromStdTime(x).ToDateTimeMilliString()}
+	case duckdb.Decimal:
+		// TODO: This is potentially inefficient
+		bf, err := decimal.NewFromString(x.String())
+		if err != nil {
+			return newError("decimal conversion error: %s", err.Error())
+		}
+		return &BigFloat{Value: bf}
+	case *big.Int:
+		return &BigInteger{Value: x}
+	case []any:
+		objs := &List{Elements: make([]Object, len(x))}
+		for i, e := range x {
+			objs.Elements[i] = createObjectFromDbInterface(e)
+		}
+		return objs
+	case duckdb.OrderedMap:
+		m := &Map{Pairs: NewPairsMapWithSize(x.Len())}
+		for _, k := range x.Keys() {
+			kAsObj := createObjectFromDbInterface(k)
+			v, _ := x.Get(k)
+			vAsObj := createObjectFromDbInterface(v)
+			hk := HashKey{Type: kAsObj.Type(), Value: HashObject(kAsObj)}
+			m.Pairs.Set(hk, MapPair{Key: kAsObj, Value: vAsObj})
+		}
+		return m
+	case map[string]any:
+		m := &Map{Pairs: NewPairsMapWithSize(len(x))}
+		keys := []string{}
+		for k := range x {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			v := x[k]
+			vv := createObjectFromDbInterface(v)
+			kk := &Stringo{Value: k}
+			hk := HashKey{Type: STRING_OBJ, Value: HashObject(kk)}
+			m.Pairs.Set(hk, MapPair{Key: kk, Value: vv})
+		}
+		return m
 	case nil:
 		return NULL
 	default:
