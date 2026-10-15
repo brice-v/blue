@@ -3617,3 +3617,19 @@ func TestParseStdLibFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestParseErrorForUnterminatedStringInterp(t *testing.T) {
+	input := `println("value=#{1+1");`
+	l := lexer.New(input, "<internal:test>")
+	p := New(l)
+	p.ParseProgram()
+
+	if len(p.errors) == 0 {
+		t.Fatal("expected parser errors for unterminated string interp")
+	}
+	got := p.errors[0].Message
+	expected := "unterminated string interpolation, expected }"
+	if got != expected {
+		t.Fatalf("parser error missing: want = %q, got=%q", expected, got)
+	}
+}

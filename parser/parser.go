@@ -2291,9 +2291,14 @@ func (p *Parser) parseStringInterpolationValues(value string) ([]ast.Expression,
 		if sl.ch == '#' && sl.peekChar() == '{' {
 			sl.readStringChar()
 			sl.readStringChar()
-			for sl.ch != '}' {
+			// TODO: Bug here, if we hit a } in a string or something it will close interpolation string early
+			for sl.ch != '}' && sl.ch != 0 {
 				toLex.WriteRune(sl.ch)
 				sl.readStringChar()
+			}
+			if sl.ch == 0 {
+				p.error("unterminated string interpolation, expected }", p.curToken)
+				break
 			}
 		}
 		if sl.ch == '}' {
