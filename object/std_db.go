@@ -9,6 +9,8 @@ import (
 	"log"
 	"math/big"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/duckdb/duckdb-go/v2"
@@ -213,13 +215,6 @@ var DbBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`db_query` error: %s", err.Error())
 			}
-			// Get Types to properly scan
-			// https://www.sqlite.org/datatype3.html
-			// NULL. The value is a NULL value.
-			// INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
-			// REAL. The value is a floating point value, stored as an 8-byte IEEE floating point number.
-			// TEXT. The value is a text string, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
-			// BLOB. The value is a blob of data, stored exactly as it was input.
 			cols := make([]any, len(colNames))
 			colPtrs := make([]any, len(colNames))
 			for i := range colNames {
@@ -227,6 +222,14 @@ var DbBuiltins = []*Builtin{
 			}
 			returnList := &List{
 				Elements: []Object{},
+			}
+			colTypes, err := rows.ColumnTypes()
+			if err != nil {
+				return newError("`db_query` error: %s", err.Error())
+			}
+			colDbTypes := make([]dbColumnType, len(colTypes))
+			for index := range colTypes {
+				colDbTypes[index] = dbColumnTypeFor(colTypes, index)
 			}
 			for rows.Next() {
 				err = rows.Scan(colPtrs...)
@@ -241,7 +244,7 @@ var DbBuiltins = []*Builtin{
 					rowMap = NewOrderedMap[string, Object]()
 				}
 				for idx, e := range cols {
-					obj := createObjectFromDbInterface(e)
+					obj := createObjectFromDbInterface(e, colDbTypes[idx])
 					if !isNamedCols {
 						rowList.Elements[idx] = obj
 					} else {
@@ -288,7 +291,141 @@ func getArgsAsGoObjs(name string, l []Object) ([]any, error) {
 	return args, nil
 }
 
-func createObjectFromDbInterface(input any) Object {
+type dbColumnType uint8
+
+const (
+	dbColUnknown dbColumnType = iota
+	dbColInt
+	dbColUInt
+	dbColBigInt
+	dbColFloat
+	dbColString
+	dbColUUID
+	dbColBool
+	dbColBytes
+	dbColList
+	dbColMap
+)
+
+func dbColumnTypeFor(colTypes []*sql.ColumnType, index int) dbColumnType {
+	if index < 0 || index >= len(colTypes) {
+		return dbColUnknown
+	}
+	return parseDbColumnTypeName(colTypes[index].DatabaseTypeName())
+}
+
+func parseDbColumnTypeName(typeName string) dbColumnType {
+	name := strings.ToUpper(strings.TrimSpace(typeName))
+	if strings.HasSuffix(name, "]") {
+		return dbColList
+	}
+	base := name
+	if i := strings.IndexByte(base, '('); i != -1 {
+		base = strings.TrimSpace(base[:i])
+	}
+	switch base {
+	case "TINYINT", "SMALLINT", "INT2", "INTEGER", "INT", "INT4", "SIGNED",
+		"BIGINT", "INT8", "LONG", "MEDIUMINT", "SERIAL", "SMALLSERIAL", "BIGSERIAL":
+		return dbColInt
+	case "UTINYINT", "USMALLINT", "UINTEGER", "UINT", "UINT8", "UINT16", "UINT32":
+		return dbColUInt
+	case "HUGEINT", "UHUGEINT", "UBIGINT", "UINT64", "BIGNUM":
+		return dbColBigInt
+	case "DECIMAL", "NUMERIC", "DEC":
+		return decimalColumnType(name)
+	case "FLOAT", "REAL", "FLOAT4", "DOUBLE", "FLOAT8", "DOUBLE PRECISION":
+		return dbColFloat
+	case "BOOLEAN", "BOOL":
+		return dbColBool
+	case "BLOB", "BYTEA", "BINARY", "VARBINARY", "BYTES":
+		return dbColBytes
+	case "UUID":
+		return dbColUUID
+	case "VARCHAR", "TEXT", "STRING", "CHAR", "CHARACTER", "CHARACTER VARYING",
+		"CLOB", "CITEXT", "BIT", "JSON", "JSONB", "ENUM",
+		"DATE", "TIME", "TIME_NS", "TIMETZ", "DATETIME", "TIMESTAMP",
+		"TIMESTAMPTZ", "TIMESTAMP_S", "TIMESTAMP_MS", "TIMESTAMP_NS", "INTERVAL":
+		return dbColString
+	case "STRUCT", "MAP":
+		return dbColMap
+	case "LIST", "ARRAY":
+		return dbColList
+	}
+	return dbColUnknown
+}
+
+func decimalColumnType(name string) dbColumnType {
+	width, scale, ok := parseDecimalParams(name)
+	if ok && scale == 0 && width > 18 {
+		return dbColBigInt
+	}
+	return dbColFloat
+}
+
+func parseDecimalParams(name string) (width, scale int, ok bool) {
+	open := strings.IndexByte(name, '(')
+	end := strings.IndexByte(name, ')')
+	if open == -1 || end <= open {
+		return 0, 0, false
+	}
+	parts := strings.Split(name[open+1:end], ",")
+	width, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil {
+		return 0, 0, false
+	}
+	if len(parts) < 2 {
+		return width, 0, true
+	}
+	scale, err = strconv.Atoi(strings.TrimSpace(parts[1]))
+	if err != nil {
+		return 0, 0, false
+	}
+	return width, scale, true
+}
+
+func createObjectFromDbInterface(input any, dt dbColumnType) Object {
+	if input == nil {
+		return NULL
+	}
+	switch dt {
+	case dbColString:
+		if b, ok := input.([]byte); ok {
+			return NewString(string(b))
+		}
+	case dbColUUID:
+		switch x := input.(type) {
+		case []byte:
+			if len(x) != 16 {
+				return NewString(string(x))
+			}
+			var id duckdb.UUID
+			copy(id[:], x)
+			return NewString(id.String())
+		case string:
+			return NewString(x)
+		}
+	case dbColBigInt:
+		switch x := input.(type) {
+		case uint64:
+			return &BigInteger{Value: new(big.Int).SetUint64(x)}
+		case uint32:
+			return &BigInteger{Value: new(big.Int).SetUint64(uint64(x))}
+		case duckdb.Decimal:
+			return &BigInteger{Value: new(big.Int).Set(x.Value)}
+		case string:
+			if bi, ok := new(big.Int).SetString(x, 10); ok {
+				return &BigInteger{Value: bi}
+			}
+		}
+	case dbColFloat:
+		if x, ok := input.(duckdb.Decimal); ok {
+			return &Float{Value: x.Float64()}
+		}
+	case dbColBool:
+		if x, ok := input.(int64); ok {
+			return &Boolean{Value: x != 0}
+		}
+	}
 	switch x := input.(type) {
 	case int64:
 		return NewInteger(x)
@@ -331,15 +468,15 @@ func createObjectFromDbInterface(input any) Object {
 	case []any:
 		objs := &List{Elements: make([]Object, len(x))}
 		for i, e := range x {
-			objs.Elements[i] = createObjectFromDbInterface(e)
+			objs.Elements[i] = createObjectFromDbInterface(e, dbColUnknown)
 		}
 		return objs
 	case duckdb.OrderedMap:
 		m := &Map{Pairs: NewPairsMapWithSize(x.Len())}
 		for _, k := range x.Keys() {
-			kAsObj := createObjectFromDbInterface(k)
+			kAsObj := createObjectFromDbInterface(k, dbColUnknown)
 			v, _ := x.Get(k)
-			vAsObj := createObjectFromDbInterface(v)
+			vAsObj := createObjectFromDbInterface(v, dbColUnknown)
 			hk := HashKey{Type: kAsObj.Type(), Value: HashObject(kAsObj)}
 			m.Pairs.Set(hk, MapPair{Key: kAsObj, Value: vAsObj})
 		}
@@ -353,14 +490,21 @@ func createObjectFromDbInterface(input any) Object {
 		sort.Strings(keys)
 		for _, k := range keys {
 			v := x[k]
-			vv := createObjectFromDbInterface(v)
+			vv := createObjectFromDbInterface(v, dbColUnknown)
 			kk := &Stringo{Value: k}
 			hk := HashKey{Type: STRING_OBJ, Value: HashObject(kk)}
 			m.Pairs.Set(hk, MapPair{Key: kk, Value: vv})
 		}
 		return m
-	case nil:
-		return NULL
+	case duckdb.Union:
+		return createObjectFromDbInterface(x.Value, dbColUnknown)
+	case duckdb.Interval:
+		m := NewOrderedMapWithSize[string, Object](3)
+		m.Set("days", NewInteger(int64(x.Days)))
+		m.Set("micros", NewInteger(x.Micros))
+		m.Set("months", NewInteger(int64(x.Months)))
+		m.Set("t", NewString("duckdb.Interval"))
+		return CreateMapObjectForGoMap(*m)
 	default:
 		panic("Unsupported type in CreateObjectFromDbInterface: " + fmt.Sprintf("%T", x))
 		// TODO: return nil once everything supported properly

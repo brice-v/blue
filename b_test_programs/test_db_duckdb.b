@@ -418,7 +418,7 @@ val BYTES_CASES = [
 val OTHER_SCALAR_CASES = [
     {label: 'UUID',   sql_type: 'UUID',   literal: "'123e4567-e89b-12d3-a456-426614174000'", want_type: Type.STRING, want: '123e4567-e89b-12d3-a456-426614174000'},
     {label: 'BIT',    sql_type: 'BIT',    literal: "'1010'", want_type: Type.STRING, want: '1010'},
-    {label: 'JSON',   sql_type: 'JSON',   literal: '{"a": 1}', want_type: Type.STRING, want: '{"a":1}'},
+    {label: 'JSON',   sql_type: 'JSON',   literal: '{"a": 1}', want_type: Type.MAP, want: {a: 1.0}},
     {label: 'ENUM',   sql_type: "ENUM('ok','bad')", literal: "'ok'", want_type: Type.STRING, want: 'ok'},
     {label: 'BIGNUM', sql_type: 'BIGNUM', literal: "'123456789012345678901234567890'", want_type: Type.BIGINT, want: 123456789012345678901234567890},
     # NULL is not really a datatype, it behaves like 'any'
