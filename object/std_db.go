@@ -448,7 +448,12 @@ func createObjectFromDbInterface(input any, dt dbColumnType) Object {
 	case float64:
 		return &Float{Value: x}
 	case float32:
-		return &Float{Value: float64(x)}
+		s := strconv.FormatFloat(float64(x), 'g', -1, 32)
+		f, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return newError("float conversion error: %s", err.Error())
+		}
+		return &Float{Value: f}
 	case []byte:
 		return &Bytes{Value: x}
 	case bool:
