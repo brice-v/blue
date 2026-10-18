@@ -305,6 +305,8 @@ const (
 	dbColBytes
 	dbColList
 	dbColMap
+	dbColDate
+	dbColStruct
 )
 
 func dbColumnTypeFor(colTypes []*sql.ColumnType, index int) dbColumnType {
@@ -343,10 +345,14 @@ func parseDbColumnTypeName(typeName string) dbColumnType {
 		return dbColUUID
 	case "VARCHAR", "TEXT", "STRING", "CHAR", "CHARACTER", "CHARACTER VARYING",
 		"CLOB", "CITEXT", "BIT", "JSON", "JSONB", "ENUM",
-		"DATE", "TIME", "TIME_NS", "TIMETZ", "DATETIME", "TIMESTAMP",
+		"TIME", "TIME_NS", "TIMETZ", "DATETIME", "TIMESTAMP",
 		"TIMESTAMPTZ", "TIMESTAMP_S", "TIMESTAMP_MS", "TIMESTAMP_NS", "INTERVAL":
 		return dbColString
-	case "STRUCT", "MAP":
+	case "DATE":
+		return dbColDate
+	case "STRUCT":
+		return dbColStruct
+	case "MAP":
 		return dbColMap
 	case "LIST", "ARRAY":
 		return dbColList
@@ -425,6 +431,34 @@ func createObjectFromDbInterface(input any, dt dbColumnType) Object {
 		if x, ok := input.(int64); ok {
 			return &Boolean{Value: x != 0}
 		}
+	case dbColDate:
+		switch x := input.(type) {
+		case time.Time:
+			return NewString(carbon.CreateFromStdTime(x).ToDateString())
+		case []byte:
+			return NewString(string(x))
+		case string:
+			return NewString(x)
+		}
+	case dbColStruct:
+		if x, ok := input.(map[string]any); ok {
+			keys := make([]string, 0, len(x))
+			for k := range x {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			fields := make([]string, len(keys))
+			values := make([]Object, len(keys))
+			for i, k := range keys {
+				fields[i] = k
+				values[i] = createObjectFromDbInterface(x[k], dbColUnknown)
+			}
+			obj, err := NewBlueStruct(fields, values)
+			if err != nil {
+				return newError("struct conversion error: %s", err.Error())
+			}
+			return obj
+		}
 	}
 	switch x := input.(type) {
 	case int64:
@@ -444,7 +478,7 @@ func createObjectFromDbInterface(input any, dt dbColumnType) Object {
 	case uint8:
 		return &UInteger{Value: uint64(x)}
 	case string:
-		return &Stringo{Value: x}
+		return NewString(x)
 	case float64:
 		return &Float{Value: x}
 	case float32:

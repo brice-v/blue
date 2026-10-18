@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func httpBuiltinFn(t *testing.T, name string) BuiltinFunction {
@@ -152,9 +154,9 @@ func TestNewServerStaticMonitor(t *testing.T) {
 	monitorFn := httpBuiltinFn(t, "_handle_monitor")
 
 	appRes := newServerFn(&Stringo{Value: "tcp"})
-	app, ok := appRes.(*GoObj[*Server])
+	app, ok := appRes.(*GoObj[*fiber.App])
 	if !ok {
-		t.Fatalf("new_server returned %T, want GoObj[*Server]", appRes)
+		t.Fatalf("new_server returned %T, want GoObj[*fiber.App]", appRes)
 	}
 
 	tmp := t.TempDir()
@@ -255,7 +257,7 @@ func TestSanitizeAndMinifyBuiltin(t *testing.T) {
 }
 
 func TestWsAndMiscTypeErrors(t *testing.T) {
-	newServerApp := httpBuiltinFn(t, "_new_server")(&Stringo{Value: "tcp"}).(*GoObj[*Server])
+	newServerApp := httpBuiltinFn(t, "_new_server")(&Stringo{Value: "tcp"}).(*GoObj[*fiber.App])
 
 	for _, name := range []string{"_ws_send", "_ws_recv", "_ws_client_send", "_ws_client_recv"} {
 		fn := httpBuiltinFn(t, name)
@@ -269,10 +271,10 @@ func TestWsAndMiscTypeErrors(t *testing.T) {
 		}
 	}
 	runBuiltinTestsFor(t, HttpBuiltins, "_ws_send", []builtinTestCase{
-		{name: "value wrong type", args: []Object{NewGoObj((*Server)(nil)), TRUE}, err: "PositionalTypeError"},
+		{name: "value wrong type", args: []Object{NewGoObj((*fiber.App)(nil)), TRUE}, err: "PositionalTypeError"},
 	})
 	runBuiltinTestsFor(t, HttpBuiltins, "_ws_client_send", []builtinTestCase{
-		{name: "value wrong type", args: []Object{NewGoObj((*Server)(nil)), in(5)}, err: "PositionalTypeError"},
+		{name: "value wrong type", args: []Object{NewGoObj((*fiber.App)(nil)), in(5)}, err: "PositionalTypeError"},
 	})
 	badDial := httpBuiltinFn(t, "_new_ws")(&Stringo{Value: "http://127.0.0.1:1/ws"})
 	if _, isErr := badDial.(*Error); !isErr {
@@ -282,7 +284,7 @@ func TestWsAndMiscTypeErrors(t *testing.T) {
 		{name: "not a string", args: []Object{in(1)}, err: "PositionalTypeError"},
 	})
 	runBuiltinTestsFor(t, HttpBuiltins, "_inspect", []builtinTestCase{
-		{name: "unknown type", args: []Object{NewGoObj((*Server)(nil)), &Stringo{Value: "nope"}}, err: "expects type of 'ws'|'ws/client'"},
+		{name: "unknown type", args: []Object{NewGoObj((*fiber.App)(nil)), &Stringo{Value: "nope"}}, err: "expects type of 'ws'|'ws/client'"},
 		{name: "not goobj", args: []Object{in(1), &Stringo{Value: "ws"}}, err: "PositionalTypeError"},
 	})
 	runBuiltinTestsFor(t, HttpBuiltins, "_shutdown_server", []builtinTestCase{
