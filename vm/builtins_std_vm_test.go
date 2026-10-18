@@ -15,6 +15,7 @@ import (
 	"blue/object"
 	"blue/parser"
 
+	"github.com/gofiber/fiber/v2"
 	ws "github.com/gorilla/websocket"
 )
 
@@ -39,11 +40,11 @@ func compileClosure(t *testing.T, input string) (*object.Closure, *VM) {
 }
 
 func TestHandleWsPassesRouteParams(t *testing.T) {
-	s := object.NewServer()
+	app := fiber.New()
 	cl, vm := compileClosure(t, `fun(ws, room) { room }`)
 
 	builtin := createHttpHandleWSBuiltin(vm)
-	res := builtin.Fun(object.NewGoObj(s), &object.Stringo{Value: "/ws/:room"}, cl)
+	res := builtin.Fun(object.NewGoObj(app), &object.Stringo{Value: "/ws/:room"}, cl)
 	if isError(res) {
 		t.Fatalf("handle_ws error: %s", res.(*object.Error).Message)
 	}
@@ -52,9 +53,8 @@ func TestHandleWsPassesRouteParams(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := &http.Server{Handler: s}
-	go func() { _ = srv.Serve(ln) }()
-	defer func() { _ = srv.Close() }()
+	go func() { _ = app.Listener(ln) }()
+	defer func() { _ = app.Shutdown() }()
 
 	oldStdout := os.Stdout
 	r, w, err := os.Pipe()
@@ -80,11 +80,11 @@ func TestHandleWsPassesRouteParams(t *testing.T) {
 }
 
 func TestHttpRequestHandlersAreSerialized(t *testing.T) {
-	s := object.NewServer()
+	app := fiber.New()
 	cl, vm := compileClosure(t, `fun() { 123 }`)
 
 	builtin := createHttpHandleBuiltin(vm, false)
-	res := builtin.Fun(object.NewGoObj(s), &object.Stringo{Value: "/n"}, cl, &object.Stringo{Value: "GET"})
+	res := builtin.Fun(object.NewGoObj(app), &object.Stringo{Value: "/n"}, cl, &object.Stringo{Value: "GET"})
 	if isError(res) {
 		t.Fatalf("handle error: %s", res.(*object.Error).Message)
 	}
@@ -96,9 +96,12 @@ func TestHttpRequestHandlersAreSerialized(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			rec := httptest.NewRecorder()
-			s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/n", nil))
-			codes[i] = rec.Code
+			resp, err := app.Test(httptest.NewRequest(http.MethodGet, "/n", nil))
+			if err != nil {
+				t.Errorf("request %d errored: %s", i, err)
+				return
+			}
+			codes[i] = resp.StatusCode
 		}(i)
 	}
 	wg.Wait()
