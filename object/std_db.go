@@ -227,9 +227,61 @@ var DbBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`db_query` error: %s", err.Error())
 			}
-			colDbTypes := make([]dbColumnType, len(colTypes))
+			// Some duckdb types (e.g. TIME_NS) are not scannable by the
+			// driver. Detect those columns and re-run the query with them
+			// cast to VARCHAR so the row can still be scanned.
+			unsupported := make([]bool, len(colTypes))
+			hasUnsupported := false
+			for index := range colTypes {
+				if colTypes[index].ScanType() == nil && strings.TrimSpace(colTypes[index].DatabaseTypeName()) == "" {
+					unsupported[index] = true
+					hasUnsupported = true
+				}
+			}
+			if hasUnsupported {
+				rows.Close()
+				// rebuild query wrapping original
+				selectParts := make([]string, len(colNames))
+				for index := range colNames {
+					qn := `"` + strings.ReplaceAll(colNames[index], `"`, `""`) + `"`
+					if unsupported[index] {
+						selectParts[index] = `CAST(` + qn + ` AS VARCHAR) AS ` + qn
+					} else {
+						selectParts[index] = qn
+					}
+				}
+				wrapped := "SELECT " + strings.Join(selectParts, ", ") + " FROM (" + s + ") AS _blue_subq"
+				var rows2 *sql.Rows
+				var err2 error
+				if len(l) >= 1 {
+					execArgs, err1 := getArgsAsGoObjs("db_query", l)
+					if err1 != nil {
+						return newError("%s", err1.Error())
+					}
+					rows2, err2 = db.Value.Query(wrapped, execArgs...)
+				} else {
+					rows2, err2 = db.Value.Query(wrapped)
+				}
+				if err2 != nil {
+					return newError("`db_query` error: %s", err2.Error())
+				}
+				rows = rows2
+				colNames2, err := rows.Columns()
+				if err != nil {
+					return newError("`db_query` error: %s", err.Error())
+				}
+				colNames = colNames2
+				colTypes, err = rows.ColumnTypes()
+				if err != nil {
+					return newError("`db_query` error: %s", err.Error())
+				}
+			}
+			colDbTypes := make([]dbColumnKind, len(colTypes))
 			for index := range colTypes {
 				colDbTypes[index] = dbColumnTypeFor(colTypes, index)
+				if hasUnsupported && unsupported[index] {
+					colDbTypes[index].name = "TIME_NS"
+				}
 			}
 			for rows.Next() {
 				err = rows.Scan(colPtrs...)
@@ -257,6 +309,9 @@ var DbBuiltins = []*Builtin{
 					returnList.Elements = append(returnList.Elements, CreateMapObjectForGoMap(*rowMap))
 				}
 			}
+			if err := rows.Err(); err != nil {
+				return newError("`db_query` error: %s", err.Error())
+			}
 			return returnList
 		},
 		HelpStr: helpStrArgs{
@@ -276,8 +331,14 @@ func getArgsAsGoObjs(name string, l []Object) ([]any, error) {
 			args[idx] = e.(*Stringo).Value
 		case INTEGER_OBJ:
 			args[idx] = e.(*Integer).Value
+		case UINTEGER_OBJ:
+			args[idx] = e.(*UInteger).Value
+		case BIG_INTEGER_OBJ:
+			args[idx] = e.(*BigInteger).Value
 		case FLOAT_OBJ:
 			args[idx] = e.(*Float).Value
+		case BIG_FLOAT_OBJ:
+			args[idx] = e.(*BigFloat).Value.String()
 		case NULL_OBJ:
 			args[idx] = nil
 		case BOOLEAN_OBJ:
@@ -307,65 +368,234 @@ const (
 	dbColMap
 	dbColDate
 	dbColStruct
+	dbColUnion
 )
 
-func dbColumnTypeFor(colTypes []*sql.ColumnType, index int) dbColumnType {
-	if index < 0 || index >= len(colTypes) {
-		return dbColUnknown
-	}
-	return parseDbColumnTypeName(colTypes[index].DatabaseTypeName())
+type dbColumnKind struct {
+	base       dbColumnType
+	name       string
+	elem       *dbColumnKind
+	fields     []string
+	fieldKinds []*dbColumnKind
+	key        *dbColumnKind
+	val        *dbColumnKind
 }
 
-func parseDbColumnTypeName(typeName string) dbColumnType {
-	name := strings.ToUpper(strings.TrimSpace(typeName))
-	if strings.HasSuffix(name, "]") {
-		return dbColList
+func dbColumnTypeFor(colTypes []*sql.ColumnType, index int) dbColumnKind {
+	if index < 0 || index >= len(colTypes) {
+		return dbColumnKind{base: dbColUnknown}
 	}
+	k := parseDbColumnTypeName(colTypes[index].DatabaseTypeName())
+	if k.name == "" {
+		k.name = strings.TrimSpace(colTypes[index].DatabaseTypeName())
+	}
+	return k
+}
+
+func dbColumnKindFor(colTypes []*sql.ColumnType, index int) dbColumnKind {
+	return dbColumnTypeFor(colTypes, index)
+}
+
+func parseDbColumnTypeName(typeName string) dbColumnKind {
+	return parseDbColumnKind(typeName)
+}
+
+func parseDbColumnKind(typeName string) dbColumnKind {
+	name := strings.TrimSpace(typeName)
+
+	// Peel trailing list/array suffixes: INTEGER[], INTEGER[3], STRUCT(...)[], INTEGER[][] ...
+	if strings.HasSuffix(name, "]") {
+		open := strings.LastIndexByte(name, '[')
+		if open != -1 && open < len(name)-1 {
+			inner := strings.TrimSpace(name[:open])
+			if inner != "" {
+				elem := parseDbColumnKind(inner)
+				return dbColumnKind{base: dbColList, elem: &elem}
+			}
+		}
+	}
+
+	upper := strings.ToUpper(name)
+	if strings.HasPrefix(upper, "STRUCT") {
+		open := strings.IndexByte(name, '(')
+		if open == -1 {
+			return dbColumnKind{base: dbColStruct}
+		}
+		closeIdx := matchingParen(name, open)
+		if closeIdx == -1 {
+			closeIdx = len(name) - 1
+		}
+		body := strings.TrimSpace(name[open+1 : closeIdx])
+		fields := []string{}
+		fieldKinds := []*dbColumnKind{}
+		for _, part := range splitTopLevel(body, ',') {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			var fieldName string
+			var typeStr string
+			if strings.HasPrefix(part, "\"") {
+				// quoted field name
+				i := 1
+				for i < len(part) {
+					if part[i] == '"' {
+						if i+1 < len(part) && part[i+1] == '"' {
+							i += 2
+							continue
+						}
+						break
+					}
+					i++
+				}
+				fieldName = part[1:i]
+				fieldName = strings.ReplaceAll(fieldName, `""`, `"`)
+				typeStr = strings.TrimSpace(part[i+1:])
+			} else {
+				toks := strings.Fields(part)
+				if len(toks) >= 2 {
+					fieldName = toks[0]
+					typeStr = strings.TrimSpace(part[len(toks[0]):])
+				} else {
+					fieldName = ""
+					typeStr = part
+				}
+			}
+			if typeStr == "" {
+				typeStr = "VARCHAR"
+			}
+			fk := parseDbColumnKind(typeStr)
+			fields = append(fields, fieldName)
+			fkCopy := fk
+			fieldKinds = append(fieldKinds, &fkCopy)
+		}
+		return dbColumnKind{base: dbColStruct, fields: fields, fieldKinds: fieldKinds}
+	}
+
+	if strings.HasPrefix(upper, "MAP") {
+		open := strings.IndexByte(name, '(')
+		if open == -1 {
+			return dbColumnKind{base: dbColMap}
+		}
+		closeIdx := matchingParen(name, open)
+		if closeIdx == -1 {
+			closeIdx = len(name) - 1
+		}
+		body := strings.TrimSpace(name[open+1 : closeIdx])
+		parts := splitTopLevel(body, ',')
+		var keyStr, valStr string
+		if len(parts) >= 1 {
+			keyStr = strings.TrimSpace(parts[0])
+		}
+		if len(parts) >= 2 {
+			valStr = strings.TrimSpace(parts[1])
+		}
+		if keyStr == "" {
+			keyStr = "VARCHAR"
+		}
+		if valStr == "" {
+			valStr = "VARCHAR"
+		}
+		kk := parseDbColumnKind(keyStr)
+		vv := parseDbColumnKind(valStr)
+		return dbColumnKind{base: dbColMap, key: &kk, val: &vv}
+	}
+
+	if strings.HasPrefix(upper, "UNION") {
+		open := strings.IndexByte(name, '(')
+		fields := []string{}
+		fieldKinds := []*dbColumnKind{}
+		if open != -1 {
+			closeIdx := matchingParen(name, open)
+			if closeIdx == -1 {
+				closeIdx = len(name) - 1
+			}
+			body := strings.TrimSpace(name[open+1 : closeIdx])
+			for _, part := range splitTopLevel(body, ',') {
+				part = strings.TrimSpace(part)
+				if part == "" {
+					continue
+				}
+				var fieldName string
+				var typeStr string
+				if strings.HasPrefix(part, "\"") {
+					i := 1
+					for i < len(part) {
+						if part[i] == '"' {
+							if i+1 < len(part) && part[i+1] == '"' {
+								i += 2
+								continue
+							}
+							break
+						}
+						i++
+					}
+					fieldName = part[1:i]
+					fieldName = strings.ReplaceAll(fieldName, `""`, `"`)
+					typeStr = strings.TrimSpace(part[i+1:])
+				} else {
+					toks := strings.Fields(part)
+					if len(toks) >= 2 {
+						fieldName = toks[0]
+						typeStr = strings.TrimSpace(part[len(toks[0]):])
+					} else {
+						fieldName = ""
+						typeStr = part
+					}
+				}
+				if typeStr == "" {
+					typeStr = "VARCHAR"
+				}
+				fk := parseDbColumnKind(typeStr)
+				fields = append(fields, fieldName)
+				fkCopy := fk
+				fieldKinds = append(fieldKinds, &fkCopy)
+			}
+		}
+		return dbColumnKind{base: dbColUnion, fields: fields, fieldKinds: fieldKinds}
+	}
+
 	base := name
 	if i := strings.IndexByte(base, '('); i != -1 {
 		base = strings.TrimSpace(base[:i])
 	}
-	switch base {
+	baseUpper := strings.ToUpper(base)
+	switch baseUpper {
 	case "TINYINT", "SMALLINT", "INT2", "INTEGER", "INT", "INT4", "SIGNED",
 		"BIGINT", "INT8", "LONG", "MEDIUMINT", "SERIAL", "SMALLSERIAL", "BIGSERIAL":
-		return dbColInt
+		return dbColumnKind{base: dbColInt}
 	case "UTINYINT", "USMALLINT", "UINTEGER", "UINT", "UINT8", "UINT16", "UINT32":
-		return dbColUInt
+		return dbColumnKind{base: dbColUInt}
 	case "HUGEINT", "UHUGEINT", "UBIGINT", "UINT64", "BIGNUM":
-		return dbColBigInt
+		return dbColumnKind{base: dbColBigInt}
 	case "DECIMAL", "NUMERIC", "DEC":
-		return decimalColumnType(name)
+		if decimalColumnType(name) == dbColBigInt {
+			return dbColumnKind{base: dbColBigInt}
+		}
+		return dbColumnKind{base: dbColFloat}
 	case "FLOAT", "REAL", "FLOAT4", "DOUBLE", "FLOAT8", "DOUBLE PRECISION":
-		return dbColFloat
+		return dbColumnKind{base: dbColFloat}
 	case "BOOLEAN", "BOOL":
-		return dbColBool
+		return dbColumnKind{base: dbColBool}
 	case "BLOB", "BYTEA", "BINARY", "VARBINARY", "BYTES":
-		return dbColBytes
+		return dbColumnKind{base: dbColBytes}
 	case "UUID":
-		return dbColUUID
+		return dbColumnKind{base: dbColUUID}
 	case "VARCHAR", "TEXT", "STRING", "CHAR", "CHARACTER", "CHARACTER VARYING",
 		"CLOB", "CITEXT", "BIT", "JSON", "JSONB", "ENUM",
 		"TIME", "TIME_NS", "TIMETZ", "DATETIME", "TIMESTAMP",
 		"TIMESTAMPTZ", "TIMESTAMP_S", "TIMESTAMP_MS", "TIMESTAMP_NS", "INTERVAL":
-		return dbColString
+		return dbColumnKind{base: dbColString}
 	case "DATE":
-		return dbColDate
+		return dbColumnKind{base: dbColDate}
 	case "STRUCT":
-		return dbColStruct
+		return dbColumnKind{base: dbColStruct}
 	case "MAP":
-		return dbColMap
+		return dbColumnKind{base: dbColMap}
 	case "LIST", "ARRAY":
-		return dbColList
+		return dbColumnKind{base: dbColList}
 	}
-	return dbColUnknown
-}
-
-func decimalColumnType(name string) dbColumnType {
-	width, scale, ok := parseDecimalParams(name)
-	if ok && scale == 0 && width > 18 {
-		return dbColBigInt
-	}
-	return dbColFloat
+	return dbColumnKind{base: dbColUnknown}
 }
 
 func parseDecimalParams(name string) (width, scale int, ok bool) {
@@ -389,14 +619,115 @@ func parseDecimalParams(name string) (width, scale int, ok bool) {
 	return width, scale, true
 }
 
-func createObjectFromDbInterface(input any, dt dbColumnType) Object {
+func decimalColumnType(name string) dbColumnType {
+	width, scale, ok := parseDecimalParams(name)
+	if ok && scale == 0 && width > 18 {
+		return dbColBigInt
+	}
+	return dbColFloat
+}
+
+func matchingParen(s string, start int) int {
+	depth := 0
+	inQuote := false
+	for i := start; i < len(s); i++ {
+		c := s[i]
+		if inQuote {
+			if c == '"' {
+				if i+1 < len(s) && s[i+1] == '"' {
+					i++
+				} else {
+					inQuote = false
+				}
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inQuote = true
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func splitTopLevel(s string, sep byte) []string {
+	var parts []string
+	depth := 0
+	inQuote := false
+	start := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if inQuote {
+			if c == '"' {
+				if i+1 < len(s) && s[i+1] == '"' {
+					i++
+				} else {
+					inQuote = false
+				}
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inQuote = true
+		case '(', '[':
+			depth++
+		case ')', ']':
+			if depth > 0 {
+				depth--
+			}
+		}
+		if depth == 0 && c == sep {
+			parts = append(parts, s[start:i])
+			start = i + 1
+		}
+	}
+	if start <= len(s) {
+		parts = append(parts, s[start:])
+	}
+	return parts
+}
+
+func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 	if input == nil {
 		return NULL
 	}
-	switch dt {
+	switch kind.base {
 	case dbColString:
 		if b, ok := input.([]byte); ok {
 			return NewString(string(b))
+		}
+		if t, ok := input.(time.Time); ok {
+			typeName := strings.ToUpper(strings.TrimSpace(kind.name))
+			switch typeName {
+			case "TIME":
+				return NewString(carbon.CreateFromStdTime(t).ToTimeString())
+			case "TIME_NS":
+				return NewString(carbon.CreateFromStdTime(t).ToTimeNanoString())
+			case "TIMETZ":
+				return NewString(t.Format("15:04:05-07"))
+			case "TIMESTAMP":
+				return NewString(carbon.CreateFromStdTime(t).ToDateTimeMicroString())
+			case "TIMESTAMPTZ":
+				return NewString(carbon.CreateFromStdTime(t).ToDateTimeString())
+			case "TIMESTAMP_NS":
+				return NewString(carbon.CreateFromStdTime(t).ToDateTimeNanoString())
+			}
+		}
+		if s, ok := input.(string); ok {
+			typeName := strings.ToUpper(strings.TrimSpace(kind.name))
+			switch typeName {
+			case "TIME_NS":
+				// TIME_NS comes back as a VARCHAR from the driver fallback; keep as-is.
+				return NewString(s)
+			}
 		}
 	case dbColUUID:
 		switch x := input.(type) {
@@ -442,22 +773,116 @@ func createObjectFromDbInterface(input any, dt dbColumnType) Object {
 		}
 	case dbColStruct:
 		if x, ok := input.(map[string]any); ok {
-			keys := make([]string, 0, len(x))
-			for k := range x {
-				keys = append(keys, k)
+			fields := kind.fields
+			fieldKinds := kind.fieldKinds
+			if len(fields) == 0 {
+				keys := make([]string, 0, len(x))
+				for k := range x {
+					keys = append(keys, k)
+				}
+				sort.Strings(keys)
+				fields = keys
+				fieldKinds = make([]*dbColumnKind, len(keys))
+				for i := range fieldKinds {
+					kk := dbColumnKind{base: dbColUnknown}
+					fieldKinds[i] = &kk
+				}
 			}
-			sort.Strings(keys)
-			fields := make([]string, len(keys))
-			values := make([]Object, len(keys))
-			for i, k := range keys {
-				fields[i] = k
-				values[i] = createObjectFromDbInterface(x[k], dbColUnknown)
+			// keep field order stable so struct equality is order independent
+			if len(fields) > 1 {
+				order := make([]int, len(fields))
+				for i := range order {
+					order[i] = i
+				}
+				sort.Slice(order, func(a, b int) bool {
+					return fields[order[a]] < fields[order[b]]
+				})
+				sortedFields := make([]string, len(fields))
+				sortedKinds := make([]*dbColumnKind, len(fields))
+				for i, idx := range order {
+					sortedFields[i] = fields[idx]
+					if idx < len(fieldKinds) {
+						sortedKinds[i] = fieldKinds[idx]
+					}
+				}
+				fields = sortedFields
+				fieldKinds = sortedKinds
+			}
+			values := make([]Object, len(fields))
+			for i, f := range fields {
+				kk := dbColumnKind{base: dbColUnknown}
+				if i < len(fieldKinds) && fieldKinds[i] != nil {
+					kk = *fieldKinds[i]
+				}
+				v, ok := x[f]
+				if !ok || v == nil {
+					values[i] = NULL
+				} else {
+					values[i] = createObjectFromDbInterface(v, kk)
+				}
 			}
 			obj, err := NewBlueStruct(fields, values)
 			if err != nil {
 				return newError("struct conversion error: %s", err.Error())
 			}
 			return obj
+		}
+	case dbColList:
+		if x, ok := input.([]any); ok {
+			objs := &List{Elements: make([]Object, len(x))}
+			ek := dbColumnKind{base: dbColUnknown}
+			if kind.elem != nil {
+				ek = *kind.elem
+			}
+			for i, e := range x {
+				objs.Elements[i] = createObjectFromDbInterface(e, ek)
+			}
+			return objs
+		}
+	case dbColMap:
+		if x, ok := input.(duckdb.OrderedMap); ok {
+			m := &Map{Pairs: NewPairsMapWithSize(x.Len())}
+			kk := dbColumnKind{base: dbColUnknown}
+			if kind.key != nil {
+				kk = *kind.key
+			}
+			vv := dbColumnKind{base: dbColUnknown}
+			if kind.val != nil {
+				vv = *kind.val
+			}
+			for _, k := range x.Keys() {
+				kAsObj := createObjectFromDbInterface(k, kk)
+				v, _ := x.Get(k)
+				vAsObj := createObjectFromDbInterface(v, vv)
+				hk := HashKey{Type: kAsObj.Type(), Value: HashObject(kAsObj)}
+				m.Pairs.Set(hk, MapPair{Key: kAsObj, Value: vAsObj})
+			}
+			return m
+		}
+		if x, ok := input.(map[string]any); ok {
+			m := &Map{Pairs: NewPairsMapWithSize(len(x))}
+			keys := make([]string, 0, len(x))
+			for k := range x {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			vv := dbColumnKind{base: dbColUnknown}
+			if kind.val != nil {
+				vv = *kind.val
+			}
+			for _, k := range keys {
+				v := x[k]
+				vvAsObj := createObjectFromDbInterface(v, vv)
+				kk := &Stringo{Value: k}
+				hk := HashKey{Type: STRING_OBJ, Value: HashObject(kk)}
+				m.Pairs.Set(hk, MapPair{Key: kk, Value: vvAsObj})
+			}
+			return m
+		}
+	case dbColUnion:
+		switch x := input.(type) {
+		case duckdb.Union:
+			return createObjectFromDbInterface(x.Value, dbColumnKind{base: dbColUnknown})
 		}
 	}
 	switch x := input.(type) {
@@ -507,36 +932,36 @@ func createObjectFromDbInterface(input any, dt dbColumnType) Object {
 	case []any:
 		objs := &List{Elements: make([]Object, len(x))}
 		for i, e := range x {
-			objs.Elements[i] = createObjectFromDbInterface(e, dbColUnknown)
+			objs.Elements[i] = createObjectFromDbInterface(e, dbColumnKind{base: dbColUnknown})
 		}
 		return objs
 	case duckdb.OrderedMap:
 		m := &Map{Pairs: NewPairsMapWithSize(x.Len())}
 		for _, k := range x.Keys() {
-			kAsObj := createObjectFromDbInterface(k, dbColUnknown)
+			kAsObj := createObjectFromDbInterface(k, dbColumnKind{base: dbColUnknown})
 			v, _ := x.Get(k)
-			vAsObj := createObjectFromDbInterface(v, dbColUnknown)
+			vAsObj := createObjectFromDbInterface(v, dbColumnKind{base: dbColUnknown})
 			hk := HashKey{Type: kAsObj.Type(), Value: HashObject(kAsObj)}
 			m.Pairs.Set(hk, MapPair{Key: kAsObj, Value: vAsObj})
 		}
 		return m
 	case map[string]any:
 		m := &Map{Pairs: NewPairsMapWithSize(len(x))}
-		keys := []string{}
+		keys := make([]string, 0, len(x))
 		for k := range x {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
 			v := x[k]
-			vv := createObjectFromDbInterface(v, dbColUnknown)
+			vv := createObjectFromDbInterface(v, dbColumnKind{base: dbColUnknown})
 			kk := &Stringo{Value: k}
 			hk := HashKey{Type: STRING_OBJ, Value: HashObject(kk)}
 			m.Pairs.Set(hk, MapPair{Key: kk, Value: vv})
 		}
 		return m
 	case duckdb.Union:
-		return createObjectFromDbInterface(x.Value, dbColUnknown)
+		return createObjectFromDbInterface(x.Value, dbColumnKind{base: dbColUnknown})
 	case duckdb.Interval:
 		m := NewOrderedMapWithSize[string, Object](3)
 		m.Set("days", NewInteger(int64(x.Days)))
@@ -545,7 +970,6 @@ func createObjectFromDbInterface(input any, dt dbColumnType) Object {
 		m.Set("t", NewString("duckdb.Interval"))
 		return CreateMapObjectForGoMap(*m)
 	default:
-		panic("Unsupported type in CreateObjectFromDbInterface: " + fmt.Sprintf("%T", x))
-		// TODO: return nil once everything supported properly
+		return nil
 	}
 }

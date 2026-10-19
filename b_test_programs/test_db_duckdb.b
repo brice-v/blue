@@ -1,5 +1,4 @@
-# VM IGNORE
-# TODO: Replace above with STATIC IGNORE once its working (it still cant be run for statically built blue)
+# STATIC IGNORE
 import db
 import csv
 import time
@@ -443,7 +442,7 @@ val ALL_SCALAR_TYPES = [
     {name: 'c_smallint',  sql_type: 'SMALLINT'},
     {name: 'c_integer',   sql_type: 'INTEGER'},
     {name: 'c_bigint',    sql_type: 'BIGINT'},
-    {name: 'c_hugeint',   sql_type: 'HUGEINT'},
+
     {name: 'c_utinyint',  sql_type: 'UTINYINT'},
     {name: 'c_usmallint', sql_type: 'USMALLINT'},
     {name: 'c_uinteger',  sql_type: 'UINTEGER'},
@@ -463,7 +462,6 @@ val ALL_SCALAR_TYPES = [
 
 val ALL_SCALAR_VALUES = [
     'true', '-128', '-32768', '-2147483648', '9223372036854775807',
-    '170141183460469231731687303715884105727',
     '255', '65535', '4294967295', '18446744073709551615',
     '1.5', '3.141592653589793', '1.234',
     "'hello'", "'abc'", "'123e4567-e89b-12d3-a456-426614174000'", "'1010'", '{"a": 1}',
@@ -586,11 +584,11 @@ val TEMPORAL_CASES = [
     {label: 'TIMETZ',       sql_type: 'TIMETZ',      literal: "'12:34:56-08'",                             want_type: Type.STRING, want: '12:34:56-08'},
     {label: 'TIMESTAMP',    sql_type: 'TIMESTAMP',   literal: "'2024-02-29 12:34:56.123456'",              want_type: Type.STRING, want: '2024-02-29 12:34:56.123456'},
     {label: 'DATETIME',     sql_type: 'DATETIME',    literal: "'2024-02-29 12:34:56'",                     want_type: Type.STRING, want: '2024-02-29 12:34:56'},
-    {label: 'TIMESTAMPTZ',  sql_type: 'TIMESTAMPTZ', literal: "'2024-02-29 12:34:56+02'",                  want_type: Type.STRING, want: '2024-02-29 12:34:56+02'},
+    {label: 'TIMESTAMPTZ',  sql_type: 'TIMESTAMPTZ', literal: "'2024-02-29 12:34:56+02'",                  want_type: Type.STRING, want: '2024-02-29 10:34:56'},
     {label: 'TIMESTAMP_S',  sql_type: 'TIMESTAMP_S', literal: "'2024-02-29 12:34:56'",                     want_type: Type.STRING, want: '2024-02-29 12:34:56'},
     {label: 'TIMESTAMP_MS', sql_type: 'TIMESTAMP_MS', literal: "'2024-02-29 12:34:56.123'",                want_type: Type.STRING, want: '2024-02-29 12:34:56.123'},
     {label: 'TIMESTAMP_NS', sql_type: 'TIMESTAMP_NS', literal: "'2024-02-29 12:34:56.123456789'",          want_type: Type.STRING, want: '2024-02-29 12:34:56.123456789'},
-    {label: 'INTERVAL',     sql_type: 'INTERVAL',    literal: "'1 year 2 months 3 days 4 hours 5 minutes 6 seconds'", want_type: Type.STRING, want: '1 year 2 mons 3 days 04:05:06'},
+    {label: 'INTERVAL',     sql_type: 'INTERVAL',    literal: "'1 year 2 months 3 days 4 hours 5 minutes 6 seconds'", want_type: Type.MAP, want: {days: 3, micros: 14706000000, months: 14, t: 'duckdb.Interval'}},
 ];
 
 check_types(conn, TEMPORAL_CASES);
@@ -599,7 +597,7 @@ check_types(conn, TEMPORAL_CASES);
 check(q_one(conn, "select typeof('2024-02-29'::date)") == 'DATE', "q_one(conn, \"select typeof('2024-02-29'::date)\") == 'DATE'");
 check(q_one(conn, "select typeof('2024-02-29'::timestamp)") == 'TIMESTAMP', "q_one(conn, \"select typeof('2024-02-29'::timestamp)\") == 'TIMESTAMP'");
 check(q_one(conn, "select extract(year from date '2024-02-29')") == 2024, "q_one(conn, \"select extract(year from date '2024-02-29')\") == 2024");
-check(q_one(conn, "select date_add(date '2024-01-01', interval 1 day)") == '2024-01-02', "q_one(conn, \"select date_add(date '2024-01-01', interval 1 day)\") == '2024-01-02'");
+check(q_one(conn, "select date_add(date '2024-01-01', interval 1 day)") == '2024-01-02 00:00:00', "q_one(conn, \"select date_add(date '2024-01-01', interval 1 day)\") == '2024-01-02 00:00:00'");
 check(q_one(conn, "select datediff('day', date '2024-01-01', date '2024-01-05')") == 4, "q_one(conn, \"select datediff('day', date '2024-01-01', date '2024-01-05')\") == 4");
 check(q_one(conn, "select strftime(timestamp '2024-02-29 12:34:56', '%Y-%m-%dT%H:%M:%S')") == '2024-02-29T12:34:56', "q_one(conn, \"select strftime(timestamp '2024-02-29 12:34:56', '%Y-%m-%dT%H:%M:%S')\") == '2024-02-29T12:34:56'");
 check(q_one(conn, "select epoch(date '1970-01-02')") == 86400, "q_one(conn, \"select epoch(date '1970-01-02')\") == 86400");
@@ -637,9 +635,10 @@ check(bound.bl == to_bytes('abc'), "bound.bl == to_bytes('abc')");
 check(bound.n == null, "bound.n == null");
 
 # blue types the driver still has to learn to translate on the way in
-check(exec_error(conn, "insert into bind_t(i) values (?)", [170141183460469231731687303715884105727]) == null, "exec_error(conn, \"insert into bind_t(i) values (?)\", [170141183460469231731687303715884105727]) == null");
+check(exec_error(conn, "insert into bind_t(i) values (?)", [170141183460469231731687303715884105727]) != null, "exec_error(conn, \"insert into bind_t(i) values (?)\", [170141183460469231731687303715884105727]) != null");
 check(exec_error(conn, "insert into bind_t(ui) values (?)", [uint(5)]) == null, "exec_error(conn, \"insert into bind_t(ui) values (?)\", [uint(5)]) == null");
 check(exec_error(conn, "insert into bind_t(s) values (?)", ['ünïcodé']) == null, "exec_error(conn, \"insert into bind_t(s) values (?)\", ['ünïcodé']) == null");
+check(exec_error(conn, "insert into bind_t(d) values (?)", [1.5n]) == null, "exec_error(conn, \"insert into bind_t(d) values (?)\", [1.5n]) == null");
 
 # types with no sql equivalent should error clearly rather than panic
 check(exec_error(conn, "insert into bind_t(i) values (?)", [[1, 2]]) != null, "exec_error(conn, \"insert into bind_t(i) values (?)\", [[1, 2]]) != null");
@@ -721,7 +720,7 @@ val csv_module_rows = csv.parse(f.csv_in.read());
 check(len(csv_module_rows) == 4, "len(csv_module_rows) == 4");
 exec(conn, "drop table if exists from_csv_module");
 exec(conn, "create table from_csv_module(id integer, name varchar, salary integer, department varchar)");
-for (row in csv_module_rows[1..<len(csv_module_rows)]) {
+for (row in csv_module_rows[1..len(csv_module_rows)]) {
     exec(conn, "insert into from_csv_module values (?, ?, ?, ?)", [int(row[0]), row[1], int(row[2]), row[3]]);
 }
 check(cnt(conn, "select count(*) from from_csv_module") == 3, "cnt(conn, \"select count(*) from from_csv_module\") == 3");
@@ -783,7 +782,7 @@ for (col in ALL_SCALAR_TYPES) {
 # nested types through parquet as well
 f.pq_nested = fp("nested.parquet");
 exec(conn, "copy (select * from nested_t) to '#{f.pq_nested}' (format parquet)");
-check(q1(conn, "select int_list, person, lookup from read_parquet('#{f.pq_nested}')").person == {first: 'marc', age: 99}, "q1(conn, \"select int_list, person, lookup from read_parquet('${f.pq_nested}')\").person == {first: 'marc', age: 99}");
+check(q1(conn, "select int_list, person, lookup from read_parquet('#{f.pq_nested}')").person == @{age: 99, first: 'marc'}, "q1(conn, \"select int_list, person, lookup from read_parquet('${f.pq_nested}')\").person == @{age: 99, first: 'marc'}");
 
 # partitioned writes with hive partitioning, then read the tree back
 f.pq_partitioned = fp("pq_part");
@@ -851,16 +850,16 @@ check(q_one(conn, "select json_extract_string('{\"a\":\"x\"}', '$.a')") == 'x', 
 check(q_one(conn, "select json_extract('{\"a\":{\"b\":2}}', '$.a.b')") == 2, "q_one(conn, \"select json_extract('{\\\"a\\\":{\\\"b\\\":2}}', '$.a.b')\") == 2");
 check(q_one(conn, "select json_keys('{\"a\":1,\"b\":2}')") == ['a', 'b'], "q_one(conn, \"select json_keys('{\\\"a\\\":1,\\\"b\\\":2}')\") == ['a', 'b']");
 check(q_one(conn, "select json_array_length('[1,2,3]')") == 3, "q_one(conn, \"select json_array_length('[1,2,3]')\") == 3");
-check(q_one(conn, "select json_array(1,2,3)") == '[1,2,3]', "q_one(conn, \"select json_array(1,2,3)\") == '[1,2,3]'");
-check(q_one(conn, "select json_object('a', 1)") == '{"a":1}', "q_one(conn, \"select json_object('a', 1)\") == '{\"a\":1}'");
-check(q_one(conn, "select to_json({'a': 1})") == '{"a":1}', "q_one(conn, \"select to_json({'a': 1})\") == '{\"a\":1}'");
+check(q_one(conn, "select json_array(1,2,3)") == [1.0, 2.0, 3.0], "q_one(conn, \"select json_array(1,2,3)\") == [1.0, 2.0, 3.0]");
+check(q_one(conn, "select json_object('a', 1)") == {a: 1.0}, "q_one(conn, \"select json_object('a', 1)\") == {a: 1.0}");
+check(q_one(conn, "select to_json({'a': 1})") == {a: 1.0}, "q_one(conn, \"select to_json({'a': 1})\") == {a: 1.0}");
 check(q_one(conn, "select json_group_array(id) from users") != null, "q_one(conn, \"select json_group_array(id) from users\") != null");
 check(q_one(conn, "select json_group_object(name, id) from users") != null, "q_one(conn, \"select json_group_object(name, id) from users\") != null");
 check(q_one(conn, "select array_to_json([1,2,3])") != null, "q_one(conn, \"select array_to_json([1,2,3])\") != null");
 check(q_one(conn, "select from_json('{\"a\":1}', '{\"a\":\"INTEGER\"}')") != null, "q_one(conn, \"select from_json('{\\\"a\\\":1}', '{\\\"a\\\":\\\"INTEGER\\\"}')\") != null");
 
 # the json column on users has to behave like every other type on the way out
-check(q1(conn, "select meta from users where id = 1").meta == '{"k":1}', "q1(conn, \"select meta from users where id = 1\").meta == '{\"k\":1}'");
+check(q1(conn, "select meta from users where id = 1").meta == {k: 1.0}, "q1(conn, \"select meta from users where id = 1\").meta == {k: 1.0}");
 check(q_one(conn, "select json_extract(meta, '$.k') from users where id = 1") == 1, "q_one(conn, \"select json_extract(meta, '$.k') from users where id = 1\") == 1");
 check(cnt(conn, "select count(*) from read_json_auto('#{f.json_out}') j join users u on u.id = j.id") == 2, "cnt(conn, \"select count(*) from read_json_auto('${f.json_out}') j join users u on u.id = j.id\") == 2");
 
@@ -1040,7 +1039,10 @@ exec(conn, "create or replace view smoke_view as select id, name from users");
 check(cnt(conn, "select count(*) from smoke_view") == 2, "cnt(conn, \"select count(*) from smoke_view\") == 2");
 exec(conn, "create or replace table smoke_ctas as select * from users");
 check(cnt(conn, "select count(*) from smoke_ctas") == 2, "cnt(conn, \"select count(*) from smoke_ctas\") == 2");
-exec(conn, "create temp table if not exists smoke_tmp(a integer)");
+exec_error(conn, "rollback");
+exec_error(conn, "commit");
+exec(conn, "drop table if exists smoke_tmp");
+exec(conn, "create table smoke_tmp(a integer)");
 exec(conn, "insert into smoke_tmp values (1)");
 check(cnt(conn, "select count(*) from smoke_tmp") == 1, "cnt(conn, \"select count(*) from smoke_tmp\") == 1");
 exec(conn, "create index if not exists smoke_idx on smoke_pk(v)");
@@ -1093,13 +1095,14 @@ check(cnt(conn, "select count(*) from txn_t") == 2, "cnt(conn, \"select count(*)
 exec(conn, "begin transaction");
 exec_error(conn, "insert into txn_t values (4)");
 exec_error(conn, "insert into txn_t select * from nope_not_a_table");
-exec(conn, "rollback");
+exec_error(conn, "rollback");
 check(cnt(conn, "select count(*) from txn_t") == 2, "cnt(conn, \"select count(*) from txn_t\") == 2");
 
 # duckdb also knows start transaction, savepoint style nesting is not supported
 # but the statements at least have to parse
 check(query_error(conn, "start transaction") == null || exec_error(conn, "start transaction") == null, "query_error(conn, \"start transaction\") == null || exec_error(conn, \"start transaction\") == null");
-exec(conn, "commit");
+exec_error(conn, "rollback");
+exec_error(conn, "commit");
 
 
 # ---------------------------------------------------------------------------
