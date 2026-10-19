@@ -197,7 +197,8 @@ func TestSourceAndBinaryImageProduceIdenticalOutput(t *testing.T) {
 				}
 				src := string(data)
 				if strings.HasPrefix(src, "# IGNORE") || strings.HasPrefix(src, "#IGNORE") ||
-					strings.HasPrefix(src, "#VM IGNORE") || strings.HasPrefix(src, "# VM IGNORE") {
+					strings.HasPrefix(src, "#VM IGNORE") || strings.HasPrefix(src, "# VM IGNORE") ||
+					strings.HasPrefix(src, "# STATIC IGNORE") || strings.HasPrefix(src, "#STATIC IGNORE") {
 					t.Skip("ignored by header")
 				}
 

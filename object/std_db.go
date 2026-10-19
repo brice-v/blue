@@ -227,64 +227,9 @@ var DbBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`db_query` error: %s", err.Error())
 			}
-			// Some duckdb types (e.g. TIME_NS) are not scannable by the
-			// driver. Detect those columns and re-run the query with them
-			// cast to VARCHAR so the row can still be scanned.
-			unsupported := make([]bool, len(colTypes))
-			hasUnsupported := false
-			for index := range colTypes {
-				if colTypes[index].ScanType() == nil && strings.TrimSpace(colTypes[index].DatabaseTypeName()) == "" {
-					unsupported[index] = true
-					hasUnsupported = true
-				}
-			}
-			if hasUnsupported {
-				err := rows.Close()
-				if err != nil {
-					return newError("`db_query` error: %s", err.Error())
-				}
-				// rebuild query wrapping original
-				selectParts := make([]string, len(colNames))
-				for index := range colNames {
-					qn := `"` + strings.ReplaceAll(colNames[index], `"`, `""`) + `"`
-					if unsupported[index] {
-						selectParts[index] = `CAST(` + qn + ` AS VARCHAR) AS ` + qn
-					} else {
-						selectParts[index] = qn
-					}
-				}
-				wrapped := "SELECT " + strings.Join(selectParts, ", ") + " FROM (" + s + ") AS _blue_subq"
-				var rows2 *sql.Rows
-				var err2 error
-				if len(l) >= 1 {
-					execArgs, err1 := getArgsAsGoObjs("db_query", l)
-					if err1 != nil {
-						return newError("%s", err1.Error())
-					}
-					rows2, err2 = db.Value.Query(wrapped, execArgs...)
-				} else {
-					rows2, err2 = db.Value.Query(wrapped)
-				}
-				if err2 != nil {
-					return newError("`db_query` error: %s", err2.Error())
-				}
-				rows = rows2
-				colNames2, err := rows.Columns()
-				if err != nil {
-					return newError("`db_query` error: %s", err.Error())
-				}
-				colNames = colNames2
-				colTypes, err = rows.ColumnTypes()
-				if err != nil {
-					return newError("`db_query` error: %s", err.Error())
-				}
-			}
 			colDbTypes := make([]dbColumnKind, len(colTypes))
 			for index := range colTypes {
 				colDbTypes[index] = dbColumnTypeFor(colTypes, index)
-				if hasUnsupported && unsupported[index] {
-					colDbTypes[index].name = "TIME_NS"
-				}
 			}
 			for rows.Next() {
 				err = rows.Scan(colPtrs...)
@@ -718,14 +663,6 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 				return NewString(carbon.CreateFromStdTime(t).ToDateTimeString())
 			case "TIMESTAMP_NS":
 				return NewString(carbon.CreateFromStdTime(t).ToDateTimeNanoString())
-			}
-		}
-		if s, ok := input.(string); ok {
-			typeName := strings.ToUpper(strings.TrimSpace(kind.name))
-			switch typeName {
-			case "TIME_NS":
-				// TIME_NS comes back as a VARCHAR from the driver fallback; keep as-is.
-				return NewString(s)
 			}
 		}
 	case dbColUUID:

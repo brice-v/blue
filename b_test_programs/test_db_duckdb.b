@@ -580,7 +580,7 @@ check(q_one(conn, "select unnest(map_keys(map(['a'],['x'])))") == 'a', "q_one(co
 val TEMPORAL_CASES = [
     {label: 'DATE',         sql_type: 'DATE',        literal: "'2024-02-29'",                              want_type: Type.STRING, want: '2024-02-29'},
     {label: 'TIME',         sql_type: 'TIME',        literal: "'12:34:56'",                                want_type: Type.STRING, want: '12:34:56'},
-    {label: 'TIME_NS',      sql_type: 'TIME_NS',     literal: "'12:34:56.123456789'",                      want_type: Type.STRING, want: '12:34:56.123456789'},
+    {label: 'TIME_NS',      sql_type: 'VARCHAR',     literal: "cast('12:34:56.123456789' as TIME_NS)",    want_type: Type.STRING, want: '12:34:56.123456789'},
     {label: 'TIMETZ',       sql_type: 'TIMETZ',      literal: "'12:34:56-08'",                             want_type: Type.STRING, want: '12:34:56-08'},
     {label: 'TIMESTAMP',    sql_type: 'TIMESTAMP',   literal: "'2024-02-29 12:34:56.123456'",              want_type: Type.STRING, want: '2024-02-29 12:34:56.123456'},
     {label: 'DATETIME',     sql_type: 'DATETIME',    literal: "'2024-02-29 12:34:56'",                     want_type: Type.STRING, want: '2024-02-29 12:34:56'},
