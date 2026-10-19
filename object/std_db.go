@@ -239,7 +239,10 @@ var DbBuiltins = []*Builtin{
 				}
 			}
 			if hasUnsupported {
-				rows.Close()
+				err := rows.Close()
+				if err != nil {
+					return newError("`db_query` error: %s", err.Error())
+				}
 				// rebuild query wrapping original
 				selectParts := make([]string, len(colNames))
 				for index := range colNames {
@@ -390,10 +393,6 @@ func dbColumnTypeFor(colTypes []*sql.ColumnType, index int) dbColumnKind {
 		k.name = strings.TrimSpace(colTypes[index].DatabaseTypeName())
 	}
 	return k
-}
-
-func dbColumnKindFor(colTypes []*sql.ColumnType, index int) dbColumnKind {
-	return dbColumnTypeFor(colTypes, index)
 }
 
 func parseDbColumnTypeName(typeName string) dbColumnKind {
