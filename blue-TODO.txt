@@ -19,10 +19,6 @@ TODO:
     - Add | to all the outputted lines so that its consistent all the way down
     - (this function is mainly accessible when running but will maybe can be used for `blue doc` command as well)
     - [ ] `blue doc` for std lib needs to be a bit better (make it consistent with help() output)
-- [ ] FEAT: Integrate duckdb as option for db package
-    - [ ] allows reading of parquet files
-    - [x] non-static build, need to ensure static build continues to work
-    - Support all the datatypes, currently only have some scaffolding in place
 - [ ] See if step needed for other sliceable types
 - [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [ ] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
@@ -815,3 +811,7 @@ COMPLETED TASKS:
     - [x] After optimizing, avoid panic when OOB slice index used, check start/end when doing the OpSlice
 - [x] FEAT: Add slicing functionality for tensors
     - slices from dim 0, to match what pytorch does
+- [x] FEAT: Integrate duckdb as option for db package
+    - [x] allows reading of parquet files
+    - [x] non-static build, need to ensure static build continues to work
+    - Support all the datatypes, currently only have some scaffolding in place
