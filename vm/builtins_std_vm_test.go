@@ -40,7 +40,7 @@ func compileClosure(t *testing.T, input string) (*object.Closure, *VM) {
 }
 
 func TestHandleWsPassesRouteParams(t *testing.T) {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	cl, vm := compileClosure(t, `fun(ws, room) { room }`)
 
 	builtin := createHttpHandleWSBuiltin(vm)
@@ -49,20 +49,34 @@ func TestHandleWsPassesRouteParams(t *testing.T) {
 		t.Fatalf("handle_ws error: %s", res.(*object.Error).Message)
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	go func() { _ = app.Listener(ln) }()
-	defer func() { _ = app.Shutdown() }()
-
 	oldStdout := os.Stdout
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.Stdout = w
-	defer func() { os.Stdout = oldStdout }()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		os.Stdout = oldStdout
+		_ = w.Close()
+		_ = r.Close()
+		t.Fatal(err)
+	}
+
+	listenerDone := make(chan struct{})
+	go func() {
+		defer close(listenerDone)
+		_ = app.Listener(ln)
+	}()
+
+	t.Cleanup(func() {
+		_ = app.Shutdown()
+		<-listenerDone
+		os.Stdout = oldStdout
+		_ = w.Close()
+		_ = r.Close()
+	})
 
 	conn, _, err := ws.DefaultDialer.Dial("ws://"+ln.Addr().String()+"/ws/lobby", nil)
 	if err != nil {
@@ -72,7 +86,6 @@ func TestHandleWsPassesRouteParams(t *testing.T) {
 	_ = conn.Close()
 
 	_ = w.Close()
-	os.Stdout = oldStdout
 	out, _ := io.ReadAll(r)
 	if !strings.Contains(string(out), "lobby") {
 		t.Fatalf("ws handler did not receive room param, output: %q", string(out))
