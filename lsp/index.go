@@ -53,16 +53,34 @@ func (k declKind) symbolKind() int {
 
 // declaration is a name bound in blue source together with its extent.
 type declaration struct {
-	name      string
-	kind      declKind
-	start     int // rune offset of the binding keyword (fun, val, for, ...)
-	nameStart int // rune offset of the name itself
-	nameEnd   int // rune offset just past the name
-	end       int // exclusive rune offset, -1 until extents are resolved
-	bodyOpen  int // token index of the body '{' for functions, -1 otherwise
-	detail    string
-	params    []string
-	doc       string
+	name          string
+	kind          declKind
+	start         int // rune offset of the binding keyword (fun, val, for, ...)
+	nameStart     int // rune offset of the name itself
+	nameEnd       int // rune offset just past the name
+	end           int // exclusive rune offset, -1 until extents are resolved
+	bodyOpen      int // token index of the body '{' for functions, -1 otherwise
+	detail        string
+	params        []string
+	doc           string
+	members       []*mapMember
+	initCall      []string
+	resultMembers []*mapMember
+}
+
+type mapMember struct {
+	name          string
+	kind          declKind
+	keyStart      int
+	keyEnd        int
+	bodyOpen      int
+	detail        string
+	doc           string
+	ref           string
+	src           *docSource
+	ix            *fileIndex
+	members       []*mapMember
+	resultMembers []*mapMember
 }
 
 // importEntry is one `import`/`from ... import` statement.
@@ -91,10 +109,11 @@ func (e importEntry) coversModuleName(off int) bool {
 // while a buffer has syntax errors, which is the normal state of code being
 // typed. Call resolveExtents before querying it.
 type fileIndex struct {
-	src     *docSource
-	tokens  []scanToken
-	decls   []*declaration
-	imports []importEntry
+	src        *docSource
+	tokens     []scanToken
+	decls      []*declaration
+	imports    []importEntry
+	mapMembers []*mapMember
 }
 
 func isPunct(t scanToken, text string) bool {
@@ -176,6 +195,375 @@ func bindingNames(tokens []scanToken) []scanToken {
 		out = append(out, head)
 	}
 	return out
+}
+
+func mapKeyName(t scanToken) (string, bool) {
+	switch t.kind {
+	case kIdent, kWord:
+		return t.text, true
+	case kString:
+		rs := []rune(t.text)
+		if len(rs) < 2 {
+			return "", false
+		}
+		quote := rs[0]
+		if quote != '\'' && quote != '"' {
+			return "", false
+		}
+		if rs[len(rs)-1] != quote {
+			return "", false
+		}
+		body := string(rs[1 : len(rs)-1])
+		if strings.Contains(body, "#{") {
+			return "", false
+		}
+		return body, true
+	}
+	return "", false
+}
+
+func indexMapLiteral(src *docSource, ix *fileIndex, toks []scanToken, openIdx int) []*mapMember {
+	if openIdx < 0 || openIdx >= len(toks) || !isPunct(toks[openIdx], "{") {
+		return nil
+	}
+	closeIdx := matchDelim(toks, openIdx, "{", "}")
+	limit := len(toks)
+	if closeIdx >= 0 {
+		limit = closeIdx
+	}
+
+	members := []*mapMember{}
+	start := openIdx + 1
+	depth := 0
+	for i := start; i <= limit; i++ {
+		if i == limit || (depth == 0 && isPunct(toks[i], ",")) {
+			if i > start {
+				if member := indexMapMember(src, ix, toks, start, i); member != nil {
+					members = append(members, member)
+					ix.mapMembers = append(ix.mapMembers, member)
+				}
+			}
+			start = i + 1
+			continue
+		}
+		switch {
+		case isPunct(toks[i], "(") || isPunct(toks[i], "[") || isPunct(toks[i], "{"):
+			depth++
+		case isPunct(toks[i], ")") || isPunct(toks[i], "]") || isPunct(toks[i], "}"):
+			depth--
+		}
+	}
+	return members
+}
+
+func indexMapMember(src *docSource, ix *fileIndex, toks []scanToken, start, end int) *mapMember {
+	keyIdx := start
+	for keyIdx < end && toks[keyIdx].kind == kComment {
+		keyIdx++
+	}
+	if keyIdx >= end {
+		return nil
+	}
+	name, ok := mapKeyName(toks[keyIdx])
+	if !ok || keyIdx+1 >= end || !isPunct(toks[keyIdx+1], ":") {
+		return nil
+	}
+	valueStart := keyIdx + 2
+	if valueStart >= end {
+		return nil
+	}
+	return newMapMember(src, ix, toks, name, keyIdx, valueStart, end)
+}
+
+func newMapMember(src *docSource, ix *fileIndex, toks []scanToken, name string, keyIdx, valueStart, end int) *mapMember {
+	member := &mapMember{
+		name:     name,
+		kind:     declConstant,
+		keyStart: toks[keyIdx].start,
+		keyEnd:   toks[keyIdx].end,
+		src:      src,
+		ix:       ix,
+	}
+
+	value := toks[valueStart]
+	switch {
+	case value.kind == kWord && value.text == "fun" && valueStart+1 < end && isPunct(toks[valueStart+1], "("):
+		openParen := valueStart + 1
+		closeParen := matchDelim(toks, openParen, "(", ")")
+		if closeParen < 0 || closeParen >= end {
+			member.doc = docstringFor(src.runes, toks, keyIdx, -1)
+			return member
+		}
+		bodyOpen := closeParen + 1
+		for bodyOpen < end && !isPunct(toks[bodyOpen], "{") {
+			bodyOpen++
+		}
+		if bodyOpen >= end {
+			member.doc = docstringFor(src.runes, toks, keyIdx, -1)
+			return member
+		}
+		member.kind = declFunction
+		member.detail = functionDetail(src, toks, openParen, closeParen)
+		member.bodyOpen = bodyOpen
+		member.doc = docstringFor(src.runes, toks, keyIdx, bodyOpen)
+
+	case isPunct(value, "{"):
+		member.members = indexMapLiteral(src, ix, toks, valueStart)
+		member.doc = docstringFor(src.runes, toks, keyIdx, -1)
+
+	default:
+		if ref, ok := aliasRef(src, toks, valueStart, end); ok {
+			member.ref = ref
+		}
+		member.doc = docstringFor(src.runes, toks, keyIdx, -1)
+	}
+	return member
+}
+
+func (ix *fileIndex) mapMemberAt(off int) *mapMember {
+	for _, member := range ix.mapMembers {
+		if member.keyStart <= off && off <= member.keyEnd {
+			return member
+		}
+	}
+	return nil
+}
+
+func findMapMember(members []*mapMember, name string) *mapMember {
+	for _, member := range members {
+		if member.name == name {
+			return member
+		}
+	}
+	return nil
+}
+
+func aliasRef(src *docSource, toks []scanToken, start, end int) (string, bool) {
+	if start >= end {
+		return "", false
+	}
+	t := toks[start]
+	if t.kind != kIdent && t.kind != kWord {
+		return "", false
+	}
+	if start+1 < end {
+		next := toks[start+1]
+		separator := isPunct(next, ";") || isPunct(next, "}") || isPunct(next, ",") || isPunct(next, ")")
+		if next.kind != kComment && !separator && sameTokenLine(src, t, next) {
+			return "", false
+		}
+	}
+	return t.text, true
+}
+
+func sameTokenLine(src *docSource, a, b scanToken) bool {
+	return src.positionOf(a.end).Line == src.positionOf(b.start).Line
+}
+
+func declarationFunctionLiteral(ix *fileIndex, d *declaration) *mapMember {
+	toks := ix.tokens
+	nameIdx := indexAtOrAfter(toks, d.nameStart)
+	if nameIdx >= len(toks) || toks[nameIdx].start != d.nameStart {
+		return nil
+	}
+	for i := nameIdx + 1; i+1 < len(toks) && toks[i].start < d.end; i++ {
+		if isPunct(toks[i], "=") && isFunctionLiteralAt(toks, i+1, len(toks)) {
+			lit := newMapMember(ix.src, ix, toks, d.name, nameIdx, i+1, len(toks))
+			if lit == nil {
+				return nil
+			}
+			if declIdx := indexAtOrAfter(toks, d.start); declIdx < len(toks) {
+				lit.doc = docstringFor(ix.src.runes, toks, declIdx, lit.bodyOpen)
+			}
+			return lit
+		}
+	}
+	return nil
+}
+
+func isMapMemberValue(src *docSource, toks []scanToken, idx, end int) bool {
+	if idx >= end {
+		return false
+	}
+	if isPunct(toks[idx], "{") || isFunctionLiteralAt(toks, idx, end) {
+		return true
+	}
+	_, ok := aliasRef(src, toks, idx, end)
+	return ok
+}
+
+func callPathAfter(toks []scanToken, start int) []string {
+	path := []string{}
+	i := start
+	for i < len(toks) {
+		if toks[i].kind != kIdent && toks[i].kind != kWord {
+			break
+		}
+		path = append(path, toks[i].text)
+		i++
+		if i < len(toks) && isPunct(toks[i], ".") {
+			i++
+			continue
+		}
+		break
+	}
+	if len(path) == 0 || i >= len(toks) || !isPunct(toks[i], "(") {
+		return nil
+	}
+	if closeIdx := matchDelim(toks, i, "(", ")"); closeIdx >= 0 && closeIdx+1 < len(toks) {
+		next := toks[closeIdx+1]
+		if next.kind == kPunct && !isPunct(next, ";") && !isPunct(next, "}") && !isPunct(next, ")") {
+			return nil
+		}
+	}
+	return path
+}
+
+func isFunctionLiteralAt(toks []scanToken, idx, end int) bool {
+	return idx+1 < end && toks[idx].kind == kWord && toks[idx].text == "fun" && isPunct(toks[idx+1], "(")
+}
+
+func mergeMapMembers(existing []*mapMember, adding []*mapMember) []*mapMember {
+	out := append([]*mapMember{}, existing...)
+	for _, member := range adding {
+		if findMapMember(out, member.name) == nil {
+			out = append(out, member)
+		}
+	}
+	return out
+}
+
+func returnedNames(toks []scanToken, bodyOpen int, limit int) []string {
+	names := []string{}
+	seen := map[string]bool{}
+	depth := 0
+	for i := bodyOpen + 1; i < limit; i++ {
+		t := toks[i]
+		switch {
+		case isPunct(t, "{"):
+			depth++
+			continue
+		case isPunct(t, "}"):
+			depth--
+			continue
+		}
+		if depth != 0 || t.kind != kWord || t.text != "return" {
+			continue
+		}
+		if i+1 >= limit || toks[i+1].kind != kIdent {
+			continue
+		}
+		name := toks[i+1].text
+		if !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+func assignedMapMembers(src *docSource, ix *fileIndex, toks []scanToken, bodyOpen int, limit int) map[string][]*mapMember {
+	assigned := map[string][]*mapMember{}
+	depth := 0
+	for i := bodyOpen + 1; i < limit; i++ {
+		t := toks[i]
+		switch {
+		case isPunct(t, "{"):
+			depth++
+			continue
+		case isPunct(t, "}"):
+			depth--
+			continue
+		}
+		if depth != 0 || t.kind != kIdent {
+			continue
+		}
+
+		if i+3 < limit && isPunct(toks[i+1], ".") && toks[i+2].kind == kIdent && isPunct(toks[i+3], "=") {
+			keyIdx := i + 2
+			valueStart := i + 4
+			if isMapMemberValue(src, toks, valueStart, limit) {
+				member := newMapMember(src, ix, toks, toks[keyIdx].text, keyIdx, valueStart, limit)
+				assigned[t.text] = append(assigned[t.text], member)
+				ix.mapMembers = append(ix.mapMembers, member)
+			}
+			continue
+		}
+
+		if i+5 < limit && isPunct(toks[i+1], "[") && isPunct(toks[i+3], "]") && isPunct(toks[i+4], "=") {
+			name, ok := mapKeyName(toks[i+2])
+			valueStart := i + 5
+			if ok && isMapMemberValue(src, toks, valueStart, limit) {
+				member := newMapMember(src, ix, toks, name, i+2, valueStart, limit)
+				assigned[t.text] = append(assigned[t.text], member)
+				ix.mapMembers = append(ix.mapMembers, member)
+			}
+		}
+	}
+	return assigned
+}
+
+func indexFunctionResultMembers(src *docSource, ix *fileIndex) {
+	toks := ix.tokens
+	for _, fn := range ix.decls {
+		if fn.kind != declFunction || fn.bodyOpen < 0 || fn.bodyOpen >= len(toks) {
+			continue
+		}
+		limit := len(toks)
+		if closeIdx := matchDelim(toks, fn.bodyOpen, "{", "}"); closeIdx >= 0 {
+			limit = closeIdx
+		}
+		fn.resultMembers = indexBuilderBody(src, ix, fn.bodyOpen, limit, fn.start, fn.end)
+	}
+
+	for i := 0; i < len(ix.mapMembers); i++ {
+		member := ix.mapMembers[i]
+		if member.kind != declFunction || member.bodyOpen < 0 || member.bodyOpen >= len(toks) {
+			continue
+		}
+		limit := len(toks)
+		if closeIdx := matchDelim(toks, member.bodyOpen, "{", "}"); closeIdx >= 0 {
+			limit = closeIdx
+		}
+		attachEnd := len(src.runes)
+		if limit < len(toks) {
+			attachEnd = toks[limit].end
+		}
+		member.resultMembers = indexBuilderBody(src, ix, member.bodyOpen, limit, member.keyStart, attachEnd)
+	}
+}
+
+func indexBuilderBody(src *docSource, ix *fileIndex, bodyOpen int, limit int, attachStart int, attachEnd int) []*mapMember {
+	toks := ix.tokens
+	names := returnedNames(toks, bodyOpen, limit)
+	if len(names) == 0 {
+		return nil
+	}
+	assigned := assignedMapMembers(src, ix, toks, bodyOpen, limit)
+	var result []*mapMember
+	for _, name := range names {
+		members := assigned[name]
+		if len(members) == 0 {
+			continue
+		}
+		result = mergeMapMembers(result, members)
+		var target *declaration
+		for _, d := range ix.decls {
+			if d.name != name || (d.kind != declVariable && d.kind != declConstant) {
+				continue
+			}
+			if d.start < attachStart || d.start >= attachEnd {
+				continue
+			}
+			if target == nil || d.start < target.start {
+				target = d
+			}
+		}
+		if target != nil {
+			target.members = mergeMapMembers(target.members, members)
+		}
+	}
+	return result
 }
 
 // functionDetail is the parameter list of a declaration taken straight out of the
@@ -390,6 +778,14 @@ func buildIndex(src *docSource) *fileIndex {
 			if t.text != "var" {
 				kind = declConstant
 			}
+			var members []*mapMember
+			var initCall []string
+			if end < len(toks) && isPunct(toks[end], "=") && end+1 < len(toks) {
+				if isPunct(toks[end+1], "{") {
+					members = indexMapLiteral(src, ix, toks, end+1)
+				}
+				initCall = callPathAfter(toks, end+1)
+			}
 			for _, name := range bindingNames(toks[j:end]) {
 				ix.decls = append(ix.decls, &declaration{
 					name:      name.text,
@@ -399,6 +795,8 @@ func buildIndex(src *docSource) *fileIndex {
 					nameEnd:   name.end,
 					end:       -1,
 					doc:       docstringFor(src.runes, toks, i, -1),
+					members:   members,
+					initCall:  initCall,
 				})
 			}
 			i++
@@ -464,6 +862,7 @@ func buildIndex(src *docSource) *fileIndex {
 		}
 	}
 
+	indexFunctionResultMembers(src, ix)
 	return ix
 }
 

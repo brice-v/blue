@@ -187,14 +187,15 @@ func (s *session) publishDiagnostics(uri string) {
 // editContext is everything the cursor features need to know about a position in
 // an open buffer.
 type editContext struct {
-	doc    *document
-	index  *fileIndex
-	src    *docSource
-	offset int // rune offset of the cursor
-	word   string
-	tok    scanToken
-	prefix string // identifier characters typed immediately before the cursor
-	module string // module name when the cursor follows `module.`
+	doc       *document
+	index     *fileIndex
+	src       *docSource
+	offset    int // rune offset of the cursor
+	word      string
+	tok       scanToken
+	prefix    string // identifier characters typed immediately before the cursor
+	module    string // module name when the cursor follows `module.`
+	receivers []string
 }
 
 func (s *session) contextAt(uri string, pos position) (editContext, bool) {
@@ -232,6 +233,27 @@ func (s *session) contextAt(uri string, pos position) (editContext, bool) {
 			k--
 		}
 		c.module = string(c.src.runes[k:end])
+		c.receivers = append(c.receivers, c.module)
+
+		for k > lineStart {
+			p := k
+			for p > lineStart && (c.src.runes[p-1] == ' ' || c.src.runes[p-1] == '\t') {
+				p--
+			}
+			if p <= lineStart || c.src.runes[p-1] != '.' {
+				break
+			}
+			prevEnd := p - 1
+			prevStart := prevEnd
+			for prevStart > lineStart && isIdentRune(c.src.runes[prevStart-1]) {
+				prevStart--
+			}
+			if prevStart == prevEnd {
+				break
+			}
+			c.receivers = append(c.receivers, string(c.src.runes[prevStart:prevEnd]))
+			k = prevStart
+		}
 	}
 
 	return c, true
@@ -316,6 +338,17 @@ func (s *session) hover(p textDocumentHoverParams) any {
 		return nil
 	}
 
+	if member := c.index.mapMemberAt(c.offset); member != nil {
+		value := mapMemberMarkdown(member)
+		if value == "" {
+			return nil
+		}
+		return &hoverResult{
+			Contents: markupContent{Kind: hoverMarkdown, Value: value},
+			Range:    &rangeStruct{Start: c.src.positionOf(member.keyStart), End: c.src.positionOf(member.keyEnd)},
+		}
+	}
+
 	word := c.word
 	if word == "" {
 		word = c.prefix
@@ -337,6 +370,14 @@ func (s *session) hover(p textDocumentHoverParams) any {
 
 	// `module.member` references explain the member inside the module.
 	if c.module != "" {
+		if member := s.resolveMapMemberChain(c, word); member != nil {
+			value := mapMemberMarkdown(member)
+			if value == "" {
+				return nil
+			}
+			return &hoverResult{Contents: markupContent{Kind: hoverMarkdown, Value: value}, Range: wordRange}
+		}
+
 		entry, found := s.resolveModuleEntry(c, c.module)
 		if found && entry != nil {
 			value := moduleMemberMarkdown(entry, c.module, word)
@@ -488,6 +529,144 @@ func declarationSignature(runes []rune, d *declaration) string {
 	default:
 		return text
 	}
+}
+
+func mapMemberMarkdown(member *mapMember) string {
+	if member == nil {
+		return ""
+	}
+	if member.ref != "" {
+		if member.ix != nil {
+			if decl := member.ix.definitionFor(member.ref, member.keyStart); decl != nil {
+				if decl.kind == declFunction {
+					value := declarationMarkdown(member.src.runes, decl)
+					if member.doc != "" && decl.doc == "" {
+						return member.doc + "\n\n" + value
+					}
+					return value
+				}
+				if lit := declarationFunctionLiteral(member.ix, decl); lit != nil {
+					return mapMemberMarkdown(lit)
+				}
+			}
+			if target := aliasedBuiltin(member.src.runes, member.ix, member.ref); target != "" {
+				if b, ok := builtinHelp(target); ok && strings.TrimSpace(b.HelpStr) != "" {
+					return "```blue\n" + strings.TrimSpace(b.HelpStr) + "\n```"
+				}
+			}
+		}
+		if b, found := builtinHelp(member.ref); found && strings.TrimSpace(b.HelpStr) != "" {
+			return "```blue\n" + strings.TrimSpace(b.HelpStr) + "\n```"
+		}
+		if b, found := looseBuiltinHelp(member.ref); found && strings.TrimSpace(b.HelpStr) != "" {
+			return "```blue\n" + strings.TrimSpace(b.HelpStr) + "\n```"
+		}
+	}
+	var b strings.Builder
+	if member.doc != "" {
+		b.WriteString(member.doc)
+		b.WriteString("\n\n")
+	}
+	if member.kind == declFunction {
+		b.WriteString("```blue\nfun ")
+		b.WriteString(member.name)
+		b.WriteString(member.detail)
+		b.WriteString("\n```")
+	}
+	return b.String()
+}
+
+func (s *session) resolveMapMemberChain(c editContext, word string) *mapMember {
+	if len(c.receivers) == 0 {
+		return nil
+	}
+
+	names := make([]string, len(c.receivers))
+	for i, name := range c.receivers {
+		names[len(c.receivers)-1-i] = name
+	}
+
+	if decl := c.index.definitionFor(names[0], c.offset); decl != nil {
+		return descendMapMembers(s.mapMembersOfDecl(c, decl), names[1:], word)
+	}
+
+	if len(names) == 1 {
+		return nil
+	}
+	entry, found := s.resolveModuleEntry(c, names[0])
+	if !found || entry == nil {
+		return nil
+	}
+	decl := entry.ix.definitionFor(names[1], 0)
+	if decl == nil {
+		return nil
+	}
+	return descendMapMembers(decl.members, names[2:], word)
+}
+
+func descendMapMembers(members []*mapMember, names []string, word string) *mapMember {
+	for _, name := range names {
+		member := findMapMember(members, name)
+		if member == nil {
+			return nil
+		}
+		members = member.members
+	}
+	return findMapMember(members, word)
+}
+
+func (s *session) mapMembersOfDecl(c editContext, decl *declaration) []*mapMember {
+	if decl == nil {
+		return nil
+	}
+	if len(decl.members) > 0 {
+		return decl.members
+	}
+	if len(decl.initCall) == 0 {
+		return nil
+	}
+	return s.callResultMembers(c, decl.initCall, decl.start)
+}
+
+func (s *session) callResultMembers(c editContext, path []string, offset int) []*mapMember {
+	if len(path) == 0 {
+		return nil
+	}
+	if len(path) == 1 {
+		decl := c.index.definitionFor(path[0], offset)
+		if decl != nil && decl.kind == declFunction {
+			return decl.resultMembers
+		}
+		return nil
+	}
+
+	if decl := c.index.definitionFor(path[0], offset); decl != nil {
+		member := descendMapMembers(s.mapMembersOfDecl(c, decl), path[1:len(path)-1], path[len(path)-1])
+		if member != nil {
+			return member.resultMembers
+		}
+		return nil
+	}
+	entry, found := s.resolveModuleEntry(c, path[0])
+	if !found || entry == nil {
+		return nil
+	}
+	if len(path) == 2 {
+		decl := entry.ix.definitionFor(path[1], 0)
+		if decl != nil && decl.kind == declFunction {
+			return decl.resultMembers
+		}
+		return nil
+	}
+	decl := entry.ix.definitionFor(path[1], 0)
+	if decl == nil {
+		return nil
+	}
+	member := descendMapMembers(decl.members, path[2:len(path)-1], path[len(path)-1])
+	if member != nil {
+		return member.resultMembers
+	}
+	return nil
 }
 
 // moduleMemberMarkdown explains `<module>.<member>` from the module's source.

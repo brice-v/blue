@@ -143,6 +143,240 @@ func TestHoverDotCallOnValue(t *testing.T) {
 	}
 }
 
+func TestHoverMapMemberFunctionLiteral(t *testing.T) {
+	text := strings.Join([]string{
+		"val api = {",
+		"\t## fetches one user",
+		"\t'get': fun(id) { id },",
+		"}",
+		"print(api.get(1))",
+	}, "\n")
+	s, uri := openDoc(t, text)
+
+	for _, line := range []int{2, 4} {
+		got, ok := hoverValue(hoverAt(t, s, uri, text, line, "get"))
+		if !ok {
+			t.Fatalf("hover over get on line %d returned nothing", line)
+		}
+		if !strings.Contains(got, "fetches one user") {
+			t.Errorf("hover on line %d = %q, want the member's docs", line, got)
+		}
+		if !strings.Contains(got, "fun get(id)") {
+			t.Errorf("hover on line %d = %q, want the function literal header", line, got)
+		}
+	}
+}
+
+func TestHoverNestedMapMemberFunctionLiteral(t *testing.T) {
+	text := strings.Join([]string{
+		"val api = {",
+		"\t'v1': {",
+		"\t\t## looks a user up",
+		"\t\t'find': fun(id) { id },",
+		"\t},",
+		"}",
+		"print(api.v1.find(1))",
+	}, "\n")
+	s, uri := openDoc(t, text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 6, "find"))
+	if !ok {
+		t.Fatal("hover over api.v1.find returned nothing")
+	}
+	if !strings.Contains(got, "looks a user up") || !strings.Contains(got, "fun find(id)") {
+		t.Errorf("hover = %q, want the nested member's docs and header", got)
+	}
+}
+
+func TestHoverModuleMapMemberFunctionLiteral(t *testing.T) {
+	dir := t.TempDir()
+	module := strings.Join([]string{
+		"## service functions",
+		"val api = {",
+		"\t## fetches one user",
+		"\t'get': fun(id) { id },",
+		"}",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(dir, "svc.b"), []byte(module), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	text := "import svc\nprint(svc.api.get(1))\n"
+	s, uri := openDocIn(t, dir, "main.b", text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 1, "get"))
+	if !ok {
+		t.Fatal("hover over svc.api.get returned nothing")
+	}
+	if !strings.Contains(got, "fetches one user") || !strings.Contains(got, "fun get(id)") {
+		t.Errorf("hover = %q, want the module map member's docs and header", got)
+	}
+}
+
+func TestHoverAssignedMapMemberFunctionLiteral(t *testing.T) {
+	text := strings.Join([]string{
+		"fun new_figure() {",
+		"\tvar this = {};",
+		"\tthis.title = fun(text) {",
+		"\t\t## sets the figure title",
+		"\t\tset_title(this, text)",
+		"\t};",
+		"\treturn this;",
+		"}",
+		"val fig = new_figure()",
+		"fig.title('loss')",
+	}, "\n")
+	s, uri := openDoc(t, text)
+
+	for _, line := range []int{2, 9} {
+		got, ok := hoverValue(hoverAt(t, s, uri, text, line, "title"))
+		if !ok {
+			t.Fatalf("hover over title on line %d returned nothing", line)
+		}
+		if !strings.Contains(got, "sets the figure title") || !strings.Contains(got, "fun title(text)") {
+			t.Errorf("hover on line %d = %q, want the member's docs and header", line, got)
+		}
+	}
+}
+
+func TestHoverModuleBuilderMapMembers(t *testing.T) {
+	dir := t.TempDir()
+	module := strings.Join([]string{
+		"fun new_figure() {",
+		"\tvar this = {};",
+		"\tthis.title = fun(text) {",
+		"\t\t## sets the figure title",
+		"\t\tset_title(this, text)",
+		"\t};",
+		"\treturn this;",
+		"}",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(dir, "fig.b"), []byte(module), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	text := "import fig\nval chart = fig.new_figure()\nchart.title('loss')\n"
+	s, uri := openDocIn(t, dir, "main.b", text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 2, "title"))
+	if !ok {
+		t.Fatal("hover over chart.title returned nothing")
+	}
+	if !strings.Contains(got, "sets the figure title") || !strings.Contains(got, "fun title(text)") {
+		t.Errorf("hover = %q, want the module builder member's docs and header", got)
+	}
+}
+
+func TestHoverMapConstructorMapMembers(t *testing.T) {
+	text := strings.Join([]string{
+		"val factory = {",
+		"\t'build': fun() {",
+		"\t\tvar this = {};",
+		"\t\tthis.run = fun() {",
+		"\t\t\t## runs the object",
+		"\t\t\tdo_run(this)",
+		"\t\t};",
+		"\t\treturn this;",
+		"\t},",
+		"}",
+		"val obj = factory.build()",
+		"obj.run()",
+	}, "\n")
+	s, uri := openDoc(t, text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 11, "run"))
+	if !ok {
+		t.Fatal("hover over obj.run returned nothing")
+	}
+	if !strings.Contains(got, "runs the object") || !strings.Contains(got, "fun run()") {
+		t.Errorf("hover = %q, want the constructed member's docs and header", got)
+	}
+}
+
+func TestHoverMapMemberAliasFunction(t *testing.T) {
+	text := strings.Join([]string{
+		"fun fetch(id) {",
+		"\t## fetches one user",
+		"\tid",
+		"}",
+		"val api = {",
+		"\t'get': fetch,",
+		"}",
+		"print(api.get(1))",
+	}, "\n")
+	s, uri := openDoc(t, text)
+
+	for _, line := range []int{5, 7} {
+		got, ok := hoverValue(hoverAt(t, s, uri, text, line, "get"))
+		if !ok {
+			t.Fatalf("hover over get on line %d returned nothing", line)
+		}
+		if !strings.Contains(got, "fetches one user") || !strings.Contains(got, "fun fetch(id)") {
+			t.Errorf("hover on line %d = %q, want the referenced function's docs and header", line, got)
+		}
+	}
+
+	builder := strings.Join([]string{
+		"fun fetch(id) {",
+		"\t## fetches one user",
+		"\tid",
+		"}",
+		"fun new_api() {",
+		"\tvar this = {};",
+		"\tthis.get = fetch;",
+		"\treturn this;",
+		"}",
+		"val api = new_api()",
+		"print(api.get(1))",
+	}, "\n")
+	s2, uri2 := openDoc(t, builder)
+	got, ok := hoverValue(hoverAt(t, s2, uri2, builder, 10, "get"))
+	if !ok || !strings.Contains(got, "fetches one user") || !strings.Contains(got, "fun fetch(id)") {
+		t.Errorf("hover over a builder alias = %q, want the referenced function's docs and header", got)
+	}
+
+	value := strings.Join([]string{
+		"## fetches one user",
+		"val fetch = fun(id) {",
+		"\tid",
+		"}",
+		"val api = {'get': fetch}",
+		"print(api.get(1))",
+	}, "\n")
+	s3, uri3 := openDoc(t, value)
+	got, ok = hoverValue(hoverAt(t, s3, uri3, value, 5, "get"))
+	if !ok || !strings.Contains(got, "fetches one user") || !strings.Contains(got, "fun fetch(id)") {
+		t.Errorf("hover over an alias held in a val = %q, want the function's docs and header", got)
+	}
+}
+
+func TestHoverModuleMapMemberAliasFunction(t *testing.T) {
+	dir := t.TempDir()
+	module := strings.Join([]string{
+		"fun fetch(id) {",
+		"\t## fetches one user",
+		"\tid",
+		"}",
+		"val api = {",
+		"\t'get': fetch,",
+		"}",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(dir, "svc.b"), []byte(module), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	text := "import svc\nprint(svc.api.get(1))\n"
+	s, uri := openDocIn(t, dir, "main.b", text)
+
+	got, ok := hoverValue(hoverAt(t, s, uri, text, 1, "get"))
+	if !ok {
+		t.Fatal("hover over svc.api.get returned nothing")
+	}
+	if !strings.Contains(got, "fetches one user") || !strings.Contains(got, "fun fetch(id)") {
+		t.Errorf("hover = %q, want the referenced function's docs and header", got)
+	}
+}
+
 // A module member's hover shows its docstring above the signature, the way a
 // builtin's help does, and never leaks compiler directives such as
 // `std:this,__style` into the docs.

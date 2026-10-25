@@ -6,7 +6,6 @@ TODO:
     - Need to investigate, seemed to recover after a restart but still
 - [x] FEAT: Add @= for matmul equal
     - [ ] Wire in support for dunder
-- [ ] FIX: LSP, if map has member that is function literal, should be able to hover for docs
 - [ ] FIX: Figure out ui content fill strategies, what works correctly
 - [ ] MAYBE: Build pseduo jupyter style notebook for blue via `blue nb` or `blue notebook` using ui and other things?
 - [ ] FIX: Fix up plot api
@@ -79,7 +78,6 @@ TODO:
 - [ ] Add plotting lib like matplot lib?
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Add filepath.walk type function
-- [ ] Replace println with just print and pass endln char to builtin (simplifies things a bit)
 - STD Updates:
     - [ ] Add WebView
     - [x] Add plotting library
@@ -815,3 +813,6 @@ COMPLETED TASKS:
     - [x] allows reading of parquet files
     - [x] non-static build, need to ensure static build continues to work
     - Support all the datatypes, currently only have some scaffolding in place
+- [x] FIX: LSP, if map has member that is function literal, should be able to hover for docs
+- [-] Replace println with just print and pass endln char to builtin (simplifies things a bit)
+    - would be too many changes at this point

@@ -1,7 +1,6 @@
 ## `plot` is the module that draws figures.
 ##
-## It wraps gonum/plot, which is pure Go: no CGO, so it works in static and wasm
-## builds. Rendering returns bytes, so `plot_save` writes a file and `plot_render`
+## Rendering returns bytes, so `plot_save` writes a file and `plot_render`
 ## hands the bytes back for the `ui` or `wasm` modules to display.
 ##
 ## Every series function accepts a list, an ml tensor, or a num matrix, so a

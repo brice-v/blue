@@ -209,6 +209,181 @@ val undoc = 1
 	}
 }
 
+func TestIndexMapMembers(t *testing.T) {
+	text := strings.Join([]string{
+		"val api = {",
+		"\t## fetches one user",
+		"\t'get': fun(id, verbose = false) {",
+		"\t\t## from the body",
+		"\t\tid",
+		"\t},",
+		"\tfind: fun(id) { id },",
+		"\t'v1': {",
+		"\t\t'list': fun() { [] },",
+		"\t},",
+		"\t'value': 1,",
+		"}",
+		"val plain = 1",
+	}, "\n")
+	index := buildTestIndex(t, text)
+
+	api := declNamed(index, "api")
+	if api == nil {
+		t.Fatal("no declaration for api")
+	}
+	if len(api.members) != 4 {
+		t.Fatalf("api has %d members, want 4", len(api.members))
+	}
+
+	get := findMapMember(api.members, "get")
+	if get == nil || get.kind != declFunction {
+		t.Fatalf("get member = %+v, want a function literal", get)
+	}
+	if get.detail != "(id, verbose = false)" {
+		t.Errorf("get detail = %q, want its parameter list", get.detail)
+	}
+	if !strings.Contains(get.doc, "fetches one user") || !strings.Contains(get.doc, "from the body") {
+		t.Errorf("get doc = %q, want docs above the key and in the body", get.doc)
+	}
+
+	find := findMapMember(api.members, "find")
+	if find == nil || find.kind != declFunction || find.detail != "(id)" {
+		t.Errorf("find member = %+v, want an identifier keyed function literal", find)
+	}
+
+	v1 := findMapMember(api.members, "v1")
+	if v1 == nil || len(v1.members) != 1 {
+		t.Fatalf("v1 member = %+v, want one nested member", v1)
+	}
+	list := findMapMember(v1.members, "list")
+	if list == nil || list.kind != declFunction {
+		t.Errorf("v1.list member = %+v, want a function literal", list)
+	}
+
+	value := findMapMember(api.members, "value")
+	if value == nil || value.kind == declFunction {
+		t.Errorf("value member = %+v, want a plain value", value)
+	}
+
+	if plain := declNamed(index, "plain"); plain == nil || len(plain.members) != 0 {
+		t.Errorf("plain declaration = %+v, want no map members", plain)
+	}
+}
+
+func TestIndexBuilderMapMembers(t *testing.T) {
+	text := strings.Join([]string{
+		"fun new_figure() {",
+		"\tvar this = {};",
+		"\tthis.title = fun(text) {",
+		"\t\t## sets the title",
+		"\t\tset_title(this, text)",
+		"\t};",
+		"\tthis['save'] = fun(path) {",
+		"\t\t## saves the figure",
+		"\t\tsave_fig(this, path)",
+		"\t};",
+		"\treturn this;",
+		"}",
+		"val fig = new_figure()",
+	}, "\n")
+	index := buildTestIndex(t, text)
+
+	fn := declNamed(index, "new_figure")
+	if fn == nil {
+		t.Fatal("no declaration for new_figure")
+	}
+	if len(fn.resultMembers) != 2 {
+		t.Fatalf("new_figure result members = %d, want 2", len(fn.resultMembers))
+	}
+	for _, name := range []string{"title", "save"} {
+		member := findMapMember(fn.resultMembers, name)
+		if member == nil || member.kind != declFunction {
+			t.Errorf("result member %q = %+v, want a function literal", name, member)
+		}
+	}
+
+	this := declNamed(index, "this")
+	if this == nil || len(this.members) != 2 {
+		t.Fatalf("this members = %+v, want the assigned members", this)
+	}
+
+	fig := declNamed(index, "fig")
+	if fig == nil || strings.Join(fig.initCall, ".") != "new_figure" {
+		t.Errorf("fig init call = %v, want new_figure", fig)
+	}
+}
+
+func TestIndexMapMemberAlias(t *testing.T) {
+	text := strings.Join([]string{
+		"fun fetch(id) { id }",
+		"val api = {",
+		"\t'get': fetch,",
+		"}",
+		"fun new_api() {",
+		"\tvar this = {};",
+		"\tthis.get = fetch;",
+		"\treturn this;",
+		"}",
+	}, "\n")
+	index := buildTestIndex(t, text)
+
+	api := declNamed(index, "api")
+	if api == nil {
+		t.Fatal("no declaration for api")
+	}
+	get := findMapMember(api.members, "get")
+	if get == nil || get.ref != "fetch" {
+		t.Errorf("api.get = %+v, want a reference to fetch", get)
+	}
+
+	fn := declNamed(index, "new_api")
+	if fn == nil {
+		t.Fatal("no declaration for new_api")
+	}
+	result := findMapMember(fn.resultMembers, "get")
+	if result == nil || result.ref != "fetch" {
+		t.Errorf("new_api result get = %+v, want a reference to fetch", result)
+	}
+}
+
+func TestIndexMapConstructorResultMembers(t *testing.T) {
+	text := strings.Join([]string{
+		"val factory = {",
+		"\t'build': fun() {",
+		"\t\tvar this = {};",
+		"\t\tthis.run = fun() {",
+		"\t\t\t## runs it",
+		"\t\t\tdo_run(this)",
+		"\t\t};",
+		"\t\treturn this;",
+		"\t},",
+		"}",
+		"val obj = factory.build()",
+	}, "\n")
+	index := buildTestIndex(t, text)
+
+	factory := declNamed(index, "factory")
+	if factory == nil {
+		t.Fatal("no declaration for factory")
+	}
+	build := findMapMember(factory.members, "build")
+	if build == nil || build.kind != declFunction {
+		t.Fatalf("factory.build = %+v, want a function literal", build)
+	}
+	if len(build.resultMembers) != 1 {
+		t.Fatalf("factory.build result members = %d, want 1", len(build.resultMembers))
+	}
+	run := findMapMember(build.resultMembers, "run")
+	if run == nil || run.kind != declFunction {
+		t.Errorf("factory.build result member run = %+v, want a function literal", run)
+	}
+
+	obj := declNamed(index, "obj")
+	if obj == nil || strings.Join(obj.initCall, ".") != "factory.build" {
+		t.Errorf("obj init call = %v, want factory.build", obj)
+	}
+}
+
 // A compiler directive such as `std:this,__style` steers how blue builds help
 // text, so it must never show up in a docstring. The blank `##` line that
 // separates a description from its signature is worth keeping because it makes
