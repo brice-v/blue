@@ -43,7 +43,6 @@ TODO:
     - [ ] Aliasing for destructuring
     - [ ] Spread operator from JS
     - [ ] Map on lambda with destructuring (for maps, lists, etc.)
-- [ ] Support sse (server streamed events)
 - [ ] Support more middlewares for internal http server
     - [ ] Add helmet
     - [ ] Add compression
@@ -82,7 +81,7 @@ TODO:
     - [ ] Add WebView
     - [x] Add plotting library
     - [x] Add ML Libs?
-    - [ ] Server Side Events?
+    - [x] Server Side Events?
     - [ ] ECSDA support/ pub/priv keys? for crypto
     - [x] Date parsing code (this is one of the key missing areas at the moment as mentioned elsewhere in TODO)
     - [-] 2d game library - Started
@@ -816,3 +815,4 @@ COMPLETED TASKS:
 - [x] FIX: LSP, if map has member that is function literal, should be able to hover for docs
 - [-] Replace println with just print and pass endln char to builtin (simplifies things a bit)
     - would be too many changes at this point
+- [x] Support sse (server streamed events)
