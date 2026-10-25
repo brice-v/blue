@@ -8,7 +8,10 @@ val __static = _static;
 val __handle = _handle;
 val __handle_use = _handle_use;
 val __handle_ws = _handle_ws;
+val __handle_sse = _handle_sse;
 val __handle_monitor = _handle_monitor;
+val __sse_send = _sse_send;
+val __sse_last_event_id = _sse_last_event_id;
 val __ws_send = _ws_send;
 val __ws_recv = _ws_recv;
 # used as a websocket client
@@ -219,6 +222,34 @@ fun handle_ws(pattern, fn) {
     __handle_ws(_server.this, pattern, fn)
 }
 
+fun handle_sse(pattern, fn) {
+    ##std:this,__handle_sse
+    ## `handle_sse` streams server-sent events to the client.
+    ## It attaches itself to the _server http object (so serve must
+    ## be called first)
+    ##
+    ## sse is reserved in the handler function signature and is a map
+    ## with t='sse', v=GoObj[*sse.Stream], and last_event_id(). The handler
+    ## runs for the lifetime of the connection, so it should send events
+    ## and return when the stream is complete. Use `sse.send(value)` or
+    ## `sse_send(sse, value, event=..., id=..., retry=...)` to send events.
+    ##
+    ## the server sends heartbeat comments automatically while the
+    ## stream is idle. `sse.last_event_id()` and `http.sse_last_event_id(sse)`
+    ## return the Last-Event-ID header from a reconnecting client, or an
+    ## empty string.
+    ##
+    ## route parameters and the headers and request reserved
+    ## parameters work the same way as they do for handle()
+    ##
+    ## example: a simple ticker stream looks like so
+    ## fun ticks(sse) { for (i in 0..10) { http.sse_send(sse, "tick #{i}"); time.sleep(1000); } }
+    ## handle_sse("/events", ticks)
+    ##
+    ## handle_sse(pattern: str, fn: fun) -> null
+    __handle_sse(_server.this, pattern, fn)
+}
+
 fun static(prefix="/", dir_path=".", browse=false) {
     ##std:this,__static
     ## `static` declares a static directory to be used by the http
@@ -260,6 +291,27 @@ fun sanitize_and_minify(content, should_sanitize=true, should_minify=true) {
     ##
     ## sanitize_and_minify(content: str, should_sanitize: bool=true, should_minify: bool=true) -> str
     __sanitize_and_minify(content, should_sanitize, should_minify)
+}
+
+fun sse_send(sse, value, event=null, id=null, retry=null) {
+    ##std:this,__sse_send
+    ## `sse_send` will send an event on the server-sent events connection
+    ## within an http server sse handler.
+    ##
+    ## event, id, and retry are optional and map to the server-sent events
+    ## protocol fields of the same name. retry is in milliseconds.
+    ##
+    ## sse_send(sse: GoObj[*sse.Stream]|map, value: str|bytes, event: str|null=null, id: str|null=null, retry: int|null=null) -> null
+    __sse_send(sse, value, event, id, retry)
+}
+
+fun sse_last_event_id(sse) {
+    ##std:this,__sse_last_event_id
+    ## `sse_last_event_id` returns the Last-Event-ID sent by a
+    ## reconnecting sse client, or an empty string.
+    ##
+    ## sse_last_event_id(sse: GoObj[*sse.Stream]|map) -> str
+    __sse_last_event_id(sse)
 }
 
 fun ws_send(ws_id, value) {
@@ -409,6 +461,9 @@ fun new_server(network="tcp4") {
     };
     this.handle_ws = fun(pattern, fn) {
         __handle_ws(this._s, pattern, fn)
+    };
+    this.handle_sse = fun(pattern, fn) {
+        __handle_sse(this._s, pattern, fn)
     };
     this.static = fun(prefix="/", dir_path=".", browse=false) {
         __static(this._s, prefix, dir_path, browse)

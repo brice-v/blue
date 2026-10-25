@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"blue/bluec"
 	"blue/compiler"
 	"blue/object"
 	"fmt"
@@ -1067,5 +1068,20 @@ func TestTensorSliceErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		runExpectVmError(t, tt.input, tt.want)
+	}
+}
+
+func TestProcessSendUsesSharedHelp(t *testing.T) {
+	v := New(&bluec.Bytecode{})
+	process := &object.Process{Ch: make(chan object.Object, 1)}
+	if err := v.executeProcessIndexExpression(process, "send"); err != nil {
+		t.Fatalf("executeProcessIndexExpression: %s", err)
+	}
+	send, ok := v.pop().(*object.Builtin)
+	if !ok {
+		t.Fatalf("expected *object.Builtin, got %T", v.pop())
+	}
+	if send.HelpStr != object.SendHelpString() {
+		t.Errorf("process send help does not match shared send help")
 	}
 }

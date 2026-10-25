@@ -16,11 +16,13 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/gofiber/websocket/v2"
+	"github.com/gofiber/contrib/v3/monitor"
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/sse"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	ws "github.com/gorilla/websocket"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
@@ -34,8 +36,166 @@ import (
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
 )
 
+const fiberNetworkStateKey = "blue.network"
+
 // Used to catch interrupt to shutdown server
 var interruptCh = make(chan os.Signal, 1)
+
+type sseStream interface {
+	Event(event sse.Event) error
+	LastEventID() string
+}
+
+type wsMessageWriter interface {
+	WriteMessage(messageType int, data []byte) error
+}
+
+func sendWSMessage(funName string, w wsMessageWriter, value Object) Object {
+	if value.Type() != STRING_OBJ && value.Type() != BYTES_OBJ {
+		return newPositionalTypeError(funName, 2, "STRING or BYTES", value.Type())
+	}
+	var err error
+	if value.Type() == STRING_OBJ {
+		err = w.WriteMessage(ws.TextMessage, []byte(value.(*Stringo).Value))
+	} else {
+		err = w.WriteMessage(ws.BinaryMessage, value.(*Bytes).Value)
+	}
+	if err != nil {
+		return newError("`%s` error: %s", funName, err.Error())
+	}
+	return NULL
+}
+
+func sendObject(obj, value Object) Object {
+	if obj.Type() == GO_OBJ {
+		if w, ok := obj.(*GoObj[*sse.Stream]); ok {
+			return sendSSE(w.Value, "sse_send", 2, value, NULL, NULL, NULL)
+		}
+	}
+	if obj.Type() == MAP_OBJ {
+		m := obj.(*Map)
+		if tObj, ok := getMapValueByString(m, "t"); ok {
+			if t, ok := tObj.(*Stringo); ok {
+				vObj, _ := getMapValueByString(m, "v")
+				switch t.Value {
+				case "ws":
+					if c, ok := vObj.(*GoObj[*websocket.Conn]); ok {
+						return sendWSMessage("ws_send", c.Value, value)
+					}
+				case "ws/client":
+					if c, ok := vObj.(*GoObj[*ws.Conn]); ok {
+						return sendWSMessage("ws_client_send", c.Value, value)
+					}
+				case "sse":
+					if c, ok := vObj.(*GoObj[*sse.Stream]); ok {
+						return sendSSE(c.Value, "sse_send", 2, value, NULL, NULL, NULL)
+					}
+				}
+			}
+		}
+	}
+	return newError("obj `%s` is invalid type. got=`%s` (%s)", obj.Inspect(), obj.Inspect(), obj.Type())
+}
+
+func getMapValueByString(m *Map, key string) (Object, bool) {
+	pair, ok := m.Pairs.Get(HashKey{Type: STRING_OBJ, Value: HashObject(&Stringo{Value: key})})
+	if !ok {
+		return nil, false
+	}
+	return pair.Value, true
+}
+
+func getSSEStream(obj Object) (*sse.Stream, bool) {
+	if w, ok := obj.(*GoObj[*sse.Stream]); ok {
+		return w.Value, true
+	}
+	if obj.Type() == MAP_OBJ {
+		m := obj.(*Map)
+		if tObj, ok := getMapValueByString(m, "t"); ok {
+			if t, ok := tObj.(*Stringo); ok && t.Value == "sse" {
+				if vObj, ok := getMapValueByString(m, "v"); ok {
+					if w, ok := vObj.(*GoObj[*sse.Stream]); ok {
+						return w.Value, true
+					}
+				}
+			}
+		}
+	}
+	return nil, false
+}
+
+func sseLastEventID(stream *sse.Stream) *Stringo {
+	return &Stringo{Value: stream.LastEventID()}
+}
+
+// NewSSEConnection returns the map passed to a server-sent events handler.
+func NewSSEConnection(stream *sse.Stream) *Map {
+	m := NewOrderedMap[string, Object]()
+	m.Set("t", &Stringo{Value: "sse"})
+	m.Set("v", NewGoObj(stream))
+	m.Set("last_event_id", &Builtin{
+		Name: "last_event_id",
+		Fun: func(args ...Object) Object {
+			if len(args) != 0 {
+				return newInvalidArgCountError("last_event_id", len(args), 0, "")
+			}
+			return sseLastEventID(stream)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`last_event_id` returns the Last-Event-ID sent by a reconnecting sse client, or an empty string",
+			signature:   "last_event_id() -> str",
+			errors:      "InvalidArgCount",
+			example:     "sse.last_event_id() => '42'",
+		}.String(),
+	})
+	return CreateMapObjectForGoMap(*m)
+}
+
+func sendSSE(stream sseStream, funName string, valuePos int, valueArg, eventArg, idArg, retryArg Object) Object {
+	if valueArg.Type() != STRING_OBJ && valueArg.Type() != BYTES_OBJ {
+		return newPositionalTypeError(funName, valuePos, "STRING or BYTES", valueArg.Type())
+	}
+	if eventArg.Type() != STRING_OBJ && eventArg.Type() != NULL_OBJ {
+		return newPositionalTypeError(funName, valuePos+1, "STRING or NULL", eventArg.Type())
+	}
+	if idArg.Type() != STRING_OBJ && idArg.Type() != NULL_OBJ {
+		return newPositionalTypeError(funName, valuePos+2, "STRING or NULL", idArg.Type())
+	}
+	if retryArg.Type() != INTEGER_OBJ && retryArg.Type() != NULL_OBJ {
+		return newPositionalTypeError(funName, valuePos+3, "INTEGER or NULL", retryArg.Type())
+	}
+	var data []byte
+	if valueArg.Type() == STRING_OBJ {
+		data = []byte(valueArg.(*Stringo).Value)
+	} else {
+		data = valueArg.(*Bytes).Value
+	}
+	event := ""
+	if eventArg.Type() == STRING_OBJ {
+		event = eventArg.(*Stringo).Value
+	}
+	id := ""
+	if idArg.Type() == STRING_OBJ {
+		id = idArg.(*Stringo).Value
+	}
+	var retryDuration time.Duration
+	if retryArg.Type() == INTEGER_OBJ {
+		retry := retryArg.(*Integer).Value
+		if retry < 0 {
+			return newError("`sse_send` error: retry must be >= 0")
+		}
+		retryDuration = time.Duration(retry) * time.Millisecond
+	}
+	if err := stream.Event(sse.Event{
+		Data:  data,
+		ID:    id,
+		Name:  event,
+		Retry: retryDuration,
+	}); err != nil {
+		return newError("`sse_send` error: %s", err.Error())
+	}
+	return NULL
+}
 
 var HttpBuiltins = []*Builtin{
 	{
@@ -235,18 +395,10 @@ var HttpBuiltins = []*Builtin{
 				return newPositionalTypeError("new_server", 1, STRING_OBJ, args[0].Type())
 			}
 			network := args[0].(*Stringo).Value
-			var disableStartupDebug bool
-			disableStartupMessageStr := os.Getenv(consts.BLUE_DISABLE_HTTP_SERVER_DEBUG)
-			disableStartupDebug, err := strconv.ParseBool(disableStartupMessageStr)
-			if err != nil {
-				disableStartupDebug = false
-			}
 			app := fiber.New(fiber.Config{
-				Immutable:             true,
-				EnablePrintRoutes:     !disableStartupDebug,
-				DisableStartupMessage: disableStartupDebug,
-				Network:               network,
+				Immutable: true,
 			})
+			app.State().Set(fiberNetworkStateKey, network)
 			return NewGoObj(app)
 		},
 		HelpStr: helpStrArgs{
@@ -288,9 +440,23 @@ var HttpBuiltins = []*Builtin{
 				if err != nil {
 					return newError("`serve` error: %s", err.Error())
 				}
-				app.Value.Use(filesystem.New(filesystem.Config{Root: http.FS(sub)}))
+				app.Value.Use(static.New(".", static.Config{FS: sub}))
 			}
-			err := app.Value.Listen(addrPort)
+			network := "tcp4"
+			if v, ok := app.Value.State().Get(fiberNetworkStateKey); ok {
+				network = v.(string)
+			}
+			var disableStartupDebug bool
+			disableStartupMessageStr := os.Getenv(consts.BLUE_DISABLE_HTTP_SERVER_DEBUG)
+			disableStartupDebug, err := strconv.ParseBool(disableStartupMessageStr)
+			if err != nil {
+				disableStartupDebug = false
+			}
+			err = app.Value.Listen(addrPort, fiber.ListenConfig{
+				DisableStartupMessage: disableStartupDebug,
+				EnablePrintRoutes:     !disableStartupDebug,
+				ListenerNetwork:       network,
+			})
 			if err != nil {
 				return newError("`serve` error: %s", err.Error())
 			}
@@ -352,14 +518,14 @@ var HttpBuiltins = []*Builtin{
 				if err != nil {
 					return newError("`static` error: %s", err.Error())
 				}
-				app.Value.Use(prefix, filesystem.New(filesystem.Config{
-					Root:   http.FS(sub),
+				app.Value.Use(prefix, static.New(".", static.Config{
+					FS:     sub,
 					Browse: shouldBrowse,
 				}))
 			} else {
-				app.Value.Static(prefix, fpath, fiber.Static{
+				app.Value.Use(prefix, static.New(fpath, static.Config{
 					Browse: shouldBrowse,
-				})
+				}))
 			}
 			return NULL
 		},
@@ -368,6 +534,44 @@ var HttpBuiltins = []*Builtin{
 			signature:   "static(server: GoObj[*fiber.App], prefix: str='/', dir_path: str='.', browse: bool=false) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "static() => null => current directory served at addr:port/",
+		}.String(),
+	},
+	{
+		Name: "_sse_send",
+		Fun: func(args ...Object) Object {
+			if len(args) != 5 {
+				return newInvalidArgCountError("sse_send", len(args), 5, "")
+			}
+			stream, ok := getSSEStream(args[0])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("sse_send", 1, "GoObj[*sse.Stream]|map", args[0])
+			}
+			return sendSSE(stream, "sse_send", 2, args[1], args[2], args[3], args[4])
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`sse_send` sends a server-sent event on the given sse connection. event, id, and retry are optional",
+			signature:   "sse_send(s: GoObj[*sse.Stream]|map, value: str|bytes, event: str|null=null, id: str|null=null, retry: int|null=null) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "sse_send(s, 'hello', event='message', id='1', retry=3000) => null",
+		}.String(),
+	},
+	{
+		Name: "_sse_last_event_id",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("sse_last_event_id", len(args), 1, "")
+			}
+			stream, ok := getSSEStream(args[0])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("sse_last_event_id", 1, "GoObj[*sse.Stream]|map", args[0])
+			}
+			return sseLastEventID(stream)
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`sse_last_event_id` returns the Last-Event-ID sent by a reconnecting sse client, or an empty string",
+			signature:   "sse_last_event_id(s: GoObj[*sse.Stream]|map) -> str",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "sse_last_event_id(s) => '42'",
 		}.String(),
 	},
 	{
@@ -383,19 +587,7 @@ var HttpBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("ws_send", 1, "*websocket.Conn", args[0])
 			}
-			if args[1].Type() != STRING_OBJ && args[1].Type() != BYTES_OBJ {
-				return newPositionalTypeError("ws_send", 2, "STRING or BYTES", args[1].Type())
-			}
-			var err error
-			if args[1].Type() == STRING_OBJ {
-				err = c.Value.WriteMessage(websocket.TextMessage, []byte(args[1].(*Stringo).Value))
-			} else {
-				err = c.Value.WriteMessage(websocket.BinaryMessage, args[1].(*Bytes).Value)
-			}
-			if err != nil {
-				return newError("`ws_send` error: %s", err.Error())
-			}
-			return NULL
+			return sendWSMessage("ws_send", c.Value, args[1])
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ws_send` sends the given value on the websocket connection, if the value is a string the websocket message type is TextMessage, otherwise if bytes BinaryMessage",
@@ -479,19 +671,7 @@ var HttpBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("ws_client_send", 1, "*ws.Conn", args[0])
 			}
-			if args[1].Type() != STRING_OBJ && args[1].Type() != BYTES_OBJ {
-				return newPositionalTypeError("ws_client_send", 2, "STRING or BYTES", args[1].Type())
-			}
-			var err error
-			if args[1].Type() == STRING_OBJ {
-				err = c.Value.WriteMessage(websocket.TextMessage, []byte(args[1].(*Stringo).Value))
-			} else {
-				err = c.Value.WriteMessage(websocket.BinaryMessage, args[1].(*Bytes).Value)
-			}
-			if err != nil {
-				return newError("`ws_send` error: %s", err.Error())
-			}
-			return NULL
+			return sendWSMessage("ws_client_send", c.Value, args[1])
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ws_client_send` sends the given value on the websocket client connection, if the value is a string the websocket message type is TextMessage, otherwise if bytes BinaryMessage",
@@ -561,7 +741,7 @@ var HttpBuiltins = []*Builtin{
 			path := args[1].(*Stringo).Value
 			shouldShow := args[2].(*Boolean).Value
 			app.Value.Get(path, monitor.New(monitor.Config{
-				Next: func(c *fiber.Ctx) bool {
+				Next: func(c fiber.Ctx) bool {
 					return !shouldShow
 				},
 			}))
@@ -796,6 +976,16 @@ var HttpBuiltins = []*Builtin{
 			signature:   "handle_ws(server: GoObj[*fiber.App], pattern: str, fn: fun) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "handle_ws(s, '/ws', fn) => null",
+		}.String(),
+	},
+	{
+		Name: "_handle_sse",
+		Fun:  nil,
+		HelpStr: helpStrArgs{
+			explanation: "`handle_sse` puts a server-sent events handler on the server for a given pattern",
+			signature:   "handle_sse(server: GoObj[*fiber.App], pattern: str, fn: fun) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "handle_sse(s, '/events', fn) => null",
 		}.String(),
 	},
 }

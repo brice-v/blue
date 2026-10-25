@@ -99,6 +99,13 @@ fun ws_handler(ws) {
     }
 }
 
+fun sse_handler(sse, name, query_params=["q"], headers, request) {
+    val last_id = sse.last_event_id();
+    val last_id_helper = http.sse_last_event_id(sse);
+    http.sse_send(sse, "name=#{name},q=#{q},last=#{last_id},last2=#{last_id_helper},method=#{request.method},host=#{headers.Host}", event="update", id="7", retry=100);
+    sse.send("line1\nline2");
+}
+
 fun return_special_json_handler(t, request) {
     # t is the type of thing we want to test out
     match t {
@@ -149,6 +156,7 @@ http.handle("/all/:a/:b", all_handler, method="DELETE");
 
 http.handle("/return-json/:t", return_special_json_handler)
 http.handle("/return-json/:t", return_special_json_handler, method="POST")
+http.handle_sse("/sse/:name", sse_handler);
 
 http.handle('/redirect', redirect_handler);
 http.handle('/healthcheck', status_handler);

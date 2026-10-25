@@ -209,12 +209,7 @@ func (vm *VM) executeProcessIndexExpression(process *object.Process, name string
 				p.Ch <- args[0]
 				return object.NULL
 			},
-			HelpStr: helpStrArgs{
-				explanation: "`send` will take the given value and send it to the process",
-				signature:   "send(pid: PROCESS, val: any) -> null",
-				errors:      "InvalidArgCount,PositionalType",
-				example:     "send(#{name: '', id: 1}, 'hello') => null",
-			}.String(),
+			HelpStr: object.SendHelpString(),
 		})
 	case "recv":
 		p := process

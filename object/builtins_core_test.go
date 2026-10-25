@@ -120,6 +120,16 @@ func newTestTensor(t *testing.T, data []float32, shape []int) *Tensor {
 	return &Tensor{T: tn}
 }
 
+func TestSendHelpShared(t *testing.T) {
+	b := GetBuiltinByName(BuiltinBaseType, "_send")
+	if b == nil {
+		t.Fatal("_send builtin not found")
+	}
+	if b.HelpStr != SendHelpString() {
+		t.Error("_send help does not match the shared send help")
+	}
+}
+
 func TestBuiltinRegistry(t *testing.T) {
 	seen := make(map[string]bool)
 	for _, b := range Builtins {

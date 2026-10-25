@@ -73,19 +73,7 @@ fun fetch(resource, options=null, full_resp=true) {
 
 fun send(obj, value) {
     ##core:ignore
-    match obj {
-        {t: "ws", v: _} => {
-            from http import {ws_send}
-            ws_send(obj.v, value)
-        },
-        {t: "ws/client", v: _} => {
-            from http import {ws_client_send}
-            ws_client_send(obj.v, value)
-        },
-        _ => {
-            error("obj `#{obj}` is invalid type. got=`#{obj}` (#{type(obj)})")
-        },
-    }
+    _send(obj, value)
 }
 
 fun recv(obj) {

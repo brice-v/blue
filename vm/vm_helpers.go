@@ -18,7 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/clbanning/mxj/v2"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func executeIntegerRangeOperator(leftVal, rightVal int64) object.Object {
@@ -803,14 +803,10 @@ func generateJsonStringFromOtherValidTypes(buf bytes.Buffer, element object.Obje
 	return buf
 }
 
-func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) (bool, object.Object, []string) {
+func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) (bool, object.Object, []string) {
 	isGet := method == "GET"
 	isDelete := method == "DELETE"
 	methodLower := strings.ToLower(method)
-	// The vm (stack, frames, globals and the handler closure's special
-	// parameter maps) is not safe for concurrent execution, so requests are
-	// serialized here. Chain dispatch via c.Next() happens outside this lock
-	// in processHandlerFn so a middleware chain cannot self-deadlock.
 	vm.execMu.Lock()
 	defer vm.execMu.Unlock()
 	if !isGet && !isDelete {
@@ -821,7 +817,7 @@ func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c *fiber.Ctx, metho
 	return true, vm.applyFunctionFastWithMultipleArgs(fn, fnArgs), []string{}
 }
 
-func handleSpecialFunctionArgs2(fn *object.Closure, varName string, c *fiber.Ctx) {
+func handleSpecialFunctionArgs2(fn *object.Closure, varName string, c fiber.Ctx) {
 	if fn.Fun.SpecialFunctionParameters == nil {
 		return
 	}
@@ -937,29 +933,14 @@ func decodeInterfaceToObject(value any) object.Object {
 	return object.NULL
 }
 
-func getAndSetHttpParams(fn *object.Closure, c *fiber.Ctx) []object.Object {
+func getAndSetHttpParams(fn *object.Closure, c fiber.Ctx) []object.Object {
 	fnArgs := make([]object.Object, len(fn.Fun.Parameters))
 	for i, v := range fn.Fun.Parameters {
 		switch v {
 		case "headers":
-			// Handle headers
 			fnArgs[i] = getReqHeaderMapObj(c)
 		case "request":
-			req := c.Request()
-			mapObj := object.NewOrderedMap[string, object.Object]()
-			mapObj.Set("method", &object.Stringo{Value: c.Method()})
-			mapObj.Set("proto", &object.Stringo{Value: c.Protocol()})
-			mapObj.Set("uri", &object.Stringo{Value: string(req.URI().FullURI())})
-			mapObj.Set("scheme", &object.Stringo{Value: string(req.URI().Scheme())})
-			mapObj.Set("host", &object.Stringo{Value: string(req.URI().Host())})
-			mapObj.Set("request_uri", &object.Stringo{Value: string(req.URI().RequestURI())})
-			mapObj.Set("hash", &object.Stringo{Value: string(req.URI().Hash())})
-			headersMapObj := getReqHeaderMapObj(c)
-			mapObj.Set("headers", headersMapObj)
-			mapObj.Set("ip", &object.Stringo{Value: c.IP()})
-			mapObj.Set("is_from_local", nativeToBooleanObject(c.IsFromLocal()))
-			mapObj.Set("is_secure", nativeToBooleanObject(c.Secure()))
-			fnArgs[i] = object.CreateMapObjectForGoMap(*mapObj)
+			fnArgs[i] = getReqRequestMapObj(c)
 		case "ctx", "context":
 			fnArgs[i] = getCtxFunctionMapObj(c)
 		default:
@@ -969,7 +950,24 @@ func getAndSetHttpParams(fn *object.Closure, c *fiber.Ctx) []object.Object {
 	return fnArgs
 }
 
-func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
+func getReqRequestMapObj(c fiber.Ctx) object.Object {
+	req := c.Request()
+	mapObj := object.NewOrderedMap[string, object.Object]()
+	mapObj.Set("method", &object.Stringo{Value: c.Method()})
+	mapObj.Set("proto", &object.Stringo{Value: c.Scheme()})
+	mapObj.Set("uri", &object.Stringo{Value: string(req.URI().FullURI())})
+	mapObj.Set("scheme", &object.Stringo{Value: string(req.URI().Scheme())})
+	mapObj.Set("host", &object.Stringo{Value: string(req.URI().Host())})
+	mapObj.Set("request_uri", &object.Stringo{Value: string(req.URI().RequestURI())})
+	mapObj.Set("hash", &object.Stringo{Value: string(req.URI().Hash())})
+	mapObj.Set("headers", getReqHeaderMapObj(c))
+	mapObj.Set("ip", &object.Stringo{Value: c.IP()})
+	mapObj.Set("is_from_local", nativeToBooleanObject(c.IsFromLocal()))
+	mapObj.Set("is_secure", nativeToBooleanObject(c.Secure()))
+	return object.CreateMapObjectForGoMap(*mapObj)
+}
+
+func getReqHeaderMapObj(c fiber.Ctx) object.Object {
 	headers := c.GetReqHeaders()
 	mapObj := object.NewOrderedMap[string, object.Object]()
 	headerKeys := make([]string, len(headers))
@@ -986,7 +984,7 @@ func getReqHeaderMapObj(c *fiber.Ctx) object.Object {
 	return object.CreateMapObjectForGoMap(*mapObj)
 }
 
-func getCtxFunctionMapObj(c *fiber.Ctx) object.Object {
+func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 	mapObj := object.NewOrderedMap[string, object.Object]()
 	mapObj.Set("clear_cookie", &object.Builtin{
 		Name: "clear_cookie",

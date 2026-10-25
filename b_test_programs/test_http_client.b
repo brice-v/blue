@@ -156,6 +156,15 @@ fun main() {
     assert(ctx_handler_resp.cookies[0].value == 'SOME_VALUE');
     assert(from_json(ctx_handler_resp.body) == [1,2,3]);
 
+    val sse_resp = fetch("http://localhost:3001/sse/Brice?q=hello", {method: 'GET', headers: {'Last-Event-ID': 'abc'}}, full_resp=true);
+    println("sse_resp = #{sse_resp}");
+    assert(sse_resp.status == 200);
+    assert(sse_resp.headers['Content-Type'][0] == 'text/event-stream');
+    assert(sse_resp.headers['Cache-Control'][0] == 'no-cache');
+    assert(sse_resp.headers['X-Accel-Buffering'][0] == 'no');
+    val expected_sse = "id: 7\nevent: update\nretry: 100\ndata: name=Brice,q=hello,last=abc,last2=abc,method=GET,host=localhost:3001\n\ndata: line1\ndata: line2\n\n";
+    assert(sse_resp.body == expected_sse, "SSE response did not match expected");
+
     val ws = http.new_ws("ws://localhost:3001/ws");
     var x = "Sending from Client!";
     ws.send(x);

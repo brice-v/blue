@@ -9,13 +9,13 @@ import (
 	"github.com/valyala/bytebufferpool"
 )
 
-type headerInterface interface {
+type bodyStreamHeader interface {
 	ContentLength() int
 	ReadTrailer(r *bufio.Reader) error
 }
 
 type requestStream struct {
-	header          headerInterface
+	header          bodyStreamHeader
 	prefetchedBytes *bytes.Reader
 	reader          *bufio.Reader
 	totalBytesRead  int
@@ -42,10 +42,7 @@ func (rs *requestStream) Read(p []byte) (int, error) {
 			}
 			rs.chunkLeft = chunkSize
 		}
-		bytesToRead := len(p)
-		if rs.chunkLeft < len(p) {
-			bytesToRead = rs.chunkLeft
-		}
+		bytesToRead := min(rs.chunkLeft, len(p))
 		n, err = rs.reader.Read(p[:bytesToRead])
 		rs.totalBytesRead += n
 		rs.chunkLeft -= n
@@ -74,7 +71,7 @@ func (rs *requestStream) Read(p []byte) (int, error) {
 		return n, err
 	}
 	left := rs.header.ContentLength() - rs.totalBytesRead
-	if len(p) > left {
+	if left > 0 && len(p) > left {
 		p = p[:left]
 	}
 	n, err = rs.reader.Read(p)
@@ -89,8 +86,8 @@ func (rs *requestStream) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func acquireRequestStream(b *bytebufferpool.ByteBuffer, r *bufio.Reader, h headerInterface) *requestStream {
-	rs := requestStreamPool.Get().(*requestStream)
+func acquireRequestStream(b *bytebufferpool.ByteBuffer, r *bufio.Reader, h bodyStreamHeader) *requestStream {
+	rs := requestStreamPool.Get().(*requestStream) //nolint:forcetypeassert
 	rs.prefetchedBytes = bytes.NewReader(b.B)
 	rs.reader = r
 	rs.header = h
@@ -107,7 +104,7 @@ func releaseRequestStream(rs *requestStream) {
 }
 
 var requestStreamPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &requestStream{}
 	},
 }

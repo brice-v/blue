@@ -10,8 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/sse"
 	"golang.org/x/net/html"
 )
 
@@ -33,16 +34,12 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 		case "_handle_use":
 			return createHttpHandleBuiltin(vm, true).Fun
 		case "_handle_ws":
-			// The template snapshot is created once, on the first resolution,
-			// while the source vm is still young and safe to deep clone.
-			// Later resolutions (inlined `from http import` statements
-			// re-execute on every ws message, including on connection vms)
-			// must reuse it: cloning here would copy a live vm and retain
-			// megabytes per message.
 			if vm.wsTemplate == nil {
 				vm.wsTemplate = vm.Clone(vm.PID)
 			}
 			return createHttpHandleWSBuiltin(vm.wsTemplate).Fun
+		case "_handle_sse":
+			return createHttpHandleSSEBuiltin(vm).Fun
 		default:
 			return unresolvableStdBuiltin(mod, name)
 		}
@@ -92,7 +89,7 @@ func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 			method := strings.ToUpper(args[3].(*object.Stringo).Value)
 			pattern := args[1].(*object.Stringo).Value
 			fun := args[2].(*object.Closure)
-			goFiberFunc := func(c *fiber.Ctx) error {
+			goFiberFunc := func(c fiber.Ctx) error {
 				return processHandlerFn(vm, fun, c, method)
 			}
 			if isHandleUse {
@@ -123,7 +120,7 @@ func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 	}
 }
 
-func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) error {
+func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) error {
 	ok, respObj, errors := prepareAndApplyHttpHandleFn(vm, fn, c, method)
 	if !ok {
 		return c.Status(fiber.StatusInternalServerError).JSON(errors)
@@ -166,7 +163,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 					err := fmt.Sprintf("http/redirect 'code' must be INTEGER. got=%T", maybeCode)
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
-				return c.Redirect(location, int(code))
+				return c.Redirect().Status(int(code)).To(location)
 			case "next":
 				return c.Next()
 			case "send_file":
@@ -180,7 +177,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 					err := fmt.Sprintf("http/send_file 'path' must be STRING. got=%T", maybePath)
 					return c.Status(fiber.StatusInternalServerError).JSON(err)
 				}
-				return c.SendFile(path, false)
+				return c.SendFile(path)
 			}
 		}
 	}
@@ -233,7 +230,8 @@ func processHandlerFn(vm *VM, fn *object.Closure, c *fiber.Ctx, method string) e
 				c.Type("html")
 				return c.SendString("<p>" + respStr + "</p>")
 			}
-			return c.Format(respStr)
+			c.Type("txt")
+			return c.SendString(respStr)
 		} else {
 			// If the value returned here would be a valid JSON root node then we will return it
 			// assuming it all works (ie. if a list - all the values are valid JSON)
@@ -288,20 +286,16 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 			if len(fn.Fun.Parameters) == 0 {
 				return newError("function arguments should be at least 1 to store the websocket connection")
 			}
-			app.Value.Use(pattern, func(c *fiber.Ctx) error {
+			app.Value.Use(pattern, func(c fiber.Ctx) error {
 				if websocket.IsWebSocketUpgrade(c) {
 					return c.Next()
 				}
 				return fiber.ErrUpgradeRequired
 			})
 			wsHandler := websocket.New(func(c *websocket.Conn) {
-				// Each connection runs blue code for its whole lifetime, so
-				// it gets its own vm and its own copy of the handler closure.
-				// Sharing one vm (or the closure's special parameter maps)
-				// between concurrent connections corrupts vm state. The
-				// connection vm shares immutable program data with the
-				// registration-time snapshot instead of deep cloning it, and
-				// is made from that snapshot, never from the live vm.
+				defer func() {
+					_ = c.Close()
+				}()
 				connVm := vm.CloneForConnection(vm.PID)
 				connFn := cloneHandlerClosure(fn)
 				handleSpecialFunctionArgs(connFn, c)
@@ -315,19 +309,12 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 				}
 				returnObj := connVm.applyFunctionFastWithMultipleArgs(connFn, fnArgs)
 				if isError(returnObj) {
-					// var buf bytes.Buffer
-					// buf.WriteString(returnObj.(*object.Error).Message)
-					// buf.WriteByte('\n')
-					// for e.ErrorTokens.Len() > 0 {
-					// 	tok := e.ErrorTokens.PopBack()
-					// 	buf.WriteString(fmt.Sprintf("%s\n", lexer.GetErrorLineMessage(tok)))
-					// }
+
 					if !disableHttpServerDebug {
 						fmt.Printf("%s`handle_ws` error: %s\n", consts.VM_ERROR_PREFIX, returnObj.(*object.Error).Message)
 					}
 				} else {
 					if returnObj == object.NULL {
-						// Dont need to log if its null - probably no error then
 						return
 					}
 					if !disableHttpServerDebug {
@@ -336,8 +323,82 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 				}
 			})
 			app.Value.Get(pattern, wsHandler)
+			return object.NULL
+		},
+	}
+}
 
-			// Always returns NULL here
+func createHttpHandleSSEBuiltin(vm *VM) *object.Builtin {
+	var disableHttpServerDebug bool
+	disableHttpServerDebugStr := os.Getenv(consts.BLUE_DISABLE_HTTP_SERVER_DEBUG)
+	disableHttpServerDebug, err := strconv.ParseBool(disableHttpServerDebugStr)
+	if err != nil {
+		disableHttpServerDebug = false
+	}
+	return &object.Builtin{
+		Name: "handle_sse",
+		Fun: func(args ...object.Object) object.Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("handle_sse", len(args), 3, "")
+			}
+			if args[0].Type() != object.GO_OBJ {
+				return newPositionalTypeError("handle_sse", 1, object.GO_OBJ, args[0].Type())
+			}
+			app, ok := args[0].(*object.GoObj[*fiber.App])
+			if !ok {
+				return newPositionalTypeErrorForGoObj("handle_sse", 1, "*fiber.App", args[0])
+			}
+			if args[1].Type() != object.STRING_OBJ {
+				return newPositionalTypeError("handle_sse", 2, object.STRING_OBJ, args[1].Type())
+			}
+			if args[2].Type() != object.CLOSURE {
+				return newPositionalTypeError("handle_sse", 3, object.CLOSURE, args[2].Type())
+			}
+			pattern := args[1].(*object.Stringo).Value
+			fn := args[2].(*object.Closure)
+			if len(fn.Fun.Parameters) == 0 {
+				return newError("function arguments should be at least 1 to store the sse connection")
+			}
+			for i, p := range fn.Fun.Parameters {
+				if i > 0 && (p == "ctx" || p == "context") {
+					return newError("`handle_sse` error: `ctx`/`context` cannot be used in an sse handler")
+				}
+			}
+			connTemplate := vm.CloneForConnection(vm.PID)
+			app.Value.Get(pattern, sse.New(sse.Config{
+				Handler: func(c fiber.Ctx, stream *sse.Stream) error {
+					connVm := connTemplate.CloneForConnection(connTemplate.PID)
+					connFn := cloneHandlerClosure(fn)
+					handleSpecialFunctionArgs2(connFn, "query_params", c)
+					handleSpecialFunctionArgs2(connFn, "cookies", c)
+					fnArgs := make([]object.Object, len(connFn.Fun.Parameters))
+					for i, v := range connFn.Fun.Parameters {
+						if i == 0 {
+							continue
+						}
+						switch v {
+						case "headers":
+							fnArgs[i] = getReqHeaderMapObj(c)
+						case "request":
+							fnArgs[i] = getReqRequestMapObj(c)
+						default:
+							fnArgs[i] = &object.Stringo{Value: c.Params(v)}
+						}
+					}
+					fnArgs[0] = object.NewSSEConnection(stream)
+					returnObj := connVm.applyFunctionFastWithMultipleArgs(connFn, fnArgs)
+					if isError(returnObj) {
+						if !disableHttpServerDebug {
+							fmt.Printf("%s`handle_sse` error: %s\n", consts.VM_ERROR_PREFIX, returnObj.(*object.Error).Message)
+						}
+						return fmt.Errorf("%s", returnObj.(*object.Error).Message)
+					}
+					if returnObj != object.NULL && !disableHttpServerDebug {
+						fmt.Printf("%s`handle_sse` returned with %#+v\n", consts.VM_ERROR_PREFIX, returnObj)
+					}
+					return nil
+				},
+			}))
 			return object.NULL
 		},
 	}

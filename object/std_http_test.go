@@ -8,8 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/sse"
 )
 
 func httpBuiltinFn(t *testing.T, name string) BuiltinFunction {
@@ -27,7 +29,7 @@ func httpBuiltinFn(t *testing.T, name string) BuiltinFunction {
 }
 
 func TestHttpRegistry(t *testing.T) {
-	vmImplemented := map[string]bool{"_handle": true, "_handle_use": true, "_handle_ws": true}
+	vmImplemented := map[string]bool{"_handle": true, "_handle_use": true, "_handle_ws": true, "_handle_sse": true}
 	seen := make(map[string]bool)
 	for _, b := range HttpBuiltins {
 		if b.Name == "" || b.HelpStr == "" {
@@ -254,6 +256,106 @@ func TestSanitizeAndMinifyBuiltin(t *testing.T) {
 		{name: "two args", args: []Object{&Stringo{Value: "x"}, TRUE}, err: "InvalidArgCountError"},
 	}
 	runBuiltinTestsFor(t, HttpBuiltins, "_sanitize_and_minify", tests)
+}
+
+type fakeSSEStream struct {
+	events []sse.Event
+	lastID string
+	err    error
+}
+
+func (f *fakeSSEStream) Event(event sse.Event) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.events = append(f.events, event)
+	return nil
+}
+
+func (f *fakeSSEStream) LastEventID() string {
+	return f.lastID
+}
+
+func TestSendSSE(t *testing.T) {
+	stream := &fakeSSEStream{}
+	res := sendSSE(stream, "send", 1, &Stringo{Value: "line1\r\nline2"}, &Stringo{Value: "update"}, &Stringo{Value: "42"}, &Integer{Value: 3000})
+	if res != NULL {
+		t.Fatalf("sendSSE = %s, want NULL", res.Inspect())
+	}
+	if len(stream.events) != 1 {
+		t.Fatalf("got %d events, want 1", len(stream.events))
+	}
+	got := stream.events[0]
+	if string(got.Data.([]byte)) != "line1\r\nline2" || got.Name != "update" || got.ID != "42" || got.Retry != 3*time.Second {
+		t.Errorf("sendSSE event = %#v, want data/name/id/retry to match", got)
+	}
+
+	negativeRetry := sendSSE(stream, "send", 1, &Stringo{Value: "x"}, NULL, NULL, &Integer{Value: -1})
+	if _, ok := negativeRetry.(*Error); !ok {
+		t.Errorf("sendSSE(negative retry) should error, got %v", negativeRetry.Inspect())
+	}
+}
+
+func TestNewSSEConnection(t *testing.T) {
+	conn := NewSSEConnection((*sse.Stream)(nil))
+	tVal, ok := getMapValueByString(conn, "t")
+	if !ok || tVal.Inspect() != "sse" {
+		t.Fatalf("sse connection t = %v, want sse", tVal)
+	}
+	vVal, ok := getMapValueByString(conn, "v")
+	if !ok {
+		t.Fatal("sse connection is missing v")
+	}
+	if _, ok := vVal.(*GoObj[*sse.Stream]); !ok {
+		t.Fatalf("sse connection v is %T, want *GoObj[*sse.Stream]", vVal)
+	}
+	lastVal, ok := getMapValueByString(conn, "last_event_id")
+	if !ok {
+		t.Fatal("sse connection is missing last_event_id")
+	}
+	if _, ok := lastVal.(*Builtin); !ok {
+		t.Fatalf("sse connection last_event_id is %T, want *Builtin", lastVal)
+	}
+}
+
+func TestSSELastEventID(t *testing.T) {
+	runBuiltinTestsFor(t, HttpBuiltins, "_sse_last_event_id", []builtinTestCase{
+		{name: "not a goobj", args: []Object{in(1)}, err: "PositionalTypeError"},
+		{name: "wrong goobj", args: []Object{NewGoObj("not a stream")}, err: "PositionalTypeError"},
+		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
+	})
+}
+
+func TestSSESendBuiltin(t *testing.T) {
+	writer := NewGoObj((*sse.Stream)(nil))
+	fn := httpBuiltinFn(t, "_sse_send")
+
+	conn := NewSSEConnection((*sse.Stream)(nil))
+	mapWrongValue := fn(conn, in(1), NULL, NULL, NULL)
+	if _, ok := mapWrongValue.(*Error); !ok {
+		t.Errorf("sse_send(map, wrong value) should error, got %v", mapWrongValue.Inspect())
+	}
+	badWriter := fn(in(1), &Stringo{Value: "x"}, NULL, NULL, NULL)
+	if _, ok := badWriter.(*Error); !ok {
+		t.Errorf("sse_send(non-goobj) should error, got %v", badWriter.Inspect())
+	}
+	wrongWriter := fn(NewGoObj("not a stream"), &Stringo{Value: "x"}, NULL, NULL, NULL)
+	if _, ok := wrongWriter.(*Error); !ok {
+		t.Errorf("sse_send(wrong goobj) should error, got %v", wrongWriter.Inspect())
+	}
+	negativeRetry := fn(writer, &Stringo{Value: "x"}, NULL, NULL, &Integer{Value: -1})
+	if _, ok := negativeRetry.(*Error); !ok {
+		t.Errorf("sse_send(negative retry) should error, got %v", negativeRetry.Inspect())
+	}
+
+	tests := []builtinTestCase{
+		{name: "not enough args", args: []Object{writer, &Stringo{Value: "x"}}, err: "InvalidArgCountError"},
+		{name: "value wrong type", args: []Object{writer, in(1), NULL, NULL, NULL}, err: "PositionalTypeError"},
+		{name: "event wrong type", args: []Object{writer, &Stringo{Value: "x"}, TRUE, NULL, NULL}, err: "PositionalTypeError"},
+		{name: "id wrong type", args: []Object{writer, &Stringo{Value: "x"}, NULL, TRUE, NULL}, err: "PositionalTypeError"},
+		{name: "retry wrong type", args: []Object{writer, &Stringo{Value: "x"}, NULL, NULL, &Stringo{Value: "1"}}, err: "PositionalTypeError"},
+	}
+	runBuiltinTestsFor(t, HttpBuiltins, "_sse_send", tests)
 }
 
 func TestWsAndMiscTypeErrors(t *testing.T) {

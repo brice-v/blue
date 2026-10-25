@@ -4003,6 +4003,25 @@ var Builtins = []*Builtin{
 			example:     "is_callable(1) => false",
 		}.String(),
 	},
+	{
+		Name: "_send",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("send", len(args), 2, "")
+			}
+			return sendObject(args[0], args[1])
+		},
+		HelpStr: SendHelpString(),
+	},
+}
+
+func SendHelpString() string {
+	return helpStrArgs{
+		explanation: "`send` will take the given value and send it to a process, websocket, or server-sent events connection",
+		signature:   "send(obj: any, value: any) -> null",
+		errors:      "InvalidArgCount,PositionalType,CustomError",
+		example:     "send(pid, 'hello') => null",
+	}.String()
 }
 
 var AllBuiltins = []struct {
