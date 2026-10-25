@@ -13,9 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/duckdb/duckdb-go/v2"
 	"github.com/golang-module/carbon/v2"
-	"github.com/shopspring/decimal"
 	_ "modernc.org/sqlite"
 )
 
@@ -668,12 +666,10 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 	case dbColUUID:
 		switch x := input.(type) {
 		case []byte:
-			if len(x) != 16 {
-				return NewString(string(x))
+			if s, ok := dbDuckdbUUIDBytesToString(x); ok {
+				return NewString(s)
 			}
-			var id duckdb.UUID
-			copy(id[:], x)
-			return NewString(id.String())
+			return NewString(string(x))
 		case string:
 			return NewString(x)
 		}
@@ -683,16 +679,17 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 			return &BigInteger{Value: new(big.Int).SetUint64(x)}
 		case uint32:
 			return &BigInteger{Value: new(big.Int).SetUint64(uint64(x))}
-		case duckdb.Decimal:
-			return &BigInteger{Value: new(big.Int).Set(x.Value)}
 		case string:
 			if bi, ok := new(big.Int).SetString(x, 10); ok {
 				return &BigInteger{Value: bi}
 			}
 		}
+		if bi, ok := dbDuckdbDecimalBigInt(input); ok {
+			return &BigInteger{Value: bi}
+		}
 	case dbColFloat:
-		if x, ok := input.(duckdb.Decimal); ok {
-			return &Float{Value: x.Float64()}
+		if f, ok := dbDuckdbDecimalFloat(input); ok {
+			return &Float{Value: f}
 		}
 	case dbColBool:
 		if x, ok := input.(int64); ok {
@@ -776,24 +773,16 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 			return objs
 		}
 	case dbColMap:
-		if x, ok := input.(duckdb.OrderedMap); ok {
-			m := &Map{Pairs: NewPairsMapWithSize(x.Len())}
-			kk := dbColumnKind{base: dbColUnknown}
-			if kind.key != nil {
-				kk = *kind.key
-			}
-			vv := dbColumnKind{base: dbColUnknown}
-			if kind.val != nil {
-				vv = *kind.val
-			}
-			for _, k := range x.Keys() {
-				kAsObj := createObjectFromDbInterface(k, kk)
-				v, _ := x.Get(k)
-				vAsObj := createObjectFromDbInterface(v, vv)
-				hk := HashKey{Type: kAsObj.Type(), Value: HashObject(kAsObj)}
-				m.Pairs.Set(hk, MapPair{Key: kAsObj, Value: vAsObj})
-			}
-			return m
+		kk := dbColumnKind{base: dbColUnknown}
+		if kind.key != nil {
+			kk = *kind.key
+		}
+		vv := dbColumnKind{base: dbColUnknown}
+		if kind.val != nil {
+			vv = *kind.val
+		}
+		if obj, ok := dbDuckdbOrderedMap(input, kk, vv); ok {
+			return obj
 		}
 		if x, ok := input.(map[string]any); ok {
 			m := &Map{Pairs: NewPairsMapWithSize(len(x))}
@@ -802,10 +791,6 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
-			vv := dbColumnKind{base: dbColUnknown}
-			if kind.val != nil {
-				vv = *kind.val
-			}
 			for _, k := range keys {
 				v := x[k]
 				vvAsObj := createObjectFromDbInterface(v, vv)
@@ -816,10 +801,12 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 			return m
 		}
 	case dbColUnion:
-		switch x := input.(type) {
-		case duckdb.Union:
-			return createObjectFromDbInterface(x.Value, dbColumnKind{base: dbColUnknown})
+		if v, ok := dbDuckdbUnionValue(input); ok {
+			return createObjectFromDbInterface(v, dbColumnKind{base: dbColUnknown})
 		}
+	}
+	if obj, ok := dbDuckdbObject(input); ok {
+		return obj
 	}
 	switch x := input.(type) {
 	case int64:
@@ -856,13 +843,6 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 	case time.Time:
 		// TODO: Return time.Time as GoObj if this starts to be better supported
 		return &Stringo{Value: carbon.CreateFromStdTime(x).ToDateTimeMilliString()}
-	case duckdb.Decimal:
-		// TODO: This is potentially inefficient
-		bf, err := decimal.NewFromString(x.String())
-		if err != nil {
-			return newError("decimal conversion error: %s", err.Error())
-		}
-		return &BigFloat{Value: bf}
 	case *big.Int:
 		return &BigInteger{Value: x}
 	case []any:
@@ -871,16 +851,6 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 			objs.Elements[i] = createObjectFromDbInterface(e, dbColumnKind{base: dbColUnknown})
 		}
 		return objs
-	case duckdb.OrderedMap:
-		m := &Map{Pairs: NewPairsMapWithSize(x.Len())}
-		for _, k := range x.Keys() {
-			kAsObj := createObjectFromDbInterface(k, dbColumnKind{base: dbColUnknown})
-			v, _ := x.Get(k)
-			vAsObj := createObjectFromDbInterface(v, dbColumnKind{base: dbColUnknown})
-			hk := HashKey{Type: kAsObj.Type(), Value: HashObject(kAsObj)}
-			m.Pairs.Set(hk, MapPair{Key: kAsObj, Value: vAsObj})
-		}
-		return m
 	case map[string]any:
 		m := &Map{Pairs: NewPairsMapWithSize(len(x))}
 		keys := make([]string, 0, len(x))
@@ -896,15 +866,6 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 			m.Pairs.Set(hk, MapPair{Key: kk, Value: vv})
 		}
 		return m
-	case duckdb.Union:
-		return createObjectFromDbInterface(x.Value, dbColumnKind{base: dbColUnknown})
-	case duckdb.Interval:
-		m := NewOrderedMapWithSize[string, Object](3)
-		m.Set("days", NewInteger(int64(x.Days)))
-		m.Set("micros", NewInteger(x.Micros))
-		m.Set("months", NewInteger(int64(x.Months)))
-		m.Set("t", NewString("duckdb.Interval"))
-		return CreateMapObjectForGoMap(*m)
 	default:
 		return nil
 	}
