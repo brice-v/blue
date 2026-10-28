@@ -90,7 +90,7 @@ func TestInstallExecutableKeepsBaseName(t *testing.T) {
 func useTestTree(t *testing.T) {
 	t.Helper()
 	srcbundle.SetFS(fstest.MapFS{
-		"go.mod":              {Data: []byte("module blue\n\ngo 1.25.0\n")},
+		"go.mod":              {Data: []byte("module blue\n\ngo 1.26.0\n")},
 		"main.go":             {Data: []byte("package main\n")},
 		"cmd/bluerun/main.go": {Data: []byte("//go:build minivm\n")},
 		"lib/core/core.b":     {Data: []byte("// core\n")},

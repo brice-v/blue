@@ -14,10 +14,6 @@ TODO:
     - [ ] FIX: Missing legend
     - Missing sizes for things or handled at 'render'?
     - Sizes are in inches but I sort of expect pixels? (might not be issue)
-- [x] FIX: help() should look more consistent
-    - Add | to all the outputted lines so that its consistent all the way down
-    - (this function is mainly accessible when running but will maybe can be used for `blue doc` command as well)
-    - [ ] `blue doc` for std lib needs to be a bit better (make it consistent with help() output)
 - [ ] See if step needed for other sliceable types
 - [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [ ] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
@@ -816,3 +812,7 @@ COMPLETED TASKS:
 - [-] Replace println with just print and pass endln char to builtin (simplifies things a bit)
     - would be too many changes at this point
 - [x] Support sse (server streamed events)
+- [x] FIX: help() should look more consistent
+    - Add | to all the outputted lines so that its consistent all the way down
+    - (this function is mainly accessible when running but will maybe can be used for `blue doc` command as well)
+    - [x] `blue doc` for std lib needs to be a bit better (make it consistent with help() output)

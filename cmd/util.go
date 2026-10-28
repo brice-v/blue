@@ -525,10 +525,6 @@ func cutModuleMember(name string) (string, string, bool) {
 }
 
 func getDocStringFor(name string) string {
-	builtinHelpStr := getBuiltinHelpIfExists(name)
-	if builtinHelpStr != "" {
-		return builtinHelpStr
-	}
 	if name == "std" {
 		mods := compiler.StdModuleNames()
 		sort.Strings(mods)
@@ -549,6 +545,9 @@ func getDocStringFor(name string) string {
 	if fpath := docFilePath(name); fpath != "" {
 		return instantiateCompilerForDoc(fpath)
 	}
+	if builtinHelpStr := getBuiltinHelpIfExists(name); builtinHelpStr != "" {
+		return builtinHelpStr
+	}
 
 	if modName, member, ok := cutModuleMember(name); ok {
 		return getDocStringForModuleMember(modName, member)
@@ -556,7 +555,6 @@ func getDocStringFor(name string) string {
 	return ""
 }
 
-// stdModuleMemberDoc prints the documentation of one public function of a std module. The function's own `##` docs win; a plain alias to a builtin such as `val acos = _acos;` falls back to that builtin's help text, which is what shows up in blue at runtime anyway.
 func stdModuleMemberDoc(modName string, member string) string {
 	c := compiler.NewFromCore()
 	if err := c.CompileStdModule(modName, nil, false); err != nil {
@@ -577,7 +575,6 @@ func stdModuleMemberDoc(modName string, member string) string {
 	return ""
 }
 
-// getDocStringForModuleMember prints the documentation of one function inside a module, given the two halves of a `module.function` reference like `math.rand`. Local modules are plain .b files reached through their path; standard library modules compile from blue's embedded sources.
 func getDocStringForModuleMember(modName string, member string) string {
 	if compiler.IsStd(modName) {
 		return stdModuleMemberDoc(modName, member)

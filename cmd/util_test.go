@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"blue/compiler"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,8 +29,6 @@ func TestCutModuleMember(t *testing.T) {
 	}
 }
 
-// The single most important case for the fix: `blue doc math.rand` must print
-// the documentation of that one function inside module math.
 func TestDocStringForStdModuleMember(t *testing.T) {
 	docStr := getDocStringFor("math.rand")
 	if strings.TrimSpace(docStr) == "" {
@@ -40,8 +39,6 @@ func TestDocStringForStdModuleMember(t *testing.T) {
 	}
 }
 
-// Members that are plain aliases to a go builtin have no docs of their own, so
-// the wrapped builtin's help text is what must be printed.
 func TestDocStringForStdModuleMemberBuiltinAlias(t *testing.T) {
 	docStr := getDocStringFor("math.acos")
 	if !strings.Contains(docStr, "arccosine") {
@@ -49,8 +46,6 @@ func TestDocStringForStdModuleMemberBuiltinAlias(t *testing.T) {
 	}
 }
 
-// Blue functions that wrap a std builtin through `##std:this,__name` must show
-// both their own explanation and the builtin's signature.
 func TestDocStringForStdModuleMemberWrapped(t *testing.T) {
 	docStr := getDocStringFor("color.style")
 	if !strings.Contains(docStr, "takes a text style") || !strings.Contains(docStr, "builtin__style") {
@@ -72,8 +67,6 @@ func TestDocStringForMemberOfLocalFile(t *testing.T) {
 	}
 }
 
-// A local module named without its .b extension must still resolve, both as a
-// whole (`blue doc foo` meaning `foo.b`) and per member (`foo.abc`).
 func TestDocStringForLocalModuleWithoutExtension(t *testing.T) {
 	dir := t.TempDir()
 	fpath := filepath.Join(dir, "mod", "util.b")
@@ -113,14 +106,31 @@ func TestDocStringForMemberNotFound(t *testing.T) {
 	}
 }
 
-// Whole modules keep working the same way they did before member refs existed.
-func TestDocStringForModuleUnchanged(t *testing.T) {
+func TestDocStringForStdModuleMatchesHelpOutput(t *testing.T) {
 	docStr := getDocStringFor("math")
-	if !strings.HasPrefix(docStr, "MODULE: math") {
-		t.Errorf("`blue doc math` output = %q, want the builtin group listing first", docStr)
+	if !strings.HasPrefix(docStr, "MODULE `math`:") {
+		t.Errorf("`blue doc math` output = %q, want the module's help header", docStr)
 	}
-	if strings.TrimSpace(getDocStringFor("std")) == "" {
-		t.Error("`blue doc std` produced no documentation")
+	if !strings.Contains(docStr, "PUBLIC FUNCTIONS:") {
+		t.Errorf("`blue doc math` output = %q, want a public functions section", docStr)
+	}
+	if !strings.Contains(docStr, "rand | `rand` returns a random float between 0 and 1") {
+		t.Errorf("`blue doc math` output = %q, want rand's docs in the help layout", docStr)
+	}
+	if !strings.Contains(docStr, "\n     |  rand() -> float") {
+		t.Errorf("`blue doc math` output = %q, want continuation lines to keep the | gutter", docStr)
+	}
+}
+
+func TestDocStringForStdListsAllStdModules(t *testing.T) {
+	docStr := getDocStringFor("std")
+	if !strings.HasPrefix(docStr, "MODULE `") {
+		t.Fatalf("`blue doc std` returned %q, want the std module index rather than the ml `std` builtin", strings.Split(docStr, "\n")[0])
+	}
+	for _, mod := range compiler.StdModuleNames() {
+		if !strings.Contains(docStr, "MODULE `"+mod+"`:") {
+			t.Errorf("`blue doc std` output is missing module %q", mod)
+		}
 	}
 }
 
