@@ -48,6 +48,14 @@ val z4 = {1, 4, 7, 10};
 
 assert(y4 == z4);
 
+val y5 = x[0..10..3];
+val yy5 = x[0..<10..3];
+val z5 = [1, 4, 7, 10];
+val zz5 = [1, 4, 7];
+
+assert(y5 == z5);
+assert(yy5 == zz5);
+
 val xx = 1..20;
 val yt = xx[0..10]
 val zt = xx[0..<20..2]
