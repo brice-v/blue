@@ -1,5 +1,7 @@
 TODO:
 
+- [ ] FEAT: Optimize: Add list with 2 elements, does this benefit at all? Might need to be specifically type based, could be done with generics?
+    - thinking for things like for [i, v] in z, or val a = [1,2], etc. (if less than 2 optimize)
 - [ ] FEAT: Better support time.Time struct in general
     - CreateObjectFromDbInterface currently creates string from it (can get a time.Time from duckdb)
 - [ ] FIX: Vscode extension breaks a bit with heavy use of string interpolation, even when valid
@@ -55,7 +57,6 @@ TODO:
     - [ ] Support string interpolation helper to print out objects
         - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
-- [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Add filepath.walk type function
 - STD Updates:
@@ -817,3 +818,6 @@ COMPLETED TASKS:
     - [x] Add compression
     - [x] Add limiter
     - [x] Add encrypt cookie
+- [-] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)   
+    - What I mean by this is var s = "hello"; s[0..2] = "ab"; s; => 'abllo'
+    - but lots of code required for this and it wouldnt fit for lists of other types really so dont think ill add
