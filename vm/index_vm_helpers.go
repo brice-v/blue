@@ -225,12 +225,7 @@ func (vm *VM) executeProcessIndexExpression(process *object.Process, name string
 				}
 				return val
 			},
-			HelpStr: helpStrArgs{
-				explanation: "`recv` waits for a value on the given process and returns it",
-				signature:   "recv(pid: PROCESS) -> any",
-				errors:      "InvalidArgCount,PositionalType,CustomError",
-				example:     "recv(#{name: '', id: 1}) => 'something'",
-			}.String(),
+			HelpStr: object.RecvHelpString(),
 		})
 	}
 	return vm.push(newError("process.%s error: field not found", name))

@@ -72,6 +72,14 @@ func sendWSMessage(funName string, w wsMessageWriter, value Object) Object {
 }
 
 func sendObject(obj, value Object) Object {
+	if obj.Type() == PROCESS_OBJ {
+		p, ok := obj.(*Process)
+		if !ok {
+			return newError("obj `%s` is invalid type. got=`%s` (%s)", obj.Inspect(), obj.Inspect(), obj.Type())
+		}
+		p.Ch <- value
+		return NULL
+	}
 	if obj.Type() == GO_OBJ {
 		if w, ok := obj.(*GoObj[*sse.Stream]); ok {
 			return sendSSE(w.Value, "sse_send", 2, value, NULL, NULL, NULL)

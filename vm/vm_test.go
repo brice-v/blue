@@ -1071,6 +1071,35 @@ func TestTensorSliceErrors(t *testing.T) {
 	}
 }
 
+func TestSendFunctionToProcess(t *testing.T) {
+	got := runInspect(t, `
+fun worker(parent) {
+    val msg = self().recv();
+    parent.send("got " + msg);
+}
+val me = self();
+val p = spawn(worker, [me]);
+send(p, "hi");
+me.recv()
+`)
+	if got != "got hi" {
+		t.Errorf("send(pid, msg) result = %q, want %q", got, "got hi")
+	}
+}
+
+func TestRecvFunctionFromProcess(t *testing.T) {
+	got := runInspect(t, `
+fun worker() {
+    self().send("hello from worker");
+}
+val p = spawn(worker, []);
+recv(p)
+`)
+	if got != "hello from worker" {
+		t.Errorf("recv(pid) result = %q, want %q", got, "hello from worker")
+	}
+}
+
 func TestProcessSendUsesSharedHelp(t *testing.T) {
 	v := New(&bluec.Bytecode{})
 	process := &object.Process{Ch: make(chan object.Object, 1)}
@@ -1083,5 +1112,20 @@ func TestProcessSendUsesSharedHelp(t *testing.T) {
 	}
 	if send.HelpStr != object.SendHelpString() {
 		t.Errorf("process send help does not match shared send help")
+	}
+}
+
+func TestProcessRecvUsesSharedHelp(t *testing.T) {
+	v := New(&bluec.Bytecode{})
+	process := &object.Process{Ch: make(chan object.Object, 1)}
+	if err := v.executeProcessIndexExpression(process, "recv"); err != nil {
+		t.Fatalf("executeProcessIndexExpression: %s", err)
+	}
+	recv, ok := v.pop().(*object.Builtin)
+	if !ok {
+		t.Fatalf("expected *object.Builtin, got %T", v.pop())
+	}
+	if recv.HelpStr != object.RecvHelpString() {
+		t.Errorf("process recv help does not match shared recv help")
 	}
 }

@@ -130,6 +130,67 @@ func TestSendHelpShared(t *testing.T) {
 	}
 }
 
+func TestSendBuiltinToProcess(t *testing.T) {
+	fn := coreBuiltinFn(t, "_send")
+	ch := make(chan Object, 1)
+	p := &Process{Ch: ch}
+	value := &Stringo{Value: "hello"}
+	if got := fn(p, value); got != NULL {
+		t.Fatalf("_send(process, value) = %s, want NULL", got.Inspect())
+	}
+	select {
+	case got := <-ch:
+		if got != value {
+			t.Errorf("process received %s, want %s", got.Inspect(), value.Inspect())
+		}
+	default:
+		t.Fatal("_send(process, value) did not send to the process channel")
+	}
+}
+
+func TestRecvHelpShared(t *testing.T) {
+	b := GetBuiltinByName(BuiltinBaseType, "_recv")
+	if b == nil {
+		t.Fatal("_recv builtin not found")
+	}
+	if b.HelpStr != RecvHelpString() {
+		t.Error("_recv help does not match the shared recv help")
+	}
+}
+
+func TestRecvBuiltinFromProcess(t *testing.T) {
+	fn := coreBuiltinFn(t, "_recv")
+	ch := make(chan Object, 1)
+	p := &Process{Ch: ch}
+	value := &Stringo{Value: "hello"}
+	ch <- value
+	if got := fn(p); got != value {
+		t.Fatalf("_recv(process) = %s, want %s", got.Inspect(), value.Inspect())
+	}
+}
+
+func TestRecvBuiltinFromClosedProcess(t *testing.T) {
+	fn := coreBuiltinFn(t, "_recv")
+	ch := make(chan Object)
+	close(ch)
+	got := fn(&Process{Ch: ch})
+	errObj, ok := got.(*Error)
+	if !ok {
+		t.Fatalf("_recv(closed process) = %T %s, want Error", got, got.Inspect())
+	}
+	if !strings.Contains(errObj.Message, "closed") {
+		t.Errorf("_recv(closed process) error = %q, want it to mention closed", errObj.Message)
+	}
+}
+
+func TestRecvBuiltinRequiresProcess(t *testing.T) {
+	fn := coreBuiltinFn(t, "_recv")
+	got := fn(&Stringo{Value: "not a process"})
+	if _, ok := got.(*Error); !ok {
+		t.Fatalf("_recv(non-process) = %T %s, want Error", got, got.Inspect())
+	}
+}
+
 func TestBuiltinRegistry(t *testing.T) {
 	seen := make(map[string]bool)
 	for _, b := range Builtins {

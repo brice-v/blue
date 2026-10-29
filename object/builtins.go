@@ -4013,6 +4013,24 @@ var Builtins = []*Builtin{
 		},
 		HelpStr: SendHelpString(),
 	},
+	{
+		Name: "_recv",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("recv", len(args), 1, "")
+			}
+			p, ok := args[0].(*Process)
+			if !ok {
+				return newPositionalTypeError("recv", 1, PROCESS_OBJ, args[0].Type())
+			}
+			val := <-p.Ch
+			if val == nil {
+				return newError("`recv` error: process channel was closed")
+			}
+			return val
+		},
+		HelpStr: RecvHelpString(),
+	},
 }
 
 func SendHelpString() string {
@@ -4021,6 +4039,15 @@ func SendHelpString() string {
 		signature:   "send(obj: any, value: any) -> null",
 		errors:      "InvalidArgCount,PositionalType,CustomError",
 		example:     "send(pid, 'hello') => null",
+	}.String()
+}
+
+func RecvHelpString() string {
+	return helpStrArgs{
+		explanation: "`recv` waits for a value on the given process and returns it",
+		signature:   "recv(pid: PROCESS) -> any",
+		errors:      "InvalidArgCount,PositionalType,CustomError",
+		example:     "recv(#{name: '', id: 1}) => 'something'",
 	}.String()
 }
 

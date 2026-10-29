@@ -12,17 +12,6 @@ import (
 	"github.com/gookit/color"
 )
 
-type helpStrArgs struct {
-	explanation string
-	signature   string
-	errors      string
-	example     string
-}
-
-func (hsa helpStrArgs) String() string {
-	return fmt.Sprintf("%s\n    Signature:  %s\n    Error(s):   %s\n    Example(s): %s\n", hsa.explanation, hsa.signature, hsa.errors, hsa.example)
-}
-
 // Core Builtins
 
 func createStrBuiltinFun(vm *VM) func(args ...object.Object) object.Object {

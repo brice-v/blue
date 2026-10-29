@@ -78,6 +78,9 @@ fun send(obj, value) {
 
 fun recv(obj) {
     ##core:ignore
+    if type(obj) == Type.PROCESS {
+        return _recv(obj);
+    }
     match obj {
         {t: "ws", v: _} => {
             from http import {ws_recv}
