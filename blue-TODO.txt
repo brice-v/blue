@@ -61,7 +61,6 @@ TODO:
         - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
 - [ ] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)
-- [ ] Add plotting lib like matplot lib?
 - [ ] transform read and write to support using file descriptors instead?
 - [ ] Add filepath.walk type function
 - STD Updates:
@@ -816,3 +815,5 @@ COMPLETED TASKS:
 - [x] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
 - [x] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
 - [x] See if step needed for other sliceable types
+- [~] Add plotting lib like matplot lib?
+    - small version does through gonum/plot

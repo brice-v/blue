@@ -21,7 +21,7 @@ Note: Its **not** _blazingly fast_ but that was never the point.
 
 ## Building
 
-- go1.25 required
+- go1.26 required
   - `brew install go` or `scoop install go` or [here](https://go.dev/dl/)
 - C Compiler
   - `brew install gcc` or `scoop install gcc`
@@ -226,7 +226,7 @@ http.get("https://danluu.com/")
 - matching (not quite pattern matching - more like switch)
 
 ```kotlin
-# from core.b
+# from core.b (old but the idea is the same)
 fun send(obj, value) {
     return match obj {
         {t: "pid", v: _} => {
