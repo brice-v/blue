@@ -9,7 +9,7 @@ import (
 )
 
 // versionNumber is the current version #
-const versionNumber = "0.4.3"
+const versionNumber = "0.4.4"
 
 // BaseVersion returns the bare version number without VCS or flavor
 // suffixes. Image fingerprints and the run cache key on this instead of
