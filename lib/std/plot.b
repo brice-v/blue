@@ -19,6 +19,7 @@ val __plot_x_log = _plot_x_log;
 val __plot_y_log = _plot_y_log;
 val __plot_x_range = _plot_x_range;
 val __plot_y_range = _plot_y_range;
+val __plot_legend = _plot_legend;
 val __plot_nominal_x = _plot_nominal_x;
 val __plot_line = _plot_line;
 val __plot_scatter = _plot_scatter;
@@ -93,6 +94,13 @@ fun new() {
         ## y_range(f: figure, min: float, max: float) -> null
         __plot_y_range(this._figure, min_val, max_val)
     };
+    this.legend = fun(isTop=true, isLeft=true) {
+        ##std:this,__plot_legend
+        ## `legend` places the legend along the top or bottom and the left or right.
+        ##
+        ## legend(f: figure, isTop: bool=true, isLeft: bool=true) -> null
+        __plot_legend(this._figure, isTop, isLeft)
+    };
     this.nominal_x = fun(names) {
         ##std:this,__plot_nominal_x
         ## `nominal_x` labels the x axis with names instead of numbers.
@@ -115,19 +123,19 @@ fun new() {
         ## scatter(f: figure, xs: list|tensor, ys: list|tensor|null=null, name: str|null=null, color: str|null=null) -> null
         __plot_scatter(this._figure, xs, ys, name, color)
     };
-    this.bars = fun(values, labels=null, color=null) {
+    this.bars = fun(values, labels=null, color=null, name=null) {
         ##std:this,__plot_bars
-        ## `bars` adds a bar chart, with optional x labels.
+        ## `bars` adds a bar chart, with optional x labels and a legend name.
         ##
-        ## bars(f: figure, values: list|tensor, labels: list[str]|null=null, color: str|null=null) -> null
-        __plot_bars(this._figure, values, labels, color)
+        ## bars(f: figure, values: list|tensor, labels: list[str]|null=null, color: str|null=null, name: str|null=null) -> null
+        __plot_bars(this._figure, values, labels, color, name)
     };
-    this.hist = fun(values, bins=null, color=null) {
+    this.hist = fun(values, bins=null, color=null, name=null) {
         ##std:this,__plot_hist
-        ## `hist` adds a histogram of the values.
+        ## `hist` adds a histogram of the values, with an optional legend name.
         ##
-        ## hist(f: figure, values: list|tensor, bins: int|null=null, color: str|null=null) -> null
-        __plot_hist(this._figure, values, bins, color)
+        ## hist(f: figure, values: list|tensor, bins: int|null=null, color: str|null=null, name: str|null=null) -> null
+        __plot_hist(this._figure, values, bins, color, name)
     };
     this.heatmap = fun(m) {
         ##std:this,__plot_heatmap

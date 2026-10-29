@@ -317,6 +317,35 @@ var PlotBuiltins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_plot_legend",
+		Fun: func(args ...Object) Object {
+			if err := checkArgCount("plot_legend", 3, args); err != nil {
+				return err
+			}
+			f, errObj := numFigureArg("plot_legend", 1, args[0])
+			if errObj != nil {
+				return errObj
+			}
+			isTop, ok := args[1].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("plot_legend", 2, BOOLEAN_OBJ, args[1].Type())
+			}
+			isLeft, ok := args[2].(*Boolean)
+			if !ok {
+				return newPositionalTypeError("plot_legend", 3, BOOLEAN_OBJ, args[2].Type())
+			}
+			f.Plot.Legend.Top = isTop.Value
+			f.Plot.Legend.Left = isLeft.Value
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`plot_legend` places the figure legend using top and left flags",
+			signature:   "plot_legend(f: figure, isTop: bool, isLeft: bool) -> null",
+			errors:      "InvalidArgCount,PositionalType",
+			example:     "plot_legend(f, true, false) => null",
+		}.String(),
+	},
+	{
 		Name: "_plot_nominal_x",
 		Fun: func(args ...Object) Object {
 			if err := checkArgCount("plot_nominal_x", 2, args); err != nil {
@@ -372,7 +401,7 @@ var PlotBuiltins = []*Builtin{
 	{
 		Name: "_plot_bars",
 		Fun: func(args ...Object) Object {
-			if err := checkArgsCount("plot_bars", []int{2, 3, 4}, args); err != nil {
+			if err := checkArgsCount("plot_bars", []int{2, 3, 4, 5}, args); err != nil {
 				return err
 			}
 			f, errObj := numFigureArg("plot_bars", 1, args[0])
@@ -407,20 +436,33 @@ var PlotBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`plot_bars` error: %s", err.Error())
 			}
-			if len(args) == 4 {
+			if len(args) >= 4 {
 				if col, ok := numColorArg(args[3]); ok {
 					if c, ok := vgColor(col); ok {
 						bars.Color = color.RGBA(c)
 					}
 				}
 			}
+			name := ""
+			if len(args) == 5 {
+				if args[4].Type() != NULL_OBJ {
+					s, ok := args[4].(*Stringo)
+					if !ok {
+						return newPositionalTypeError("plot_bars", 5, "STRING or NULL", args[4].Type())
+					}
+					name = s.Value
+				}
+			}
 			f.Plot.Add(bars)
+			if name != "" {
+				f.Plot.Legend.Add(name, bars)
+			}
 			f.Plot.NominalX(labels...)
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`plot_bars` adds a bar chart",
-			signature:   "plot_bars(f: figure, values: list|tensor, labels: list[str]|null=null, color: str|null=null) -> null",
+			signature:   "plot_bars(f: figure, values: list|tensor, labels: list[str]|null=null, color: str|null=null, name: str|null=null) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "plot_bars(f, [1.0, 2.0], ['a', 'b']) => null",
 		}.String(),
@@ -428,7 +470,7 @@ var PlotBuiltins = []*Builtin{
 	{
 		Name: "_plot_hist",
 		Fun: func(args ...Object) Object {
-			if err := checkArgsCount("plot_hist", []int{2, 3, 4}, args); err != nil {
+			if err := checkArgsCount("plot_hist", []int{2, 3, 4, 5}, args); err != nil {
 				return err
 			}
 			f, errObj := numFigureArg("plot_hist", 1, args[0])
@@ -458,19 +500,32 @@ var PlotBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`plot_hist` error: %s", err.Error())
 			}
-			if len(args) == 4 {
+			if len(args) >= 4 {
 				if col, ok := numColorArg(args[3]); ok {
 					if c, ok := vgColor(col); ok {
 						hist.FillColor = color.RGBA(c)
 					}
 				}
 			}
+			name := ""
+			if len(args) == 5 {
+				if args[4].Type() != NULL_OBJ {
+					s, ok := args[4].(*Stringo)
+					if !ok {
+						return newPositionalTypeError("plot_hist", 5, "STRING or NULL", args[4].Type())
+					}
+					name = s.Value
+				}
+			}
 			f.Plot.Add(hist)
+			if name != "" {
+				f.Plot.Legend.Add(name, hist)
+			}
 			return NULL
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`plot_hist` adds a histogram",
-			signature:   "plot_hist(f: figure, values: list|tensor, bins: int|null=null, color: str|null=null) -> null",
+			signature:   "plot_hist(f: figure, values: list|tensor, bins: int|null=null, color: str|null=null, name: str|null=null) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "plot_hist(f, error_tensor, 20) => null",
 		}.String(),

@@ -19,6 +19,21 @@ assert(type(f) == "MAP");
 f.title("integration test");
 f.x_label("x");
 f.y_label("y");
+f.legend();
+
+val floc = plot.new();
+floc.legend(isTop=false, isLeft=false);
+floc.line([1.0, 2.0], [2.0, 1.0], name="legend in the lower right");
+assert(floc.render().len() > 1000);
+
+var invalid_legend_arg = false;
+try {
+    val fbad = plot.new();
+    fbad.legend("middle");
+} catch (e) {
+    invalid_legend_arg = true;
+}
+assert(invalid_legend_arg);
 
 # --- 2. series from lists ---------------------------------------------------
 
@@ -63,11 +78,11 @@ assert(f64.render().len() > 1000);
 # --- 4. TARGET: histogram, bars, heatmap ------------------------------------
 
 val fh = plot.new();
-fh.hist(ml.tensor([1.0, 1.0, 2.0, 2.0, 2.0, 3.0]), 3);
+fh.hist(ml.tensor([1.0, 1.0, 2.0, 2.0, 2.0, 3.0]), 3, null, "errors");
 assert(fh.render().len() > 1000);
 
 val fb = plot.new();
-fb.bars(ml.tensor([4.0, 7.0, 2.0]), ["a", "b", "c"]);
+fb.bars(ml.tensor([4.0, 7.0, 2.0]), ["a", "b", "c"], null, "counts");
 assert(fb.render().len() > 1000);
 
 # heatmap of a weight matrix, the direct way to look at parameters

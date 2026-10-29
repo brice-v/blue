@@ -5,15 +5,15 @@ package object
 import (
 	"bytes"
 	"encoding/binary"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
 	"strings"
 	"testing"
+
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
 )
 
 func newTestFigure() *NumFigure { return &NumFigure{Plot: plot.New()} }
 
-// pngDimensions reads width and height from a PNG IHDR chunk.
 func pngDimensions(t *testing.T, b []byte) (int, int) {
 	t.Helper()
 	if len(b) < 24 {
@@ -50,8 +50,6 @@ func TestPlotRenderPNG(t *testing.T) {
 }
 
 func TestPlotRenderSVGHasText(t *testing.T) {
-	// This is the font test: text must actually be laid out, which proves the
-	// embedded fonts are working and no external font files are needed.
 	f := newTestFigure()
 	f.Plot.Title.Text = "probe title"
 	f.Plot.X.Label.Text = "xlabel"
@@ -109,7 +107,6 @@ func TestPlotDimensions(t *testing.T) {
 	if errObj != nil {
 		t.Fatalf("renderFigure: %s", errObj.Inspect())
 	}
-	// 4 by 3 inches at 96 DPI is 384 by 288 pixels.
 	w, h := pngDimensions(t, data)
 	if w != 384 || h != 288 {
 		t.Fatalf("dimensions %dx%d, want 384x288", w, h)
@@ -149,7 +146,6 @@ func TestPlotPointSeriesFromFlatList(t *testing.T) {
 	if errObj != nil {
 		t.Fatalf("numPointSeriesArg: %s", errObj.Inspect())
 	}
-	// A flat list becomes y against its index.
 	if len(xs) != 3 || xs[0] != 0 || xs[2] != 2 {
 		t.Fatalf("xs = %v, want the index", xs)
 	}
@@ -181,7 +177,6 @@ func TestPlotPalette(t *testing.T) {
 	}
 }
 
-// lineFromSlices builds a plotter line, so tests do not repeat the conversion.
 func lineFromSlices(xs, ys []float64) (*plotter.Line, error) {
 	pts, err := xysFrom(xs, ys)
 	if err != nil {
@@ -193,7 +188,6 @@ func lineFromSlices(xs, ys []float64) (*plotter.Line, error) {
 func TestPlotErrorBars(t *testing.T) {
 	f := newTestFigure()
 	f.Plot.Add(&plotter.YErrorBars{})
-	// The real check is that rendering succeeds with bars and points present.
 	pts, err := xysFrom([]float64{1, 2, 3}, []float64{2, 3, 2.5})
 	if err != nil {
 		t.Fatalf("xysFrom: %v", err)
@@ -264,7 +258,6 @@ func TestPlotContourLevels(t *testing.T) {
 	if len(levels) != 5 {
 		t.Fatalf("got %d levels, want 5", len(levels))
 	}
-	// Levels must be strictly inside the data range and increasing.
 	for i, v := range levels {
 		if v <= 0 || v >= 4 {
 			t.Fatalf("level %d is %v, outside (0, 4)", i, v)
@@ -276,7 +269,6 @@ func TestPlotContourLevels(t *testing.T) {
 }
 
 func TestPlotContourLevelsFlatMatrix(t *testing.T) {
-	// A constant matrix has no range, so there is nothing to contour.
 	m := testDense(t, [][]float64{{1, 1}, {1, 1}})
 	if levels := contourLevels(m); levels != nil {
 		t.Fatalf("a constant matrix should give no levels, got %v", levels)
@@ -290,7 +282,6 @@ func TestPlotAlignRenders(t *testing.T) {
 		t.Fatalf("lineFromSlices: %v", err)
 	}
 	f.Plot.Add(line)
-	// Call the builtin directly, since the layout argument is a list of lists.
 	rows := &List{Elements: []Object{
 		&List{Elements: []Object{&GoObj[*NumFigure]{Value: f}}},
 	}}
@@ -325,7 +316,6 @@ func TestPlotTimeAxisTicks(t *testing.T) {
 	if f.Plot.X.Tick.Marker == nil {
 		t.Fatal("time axis marker was not set")
 	}
-	// The marker must produce RFC-style labels for a Unix timestamp range.
 	ticks := f.Plot.X.Tick.Marker.Ticks(1600000000, 1600172800)
 	if len(ticks) == 0 {
 		t.Fatal("time axis produced no ticks")
@@ -358,7 +348,67 @@ func TestPlotSampledFunctionRejectsMismatch(t *testing.T) {
 	}
 }
 
-// findPlotBuiltin looks up a plot builtin by name, failing when it is missing.
+func TestPlotLegendPositions(t *testing.T) {
+	cases := []struct {
+		top  bool
+		left bool
+	}{
+		{true, false},
+		{true, true},
+		{false, false},
+		{false, true},
+	}
+	builtin := findPlotBuiltin(t, "_plot_legend")
+	for _, tc := range cases {
+		f := newTestFigure()
+		got := builtin.Fun(&GoObj[*NumFigure]{Value: f}, &Boolean{Value: tc.top}, &Boolean{Value: tc.left})
+		if got.Type() == ERROR_OBJ {
+			t.Fatalf("plot_legend(top=%v, left=%v) failed: %s", tc.top, tc.left, got.Inspect())
+		}
+		if f.Plot.Legend.Top != tc.top || f.Plot.Legend.Left != tc.left {
+			t.Errorf("plot_legend(top=%v, left=%v) = top=%v left=%v", tc.top, tc.left, f.Plot.Legend.Top, f.Plot.Legend.Left)
+		}
+	}
+}
+
+func TestPlotLegendRejectsNonBooleanPosition(t *testing.T) {
+	builtin := findPlotBuiltin(t, "_plot_legend")
+	got := builtin.Fun(&GoObj[*NumFigure]{Value: newTestFigure()}, &Stringo{Value: "upper right"}, &Boolean{Value: false})
+	if got.Type() != ERROR_OBJ {
+		t.Fatal("plot_legend should reject a non-boolean top flag")
+	}
+}
+
+func TestPlotLegendNamesBarsAndHist(t *testing.T) {
+	f := newTestFigure()
+	values := &List{Elements: []Object{&Float{Value: 1}, &Float{Value: 2}, &Float{Value: 3}}}
+	fig := &GoObj[*NumFigure]{Value: f}
+
+	for _, tc := range []struct {
+		builtin string
+		name    string
+	}{
+		{"_plot_bars", "bars series"},
+		{"_plot_hist", "hist series"},
+	} {
+		got := findPlotBuiltin(t, tc.builtin).Fun(fig, values, &Null{}, &Null{}, &Stringo{Value: tc.name})
+		if got.Type() == ERROR_OBJ {
+			t.Fatalf("%s failed: %s", tc.builtin, got.Inspect())
+		}
+	}
+
+	data, errObj := renderFigure(f, "svg", nil, nil)
+	if errObj != nil {
+		t.Fatalf("renderFigure: %s", errObj.Inspect())
+	}
+	svg := string(data)
+	for _, want := range []string{"bars series", "hist series"} {
+		if !strings.Contains(svg, want) {
+			t.Errorf("legend entry %q is missing from the SVG", want)
+		}
+	}
+}
+
 func findPlotBuiltin(t *testing.T, name string) *Builtin {
 	t.Helper()
 	for _, b := range PlotBuiltins {
