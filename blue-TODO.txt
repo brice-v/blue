@@ -9,8 +9,6 @@ TODO:
 - [ ] FIX: Figure out ui content fill strategies, what works correctly
 - [ ] MAYBE: Build pseduo jupyter style notebook for blue via `blue nb` or `blue notebook` using ui and other things?
 - [ ] See if step needed for other sliceable types
-- [ ] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
-- [ ] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.
 - [ ] FEAT: Add a binary pack/unpack equivalent to python's struct.pack/unpack. blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back. Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
 - [ ] FEAT: Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
@@ -816,3 +814,5 @@ COMPLETED TASKS:
     - [x] FIX: Missing legend
     - Missing sizes for things or handled at 'render'?
     - Sizes are in inches but I sort of expect pixels? (might not be issue)
+- [x] FEAT: Allow shadowing at the level of the default args? So I could do something like dtype instead of datatype for ml.tensor
+- [x] FIX: fix shadowing of defaults in functions: a parameter whose name matches a module/global value shadows it inside its own default expression (resolves to `_`), e.g. `fun tensor(data, dtype=dtype.float32)`. Either resolve defaults in the enclosing scope or raise a compiler error.

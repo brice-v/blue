@@ -527,6 +527,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 	case *ast.Null:
 		c.emit(code.OpNull)
+	case *ast.ParameterDefaultExpression:
+		err := c.compileParameterDefaultExpression(node)
+		if err != nil {
+			return c.addNodeToErrorTrace(err, node.Token)
+		}
 	case *ast.IfExpression:
 		c.emitNode(node)
 		err := c.compileIfExpression(node)

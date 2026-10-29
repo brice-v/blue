@@ -56,6 +56,7 @@ Note: Its **not** _blazingly fast_ but that was never the point.
   - static builds (`static` tag) don't need it but combine fine with it, tags
     from `GOFLAGS` and the command line are merged
 - `govulncheck` via `go install golang.org/x/vuln/cmd/govulncheck@latest`
+- `golangci-lint` via `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest`
 
 ## Editor Integration
 

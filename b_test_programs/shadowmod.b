@@ -1,5 +1,21 @@
 val tz = {'UTC': 'UTC'}
+val dtype = {'float32': 'float32'}
+val scale_factor = 3
 var counter = 0
+
+fun tensor(data, dtype=dtype.float32) {
+    ## tensor uses the module level dtype as the default for its dtype parameter
+    ##
+    ## tensor(data: list, dtype: str='float32') -> list
+    [data, dtype]
+}
+
+fun scale(x, scale_factor=scale_factor) {
+    ## scale uses the module level scale_factor as the default for its parameter
+    ##
+    ## scale(x: int, scale_factor: int=3) -> int
+    x * scale_factor
+}
 
 fun fmt(unix_ts, tz=null) {
     ## fmt will use the passed tz or fall back to UTC when it is null

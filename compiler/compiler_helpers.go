@@ -897,6 +897,19 @@ func (c *Compiler) compileMatchExpression(node *ast.MatchExpression) error {
 
 var _ignore_str = &ast.StringLiteral{Value: object.USE_PARAM_STR}
 
+func (c *Compiler) compileParameterDefaultExpression(node *ast.ParameterDefaultExpression) error {
+	symbol, ok := c.symbolTable.store[node.ParameterName]
+	if !ok {
+		return c.Compile(node.Value)
+	}
+	// Allows resolving to enclosing scope as opposed to local scope where weve set the default expression parameter
+	delete(c.symbolTable.store, node.ParameterName)
+	defer func() {
+		c.symbolTable.store[node.ParameterName] = symbol
+	}()
+	return c.Compile(node.Value)
+}
+
 func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressions []ast.Expression, body *ast.BlockStatement, astStr string) *object.CompiledFunction {
 	specialFunctionParameters := c.setupFunctionParameters(parameters, parameterExpressions)
 	compiledFun := &object.CompiledFunction{
@@ -917,7 +930,8 @@ func (c *Compiler) setupFunction(parameters []*ast.Identifier, parameterExpressi
 			compiledFun.NumDefaultParams++
 			paramIdent := parameters[i]
 			paramIsProvidedExpr := &ast.InfixExpression{Operator: "==", Left: paramIdent, Right: _ignore_str}
-			assignmentExpr := &ast.AssignmentExpression{Token: token.Token{Type: token.EQ, Literal: "="}, Left: paramIdent, Value: param}
+			defaultValue := &ast.ParameterDefaultExpression{Token: param.TokenToken(), ParameterName: parameters[i].Value, Value: param}
+			assignmentExpr := &ast.AssignmentExpression{Token: token.Token{Type: token.EQ, Literal: "="}, Left: paramIdent, Value: defaultValue}
 			ifExpr := &ast.IfExpression{
 				Conditions:   []ast.Expression{paramIsProvidedExpr},
 				Consequences: []*ast.BlockStatement{{Statements: []ast.Statement{&ast.ExpressionStatement{Expression: assignmentExpr}}}},

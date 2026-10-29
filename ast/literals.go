@@ -173,6 +173,24 @@ func (fl *FunctionLiteral) String() string {
 	return out.String()
 }
 
+// ParameterDefaultExpression wraps the default value of a function parameter.
+type ParameterDefaultExpression struct {
+	Token         token.Token
+	ParameterName string
+	Value         Expression
+}
+
+// expressionNode satisfies the expression interface
+func (pde *ParameterDefaultExpression) expressionNode() {}
+
+// TokenLiteral returns the token literal of the wrapped expression
+func (pde *ParameterDefaultExpression) TokenLiteral() string { return pde.Value.TokenLiteral() }
+
+func (pde *ParameterDefaultExpression) TokenToken() token.Token { return pde.Token }
+
+// String returns the wrapped expression as a string
+func (pde *ParameterDefaultExpression) String() string { return pde.Value.String() }
+
 // ExecStringLiteral is the contents of a string within backticks `
 type ExecStringLiteral struct {
 	Token token.Token
