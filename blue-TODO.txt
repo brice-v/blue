@@ -30,11 +30,6 @@ TODO:
     - [ ] Aliasing for destructuring
     - [ ] Spread operator from JS
     - [ ] Map on lambda with destructuring (for maps, lists, etc.)
-- [ ] Support more middlewares for internal http server
-    - [ ] Add helmet
-    - [ ] Add compression
-    - [ ] Add limiter
-    - [ ] Add encrypt cookie
 - [ ] Expand Regex functions and support https://pkg.go.dev/regexp
     - https://pkg.go.dev/regexp/syntax
     - [x] Add function like re('') to convert string to regex object
@@ -817,3 +812,8 @@ COMPLETED TASKS:
 - [x] See if step needed for other sliceable types
 - [~] Add plotting lib like matplot lib?
     - small version does through gonum/plot
+- [x] Support more middlewares for internal http server
+    - [x] Add helmet
+    - [x] Add compression
+    - [x] Add limiter
+    - [x] Add encrypt cookie

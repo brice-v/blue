@@ -5,6 +5,11 @@
 val __download = _download;
 val __serve = _serve;
 val __static = _static;
+val __helmet = _helmet;
+val __compress = _compress;
+val __limiter = _limiter;
+val __encrypt_cookie = _encrypt_cookie;
+val __generate_cookie_key = _generate_cookie_key;
 val __handle = _handle;
 val __handle_use = _handle_use;
 val __handle_ws = _handle_ws;
@@ -267,6 +272,76 @@ fun static(prefix="/", dir_path=".", browse=false) {
     __static(_server.this, prefix, dir_path, browse)
 }
 
+fun helmet(options={}) {
+    ##std:this,__helmet
+    ## `helmet` adds security related headers to every http response.
+    ## It attaches to the _server http object, so it should be called
+    ## before routes are handled on the server.
+    ##
+    ## options is a map with any of the following snake_case keys:
+    ## xss_protection, content_type_nosniff, x_frame_options,
+    ## content_security_policy, referrer_policy, permission_policy,
+    ## cross_origin_embedder_policy, cross_origin_opener_policy,
+    ## cross_origin_resource_policy, origin_agent_cluster,
+    ## x_dns_prefetch_control, x_download_options,
+    ## x_permitted_cross_domain_policies, hsts_max_age,
+    ## hsts_exclude_subdomains, csp_report_only, hsts_preload_enabled
+    ##
+    ## helmet(options: map[str]any={}) -> null
+    __helmet(_server.this, options)
+}
+
+fun compress(level=0) {
+    ##std:this,__compress
+    ## `compress` compresses http responses using the level passed in.
+    ## It attaches to the _server http object, so it should be called
+    ## before routes are handled on the server.
+    ##
+    ## level is -1 (disabled), 0 (default), 1 (best speed), or 2
+    ## (best compression)
+    ##
+    ## compress(level: int=0) -> null
+    __compress(_server.this, level)
+}
+
+fun limiter(max=5, expiration=60, skip_failed_requests=false, skip_successful_requests=false, disable_headers=false, disable_value_redaction=false) {
+    ##std:this,__limiter
+    ## `limiter` limits requests per client. It attaches to the
+    ## _server http object, so it should be called before routes are
+    ## handled on the server.
+    ##
+    ## max is the number of requests allowed per client during the
+    ## expiration window. expiration is in seconds.
+    ##
+    ## limiter(max: int=5, expiration: int=60, skip_failed_requests: bool=false, skip_successful_requests: bool=false, disable_headers: bool=false, disable_value_redaction: bool=false) -> null
+    __limiter(_server.this, max, expiration, skip_failed_requests, skip_successful_requests, disable_headers, disable_value_redaction)
+}
+
+fun encrypt_cookie(key, except=[]) {
+    ##std:this,__encrypt_cookie
+    ## `encrypt_cookie` encrypts response cookies and decrypts
+    ## request cookies using the given base64 encoded AES key.
+    ## It attaches to the _server http object, so it should be called
+    ## before routes are handled on the server.
+    ##
+    ## except is a list of cookie names that should not be encrypted.
+    ## Use `generate_cookie_key` to create a key.
+    ##
+    ## encrypt_cookie(key: str, except: list[str]=[]) -> null
+    __encrypt_cookie(_server.this, key, except)
+}
+
+fun generate_cookie_key(length=32) {
+    ##std:this,__generate_cookie_key
+    ## `generate_cookie_key` returns a random base64 encoded key that can
+    ## be passed to `encrypt_cookie`.
+    ##
+    ## length is the decoded key length in bytes and must be 16, 24, or 32.
+    ##
+    ## generate_cookie_key(length: int=32) -> str
+    __generate_cookie_key(length)
+}
+
 fun handle_monitor(path, should_show=true) {
     ##std:this,__handle_monitor
     ## `handle_monitor` serves the fiber monitor to the user
@@ -451,24 +526,84 @@ fun new_server(network="tcp4") {
     var this = {};
     this._s = __new_server(network);
     this.serve = fun(addr_port="localhost:3001", use_embedded_lib_web=true) {
+        ##std:this,__serve
+        ## `serve` starts this server on the given address and port.
+        ##
+        ## serve(addr_port: str='localhost:3001', use_embedded_lib_web: bool=true) -> null
         __serve(this._s, addr_port, use_embedded_lib_web)
     };
     this.handle = fun(pattern, fn, method="GET") {
+        ##std:this,__handle
+        ## `handle` registers a handler for pattern and method on this server.
+        ##
+        ## handle(pattern: str, fn: fun, method: str='GET') -> null
         __handle(this._s, pattern, fn, method)
     };
     this.handle_use = fun(pattern="", fn) {
+        ##std:this,__handle_use
+        ## `handle_use` registers middleware for an optional pattern on this server.
+        ##
+        ## handle_use(pattern: str='', fn: fun) -> null
         __handle_use(this._s, pattern, fn, "")
     };
     this.handle_ws = fun(pattern, fn) {
+        ##std:this,__handle_ws
+        ## `handle_ws` registers a websocket handler for pattern on this server.
+        ##
+        ## handle_ws(pattern: str, fn: fun) -> null
         __handle_ws(this._s, pattern, fn)
     };
     this.handle_sse = fun(pattern, fn) {
+        ##std:this,__handle_sse
+        ## `handle_sse` registers a server-sent events handler for pattern on this server.
+        ##
+        ## handle_sse(pattern: str, fn: fun) -> null
         __handle_sse(this._s, pattern, fn)
     };
     this.static = fun(prefix="/", dir_path=".", browse=false) {
+        ##std:this,__static
+        ## `static` serves dir_path at prefix on this server.
+        ##
+        ## static(prefix: str='/', dir_path: str='.', browse: bool=false) -> null
         __static(this._s, prefix, dir_path, browse)
     };
+    this.helmet = fun(options={}) {
+        ##std:this,__helmet
+        ## `helmet` adds security related headers to every response from
+        ## this server. options uses the same snake_case keys as `http.helmet`.
+        ##
+        ## helmet(options: map[str]any={}) -> null
+        __helmet(this._s, options)
+    };
+    this.compress = fun(level=0) {
+        ##std:this,__compress
+        ## `compress` compresses responses from this server. level is -1
+        ## (disabled), 0 (default), 1 (best speed), or 2 (best compression).
+        ##
+        ## compress(level: int=0) -> null
+        __compress(this._s, level)
+    };
+    this.limiter = fun(max=5, expiration=60, skip_failed_requests=false, skip_successful_requests=false, disable_headers=false, disable_value_redaction=false) {
+        ##std:this,__limiter
+        ## `limiter` limits requests per client to this server. max is the
+        ## request count allowed during expiration seconds.
+        ##
+        ## limiter(max: int=5, expiration: int=60, skip_failed_requests: bool=false, skip_successful_requests: bool=false, disable_headers: bool=false, disable_value_redaction: bool=false) -> null
+        __limiter(this._s, max, expiration, skip_failed_requests, skip_successful_requests, disable_headers, disable_value_redaction)
+    };
+    this.encrypt_cookie = fun(key, except=[]) {
+        ##std:this,__encrypt_cookie
+        ## `encrypt_cookie` encrypts response cookies and decrypts request
+        ## cookies for this server. except lists cookie names to leave alone.
+        ##
+        ## encrypt_cookie(key: str, except: list[str]=[]) -> null
+        __encrypt_cookie(this._s, key, except)
+    };
     this.handle_monitor = fun(path, should_show=false) {
+        ##std:this,__handle_monitor
+        ## `handle_monitor` serves the fiber monitor at path on this server.
+        ##
+        ## handle_monitor(path: str, should_show: bool=false) -> null
         __handle_monitor(this._s, path, should_show)
     };
     return this;

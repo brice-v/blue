@@ -3,6 +3,7 @@ package object
 import (
 	"blue/consts"
 	"blue/lib"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/fs"
@@ -21,6 +22,10 @@ import (
 	"github.com/gofiber/contrib/v3/monitor"
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/encryptcookie"
+	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/gofiber/fiber/v3/middleware/sse"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	ws "github.com/gorilla/websocket"
@@ -105,23 +110,200 @@ func getMapValueByString(m *Map, key string) (Object, bool) {
 	return pair.Value, true
 }
 
+func getFiberAppArg(funName string, obj Object) (*fiber.App, Object) {
+	if obj.Type() != GO_OBJ {
+		return nil, newPositionalTypeError(funName, 1, GO_OBJ, obj.Type())
+	}
+	app, ok := obj.(*GoObj[*fiber.App])
+	if !ok {
+		return nil, newPositionalTypeErrorForGoObj(funName, 1, "*fiber.App", obj)
+	}
+	return app.Value, nil
+}
+
+func validateMapOptionKeys(funName string, m *Map, allowed map[string]struct{}) Object {
+	for _, hashKey := range m.Pairs.Keys {
+		pair, ok := m.Pairs.Get(hashKey)
+		if !ok {
+			continue
+		}
+		key, ok := pair.Key.(*Stringo)
+		if !ok {
+			return newError("`%s` error: option keys must be STRING. got=%s", funName, pair.Key.Type())
+		}
+		if _, ok := allowed[key.Value]; !ok {
+			return newError("`%s` error: unknown option %q", funName, key.Value)
+		}
+	}
+	return nil
+}
+
+func setStringOption(funName string, m *Map, key string, dst *string) Object {
+	v, ok := getMapValueByString(m, key)
+	if !ok {
+		return nil
+	}
+	s, ok := v.(*Stringo)
+	if !ok {
+		return newError("`%s` error: option %q expects STRING. got=%s", funName, key, v.Type())
+	}
+	*dst = s.Value
+	return nil
+}
+
+func setBoolOption(funName string, m *Map, key string, dst *bool) Object {
+	v, ok := getMapValueByString(m, key)
+	if !ok {
+		return nil
+	}
+	b, ok := v.(*Boolean)
+	if !ok {
+		return newError("`%s` error: option %q expects BOOL. got=%s", funName, key, v.Type())
+	}
+	*dst = b.Value
+	return nil
+}
+
+func setIntOption(funName string, m *Map, key string, dst *int) Object {
+	v, ok := getMapValueByString(m, key)
+	if !ok {
+		return nil
+	}
+	i, ok := v.(*Integer)
+	if !ok {
+		return newError("`%s` error: option %q expects INT. got=%s", funName, key, v.Type())
+	}
+	*dst = int(i.Value)
+	return nil
+}
+
+var helmetOptionKeys = map[string]struct{}{
+	"xss_protection":                    {},
+	"content_type_nosniff":              {},
+	"x_frame_options":                   {},
+	"content_security_policy":           {},
+	"referrer_policy":                   {},
+	"permission_policy":                 {},
+	"cross_origin_embedder_policy":      {},
+	"cross_origin_opener_policy":        {},
+	"cross_origin_resource_policy":      {},
+	"origin_agent_cluster":              {},
+	"x_dns_prefetch_control":            {},
+	"x_download_options":                {},
+	"x_permitted_cross_domain_policies": {},
+	"hsts_max_age":                      {},
+	"hsts_exclude_subdomains":           {},
+	"csp_report_only":                   {},
+	"hsts_preload_enabled":              {},
+}
+
+func helmetConfigFromMap(m *Map) (helmet.Config, Object) {
+	var cfg helmet.Config
+	if errObj := validateMapOptionKeys("helmet", m, helmetOptionKeys); errObj != nil {
+		return cfg, errObj
+	}
+	stringOptions := []struct {
+		key string
+		dst *string
+	}{
+		{"xss_protection", &cfg.XSSProtection},
+		{"content_type_nosniff", &cfg.ContentTypeNosniff},
+		{"x_frame_options", &cfg.XFrameOptions},
+		{"content_security_policy", &cfg.ContentSecurityPolicy},
+		{"referrer_policy", &cfg.ReferrerPolicy},
+		{"permission_policy", &cfg.PermissionPolicy},
+		{"cross_origin_embedder_policy", &cfg.CrossOriginEmbedderPolicy},
+		{"cross_origin_opener_policy", &cfg.CrossOriginOpenerPolicy},
+		{"cross_origin_resource_policy", &cfg.CrossOriginResourcePolicy},
+		{"origin_agent_cluster", &cfg.OriginAgentCluster},
+		{"x_dns_prefetch_control", &cfg.XDNSPrefetchControl},
+		{"x_download_options", &cfg.XDownloadOptions},
+		{"x_permitted_cross_domain_policies", &cfg.XPermittedCrossDomain},
+	}
+	for _, opt := range stringOptions {
+		if errObj := setStringOption("helmet", m, opt.key, opt.dst); errObj != nil {
+			return cfg, errObj
+		}
+	}
+	boolOptions := []struct {
+		key string
+		dst *bool
+	}{
+		{"hsts_exclude_subdomains", &cfg.HSTSExcludeSubdomains},
+		{"csp_report_only", &cfg.CSPReportOnly},
+		{"hsts_preload_enabled", &cfg.HSTSPreloadEnabled},
+	}
+	for _, opt := range boolOptions {
+		if errObj := setBoolOption("helmet", m, opt.key, opt.dst); errObj != nil {
+			return cfg, errObj
+		}
+	}
+	if errObj := setIntOption("helmet", m, "hsts_max_age", &cfg.HSTSMaxAge); errObj != nil {
+		return cfg, errObj
+	}
+	if cfg.HSTSMaxAge < 0 {
+		return cfg, newError("`helmet` error: hsts_max_age must be >= 0. got=%d", cfg.HSTSMaxAge)
+	}
+	if cfg.HSTSPreloadEnabled && cfg.HSTSExcludeSubdomains {
+		return cfg, newError("`helmet` error: hsts_preload_enabled requires hsts_exclude_subdomains=false")
+	}
+	return cfg, nil
+}
+
+func validateCookieEncryptionKey(key string) error {
+	decoded, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return fmt.Errorf("failed to base64-decode key: %w", err)
+	}
+	switch len(decoded) {
+	case 16, 24, 32:
+		return nil
+	default:
+		return fmt.Errorf("key must decode to 16, 24, or 32 bytes. got=%d", len(decoded))
+	}
+}
+
+func stringListArg(funName string, pos int, obj Object) ([]string, Object) {
+	if obj.Type() != LIST_OBJ {
+		return nil, newPositionalTypeError(funName, pos, LIST_OBJ, obj.Type())
+	}
+	list := obj.(*List)
+	result := make([]string, 0, len(list.Elements))
+	for i, e := range list.Elements {
+		s, ok := e.(*Stringo)
+		if !ok {
+			return nil, newError("`%s` error: argument %d element %d must be STRING. got=%s", funName, pos, i+1, e.Type())
+		}
+		result = append(result, s.Value)
+	}
+	return result, nil
+}
+
 func getSSEStream(obj Object) (*sse.Stream, bool) {
 	if w, ok := obj.(*GoObj[*sse.Stream]); ok {
 		return w.Value, true
 	}
-	if obj.Type() == MAP_OBJ {
-		m := obj.(*Map)
-		if tObj, ok := getMapValueByString(m, "t"); ok {
-			if t, ok := tObj.(*Stringo); ok && t.Value == "sse" {
-				if vObj, ok := getMapValueByString(m, "v"); ok {
-					if w, ok := vObj.(*GoObj[*sse.Stream]); ok {
-						return w.Value, true
-					}
-				}
-			}
-		}
+	if obj.Type() != MAP_OBJ {
+		return nil, false
 	}
-	return nil, false
+	m := obj.(*Map)
+	tObj, ok := getMapValueByString(m, "t")
+	if !ok {
+		return nil, false
+	}
+	t, ok := tObj.(*Stringo)
+	if !ok || t.Value != "sse" {
+		return nil, false
+	}
+	vObj, ok := getMapValueByString(m, "v")
+	if !ok {
+		return nil, false
+	}
+	w, ok := vObj.(*GoObj[*sse.Stream])
+	if !ok {
+		return nil, false
+	}
+	return w.Value, true
 }
 
 func sseLastEventID(stream *sse.Stream) *Stringo {
@@ -534,6 +716,167 @@ var HttpBuiltins = []*Builtin{
 			signature:   "static(server: GoObj[*fiber.App], prefix: str='/', dir_path: str='.', browse: bool=false) -> null",
 			errors:      "InvalidArgCount,PositionalType,CustomError",
 			example:     "static() => null => current directory served at addr:port/",
+		}.String(),
+	},
+	{
+		Name: "_helmet",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("helmet", len(args), 2, "")
+			}
+			app, errObj := getFiberAppArg("helmet", args[0])
+			if errObj != nil {
+				return errObj
+			}
+			if args[1].Type() != MAP_OBJ {
+				return newPositionalTypeError("helmet", 2, MAP_OBJ, args[1].Type())
+			}
+			cfg, errObj := helmetConfigFromMap(args[1].(*Map))
+			if errObj != nil {
+				return errObj
+			}
+			app.Use(helmet.New(cfg))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`helmet` adds security related http headers to every response from the given server. options is a map using the snake_case names of the fiber helmet config",
+			signature:   "helmet(server: GoObj[*fiber.App], options: map[str]any={}) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "helmet(s, {x_frame_options: 'DENY', hsts_max_age: 31536000}) => null",
+		}.String(),
+	},
+	{
+		Name: "_compress",
+		Fun: func(args ...Object) Object {
+			if len(args) != 2 {
+				return newInvalidArgCountError("compress", len(args), 2, "")
+			}
+			app, errObj := getFiberAppArg("compress", args[0])
+			if errObj != nil {
+				return errObj
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("compress", 2, INTEGER_OBJ, args[1].Type())
+			}
+			level := int(args[1].(*Integer).Value)
+			if level < int(compress.LevelDisabled) || level > int(compress.LevelBestCompression) {
+				return newError("`compress` error: level must be between %d and %d. got=%d", compress.LevelDisabled, compress.LevelBestCompression, level)
+			}
+			app.Use(compress.New(compress.Config{Level: compress.Level(level)}))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`compress` compresses http responses. level is -1 (disabled), 0 (default), 1 (best speed), or 2 (best compression)",
+			signature:   "compress(server: GoObj[*fiber.App], level: int=0) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "compress(s, 1) => null",
+		}.String(),
+	},
+	{
+		Name: "_limiter",
+		Fun: func(args ...Object) Object {
+			if len(args) != 7 {
+				return newInvalidArgCountError("limiter", len(args), 7, "")
+			}
+			app, errObj := getFiberAppArg("limiter", args[0])
+			if errObj != nil {
+				return errObj
+			}
+			if args[1].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("limiter", 2, INTEGER_OBJ, args[1].Type())
+			}
+			if args[2].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("limiter", 3, INTEGER_OBJ, args[2].Type())
+			}
+			var skipFailedRequests, skipSuccessfulRequests, disableHeaders, disableValueRedaction bool
+			for i, dst := range []*bool{&skipFailedRequests, &skipSuccessfulRequests, &disableHeaders, &disableValueRedaction} {
+				arg := args[i+3]
+				if arg.Type() != BOOLEAN_OBJ {
+					return newPositionalTypeError("limiter", i+4, BOOLEAN_OBJ, arg.Type())
+				}
+				*dst = arg.(*Boolean).Value
+			}
+			max := int(args[1].(*Integer).Value)
+			if max <= 0 {
+				return newError("`limiter` error: max must be > 0. got=%d", max)
+			}
+			expiration := int(args[2].(*Integer).Value)
+			if expiration <= 0 {
+				return newError("`limiter` error: expiration must be > 0 seconds. got=%d", expiration)
+			}
+			app.Use(limiter.New(limiter.Config{
+				Max:                    max,
+				Expiration:             time.Duration(expiration) * time.Second,
+				SkipFailedRequests:     skipFailedRequests,
+				SkipSuccessfulRequests: skipSuccessfulRequests,
+				DisableHeaders:         disableHeaders,
+				DisableValueRedaction:  disableValueRedaction,
+			}))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`limiter` limits requests per client. max is the request count allowed during expiration seconds",
+			signature:   "limiter(server: GoObj[*fiber.App], max: int=5, expiration: int=60, skip_failed_requests: bool=false, skip_successful_requests: bool=false, disable_headers: bool=false, disable_value_redaction: bool=false) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "limiter(s, 100, 60) => null",
+		}.String(),
+	},
+	{
+		Name: "_encrypt_cookie",
+		Fun: func(args ...Object) Object {
+			if len(args) != 3 {
+				return newInvalidArgCountError("encrypt_cookie", len(args), 3, "")
+			}
+			app, errObj := getFiberAppArg("encrypt_cookie", args[0])
+			if errObj != nil {
+				return errObj
+			}
+			if args[1].Type() != STRING_OBJ {
+				return newPositionalTypeError("encrypt_cookie", 2, STRING_OBJ, args[1].Type())
+			}
+			key := args[1].(*Stringo).Value
+			if err := validateCookieEncryptionKey(key); err != nil {
+				return newError("`encrypt_cookie` error: %s", err.Error())
+			}
+			except, errObj := stringListArg("encrypt_cookie", 3, args[2])
+			if errObj != nil {
+				return errObj
+			}
+			app.Use(encryptcookie.New(encryptcookie.Config{
+				Key:    key,
+				Except: except,
+			}))
+			return NULL
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`encrypt_cookie` encrypts response cookies and decrypts request cookies using an AES key. except is a list of cookie names that should not be encrypted",
+			signature:   "encrypt_cookie(server: GoObj[*fiber.App], key: str, except: list[str]=[]) -> null",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "encrypt_cookie(s, generate_cookie_key()) => null",
+		}.String(),
+	},
+	{
+		Name: "_generate_cookie_key",
+		Fun: func(args ...Object) Object {
+			if len(args) != 1 {
+				return newInvalidArgCountError("generate_cookie_key", len(args), 1, "")
+			}
+			if args[0].Type() != INTEGER_OBJ {
+				return newPositionalTypeError("generate_cookie_key", 1, INTEGER_OBJ, args[0].Type())
+			}
+			length := int(args[0].(*Integer).Value)
+			switch length {
+			case 16, 24, 32:
+			default:
+				return newError("`generate_cookie_key` error: length must be 16, 24, or 32. got=%d", length)
+			}
+			return &Stringo{Value: encryptcookie.GenerateKey(length)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`generate_cookie_key` returns a random base64 encoded key for `encrypt_cookie`. length must be 16, 24, or 32",
+			signature:   "generate_cookie_key(length: int=32) -> str",
+			errors:      "InvalidArgCount,PositionalType,CustomError",
+			example:     "generate_cookie_key() => 'base64 key'",
 		}.String(),
 	},
 	{

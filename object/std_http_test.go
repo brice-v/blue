@@ -1,6 +1,8 @@
 package object
 
 import (
+	"compress/gzip"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -196,6 +198,218 @@ func TestNewServerStaticMonitor(t *testing.T) {
 		{name: "app wrong goobj", args: []Object{NewGoObj("str"), &Stringo{Value: "127.0.0.1:0"}, FALSE}, err: "PositionalTypeError"},
 		{name: "addr not string", args: []Object{app, in(1), FALSE}, err: "PositionalTypeError"},
 		{name: "embed flag not bool", args: []Object{app, &Stringo{Value: "127.0.0.1:0"}, in(1)}, err: "PositionalTypeError"},
+	})
+}
+
+func newHttpTestApp(t *testing.T) *GoObj[*fiber.App] {
+	t.Helper()
+	res := httpBuiltinFn(t, "_new_server")(&Stringo{Value: "tcp"})
+	app, ok := res.(*GoObj[*fiber.App])
+	if !ok {
+		t.Fatalf("new_server returned %T, want GoObj[*fiber.App]", res)
+	}
+	return app
+}
+
+func newHttpTestOptions(values map[string]Object) *Map {
+	ordered := NewOrderedMap[string, Object]()
+	for k, v := range values {
+		ordered.Set(k, v)
+	}
+	return CreateMapObjectForGoMap(*ordered)
+}
+
+func TestHelmetMiddleware(t *testing.T) {
+	helmetFn := httpBuiltinFn(t, "_helmet")
+	app := newHttpTestApp(t)
+	res := helmetFn(app, newHttpTestOptions(map[string]Object{
+		"x_frame_options": &Stringo{Value: "DENY"},
+		"hsts_max_age":    &Integer{Value: 31536000},
+	}))
+	if res != NULL {
+		t.Fatalf("_helmet = %s, want NULL", res.Inspect())
+	}
+	app.Value.Get("/", func(c fiber.Ctx) error {
+		return c.SendString("ok")
+	})
+	resp, err := app.Value.Test(httptest.NewRequest(http.MethodGet, "https://example.com/", nil))
+	if err != nil {
+		t.Fatalf("request failed: %s", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("failed to close response body: %s", closeErr.Error())
+		}
+	}()
+	if got := resp.Header.Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Errorf("X-Content-Type-Options = %q, want nosniff", got)
+	}
+	if got := resp.Header.Get("X-Frame-Options"); got != "DENY" {
+		t.Errorf("X-Frame-Options = %q, want DENY", got)
+	}
+	runBuiltinTestsFor(t, HttpBuiltins, "_helmet", []builtinTestCase{
+		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
+		{name: "app wrong goobj", args: []Object{NewGoObj("str"), newHttpTestOptions(nil)}, err: "PositionalTypeError"},
+		{name: "options not map", args: []Object{app, &Stringo{Value: "x"}}, err: "PositionalTypeError"},
+		{name: "unknown option", args: []Object{app, newHttpTestOptions(map[string]Object{"nope": TRUE})}, err: `unknown option "nope"`},
+		{name: "bad option type", args: []Object{app, newHttpTestOptions(map[string]Object{"x_frame_options": TRUE})}, err: "expects STRING"},
+		{name: "negative hsts", args: []Object{app, newHttpTestOptions(map[string]Object{"hsts_max_age": in(-1)})}, err: "hsts_max_age must be >= 0"},
+		{name: "preload excludes subdomains", args: []Object{app, newHttpTestOptions(map[string]Object{
+			"hsts_preload_enabled":    TRUE,
+			"hsts_exclude_subdomains": TRUE,
+		})}, err: "hsts_preload_enabled requires hsts_exclude_subdomains=false"},
+	})
+}
+
+func TestCompressMiddleware(t *testing.T) {
+	compressFn := httpBuiltinFn(t, "_compress")
+	app := newHttpTestApp(t)
+	if res := compressFn(app, in(0)); res != NULL {
+		t.Fatalf("_compress = %s, want NULL", res.Inspect())
+	}
+	app.Value.Get("/", func(c fiber.Ctx) error {
+		return c.SendString(strings.Repeat("blue ", 500))
+	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	resp, err := app.Value.Test(req)
+	if err != nil {
+		t.Fatalf("request failed: %s", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("failed to close response body: %s", closeErr.Error())
+		}
+	}()
+	if got := resp.Header.Get("Content-Encoding"); got != "gzip" {
+		t.Fatalf("Content-Encoding = %q, want gzip", got)
+	}
+	reader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to create gzip reader: %s", err)
+	}
+	defer func() {
+		if closeErr := reader.Close(); closeErr != nil {
+			t.Logf("failed to close gzip reader: %s", closeErr.Error())
+		}
+	}()
+	body, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("failed to read compressed body: %s", err)
+	}
+	if len(body) != len("blue ")*500 {
+		t.Errorf("decompressed body length = %d, want %d", len(body), len("blue ")*500)
+	}
+
+	runBuiltinTestsFor(t, HttpBuiltins, "_compress", []builtinTestCase{
+		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
+		{name: "app wrong goobj", args: []Object{NewGoObj("str"), in(0)}, err: "PositionalTypeError"},
+		{name: "level not int", args: []Object{app, &Stringo{Value: "1"}}, err: "PositionalTypeError"},
+		{name: "level too low", args: []Object{app, in(-2)}, err: "level must be between"},
+		{name: "level too high", args: []Object{app, in(3)}, err: "level must be between"},
+	})
+}
+
+func TestLimiterMiddleware(t *testing.T) {
+	limiterFn := httpBuiltinFn(t, "_limiter")
+	app := newHttpTestApp(t)
+	if res := limiterFn(app, in(1), in(60), FALSE, FALSE, FALSE, FALSE); res != NULL {
+		t.Fatalf("_limiter = %s, want NULL", res.Inspect())
+	}
+	app.Value.Get("/", func(c fiber.Ctx) error {
+		return c.SendString("ok")
+	})
+	for i, want := range []int{http.StatusOK, http.StatusTooManyRequests} {
+		resp, err := app.Value.Test(httptest.NewRequest(http.MethodGet, "/", nil))
+		if err != nil {
+			t.Fatalf("request %d failed: %s", i, err)
+		}
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("failed to close response body: %s", closeErr.Error())
+		}
+		if resp.StatusCode != want {
+			t.Errorf("request %d status = %d, want %d", i, resp.StatusCode, want)
+		}
+	}
+
+	runBuiltinTestsFor(t, HttpBuiltins, "_limiter", []builtinTestCase{
+		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
+		{name: "app wrong goobj", args: []Object{NewGoObj("str"), in(1), in(60), FALSE, FALSE, FALSE, FALSE}, err: "PositionalTypeError"},
+		{name: "max not int", args: []Object{app, &Stringo{Value: "1"}, in(60), FALSE, FALSE, FALSE, FALSE}, err: "PositionalTypeError"},
+		{name: "expiration not int", args: []Object{app, in(1), &Stringo{Value: "60"}, FALSE, FALSE, FALSE, FALSE}, err: "PositionalTypeError"},
+		{name: "skip failed not bool", args: []Object{app, in(1), in(60), in(1), FALSE, FALSE, FALSE}, err: "PositionalTypeError"},
+		{name: "max too low", args: []Object{app, in(0), in(60), FALSE, FALSE, FALSE, FALSE}, err: "max must be > 0"},
+		{name: "expiration too low", args: []Object{app, in(1), in(0), FALSE, FALSE, FALSE, FALSE}, err: "expiration must be > 0"},
+	})
+}
+
+func TestEncryptCookieMiddleware(t *testing.T) {
+	generateKeyFn := httpBuiltinFn(t, "_generate_cookie_key")
+	encryptCookieFn := httpBuiltinFn(t, "_encrypt_cookie")
+	keyRes := generateKeyFn(in(16))
+	key, ok := keyRes.(*Stringo)
+	if !ok {
+		t.Fatalf("generate_cookie_key returned %T, want *Stringo", keyRes)
+	}
+	app := newHttpTestApp(t)
+	if res := encryptCookieFn(app, key, &List{Elements: []Object{}}); res != NULL {
+		t.Fatalf("_encrypt_cookie = %s, want NULL", res.Inspect())
+	}
+	app.Value.Get("/", func(c fiber.Ctx) error {
+		if cookie := c.Cookies("session"); cookie != "" {
+			return c.SendString(cookie)
+		}
+		c.Cookie(&fiber.Cookie{Name: "session", Value: "secret"})
+		return c.SendString("set")
+	})
+
+	resp, err := app.Value.Test(httptest.NewRequest(http.MethodGet, "/", nil))
+	if err != nil {
+		t.Fatalf("first request failed: %s", err)
+	}
+	if closeErr := resp.Body.Close(); closeErr != nil {
+		t.Logf("failed to close first response body: %s", closeErr.Error())
+	}
+	cookies := resp.Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("got %d response cookies, want 1", len(cookies))
+	}
+	if cookies[0].Value == "secret" {
+		t.Error("response cookie was not encrypted")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(cookies[0])
+	resp, err = app.Value.Test(req)
+	if err != nil {
+		t.Fatalf("second request failed: %s", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("failed to close second response body: %s", closeErr.Error())
+		}
+	}()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read second response body: %s", err)
+	}
+	if string(body) != "secret" {
+		t.Errorf("decrypted request cookie = %q, want secret", string(body))
+	}
+
+	runBuiltinTestsFor(t, HttpBuiltins, "_generate_cookie_key", []builtinTestCase{
+		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
+		{name: "not an int", args: []Object{&Stringo{Value: "32"}}, err: "PositionalTypeError"},
+		{name: "invalid length", args: []Object{in(8)}, err: "length must be 16, 24, or 32"},
+	})
+	runBuiltinTestsFor(t, HttpBuiltins, "_encrypt_cookie", []builtinTestCase{
+		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
+		{name: "app wrong goobj", args: []Object{NewGoObj("str"), key, &List{Elements: []Object{}}}, err: "PositionalTypeError"},
+		{name: "key not string", args: []Object{app, in(1), &List{Elements: []Object{}}}, err: "PositionalTypeError"},
+		{name: "invalid key encoding", args: []Object{app, &Stringo{Value: "%%%"}, &List{Elements: []Object{}}}, err: "failed to base64-decode key"},
+		{name: "invalid key length", args: []Object{app, &Stringo{Value: "nope"}, &List{Elements: []Object{}}}, err: "key must decode to 16, 24, or 32 bytes"},
+		{name: "except not list", args: []Object{app, key, &Stringo{Value: "x"}}, err: "PositionalTypeError"},
+		{name: "except element not string", args: []Object{app, key, &List{Elements: []Object{in(1)}}}, err: "must be STRING"},
 	})
 }
 

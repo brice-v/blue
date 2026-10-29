@@ -370,10 +370,16 @@ github.com/gofiber/fiber/v3/internal/contextvalue
 github.com/gofiber/fiber/v3/internal/fieldname
 github.com/gofiber/fiber/v3/internal/logtemplate
 github.com/gofiber/fiber/v3/internal/mediatype
+github.com/gofiber/fiber/v3/internal/memory
 github.com/gofiber/fiber/v3/internal/nilerror
 github.com/gofiber/fiber/v3/internal/schemehost
 github.com/gofiber/fiber/v3/internal/urlnorm
 github.com/gofiber/fiber/v3/log
+github.com/gofiber/fiber/v3/middleware/compress
+github.com/gofiber/fiber/v3/middleware/encryptcookie
+github.com/gofiber/fiber/v3/middleware/etag
+github.com/gofiber/fiber/v3/middleware/helmet
+github.com/gofiber/fiber/v3/middleware/limiter
 github.com/gofiber/fiber/v3/middleware/sse
 github.com/gofiber/fiber/v3/middleware/static
 # github.com/gofiber/schema v1.8.5
