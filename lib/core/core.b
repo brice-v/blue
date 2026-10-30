@@ -193,6 +193,12 @@ fun split(s, sep=' ', n=-1) {
     return __split(s, sep, n);
 }
 
+val __to_fixed = _to_fixed;
+fun to_fixed(n, dp=0) {
+    ##core:__to_fixed
+    return __to_fixed(float(n), dp)
+}
+
 fun close(obj) {
     ##core:ignore
     match obj {

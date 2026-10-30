@@ -1,4 +1,3 @@
-#VM IGNORE
 # JS-style to_fixed(digits) returns a fixed-point STRING.
 val a = 1.2345;
 val b = 1.2;

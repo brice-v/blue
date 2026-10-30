@@ -3854,6 +3854,32 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
+		Name: "_to_fixed",
+		Fun: func(args ...Object) Object {
+			err := checkArgCount("to_fixed", 2, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("to_fixed", 1, FLOAT_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("to_fixed", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			n := args[0].(*Float).Value
+			dp := int(args[1].(*Integer).Value)
+			return &Stringo{Value: strconv.FormatFloat(n, 'f', dp, 64)}
+		},
+		HelpStr: helpStrArgs{
+			explanation: "`to_fixed` returns a float converted to string with fixed number of decimal places. n is converted to float",
+			signature:   "to_fixed(n: float, dp: int=0) -> str",
+			errors:      "InvalidArgCount",
+			example:     "to_fixed(1.234) => '1.23'",
+		}.String(),
+	},
+	{
 		Name: "contains",
 		Fun: func(args ...Object) Object {
 			err := checkArgCount("contains", 2, args)
