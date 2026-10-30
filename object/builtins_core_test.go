@@ -498,14 +498,17 @@ func TestIntFromBigNumber(t *testing.T) {
 }
 
 func TestStringBuiltins(t *testing.T) {
-	runBuiltinTests(t, "split", []builtinTestCase{
-		{name: "default separator is space", args: []Object{&Stringo{Value: "a b c"}}, want: "[a, b, c]"},
-		{name: "explicit separator", args: []Object{&Stringo{Value: "a,b,c"}, &Stringo{Value: ","}}, want: "[a, b, c]"},
-		{name: "regex separator", args: []Object{&Stringo{Value: "a1b22c"}, &Regex{Value: regexp.MustCompile("[0-9]+")}}, want: "[a, b, c]"},
-		{name: "no match returns whole string", args: []Object{&Stringo{Value: "abc"}, &Stringo{Value: ","}}, want: "[abc]"},
-		{name: "wrong type", args: []Object{&Integer{Value: 1}}, err: "PositionalTypeError"},
-		{name: "bad second arg type", args: []Object{&Stringo{Value: "abc"}, &Integer{Value: 1}}, err: "PositionalTypeError"},
-		{name: "too many args", args: []Object{&Stringo{Value: "a"}, &Stringo{Value: "b"}, &Stringo{Value: "c"}}, err: "InvalidArgCountError"},
+	runBuiltinTests(t, "_split", []builtinTestCase{
+		{name: "default separator is space", args: []Object{&Stringo{Value: "a b c"}, &Stringo{Value: " "}, &Integer{Value: -1}}, want: "[a, b, c]"},
+		{name: "explicit separator", args: []Object{&Stringo{Value: "a,b,c"}, &Stringo{Value: ","}, &Integer{Value: -1}}, want: "[a, b, c]"},
+		{name: "regex separator", args: []Object{&Stringo{Value: "a1b22c"}, &Regex{Value: regexp.MustCompile("[0-9]+")}, &Integer{Value: -1}}, want: "[a, b, c]"},
+		{name: "no match returns whole string", args: []Object{&Stringo{Value: "abc"}, &Stringo{Value: ","}, &Integer{Value: -1}}, want: "[abc]"},
+		{name: "split limit", args: []Object{&Stringo{Value: "a,b,c"}, &Stringo{Value: ","}, &Integer{Value: 1}}, want: "[a, b,c]"},
+		{name: "wrong first arg type", args: []Object{&Integer{Value: 1}, &Stringo{Value: ","}, &Integer{Value: -1}}, err: "PositionalTypeError"},
+		{name: "bad second arg type", args: []Object{&Stringo{Value: "abc"}, &Integer{Value: 1}, &Integer{Value: -1}}, err: "PositionalTypeError"},
+		{name: "bad third arg type", args: []Object{&Stringo{Value: "abc"}, &Stringo{Value: ","}, &Stringo{Value: "1"}}, err: "PositionalTypeError"},
+		{name: "wrong arg count", args: []Object{&Stringo{Value: "a"}}, err: "InvalidArgCountError"},
+		{name: "too many args", args: []Object{&Stringo{Value: "a"}, &Stringo{Value: "b"}, &Integer{Value: -1}, &Stringo{Value: "c"}}, err: "InvalidArgCountError"},
 	})
 	runBuiltinTests(t, "_replace", []builtinTestCase{
 		{name: "replace all", args: []Object{&Stringo{Value: "Hello"}, &Stringo{Value: "l"}, &Stringo{Value: "X"}}, want: "HeXXo"},

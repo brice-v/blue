@@ -10,6 +10,9 @@ type Frame struct {
 	ip int
 	bp int
 
+	// opPos is the offset of the opcode currently being executed
+	opPos int
+
 	deferFuns []*object.Closure
 
 	lastInstruction code.Opcode
@@ -40,6 +43,7 @@ func (f *Frame) Clone() *Frame {
 		cl:                f.cl.Clone().(*object.Closure),
 		ip:                f.ip,
 		bp:                f.bp,
+		opPos:             f.opPos,
 		deferFuns:         newDeferFuns,
 		lastInstruction:   f.lastInstruction,
 		inTry:             f.inTry,
@@ -50,7 +54,7 @@ func (f *Frame) Clone() *Frame {
 }
 
 func NewFrame(fn *object.Closure, bp int) *Frame {
-	return &Frame{cl: fn, ip: -1, bp: bp, lastInstruction: code.OpInvalid, callerLastNodePos: -1}
+	return &Frame{cl: fn, ip: -1, opPos: -1, bp: bp, lastInstruction: code.OpInvalid, callerLastNodePos: -1}
 }
 
 // emptyMainClosure is the read-only sentinel closure installed as frames[0]

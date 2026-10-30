@@ -129,6 +129,7 @@ func (vm *VM) newCallFrame(cl *object.Closure, bp int) *Frame {
 	f := &vm.frames[vm.framesIndex]
 	f.cl = cl
 	f.ip = -1
+	f.opPos = -1
 	f.bp = bp
 	f.lastInstruction = code.OpInvalid
 	f.callerLastNodePos = -1
@@ -328,6 +329,7 @@ func (vm *VM) Run() error {
 	for ip < len(ins)-1 {
 		ip++
 		frame.ip = ip
+		frame.opPos = ip
 		op = code.Opcode(ins[ip])
 		if op == code.OpNode {
 			vm.lastNodePos = ip
@@ -1244,7 +1246,11 @@ func (vm *VM) isOpCatchOrFinallyFoundInFrame(frame *Frame, errorMessage string) 
 		return -1, false
 	}
 	ins := frame.Instructions()
-	for i := frame.ip - 1; i < len(ins); i++ {
+	// Scan from the current opcode, not frame.ip: handlers may advance ip past
+	// the operands of the instruction being executed, and starting mid
+	// instruction can mistake an operand byte for an OpCatch/OpFinally.
+	start := max(frame.opPos, 0)
+	for i := start; i < len(ins); i++ {
 		def, err := code.Lookup(ins[i])
 		if err != nil {
 			continue
