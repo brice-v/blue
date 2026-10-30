@@ -1,25 +1,25 @@
 TODO:
 
+- [ ] FEAT: Add a binary pack/unpack equivalent to python's struct.pack/unpack
+    - blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back
+    - [ ] Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
 - [ ] FEAT: Optimize: Add list with 2 elements, does this benefit at all? Might need to be specifically type based, could be done with generics?
     - thinking for things like for [i, v] in z, or val a = [1,2], etc. (if less than 2 optimize)
 - [ ] FEAT: Better support time.Time struct in general
     - CreateObjectFromDbInterface currently creates string from it (can get a time.Time from duckdb)
 - [ ] FIX: Vscode extension breaks a bit with heavy use of string interpolation, even when valid
     - Need to investigate, seemed to recover after a restart but still
-- [x] FEAT: Add @= for matmul equal
-    - [ ] Wire in support for dunder
 - [ ] FIX: Figure out ui content fill strategies, what works correctly
 - [ ] MAYBE: Build pseduo jupyter style notebook for blue via `blue nb` or `blue notebook` using ui and other things?
-- [ ] FEAT: Add a binary pack/unpack equivalent to python's struct.pack/unpack. blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back. Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.
 - [ ] FEAT: Would be good to have an error hint for this pattern
     - assert(strSet1 | strSet2 == {"a", "b", "c", "d", "e"})
     - In this scenario the bool side is evaluated first and set | bool is not valid
     - similarly occurs for range as well 1..10-4 or 1..<10-4
 - Struct Improvements/Fixes
     - [x] Allow structs to be matched against
-    - [ ] Allow blue struct with int/float/etc. field names?
+    - [ ] Allow blue struct with int/float/etc. as the field names?
     - [ ] When blue struct field name matches a var that is used in scope, can this work?
-    - [ ] Support Struct in list comprehension?
+    - [ ] Support Struct comprehensions?
     - [ ] See if can be used with class pattern
         - [ ] Support dunder methods with structs
 - [ ] Add dis() builtin function to disassemble function inline
@@ -45,7 +45,6 @@ TODO:
     - [ ] Add support for piped output
     - [ ] Parse command with strings, pipes, &&, etc so this can work more like a proper shell?
 - [ ] Add select statement?
-- [ ] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
 - [ ] Add catch with a block to expressions to handle errors?
 - [ ] Add some sort of package management with a file like blue.json (or blue.toml)
     - This will allow us to also add a script runner
@@ -58,7 +57,6 @@ TODO:
         - in above #{=VAR} will return a string with the VARNAME = VAR_AS_STRING
     - [ ] Add debug printing that works like ic to evaluator
 - [ ] transform read and write to support using file descriptors instead?
-- [ ] Add filepath.walk type function
 - STD Updates:
     - [ ] Add WebView
     - [x] Add plotting library
@@ -147,9 +145,6 @@ func main() {
 - [ ] BUG: maybe bug in for loop using var and len of split lines (failing in d4 when I didnt subtract 1 [it shoudlve ended at 140 ])
     - also had nested loop so maybe that has something to do with it
 - [ ] Future FEAT: Look at d7 and see if we can create a pattern that spins up some # of processes and completes with a result based on a list of items
-- [~] FEAT: Add regex for split method builtin
-    - [ ] MAYBE FEAT: Update to support n on 'split' for regex (or update so that we can do something like split_n)
-    - [x] TASK: Add tests in string builtins
 - [ ] FEAT: IMPLEMENT CRASH HANDLER (it should record the relevant info but allow execution to continue [for now as everything is beta])
 
 COMPLETED TASKS:
@@ -821,3 +816,11 @@ COMPLETED TASKS:
 - [-] Support range assignment for strings (so if the length of the range matches the length of the string to assign it wil work)   
     - What I mean by this is var s = "hello"; s[0..2] = "ab"; s; => 'abllo'
     - but lots of code required for this and it wouldnt fit for lists of other types really so dont think ill add
+- [x] Add filepath.walk type function
+- [x] FEAT: Add @= for matmul equal
+    - [x] Wire in support for dunder
+- [~] For some functions mutate underlying object if '!' is put on the end, ie. sort!, or reverse!
+    - already have sorted so likely will just keep as is
+- [~] FEAT: Add regex for split method builtin
+    - [x] MAYBE FEAT: Update to support n on 'split' for regex (or update so that we can do something like split_n)
+    - [x] TASK: Add tests in string builtins

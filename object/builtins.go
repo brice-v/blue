@@ -3301,43 +3301,43 @@ var Builtins = []*Builtin{
 		}.String(),
 	},
 	{
-		Name: "split",
+		Name: "_split",
 		Fun: func(args ...Object) Object {
-			if len(args) != 1 && len(args) != 2 {
-				return newInvalidArgCountError("split", len(args), 1, "or 2")
+			err := checkArgCount("split", 3, args)
+			if err != nil {
+				return err
 			}
-			if len(args) == 1 {
-				arg0, ok := args[0].(*Stringo)
-				if !ok {
-					return newPositionalTypeError("split", 1, STRING_OBJ, args[0].Type())
-				}
-				strList := strings.Split(arg0.Value, " ")
-				return &List{Elements: createStringList(strList)}
+			err = checkArgType("split", 1, STRING_OBJ, args)
+			if err != nil {
+				return err
 			}
-			if len(args) == 2 {
-				arg0, ok := args[0].(*Stringo)
-				if !ok {
-					return newPositionalTypeError("split", 1, STRING_OBJ, args[0].Type())
-				}
-				if args[1].Type() != STRING_OBJ && args[1].Type() != REGEX_OBJ {
-					return newPositionalTypeError("split", 2, "STRING or REGEX", args[1].Type())
-				}
-				var strList []string
-				arg1, isStr := args[1].(*Stringo)
-				if isStr {
-					strList = strings.Split(arg0.Value, arg1.Value)
-				} else {
-					re := args[1].(*Regex).Value
-					strList = re.Split(arg0.Value, -1)
-
-				}
-				return &List{Elements: createStringList(strList)}
+			if args[1].Type() != STRING_OBJ && args[1].Type() != REGEX_OBJ {
+				return newPositionalTypeError("split", 2, "STRING or REGEX", args[1].Type())
 			}
-			return NULL
+			err = checkArgType("split", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			s := args[0].(*Stringo).Value
+			n := int(args[2].(*Integer).Value)
+			if n != -1 && n != 0 {
+				// Make it work more like python
+				// for n=2, split 2 times, not _at most_ 2 times
+				n++
+			}
+			var strList []string
+			if args[1].Type() == STRING_OBJ {
+				sep := args[1].(*Stringo).Value
+				strList = strings.SplitN(s, sep, n)
+			} else {
+				sep := args[1].(*Regex).Value
+				strList = sep.Split(s, n)
+			}
+			return &List{Elements: createStringList(strList)}
 		},
 		HelpStr: helpStrArgs{
-			explanation: "`split` returns a LIST of STRINGs based on a STRING separator",
-			signature:   "split(arg: str, sep: str|regex) -> list[str]",
+			explanation: "`split` returns a LIST of STRINGs based on a STRING separator, n is the number of times to split (-1 all)",
+			signature:   "split(arg: str, sep: str|regex=' ', n: int=-1) -> list[str]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "split('Hello', '') => ['H','e','l','l','o']",
 		}.String(),

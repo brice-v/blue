@@ -187,6 +187,12 @@ fun find_one(str_to_search, query, method="regex") {
     }
 }
 
+val __split = _split;
+fun split(s, sep=' ', n=-1) {
+    ##core:__split
+    return __split(s, sep, n);
+}
+
 fun close(obj) {
     ##core:ignore
     match obj {
