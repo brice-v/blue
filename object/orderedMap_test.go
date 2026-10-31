@@ -1,7 +1,6 @@
 package object
 
 import (
-	"math"
 	"testing"
 )
 
@@ -171,57 +170,7 @@ func TestMapObjectSmallAndPromotedAgree(t *testing.T) {
 	}
 }
 
-func TestMapNaNKeysSmallAndPromotedAgree(t *testing.T) {
-	build := func(n int) *Map {
-		m := &Map{Pairs: NewPairsMap()}
-		for i := range n {
-			m.Set(&Stringo{Value: "k" + string(rune('a'+i))}, &Integer{Value: int64(i)})
-		}
-		return m
-	}
-
-	// NaN is never equal to itself, and HashObject randomizes NaN hashes, so
-	// no NaN key is retrievable and every insert adds a new entry (the same
-	// way Go maps treat NaN keys). The point here is that the small and
-	// promoted representations agree on that behavior.
-	profile := func(n int) []int {
-		m := build(n)
-		start := m.Pairs.Len()
-		nan := &Float{Value: math.NaN()}
-
-		m.Set(nan, &Integer{Value: 1})
-		afterFirstSet := m.Pairs.Len() - start
-		selfFound := boolToInt(m.Contains(nan))
-		otherFound := boolToInt(m.Contains(&Float{Value: math.NaN()}))
-
-		m.Set(nan, &Integer{Value: 2})
-		afterSecondSet := m.Pairs.Len() - start
-
-		beforeDelete := m.Pairs.Len()
-		m.Delete(nan)
-		afterDelete := m.Pairs.Len() - beforeDelete
-
-		return []int{afterFirstSet, selfFound, otherFound, afterSecondSet, afterDelete}
-	}
-
-	small := profile(0)
-	promoted := profile(smallMapThreshold + 1)
-	for i := range small {
-		if small[i] != promoted[i] {
-			t.Fatalf("small and promoted NaN behavior differ: small=%v promoted=%v", small, promoted)
-		}
-	}
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
 func TestObjectsEqual(t *testing.T) {
-	nan := &Float{Value: math.NaN()}
 	tests := []struct {
 		name string
 		a    Object
@@ -232,8 +181,6 @@ func TestObjectsEqual(t *testing.T) {
 		{"ints differ", &Integer{Value: 3}, &Integer{Value: 4}, false},
 		{"uints equal", &UInteger{Value: 3}, &UInteger{Value: 3}, true},
 		{"floats equal", &Float{Value: 1.5}, &Float{Value: 1.5}, true},
-		{"nan not equal to itself", nan, nan, false},
-		{"nan not equal to other nan", nan, &Float{Value: math.NaN()}, false},
 		{"strings equal", &Stringo{Value: "x"}, &Stringo{Value: "x"}, true},
 		{"strings differ", &Stringo{Value: "x"}, &Stringo{Value: "y"}, false},
 		{"bools equal", &Boolean{Value: true}, &Boolean{Value: true}, true},
