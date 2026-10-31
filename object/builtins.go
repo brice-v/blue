@@ -274,12 +274,7 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("del", 1, "MAP or LIST or SET", args[0].Type())
 			}
 			if args[0].Type() == MAP_OBJ {
-				m := args[0].(*Map)
-				hk := HashKey{
-					Type:  args[1].Type(),
-					Value: HashObject(args[1]),
-				}
-				m.Pairs.Delete(hk)
+				args[0].(*Map).Delete(args[1])
 			} else if args[0].Type() == LIST_OBJ {
 				if args[1].Type() != INTEGER_OBJ {
 					return newPositionalTypeError("del", 2, INTEGER_OBJ, args[1].Type())
@@ -2062,8 +2057,7 @@ var Builtins = []*Builtin{
 			switch args[0].Type() {
 			case MAP_OBJ:
 				m := args[0].(*Map)
-				hk := HashKey{Type: args[1].Type(), Value: HashObject(args[1])}
-				if pair, ok := m.Pairs.Get(hk); ok {
+				if pair, ok := m.Get(args[1]); ok {
 					return pair.Value
 				}
 				return defVal
@@ -2125,10 +2119,7 @@ var Builtins = []*Builtin{
 			}
 			switch args[0].Type() {
 			case MAP_OBJ:
-				m := args[0].(*Map)
-				hk := HashKey{Type: args[1].Type(), Value: HashObject(args[1])}
-				_, ok := m.Pairs.Get(hk)
-				return nativeToBooleanObject(ok)
+				return nativeToBooleanObject(args[0].(*Map).Contains(args[1]))
 			case LIST_OBJ:
 				l := args[0].(*List).Elements
 				for _, e := range l {

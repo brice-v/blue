@@ -74,9 +74,7 @@ func (vm *VM) executeMapIndexSetOperator(m *object.Map, indx, rightValue object.
 			return fmt.Errorf("unusable as a map key: %s", indx.Type())
 		}
 	}
-	hashed := object.HashObject(indx)
-	key := object.HashKey{Type: indx.Type(), Value: hashed}
-	m.Pairs.Set(key, object.MapPair{Key: indx, Value: rightValue})
+	m.Set(indx, rightValue)
 	return nil
 }
 

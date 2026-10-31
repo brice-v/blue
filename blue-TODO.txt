@@ -1,5 +1,8 @@
 TODO:
 
+- [ ] FIX: NaN should just have single object (like NULL/TRUE/etc.) so fix up all uses of &Float so that is gets set correctly for equal operations
+    - Check if BigFloat can have the same problem
+- [ ] FEAT: Small List/Set/Struct optimizations to reduce allocations
 - [ ] FEAT: Add a binary pack/unpack equivalent to python's struct.pack/unpack
     - blue has bytes plus to_bytes/encode/decode (hex/base64/base32) and crypto, but no way to pack typed values (int/float/bool, signed/unsigned, endianness) into bytes or read them back
     - [ ] Add pack/unpack/calcsize (and pack_into/unpack_from) or a small binary/struct module.

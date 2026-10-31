@@ -132,9 +132,7 @@ func (vm *VM) executeMapIndexExpression(mapObject, indx object.Object) error {
 	if ok := object.IsHashable(indx); !ok {
 		return vm.push(newError("unusable as a map key: %s", indx.Type()))
 	}
-	hashed := object.HashObject(indx)
-	key := object.HashKey{Type: indx.Type(), Value: hashed}
-	pair, ok := mapObj.Pairs.Get(key)
+	pair, ok := mapObj.Get(indx)
 	if !ok {
 		return vm.push(object.NULL)
 	}

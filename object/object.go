@@ -713,8 +713,55 @@ func (m *Map) Help() string {
 }
 
 func (m *Map) ContainsStringoKey(key *Stringo) bool {
-	hk := HashKey{Type: STRING_OBJ, Value: HashObject(key)}
-	_, ok := m.Pairs.store[hk]
+	return m.Contains(key)
+}
+
+func (m *Map) Get(key Object) (MapPair, bool) {
+	if m.Pairs.Small() {
+		for i := range m.Pairs.vals {
+			pair := m.Pairs.vals[i]
+			if FastEqual(pair.Key, key) {
+				return pair, true
+			}
+		}
+		return MapPair{}, false
+	}
+	hk := HashKey{Type: key.Type(), Value: HashObject(key)}
+	return m.Pairs.Get(hk)
+}
+
+func (m *Map) Set(key, value Object) {
+	if m.Pairs.Small() {
+		for i := range m.Pairs.vals {
+			if FastEqual(m.Pairs.vals[i].Key, key) {
+				m.Pairs.vals[i].Value = value
+				return
+			}
+		}
+		hk := HashKey{Type: key.Type(), Value: HashObject(key)}
+		m.Pairs.appendSmall(hk, MapPair{Key: key, Value: value})
+		return
+	}
+	hk := HashKey{Type: key.Type(), Value: HashObject(key)}
+	m.Pairs.Set(hk, MapPair{Key: key, Value: value})
+}
+
+func (m *Map) Delete(key Object) {
+	if m.Pairs.Small() {
+		for i := range m.Pairs.vals {
+			if FastEqual(m.Pairs.vals[i].Key, key) {
+				m.Pairs.removeAt(i)
+				return
+			}
+		}
+		return
+	}
+	hk := HashKey{Type: key.Type(), Value: HashObject(key)}
+	m.Pairs.Delete(hk)
+}
+
+func (m *Map) Contains(key Object) bool {
+	_, ok := m.Get(key)
 	return ok
 }
 
