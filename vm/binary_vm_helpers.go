@@ -63,27 +63,6 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 	return vm.executeBinaryOperationDifferentTypes(op, left, right, leftType, rightType)
 }
 
-// intObject returns an object.Integer for common small values from a shared
-// read-only cache, avoiding an allocation per arithmetic result. Integers are
-// immutable values in blue so sharing is safe. Kept local to the vm package
-// (mirroring object.NewInteger) so the binary-op fast path stays a direct
-// table load without a cross-package call.
-var smallInts []*object.Integer
-
-func init() {
-	smallInts = make([]*object.Integer, 131072)
-	for i := range smallInts {
-		smallInts[i] = &object.Integer{Value: int64(i - 65536)}
-	}
-}
-
-func intObject(v int64) *object.Integer {
-	if v >= -65536 && v < 65536 {
-		return smallInts[v+65536]
-	}
-	return &object.Integer{Value: v}
-}
-
 func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) error {
 	leftVal := leftObj.(*object.Integer).Value
 	rightVal := rightObj.(*object.Integer).Value
@@ -96,7 +75,7 @@ func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) er
 			result := big.NewInt(0)
 			return vm.push(&object.BigInteger{Value: result.Add(left, right)})
 		}
-		return vm.push(intObject(leftVal + rightVal))
+		return vm.push(object.NewInteger(leftVal + rightVal))
 	case code.OpMinus:
 		underflowed := util.CheckUnderflow(leftVal, rightVal)
 		if underflowed {
@@ -105,15 +84,15 @@ func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) er
 			result := big.NewInt(0)
 			return vm.push(&object.BigInteger{Value: result.Sub(left, right)})
 		}
-		return vm.push(intObject(leftVal - rightVal))
+		return vm.push(object.NewInteger(leftVal - rightVal))
 	case code.OpDiv:
 		if rightVal == 0 {
 			return vm.push(newError("division by zero is not allowed"))
 		}
 		if rightVal > leftVal {
-			return vm.push(intObject(0))
+			return vm.push(object.NewInteger(0))
 		}
-		return vm.push(intObject(leftVal / rightVal))
+		return vm.push(object.NewInteger(leftVal / rightVal))
 	case code.OpStar:
 		overflowed := util.CheckOverflowMul(leftVal, rightVal)
 		if overflowed {
@@ -122,7 +101,7 @@ func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) er
 			result := big.NewInt(0)
 			return vm.push(&object.BigInteger{Value: result.Mul(left, right)})
 		}
-		return vm.push(intObject(leftVal * rightVal))
+		return vm.push(object.NewInteger(leftVal * rightVal))
 	case code.OpPow:
 		overflowed := util.CheckOverflowPow(leftVal, rightVal)
 		if overflowed {
@@ -131,12 +110,12 @@ func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) er
 			result := big.NewInt(0)
 			return vm.push(&object.BigInteger{Value: result.Exp(left, right, nil)})
 		}
-		return vm.push(intObject(int64(math.Pow(float64(leftVal), float64(rightVal)))))
+		return vm.push(object.NewInteger(int64(math.Pow(float64(leftVal), float64(rightVal)))))
 	case code.OpFlDiv:
 		if rightVal == 0 {
 			return vm.push(newError("floor division by zero is not allowed"))
 		}
-		return vm.push(intObject(blueutil.FloorDiv(leftVal, rightVal)))
+		return vm.push(object.NewInteger(blueutil.FloorDiv(leftVal, rightVal)))
 	case code.OpPercent:
 		if rightVal == 0 {
 			return vm.push(newError("Modulus by zero is not allowed"))
@@ -145,7 +124,7 @@ func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) er
 		if result != 0 && ((result < 0) != (rightVal < 0)) {
 			result += rightVal
 		}
-		return vm.push(intObject(result))
+		return vm.push(object.NewInteger(result))
 	case code.OpGreaterThan:
 		return vm.push(nativeToBooleanObject(leftVal > rightVal))
 	case code.OpGreaterThanOrEqual:
@@ -159,15 +138,15 @@ func binaryIntegerOp(vm *VM, op code.Opcode, leftObj, rightObj object.Object) er
 	case code.OpNonIncRange:
 		return vm.push(executeIntegerNonInclusiveRangeOperator(leftVal, rightVal))
 	case code.OpAmpersand:
-		return vm.push(intObject(leftVal & rightVal))
+		return vm.push(object.NewInteger(leftVal & rightVal))
 	case code.OpPipe:
-		return vm.push(intObject(leftVal | rightVal))
+		return vm.push(object.NewInteger(leftVal | rightVal))
 	case code.OpCarat:
-		return vm.push(intObject(leftVal ^ rightVal))
+		return vm.push(object.NewInteger(leftVal ^ rightVal))
 	case code.OpLshift:
-		return vm.push(intObject(leftVal << rightVal))
+		return vm.push(object.NewInteger(leftVal << rightVal))
 	case code.OpRshift:
-		return vm.push(intObject(leftVal >> rightVal))
+		return vm.push(object.NewInteger(leftVal >> rightVal))
 	default:
 		return vm.push(newError("unknown operator: %s %s %s", leftObj.Type(), code.GetOpName(op), rightObj.Type()))
 	}
