@@ -20,7 +20,7 @@ assert(test == "1.234000")
 var abc = {hello: 'world'};
 test = abc.fmt("%v")
 println(test);
-assert(test == "&{map[hello:world] [hello]}");
+assert(test == "&{[hello] [world] map[]}");
 
 abc[123] = 903;
 test = abc.fmt("%q");

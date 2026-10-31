@@ -697,3 +697,106 @@ func bindArgs(name string, args []Object, params ...string) (map[string]Object, 
 	}
 	return vals, nil
 }
+
+func FastEqual(a, b Object) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a == b {
+		return true
+	}
+	if a.Type() != b.Type() {
+		return false
+	}
+	switch x := a.(type) {
+	case *Integer:
+		y, ok := b.(*Integer)
+		return ok && x.Value == y.Value
+	case *UInteger:
+		y, ok := b.(*UInteger)
+		return ok && x.Value == y.Value
+	case *Float:
+		y, ok := b.(*Float)
+		return ok && x.Value == y.Value
+	case *Stringo:
+		y, ok := b.(*Stringo)
+		return ok && x.Value == y.Value
+	case *Boolean:
+		y, ok := b.(*Boolean)
+		return ok && x.Value == y.Value
+	case *Null:
+		return true
+	case *List:
+		y, ok := b.(*List)
+		return ok && listsEqual(x, y)
+	case *Map:
+		y, ok := b.(*Map)
+		return ok && mapsEqual(x, y)
+	case *Set:
+		y, ok := b.(*Set)
+		return ok && setsEqual(x, y)
+	case *BlueStruct:
+		y, ok := b.(*BlueStruct)
+		return ok && structsEqual(x, y)
+	}
+	return HashObject(a) == HashObject(b)
+}
+
+func listsEqual(a, b *List) bool {
+	if len(a.Elements) != len(b.Elements) {
+		return false
+	}
+	for i := range a.Elements {
+		if !FastEqual(a.Elements[i], b.Elements[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func mapsEqual(a, b *Map) bool {
+	if a.Pairs.Len() != b.Pairs.Len() {
+		return false
+	}
+	for _, hashKey := range a.Pairs.Keys {
+		pair, ok := a.Pairs.Get(hashKey)
+		if !ok {
+			continue
+		}
+		other, ok := b.Get(pair.Key)
+		if !ok || !FastEqual(pair.Value, other.Value) {
+			return false
+		}
+	}
+	return true
+}
+
+func setsEqual(a, b *Set) bool {
+	if a.Elements.Len() != b.Elements.Len() {
+		return false
+	}
+	for _, hashKey := range a.Elements.Keys {
+		pair, ok := a.Elements.Get(hashKey)
+		if !ok {
+			continue
+		}
+		other, ok := b.Elements.Get(hashKey)
+		if !ok || !FastEqual(pair.Value, other.Value) {
+			return false
+		}
+	}
+	return true
+}
+
+func structsEqual(a, b *BlueStruct) bool {
+	if len(a.Fields) != len(b.Fields) {
+		return false
+	}
+	for i, name := range a.Fields {
+		other, index := b.Get(name)
+		if index < 0 || !FastEqual(a.Values[i], other) {
+			return false
+		}
+	}
+	return true
+}

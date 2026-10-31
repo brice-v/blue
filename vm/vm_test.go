@@ -1211,3 +1211,67 @@ func TestStructuralEqualityStillWorks(t *testing.T) {
 		}
 	}
 }
+
+func TestSmallMapOperations(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`val m = {"a": 1, "b": 2}; m["a"]`, "1"},
+		{`val m = {"a": 1, "b": 2}; m["z"]`, "null"},
+		{`var m = {"a": 1}; m["a"] = 5; m["a"]`, "5"},
+		{`var m = {"a": 1}; m["b"] = 2; len(m)`, "2"},
+		{`var m = {"a": 1}; "a" in m`, "true"},
+		{`var m = {"a": 1}; "z" in m`, "false"},
+		{`var m = {"a": 1}; m.has("a")`, "true"},
+		{`var m = {"a": 1}; m.get("a")`, "1"},
+		{`var m = {"a": 1}; m.get("z", 99)`, "99"},
+		{`var m = {"a": 1, "b": 2}; del(m, "a"); len(m)`, "1"},
+		{`var m = {"a": 1, "b": 2}; del(m, "a"); m["a"]`, "null"},
+		{`var m = {"a": 1, "b": 2}; del(m, "a"); m["b"]`, "2"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestMapOperationsAcrossThreshold(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m["k19"]`, "19"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m["k0"]`, "0"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; len(m)`, "20"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m.keys()[0]`, "k0"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m.keys()[19]`, "k19"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; del(m, "k10"); m["k10"]`, "null"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; del(m, "k10"); len(m)`, "19"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; del(m, "k10"); m["k9"]`, "9"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; "k5" in m`, "true"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; "zz" in m`, "false"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m.has("k5")`, "true"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m.has("zz")`, "false"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m.get("k5")`, "5"},
+		{`var m = {}; for i in 0..<20 { m["k#{i}"] = i; }; m.get("zz", 99)`, "99"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestMapLiteralSizeHint(t *testing.T) {
+	small := `val m = {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7, "h": 8}; m["h"]`
+	if got := runInspect(t, small); got != "8" {
+		t.Fatalf("small literal = %q, want 8", got)
+	}
+
+	large := `val m = {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7, "h": 8, "i": 9}; m["i"]`
+	if got := runInspect(t, large); got != "9" {
+		t.Fatalf("large literal = %q, want 9", got)
+	}
+}

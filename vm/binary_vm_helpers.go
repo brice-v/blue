@@ -955,15 +955,9 @@ func (vm *VM) executeBinaryStringAndIntOrUintOperation(op code.Opcode, left, rig
 func (vm *VM) executeDefaultBinaryOperation(op code.Opcode, left, right object.Object) error {
 	switch {
 	case op == code.OpEqual:
-		if left == right || left == object.NULL || right == object.NULL {
-			return vm.push(nativeToBooleanObject(left == right))
-		}
-		return vm.push(nativeToBooleanObject(object.HashObject(left) == object.HashObject(right)))
+		return vm.push(nativeToBooleanObject(object.FastEqual(left, right)))
 	case op == code.OpNotEqual:
-		if left == right || left == object.NULL || right == object.NULL {
-			return vm.push(nativeToBooleanObject(left != right))
-		}
-		return vm.push(nativeToBooleanObject(object.HashObject(left) != object.HashObject(right)))
+		return vm.push(nativeToBooleanObject(!object.FastEqual(left, right)))
 	case op == code.OpAnd:
 		leftBool, ok := left.(*object.Boolean)
 		if !ok {
