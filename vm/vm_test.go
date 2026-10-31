@@ -1129,3 +1129,85 @@ func TestProcessRecvUsesSharedHelp(t *testing.T) {
 		t.Errorf("process recv help does not match shared recv help")
 	}
 }
+
+func TestNullEqualityShortCircuits(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`null == null`, "true"},
+		{`null != null`, "false"},
+
+		{`val m = {"a": 1}; m == null`, "false"},
+		{`val m = {"a": 1}; null == m`, "false"},
+		{`val m = {"a": 1}; m != null`, "true"},
+		{`val m = {"a": 1}; null != m`, "true"},
+		{`val m = {}; m == null`, "false"},
+
+		{`val l = [1, 2]; l == null`, "false"},
+		{`val l = [1, 2]; null == l`, "false"},
+		{`val l = [1, 2]; l != null`, "true"},
+
+		{`val s = {1, 2}; s == null`, "false"},
+		{`val s = {1, 2}; null == s`, "false"},
+
+		{`val st = @{x: 1}; st == null`, "false"},
+		{`val st = @{x: 1}; null == st`, "false"},
+		{`val st = @{x: 1}; st != null`, "true"},
+
+		{`0 == null`, "false"},
+		{`null == 0`, "false"},
+		{`1.5 == null`, "false"},
+		{`"" == null`, "false"},
+		{`false == null`, "false"},
+		{`null == false`, "false"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestEqualityIdentityShortCircuits(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`val m = {"a": 1}; m == m`, "true"},
+		{`val m = {"a": 1}; m != m`, "false"},
+		{`var m = {"a": 1}; m["b"] = 2; m == m`, "true"},
+		{`val l = [1, [2, 3]]; l == l`, "true"},
+		{`val l = [1, [2, 3]]; l != l`, "false"},
+		{`val s = {1, 2}; s == s`, "true"},
+		{`val st = @{x: 1}; st == st`, "true"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestStructuralEqualityStillWorks(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`val a = {"x": 1}; val b = {"x": 1}; a == b`, "true"},
+		{`val a = {"x": 1}; val b = {"x": 2}; a == b`, "false"},
+		{`val a = {"x": 1}; val b = {"x": 2}; a != b`, "true"},
+		{`val a = [1, [2, 3]]; val b = [1, [2, 3]]; a == b`, "true"},
+		{`val a = [1, [2, 3]]; val b = [1, [2, 4]]; a == b`, "false"},
+		{`val a = [1, [2, 3]]; val b = [1, [2, 4]]; a != b`, "true"},
+		{`val a = {1, 2}; val b = {1, 2}; a == b`, "true"},
+		{`val a = {1, 2}; val b = {1, 3}; a == b`, "false"},
+		{`val a = @{x: 1}; val b = @{x: 1}; a == b`, "true"},
+		{`val a = @{x: 1}; val b = @{x: 2}; a == b`, "false"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
