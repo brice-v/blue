@@ -1275,3 +1275,31 @@ func TestMapLiteralSizeHint(t *testing.T) {
 		t.Fatalf("large literal = %q, want 9", got)
 	}
 }
+
+func TestLazyRangeLoops(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`var t = 0; for i in 0..3 { t += i }; t`, "6"},
+		{`var t = 0; for i in 0..<3 { t += i }; t`, "3"},
+		{`var t = 0; for i in 3..0 { t += i }; t`, "6"},
+		{`var t = 0; for i in 3..<0 { t += i }; t`, "6"},
+		{`var t = 0; for i in 2..2 { t += i }; t`, "2"},
+		{`var t = 0; for i in 2..<2 { t += i }; t`, "0"},
+		{`var t = 0; for i in 0..-3 { t += i }; t`, "-6"},
+		{`var n = 5; var t = 0; for i in 0..<n { t += i }; t`, "10"},
+		{`var a = 1; var b = 4; var t = 0; for i in a..b { t += i }; t`, "10"},
+		{`var t = 0; for i in 0..3 { t = i }; t`, "3"},
+		{`var t = 0; for i in 0..5 { if i == 3 { break }; t += i }; t`, "3"},
+		{`var t = 0; for i in 0..5 { if i % 2 == 0 { continue }; t += i }; t`, "9"},
+		{`var t = 0; for i in 0..2 { for j in 0..1 { t += 1 } }; t`, "6"},
+		{`var t = 0; for i in 0..5 { t += i; i += 1 }; t`, "15"},
+		{`var t = 0; for c in "a".."c" { t += 1 }; t`, "3"},
+	}
+	for _, tt := range tests {
+		if got := runInspect(t, tt.input); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}

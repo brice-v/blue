@@ -1139,16 +1139,23 @@ func (bs *BlueStruct) hashStruct() uint64 {
 // It is very likely I wont keep it like this because it will probably break things
 // but for now this naive implementation should do
 // TODO: Update to be generic
+func stringHash(s string) uint64 {
+	return maphash.String(_seed, s) ^ (uint64(i_STRING_OBJ) * 0x9E3779B1)
+}
+
 func HashObject(obj Object) uint64 {
-	hasher := newHasher()
-	if obj.Type() == BOOLEAN_OBJ {
-		if obj.(*Boolean).Value {
+	switch o := obj.(type) {
+	case *Stringo:
+		return stringHash(o.Value)
+	case *Boolean:
+		if o.Value {
 			return 1
 		}
 		return 0
-	} else if obj.Type() == NULL_OBJ {
+	case *Null:
 		return 2
 	}
+	hasher := newHasher()
 	hasher.WriteByte(byte(obj.IType()))
 	switch obj.Type() {
 	case INTEGER_OBJ:
@@ -1157,8 +1164,6 @@ func HashObject(obj Object) uint64 {
 		maphash.WriteComparable(hasher, obj.(*UInteger).Value)
 	case FLOAT_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Float).Value)
-	case STRING_OBJ:
-		hasher.WriteString(obj.(*Stringo).Value)
 	case EXEC_STRING_OBJ:
 		hasher.WriteString(obj.(*ExecString).Value)
 	case FUNCTION_OBJ:

@@ -33,10 +33,11 @@ var _lenIdent = &ast.Identifier{Value: "len"}
 var _getIdent = &ast.Identifier{Value: "_get_"}
 
 func (c *Compiler) compileIdentInIterableFor(sym Symbol, node *ast.ForStatement, right ast.Expression) error {
-	// Hoist the iterable expression into its own variable so it is only
-	// evaluated once before the loop starts. Compiling it into the loop
-	// condition/setter below would rebuild things like ranges or list
-	// literals on every single iteration.
+	if infix, ok := right.(*ast.InfixExpression); ok && (infix.Operator == ".." || infix.Operator == "..<") {
+		if _, ok := infix.Left.(*ast.IntegerLiteral); ok {
+			return c.compileRangeIterableFor(sym, node, infix)
+		}
+	}
 	iterableIdent := &ast.Identifier{Value: fmt.Sprintf("__iterable_%s", sym.Name)}
 	iterableVs := &ast.VarStatement{
 		Names: []*ast.Identifier{iterableIdent},
@@ -182,6 +183,98 @@ func (c *Compiler) compileListIdentsInIterableFor(sym1 Symbol, sym2 Symbol, node
 				Index: _oneAstLit,
 			},
 		},
+	}
+	return nil
+}
+
+func (c *Compiler) compileRangeIterableFor(sym Symbol, node *ast.ForStatement, right *ast.InfixExpression) error {
+	prefix := fmt.Sprintf("__range_%s_%d", sym.Name, c.forIndex)
+	startIdent := &ast.Identifier{Value: prefix + "_start"}
+	endIdent := &ast.Identifier{Value: prefix + "_end"}
+	stepIdent := &ast.Identifier{Value: prefix + "_step"}
+	countIdent := &ast.Identifier{Value: prefix + "_count"}
+	idxIdent := &ast.Identifier{Value: prefix + "_index"}
+	symIdent := &ast.Identifier{Value: sym.Name}
+
+	compileVar := func(name *ast.Identifier, value ast.Expression) error {
+		return c.Compile(&ast.VarStatement{
+			Token: token.Token{Type: token.VAR, Literal: "var"},
+			Names: []*ast.Identifier{name},
+			Value: value,
+		})
+	}
+	if err := compileVar(startIdent, right.Left); err != nil {
+		return err
+	}
+	if err := compileVar(endIdent, right.Right); err != nil {
+		return err
+	}
+	if err := compileVar(stepIdent, _oneAstLit); err != nil {
+		return err
+	}
+
+	extra := ast.Expression(_oneAstLit)
+	if right.Operator == "..<" {
+		extra = _zeroAstLit
+	}
+	countFor := func(a, b *ast.Identifier) ast.Expression {
+		return &ast.InfixExpression{
+			Left:     &ast.InfixExpression{Left: b, Operator: "-", Right: a},
+			Operator: "+",
+			Right:    extra,
+		}
+	}
+	if err := compileVar(countIdent, countFor(startIdent, endIdent)); err != nil {
+		return err
+	}
+
+	stepDown := &ast.ExpressionStatement{Expression: &ast.AssignmentExpression{
+		Token: _equalToken,
+		Left:  stepIdent,
+		Value: &ast.IntegerLiteral{Value: -1},
+	}}
+	countDown := &ast.ExpressionStatement{Expression: &ast.AssignmentExpression{
+		Token: _equalToken,
+		Left:  countIdent,
+		Value: countFor(endIdent, startIdent),
+	}}
+	stepIf := &ast.ExpressionStatement{
+		Expression: &ast.IfExpression{
+			Conditions: []ast.Expression{
+				&ast.InfixExpression{Left: startIdent, Operator: ">", Right: endIdent},
+			},
+			Consequences: []*ast.BlockStatement{
+				{Statements: []ast.Statement{stepDown, countDown}},
+			},
+		},
+	}
+	if err := c.Compile(stepIf); err != nil {
+		return err
+	}
+	if err := compileVar(idxIdent, _zeroAstLit); err != nil {
+		return err
+	}
+
+	node.Condition = &ast.InfixExpression{Left: idxIdent, Operator: "<", Right: countIdent}
+	node.IterableSetters = []ast.Expression{
+		&ast.AssignmentExpression{
+			Token: _equalToken,
+			Left:  symIdent,
+			Value: &ast.InfixExpression{
+				Left:     startIdent,
+				Operator: "+",
+				Right: &ast.InfixExpression{
+					Left:     idxIdent,
+					Operator: "*",
+					Right:    stepIdent,
+				},
+			},
+		},
+	}
+	node.PostExp = &ast.AssignmentExpression{
+		Token: _plusEqualToken,
+		Left:  idxIdent,
+		Value: _oneAstLit,
 	}
 	return nil
 }

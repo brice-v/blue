@@ -219,3 +219,45 @@ func TestTensorSize(t *testing.T) {
 		})
 	}
 }
+
+func TestStringHashStableAcrossInstances(t *testing.T) {
+	want := HashObject(&Stringo{Value: "hello"})
+	if got := HashObject(NewString("hello")); got != want {
+		t.Fatalf("NewString hash = %d, want %d", got, want)
+	}
+	if got := HashObject(&Stringo{Value: "hello"}); got != want {
+		t.Fatalf("second literal hash = %d, want %d", got, want)
+	}
+	if got := stringHash("hello"); got != want {
+		t.Fatalf("stringHash = %d, want %d", got, want)
+	}
+}
+
+func TestStringHashDiffers(t *testing.T) {
+	seen := map[uint64]string{}
+	for _, s := range []string{"", "a", "b", "ab", "ba", "hello", "world", "user_1", "user_2"} {
+		h := HashObject(NewString(s))
+		if other, ok := seen[h]; ok {
+			t.Fatalf("hash collision between %q and %q", s, other)
+		}
+		seen[h] = s
+	}
+}
+
+func TestStringHashDiffersFromOtherTypes(t *testing.T) {
+	if HashObject(NewString("1")) == HashObject(&Integer{Value: 1}) {
+		t.Fatal("string and integer hash should differ")
+	}
+}
+
+func TestHashObjectBooleanNull(t *testing.T) {
+	if got := HashObject(TRUE); got != 1 {
+		t.Fatalf("TRUE hash = %d, want 1", got)
+	}
+	if got := HashObject(FALSE); got != 0 {
+		t.Fatalf("FALSE hash = %d, want 0", got)
+	}
+	if got := HashObject(NULL); got != 2 {
+		t.Fatalf("NULL hash = %d, want 2", got)
+	}
+}
