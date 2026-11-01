@@ -264,7 +264,7 @@ func TestHttpRequestHandlersAreSerialized(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			resp, err := app.Test(httptest.NewRequest(http.MethodGet, "/n", nil))
+			resp, err := app.Test(httptest.NewRequest(http.MethodGet, "/n", nil), fiber.TestConfig{Timeout: 10 * time.Second, FailOnTimeout: true})
 			if err != nil {
 				t.Errorf("request %d errored: %s", i, err)
 				return
