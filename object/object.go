@@ -632,11 +632,27 @@ func (l *List) Type() Type { return LIST_OBJ }
 
 // Inspect returns the stringified version of the list
 func (l *List) Inspect() string {
+	return l.inspect(0)
+}
+
+const maxInspectDepth = 512
+
+func (l *List) inspect(depth int) string {
+	if depth > maxInspectDepth {
+		return "[...]"
+	}
 	var out bytes.Buffer
 
 	elements := []string{}
 	for _, e := range l.Elements {
-		elements = append(elements, e.Inspect())
+		switch v := e.(type) {
+		case *List:
+			elements = append(elements, v.inspect(depth+1))
+		case *Map:
+			elements = append(elements, v.inspect(depth+1))
+		default:
+			elements = append(elements, v.Inspect())
+		}
 	}
 
 	out.WriteString("[")
@@ -694,12 +710,35 @@ func (m *Map) Type() Type { return MAP_OBJ }
 
 // Inspect returns the stringified version of the map
 func (m *Map) Inspect() string {
+	return m.inspect(0)
+}
+
+func (m *Map) inspect(depth int) string {
+	if depth > maxInspectDepth {
+		return "{...}"
+	}
 	var out bytes.Buffer
 
 	pairs := []string{}
 	for _, key := range m.Pairs.Keys {
 		pair, _ := m.Pairs.Get(key)
-		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
+		var keyStr string
+		var valStr string
+		if kL, ok := pair.Key.(*List); ok {
+			keyStr = kL.inspect(depth + 1)
+		} else if kM, ok := pair.Key.(*Map); ok {
+			keyStr = kM.inspect(depth + 1)
+		} else {
+			keyStr = pair.Key.Inspect()
+		}
+		if vL, ok := pair.Value.(*List); ok {
+			valStr = vL.inspect(depth + 1)
+		} else if vM, ok := pair.Value.(*Map); ok {
+			valStr = vM.inspect(depth + 1)
+		} else {
+			valStr = pair.Value.Inspect()
+		}
+		pairs = append(pairs, fmt.Sprintf("%s: %s", keyStr, valStr))
 	}
 
 	out.WriteString("{")
