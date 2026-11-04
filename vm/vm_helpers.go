@@ -926,6 +926,9 @@ func decodeInterfaceToObject(value any) object.Object {
 			mapObj.Set(k, decodeInterfaceToObject(v))
 		}
 		return object.CreateMapObjectForGoMap(*mapObj)
+	case nil:
+		// null json object would come to here
+		return object.NULL
 	default:
 		consts.ErrorPrinter("decodeInterfaceToObject: HANDLE TYPE = %T\n", x)
 		os.Exit(1)
