@@ -16,10 +16,12 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"strings"
 	"syscall/js"
 	"time"
 
+	"blue/ast"
 	"blue/blueutil"
 	"blue/compiler"
 	"blue/consts"
@@ -105,6 +107,59 @@ func evalSourceString(src string) object.Object {
 	return vmInstance.LastPoppedStackElem()
 }
 
+func parseNum(src string) object.Object {
+	negate := false
+	if strings.HasPrefix(src, "-") {
+		negate = true
+		src = strings.TrimPrefix(src, "-")
+	}
+	l := lexer.New(src, "<internal:string>")
+	p := parser.New(l)
+	prog := p.ParseProgram()
+	if p.HasErrors() {
+		return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, found '%d' parser errors", len(p.ErrorMessages()))}
+	}
+	if len(prog.Statements) != 1 {
+		return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, expected 1 statement got %d", len(prog.Statements))}
+	}
+	stmt := prog.Statements[0]
+	expr, ok := stmt.(*ast.ExpressionStatement)
+	if !ok {
+		return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, expected *ast.ExpressionStatement got %T", stmt)}
+	}
+	switch v := expr.Expression.(type) {
+	case *ast.IntegerLiteral:
+		if negate {
+			return object.NewInteger(-v.Value)
+		}
+		return object.NewInteger(v.Value)
+	case *ast.BigIntegerLiteral:
+		if negate {
+			return &object.BigInteger{Value: new(big.Int).Neg(v.Value)}
+		}
+		return &object.BigInteger{Value: v.Value}
+	case *ast.FloatLiteral:
+		if negate {
+			return &object.Float{Value: -v.Value}
+		}
+		return &object.Float{Value: v.Value}
+	case *ast.BigFloatLiteral:
+		if negate {
+			return &object.BigFloat{Value: v.Value.Neg()}
+		}
+		return &object.BigFloat{Value: v.Value}
+	case *ast.UIntegerLiteral:
+		return &object.UInteger{Value: v.Value}
+	case *ast.BinaryLiteral:
+		return &object.UInteger{Value: v.Value}
+	case *ast.OctalLiteral:
+		return &object.UInteger{Value: v.Value}
+	case *ast.HexLiteral:
+		return &object.UInteger{Value: v.Value}
+	}
+	return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, expected numeric literal got %T", expr.Expression)}
+}
+
 // runProgram lexes, parses, compiles and runs the given source. Program
 // output flows to stdout/stderr where the page collects it. It mirrors
 // cmd.vmFileOrString but never exits or writes to the real terminal.
@@ -139,6 +194,7 @@ func runProgram(src string) (errMsg string, resultVal string) {
 	// (`eval`, `to_num`, `load`) keeps working: install the hook before
 	// running, mirroring what cmd does for the desktop binary.
 	vm.EvalHook = evalSourceString
+	vm.ParseNumHook = parseNum
 	if err := v.Run(); err != nil {
 		if v.TokensForErrorTrace == nil {
 			return consts.VM_ERROR_PREFIX + err.Error() + "\n", ""

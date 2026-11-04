@@ -1726,6 +1726,7 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) (err error) {
 // code; minimal VM-only builds leave it nil and evaluation attempts return
 // a clear runtime error instead.
 var EvalHook func(src string) object.Object
+var ParseNumHook func(src string) object.Object
 
 // vmStr evaluates a source string through the installed EvalHook.
 func vmStr(s string) object.Object {
@@ -1733,6 +1734,13 @@ func vmStr(s string) object.Object {
 		return newError("`eval` is not available in this build: it requires the full blue toolchain (rebuild the standard binary or run via the full blue executable)")
 	}
 	return EvalHook(s)
+}
+
+func parseNum(s string) object.Object {
+	if ParseNumHook == nil {
+		return newError("`parse_num` is not available in this build: it requires the full blue toolchain (rebuild the standard binary or run via the full blue executable)")
+	}
+	return ParseNumHook(s)
 }
 
 func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) {

@@ -90,7 +90,7 @@ func createToNumBuiltinFun() func(args ...object.Object) object.Object {
 		} else if strings.Contains(s, "-Inf") {
 			return &object.Float{Value: math.Inf(-1)}
 		}
-		obj := vmStr(s)
+		obj := parseNum(s)
 		if isError(obj) {
 			return obj
 		}

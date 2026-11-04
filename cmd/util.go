@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -194,6 +195,7 @@ func bundleProgram(sourcePath string, outPath string, allErrors bool, usePrebuil
 // `to_num`). Minimal VM-only builds never call this.
 func installFullBuildHooks() {
 	vm.EvalHook = evalSourceString
+	vm.ParseNumHook = parseNumLiteral
 }
 
 // evalSourceString is the production implementation of vm.EvalHook.
@@ -213,6 +215,59 @@ func evalSourceString(src string) object.Object {
 		return &object.Error{Message: "vm error in `eval` string: " + err.Error()}
 	}
 	return vmInstance.LastPoppedStackElem()
+}
+
+func parseNumLiteral(src string) object.Object {
+	negate := false
+	if strings.HasPrefix(src, "-") {
+		negate = true
+		src = strings.TrimPrefix(src, "-")
+	}
+	l := lexer.New(src, "<internal:string>")
+	p := parser.New(l)
+	prog := p.ParseProgram()
+	if p.HasErrors() {
+		return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, found '%d' parser errors", len(p.ErrorMessages()))}
+	}
+	if len(prog.Statements) != 1 {
+		return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, expected 1 statement got %d", len(prog.Statements))}
+	}
+	stmt := prog.Statements[0]
+	expr, ok := stmt.(*ast.ExpressionStatement)
+	if !ok {
+		return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, expected *ast.ExpressionStatement got %T", stmt)}
+	}
+	switch v := expr.Expression.(type) {
+	case *ast.IntegerLiteral:
+		if negate {
+			return object.NewInteger(-v.Value)
+		}
+		return object.NewInteger(v.Value)
+	case *ast.BigIntegerLiteral:
+		if negate {
+			return &object.BigInteger{Value: new(big.Int).Neg(v.Value)}
+		}
+		return &object.BigInteger{Value: v.Value}
+	case *ast.FloatLiteral:
+		if negate {
+			return &object.Float{Value: -v.Value}
+		}
+		return &object.Float{Value: v.Value}
+	case *ast.BigFloatLiteral:
+		if negate {
+			return &object.BigFloat{Value: v.Value.Neg()}
+		}
+		return &object.BigFloat{Value: v.Value}
+	case *ast.UIntegerLiteral:
+		return &object.UInteger{Value: v.Value}
+	case *ast.BinaryLiteral:
+		return &object.UInteger{Value: v.Value}
+	case *ast.OctalLiteral:
+		return &object.UInteger{Value: v.Value}
+	case *ast.HexLiteral:
+		return &object.UInteger{Value: v.Value}
+	}
+	return &object.Error{Message: fmt.Sprintf("failed to `parse_num` string, expected numeric literal got %T", expr.Expression)}
 }
 
 // out is where normal program and command output is written
