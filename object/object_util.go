@@ -238,7 +238,7 @@ func blueObjectToGoObject(blueObject Object) (any, error) {
 func getBlueObjectFromResp(resp *http.Response) Object {
 	_body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err.Error())
+		return newError("`fetch` error: %s", err.Error())
 	}
 	defer func() {
 		err := resp.Body.Close()
@@ -262,7 +262,7 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 	headers := headersToMapObj(resp.Header)
 	proto := &Stringo{Value: resp.Proto}
 	requestToMapObj := func(req *http.Request) Object {
-		mapObj := NewOrderedMap[string, Object]()
+		mapObj := NewOrderedMapWithSize[string, Object](3)
 		mapObj.Set("method", &Stringo{Value: req.Method})
 		mapObj.Set("proto", &Stringo{Value: req.Proto})
 		mapObj.Set("url", &Stringo{Value: req.URL.String()})
@@ -280,7 +280,7 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 	uncompressed := nativeToBooleanObject(resp.Uncompressed)
 	_cookies := resp.Cookies()
 	cookieToMapObj := func(c *http.Cookie) Object {
-		mapObj := NewOrderedMap[string, Object]()
+		mapObj := NewOrderedMapWithSize[string, Object](9)
 		mapObj.Set("name", &Stringo{Value: c.Name})
 		mapObj.Set("value", &Stringo{Value: c.Value})
 		mapObj.Set("path", &Stringo{Value: c.Path})
@@ -297,7 +297,7 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 		cookies.Elements[i] = cookieToMapObj(c)
 	}
 
-	returnMap := NewOrderedMap[string, Object]()
+	returnMap := NewOrderedMapWithSize[string, Object](11)
 	returnMap.Set("status", status)
 	returnMap.Set("body", body)
 	returnMap.Set("content_len", contentLength)
