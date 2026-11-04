@@ -28,7 +28,7 @@ var __server = {};
 val __new_server = _new_server;
 val _server = fun() {
     if (__server == {}) {
-        __server.this = __new_server('tcp4');
+        __server.this = __new_server('tcp4', 15, 30, 60, 8);
     }
     return __server;
 }();
@@ -515,16 +515,18 @@ fun send_file(path) {
 }
 
 
-fun new_server(network="tcp4") {
+fun new_server(network="tcp4", read_timeout=15, write_timeout=30, idle_timeout=60, body_limit=8) {
     ##std:this,__new_server
     ## `new_server` will return a core http server object that can be used
     ## to call http functions against
     ##
     ## network should be 'tcp4' or 'tcp6'
+    ## timeouts are all in seconds
+    ## body_limit is in MiB
     ##
-    ## new_server(network: str='tcp4') -> HTTP_SERVER_OBJ
+    ## new_server(network: str='tcp4', read_timeout: int=15, write_timout: int=30, idle_timeout: int=60) -> HTTP_SERVER_OBJ
     var this = {};
-    this._s = __new_server(network);
+    this._s = __new_server(network, read_timeout, write_timeout, idle_timeout, body_limit);
     this.serve = fun(addr_port="localhost:3001", use_embedded_lib_web=true) {
         ##std:this,__serve
         ## `serve` starts this server on the given address and port.

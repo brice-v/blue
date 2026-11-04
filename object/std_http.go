@@ -26,6 +26,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/encryptcookie"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/sse"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	ws "github.com/gorilla/websocket"
@@ -578,22 +579,40 @@ var HttpBuiltins = []*Builtin{
 	{
 		Name: "_new_server",
 		Fun: func(args ...Object) Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("new_server", len(args), 1, "")
+			if len(args) != 5 {
+				return newInvalidArgCountError("new_server", len(args), 4, "")
 			}
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("new_server", 1, STRING_OBJ, args[0].Type())
 			}
+			err := checkArgType("new_server", 2, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("new_server", 3, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("new_server", 4, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
+			err = checkArgType("new_server", 5, INTEGER_OBJ, args)
 			network := args[0].(*Stringo).Value
 			app := fiber.New(fiber.Config{
-				Immutable: true,
+				Immutable:    true,
+				ReadTimeout:  time.Duration(int(args[1].(*Integer).Value)) * time.Second,
+				WriteTimeout: time.Duration(int(args[2].(*Integer).Value)) * time.Second,
+				IdleTimeout:  time.Duration(int(args[3].(*Integer).Value)) * time.Second,
+				BodyLimit:    int(args[4].(*Integer).Value) << 20,
 			})
+			app.Use(recover.New())
 			app.State().Set(fiberNetworkStateKey, network)
 			return NewGoObj(app)
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`new_server` returns a new server object",
-			signature:   "new_server(network: str('tcp','tcp4','tcp6')='tcp4') -> GoObj[*fiber.App]",
+			signature:   "new_server(network: str('tcp','tcp4','tcp6')='tcp4', read_timeout: int=15, write_timeout: int=30, idle_timeout: int=60, body_limit: int=8) -> GoObj[*fiber.App]",
 			errors:      "InvalidArgCount,PositionalType",
 			example:     "new_server() => server obj",
 		}.String(),

@@ -380,6 +380,7 @@ github.com/gofiber/fiber/v3/middleware/encryptcookie
 github.com/gofiber/fiber/v3/middleware/etag
 github.com/gofiber/fiber/v3/middleware/helmet
 github.com/gofiber/fiber/v3/middleware/limiter
+github.com/gofiber/fiber/v3/middleware/recover
 github.com/gofiber/fiber/v3/middleware/sse
 github.com/gofiber/fiber/v3/middleware/static
 # github.com/gofiber/schema v1.8.5
