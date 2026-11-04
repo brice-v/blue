@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -923,6 +924,66 @@ func (cs *ContinueStatement) Help() string {
 	return createHelpStringForObject("Continue", "is the object that stops the current execution and moves to the next iteration in the loop's scope", cs)
 }
 
+type smallBlueStruct1 struct {
+	BlueStruct
+	elems [1]Object
+}
+
+type smallBlueStruct2 struct {
+	BlueStruct
+	elems [2]Object
+}
+
+type smallBlueStruct3 struct {
+	BlueStruct
+	elems [3]Object
+}
+
+type smallBlueStruct4 struct {
+	BlueStruct
+	elems [4]Object
+}
+
+type smallBlueStruct5 struct {
+	BlueStruct
+	elems [5]Object
+}
+
+type smallBlueStruct6 struct {
+	BlueStruct
+	elems [6]Object
+}
+
+type smallBlueStruct7 struct {
+	BlueStruct
+	elems [7]Object
+}
+
+type smallBlueStruct8 struct {
+	BlueStruct
+	elems [8]Object
+}
+
+type smallBlueStruct9 struct {
+	BlueStruct
+	elems [9]Object
+}
+
+type smallBlueStruct10 struct {
+	BlueStruct
+	elems [10]Object
+}
+
+type smallBlueStruct11 struct {
+	BlueStruct
+	elems [11]Object
+}
+
+type smallBlueStruct12 struct {
+	BlueStruct
+	elems [12]Object
+}
+
 // BlueStruct is the struct object type struct
 type BlueStruct struct {
 	Fields []string
@@ -990,7 +1051,72 @@ func NewBlueStruct(names []string, values []Object) (Object, error) {
 	if len(names) != len(values) {
 		return nil, fmt.Errorf("failed to create struct: names and values do not have equal lengths")
 	}
-	return &BlueStruct{Fields: names, Values: values}, nil
+	switch len(values) {
+	case 0:
+		return &BlueStruct{Fields: names, Values: []Object{}}, nil
+	case 1:
+		sb := &smallBlueStruct1{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 2:
+		sb := &smallBlueStruct2{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 3:
+		sb := &smallBlueStruct3{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 4:
+		sb := &smallBlueStruct4{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 5:
+		sb := &smallBlueStruct5{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 6:
+		sb := &smallBlueStruct6{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 7:
+		sb := &smallBlueStruct7{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 8:
+		sb := &smallBlueStruct8{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 9:
+		sb := &smallBlueStruct9{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 10:
+		sb := &smallBlueStruct10{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 11:
+		sb := &smallBlueStruct11{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	case 12:
+		sb := &smallBlueStruct12{BlueStruct: BlueStruct{Fields: names}}
+		copy(sb.elems[:], values)
+		sb.Values = sb.elems[:]
+		return &sb.BlueStruct, nil
+	default:
+		return &BlueStruct{Fields: names, Values: slices.Clone(values)}, nil
+	}
 }
 
 // CompiledFunction is the compiled function object struct

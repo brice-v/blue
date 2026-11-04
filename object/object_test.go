@@ -1,6 +1,7 @@
 package object
 
 import (
+	"fmt"
 	"math"
 	"slices"
 	"testing"
@@ -90,6 +91,51 @@ func TestBlueStruct(t *testing.T) {
 	}
 	if s3.Value != "abc" {
 		t.Errorf("String Value was not abc, got=%s", s3.Value)
+	}
+}
+
+func TestNewBlueStruct(t *testing.T) {
+	for count := range 14 {
+		t.Run(fmt.Sprintf("%d-fields", count), func(t *testing.T) {
+			names := make([]string, count)
+			values := make([]Object, count)
+			list := &List{Elements: []Object{&Integer{Value: 1}}}
+			for i := range count {
+				names[i] = fmt.Sprintf("f%d", i)
+				values[i] = &Integer{Value: int64(i)}
+			}
+			if count > 0 {
+				values[0] = list
+			}
+
+			obj, err := NewBlueStruct(names, values)
+			if err != nil {
+				t.Fatalf("NewBlueStruct() error = %v", err)
+			}
+			bs := obj.(*BlueStruct)
+			if len(bs.Values) != count {
+				t.Fatalf("len(Values) = %d, want %d", len(bs.Values), count)
+			}
+			if count == 0 {
+				return
+			}
+			if bs.Values[0] != Object(list) {
+				t.Fatal("struct should reference the field value instead of cloning it")
+			}
+
+			original := bs.Values[0]
+			values[0] = &Integer{Value: -1}
+			if bs.Values[0] != original {
+				t.Fatal("struct Values must not alias the input slice")
+			}
+		})
+	}
+}
+
+func TestNewBlueStructLengthMismatch(t *testing.T) {
+	_, err := NewBlueStruct([]string{"a"}, nil)
+	if err == nil {
+		t.Fatal("expected error for mismatched names and values")
 	}
 }
 

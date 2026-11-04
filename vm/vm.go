@@ -1440,7 +1440,7 @@ func (vm *VM) buildStruct(startIndex, endIndex int) (object.Object, error) {
 		return nil, fmt.Errorf("compilation error: struct did not have fields in index: %d", index)
 	}
 	index++
-	bs, err := object.NewBlueStruct(fields.Value, object.CloneSlice(vm.stack[index:endIndex]))
+	bs, err := object.NewBlueStruct(fields.Value, vm.stack[index:endIndex])
 	if err != nil {
 		return nil, err
 	}
