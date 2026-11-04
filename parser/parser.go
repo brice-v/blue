@@ -398,7 +398,12 @@ type Parser struct {
 	StopAfterFirstError bool
 	// stopParsing is set internally when StopAfterFirstError triggers.
 	stopParsing bool
+
+	// depth is used to determine if its time to cutoff/stop early while parsing
+	depth int
 }
+
+const maxParseDepth = 512
 
 // helper functions at bottom
 type (
@@ -832,6 +837,14 @@ func (p *Parser) parseFunctionLiteralStatement() *ast.FunctionStatement {
 // parseExpression will see if their is an associated parsing function
 // with a token and return the parsed ast.Expression
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	if p.depth >= maxParseDepth {
+		p.error("expression nested too deeply", p.curToken)
+		return nil
+	}
+	p.depth++
+	defer func() {
+		p.depth--
+	}()
 	prefix := p.prefixParseFuns[p.curToken.Type]
 	if prefix == nil {
 		p.error(fmt.Sprintf("unexpected %s", p.curToken.Literal), p.curToken)
