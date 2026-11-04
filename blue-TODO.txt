@@ -69,7 +69,8 @@ TODO:
     - [x] Date parsing code (this is one of the key missing areas at the moment as mentioned elsewhere in TODO)
     - [-] 2d game library - Started
         - [x] Add raylib bindings https://github.com/gen2brain/raylib-go
-    - [ ] 3d game library
+    - [~] 3d game library
+        - raylib can kind of do this and its sort of supported
     - [x] UUID somewhere
     - [ ] TUI (charm.sh?) - maybe even tui game lib?
     - [ ] Selenium/Playright integration?
@@ -94,7 +95,6 @@ TODO:
 - [ ] Add `test` keyword and command to run tests inline with code, similar to zig/rust
     - Also add `blue test` command to specify file or maybe just run everything
 - [ ] Store doc comments above var/val statements?
-- [ ] add to_fixed() similar to js
 - [ ] open syscall?
 - [ ] make `wait` allow you to return values to process calling `wait`
 - [ ] make process errors bubble up if they are waited on?
@@ -827,3 +827,4 @@ COMPLETED TASKS:
 - [~] FEAT: Add regex for split method builtin
     - [x] MAYBE FEAT: Update to support n on 'split' for regex (or update so that we can do something like split_n)
     - [x] TASK: Add tests in string builtins
+- [x] add to_fixed() similar to js

@@ -18,6 +18,10 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
+// scryptN is the CPU/memory cost used when deriving keys in _encrypt and
+// _decrypt. It is a variable rather than a constant so tests can lower it
+var scryptN = 1 << 20
+
 var CryptoBuiltins = []*Builtin{
 	{
 		Name: "_sha",
@@ -165,7 +169,7 @@ var CryptoBuiltins = []*Builtin{
 			if _, err := rand.Read(salt); err != nil {
 				return newError("encrypt error: %s", err.Error())
 			}
-			key, err := scrypt.Key(pw, salt, 1048576, 8, 1, 32)
+			key, err := scrypt.Key(pw, salt, scryptN, 8, 1, 32)
 			if err != nil {
 				return newError("encrypt error: %s", err.Error())
 			}
@@ -223,7 +227,7 @@ var CryptoBuiltins = []*Builtin{
 
 			// Deriving key from pw as it needs to be 32 bytes
 			salt, data := data[len(data)-32:], data[:len(data)-32]
-			key, err := scrypt.Key(pw, salt, 1048576, 8, 1, 32)
+			key, err := scrypt.Key(pw, salt, scryptN, 8, 1, 32)
 			if err != nil {
 				return newError("decrypt error: %s", err.Error())
 			}

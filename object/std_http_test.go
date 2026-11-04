@@ -211,6 +211,11 @@ func newHttpTestApp(t *testing.T) *GoObj[*fiber.App] {
 	return app
 }
 
+// Increase timeouts for test on ci
+func testFiberApp(app *fiber.App, req *http.Request) (*http.Response, error) {
+	return app.Test(req, fiber.TestConfig{Timeout: 10 * time.Second, FailOnTimeout: true})
+}
+
 func newHttpTestOptions(values map[string]Object) *Map {
 	ordered := NewOrderedMap[string, Object]()
 	for k, v := range values {
@@ -232,7 +237,7 @@ func TestHelmetMiddleware(t *testing.T) {
 	app.Value.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("ok")
 	})
-	resp, err := app.Value.Test(httptest.NewRequest(http.MethodGet, "https://example.com/", nil))
+	resp, err := testFiberApp(app.Value, httptest.NewRequest(http.MethodGet, "https://example.com/", nil))
 	if err != nil {
 		t.Fatalf("request failed: %s", err)
 	}
@@ -272,7 +277,7 @@ func TestCompressMiddleware(t *testing.T) {
 	})
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Accept-Encoding", "gzip")
-	resp, err := app.Value.Test(req)
+	resp, err := testFiberApp(app.Value, req)
 	if err != nil {
 		t.Fatalf("request failed: %s", err)
 	}
@@ -320,7 +325,7 @@ func TestLimiterMiddleware(t *testing.T) {
 		return c.SendString("ok")
 	})
 	for i, want := range []int{http.StatusOK, http.StatusTooManyRequests} {
-		resp, err := app.Value.Test(httptest.NewRequest(http.MethodGet, "/", nil))
+		resp, err := testFiberApp(app.Value, httptest.NewRequest(http.MethodGet, "/", nil))
 		if err != nil {
 			t.Fatalf("request %d failed: %s", i, err)
 		}
@@ -363,7 +368,7 @@ func TestEncryptCookieMiddleware(t *testing.T) {
 		return c.SendString("set")
 	})
 
-	resp, err := app.Value.Test(httptest.NewRequest(http.MethodGet, "/", nil))
+	resp, err := testFiberApp(app.Value, httptest.NewRequest(http.MethodGet, "/", nil))
 	if err != nil {
 		t.Fatalf("first request failed: %s", err)
 	}
@@ -380,7 +385,7 @@ func TestEncryptCookieMiddleware(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(cookies[0])
-	resp, err = app.Value.Test(req)
+	resp, err = testFiberApp(app.Value, req)
 	if err != nil {
 		t.Fatalf("second request failed: %s", err)
 	}

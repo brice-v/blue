@@ -101,6 +101,11 @@ func TestBcryptRoundTrip(t *testing.T) {
 }
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
+	// Decrease cost for test
+	origN := scryptN
+	scryptN = 1 << 14
+	t.Cleanup(func() { scryptN = origN })
+
 	encFn := cryptoBuiltinFn(t, "_encrypt")
 	decFn := cryptoBuiltinFn(t, "_decrypt")
 
