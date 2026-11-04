@@ -930,10 +930,8 @@ func decodeInterfaceToObject(value any) object.Object {
 		// null json object would come to here
 		return object.NULL
 	default:
-		consts.ErrorPrinter("decodeInterfaceToObject: HANDLE TYPE = %T\n", x)
-		os.Exit(1)
+		return newError("decodeInterfaceToObject: unsupported type %T", value)
 	}
-	return object.NULL
 }
 
 func getAndSetHttpParams(fn *object.Closure, c fiber.Ctx) []object.Object {
