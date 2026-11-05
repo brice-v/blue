@@ -191,7 +191,7 @@ func TestNewServerStaticMonitor(t *testing.T) {
 		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
 		{name: "too many args", args: []Object{&Stringo{Value: "tcp"}, in(15), in(30), in(60), in(8), in(1)}, err: "InvalidArgCountError"},
 		{name: "network not a string", args: []Object{in(1), in(15), in(30), in(60), in(8)}, err: "PositionalTypeError"},
-		{name: "timeout not an integer", args: []Object{&Stringo{Value: "tcp"}, &Stringo{Value: "15"}}, err: "PositionalTypeError"},
+		{name: "timeout not an integer", args: []Object{&Stringo{Value: "tcp"}, &Stringo{Value: "15"}, in(30), in(60), in(8)}, err: "PositionalTypeError"},
 	})
 	runBuiltinTestsFor(t, HttpBuiltins, "_static", []builtinTestCase{
 		{name: "app wrong goobj", args: []Object{NewGoObj("str"), &Stringo{Value: "/"}, &Stringo{Value: tmp}, FALSE}, err: "PositionalTypeError"},
