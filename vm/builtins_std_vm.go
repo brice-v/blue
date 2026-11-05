@@ -35,7 +35,7 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 			return createHttpHandleBuiltin(vm, true).Fun
 		case "_handle_ws":
 			if vm.wsTemplate == nil {
-				vm.wsTemplate = vm.Clone(vm.PID)
+				vm.wsTemplate = vm.CloneWithGlobalsOwned(vm.PID)
 			}
 			return createHttpHandleWSBuiltin(vm.wsTemplate).Fun
 		case "_handle_sse":
@@ -455,7 +455,7 @@ func cloneHandlerClosure(fn *object.Closure) *object.Closure {
 		SpecialFunctionParameters: sfp,
 		HelpStr:                   fn.Fun.HelpStr,
 	}
-	return &object.Closure{Fun: fun, Free: fn.Free}
+	return &object.Closure{Fun: fun, Free: object.CloneSlice(fn.Free)}
 }
 
 // unresolvableBuiltin returns a builtin that reports an unresolvable name.

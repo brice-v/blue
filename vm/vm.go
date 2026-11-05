@@ -203,14 +203,7 @@ func (vm *VM) SetInstructionOffset(offset int) {
 	vm.frames[0].ip = offset - 1
 }
 
-// Clone returns a vm suitable for running blue code concurrently with this
-// one (process spawn, ws registration snapshot). Immutable program data
-// (constants, tokens) is shared instead of deep cloned, globals are deep
-// copied so the clone sees a spawn-time snapshot that later writes by either
-// side do not affect, and execution state (stack, frames) starts fresh -
-// callers immediately run a function on the clone via applyFunctionFast*,
-// which swaps in its own frames and never reads stack contents below sp.
-func (vm *VM) Clone(pid uint64) *VM {
+func (vm *VM) CloneWithGlobalsOwned(pid uint64) *VM {
 	frames := make([]Frame, lazyFramesFloor)
 	frames[0] = *NewFrame(emptyMainClosure, 0)
 	return &VM{
@@ -229,26 +222,23 @@ func (vm *VM) Clone(pid uint64) *VM {
 	}
 }
 
-// CloneForConnection returns a vm that can execute blue code concurrently
-// with vm and other connection clones. Immutable program data (constants,
-// tokens) is shared, globals are shared copy on write, and only the execution
-// state (stack, frames) is private. This keeps per connection memory flat
-// instead of deep cloning the whole program for every connection.
 func (vm *VM) CloneForConnection(pid uint64) *VM {
 	frames := make([]Frame, lazyFramesFloor)
 	frames[0] = *NewFrame(emptyMainClosure, 0)
 	return &VM{
-		constants:   vm.constants,
-		tokens:      vm.tokens,
-		stack:       make([]object.Object, StackSize),
-		sp:          0,
-		globals:     vm.globals,
-		frames:      frames,
-		framesIndex: 1,
-		lastNodePos: -1,
-		NodeName:    vm.NodeName,
-		PID:         pid,
-		wsTemplate:  vm.wsTemplate,
+		constants:        vm.constants,
+		tokens:           vm.tokens,
+		stack:            make([]object.Object, StackSize),
+		sp:               0,
+		globals:          object.CloneGlobals(vm.globals, vm.globalsHighWater),
+		globalsOwned:     true,
+		globalsHighWater: vm.globalsHighWater,
+		frames:           frames,
+		framesIndex:      1,
+		lastNodePos:      -1,
+		NodeName:         vm.NodeName,
+		PID:              pid,
+		wsTemplate:       vm.wsTemplate,
 	}
 }
 
@@ -1762,7 +1752,7 @@ func (vm *VM) executeSpawn(args []object.Object, funArgIndex, listArgIndex int) 
 		NodeName: vm.NodeName,
 	}
 	object.ProcessMap.Store(object.Pk(vm.NodeName, pid), process)
-	clonedVm := vm.Clone(pid)
+	clonedVm := vm.CloneWithGlobalsOwned(pid)
 	// Dont clone args list so if processes are sent through then they will be usable by the process (channel must not be "cloned")
 	go spawnFunction(clonedVm, vm.NodeName, fun.Clone().(*object.Closure), args[listArgIndex].(*object.List))
 	_ = vm.push(process)

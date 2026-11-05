@@ -1271,10 +1271,10 @@ func newHasher() *maphash.Hash {
 }
 
 // hashList implements hashing for list objects
-func (l *List) hashList() uint64 {
+func (l *List) hashList(depth int) uint64 {
 	hasher := newHasher()
 	for _, obj := range l.Elements {
-		hashedObj := HashObject(obj)
+		hashedObj := hashObjectDepth(obj, depth)
 		maphash.WriteComparable(hasher, hashedObj)
 	}
 	return hasher.Sum64()
@@ -1290,32 +1290,32 @@ func (s *Set) hashSet() uint64 {
 }
 
 // hashMap hashes the entire map to be used for checking equality
-func (m *Map) hashMap() uint64 {
+func (m *Map) hashMap(depth int) uint64 {
 	hasher := newHasher()
 	for _, k := range m.Pairs.Keys {
 		v, _ := m.Pairs.Get(k)
 		// Just using xor as a way to get a unique uint64 with the value hash
-		hashedKeyObj := k.Value ^ HashObject(v.Value)
+		hashedKeyObj := k.Value ^ hashObjectDepth(v.Value, depth)
 		maphash.WriteComparable(hasher, hashedKeyObj)
 	}
 	return hasher.Sum64()
 }
 
-func (da *DefaultArgs) hashDefaultArgs() uint64 {
+func (da *DefaultArgs) hashDefaultArgs(depth int) uint64 {
 	hasher := newHasher()
 	for k, v := range da.Value {
 		hasher.WriteString(k)
-		maphash.WriteComparable(hasher, HashObject(v))
+		maphash.WriteComparable(hasher, hashObjectDepth(v, depth))
 	}
 	return hasher.Sum64()
 }
 
 // hashStruct hashes the entire struct to be used for checking equality
-func (bs *BlueStruct) hashStruct() uint64 {
+func (bs *BlueStruct) hashStruct(depth int) uint64 {
 	hasher := newHasher()
 	for i, k := range bs.Fields {
 		hasher.WriteString(k)
-		maphash.WriteComparable(hasher, HashObject(bs.Values[i]))
+		maphash.WriteComparable(hasher, hashObjectDepth(bs.Values[i], depth))
 	}
 	return hasher.Sum64()
 }
@@ -1329,6 +1329,18 @@ func stringHash(s string) uint64 {
 }
 
 func HashObject(obj Object) uint64 {
+	return hashObjectDepth(obj, 0)
+}
+
+func printHashPanicMessage(obj Object, depth int) {
+	println("blue bug")
+	panic(fmt.Sprintf("This is the object trying to be hashed = %v\n\nUnsupported hashable object: %T\nMaybe cycle, depth=%d, maxDepth=%d", obj, obj, depth, maxHashDepth))
+}
+
+func hashObjectDepth(obj Object, depth int) uint64 {
+	if obj == nil || depth > maxHashDepth || !isHashableType(obj.Type()) {
+		printHashPanicMessage(obj, depth)
+	}
 	switch o := obj.(type) {
 	case *Stringo:
 		return stringHash(o.Value)
@@ -1353,29 +1365,27 @@ func HashObject(obj Object) uint64 {
 		hasher.WriteString(obj.(*ExecString).Value)
 	case FUNCTION_OBJ:
 		// Note: This is a naive way of determining if two functions are identical
-		// come back and fix this or make it smarter if possible
-		hasher.WriteString(obj.(*Function).Inspect())
+		hasher.WriteString(obj.Inspect())
 	case CLOSURE:
 		hasher.WriteString(obj.(*Closure).Fun.DisplayString)
 	case ERROR_OBJ:
-		// Although i dont think this should happen, lets give it a hash anyways
 		hasher.WriteString(obj.(*Error).Message)
 	case LIST_OBJ:
-		maphash.WriteComparable(hasher, obj.(*List).hashList())
+		maphash.WriteComparable(hasher, obj.(*List).hashList(depth+1))
 	case SET_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Set).hashSet())
 	case IGNORE_OBJ:
 		hasher.WriteString("##IGNORE##")
 	case MAP_OBJ:
-		maphash.WriteComparable(hasher, obj.(*Map).hashMap())
+		maphash.WriteComparable(hasher, obj.(*Map).hashMap(depth+1))
 	case DEFAULT_ARGS_OBJ:
-		maphash.WriteComparable(hasher, obj.(*DefaultArgs).hashDefaultArgs())
+		maphash.WriteComparable(hasher, obj.(*DefaultArgs).hashDefaultArgs(depth+1))
 	case BLUE_STRUCT_OBJ:
-		maphash.WriteComparable(hasher, obj.(*BlueStruct).hashStruct())
+		maphash.WriteComparable(hasher, obj.(*BlueStruct).hashStruct(depth+1))
 	case BYTES_OBJ:
 		hasher.Write(obj.(*Bytes).Value)
 	case BIG_FLOAT_OBJ:
-		hasher.WriteString(obj.(*BigFloat).Value.String())
+		hasher.WriteString(obj.Inspect())
 	case BIG_INTEGER_OBJ:
 		hasher.WriteString(obj.(*BigInteger).Value.String())
 	case GO_OBJ:
@@ -1391,30 +1401,26 @@ func HashObject(obj Object) uint64 {
 	case TENSOR_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Tensor).hashTensor())
 	default:
-		panic(fmt.Sprintf("This is the object trying to be hashed = %v\n\nUnsupported hashable object: %T\n", obj, obj))
+		printHashPanicMessage(obj, depth)
 	}
 	return hasher.Sum64()
+}
+
+func isHashableType(t Type) bool {
+	switch t {
+	case INTEGER_OBJ, BIG_INTEGER_OBJ, BOOLEAN_OBJ, NULL_OBJ, UINTEGER_OBJ, FLOAT_OBJ, BIG_FLOAT_OBJ,
+		ERROR_OBJ, FUNCTION_OBJ, STRING_OBJ, BYTES_OBJ, GO_OBJ, REGEX_OBJ, LIST_OBJ, MAP_OBJ, SET_OBJ,
+		MODULE_OBJ, PROCESS_OBJ, BLUE_STRUCT_OBJ, COMPILED_FUNCTION_OBJ, CLOSURE, EXEC_STRING_OBJ,
+		IGNORE_OBJ, DEFAULT_ARGS_OBJ, TENSOR_OBJ:
+		return true
+	default:
+		return false
+	}
 }
 
 func IsHashable(obj Object) bool {
 	if obj == nil {
 		return false
 	}
-	t := obj.Type()
-	return t == INTEGER_OBJ ||
-		t == UINTEGER_OBJ ||
-		t == BOOLEAN_OBJ ||
-		t == NULL_OBJ ||
-		t == FLOAT_OBJ ||
-		t == STRING_OBJ ||
-		t == FUNCTION_OBJ ||
-		t == ERROR_OBJ ||
-		t == LIST_OBJ ||
-		t == SET_OBJ ||
-		t == IGNORE_OBJ ||
-		t == MAP_OBJ ||
-		t == BYTES_OBJ ||
-		t == BIG_FLOAT_OBJ ||
-		t == BIG_INTEGER_OBJ ||
-		t == GO_OBJ
+	return isHashableType(obj.Type())
 }

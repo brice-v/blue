@@ -35,8 +35,8 @@ func jsonErr(format string, a ...any) Object {
 }
 
 func decodeJsonValue(dec *json.Decoder, depth int) Object {
-	if depth > maxJSONDepth {
-		return jsonErr("json nested too deep (max %d)", maxJSONDepth)
+	if depth > MaxJSONDepth {
+		return jsonErr("json nested too deep (max %d)", MaxJSONDepth)
 	}
 	tok, err := dec.Token()
 	if err != nil {

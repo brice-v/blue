@@ -168,8 +168,8 @@ func TestTensorHashing(t *testing.T) {
 	if HashObject(a) == HashObject(c) {
 		t.Error("tensors with different values must not hash equal")
 	}
-	if IsHashable(a) {
-		t.Error("tensors must not be usable as Map/Set keys")
+	if !IsHashable(a) {
+		t.Error("tensors must be usable as Map/Set keys")
 	}
 
 	// A transposed view has logical values [1,3,2,4], so it must hash like a

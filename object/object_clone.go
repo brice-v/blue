@@ -6,6 +6,54 @@ import (
 	clone "github.com/huandu/go-clone/generic"
 )
 
+func cloneObjectAtDepth(obj Object, depth int) Object {
+	if obj == nil {
+		return nil
+	}
+	if depth > maxCloneDepth {
+		return obj
+	}
+	switch x := obj.(type) {
+	case *List:
+		return cloneListAtDepth(x, depth)
+	case *ListCompLiteral:
+		return &ListCompLiteral{Elements: cloneSliceAtDepth(x.Elements, depth)}
+	case *Map:
+		return cloneMapAtDepth(x, depth)
+	case *MapCompLiteral:
+		return cloneMapCompLiteralAtDepth(x, depth)
+	case *Set:
+		return cloneSetAtDepth(x, depth)
+	case *SetCompLiteral:
+		return cloneSetCompLiteralAtDepth(x, depth)
+	case *BlueStruct:
+		return cloneBlueStructAtDepth(x, depth)
+	case *DefaultArgs:
+		m := make(map[string]Object, len(x.Value))
+		for k, v := range x.Value {
+			m[k] = cloneObjectAtDepth(v, depth+1)
+		}
+		return &DefaultArgs{Value: m}
+	case *Closure:
+		return &Closure{Fun: x.Fun.Clone().(*CompiledFunction), Free: cloneSliceAtDepth(x.Free, depth)}
+	case *ReturnValue:
+		return cloneObjectAtDepth(x.Value, depth+1)
+	case *BuiltinObj:
+		return &BuiltinObj{Obj: cloneObjectAtDepth(x.Obj, depth+1), HelpStr: x.HelpStr}
+	}
+	return obj.Clone()
+}
+
+func cloneSliceAtDepth(elements []Object, depth int) []Object {
+	newElements := make([]Object, len(elements))
+	for i, e := range elements {
+		if e != nil {
+			newElements[i] = cloneObjectAtDepth(e, depth+1)
+		}
+	}
+	return newElements
+}
+
 func (x *Null) Clone() Object {
 	return NULL
 }
@@ -118,44 +166,70 @@ func (x *BuiltinObj) Clone() Object {
 }
 
 func (x *List) Clone() Object {
-	return &List{Elements: CloneSlice(x.Elements)}
+	return cloneListAtDepth(x, 0)
+}
+
+func cloneListAtDepth(x *List, depth int) Object {
+	return &List{Elements: cloneSliceAtDepth(x.Elements, depth)}
 }
 
 func (x *ListCompLiteral) Clone() Object {
-	return &ListCompLiteral{Elements: CloneSlice(x.Elements)}
+	return &ListCompLiteral{Elements: cloneSliceAtDepth(x.Elements, 0)}
 }
 
 func (x *Map) Clone() Object {
+	return cloneMapAtDepth(x, 0)
+}
+
+func cloneMapAtDepth(x *Map, depth int) Object {
 	pairs := NewOrderedMapWithSize[HashKey, MapPair](x.Pairs.Len())
 	for _, k := range x.Pairs.Keys {
 		mp, _ := x.Pairs.Get(k)
-		pairs.Set(k, MapPair{Key: mp.Key.Clone(), Value: mp.Value.Clone()})
+		pairs.Set(k, MapPair{
+			Key:   cloneObjectAtDepth(mp.Key, depth+1),
+			Value: cloneObjectAtDepth(mp.Value, depth+1),
+		})
 	}
 	return &Map{Pairs: *pairs, IsEnvBuiltin: x.IsEnvBuiltin}
 }
 
 func (x *MapCompLiteral) Clone() Object {
+	return cloneMapCompLiteralAtDepth(x, 0)
+}
+
+func cloneMapCompLiteralAtDepth(x *MapCompLiteral, depth int) Object {
 	pairs := NewOrderedMapWithSize[HashKey, MapPair](x.Pairs.Len())
 	for _, k := range x.Pairs.Keys {
 		mp, _ := x.Pairs.Get(k)
-		pairs.Set(k, MapPair{Key: mp.Key.Clone(), Value: mp.Value.Clone()})
+		pairs.Set(k, MapPair{
+			Key:   cloneObjectAtDepth(mp.Key, depth+1),
+			Value: cloneObjectAtDepth(mp.Value, depth+1),
+		})
 	}
 	return &Map{Pairs: *pairs}
 }
 
 func (x *Set) Clone() Object {
+	return cloneSetAtDepth(x, 0)
+}
+
+func cloneSetAtDepth(x *Set, depth int) Object {
 	pairs := NewOrderedMapWithSize[uint64, SetPair](x.Elements.Len())
 	for _, k := range x.Elements.Keys {
 		mp, _ := x.Elements.Get(k)
-		pairs.Set(k, SetPair{Value: mp.Value.Clone(), Present: mp.Present})
+		pairs.Set(k, SetPair{Value: cloneObjectAtDepth(mp.Value, depth+1), Present: mp.Present})
 	}
 	return &Set{Elements: pairs}
 }
 
 func (x *SetCompLiteral) Clone() Object {
-	m := make(map[uint64]SetPair)
+	return cloneSetCompLiteralAtDepth(x, 0)
+}
+
+func cloneSetCompLiteralAtDepth(x *SetCompLiteral, depth int) Object {
+	m := make(map[uint64]SetPair, len(x.Elements))
 	for k, v := range x.Elements {
-		m[k] = SetPair{Value: v.Value.Clone(), Present: v.Present}
+		m[k] = SetPair{Value: cloneObjectAtDepth(v.Value, depth+1), Present: v.Present}
 	}
 	return &SetCompLiteral{Elements: m}
 }
@@ -172,9 +246,13 @@ func (x *Module) Clone() Object {
 }
 
 func (x *BlueStruct) Clone() Object {
+	return cloneBlueStructAtDepth(x, 0)
+}
+
+func cloneBlueStructAtDepth(x *BlueStruct, depth int) Object {
 	fields := make([]string, len(x.Fields))
 	copy(fields, x.Fields)
-	return &BlueStruct{Fields: fields, Values: CloneSlice(x.Values)}
+	return &BlueStruct{Fields: fields, Values: cloneSliceAtDepth(x.Values, depth)}
 }
 
 func (x *CompiledFunction) Clone() Object {
@@ -211,7 +289,7 @@ func (x *CompiledFunction) Clone() Object {
 }
 
 func (x *Closure) Clone() Object {
-	return &Closure{Fun: x.Fun.Clone().(*CompiledFunction), Free: CloneSlice(x.Free)}
+	return &Closure{Fun: x.Fun.Clone().(*CompiledFunction), Free: cloneSliceAtDepth(x.Free, 0)}
 }
 
 func (x *ExecString) Clone() Object {
@@ -219,21 +297,9 @@ func (x *ExecString) Clone() Object {
 }
 
 func CloneSlice(elements []Object) []Object {
-	newElements := make([]Object, len(elements))
-	for i, e := range elements {
-		if e != nil {
-			newElements[i] = e.Clone()
-		}
-	}
-	return newElements
+	return cloneSliceAtDepth(elements, 0)
 }
 
-// immutableGlobalTypes reports object types whose values can never be
-// observed to change, so a spawned vm may share the parent's object
-// instead of cloning it (numbers, strings, bools, null, functions,
-// builtins). Everything else (lists, maps, sets, structs, bytes,
-// processes, ...) is mutable state that must be deep cloned for the
-// spawn-time snapshot semantics.
 func immutableGlobalType(o Object) bool {
 	switch o.IType() {
 	case i_INTEGER_OBJ, i_BIG_INTEGER_OBJ, i_BOOLEAN_OBJ, i_NULL_OBJ,
@@ -245,13 +311,6 @@ func immutableGlobalType(o Object) bool {
 	return false
 }
 
-// CloneGlobals returns an isolated snapshot of a globals store for a
-// spawned vm. Only slots below highWater were ever written, so the clone
-// is sized to just that prefix regardless of how large the parent's store
-// is; immutable values are shared and mutable containers are deep cloned
-// so later writes by either vm cannot affect the other. Writes beyond the
-// cloned length grow the child's store on demand (see the vm's
-// ensureGlobalWritable).
 func CloneGlobals(elements []Object, highWater int) []Object {
 	if highWater > len(elements) {
 		highWater = len(elements)

@@ -14,8 +14,11 @@ import (
 
 const (
 	maxSerializeDepth = 512
-	maxJSONDepth      = 512
+	MaxJSONDepth      = 512
 	maxInspectDepth   = 512
+	maxHashDepth      = 512
+	maxEqualDepth     = 512
+	maxCloneDepth     = 512
 )
 
 // CreateBasicMapObject creates an object that looks like {'t': objType, 'v': objValue}
@@ -438,6 +441,13 @@ func isError(obj Object) bool {
 }
 
 func blueObjToJsonObject(obj Object) Object {
+	return blueObjToJsonObjectDepth(obj, 0)
+}
+
+func blueObjToJsonObjectDepth(obj Object, depth int) Object {
+	if depth > MaxJSONDepth {
+		return newError("`to_json` error: object nesting too deep (possible cycle)")
+	}
 	rootNodeType := obj.Type()
 	if isError(obj) {
 		return obj
@@ -456,21 +466,21 @@ func blueObjToJsonObject(obj Object) Object {
 	switch rootNodeType {
 	case MAP_OBJ:
 		mObj := obj.(*Map)
-		ok, err := checkMapObjPairsForValidJsonKeysAndValues(mObj.Pairs)
+		ok, err := checkMapObjPairsForValidJsonKeysAndValues(mObj.Pairs, depth)
 		if !ok {
 			return newError("`to_json` error validating MAP object. %s", err.Error())
 		}
 		var buf bytes.Buffer
-		jsonString := generateJsonStringFromValidMapObjPairs(buf, mObj.Pairs)
+		jsonString := generateJsonStringFromValidMapObjPairs(buf, mObj.Pairs, depth)
 		return &Stringo{Value: jsonString.String()}
 	case LIST_OBJ:
 		lObj := obj.(*List)
-		ok, err := checkListElementsForValidJsonValues(lObj.Elements)
+		ok, err := checkListElementsForValidJsonValues(lObj.Elements, depth)
 		if !ok {
 			return newError("`to_json` error validating LIST object. %s", err.Error())
 		}
 		var buf bytes.Buffer
-		jsonString := generateJsonStringFromValidListElements(buf, lObj.Elements)
+		jsonString := generateJsonStringFromValidListElements(buf, lObj.Elements, depth)
 		return &Stringo{Value: jsonString.String()}
 	default:
 		// We can do this as the default because the arg is verified up above
@@ -484,7 +494,10 @@ func isValidJsonValueType(t Type) bool {
 	return t == STRING_OBJ || t == INTEGER_OBJ || t == UINTEGER_OBJ || t == BIG_FLOAT_OBJ || t == BIG_INTEGER_OBJ || t == FLOAT_OBJ || t == NULL_OBJ || t == BOOLEAN_OBJ || t == MAP_OBJ || t == LIST_OBJ
 }
 
-func checkListElementsForValidJsonValues(elements []Object) (bool, error) {
+func checkListElementsForValidJsonValues(elements []Object, depth int) (bool, error) {
+	if depth > MaxJSONDepth {
+		return false, errors.New("object nesting too deep (possible cycle)")
+	}
 	for _, e := range elements {
 		elType := e.Type()
 		if !isValidJsonValueType(elType) {
@@ -492,17 +505,24 @@ func checkListElementsForValidJsonValues(elements []Object) (bool, error) {
 		}
 		if elType == LIST_OBJ {
 			elements2 := e.(*List).Elements
-			return checkListElementsForValidJsonValues(elements2)
+			if ok, err := checkListElementsForValidJsonValues(elements2, depth+1); !ok {
+				return false, err
+			}
 		}
 		if elType == MAP_OBJ {
 			mapPairs := e.(*Map).Pairs
-			return checkMapObjPairsForValidJsonKeysAndValues(mapPairs)
+			if ok, err := checkMapObjPairsForValidJsonKeysAndValues(mapPairs, depth+1); !ok {
+				return false, err
+			}
 		}
 	}
 	return true, nil
 }
 
-func checkMapObjPairsForValidJsonKeysAndValues(pairs OrderedMap2[HashKey, MapPair]) (bool, error) {
+func checkMapObjPairsForValidJsonKeysAndValues(pairs OrderedMap2[HashKey, MapPair], depth int) (bool, error) {
+	if depth > MaxJSONDepth {
+		return false, errors.New("object nesting too deep (possible cycle)")
+	}
 	for _, hk := range pairs.Keys {
 		mp, _ := pairs.Get(hk)
 		keyType := mp.Key.Type()
@@ -516,11 +536,15 @@ func checkMapObjPairsForValidJsonKeysAndValues(pairs OrderedMap2[HashKey, MapPai
 		// These types are all okay but if its
 		if valueType == MAP_OBJ {
 			mapPairs := mp.Value.(*Map).Pairs
-			return checkMapObjPairsForValidJsonKeysAndValues(mapPairs)
+			if ok, err := checkMapObjPairsForValidJsonKeysAndValues(mapPairs, depth+1); !ok {
+				return false, err
+			}
 		}
 		if valueType == LIST_OBJ {
 			elements := mp.Value.(*List).Elements
-			return checkListElementsForValidJsonValues(elements)
+			if ok, err := checkListElementsForValidJsonValues(elements, depth+1); !ok {
+				return false, err
+			}
 		}
 	}
 	// Empty pairs should be okay
@@ -549,17 +573,17 @@ func generateJsonStringFromOtherValidTypes(buf bytes.Buffer, element Object) byt
 	return buf
 }
 
-func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []Object) bytes.Buffer {
+func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []Object, depth int) bytes.Buffer {
 	buf.WriteRune('[')
 	for i, e := range elements {
 		elemType := e.Type()
 		switch elemType {
 		case LIST_OBJ:
 			elements1 := e.(*List).Elements
-			buf = generateJsonStringFromValidListElements(buf, elements1)
+			buf = generateJsonStringFromValidListElements(buf, elements1, depth+1)
 		case MAP_OBJ:
 			pairs := e.(*Map).Pairs
-			buf = generateJsonStringFromValidMapObjPairs(buf, pairs)
+			buf = generateJsonStringFromValidMapObjPairs(buf, pairs, depth+1)
 		default:
 			buf = generateJsonStringFromOtherValidTypes(buf, e)
 		}
@@ -571,7 +595,7 @@ func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []Object
 	return buf
 }
 
-func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs OrderedMap2[HashKey, MapPair]) bytes.Buffer {
+func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs OrderedMap2[HashKey, MapPair], depth int) bytes.Buffer {
 	buf.WriteRune('{')
 	length := len(pairs.Keys)
 	i := 0
@@ -582,10 +606,10 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs OrderedMap2[
 		switch valueType {
 		case MAP_OBJ:
 			pairs1 := mp.Value.(*Map).Pairs
-			buf = generateJsonStringFromValidMapObjPairs(buf, pairs1)
+			buf = generateJsonStringFromValidMapObjPairs(buf, pairs1, depth+1)
 		case LIST_OBJ:
 			elements := mp.Value.(*List).Elements
-			buf = generateJsonStringFromValidListElements(buf, elements)
+			buf = generateJsonStringFromValidListElements(buf, elements, depth+1)
 		default:
 			buf = generateJsonStringFromOtherValidTypes(buf, mp.Value)
 		}
@@ -698,11 +722,18 @@ func bindArgs(name string, args []Object, params ...string) (map[string]Object, 
 }
 
 func FastEqual(a, b Object) bool {
+	return fastEqualDepth(a, b, 0)
+}
+
+func fastEqualDepth(a, b Object, depth int) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
 	if a == b {
 		return true
+	}
+	if depth > maxEqualDepth {
+		return false
 	}
 	if a.Type() != b.Type() {
 		return false
@@ -727,33 +758,33 @@ func FastEqual(a, b Object) bool {
 		return true
 	case *List:
 		y, ok := b.(*List)
-		return ok && listsEqual(x, y)
+		return ok && listsEqual(x, y, depth)
 	case *Map:
 		y, ok := b.(*Map)
-		return ok && mapsEqual(x, y)
+		return ok && mapsEqual(x, y, depth)
 	case *Set:
 		y, ok := b.(*Set)
-		return ok && setsEqual(x, y)
+		return ok && setsEqual(x, y, depth)
 	case *BlueStruct:
 		y, ok := b.(*BlueStruct)
-		return ok && structsEqual(x, y)
+		return ok && structsEqual(x, y, depth)
 	}
 	return HashObject(a) == HashObject(b)
 }
 
-func listsEqual(a, b *List) bool {
+func listsEqual(a, b *List, depth int) bool {
 	if len(a.Elements) != len(b.Elements) {
 		return false
 	}
 	for i := range a.Elements {
-		if !FastEqual(a.Elements[i], b.Elements[i]) {
+		if !fastEqualDepth(a.Elements[i], b.Elements[i], depth+1) {
 			return false
 		}
 	}
 	return true
 }
 
-func mapsEqual(a, b *Map) bool {
+func mapsEqual(a, b *Map, depth int) bool {
 	if a.Pairs.Len() != b.Pairs.Len() {
 		return false
 	}
@@ -763,14 +794,14 @@ func mapsEqual(a, b *Map) bool {
 			continue
 		}
 		other, ok := b.Get(pair.Key)
-		if !ok || !FastEqual(pair.Value, other.Value) {
+		if !ok || !fastEqualDepth(pair.Value, other.Value, depth+1) {
 			return false
 		}
 	}
 	return true
 }
 
-func setsEqual(a, b *Set) bool {
+func setsEqual(a, b *Set, depth int) bool {
 	if a.Elements.Len() != b.Elements.Len() {
 		return false
 	}
@@ -780,20 +811,20 @@ func setsEqual(a, b *Set) bool {
 			continue
 		}
 		other, ok := b.Elements.Get(hashKey)
-		if !ok || !FastEqual(pair.Value, other.Value) {
+		if !ok || !fastEqualDepth(pair.Value, other.Value, depth+1) {
 			return false
 		}
 	}
 	return true
 }
 
-func structsEqual(a, b *BlueStruct) bool {
+func structsEqual(a, b *BlueStruct, depth int) bool {
 	if len(a.Fields) != len(b.Fields) {
 		return false
 	}
 	for i, name := range a.Fields {
 		other, index := b.Get(name)
-		if index < 0 || !FastEqual(a.Values[i], other) {
+		if index < 0 || !fastEqualDepth(a.Values[i], other, depth+1) {
 			return false
 		}
 	}

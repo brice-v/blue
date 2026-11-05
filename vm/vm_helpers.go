@@ -643,6 +643,13 @@ func getErrorTokenTraceAsJsonWithError(vm *VM, errorMsg string) any {
 }
 
 func blueObjToJsonObject(obj object.Object) object.Object {
+	return blueObjToJsonObjectDepth(obj, 0)
+}
+
+func blueObjToJsonObjectDepth(obj object.Object, depth int) object.Object {
+	if depth > object.MaxJSONDepth {
+		return newError("`to_json` error: object nesting too deep (max %d)", object.MaxJSONDepth)
+	}
 	rootNodeType := obj.Type()
 	if isError(obj) {
 		return obj
@@ -661,21 +668,21 @@ func blueObjToJsonObject(obj object.Object) object.Object {
 	switch rootNodeType {
 	case object.MAP_OBJ:
 		mObj := obj.(*object.Map)
-		ok, err := checkMapObjPairsForValidJsonKeysAndValues(mObj.Pairs)
+		ok, err := checkMapObjPairsForValidJsonKeysAndValues(mObj.Pairs, depth)
 		if !ok {
 			return newError("`to_json` error validating MAP object. %s", err.Error())
 		}
 		var buf bytes.Buffer
-		jsonString := generateJsonStringFromValidMapObjPairs(buf, mObj.Pairs)
+		jsonString := generateJsonStringFromValidMapObjPairs(buf, mObj.Pairs, depth)
 		return &object.Stringo{Value: jsonString.String()}
 	case object.LIST_OBJ:
 		lObj := obj.(*object.List)
-		ok, err := checkListElementsForValidJsonValues(lObj.Elements)
+		ok, err := checkListElementsForValidJsonValues(lObj.Elements, depth)
 		if !ok {
 			return newError("`to_json` error validating LIST object. %s", err.Error())
 		}
 		var buf bytes.Buffer
-		jsonString := generateJsonStringFromValidListElements(buf, lObj.Elements)
+		jsonString := generateJsonStringFromValidListElements(buf, lObj.Elements, depth)
 		return &object.Stringo{Value: jsonString.String()}
 	default:
 		// We can do this as the default because the arg is verified up above
@@ -689,7 +696,10 @@ func isValidJsonValueType(t object.Type) bool {
 	return t == object.STRING_OBJ || t == object.INTEGER_OBJ || t == object.UINTEGER_OBJ || t == object.BIG_FLOAT_OBJ || t == object.BIG_INTEGER_OBJ || t == object.FLOAT_OBJ || t == object.NULL_OBJ || t == object.BOOLEAN_OBJ || t == object.MAP_OBJ || t == object.LIST_OBJ
 }
 
-func checkListElementsForValidJsonValues(elements []object.Object) (bool, error) {
+func checkListElementsForValidJsonValues(elements []object.Object, depth int) (bool, error) {
+	if depth > object.MaxJSONDepth {
+		return false, fmt.Errorf("object nesting too deep (max %d)", object.MaxJSONDepth)
+	}
 	for _, e := range elements {
 		elType := e.Type()
 		if !isValidJsonValueType(elType) {
@@ -697,17 +707,24 @@ func checkListElementsForValidJsonValues(elements []object.Object) (bool, error)
 		}
 		if elType == object.LIST_OBJ {
 			elements2 := e.(*object.List).Elements
-			return checkListElementsForValidJsonValues(elements2)
+			if ok, err := checkListElementsForValidJsonValues(elements2, depth+1); !ok {
+				return false, err
+			}
 		}
 		if elType == object.MAP_OBJ {
 			mapPairs := e.(*object.Map).Pairs
-			return checkMapObjPairsForValidJsonKeysAndValues(mapPairs)
+			if ok, err := checkMapObjPairsForValidJsonKeysAndValues(mapPairs, depth+1); !ok {
+				return false, err
+			}
 		}
 	}
 	return true, nil
 }
 
-func checkMapObjPairsForValidJsonKeysAndValues(pairs object.OrderedMap2[object.HashKey, object.MapPair]) (bool, error) {
+func checkMapObjPairsForValidJsonKeysAndValues(pairs object.OrderedMap2[object.HashKey, object.MapPair], depth int) (bool, error) {
+	if depth > object.MaxJSONDepth {
+		return false, errors.New("object nesting too deep (possible cycle)")
+	}
 	for _, hk := range pairs.Keys {
 		mp, _ := pairs.Get(hk)
 		keyType := mp.Key.Type()
@@ -721,28 +738,32 @@ func checkMapObjPairsForValidJsonKeysAndValues(pairs object.OrderedMap2[object.H
 		// These types are all okay but if its
 		if valueType == object.MAP_OBJ {
 			mapPairs := mp.Value.(*object.Map).Pairs
-			return checkMapObjPairsForValidJsonKeysAndValues(mapPairs)
+			if ok, err := checkMapObjPairsForValidJsonKeysAndValues(mapPairs, depth+1); !ok {
+				return false, err
+			}
 		}
 		if valueType == object.LIST_OBJ {
 			elements := mp.Value.(*object.List).Elements
-			return checkListElementsForValidJsonValues(elements)
+			if ok, err := checkListElementsForValidJsonValues(elements, depth+1); !ok {
+				return false, err
+			}
 		}
 	}
 	// Empty pairs should be okay
 	return true, nil
 }
 
-func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []object.Object) bytes.Buffer {
+func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []object.Object, depth int) bytes.Buffer {
 	buf.WriteRune('[')
 	for i, e := range elements {
 		elemType := e.Type()
 		switch elemType {
 		case object.LIST_OBJ:
 			elements1 := e.(*object.List).Elements
-			buf = generateJsonStringFromValidListElements(buf, elements1)
+			buf = generateJsonStringFromValidListElements(buf, elements1, depth+1)
 		case object.MAP_OBJ:
 			pairs := e.(*object.Map).Pairs
-			buf = generateJsonStringFromValidMapObjPairs(buf, pairs)
+			buf = generateJsonStringFromValidMapObjPairs(buf, pairs, depth+1)
 		default:
 			buf = generateJsonStringFromOtherValidTypes(buf, e)
 		}
@@ -754,7 +775,7 @@ func generateJsonStringFromValidListElements(buf bytes.Buffer, elements []object
 	return buf
 }
 
-func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.OrderedMap2[object.HashKey, object.MapPair]) bytes.Buffer {
+func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.OrderedMap2[object.HashKey, object.MapPair], depth int) bytes.Buffer {
 	buf.WriteRune('{')
 	length := len(pairs.Keys)
 	i := 0
@@ -765,10 +786,10 @@ func generateJsonStringFromValidMapObjPairs(buf bytes.Buffer, pairs object.Order
 		switch valueType {
 		case object.MAP_OBJ:
 			pairs1 := mp.Value.(*object.Map).Pairs
-			buf = generateJsonStringFromValidMapObjPairs(buf, pairs1)
+			buf = generateJsonStringFromValidMapObjPairs(buf, pairs1, depth+1)
 		case object.LIST_OBJ:
 			elements := mp.Value.(*object.List).Elements
-			buf = generateJsonStringFromValidListElements(buf, elements)
+			buf = generateJsonStringFromValidListElements(buf, elements, depth+1)
 		default:
 			buf = generateJsonStringFromOtherValidTypes(buf, mp.Value)
 		}
