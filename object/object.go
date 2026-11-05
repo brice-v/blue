@@ -635,8 +635,6 @@ func (l *List) Inspect() string {
 	return l.inspect(0)
 }
 
-const maxInspectDepth = 512
-
 func (l *List) inspect(depth int) string {
 	if depth > maxInspectDepth {
 		return "[...]"

@@ -66,12 +66,6 @@ type ObjectWrapper struct {
 	Data cbor.RawMessage `cbor:"data"`
 }
 
-// maxSerializeDepth bounds recursion when marshaling/unmarshaling nested
-// objects (lists of maps of lists ...). Constant pools are expected to be
-// acyclic, this turns a cycle (or absurdly deep nesting) into an error
-// instead of a stack overflow.
-const maxSerializeDepth = 512
-
 // errTooDeep is returned when the serialization depth limit is exceeded.
 var errTooDeep = fmt.Errorf("object nesting too deep (possible cycle), aborting serialization at depth %d", maxSerializeDepth)
 

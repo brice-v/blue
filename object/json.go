@@ -10,17 +10,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// This file implements from_json WITHOUT the blue lexer/parser: JSON is far
-// simpler than blue, and keeping this builtin free of the parser lets
-// minimal VM-only builds (no lexer/parser/compiler) still use it.
-//
-// The old implementation parsed JSON with the blue parser via ParseJson
-// (see package object/astjson). That path is kept for parity tests.
-
-// maxJSONDepth bounds nesting so malformed deeply-nested input errors out
-// instead of overflowing the stack.
-const maxJSONDepth = 512
-
 // FromJsonString converts a JSON string into blue objects. The returned
 // Object is an *Error when the input is not valid JSON or exceeds the
 // nesting limit (matching how blue builtins report failures).
