@@ -37,7 +37,7 @@ func (t *Tensor) Clone() Object {
 }
 
 func (t *Tensor) hashTensor() uint64 {
-	hasher := newHasher()
+	hasher := newHashWriter()
 	maphash.WriteComparable(hasher, uint8(t.T.DType()))
 	maphash.WriteComparable(hasher, uint8(t.T.Device()))
 	for _, d := range t.T.Shape() {

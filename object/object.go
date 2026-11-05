@@ -282,14 +282,7 @@ func (n *DefaultArgs) Type() Type { return DEFAULT_ARGS_OBJ }
 
 // Inspect returns the string value of DefaultArgs
 func (n *DefaultArgs) Inspect() string {
-	var out bytes.Buffer
-	out.WriteString("DefaultArgs{")
-	for k, v := range n.Value {
-		fmt.Fprintf(&out, "%s=%s, ", k, v.Inspect())
-	}
-	s := out.String()
-	s = strings.TrimSuffix(s, ", ")
-	return s + "}"
+	return newInspector().inspect(n)
 }
 
 func (n *DefaultArgs) Help() string {
@@ -586,6 +579,7 @@ type BuiltinFunction func(args ...Object) Object
 // Builtin is the Builtin function object struct
 type Builtin struct {
 	Name    string
+	Module  string
 	Fun     BuiltinFunction
 	HelpStr string
 
@@ -610,6 +604,8 @@ func (b *Builtin) Help() string {
 // BuiltinObj allows us to define a map object to be used for any builtins
 // that work better as a sort of module
 type BuiltinObj struct {
+	Name    string
+	Module  string
 	Obj     Object
 	HelpStr string
 }
@@ -632,34 +628,7 @@ func (l *List) Type() Type { return LIST_OBJ }
 
 // Inspect returns the stringified version of the list
 func (l *List) Inspect() string {
-	return l.inspect(0)
-}
-
-func (l *List) inspect(depth int) string {
-	if depth > maxInspectDepth {
-		return "[...]"
-	}
-	var out bytes.Buffer
-
-	elements := []string{}
-	for _, e := range l.Elements {
-		switch v := e.(type) {
-		case *List:
-			elements = append(elements, v.inspect(depth+1))
-		case *Map:
-			elements = append(elements, v.inspect(depth+1))
-		case *Set:
-			elements = append(elements, v.inspect(depth+1))
-		default:
-			elements = append(elements, v.Inspect())
-		}
-	}
-
-	out.WriteString("[")
-	out.WriteString(strings.Join(elements, ", "))
-	out.WriteString("]")
-
-	return out.String()
+	return newInspector().inspect(l)
 }
 
 func (l *List) Help() string {
@@ -676,17 +645,7 @@ func (lcl *ListCompLiteral) Type() Type { return LIST_COMP_OBJ }
 
 // Inspect returns a string representation of the lcl object
 func (lcl *ListCompLiteral) Inspect() string {
-	var out bytes.Buffer
-	elements := []string{}
-	for _, e := range lcl.Elements {
-		elements = append(elements, e.Inspect())
-	}
-
-	out.WriteString("[")
-	out.WriteString(strings.Join(elements, ", "))
-	out.WriteString("]")
-
-	return out.String()
+	return newInspector().inspect(lcl)
 }
 
 func (lcl *ListCompLiteral) Help() string {
@@ -710,46 +669,7 @@ func (m *Map) Type() Type { return MAP_OBJ }
 
 // Inspect returns the stringified version of the map
 func (m *Map) Inspect() string {
-	return m.inspect(0)
-}
-
-func (m *Map) inspect(depth int) string {
-	if depth > maxInspectDepth {
-		return "{...:...}"
-	}
-	var out bytes.Buffer
-
-	pairs := []string{}
-	for _, key := range m.Pairs.Keys {
-		pair, _ := m.Pairs.Get(key)
-		var keyStr string
-		var valStr string
-		if kL, ok := pair.Key.(*List); ok {
-			keyStr = kL.inspect(depth + 1)
-		} else if kM, ok := pair.Key.(*Map); ok {
-			keyStr = kM.inspect(depth + 1)
-		} else if kS, ok := pair.Key.(*Set); ok {
-			keyStr = kS.inspect(depth + 1)
-		} else {
-			keyStr = pair.Key.Inspect()
-		}
-		if vL, ok := pair.Value.(*List); ok {
-			valStr = vL.inspect(depth + 1)
-		} else if vM, ok := pair.Value.(*Map); ok {
-			valStr = vM.inspect(depth + 1)
-		} else if vS, ok := pair.Value.(*Set); ok {
-			valStr = vS.inspect(depth + 1)
-		} else {
-			valStr = pair.Value.Inspect()
-		}
-		pairs = append(pairs, fmt.Sprintf("%s: %s", keyStr, valStr))
-	}
-
-	out.WriteString("{")
-	out.WriteString(strings.Join(pairs, ", "))
-	out.WriteString("}")
-
-	return out.String()
+	return newInspector().inspect(m)
 }
 
 func (m *Map) Help() string {
@@ -819,19 +739,7 @@ func (mcl *MapCompLiteral) Type() Type { return MAP_COMP_OBJ }
 
 // Inspect returns a string representation of the mcl object
 func (mcl *MapCompLiteral) Inspect() string {
-	var out bytes.Buffer
-
-	pairs := []string{}
-	for _, key := range mcl.Pairs.Keys {
-		pair, _ := mcl.Pairs.Get(key)
-		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
-	}
-
-	out.WriteString("{")
-	out.WriteString(strings.Join(pairs, ", "))
-	out.WriteString("}")
-
-	return out.String()
+	return newInspector().inspect(mcl)
 }
 
 func (mcl *MapCompLiteral) Help() string {
@@ -867,40 +775,7 @@ func (s *Set) Type() Type { return SET_OBJ }
 
 // Inspect returns the stringified version of the set
 func (s *Set) Inspect() string {
-	return s.inspect(0)
-}
-
-func (s *Set) inspect(depth int) string {
-	if depth > maxInspectDepth {
-		return "{...}"
-	}
-	var out bytes.Buffer
-
-	out.WriteString("{")
-	keys := s.Elements.Keys
-	for i, k := range keys {
-		e, ok := s.Elements.Get(k)
-		if !ok {
-			continue
-		}
-		endStr := ""
-		if i != len(keys)-1 {
-			endStr = ", "
-		}
-		switch v := e.Value.(type) {
-		case *List:
-			out.WriteString(v.inspect(depth + 1))
-		case *Map:
-			out.WriteString(v.inspect(depth + 1))
-		case *Set:
-			out.WriteString(v.inspect(depth + 1))
-		default:
-			out.WriteString(v.Inspect())
-		}
-		out.WriteString(endStr)
-	}
-	out.WriteString("}")
-	return out.String()
+	return newInspector().inspect(s)
 }
 
 func (s *Set) Help() string {
@@ -917,17 +792,7 @@ func (scl *SetCompLiteral) Type() Type { return SET_COMP_OBJ }
 
 // Inspect returns a string representation of the scl object
 func (scl *SetCompLiteral) Inspect() string {
-	var out bytes.Buffer
-	elements := []string{}
-	for _, e := range scl.Elements {
-		elements = append(elements, e.Value.Inspect())
-	}
-
-	out.WriteString("{")
-	out.WriteString(strings.Join(elements, ", "))
-	out.WriteString("}")
-
-	return out.String()
+	return newInspector().inspect(scl)
 }
 
 func (scl *SetCompLiteral) Help() string {
@@ -1054,19 +919,7 @@ func (bs *BlueStruct) Type() Type { return BLUE_STRUCT_OBJ }
 
 // Inspect returns the stringified version of the blue struct
 func (bs *BlueStruct) Inspect() string {
-	var out bytes.Buffer
-
-	pairs := make([]string, 0, len(bs.Fields))
-	for i := range bs.Fields {
-		value := bs.Values[i]
-		pairs = append(pairs, fmt.Sprintf("%s: %s", bs.Fields[i], value.Inspect()))
-	}
-
-	out.WriteString("@{")
-	out.WriteString(strings.Join(pairs, ", "))
-	out.WriteString("}")
-
-	return out.String()
+	return newInspector().inspect(bs)
 }
 
 func (bs *BlueStruct) Help() string {
@@ -1264,25 +1117,34 @@ type HashKey struct {
 
 var _seed = maphash.MakeSeed()
 
-func newHasher() *maphash.Hash {
+func newHashWriter() *maphash.Hash {
 	h := &maphash.Hash{}
 	h.SetSeed(_seed)
 	return h
 }
 
+const hashCycleMarker uint64 = 0x9e3779b97f4a7c15
+
+type Hasher struct {
+	seen map[Object]struct{}
+}
+
+func newHasher() *Hasher {
+	return &Hasher{seen: make(map[Object]struct{})}
+}
+
 // hashList implements hashing for list objects
-func (l *List) hashList(depth int) uint64 {
-	hasher := newHasher()
-	for _, obj := range l.Elements {
-		hashedObj := hashObjectDepth(obj, depth)
-		maphash.WriteComparable(hasher, hashedObj)
+func (c *Hasher) hashList(elements []Object) uint64 {
+	hasher := newHashWriter()
+	for _, obj := range elements {
+		maphash.WriteComparable(hasher, c.hash(obj))
 	}
 	return hasher.Sum64()
 }
 
 // hashSet implements hashing for set objects
 func (s *Set) hashSet() uint64 {
-	hasher := newHasher()
+	hasher := newHashWriter()
 	for _, k := range s.Elements.Keys {
 		maphash.WriteComparable(hasher, k)
 	}
@@ -1290,32 +1152,32 @@ func (s *Set) hashSet() uint64 {
 }
 
 // hashMap hashes the entire map to be used for checking equality
-func (m *Map) hashMap(depth int) uint64 {
-	hasher := newHasher()
+func (c *Hasher) hashMap(m *Map) uint64 {
+	hasher := newHashWriter()
 	for _, k := range m.Pairs.Keys {
 		v, _ := m.Pairs.Get(k)
 		// Just using xor as a way to get a unique uint64 with the value hash
-		hashedKeyObj := k.Value ^ hashObjectDepth(v.Value, depth)
+		hashedKeyObj := k.Value ^ c.hash(v.Value)
 		maphash.WriteComparable(hasher, hashedKeyObj)
 	}
 	return hasher.Sum64()
 }
 
-func (da *DefaultArgs) hashDefaultArgs(depth int) uint64 {
-	hasher := newHasher()
+func (c *Hasher) hashDefaultArgs(da *DefaultArgs) uint64 {
+	hasher := newHashWriter()
 	for k, v := range da.Value {
 		hasher.WriteString(k)
-		maphash.WriteComparable(hasher, hashObjectDepth(v, depth))
+		maphash.WriteComparable(hasher, c.hash(v))
 	}
 	return hasher.Sum64()
 }
 
 // hashStruct hashes the entire struct to be used for checking equality
-func (bs *BlueStruct) hashStruct(depth int) uint64 {
-	hasher := newHasher()
+func (c *Hasher) hashStruct(bs *BlueStruct) uint64 {
+	hasher := newHashWriter()
 	for i, k := range bs.Fields {
 		hasher.WriteString(k)
-		maphash.WriteComparable(hasher, hashObjectDepth(bs.Values[i], depth))
+		maphash.WriteComparable(hasher, c.hash(bs.Values[i]))
 	}
 	return hasher.Sum64()
 }
@@ -1329,17 +1191,17 @@ func stringHash(s string) uint64 {
 }
 
 func HashObject(obj Object) uint64 {
-	return hashObjectDepth(obj, 0)
+	return newHasher().hash(obj)
 }
 
-func printHashPanicMessage(obj Object, depth int) {
+func printHashPanicMessage(obj Object) {
 	println("blue bug")
-	panic(fmt.Sprintf("This is the object trying to be hashed = %v\n\nUnsupported hashable object: %T\nMaybe cycle, depth=%d, maxDepth=%d", obj, obj, depth, maxHashDepth))
+	panic(fmt.Sprintf("This is the object trying to be hashed = %v\n\nUnsupported hashable object: %T", obj, obj))
 }
 
-func hashObjectDepth(obj Object, depth int) uint64 {
-	if obj == nil || depth > maxHashDepth || !isHashableType(obj.Type()) {
-		printHashPanicMessage(obj, depth)
+func (c *Hasher) hash(obj Object) uint64 {
+	if obj == nil || !isHashableType(obj.Type()) {
+		printHashPanicMessage(obj)
 	}
 	switch o := obj.(type) {
 	case *Stringo:
@@ -1352,7 +1214,13 @@ func hashObjectDepth(obj Object, depth int) uint64 {
 	case *Null:
 		return 2
 	}
-	hasher := newHasher()
+	if _, ok := c.seen[obj]; ok {
+		return hashCycleMarker
+	}
+	c.seen[obj] = struct{}{}
+	defer delete(c.seen, obj)
+
+	hasher := newHashWriter()
 	hasher.WriteByte(byte(obj.IType()))
 	switch obj.Type() {
 	case INTEGER_OBJ:
@@ -1371,17 +1239,17 @@ func hashObjectDepth(obj Object, depth int) uint64 {
 	case ERROR_OBJ:
 		hasher.WriteString(obj.(*Error).Message)
 	case LIST_OBJ:
-		maphash.WriteComparable(hasher, obj.(*List).hashList(depth+1))
+		maphash.WriteComparable(hasher, c.hashList(obj.(*List).Elements))
 	case SET_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Set).hashSet())
 	case IGNORE_OBJ:
 		hasher.WriteString("##IGNORE##")
 	case MAP_OBJ:
-		maphash.WriteComparable(hasher, obj.(*Map).hashMap(depth+1))
+		maphash.WriteComparable(hasher, c.hashMap(obj.(*Map)))
 	case DEFAULT_ARGS_OBJ:
-		maphash.WriteComparable(hasher, obj.(*DefaultArgs).hashDefaultArgs(depth+1))
+		maphash.WriteComparable(hasher, c.hashDefaultArgs(obj.(*DefaultArgs)))
 	case BLUE_STRUCT_OBJ:
-		maphash.WriteComparable(hasher, obj.(*BlueStruct).hashStruct(depth+1))
+		maphash.WriteComparable(hasher, c.hashStruct(obj.(*BlueStruct)))
 	case BYTES_OBJ:
 		hasher.Write(obj.(*Bytes).Value)
 	case BIG_FLOAT_OBJ:
@@ -1396,12 +1264,24 @@ func hashObjectDepth(obj Object, depth int) uint64 {
 		hasher.WriteString(obj.Inspect())
 	case COMPILED_FUNCTION_OBJ:
 		hasher.Write(obj.(*CompiledFunction).Instructions)
+	case BUILTIN_OBJ:
+		if module, name, ok := builtinIdentity(obj); ok {
+			hasher.WriteString(module)
+			hasher.WriteByte(0)
+			hasher.WriteString(name)
+		} else {
+			_, err := fmt.Fprintf(hasher, "%p", obj)
+			if err != nil {
+				println(err)
+				printHashPanicMessage(obj)
+			}
+		}
 	case MODULE_OBJ:
 		hasher.WriteString(obj.(*Module).Name)
 	case TENSOR_OBJ:
 		maphash.WriteComparable(hasher, obj.(*Tensor).hashTensor())
 	default:
-		printHashPanicMessage(obj, depth)
+		printHashPanicMessage(obj)
 	}
 	return hasher.Sum64()
 }
@@ -1411,7 +1291,7 @@ func isHashableType(t Type) bool {
 	case INTEGER_OBJ, BIG_INTEGER_OBJ, BOOLEAN_OBJ, NULL_OBJ, UINTEGER_OBJ, FLOAT_OBJ, BIG_FLOAT_OBJ,
 		ERROR_OBJ, FUNCTION_OBJ, STRING_OBJ, BYTES_OBJ, GO_OBJ, REGEX_OBJ, LIST_OBJ, MAP_OBJ, SET_OBJ,
 		MODULE_OBJ, PROCESS_OBJ, BLUE_STRUCT_OBJ, COMPILED_FUNCTION_OBJ, CLOSURE, EXEC_STRING_OBJ,
-		IGNORE_OBJ, DEFAULT_ARGS_OBJ, TENSOR_OBJ:
+		IGNORE_OBJ, DEFAULT_ARGS_OBJ, TENSOR_OBJ, BUILTIN_OBJ:
 		return true
 	default:
 		return false

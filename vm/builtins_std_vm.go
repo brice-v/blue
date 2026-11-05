@@ -188,7 +188,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) er
 		if respObj.Type() == object.NULL_OBJ {
 			return c.SendStatus(fiber.StatusOK)
 		} else {
-			obj := blueObjToJsonObject(respObj)
+			obj := object.BlueObjToJsonObject(respObj)
 			if isError(obj) {
 				errors := getErrorTokenTraceAsJsonWithError(vm, obj.(*object.Error).Message).([]string)
 				errors = append(errors, fmt.Sprintf("%s Response Type is not STRING, valid JSON, or NULL. got=%s", method, obj.Type()))
@@ -235,7 +235,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) er
 		} else {
 			// If the value returned here would be a valid JSON root node then we will return it
 			// assuming it all works (ie. if a list - all the values are valid JSON)
-			obj := blueObjToJsonObject(respObj)
+			obj := object.BlueObjToJsonObject(respObj)
 			if isError(obj) {
 				errors := getErrorTokenTraceAsJsonWithError(vm, obj.(*object.Error).Message).([]string)
 				errors = append(errors, "error converting object to JSON")
@@ -433,7 +433,7 @@ func handleSpecialFunctionArgs(fn *object.Closure, c *websocket.Conn) {
 // cloneHandlerClosure returns a copy of fn whose compiled function carries a
 // private copy of SpecialFunctionParameters so concurrent handlers never write
 // to the same default parameter maps. Bytecode is immutable at runtime and
-// shared safely; free variables are shared as well.
+// shared safely; free variables are cloned with cycle support.
 func cloneHandlerClosure(fn *object.Closure) *object.Closure {
 	var sfp map[object.NameIndexKey]map[object.NameIndexKey]object.Object
 	if fn.Fun.SpecialFunctionParameters != nil {

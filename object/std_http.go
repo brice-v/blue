@@ -598,6 +598,9 @@ var HttpBuiltins = []*Builtin{
 				return err
 			}
 			err = checkArgType("new_server", 5, INTEGER_OBJ, args)
+			if err != nil {
+				return err
+			}
 			network := args[0].(*Stringo).Value
 			app := fiber.New(fiber.Config{
 				Immutable:    true,

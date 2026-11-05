@@ -748,6 +748,9 @@ var Builtins = []*Builtin{
 			}
 			elements := args[0].(*List).Elements
 			for _, e := range elements {
+				if !IsHashable(e) {
+					return newError("`set` error: unusable as a set element: %s", e.Type())
+				}
 				hashKey := HashObject(e)
 				resultSet.Elements.Set(hashKey, SetPair{Value: e, Present: struct{}{}})
 			}

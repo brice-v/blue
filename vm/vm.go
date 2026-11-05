@@ -206,33 +206,36 @@ func (vm *VM) SetInstructionOffset(offset int) {
 func (vm *VM) CloneWithGlobalsOwned(pid uint64) *VM {
 	frames := make([]Frame, lazyFramesFloor)
 	frames[0] = *NewFrame(emptyMainClosure, 0)
+	globals := object.CloneGlobals(vm.globals, vm.globalsHighWater)
 	return &VM{
-		constants:    vm.constants,
-		tokens:       vm.tokens,
-		stack:        make([]object.Object, StackSize),
-		sp:           0,
-		globals:      object.CloneGlobals(vm.globals, vm.globalsHighWater),
-		globalsOwned: true,
-		frames:       frames,
-		framesIndex:  1,
-		lastNodePos:  -1,
-		NodeName:     vm.NodeName,
-		PID:          pid,
-		wsTemplate:   vm.wsTemplate,
+		constants:        vm.constants,
+		tokens:           vm.tokens,
+		stack:            make([]object.Object, StackSize),
+		sp:               0,
+		globals:          globals,
+		globalsOwned:     true,
+		globalsHighWater: len(globals),
+		frames:           frames,
+		framesIndex:      1,
+		lastNodePos:      -1,
+		NodeName:         vm.NodeName,
+		PID:              pid,
+		wsTemplate:       vm.wsTemplate,
 	}
 }
 
 func (vm *VM) CloneForConnection(pid uint64) *VM {
 	frames := make([]Frame, lazyFramesFloor)
 	frames[0] = *NewFrame(emptyMainClosure, 0)
+	globals := object.CloneGlobals(vm.globals, vm.globalsHighWater)
 	return &VM{
 		constants:        vm.constants,
 		tokens:           vm.tokens,
 		stack:            make([]object.Object, StackSize),
 		sp:               0,
-		globals:          object.CloneGlobals(vm.globals, vm.globalsHighWater),
+		globals:          globals,
 		globalsOwned:     true,
-		globalsHighWater: vm.globalsHighWater,
+		globalsHighWater: len(globals),
 		frames:           frames,
 		framesIndex:      1,
 		lastNodePos:      -1,
@@ -798,6 +801,7 @@ func (vm *VM) Run() error {
 						if !ok {
 							builtin = &object.Builtin{
 								Name:    definition.Name,
+								Module:  modName,
 								Fun:     GetStdBuiltinWithVm(modName, definition.Name, vm),
 								HelpStr: definition.HelpStr,
 								Mutates: definition.Mutates,
@@ -816,6 +820,7 @@ func (vm *VM) Run() error {
 						if !ok {
 							builtin = &object.Builtin{
 								Name:    definition.Name,
+								Module:  "core",
 								Fun:     GetBuiltinFunWithVm(definition.Name, vm),
 								HelpStr: definition.HelpStr,
 								Mutates: definition.Mutates,
@@ -1416,6 +1421,9 @@ func (vm *VM) buildSet(startIndex, endIndex int) object.Object {
 	setMap := object.NewSetElementsWithSize(endIndex - startIndex)
 	for i := startIndex; i < endIndex; i++ {
 		elem := vm.stack[i]
+		if !object.IsHashable(elem) {
+			return newError("unusable as a set element: %s", elem.Type())
+		}
 		hashKey := object.HashObject(elem)
 		setMap.Set(hashKey, object.SetPair{Value: elem, Present: struct{}{}})
 	}

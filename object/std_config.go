@@ -32,7 +32,9 @@ var ConfigBuiltins = []*Builtin{
 				if err.Error() == "not register decoder for the format: env" {
 					err = dotenv.LoadFiles(fpath)
 					Builtinobjs["ENV"] = &BuiltinObj{
-						Obj: PopulateENVObj(),
+						Name:   "ENV",
+						Module: "builtinobj",
+						Obj:    PopulateENVObj(),
 					}
 					if err != nil {
 						return newError("`load_file` error: %s", err.Error())

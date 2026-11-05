@@ -32,15 +32,21 @@ func (f *Frame) Clone() *Frame {
 	if f == nil {
 		return nil
 	}
+	objs := make([]object.Object, 1+len(f.deferFuns))
+	objs[0] = f.cl
+	for i, df := range f.deferFuns {
+		objs[i+1] = df
+	}
+	cloned := object.CloneSlice(objs)
 	var newDeferFuns []*object.Closure
 	if f.deferFuns != nil {
 		newDeferFuns = make([]*object.Closure, len(f.deferFuns))
-		for i, df := range f.deferFuns {
-			newDeferFuns[i] = df.Clone().(*object.Closure)
+		for i := range f.deferFuns {
+			newDeferFuns[i] = cloned[i+1].(*object.Closure)
 		}
 	}
 	return &Frame{
-		cl:                f.cl.Clone().(*object.Closure),
+		cl:                cloned[0].(*object.Closure),
 		ip:                f.ip,
 		bp:                f.bp,
 		opPos:             f.opPos,
