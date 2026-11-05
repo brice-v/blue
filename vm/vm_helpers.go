@@ -640,18 +640,18 @@ func getErrorTokenTraceAsJsonWithError(vm *VM, errorMsg string) any {
 	return errors
 }
 
-func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) (bool, object.Object, []string) {
+func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) (*VM, object.Object) {
 	isGet := method == "GET"
 	isDelete := method == "DELETE"
 	methodLower := strings.ToLower(method)
-	vm.execMu.Lock()
-	defer vm.execMu.Unlock()
+	handlerFn := cloneHandlerClosureSharedFree(fn)
 	if !isGet && !isDelete {
-		handleSpecialFunctionArgs2(fn, methodLower+"_values", c)
+		handleSpecialFunctionArgs2(handlerFn, methodLower+"_values", c)
 	}
-	handleSpecialFunctionArgs2(fn, "query_params", c)
-	fnArgs := getAndSetHttpParams(fn, c)
-	return true, vm.applyFunctionFastWithMultipleArgs(fn, fnArgs), []string{}
+	handleSpecialFunctionArgs2(handlerFn, "query_params", c)
+	fnArgs := getAndSetHttpParams(handlerFn, c)
+	handlerVM := vm.CloneForHTTPHandler(vm.PID)
+	return handlerVM, handlerVM.applyFunctionFastWithMultipleArgs(handlerFn, fnArgs)
 }
 
 func handleSpecialFunctionArgs2(fn *object.Closure, varName string, c fiber.Ctx) {

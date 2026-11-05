@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 	"runtime/metrics"
+	"slices"
 	"strings"
 )
 
@@ -17,9 +18,6 @@ const (
 	MaxJSONDepth      = 512
 )
 
-// CreateBasicMapObject creates an object that looks like {'t': objType, 'v': objValue}
-// This is currently being used for `spawn` and `db.open()` so that a unique return value
-// is created (and it allows the functions defined for them to work)
 func CreateBasicMapObject(objType string, objValue uint64) *Map {
 	m := &Map{
 		Pairs: NewPairsMapWithSize(1),
@@ -751,29 +749,90 @@ type equalPair struct {
 	b Object
 }
 
-type equalCtx struct {
-	seen map[equalPair]struct{}
-}
+const equalPairStackSize = 8
 
-func newEqualCtx() *equalCtx {
-	return &equalCtx{seen: make(map[equalPair]struct{})}
+type equalCtx struct {
+	stack    [equalPairStackSize]equalPair
+	depth    int
+	overflow []equalPair
 }
 
 func FastEqual(a, b Object) bool {
-	return newEqualCtx().equal(a, b)
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a == b {
+		return true
+	}
+	if a.Type() != b.Type() {
+		return false
+	}
+	switch x := a.(type) {
+	case *Integer:
+		y, ok := b.(*Integer)
+		return ok && x.Value == y.Value
+	case *UInteger:
+		y, ok := b.(*UInteger)
+		return ok && x.Value == y.Value
+	case *Float:
+		y, ok := b.(*Float)
+		return ok && x.Value == y.Value
+	case *Stringo:
+		y, ok := b.(*Stringo)
+		return ok && x.Value == y.Value
+	case *Boolean:
+		y, ok := b.(*Boolean)
+		return ok && x.Value == y.Value
+	case *Null:
+		return true
+	case *Builtin:
+		y, ok := b.(*Builtin)
+		if !ok {
+			return false
+		}
+		xModule, xName, xok := builtinIdentity(x)
+		yModule, yName, yok := builtinIdentity(y)
+		return xok && yok && xModule == yModule && xName == yName
+	case *BuiltinObj:
+		y, ok := b.(*BuiltinObj)
+		if !ok {
+			return false
+		}
+		xModule, xName, xok := builtinIdentity(x)
+		yModule, yName, yok := builtinIdentity(y)
+		return xok && yok && xModule == yModule && xName == yName
+	}
+	var ctx equalCtx
+	return ctx.equal(a, b)
 }
 
 func (c *equalCtx) enter(a, b Object) bool {
 	pair := equalPair{a: a, b: b}
-	if _, ok := c.seen[pair]; ok {
+	limit := min(c.depth, len(c.stack))
+	for i := range limit {
+		if c.stack[i] == pair {
+			return false
+		}
+	}
+	if slices.Contains(c.overflow, pair) {
 		return false
 	}
-	c.seen[pair] = struct{}{}
+	if c.depth < len(c.stack) {
+		c.stack[c.depth] = pair
+	} else {
+		c.overflow = append(c.overflow, pair)
+	}
+	c.depth++
 	return true
 }
 
-func (c *equalCtx) leave(a, b Object) {
-	delete(c.seen, equalPair{a: a, b: b})
+func (c *equalCtx) leave() {
+	c.depth--
+	if c.depth < len(c.stack) {
+		c.stack[c.depth] = equalPair{}
+	} else {
+		c.overflow = c.overflow[:len(c.overflow)-1]
+	}
 }
 
 func (c *equalCtx) equal(a, b Object) bool {
@@ -825,28 +884,28 @@ func (c *equalCtx) equal(a, b Object) bool {
 		if !ok || !c.enter(x, y) {
 			return ok
 		}
-		defer c.leave(x, y)
+		defer c.leave()
 		return c.listsEqual(x, y)
 	case *Map:
 		y, ok := b.(*Map)
 		if !ok || !c.enter(x, y) {
 			return ok
 		}
-		defer c.leave(x, y)
+		defer c.leave()
 		return c.mapsEqual(x, y)
 	case *Set:
 		y, ok := b.(*Set)
 		if !ok || !c.enter(x, y) {
 			return ok
 		}
-		defer c.leave(x, y)
+		defer c.leave()
 		return c.setsEqual(x, y)
 	case *BlueStruct:
 		y, ok := b.(*BlueStruct)
 		if !ok || !c.enter(x, y) {
 			return ok
 		}
-		defer c.leave(x, y)
+		defer c.leave()
 		return c.structsEqual(x, y)
 	}
 	return HashObject(a) == HashObject(b)

@@ -121,11 +121,7 @@ func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 }
 
 func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) error {
-	ok, respObj, errors := prepareAndApplyHttpHandleFn(vm, fn, c, method)
-	if !ok {
-		return c.Status(fiber.StatusInternalServerError).JSON(errors)
-	}
-	// First check if the respObj is a MAP and if its a valid http handler response action
+	handlerVM, respObj := prepareAndApplyHttpHandleFn(vm, fn, c, method)
 	if respObj.Type() == object.MAP_OBJ {
 		isAction, action, m := tryGetHttpActionAndMap(respObj)
 		if isAction {
@@ -190,7 +186,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) er
 		} else {
 			obj := object.BlueObjToJsonObject(respObj)
 			if isError(obj) {
-				errors := getErrorTokenTraceAsJsonWithError(vm, obj.(*object.Error).Message).([]string)
+				errors := getErrorTokenTraceAsJsonWithError(handlerVM, obj.(*object.Error).Message).([]string)
 				errors = append(errors, fmt.Sprintf("%s Response Type is not STRING, valid JSON, or NULL. got=%s", method, obj.Type()))
 				return c.Status(fiber.StatusInternalServerError).JSON(errors)
 			} else {
@@ -202,7 +198,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) er
 					}
 				}
 			}
-			errors := getErrorTokenTraceAsJson(vm).([]string)
+			errors := getErrorTokenTraceAsJson(handlerVM).([]string)
 			errors = append(errors, fmt.Sprintf("%s Response Type is not NULL or STRING. got=%s", method, respObj.Type()))
 			return c.Status(fiber.StatusInternalServerError).JSON(errors)
 		}
@@ -237,7 +233,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) er
 			// assuming it all works (ie. if a list - all the values are valid JSON)
 			obj := object.BlueObjToJsonObject(respObj)
 			if isError(obj) {
-				errors := getErrorTokenTraceAsJsonWithError(vm, obj.(*object.Error).Message).([]string)
+				errors := getErrorTokenTraceAsJsonWithError(handlerVM, obj.(*object.Error).Message).([]string)
 				errors = append(errors, "error converting object to JSON")
 				return c.Status(fiber.StatusInternalServerError).JSON(errors)
 			}
@@ -248,7 +244,7 @@ func processHandlerFn(vm *VM, fn *object.Closure, c fiber.Ctx, method string) er
 					return c.Send(respStrBs)
 				}
 			}
-			errors := getErrorTokenTraceAsJson(vm).([]string)
+			errors := getErrorTokenTraceAsJson(handlerVM).([]string)
 			errors = append(errors, "STRING NOT RETURNED FROM JSON CONVERSION")
 			return c.Status(fiber.StatusInternalServerError).JSON(errors)
 		}
@@ -430,11 +426,18 @@ func handleSpecialFunctionArgs(fn *object.Closure, c *websocket.Conn) {
 	}
 }
 
-// cloneHandlerClosure returns a copy of fn whose compiled function carries a
-// private copy of SpecialFunctionParameters so concurrent handlers never write
-// to the same default parameter maps. Bytecode is immutable at runtime and
-// shared safely; free variables are cloned with cycle support.
 func cloneHandlerClosure(fn *object.Closure) *object.Closure {
+	return cloneHandlerClosureWithFree(fn, true)
+}
+
+func cloneHandlerClosureSharedFree(fn *object.Closure) *object.Closure {
+	if fn.Fun == nil || len(fn.Fun.SpecialFunctionParameters) == 0 {
+		return fn
+	}
+	return cloneHandlerClosureWithFree(fn, false)
+}
+
+func cloneHandlerClosureWithFree(fn *object.Closure, cloneFree bool) *object.Closure {
 	var sfp map[object.NameIndexKey]map[object.NameIndexKey]object.Object
 	if fn.Fun.SpecialFunctionParameters != nil {
 		sfp = make(map[object.NameIndexKey]map[object.NameIndexKey]object.Object, len(fn.Fun.SpecialFunctionParameters))
@@ -455,13 +458,13 @@ func cloneHandlerClosure(fn *object.Closure) *object.Closure {
 		SpecialFunctionParameters: sfp,
 		HelpStr:                   fn.Fun.HelpStr,
 	}
-	return &object.Closure{Fun: fun, Free: object.CloneSlice(fn.Free)}
+	free := fn.Free
+	if cloneFree {
+		free = object.CloneSlice(fn.Free)
+	}
+	return &object.Closure{Fun: fun, Free: free}
 }
 
-// unresolvableBuiltin returns a builtin that reports an unresolvable name.
-//
-// It is the core-module counterpart to unresolvableStdBuiltin: a name that the
-// builtin table does not know becomes a blue error rather than a process crash.
 func unresolvableBuiltin(name string) func(args ...object.Object) object.Object {
 	return func(args ...object.Object) object.Object {
 		if name == "" {

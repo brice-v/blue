@@ -247,7 +247,7 @@ func TestHandleWsPassesRouteParams(t *testing.T) {
 	}
 }
 
-func TestHttpRequestHandlersAreSerialized(t *testing.T) {
+func TestHttpRequestHandlersRunConcurrently(t *testing.T) {
 	app := fiber.New()
 	cl, vm := compileClosure(t, `fun() { 123 }`)
 

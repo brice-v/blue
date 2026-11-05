@@ -1303,3 +1303,75 @@ func TestLazyRangeLoops(t *testing.T) {
 		}
 	}
 }
+
+func TestHTTPHandlerStackGrowsLazily(t *testing.T) {
+	parent := New(&bluec.Bytecode{})
+	child := parent.CloneForHTTPHandler(parent.PID)
+	if len(child.stack) != lazyStackFloor {
+		t.Fatalf("handler stack length = %d, want %d", len(child.stack), lazyStackFloor)
+	}
+	if len(child.frames) != handlerFramesFloor {
+		t.Fatalf("handler frames length = %d, want %d", len(child.frames), handlerFramesFloor)
+	}
+
+	for i := range lazyStackFloor + 1 {
+		if err := child.push(object.NewInteger(int64(i))); err != nil {
+			t.Fatalf("push %d: %s", i, err.Error())
+		}
+	}
+	if len(child.stack) <= lazyStackFloor {
+		t.Fatal("handler stack did not grow past the lazy floor")
+	}
+	if child.sp != lazyStackFloor+1 {
+		t.Fatalf("stack pointer = %d, want %d", child.sp, lazyStackFloor+1)
+	}
+	if got := child.stack[0].(*object.Integer).Value; got != 0 {
+		t.Fatalf("stack[0] = %d, want 0", got)
+	}
+}
+
+func TestCloneForHTTPHandlerSharesGlobalsUntilWrite(t *testing.T) {
+	parent := New(&bluec.Bytecode{})
+	parent.globals = []object.Object{
+		object.NewInteger(1),
+		&object.List{Elements: []object.Object{object.NewInteger(2)}},
+	}
+	parent.globalsOwned = true
+	parent.globalsHighWater = len(parent.globals)
+
+	child := parent.CloneForHTTPHandler(parent.PID)
+	if child.globalsOwned {
+		t.Fatal("handler clone should start with copy-on-write globals")
+	}
+	if len(child.globals) != len(parent.globals) {
+		t.Fatalf("handler globals length = %d, want %d", len(child.globals), len(parent.globals))
+	}
+	if &child.globals[0] != &parent.globals[0] {
+		t.Fatal("handler clone should share the parent globals slice before a write")
+	}
+	if child.globals[1] != parent.globals[1] {
+		t.Fatal("handler clone should share the global container before a write")
+	}
+	if &child.stack[0] == &parent.stack[0] {
+		t.Fatal("handler clone should not share the value stack")
+	}
+
+	child.ensureGlobalWritable(0)
+	child.globals[0] = object.NewInteger(99)
+
+	if !child.globalsOwned {
+		t.Fatal("handler globals should be owned after the first write")
+	}
+	if &child.globals[0] == &parent.globals[0] {
+		t.Fatal("handler write should clone the globals slice")
+	}
+	if got := parent.globals[0].(*object.Integer).Value; got != 1 {
+		t.Fatalf("parent global was mutated: got %d, want 1", got)
+	}
+	if got := child.globals[0].(*object.Integer).Value; got != 99 {
+		t.Fatalf("handler global = %d, want 99", got)
+	}
+	if child.globals[1] != parent.globals[1] {
+		t.Fatal("globals container should remain shared until it is mutated in place")
+	}
+}

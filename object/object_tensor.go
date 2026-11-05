@@ -38,13 +38,13 @@ func (t *Tensor) Clone() Object {
 
 func (t *Tensor) hashTensor() uint64 {
 	hasher := newHashWriter()
-	maphash.WriteComparable(hasher, uint8(t.T.DType()))
-	maphash.WriteComparable(hasher, uint8(t.T.Device()))
+	maphash.WriteComparable(&hasher, uint8(t.T.DType()))
+	maphash.WriteComparable(&hasher, uint8(t.T.Device()))
 	for _, d := range t.T.Shape() {
-		maphash.WriteComparable(hasher, d)
+		maphash.WriteComparable(&hasher, d)
 	}
 	for _, v := range t.T.ContiguousData() {
-		maphash.WriteComparable(hasher, v)
+		maphash.WriteComparable(&hasher, v)
 	}
 	return hasher.Sum64()
 }

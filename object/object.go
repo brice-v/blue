@@ -1117,27 +1117,55 @@ type HashKey struct {
 
 var _seed = maphash.MakeSeed()
 
-func newHashWriter() *maphash.Hash {
-	h := &maphash.Hash{}
+func newHashWriter() maphash.Hash {
+	var h maphash.Hash
 	h.SetSeed(_seed)
 	return h
 }
 
 const hashCycleMarker uint64 = 0x9e3779b97f4a7c15
 
+const hashCycleStackSize = 8
+
 type Hasher struct {
-	seen map[Object]struct{}
+	stack    [hashCycleStackSize]Object
+	depth    int
+	overflow []Object
 }
 
-func newHasher() *Hasher {
-	return &Hasher{seen: make(map[Object]struct{})}
+func (c *Hasher) push(obj Object) bool {
+	limit := min(c.depth, len(c.stack))
+	for i := range limit {
+		if c.stack[i] == obj {
+			return false
+		}
+	}
+	if slices.Contains(c.overflow, obj) {
+		return false
+	}
+	if c.depth < len(c.stack) {
+		c.stack[c.depth] = obj
+	} else {
+		c.overflow = append(c.overflow, obj)
+	}
+	c.depth++
+	return true
+}
+
+func (c *Hasher) pop() {
+	c.depth--
+	if c.depth < len(c.stack) {
+		c.stack[c.depth] = nil
+	} else {
+		c.overflow = c.overflow[:len(c.overflow)-1]
+	}
 }
 
 // hashList implements hashing for list objects
 func (c *Hasher) hashList(elements []Object) uint64 {
 	hasher := newHashWriter()
 	for _, obj := range elements {
-		maphash.WriteComparable(hasher, c.hash(obj))
+		maphash.WriteComparable(&hasher, c.hash(obj))
 	}
 	return hasher.Sum64()
 }
@@ -1146,7 +1174,7 @@ func (c *Hasher) hashList(elements []Object) uint64 {
 func (s *Set) hashSet() uint64 {
 	hasher := newHashWriter()
 	for _, k := range s.Elements.Keys {
-		maphash.WriteComparable(hasher, k)
+		maphash.WriteComparable(&hasher, k)
 	}
 	return hasher.Sum64()
 }
@@ -1158,7 +1186,7 @@ func (c *Hasher) hashMap(m *Map) uint64 {
 		v, _ := m.Pairs.Get(k)
 		// Just using xor as a way to get a unique uint64 with the value hash
 		hashedKeyObj := k.Value ^ c.hash(v.Value)
-		maphash.WriteComparable(hasher, hashedKeyObj)
+		maphash.WriteComparable(&hasher, hashedKeyObj)
 	}
 	return hasher.Sum64()
 }
@@ -1167,7 +1195,7 @@ func (c *Hasher) hashDefaultArgs(da *DefaultArgs) uint64 {
 	hasher := newHashWriter()
 	for k, v := range da.Value {
 		hasher.WriteString(k)
-		maphash.WriteComparable(hasher, c.hash(v))
+		maphash.WriteComparable(&hasher, c.hash(v))
 	}
 	return hasher.Sum64()
 }
@@ -1177,7 +1205,7 @@ func (c *Hasher) hashStruct(bs *BlueStruct) uint64 {
 	hasher := newHashWriter()
 	for i, k := range bs.Fields {
 		hasher.WriteString(k)
-		maphash.WriteComparable(hasher, c.hash(bs.Values[i]))
+		maphash.WriteComparable(&hasher, c.hash(bs.Values[i]))
 	}
 	return hasher.Sum64()
 }
@@ -1191,7 +1219,19 @@ func stringHash(s string) uint64 {
 }
 
 func HashObject(obj Object) uint64 {
-	return newHasher().hash(obj)
+	switch o := obj.(type) {
+	case *Stringo:
+		return stringHash(o.Value)
+	case *Boolean:
+		if o.Value {
+			return 1
+		}
+		return 0
+	case *Null:
+		return 2
+	}
+	var hasher Hasher
+	return hasher.hash(obj)
 }
 
 func printHashPanicMessage(obj Object) {
@@ -1214,21 +1254,20 @@ func (c *Hasher) hash(obj Object) uint64 {
 	case *Null:
 		return 2
 	}
-	if _, ok := c.seen[obj]; ok {
+	if !c.push(obj) {
 		return hashCycleMarker
 	}
-	c.seen[obj] = struct{}{}
-	defer delete(c.seen, obj)
+	defer c.pop()
 
 	hasher := newHashWriter()
 	hasher.WriteByte(byte(obj.IType()))
 	switch obj.Type() {
 	case INTEGER_OBJ:
-		maphash.WriteComparable(hasher, obj.(*Integer).Value)
+		maphash.WriteComparable(&hasher, obj.(*Integer).Value)
 	case UINTEGER_OBJ:
-		maphash.WriteComparable(hasher, obj.(*UInteger).Value)
+		maphash.WriteComparable(&hasher, obj.(*UInteger).Value)
 	case FLOAT_OBJ:
-		maphash.WriteComparable(hasher, obj.(*Float).Value)
+		maphash.WriteComparable(&hasher, obj.(*Float).Value)
 	case EXEC_STRING_OBJ:
 		hasher.WriteString(obj.(*ExecString).Value)
 	case FUNCTION_OBJ:
@@ -1239,17 +1278,17 @@ func (c *Hasher) hash(obj Object) uint64 {
 	case ERROR_OBJ:
 		hasher.WriteString(obj.(*Error).Message)
 	case LIST_OBJ:
-		maphash.WriteComparable(hasher, c.hashList(obj.(*List).Elements))
+		maphash.WriteComparable(&hasher, c.hashList(obj.(*List).Elements))
 	case SET_OBJ:
-		maphash.WriteComparable(hasher, obj.(*Set).hashSet())
+		maphash.WriteComparable(&hasher, obj.(*Set).hashSet())
 	case IGNORE_OBJ:
 		hasher.WriteString("##IGNORE##")
 	case MAP_OBJ:
-		maphash.WriteComparable(hasher, c.hashMap(obj.(*Map)))
+		maphash.WriteComparable(&hasher, c.hashMap(obj.(*Map)))
 	case DEFAULT_ARGS_OBJ:
-		maphash.WriteComparable(hasher, c.hashDefaultArgs(obj.(*DefaultArgs)))
+		maphash.WriteComparable(&hasher, c.hashDefaultArgs(obj.(*DefaultArgs)))
 	case BLUE_STRUCT_OBJ:
-		maphash.WriteComparable(hasher, c.hashStruct(obj.(*BlueStruct)))
+		maphash.WriteComparable(&hasher, c.hashStruct(obj.(*BlueStruct)))
 	case BYTES_OBJ:
 		hasher.Write(obj.(*Bytes).Value)
 	case BIG_FLOAT_OBJ:
@@ -1270,7 +1309,7 @@ func (c *Hasher) hash(obj Object) uint64 {
 			hasher.WriteByte(0)
 			hasher.WriteString(name)
 		} else {
-			_, err := fmt.Fprintf(hasher, "%p", obj)
+			_, err := fmt.Fprintf(&hasher, "%p", obj)
 			if err != nil {
 				println(err)
 				printHashPanicMessage(obj)
@@ -1279,7 +1318,7 @@ func (c *Hasher) hash(obj Object) uint64 {
 	case MODULE_OBJ:
 		hasher.WriteString(obj.(*Module).Name)
 	case TENSOR_OBJ:
-		maphash.WriteComparable(hasher, obj.(*Tensor).hashTensor())
+		maphash.WriteComparable(&hasher, obj.(*Tensor).hashTensor())
 	default:
 		printHashPanicMessage(obj)
 	}

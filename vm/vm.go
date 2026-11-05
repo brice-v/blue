@@ -13,13 +13,16 @@ import (
 	"math/big"
 	"slices"
 	"strings"
-	"sync"
 )
 
 const (
 	StackSize   = 2048
 	GlobalsSize = 65536
 	MaxFrames   = 1024
+
+	lazyStackFloor     = 256
+	handlerFramesFloor = 8
+	lazyGlobalsFloor   = 128
 )
 
 type VM struct {
@@ -67,10 +70,6 @@ type VM struct {
 	// wsTemplate is the snapshot source for ws connection vms, created on the
 	// first _handle_ws resolution and shared by every vm in the lineage.
 	wsTemplate *VM
-
-	// execMu serializes http handler execution. The stack, frames, globals
-	// and closure special parameter maps are not safe for concurrent runs.
-	execMu sync.Mutex
 
 	// framesChanged is set when catch/finally unwinding rewrites
 	// framesIndex or a frame's ip outside of the interpreter loop's local
@@ -245,19 +244,32 @@ func (vm *VM) CloneForConnection(pid uint64) *VM {
 	}
 }
 
-// ensureGlobalWritable makes vm.globals safe to write at index. Globals are
-// lazily sized: fresh vms start with no backing store and grow geometrically
-// up to GlobalsSize on first write, so short scripts never pay for a full
-// 64k-slot table (allocation + GC scanning of 1 MB of pointers). Slices
-// shared with sibling vms are copied first (copy-on-write).
+func (vm *VM) CloneForHTTPHandler(pid uint64) *VM {
+	frames := make([]Frame, handlerFramesFloor)
+	frames[0] = *NewFrame(emptyMainClosure, 0)
+	return &VM{
+		constants:        vm.constants,
+		tokens:           vm.tokens,
+		stack:            make([]object.Object, lazyStackFloor),
+		sp:               0,
+		globals:          vm.globals,
+		globalsOwned:     false,
+		globalsHighWater: vm.globalsHighWater,
+		frames:           frames,
+		framesIndex:      1,
+		lastNodePos:      -1,
+		NodeName:         vm.NodeName,
+		PID:              pid,
+		wsTemplate:       vm.wsTemplate,
+	}
+}
+
 func (vm *VM) ensureGlobalWritable(index int) {
 	if index < len(vm.globals) && vm.globalsOwned {
-		return // hot path: already owned and big enough
+		return
 	}
 	newSize := len(vm.globals)
 	if index >= newSize {
-		// Grow geometrically; indices are uint16 operands so they always
-		// fit within GlobalsSize.
 		newSize *= 2
 		if newSize <= index {
 			newSize = index + 1
@@ -275,22 +287,12 @@ func (vm *VM) ensureGlobalWritable(index int) {
 	vm.globalsOwned = true
 }
 
-// lazyGlobalsFloor is the initial size of a vm's lazily allocated globals
-// store, large enough that typical scripts never reallocate.
-const lazyGlobalsFloor = 128
-
-// SetGlobalsHighWater records that global slots below n hold values written
-// outside of the interpreter loop (the repl stores per-line results
-// directly into the shared store between runs), so spawn-time snapshots
-// include them.
 func (vm *VM) SetGlobalsHighWater(n int) {
 	if n > vm.globalsHighWater {
 		vm.globalsHighWater = n
 	}
 }
 
-// GlobalsHighWater returns one past the highest global index ever written
-// through this vm (or seeded via SetGlobalsHighWater).
 func (vm *VM) GlobalsHighWater() int {
 	return vm.globalsHighWater
 }
@@ -312,10 +314,6 @@ func (vm *VM) PushAndReturnError(err error) error {
 
 func (vm *VM) Run() error {
 	var op code.Opcode
-	// frame/ins/ip are cached across instructions and only resynced from vm
-	// state when frames change (calls, returns, catch unwinding). frame.ip
-	// is stored before each dispatch because handlers and exception
-	// scanning read it mid-handler.
 	frame := vm.currentFrame()
 	ins := frame.Instructions()
 	ip := frame.ip
@@ -1169,7 +1167,7 @@ func (vm *VM) push(o object.Object) error {
 		}
 		return vm.prepareStackTraceAndReturnError(fmt.Errorf("%s", o.(*object.Error).Message))
 	}
-	if vm.sp >= StackSize {
+	if vm.sp >= len(vm.stack) && !vm.growStackTo(vm.sp+1) {
 		return vm.prepareStackTraceAndReturnError(fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o))
 	}
 	vm.stack[vm.sp] = o
@@ -1178,7 +1176,7 @@ func (vm *VM) push(o object.Object) error {
 }
 
 func (vm *VM) pushNoErrorChecking(o object.Object) {
-	if vm.sp >= StackSize {
+	if vm.sp >= len(vm.stack) && !vm.growStackTo(vm.sp+1) {
 		err := vm.prepareStackTraceAndReturnError(fmt.Errorf("stack overflow when trying to push %+#v (%T)", o, o))
 		log.Fatalf("vm.pushNoErrorChecking: error: %s", err.Error())
 	}
@@ -1186,8 +1184,28 @@ func (vm *VM) pushNoErrorChecking(o object.Object) {
 	vm.sp++
 }
 
+func (vm *VM) growStackTo(size int) bool {
+	if size <= len(vm.stack) {
+		return true
+	}
+	if size > StackSize {
+		return false
+	}
+	newSize := max(len(vm.stack)*2, size)
+	if newSize < lazyStackFloor {
+		newSize = lazyStackFloor
+	}
+	if newSize > StackSize {
+		newSize = StackSize
+	}
+	newStack := make([]object.Object, newSize)
+	copy(newStack, vm.stack)
+	vm.stack = newStack
+	return true
+}
+
 func (vm *VM) pop() object.Object {
-	if vm.sp == 0 || vm.sp-1 > len(vm.stack) {
+	if vm.sp == 0 || vm.sp > len(vm.stack) {
 		return newError("stack pointer out of bounds")
 	}
 	o := vm.stack[vm.sp-1]
@@ -1555,6 +1573,10 @@ func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
 	if err != nil {
 		return err
 	}
+	newSP := vm.sp - newArgCount + cl.Fun.NumLocals
+	if !vm.growStackTo(newSP) {
+		return fmt.Errorf("stack overflow when calling %s", cl.Fun.DisplayString)
+	}
 
 	// CurrentFrame looks at frameIndex-1; replace that slot in place.
 	frame := vm.newCallFrameReplaceTop(cl, vm.sp-newArgCount)
@@ -1563,7 +1585,7 @@ func (vm *VM) callClosureFastFrame(cl *object.Closure, numArgs int) error {
 		frame.inTry = cf.inTry
 		frame.inCatch = cf.inCatch
 	}
-	vm.sp = frame.bp + cl.Fun.NumLocals
+	vm.sp = newSP
 	return nil
 }
 
@@ -1571,6 +1593,10 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 	newArgCount, err := vm.interweaveArgsForCall(cl.Fun, numArgs)
 	if err != nil {
 		return err
+	}
+	newSP := vm.sp - newArgCount + cl.Fun.NumLocals
+	if !vm.growStackTo(newSP) {
+		return fmt.Errorf("stack overflow when calling %s", cl.Fun.DisplayString)
 	}
 
 	frame := vm.newCallFrame(cl, vm.sp-newArgCount)
@@ -1584,7 +1610,7 @@ func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
 	// the next slot so just advance the index (pushFrame would copy onto
 	// itself).
 	vm.framesIndex++
-	vm.sp = frame.bp + cl.Fun.NumLocals
+	vm.sp = newSP
 	return nil
 }
 

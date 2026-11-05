@@ -376,6 +376,17 @@ func immutableGlobalType(o Object) bool {
 	return false
 }
 
+func immutableGlobalObject(obj Object) bool {
+	if immutableGlobalType(obj) {
+		return true
+	}
+	closure, ok := obj.(*Closure)
+	if !ok || closure.Fun == nil {
+		return false
+	}
+	return len(closure.Free) == 0 && len(closure.Fun.SpecialFunctionParameters) == 0
+}
+
 func CloneGlobals(elements []Object, highWater int) []Object {
 	if highWater < 0 {
 		highWater = 0
@@ -397,7 +408,7 @@ func CloneGlobals(elements []Object, highWater int) []Object {
 		if e == nil {
 			continue
 		}
-		if immutableGlobalType(e) {
+		if immutableGlobalObject(e) {
 			newElements[i] = e
 			continue
 		}
