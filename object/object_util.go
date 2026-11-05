@@ -161,7 +161,7 @@ func blueObjectToGoObject(blueObject Object) (any, error) {
 			return nil, fmt.Errorf("blueObjectToGoObject: Map must only have STRING, INTEGER, or FLOAT keys")
 		}
 		if allStrings {
-			pairs := NewOrderedMap[string, any]()
+			pairs := NewOrderedMapWithSize[string, any](m.Pairs.Len())
 			for _, k := range m.Pairs.Keys {
 				mp, _ := m.Pairs.Get(k)
 				if mp.Value.Type() == MAP_OBJ {
@@ -175,7 +175,7 @@ func blueObjectToGoObject(blueObject Object) (any, error) {
 			}
 			return pairs, nil
 		} else if allInts {
-			pairs := NewOrderedMap[int64, any]()
+			pairs := NewOrderedMapWithSize[int64, any](m.Pairs.Len())
 			for _, k := range m.Pairs.Keys {
 				mp, _ := m.Pairs.Get(k)
 				if mp.Value.Type() == MAP_OBJ {
@@ -190,7 +190,7 @@ func blueObjectToGoObject(blueObject Object) (any, error) {
 			return pairs, nil
 		} else {
 			// Floats
-			pairs := NewOrderedMap[float64, any]()
+			pairs := NewOrderedMapWithSize[float64, any](m.Pairs.Len())
 			for _, k := range m.Pairs.Keys {
 				mp, _ := m.Pairs.Get(k)
 				if mp.Value.Type() == MAP_OBJ {
@@ -220,7 +220,7 @@ func blueObjectToGoObject(blueObject Object) (any, error) {
 		return elements, nil
 	case SET_OBJ:
 		s := blueObject.(*Set)
-		set := NewOrderedMap[uint64, SetPairGo]()
+		set := NewOrderedMapWithSize[uint64, SetPairGo](s.Elements.Len())
 		for _, k := range s.Elements.Keys {
 			v, _ := s.Elements.Get(k)
 			val, err := blueObjectToGoObject(v.Value)
@@ -249,7 +249,7 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 	body := &Stringo{Value: string(_body)}
 	contentLength := &Integer{Value: resp.ContentLength}
 	headersToMapObj := func(header http.Header) Object {
-		mapObj := NewOrderedMap[string, Object]()
+		mapObj := NewOrderedMapWithSize[string, Object](len(header))
 		for k, v := range header {
 			list := &List{Elements: make([]Object, len(v))}
 			for i, e := range v {
