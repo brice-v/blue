@@ -18,8 +18,16 @@ type NamedTensor struct {
 	Tensor *Tensor
 }
 
-// stateMagic identifies a blue state archive: a named collection of tensors.
-const stateMagic = "BLUESTATE1"
+const (
+	// stateMagic identifies a blue state archive: a named collection of tensors.
+	stateMagic = "BLUESTATE1"
+	// maxStateEntries bounds the number of tensors read from an untrusted
+	// archive before the output slice is allocated.
+	maxStateEntries = 1 << 16
+	// maxStateNameBytes bounds a single tensor name read from an untrusted
+	// archive before the name buffer is allocated.
+	maxStateNameBytes = 1 << 16
+)
 
 // SaveState writes named tensors to one file. Unlike Save, which stores a
 // single unnamed tensor, this keeps the names so a model can be rebuilt and
@@ -90,11 +98,17 @@ func readState(r io.Reader) ([]NamedTensor, error) {
 	if err := binary.Read(r, binary.LittleEndian, &count); err != nil {
 		return nil, err
 	}
+	if count > maxStateEntries {
+		return nil, fmt.Errorf("load_state: tensor count %d exceeds maximum %d", count, maxStateEntries)
+	}
 	out := make([]NamedTensor, count)
 	for i := range out {
 		var nameLen uint32
 		if err := binary.Read(r, binary.LittleEndian, &nameLen); err != nil {
 			return nil, err
+		}
+		if nameLen > maxStateNameBytes {
+			return nil, fmt.Errorf("load_state: tensor name length %d exceeds maximum %d", nameLen, maxStateNameBytes)
 		}
 		name := make([]byte, nameLen)
 		if _, err := io.ReadFull(r, name); err != nil {
@@ -108,6 +122,9 @@ func readState(r io.Reader) ([]NamedTensor, error) {
 		if err := binary.Read(r, binary.LittleEndian, &rank); err != nil {
 			return nil, err
 		}
+		if rank > maxTensorRank {
+			return nil, fmt.Errorf("load_state: tensor rank %d exceeds maximum %d", rank, maxTensorRank)
+		}
 		shape := make([]int, rank)
 		for j := range shape {
 			var d int64
@@ -116,9 +133,9 @@ func readState(r io.Reader) ([]NamedTensor, error) {
 			}
 			shape[j] = int(d)
 		}
-		total := 1
-		for _, d := range shape {
-			total *= d
+		total, err := tensorElementCount(shape)
+		if err != nil {
+			return nil, err
 		}
 		data := make([]float32, total)
 		if err := binary.Read(r, binary.LittleEndian, data); err != nil {

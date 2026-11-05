@@ -18,9 +18,9 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
-// scryptN is the CPU/memory cost used when deriving keys in _encrypt and
-// _decrypt. It is a variable rather than a constant so tests can lower it
-var scryptN = 1 << 20
+// scryptN is the CPU/memory cost used when deriving keys in _encrypt and _decrypt
+// https://pkg.go.dev/golang.org/x/crypto/scrypt#:~:text=The%20recommended%20parameters%20for%20interactive%20logins%20as%20of%202017%20are%20N%3D32768
+const scryptN = 1 << 15
 
 var CryptoBuiltins = []*Builtin{
 	{
@@ -221,7 +221,7 @@ var CryptoBuiltins = []*Builtin{
 			}
 			data := args[1].(*Bytes).Value
 			getDataAsBytes := args[2].(*Boolean).Value
-			if len(data) < 32 {
+			if len(data) < 32+32 {
 				return newError("`decrypt` error: data too short to contain salt")
 			}
 

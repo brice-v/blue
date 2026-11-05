@@ -11,16 +11,25 @@ import (
 )
 
 func handleVmDotCommand(line string, out io.Writer, fileBuf *bytes.Buffer, vm *vm.VM) error {
-	cmdAndArg := strings.Split(line, " ")
-	if len(cmdAndArg) == 1 {
-		handleHelpCommand(out)
+	cmdAndArg := strings.Fields(line)
+	if len(cmdAndArg) == 0 {
+		return nil
 	}
 	cmd := cmdAndArg[0]
 	switch cmd {
 	case ".save":
+		if len(cmdAndArg) < 2 {
+			return fmt.Errorf("%s requires a filename", cmd)
+		}
 		return handleSaveCommand(out, fileBuf, cmdAndArg[1])
 	case ".load":
+		if len(cmdAndArg) < 2 {
+			return fmt.Errorf("%s requires a filename", cmd)
+		}
 		return handleVmLoadCommand(out, fileBuf, cmdAndArg[1], vm)
+	}
+	if len(cmdAndArg) == 1 {
+		handleHelpCommand(out)
 	}
 	return nil
 }
@@ -40,7 +49,7 @@ func handleHelpCommand(out io.Writer) {
 }
 
 func handleSaveCommand(out io.Writer, filebuf *bytes.Buffer, filename string) error {
-	err := os.WriteFile(filename, filebuf.Bytes(), 0666)
+	err := os.WriteFile(filename, filebuf.Bytes(), 0644)
 	if err != nil {
 		return err
 	}

@@ -275,6 +275,10 @@ func readSection(r *bytes.Reader) ([]byte, error) {
 		return nil, ErrTruncated
 	}
 	n := binary.LittleEndian.Uint32(lenBuf[:])
+	// Validate the declared length against the remaining input before allocating
+	if uint64(n) > uint64(r.Len()) {
+		return nil, ErrTruncated
+	}
 	section := make([]byte, n)
 	read, _ := r.Read(section)
 	if uint32(read) != n {

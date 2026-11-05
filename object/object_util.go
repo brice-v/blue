@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
-	"runtime"
 	"runtime/metrics"
 	"strings"
 )
@@ -379,13 +378,7 @@ func newExecCmdError(commandStr, err, stderr string) Object {
 }
 
 func execCommand(arg0 string, args ...string) (string, string, error) {
-	var execCmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmdArgs := append([]string{"cmd", "/c", arg0}, args...)
-		execCmd = exec.Command(cmdArgs[0], cmdArgs...)
-	} else {
-		execCmd = exec.Command(arg0, args...)
-	}
+	execCmd := exec.Command(arg0, args...)
 	var stdout, stderr bytes.Buffer
 	execCmd.Stdout = &stdout
 	execCmd.Stderr = &stderr

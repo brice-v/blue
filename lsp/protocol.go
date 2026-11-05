@@ -379,7 +379,7 @@ func readMessage(r *bufio.Reader) (*request, error) {
 // invalid JSON so the dispatch loop can reply with a parse error.
 const methodParseFailure = "$/parse-failure"
 
-const maxMessageBytes = 64 << 20 // 64 MiB guard against runaway messages
+const maxMessageBytes = 16 << 20 // 16 MiB guard against runaway messages
 
 // writeMessage writes one framed message to w.
 func writeMessage(w *bufio.Writer, v any) error {

@@ -684,7 +684,11 @@ var HttpBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("shutdown_server", len(args), 0, "")
 			}
-			interruptCh <- os.Interrupt
+			// shutdown_server may be called more than once, use select to avoid failure
+			select {
+			case interruptCh <- os.Interrupt:
+			default:
+			}
 			return NULL
 		},
 		HelpStr: helpStrArgs{

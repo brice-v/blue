@@ -7,9 +7,38 @@ import (
 	"os"
 )
 
-// Tensor file format: magic, dtype, rank, shape, element count, then float32
-// elements in row-major order.
-const tensorMagic = "BLUETNSR1"
+const (
+	// Tensor file format: magic, dtype, rank, shape, element count, then float32
+	// elements in row-major order.
+	tensorMagic = "BLUETNSR1"
+	// maxTensorRank bounds the rank read from an untrusted file before the
+	// shape slice is allocated.
+	maxTensorRank = 32
+	// maxTensorElements bounds the total number of elements accepted from an
+	// untrusted file so a small header cannot request a huge allocation.
+	maxTensorElements = 1 << 26
+)
+
+// tensorElementCount validates a shape read from an untrusted file and returns
+// its total number of elements. It rejects negative dimensions and shapes whose
+// product would overflow or exceed maxTensorElements.
+func tensorElementCount(shape []int) (int, error) {
+	total := int64(1)
+	for _, d := range shape {
+		if d < 0 {
+			return 0, fmt.Errorf("load: tensor dimension %d must not be negative", d)
+		}
+		if d == 0 {
+			total = 0
+			continue
+		}
+		if total > int64(maxTensorElements)/int64(d) {
+			return 0, fmt.Errorf("load: tensor shape %v is too large", shape)
+		}
+		total *= int64(d)
+	}
+	return int(total), nil
+}
 
 func Save(t *Tensor, path string) error {
 	f, err := os.Create(path)
@@ -69,6 +98,9 @@ func readTensor(r io.Reader, device Device) (*Tensor, error) {
 	if err := binary.Read(r, binary.LittleEndian, &rank); err != nil {
 		return nil, err
 	}
+	if rank > maxTensorRank {
+		return nil, fmt.Errorf("load: tensor rank %d exceeds maximum %d", rank, maxTensorRank)
+	}
 	shape := make([]int, rank)
 	for i := range shape {
 		var d int64
@@ -77,9 +109,9 @@ func readTensor(r io.Reader, device Device) (*Tensor, error) {
 		}
 		shape[i] = int(d)
 	}
-	total := 1
-	for _, d := range shape {
-		total *= d
+	total, err := tensorElementCount(shape)
+	if err != nil {
+		return nil, err
 	}
 	data := make([]float32, total)
 	if err := binary.Read(r, binary.LittleEndian, data); err != nil {

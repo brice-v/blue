@@ -94,7 +94,7 @@ var ConfigBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`dump_config` error: failed to dump to output, error: %s", err.Error())
 			}
-			err = os.WriteFile(fpath, out.Bytes(), 0755)
+			err = os.WriteFile(fpath, out.Bytes(), 0644)
 			if err != nil {
 				return newError("`dump_config` error: %s", err.Error())
 			}

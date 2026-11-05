@@ -86,8 +86,10 @@ func PopulateENVObj() *Map {
 	}
 
 	for _, e := range os.Environ() {
-		es := strings.Split(e, "=")
-		e1, e2 := es[0], es[1]
+		e1, e2, found := strings.Cut(e, "=")
+		if !found {
+			e2 = ""
+		}
 		key := &Stringo{Value: e1}
 		hashKey := HashObject(key)
 		hk := HashKey{
