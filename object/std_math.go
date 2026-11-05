@@ -3,9 +3,17 @@ package object
 import (
 	"math"
 	"math/rand"
+	"sync"
+	"time"
 )
 
-var mathRand = rand.New(rand.NewSource(0))
+var mathRand = newRandSeeded()
+var mathRandLock sync.Mutex
+
+func newRandSeeded() *rand.Rand {
+	seed := time.Now().UnixNano()
+	return rand.New(rand.NewSource(seed))
+}
 
 // greatest common divisor (GCD) via Euclidean algorithm
 func gcd(a, b int64) int64 {
@@ -1298,7 +1306,9 @@ var MathBuiltins = []*Builtin{
 				return newPositionalTypeError("seed", 1, INTEGER_OBJ, args[0].Type())
 			}
 			n := args[0].(*Integer).Value
+			mathRandLock.Lock()
 			mathRand = rand.New(rand.NewSource(n))
+			mathRandLock.Unlock()
 			return TRUE
 		},
 		HelpStr: helpStrArgs{
