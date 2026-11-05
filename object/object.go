@@ -648,6 +648,8 @@ func (l *List) inspect(depth int) string {
 			elements = append(elements, v.inspect(depth+1))
 		case *Map:
 			elements = append(elements, v.inspect(depth+1))
+		case *Set:
+			elements = append(elements, v.inspect(depth+1))
 		default:
 			elements = append(elements, v.Inspect())
 		}
@@ -713,7 +715,7 @@ func (m *Map) Inspect() string {
 
 func (m *Map) inspect(depth int) string {
 	if depth > maxInspectDepth {
-		return "{...}"
+		return "{...:...}"
 	}
 	var out bytes.Buffer
 
@@ -726,6 +728,8 @@ func (m *Map) inspect(depth int) string {
 			keyStr = kL.inspect(depth + 1)
 		} else if kM, ok := pair.Key.(*Map); ok {
 			keyStr = kM.inspect(depth + 1)
+		} else if kS, ok := pair.Key.(*Set); ok {
+			keyStr = kS.inspect(depth + 1)
 		} else {
 			keyStr = pair.Key.Inspect()
 		}
@@ -733,6 +737,8 @@ func (m *Map) inspect(depth int) string {
 			valStr = vL.inspect(depth + 1)
 		} else if vM, ok := pair.Value.(*Map); ok {
 			valStr = vM.inspect(depth + 1)
+		} else if vS, ok := pair.Value.(*Set); ok {
+			valStr = vS.inspect(depth + 1)
 		} else {
 			valStr = pair.Value.Inspect()
 		}
@@ -861,6 +867,13 @@ func (s *Set) Type() Type { return SET_OBJ }
 
 // Inspect returns the stringified version of the set
 func (s *Set) Inspect() string {
+	return s.inspect(0)
+}
+
+func (s *Set) inspect(depth int) string {
+	if depth > maxInspectDepth {
+		return "{...}"
+	}
 	var out bytes.Buffer
 
 	out.WriteString("{")
@@ -874,7 +887,16 @@ func (s *Set) Inspect() string {
 		if i != len(keys)-1 {
 			endStr = ", "
 		}
-		out.WriteString(e.Value.Inspect())
+		switch v := e.Value.(type) {
+		case *List:
+			out.WriteString(v.inspect(depth + 1))
+		case *Map:
+			out.WriteString(v.inspect(depth + 1))
+		case *Set:
+			out.WriteString(v.inspect(depth + 1))
+		default:
+			out.WriteString(v.Inspect())
+		}
 		out.WriteString(endStr)
 	}
 	out.WriteString("}")

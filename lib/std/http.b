@@ -522,7 +522,7 @@ fun new_server(network="tcp4", read_timeout=15, write_timeout=30, idle_timeout=6
     ##
     ## network should be 'tcp4' or 'tcp6'
     ## timeouts are all in seconds
-    ## body_limit is in MiB
+    ## body_limit is in MB
     ##
     ## new_server(network: str='tcp4', read_timeout: int=15, write_timout: int=30, idle_timeout: int=60) -> HTTP_SERVER_OBJ
     var this = {};
