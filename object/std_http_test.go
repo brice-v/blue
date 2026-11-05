@@ -152,12 +152,22 @@ func TestDownloadBuiltin(t *testing.T) {
 	runBuiltinTestsFor(t, HttpBuiltins, "_download", tests)
 }
 
+func newServerArgs(network string) []Object {
+	return []Object{
+		&Stringo{Value: network},
+		&Integer{Value: 15},
+		&Integer{Value: 30},
+		&Integer{Value: 60},
+		&Integer{Value: 8},
+	}
+}
+
 func TestNewServerStaticMonitor(t *testing.T) {
 	newServerFn := httpBuiltinFn(t, "_new_server")
 	staticFn := httpBuiltinFn(t, "_static")
 	monitorFn := httpBuiltinFn(t, "_handle_monitor")
 
-	appRes := newServerFn(&Stringo{Value: "tcp"})
+	appRes := newServerFn(newServerArgs("tcp")...)
 	app, ok := appRes.(*GoObj[*fiber.App])
 	if !ok {
 		t.Fatalf("new_server returned %T, want GoObj[*fiber.App]", appRes)
@@ -178,8 +188,9 @@ func TestNewServerStaticMonitor(t *testing.T) {
 	}
 
 	runBuiltinTestsFor(t, HttpBuiltins, "_new_server", []builtinTestCase{
-		{name: "not a string", args: []Object{in(1)}, err: "PositionalTypeError"},
 		{name: "no args", args: []Object{}, err: "InvalidArgCountError"},
+		{name: "missing timeouts", args: []Object{&Stringo{Value: "tcp"}}, err: "InvalidArgCountError"},
+		{name: "network not a string", args: []Object{in(1), in(15), in(30), in(60), in(8)}, err: "PositionalTypeError"},
 	})
 	runBuiltinTestsFor(t, HttpBuiltins, "_static", []builtinTestCase{
 		{name: "app wrong goobj", args: []Object{NewGoObj("str"), &Stringo{Value: "/"}, &Stringo{Value: tmp}, FALSE}, err: "PositionalTypeError"},
@@ -203,7 +214,7 @@ func TestNewServerStaticMonitor(t *testing.T) {
 
 func newHttpTestApp(t *testing.T) *GoObj[*fiber.App] {
 	t.Helper()
-	res := httpBuiltinFn(t, "_new_server")(&Stringo{Value: "tcp"})
+	res := httpBuiltinFn(t, "_new_server")(newServerArgs("tcp")...)
 	app, ok := res.(*GoObj[*fiber.App])
 	if !ok {
 		t.Fatalf("new_server returned %T, want GoObj[*fiber.App]", res)
@@ -578,7 +589,7 @@ func TestSSESendBuiltin(t *testing.T) {
 }
 
 func TestWsAndMiscTypeErrors(t *testing.T) {
-	newServerApp := httpBuiltinFn(t, "_new_server")(&Stringo{Value: "tcp"}).(*GoObj[*fiber.App])
+	newServerApp := httpBuiltinFn(t, "_new_server")(newServerArgs("tcp")...).(*GoObj[*fiber.App])
 
 	for _, name := range []string{"_ws_send", "_ws_recv", "_ws_client_send", "_ws_client_recv"} {
 		fn := httpBuiltinFn(t, name)
