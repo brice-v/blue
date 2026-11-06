@@ -13,11 +13,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"unicode/utf8"
 
 	"github.com/clbanning/mxj/v2"
 	"github.com/gofiber/fiber/v3"
 )
+
+const fiberCtxFunctionStateKey = "blue.ctx.functions.state"
 
 func executeIntegerRangeOperator(leftVal, rightVal int64) object.Object {
 	var i int64
@@ -644,6 +647,7 @@ func prepareAndApplyHttpHandleFn(vm *VM, fn *object.Closure, c fiber.Ctx, method
 	isGet := method == "GET"
 	isDelete := method == "DELETE"
 	methodLower := strings.ToLower(method)
+	defer expireCtxFunctions(c)
 	handlerFn := cloneHandlerClosureSharedFree(fn)
 	if !isGet && !isDelete {
 		handleSpecialFunctionArgs2(handlerFn, methodLower+"_values", c)
@@ -822,11 +826,31 @@ func getReqHeaderMapObj(c fiber.Ctx) object.Object {
 	return m
 }
 
+type ctxFunctionState struct {
+	expired atomic.Bool
+}
+
+func expireCtxFunctions(c fiber.Ctx) {
+	if state, ok := c.Locals(fiberCtxFunctionStateKey).(*ctxFunctionState); ok {
+		state.expired.Store(true)
+	}
+}
+
+func ctxFunctionsActive(c fiber.Ctx) bool {
+	state, ok := c.Locals(fiberCtxFunctionStateKey).(*ctxFunctionState)
+	return ok && !state.expired.Load()
+}
+
 func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
+	state := &ctxFunctionState{}
+	c.Locals(fiberCtxFunctionStateKey, state)
 	m := object.NewMapWithSize(5)
 	m.SetStrKey("clear_cookie", &object.Builtin{
 		Name: "clear_cookie",
 		Fun: func(args ...object.Object) object.Object {
+			if !ctxFunctionsActive(c) {
+				return newError("`clear_cookie` error: request context has expired")
+			}
 			cookieArgs := []string{}
 			for i, arg := range args {
 				if args[i].Type() != object.STRING_OBJ {
@@ -850,6 +874,9 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			}
 			if args[0].Type() != object.MAP_OBJ {
 				return newPositionalTypeError("set_cookie", 1, object.MAP_OBJ, args[0].Type())
+			}
+			if !ctxFunctionsActive(c) {
+				return newError("`set_cookie` error: request context has expired")
 			}
 			jsonO := object.BlueObjToJsonObject(args[0])
 			if isError(jsonO) {
@@ -878,6 +905,9 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			if args[0].Type() != object.STRING_OBJ {
 				return newPositionalTypeError("get_cookie", 1, object.STRING_OBJ, args[0].Type())
 			}
+			if !ctxFunctionsActive(c) {
+				return newError("`get_cookie` error: request context has expired")
+			}
 			return &object.Stringo{Value: c.Cookies(args[0].(*object.Stringo).Value)}
 		},
 	})
@@ -892,6 +922,9 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			}
 			if isError(args[1]) {
 				return args[1]
+			}
+			if !ctxFunctionsActive(c) {
+				return newError("`set_local` error: request context has expired")
 			}
 			a, err := blueObjectToGoObject(args[0])
 			if err != nil {
@@ -913,6 +946,9 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			}
 			if isError(args[0]) {
 				return args[0]
+			}
+			if !ctxFunctionsActive(c) {
+				return newError("`get_local` error: request context has expired")
 			}
 			a, err := blueObjectToGoObject(args[0])
 			if err != nil {

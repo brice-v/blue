@@ -89,7 +89,12 @@ func createHttpHandleBuiltin(vm *VM, isHandleUse bool) *object.Builtin {
 			method := strings.ToUpper(args[3].(*object.Stringo).Value)
 			pattern := args[1].(*object.Stringo).Value
 			fun := args[2].(*object.Closure)
-			goFiberFunc := func(c fiber.Ctx) error {
+			goFiberFunc := func(c fiber.Ctx) (err error) {
+				defer func() {
+					if r := recover(); r != nil {
+						err = c.Status(fiber.StatusInternalServerError).SendString("internal server error")
+					}
+				}()
 				return processHandlerFn(vm, fun, c, method)
 			}
 			if isHandleUse {
@@ -305,7 +310,6 @@ func createHttpHandleWSBuiltin(vm *VM) *object.Builtin {
 				}
 				returnObj := connVm.applyFunctionFastWithMultipleArgs(connFn, fnArgs)
 				if isError(returnObj) {
-
 					if !disableHttpServerDebug {
 						fmt.Printf("%s`handle_ws` error: %s\n", consts.VM_ERROR_PREFIX, returnObj.(*object.Error).Message)
 					}
