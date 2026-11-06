@@ -266,11 +266,11 @@ var PsutilBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`disk_io_info` error: %s", err.Error())
 			}
-			m := NewOrderedMap[string, Object]()
+			m := NewMapWithSize(len(ioc))
 			for k, v := range ioc {
-				m.Set(k, &Stringo{Value: v.String()})
+				m.SetStrKey(k, &Stringo{Value: v.String()})
 			}
-			return CreateMapObjectForGoMap(*m)
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`disk_io_info` returns a map of drive to json string of disk io info",

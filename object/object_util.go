@@ -19,76 +19,21 @@ const (
 )
 
 func CreateBasicMapObject(objType string, objValue uint64) *Map {
-	m := &Map{
-		Pairs: NewPairsMapWithSize(1),
-	}
-	typeKeyStr := &Stringo{Value: "t"}
-	typeValueStr := &Stringo{Value: objType}
-
-	typeKeyHashedKey := HashObject(typeKeyStr)
-	typeKeyHashKey := HashKey{Type: STRING_OBJ, Value: typeKeyHashedKey}
-	m.Pairs.Set(typeKeyHashKey, MapPair{
-		Key:   typeKeyStr,
-		Value: typeValueStr,
-	})
-
-	valueKeyStr := &Stringo{Value: "v"}
-	valueValueStr := &UInteger{Value: objValue}
-
-	valueKeyHashedKey := HashObject(valueKeyStr)
-	valueKeyHashKey := HashKey{Type: STRING_OBJ, Value: valueKeyHashedKey}
-	m.Pairs.Set(valueKeyHashKey, MapPair{
-		Key:   valueKeyStr,
-		Value: valueValueStr,
-	})
-
+	m := NewMapWithSize(2)
+	m.SetStrKey("t", &Stringo{Value: objType})
+	m.SetStrKey("v", &UInteger{Value: objValue})
 	return m
 }
 
 func CreateBasicMapObjectForGoObj[T any](objType string, goObj *GoObj[T]) *Map {
-	m := &Map{
-		Pairs: NewPairsMapWithSize(1),
-	}
-	typeKeyStr := &Stringo{Value: "t"}
-	typeValueStr := &Stringo{Value: objType}
-
-	typeKeyHashedKey := HashObject(typeKeyStr)
-	typeKeyHashKey := HashKey{Type: STRING_OBJ, Value: typeKeyHashedKey}
-	m.Pairs.Set(typeKeyHashKey, MapPair{
-		Key:   typeKeyStr,
-		Value: typeValueStr,
-	})
-
-	valueKeyStr := &Stringo{Value: "v"}
-
-	valueKeyHashedKey := HashObject(valueKeyStr)
-	valueKeyHashKey := HashKey{Type: STRING_OBJ, Value: valueKeyHashedKey}
-	m.Pairs.Set(valueKeyHashKey, MapPair{
-		Key:   valueKeyStr,
-		Value: goObj,
-	})
-
+	m := NewMapWithSize(2)
+	m.SetStrKey("t", &Stringo{Value: objType})
+	m.SetStrKey("v", goObj)
 	return m
 }
 
-func CreateMapObjectForGoMap(input OrderedMap2[string, Object]) *Map {
-	m := &Map{
-		Pairs: NewPairsMapWithSize(len(input.Keys)),
-	}
-
-	for _, k := range input.Keys {
-		v, _ := input.Get(k)
-		kStr := &Stringo{Value: k}
-
-		hkStr := HashObject(kStr)
-		hk := HashKey{Type: STRING_OBJ, Value: hkStr}
-		m.Pairs.Set(hk, MapPair{
-			Key:   kStr,
-			Value: v,
-		})
-	}
-
-	return m
+func NewMapWithSize(size int) *Map {
+	return &Map{Pairs: NewPairsMapWithSize(size)}
 }
 
 func createHelpStringForObject(name, desc string, obj Object) string {
@@ -251,24 +196,24 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 	body := &Stringo{Value: string(_body)}
 	contentLength := &Integer{Value: resp.ContentLength}
 	headersToMapObj := func(header http.Header) Object {
-		mapObj := NewOrderedMapWithSize[string, Object](len(header))
+		m := NewMapWithSize(len(header))
 		for k, v := range header {
 			list := &List{Elements: make([]Object, len(v))}
 			for i, e := range v {
 				list.Elements[i] = &Stringo{Value: e}
 			}
-			mapObj.Set(k, list)
+			m.SetStrKey(k, list)
 		}
-		return CreateMapObjectForGoMap(*mapObj)
+		return m
 	}
 	headers := headersToMapObj(resp.Header)
 	proto := &Stringo{Value: resp.Proto}
 	requestToMapObj := func(req *http.Request) Object {
-		mapObj := NewOrderedMapWithSize[string, Object](3)
-		mapObj.Set("method", &Stringo{Value: req.Method})
-		mapObj.Set("proto", &Stringo{Value: req.Proto})
-		mapObj.Set("url", &Stringo{Value: req.URL.String()})
-		return CreateMapObjectForGoMap(*mapObj)
+		m := NewMapWithSize(3)
+		m.SetStrKey("method", &Stringo{Value: req.Method})
+		m.SetStrKey("proto", &Stringo{Value: req.Proto})
+		m.SetStrKey("url", &Stringo{Value: req.URL.String()})
+		return m
 	}
 	request := requestToMapObj(resp.Request)
 	rawStatus := &Stringo{Value: resp.Status}
@@ -282,37 +227,36 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 	uncompressed := nativeToBooleanObject(resp.Uncompressed)
 	_cookies := resp.Cookies()
 	cookieToMapObj := func(c *http.Cookie) Object {
-		mapObj := NewOrderedMapWithSize[string, Object](9)
-		mapObj.Set("name", &Stringo{Value: c.Name})
-		mapObj.Set("value", &Stringo{Value: c.Value})
-		mapObj.Set("path", &Stringo{Value: c.Path})
-		mapObj.Set("domain", &Stringo{Value: c.Domain})
-		mapObj.Set("expires", &Integer{Value: c.Expires.Unix()})
-		mapObj.Set("http_only", nativeToBooleanObject(c.HttpOnly))
-		mapObj.Set("secure", nativeToBooleanObject(c.Secure))
-		mapObj.Set("samesite", &Integer{Value: int64(c.SameSite)})
-		mapObj.Set("raw", &Stringo{Value: c.String()})
-		return CreateMapObjectForGoMap(*mapObj)
+		m := NewMapWithSize(9)
+		m.SetStrKey("name", &Stringo{Value: c.Name})
+		m.SetStrKey("value", &Stringo{Value: c.Value})
+		m.SetStrKey("path", &Stringo{Value: c.Path})
+		m.SetStrKey("domain", &Stringo{Value: c.Domain})
+		m.SetStrKey("expires", &Integer{Value: c.Expires.Unix()})
+		m.SetStrKey("http_only", nativeToBooleanObject(c.HttpOnly))
+		m.SetStrKey("secure", nativeToBooleanObject(c.Secure))
+		m.SetStrKey("samesite", &Integer{Value: int64(c.SameSite)})
+		m.SetStrKey("raw", &Stringo{Value: c.String()})
+		return m
 	}
 	cookies := &List{Elements: make([]Object, len(_cookies))}
 	for i, c := range _cookies {
 		cookies.Elements[i] = cookieToMapObj(c)
 	}
 
-	returnMap := NewOrderedMapWithSize[string, Object](11)
-	returnMap.Set("status", status)
-	returnMap.Set("body", body)
-	returnMap.Set("content_len", contentLength)
-	returnMap.Set("headers", headers)
-	returnMap.Set("proto", proto)
-	returnMap.Set("request", request)
-	returnMap.Set("raw_status", rawStatus)
-	returnMap.Set("trailer", trailer)
-	returnMap.Set("transfer_encoding", transferEncoding)
-	returnMap.Set("uncompressed", uncompressed)
-	returnMap.Set("cookies", cookies)
-
-	return CreateMapObjectForGoMap(*returnMap)
+	returnMap := NewMapWithSize(11)
+	returnMap.SetStrKey("status", status)
+	returnMap.SetStrKey("body", body)
+	returnMap.SetStrKey("content_len", contentLength)
+	returnMap.SetStrKey("headers", headers)
+	returnMap.SetStrKey("proto", proto)
+	returnMap.SetStrKey("request", request)
+	returnMap.SetStrKey("raw_status", rawStatus)
+	returnMap.SetStrKey("trailer", trailer)
+	returnMap.SetStrKey("transfer_encoding", transferEncoding)
+	returnMap.SetStrKey("uncompressed", uncompressed)
+	returnMap.SetStrKey("cookies", cookies)
+	return returnMap
 }
 
 func nativeToBooleanObject(input bool) *Boolean {

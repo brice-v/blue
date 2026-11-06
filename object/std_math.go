@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// TODO: Put this and anything that accesses them on the VM
 var mathRand = newRandSeeded()
 var mathRandLock sync.Mutex
 
@@ -456,10 +457,10 @@ var MathBuiltins = []*Builtin{
 				return newPositionalTypeError("frexp", 1, FLOAT_OBJ, args[0].Type())
 			}
 			frac, exp := math.Frexp(args[0].(*Float).Value)
-			mapObj := NewOrderedMap[string, Object]()
-			mapObj.Set("frac", &Float{Value: frac})
-			mapObj.Set("exp", &Integer{Value: int64(exp)})
-			return CreateMapObjectForGoMap(*mapObj)
+			m := NewMapWithSize(2)
+			m.SetStrKey("frac", &Float{Value: frac})
+			m.SetStrKey("exp", &Integer{Value: int64(exp)})
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`frexp` breaks f into a normalized fraction and an integral power of two. it returns frac and exp satisfying f == frac x 2**exp, with the absolute value of frac in the interval [1/2, 1)",
@@ -758,10 +759,10 @@ var MathBuiltins = []*Builtin{
 				return newPositionalTypeError("lgamma", 1, FLOAT_OBJ, args[0].Type())
 			}
 			lgamma, sign := math.Lgamma(args[0].(*Float).Value)
-			mapObj := NewOrderedMap[string, Object]()
-			mapObj.Set("lgamma", &Float{Value: lgamma})
-			mapObj.Set("sign", &Integer{Value: int64(sign)})
-			return CreateMapObjectForGoMap(*mapObj)
+			m := NewMapWithSize(2)
+			m.SetStrKey("lgamma", &Float{Value: lgamma})
+			m.SetStrKey("sign", &Integer{Value: int64(sign)})
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`lgamma` returns the natural logarithm and sign (-1 or +1) of gamma(x)",
@@ -875,10 +876,10 @@ var MathBuiltins = []*Builtin{
 				return newPositionalTypeError("modf", 1, FLOAT_OBJ, args[0].Type())
 			}
 			i, frac := math.Modf(args[0].(*Float).Value)
-			mapObj := NewOrderedMap[string, Object]()
-			mapObj.Set("i", &Integer{Value: int64(i)})
-			mapObj.Set("frac", &Float{Value: frac})
-			return CreateMapObjectForGoMap(*mapObj)
+			m := NewMapWithSize(2)
+			m.SetStrKey("i", NewInteger(int64(i)))
+			m.SetStrKey("frac", &Float{Value: frac})
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`modf` returns INTEGER and fractional FLOAT numbers that sum to f. both values have the same sign as f",
@@ -1019,10 +1020,10 @@ var MathBuiltins = []*Builtin{
 				return newPositionalTypeError("sincos", 1, FLOAT_OBJ, args[0].Type())
 			}
 			sin, cos := math.Sincos(args[0].(*Float).Value)
-			mapObj := NewOrderedMap[string, Object]()
-			mapObj.Set("sin", &Float{Value: sin})
-			mapObj.Set("cos", &Float{Value: cos})
-			return CreateMapObjectForGoMap(*mapObj)
+			m := NewMapWithSize(2)
+			m.SetStrKey("sin", &Float{Value: sin})
+			m.SetStrKey("cos", &Float{Value: cos})
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`sincos` returns sin(x), cos(x)",

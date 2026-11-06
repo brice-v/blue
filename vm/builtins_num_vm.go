@@ -168,11 +168,11 @@ func createNumMinimizeBuiltin(vm *VM) *object.Builtin {
 			for i, v := range res.X {
 				xs[i] = &object.Float{Value: v}
 			}
-			out := object.NewOrderedMap[string, object.Object]()
-			out.Set("x", &object.List{Elements: xs})
-			out.Set("value", &object.Float{Value: res.F})
-			out.Set("iterations", object.NewInteger(int64(res.MajorIterations)))
-			return object.CreateMapObjectForGoMap(*out)
+			out := object.NewMapWithSize(3)
+			out.SetStrKey("x", &object.List{Elements: xs})
+			out.SetStrKey("value", &object.Float{Value: res.F})
+			out.SetStrKey("iterations", object.NewInteger(int64(res.MajorIterations)))
+			return out
 		},
 		HelpStr: "minimize(f: fun, x0: list, method: str='nelder-mead', max_iter: int=0) -> map",
 	}

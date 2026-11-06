@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"blue/ml"
+
 	"gonum.org/v1/gonum/dsp/fourier"
 	"gonum.org/v1/gonum/integrate"
 	"gonum.org/v1/gonum/interp"
@@ -2701,15 +2702,15 @@ func numMapObject(pairs ...any) Object {
 	if len(pairs)%2 != 0 {
 		return newError("numMapObject: odd number of arguments")
 	}
-	out := NewOrderedMap[string, Object]()
+	out := NewMapWithSize(len(pairs))
 	for i := 0; i < len(pairs); i += 2 {
 		key, ok := pairs[i].(string)
 		if !ok {
 			return newError("numMapObject: keys must be strings")
 		}
-		out.Set(key, pairs[i+1].(Object))
+		out.SetStrKey(key, pairs[i+1].(Object))
 	}
-	return CreateMapObjectForGoMap(*out)
+	return out
 }
 
 // numDistBuiltin builds a distribution constructor.

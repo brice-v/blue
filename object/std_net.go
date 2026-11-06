@@ -343,32 +343,32 @@ var NetBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("inspect", 1, "*net.UDPConn", args[0])
 				}
-				mapObj := NewOrderedMap[string, Object]()
-				mapObj.Set("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
-				mapObj.Set("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
-				return CreateMapObjectForGoMap(*mapObj)
+				m := NewMapWithSize(4)
+				m.SetStrKey("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
+				m.SetStrKey("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
+				m.SetStrKey("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
+				m.SetStrKey("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
+				return m
 			case "net/tcp":
 				l, ok := args[0].(*GoObj[net.Listener])
 				if !ok {
 					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Listener", args[0])
 				}
-				mapObj := NewOrderedMap[string, Object]()
-				mapObj.Set("addr", &Stringo{Value: l.Value.Addr().String()})
-				mapObj.Set("addr_network", &Stringo{Value: l.Value.Addr().Network()})
-				return CreateMapObjectForGoMap(*mapObj)
+				m := NewMapWithSize(2)
+				m.SetStrKey("addr", &Stringo{Value: l.Value.Addr().String()})
+				m.SetStrKey("addr_network", &Stringo{Value: l.Value.Addr().Network()})
+				return m
 			case "net":
 				c, ok := args[0].(*GoObj[net.Conn])
 				if !ok {
 					return newPositionalTypeErrorForGoObj("inspect", 1, "net.Conn", args[0])
 				}
-				mapObj := NewOrderedMap[string, Object]()
-				mapObj.Set("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
-				mapObj.Set("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
-				return CreateMapObjectForGoMap(*mapObj)
+				m := NewMapWithSize(4)
+				m.SetStrKey("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
+				m.SetStrKey("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
+				m.SetStrKey("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
+				m.SetStrKey("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
+				return m
 			default:
 				return newError("`inspect` expects type of 'net/tcp', 'net/udp', or 'net'")
 			}

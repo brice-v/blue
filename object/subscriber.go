@@ -56,10 +56,10 @@ func (s *Subscriber) PollMessage() Object {
 	// Listens to the message channel, prints once received.
 	for {
 		if msg, ok := <-s.messages; ok {
-			mapObj := NewOrderedMap[string, Object]()
-			mapObj.Set("topic", &Stringo{Value: msg.getTopic()})
-			mapObj.Set("msg", msg.getMessage())
-			return CreateMapObjectForGoMap(*mapObj)
+			m := NewMapWithSize(2)
+			m.SetStrKey("topic", &Stringo{Value: msg.getTopic()})
+			m.SetStrKey("msg", msg.getMessage())
+			return m
 		}
 	}
 }

@@ -751,18 +751,18 @@ func decodeInterfaceToObject(value any) object.Object {
 		}
 		return list
 	case map[string]any:
-		mapObj := object.NewOrderedMap[string, object.Object]()
+		m := object.NewMapWithSize(len(x))
 		for k, v := range x {
-			mapObj.Set(k, decodeInterfaceToObject(v))
+			m.SetStrKey(k, decodeInterfaceToObject(v))
 		}
-		return object.CreateMapObjectForGoMap(*mapObj)
+		return m
 	case *object.OrderedMap2[string, any]:
-		mapObj := object.NewOrderedMap[string, object.Object]()
+		m := object.NewMapWithSize(len(x.Keys))
 		for _, k := range x.Keys {
 			v, _ := x.Get(k)
-			mapObj.Set(k, decodeInterfaceToObject(v))
+			m.SetStrKey(k, decodeInterfaceToObject(v))
 		}
-		return object.CreateMapObjectForGoMap(*mapObj)
+		return m
 	case nil:
 		// null json object would come to here
 		return object.NULL
@@ -790,25 +790,25 @@ func getAndSetHttpParams(fn *object.Closure, c fiber.Ctx) []object.Object {
 
 func getReqRequestMapObj(c fiber.Ctx) object.Object {
 	req := c.Request()
-	mapObj := object.NewOrderedMap[string, object.Object]()
-	mapObj.Set("method", &object.Stringo{Value: c.Method()})
-	mapObj.Set("proto", &object.Stringo{Value: c.Scheme()})
-	mapObj.Set("uri", &object.Stringo{Value: string(req.URI().FullURI())})
-	mapObj.Set("scheme", &object.Stringo{Value: string(req.URI().Scheme())})
-	mapObj.Set("host", &object.Stringo{Value: string(req.URI().Host())})
-	mapObj.Set("request_uri", &object.Stringo{Value: string(req.URI().RequestURI())})
-	mapObj.Set("hash", &object.Stringo{Value: string(req.URI().Hash())})
-	mapObj.Set("headers", getReqHeaderMapObj(c))
-	mapObj.Set("ip", &object.Stringo{Value: c.IP()})
-	mapObj.Set("is_from_local", nativeToBooleanObject(c.IsFromLocal()))
-	mapObj.Set("is_secure", nativeToBooleanObject(c.Secure()))
-	return object.CreateMapObjectForGoMap(*mapObj)
+	m := object.NewMapWithSize(11)
+	m.SetStrKey("method", &object.Stringo{Value: c.Method()})
+	m.SetStrKey("proto", &object.Stringo{Value: c.Scheme()})
+	m.SetStrKey("uri", &object.Stringo{Value: string(req.URI().FullURI())})
+	m.SetStrKey("scheme", &object.Stringo{Value: string(req.URI().Scheme())})
+	m.SetStrKey("host", &object.Stringo{Value: string(req.URI().Host())})
+	m.SetStrKey("request_uri", &object.Stringo{Value: string(req.URI().RequestURI())})
+	m.SetStrKey("hash", &object.Stringo{Value: string(req.URI().Hash())})
+	m.SetStrKey("headers", getReqHeaderMapObj(c))
+	m.SetStrKey("ip", &object.Stringo{Value: c.IP()})
+	m.SetStrKey("is_from_local", nativeToBooleanObject(c.IsFromLocal()))
+	m.SetStrKey("is_secure", nativeToBooleanObject(c.Secure()))
+	return m
 }
 
 func getReqHeaderMapObj(c fiber.Ctx) object.Object {
 	headers := c.GetReqHeaders()
-	mapObj := object.NewOrderedMap[string, object.Object]()
 	headerKeys := make([]string, len(headers))
+	m := object.NewMapWithSize(len(headers))
 	i := 0
 	for k := range headers {
 		headerKeys[i] = k
@@ -817,14 +817,14 @@ func getReqHeaderMapObj(c fiber.Ctx) object.Object {
 	// Sort by key to always have the headers in order
 	sort.Strings(headerKeys)
 	for i := 0; i < len(headers); i++ {
-		mapObj.Set(headerKeys[i], &object.Stringo{Value: strings.Join(headers[headerKeys[i]], ", ")})
+		m.SetStrKey(headerKeys[i], &object.Stringo{Value: strings.Join(headers[headerKeys[i]], ", ")})
 	}
-	return object.CreateMapObjectForGoMap(*mapObj)
+	return m
 }
 
 func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
-	mapObj := object.NewOrderedMap[string, object.Object]()
-	mapObj.Set("clear_cookie", &object.Builtin{
+	m := object.NewMapWithSize(5)
+	m.SetStrKey("clear_cookie", &object.Builtin{
 		Name: "clear_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			cookieArgs := []string{}
@@ -839,7 +839,7 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			return object.NULL
 		},
 	})
-	mapObj.Set("set_cookie", &object.Builtin{
+	m.SetStrKey("set_cookie", &object.Builtin{
 		Name: "set_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			// Arg len should be 1
@@ -869,7 +869,7 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			return object.NULL
 		},
 	})
-	mapObj.Set("get_cookie", &object.Builtin{
+	m.SetStrKey("get_cookie", &object.Builtin{
 		Name: "get_cookie",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -881,7 +881,7 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			return &object.Stringo{Value: c.Cookies(args[0].(*object.Stringo).Value)}
 		},
 	})
-	mapObj.Set("set_local", &object.Builtin{
+	m.SetStrKey("set_local", &object.Builtin{
 		Name: "set_local",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 2 {
@@ -905,7 +905,7 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			return object.NULL
 		},
 	})
-	mapObj.Set("get_local", &object.Builtin{
+	m.SetStrKey("get_local", &object.Builtin{
 		Name: "get_local",
 		Fun: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
@@ -926,7 +926,7 @@ func getCtxFunctionMapObj(c fiber.Ctx) object.Object {
 			return obj
 		},
 	})
-	return object.CreateMapObjectForGoMap(*mapObj)
+	return m
 }
 
 func tryGetHttpActionAndMap(respObj object.Object) (isAction bool, action string, m *object.OrderedMap2[string, any]) {

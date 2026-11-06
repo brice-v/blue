@@ -1027,14 +1027,14 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("n_patch_layout_map", len(args), 0, "")
 			}
-			mapObj := NewOrderedMap[string, Object]()
+			m := NewMapWithSize(3)
 			// Npatch layout: 3x3 tiles
-			mapObj.Set("nine_patch", NewGoObj(rl.NPatchNinePatch))
+			m.SetStrKey("nine_patch", NewGoObj(rl.NPatchNinePatch))
 			// Npatch layout: 1x3 tiles
-			mapObj.Set("three_patch_vertical", NewGoObj(rl.NPatchThreePatchVertical))
+			m.SetStrKey("three_patch_vertical", NewGoObj(rl.NPatchThreePatchVertical))
 			// Npatch layout: 3x1 tiles
-			mapObj.Set("three_patch_horizontal", NewGoObj(rl.NPatchThreePatchHorizontal))
-			return CreateMapObjectForGoMap(*mapObj)
+			m.SetStrKey("three_patch_horizontal", NewGoObj(rl.NPatchThreePatchHorizontal))
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`n_patch_layout_map` returns a map with all the pixel formats",
@@ -3382,52 +3382,52 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("pixel_format_map", len(args), 0, "")
 			}
-			mapObj := NewOrderedMap[string, Object]()
+			m := NewMapWithSize(23)
 			// 8 bit per pixel (no alpha)
-			mapObj.Set("uncompressed_grayscale", NewGoObj(rl.UncompressedGrayscale))
-			mapObj.Set("uncompressed_greyscale", NewGoObj(rl.UncompressedGrayscale))
+			m.SetStrKey("uncompressed_grayscale", NewGoObj(rl.UncompressedGrayscale))
+			m.SetStrKey("uncompressed_greyscale", NewGoObj(rl.UncompressedGrayscale))
 			// 8*2 bpp (2 channels)
-			mapObj.Set("uncompressed_gray_alpha", NewGoObj(rl.UncompressedGrayAlpha))
-			mapObj.Set("uncompressed_grey_alpha", NewGoObj(rl.UncompressedGrayAlpha))
+			m.SetStrKey("uncompressed_gray_alpha", NewGoObj(rl.UncompressedGrayAlpha))
+			m.SetStrKey("uncompressed_grey_alpha", NewGoObj(rl.UncompressedGrayAlpha))
 			// 16 bpp
-			mapObj.Set("uncompressed_r5g6b5", NewGoObj(rl.UncompressedR5g6b5))
+			m.SetStrKey("uncompressed_r5g6b5", NewGoObj(rl.UncompressedR5g6b5))
 			// 24 bpp
-			mapObj.Set("uncompressed_r8g8b8", NewGoObj(rl.UncompressedR8g8b8))
+			m.SetStrKey("uncompressed_r8g8b8", NewGoObj(rl.UncompressedR8g8b8))
 			// 16 bpp (1 bit alpha)
-			mapObj.Set("uncompressed_r5g5b5a1", NewGoObj(rl.UncompressedR5g5b5a1))
+			m.SetStrKey("uncompressed_r5g5b5a1", NewGoObj(rl.UncompressedR5g5b5a1))
 			// 16 bpp (4 bit alpha)
-			mapObj.Set("uncompressed_r4g4b4a4", NewGoObj(rl.UncompressedR4g4b4a4))
+			m.SetStrKey("uncompressed_r4g4b4a4", NewGoObj(rl.UncompressedR4g4b4a4))
 			// 32 bpp
-			mapObj.Set("uncompressed_r8g8b8a8", NewGoObj(rl.UncompressedR8g8b8a8))
+			m.SetStrKey("uncompressed_r8g8b8a8", NewGoObj(rl.UncompressedR8g8b8a8))
 			// 32 bpp (1 channel - float)
-			mapObj.Set("uncompressed_r32", NewGoObj(rl.UncompressedR32))
+			m.SetStrKey("uncompressed_r32", NewGoObj(rl.UncompressedR32))
 			// 32*3 bpp (3 channels - float)
-			mapObj.Set("uncompressed_r32g32b32", NewGoObj(rl.UncompressedR32g32b32))
+			m.SetStrKey("uncompressed_r32g32b32", NewGoObj(rl.UncompressedR32g32b32))
 			// 32*4 bpp (4 channels - float)
-			mapObj.Set("uncompressed_r32g32b32a32", NewGoObj(rl.UncompressedR32g32b32a32))
+			m.SetStrKey("uncompressed_r32g32b32a32", NewGoObj(rl.UncompressedR32g32b32a32))
 			// 4 bpp (no alpha)
-			mapObj.Set("compressed_dxt1_rgb", NewGoObj(rl.CompressedDxt1Rgb))
+			m.SetStrKey("compressed_dxt1_rgb", NewGoObj(rl.CompressedDxt1Rgb))
 			// 4 bpp (1 bit alpha)
-			mapObj.Set("compressed_dxt1_rgba", NewGoObj(rl.CompressedDxt1Rgba))
+			m.SetStrKey("compressed_dxt1_rgba", NewGoObj(rl.CompressedDxt1Rgba))
 			// 8 bpp
-			mapObj.Set("compressed_dxt3_rgba", NewGoObj(rl.CompressedDxt3Rgba))
+			m.SetStrKey("compressed_dxt3_rgba", NewGoObj(rl.CompressedDxt3Rgba))
 			// 8 bpp
-			mapObj.Set("compressed_dxt5_rgba", NewGoObj(rl.CompressedDxt5Rgba))
+			m.SetStrKey("compressed_dxt5_rgba", NewGoObj(rl.CompressedDxt5Rgba))
 			// 4 bpp
-			mapObj.Set("compressed_etc1_rgb", NewGoObj(rl.CompressedEtc1Rgb))
+			m.SetStrKey("compressed_etc1_rgb", NewGoObj(rl.CompressedEtc1Rgb))
 			// 4 bpp
-			mapObj.Set("compressed_etc2_rgb", NewGoObj(rl.CompressedEtc2Rgb))
+			m.SetStrKey("compressed_etc2_rgb", NewGoObj(rl.CompressedEtc2Rgb))
 			// 8 bpp
-			mapObj.Set("compressed_etc2_eac_rgba", NewGoObj(rl.CompressedEtc2EacRgba))
+			m.SetStrKey("compressed_etc2_eac_rgba", NewGoObj(rl.CompressedEtc2EacRgba))
 			// 4 bpp
-			mapObj.Set("compressed_pvrt_rgb", NewGoObj(rl.CompressedPvrtRgb))
+			m.SetStrKey("compressed_pvrt_rgb", NewGoObj(rl.CompressedPvrtRgb))
 			// 4 bpp
-			mapObj.Set("compressed_pvrt_rgba", NewGoObj(rl.CompressedPvrtRgba))
+			m.SetStrKey("compressed_pvrt_rgba", NewGoObj(rl.CompressedPvrtRgba))
 			// 8 bpp
-			mapObj.Set("compressed_astc_4x4_rgba", NewGoObj(rl.CompressedAstc4x4Rgba))
+			m.SetStrKey("compressed_astc_4x4_rgba", NewGoObj(rl.CompressedAstc4x4Rgba))
 			// 2 bpp
-			mapObj.Set("compressed_astc_8x8_rgba", NewGoObj(rl.CompressedAstc8x8Rgba))
-			return CreateMapObjectForGoMap(*mapObj)
+			m.SetStrKey("compressed_astc_8x8_rgba", NewGoObj(rl.CompressedAstc8x8Rgba))
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`pixel_format_map` returns a map with all the pixel formats",

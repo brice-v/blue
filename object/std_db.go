@@ -150,10 +150,10 @@ var DbBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`db_exec` error: %s", err.Error())
 			}
-			mapToConvert := NewOrderedMap[string, Object]()
-			mapToConvert.Set("last_insert_id", &Integer{Value: lastInsertId})
-			mapToConvert.Set("rows_affected", &Integer{Value: rowsAffected})
-			return CreateMapObjectForGoMap(*mapToConvert)
+			m := NewMapWithSize(2)
+			m.SetStrKey("last_insert_id", &Integer{Value: lastInsertId})
+			m.SetStrKey("rows_affected", &Integer{Value: rowsAffected})
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`db_exec` is used to execute queries against the DB that affect rows (ie. INSERT statments)",
@@ -237,22 +237,22 @@ var DbBuiltins = []*Builtin{
 				rowList := &List{
 					Elements: make([]Object, len(cols)),
 				}
-				var rowMap *OrderedMap2[string, Object] = nil
+				var rowMap *Map = nil
 				if isNamedCols {
-					rowMap = NewOrderedMap[string, Object]()
+					rowMap = NewMapWithSize(len(cols))
 				}
 				for idx, e := range cols {
 					obj := createObjectFromDbInterface(e, colDbTypes[idx])
 					if !isNamedCols {
 						rowList.Elements[idx] = obj
 					} else {
-						rowMap.Set(colNames[idx], obj)
+						rowMap.SetStrKey(colNames[idx], obj)
 					}
 				}
 				if !isNamedCols {
 					returnList.Elements = append(returnList.Elements, rowList)
 				} else {
-					returnList.Elements = append(returnList.Elements, CreateMapObjectForGoMap(*rowMap))
+					returnList.Elements = append(returnList.Elements, rowMap)
 				}
 			}
 			if err := rows.Err(); err != nil {
@@ -785,7 +785,7 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 			return obj
 		}
 		if x, ok := input.(map[string]any); ok {
-			m := &Map{Pairs: NewPairsMapWithSize(len(x))}
+			m := NewMapWithSize(len(x))
 			keys := make([]string, 0, len(x))
 			for k := range x {
 				keys = append(keys, k)
@@ -852,7 +852,7 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 		}
 		return objs
 	case map[string]any:
-		m := &Map{Pairs: NewPairsMapWithSize(len(x))}
+		m := NewMapWithSize(len(x))
 		keys := make([]string, 0, len(x))
 		for k := range x {
 			keys = append(keys, k)
@@ -861,9 +861,7 @@ func createObjectFromDbInterface(input any, kind dbColumnKind) Object {
 		for _, k := range keys {
 			v := x[k]
 			vv := createObjectFromDbInterface(v, dbColumnKind{base: dbColUnknown})
-			kk := &Stringo{Value: k}
-			hk := HashKey{Type: STRING_OBJ, Value: HashObject(kk)}
-			m.Pairs.Set(hk, MapPair{Key: kk, Value: vv})
+			m.SetStrKey(k, vv)
 		}
 		return m
 	default:

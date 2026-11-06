@@ -1335,10 +1335,10 @@ var MlBuiltins = []*Builtin{
 				return err
 			}
 			info, ok := ml.GPUInfo()
-			m := NewOrderedMap[string, Object]()
-			m.Set("available", nativeToBooleanObject(ok))
+			m := NewMapWithSize(11)
+			m.SetStrKey("available", nativeToBooleanObject(ok))
 			if !ok {
-				return CreateMapObjectForGoMap(*m)
+				return m
 			}
 			// Fixed key order keeps the printed map stable across runs.
 			for _, key := range []string{
@@ -1347,10 +1347,10 @@ var MlBuiltins = []*Builtin{
 				"backend_type", "vendor_id", "device_id",
 			} {
 				if v, present := info[key]; present && v != "" {
-					m.Set(key, &Stringo{Value: v})
+					m.SetStrKey(key, &Stringo{Value: v})
 				}
 			}
-			return CreateMapObjectForGoMap(*m)
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`info` reports the GPU adapter in use (name, vendor, backend); `available` is false when no GPU backend is built in",
@@ -1969,7 +1969,7 @@ var MlBuiltins = []*Builtin{
 			if errObj != nil {
 				return errObj
 			}
-			return CreateMapObjectForGoMap(*state)
+			return state
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`state_dict` returns a map of dotted names to the tensors in a model, walking maps, lists, tensors, and module parameters",
@@ -1992,17 +1992,17 @@ var MlBuiltins = []*Builtin{
 			if errObj != nil {
 				return errObj
 			}
-			entries := make([]ml.NamedTensor, 0, state.Len())
-			for _, k := range state.Keys {
-				v, ok := state.Get(k)
+			entries := make([]ml.NamedTensor, 0, state.Pairs.Len())
+			for _, k := range state.Pairs.Keys {
+				v, ok := state.Pairs.Get(k)
 				if !ok {
 					continue
 				}
-				t, ok := v.(*Tensor)
+				t, ok := v.Value.(*Tensor)
 				if !ok {
 					continue
 				}
-				entries = append(entries, ml.NamedTensor{Name: k, Tensor: t.T})
+				entries = append(entries, ml.NamedTensor{Name: v.Key.(*Stringo).Value, Tensor: t.T})
 			}
 			if err := ml.SaveState(entries, path.Value); err != nil {
 				return newError("`save_state` error: %s", err.Error())
@@ -2035,11 +2035,11 @@ var MlBuiltins = []*Builtin{
 				return errObj
 			}
 			for _, nt := range loaded {
-				v, ok := state.Get(nt.Name)
+				v, ok := state.GetStrKey(nt.Name)
 				if !ok {
 					continue
 				}
-				dst, ok := v.(*Tensor)
+				dst, ok := v.Value.(*Tensor)
 				if !ok {
 					continue
 				}
@@ -2781,11 +2781,11 @@ var MlBuiltins = []*Builtin{
 			if !ok {
 				return newPositionalTypeErrorForGoObj("optim_state_dict", 1, "*ml.Optimizer", args[0])
 			}
-			out := NewOrderedMap[string, Object]()
+			out := NewMapWithSize(len(opt.Value.StateDict()))
 			for k, t := range opt.Value.StateDict() {
-				out.Set(k, &Tensor{T: t})
+				out.SetStrKey(k, &Tensor{T: t})
 			}
-			return CreateMapObjectForGoMap(*out)
+			return out
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`optim_state_dict` returns the optimizer's internal buffers as a name to tensor map; the tensors share storage, so saving and loading them checkpoints the optimizer",
@@ -3231,11 +3231,11 @@ func collectParams(name string, o Object, seen map[Object]bool, out *[]Object) O
 // are recorded as views that share the parameter's storage, so copying into the
 // view updates the parameter in place. Non-string map keys and non-tensor
 // values are skipped.
-func collectState(name string, o Object, seen map[Object]bool, out *OrderedMap2[string, Object]) Object {
+func collectState(name string, o Object, seen map[Object]bool, out *Map) Object {
 	switch v := o.(type) {
 	case *Tensor:
 		if name != "" {
-			out.Set(name, v)
+			out.SetStrKey(name, v)
 		}
 	case *Map:
 		if seen[v] {
@@ -3284,7 +3284,7 @@ func collectState(name string, o Object, seen map[Object]bool, out *OrderedMap2[
 			if name != "" {
 				pn = name + "." + pn
 			}
-			out.Set(pn, &Tensor{T: ml.WrapRaw(p.Tensor().Backend(), p.Tensor().Raw())})
+			out.SetStrKey(pn, &Tensor{T: ml.WrapRaw(p.Tensor().Backend(), p.Tensor().Raw())})
 		}
 	default:
 		// Scalars, strings, functions, and null carry no state.
@@ -3293,8 +3293,8 @@ func collectState(name string, o Object, seen map[Object]bool, out *OrderedMap2[
 }
 
 // stateDictOf builds the name to tensor map for a model.
-func stateDictOf(model Object) (*OrderedMap2[string, Object], Object) {
-	out := NewOrderedMap[string, Object]()
+func stateDictOf(model Object) (*Map, Object) {
+	out := NewMapWithSize(smallMapThreshold)
 	if errObj := collectState("", model, map[Object]bool{}, out); errObj != nil {
 		return nil, errObj
 	}

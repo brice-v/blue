@@ -321,10 +321,10 @@ func sseLastEventID(stream *sse.Stream) *Stringo {
 
 // NewSSEConnection returns the map passed to a server-sent events handler.
 func NewSSEConnection(stream *sse.Stream) *Map {
-	m := NewOrderedMap[string, Object]()
-	m.Set("t", &Stringo{Value: "sse"})
-	m.Set("v", NewGoObj(stream))
-	m.Set("last_event_id", &Builtin{
+	m := NewMapWithSize(3)
+	m.SetStrKey("t", &Stringo{Value: "sse"})
+	m.SetStrKey("v", NewGoObj(stream))
+	m.SetStrKey("last_event_id", &Builtin{
 		Name: "last_event_id",
 		Fun: func(args ...Object) Object {
 			if len(args) != 0 {
@@ -339,7 +339,7 @@ func NewSSEConnection(stream *sse.Stream) *Map {
 			example:     "sse.last_event_id() => '42'",
 		}.String(),
 	})
-	return CreateMapObjectForGoMap(*m)
+	return m
 }
 
 func sendSSE(stream sseStream, funName string, valuePos int, valueArg, eventArg, idArg, retryArg Object) Object {
@@ -1264,23 +1264,23 @@ var HttpBuiltins = []*Builtin{
 				if !ok {
 					return newPositionalTypeErrorForGoObj("inspect", 1, "*websocket.Conn", args[0])
 				}
-				mapObj := NewOrderedMap[string, Object]()
-				mapObj.Set("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
-				mapObj.Set("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
-				return CreateMapObjectForGoMap(*mapObj)
+				m := NewMapWithSize(4)
+				m.SetStrKey("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
+				m.SetStrKey("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
+				m.SetStrKey("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
+				m.SetStrKey("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
+				return m
 			case "ws/client":
 				c, ok := args[0].(*GoObj[*ws.Conn])
 				if !ok {
 					return newPositionalTypeErrorForGoObj("inspect", 1, "*ws.Conn", args[0])
 				}
-				mapObj := NewOrderedMap[string, Object]()
-				mapObj.Set("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
-				mapObj.Set("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
-				mapObj.Set("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
-				mapObj.Set("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
-				return CreateMapObjectForGoMap(*mapObj)
+				m := NewMapWithSize(4)
+				m.SetStrKey("remote_addr", &Stringo{Value: c.Value.RemoteAddr().String()})
+				m.SetStrKey("local_addr", &Stringo{Value: c.Value.LocalAddr().String()})
+				m.SetStrKey("remote_addr_network", &Stringo{Value: c.Value.RemoteAddr().Network()})
+				m.SetStrKey("local_addr_network", &Stringo{Value: c.Value.LocalAddr().Network()})
+				return m
 			default:
 				return newError("`inspect` error: expects type of 'ws'|'ws/client'")
 			}

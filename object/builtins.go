@@ -1546,15 +1546,15 @@ var Builtins = []*Builtin{
 			if err != nil {
 				return newError("`stat` error: %s", err.Error())
 			}
-			m := NewOrderedMap[string, Object]()
-			m.Set("name", &Stringo{Value: fi.Name()})
-			m.Set("size", NewInteger(fi.Size()))
-			m.Set("mode", &Stringo{Value: fi.Mode().String()})
-			m.Set("mode_int", NewInteger(int64(fi.Mode().Perm())))
-			m.Set("is_dir", nativeToBooleanObject(fi.IsDir()))
-			m.Set("mtime", NewInteger(fi.ModTime().UnixMilli()))
-			m.Set("mtime_str", &Stringo{Value: fi.ModTime().Format(time.RFC3339)})
-			return CreateMapObjectForGoMap(*m)
+			m := NewMapWithSize(7)
+			m.SetStrKey("name", &Stringo{Value: fi.Name()})
+			m.SetStrKey("size", NewInteger(fi.Size()))
+			m.SetStrKey("mode", &Stringo{Value: fi.Mode().String()})
+			m.SetStrKey("mode_int", NewInteger(int64(fi.Mode().Perm())))
+			m.SetStrKey("is_dir", nativeToBooleanObject(fi.IsDir()))
+			m.SetStrKey("mtime", NewInteger(fi.ModTime().UnixMilli()))
+			m.SetStrKey("mtime_str", &Stringo{Value: fi.ModTime().Format(time.RFC3339)})
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`stat` returns map with name,size,mode,is_dir,mtime for path",
@@ -1772,7 +1772,7 @@ var Builtins = []*Builtin{
 				return newInvalidArgCountError("environ", len(args), 0, "")
 			}
 			env := os.Environ()
-			m := NewOrderedMap[string, Object]()
+			m := NewMapWithSize(len(env))
 			for _, e := range env {
 				parts := strings.SplitN(e, "=", 2)
 				k := parts[0]
@@ -1780,9 +1780,9 @@ var Builtins = []*Builtin{
 				if len(parts) == 2 {
 					v = parts[1]
 				}
-				m.Set(k, &Stringo{Value: v})
+				m.SetStrKey(k, &Stringo{Value: v})
 			}
-			return CreateMapObjectForGoMap(*m)
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`environ` returns map of all env vars",
@@ -2971,42 +2971,42 @@ var Builtins = []*Builtin{
 			}
 			var s runtime.MemStats
 			runtime.ReadMemStats(&s)
-			mapObj := NewOrderedMap[string, Object]()
-			mapObj.Set("alloc", &Stringo{Value: formatBytes(s.Alloc)})
-			mapObj.Set("total-alloc", &Stringo{Value: formatBytes(s.TotalAlloc)})
-			mapObj.Set("sys", &Stringo{Value: formatBytes(s.Sys)})
-			mapObj.Set("lookups", &UInteger{Value: s.Lookups})
-			mapObj.Set("mallocs", &UInteger{Value: s.Mallocs})
-			mapObj.Set("frees", &UInteger{Value: s.Frees})
-			mapObj.Set("heap-alloc", &Stringo{Value: formatBytes(s.HeapAlloc)})
-			mapObj.Set("heap-sys", &Stringo{Value: formatBytes(s.HeapSys)})
-			mapObj.Set("heap-idle", &Stringo{Value: formatBytes(s.HeapIdle)})
-			mapObj.Set("heap-in-use", &Stringo{Value: formatBytes(s.HeapInuse)})
-			mapObj.Set("heap-released", &Stringo{Value: formatBytes(s.HeapReleased)})
-			mapObj.Set("heap-objects", &UInteger{Value: s.HeapObjects})
-			mapObj.Set("stack-in-use", &Stringo{Value: formatBytes(s.StackInuse)})
-			mapObj.Set("stack-sys", &Stringo{Value: formatBytes(s.StackSys)})
-			mapObj.Set("stack-mspan-inuse", &Stringo{Value: formatBytes(s.MSpanInuse)})
-			mapObj.Set("stack-mspan-sys", &Stringo{Value: formatBytes(s.MSpanSys)})
-			mapObj.Set("stack-mcache-inuse", &Stringo{Value: formatBytes(s.MCacheInuse)})
-			mapObj.Set("stack-mcache-sys", &Stringo{Value: formatBytes(s.MCacheSys)})
-			mapObj.Set("other-sys", &Stringo{Value: formatBytes(s.OtherSys)})
-			mapObj.Set("gc-sys", &Stringo{Value: formatBytes(s.GCSys)})
-			mapObj.Set("next-gc: when heap-alloc >=", &Stringo{Value: formatBytes(s.NextGC)})
+			m := NewMapWithSize(30)
+			m.SetStrKey("alloc", &Stringo{Value: formatBytes(s.Alloc)})
+			m.SetStrKey("total-alloc", &Stringo{Value: formatBytes(s.TotalAlloc)})
+			m.SetStrKey("sys", &Stringo{Value: formatBytes(s.Sys)})
+			m.SetStrKey("lookups", &UInteger{Value: s.Lookups})
+			m.SetStrKey("mallocs", &UInteger{Value: s.Mallocs})
+			m.SetStrKey("frees", &UInteger{Value: s.Frees})
+			m.SetStrKey("heap-alloc", &Stringo{Value: formatBytes(s.HeapAlloc)})
+			m.SetStrKey("heap-sys", &Stringo{Value: formatBytes(s.HeapSys)})
+			m.SetStrKey("heap-idle", &Stringo{Value: formatBytes(s.HeapIdle)})
+			m.SetStrKey("heap-in-use", &Stringo{Value: formatBytes(s.HeapInuse)})
+			m.SetStrKey("heap-released", &Stringo{Value: formatBytes(s.HeapReleased)})
+			m.SetStrKey("heap-objects", &UInteger{Value: s.HeapObjects})
+			m.SetStrKey("stack-in-use", &Stringo{Value: formatBytes(s.StackInuse)})
+			m.SetStrKey("stack-sys", &Stringo{Value: formatBytes(s.StackSys)})
+			m.SetStrKey("stack-mspan-inuse", &Stringo{Value: formatBytes(s.MSpanInuse)})
+			m.SetStrKey("stack-mspan-sys", &Stringo{Value: formatBytes(s.MSpanSys)})
+			m.SetStrKey("stack-mcache-inuse", &Stringo{Value: formatBytes(s.MCacheInuse)})
+			m.SetStrKey("stack-mcache-sys", &Stringo{Value: formatBytes(s.MCacheSys)})
+			m.SetStrKey("other-sys", &Stringo{Value: formatBytes(s.OtherSys)})
+			m.SetStrKey("gc-sys", &Stringo{Value: formatBytes(s.GCSys)})
+			m.SetStrKey("next-gc: when heap-alloc >=", &Stringo{Value: formatBytes(s.NextGC)})
 			lastGC := "-"
 			if s.LastGC != 0 {
 				lastGC = fmt.Sprint(time.Unix(0, int64(s.LastGC)))
 			}
-			mapObj.Set("last-gc", &Stringo{Value: lastGC})
-			mapObj.Set("gc-pause-total", &Stringo{Value: time.Duration(s.PauseTotalNs).String()})
-			mapObj.Set("gc-pause", &UInteger{Value: s.PauseNs[(s.NumGC+255)%256]})
-			mapObj.Set("gc-pause-end", &UInteger{Value: s.PauseEnd[(s.NumGC+255)%256]})
-			mapObj.Set("num-gc", &UInteger{Value: uint64(s.NumGC)})
-			mapObj.Set("num-forced-gc", &UInteger{Value: uint64(s.NumForcedGC)})
-			mapObj.Set("gc-cpu-fraction", &Float{Value: s.GCCPUFraction})
-			mapObj.Set("enable-gc", &Boolean{Value: s.EnableGC})
-			mapObj.Set("debug-gc", &Boolean{Value: s.DebugGC})
-			return CreateMapObjectForGoMap(*mapObj)
+			m.SetStrKey("last-gc", &Stringo{Value: lastGC})
+			m.SetStrKey("gc-pause-total", &Stringo{Value: time.Duration(s.PauseTotalNs).String()})
+			m.SetStrKey("gc-pause", &UInteger{Value: s.PauseNs[(s.NumGC+255)%256]})
+			m.SetStrKey("gc-pause-end", &UInteger{Value: s.PauseEnd[(s.NumGC+255)%256]})
+			m.SetStrKey("num-gc", &UInteger{Value: uint64(s.NumGC)})
+			m.SetStrKey("num-forced-gc", &UInteger{Value: uint64(s.NumForcedGC)})
+			m.SetStrKey("gc-cpu-fraction", &Float{Value: s.GCCPUFraction})
+			m.SetStrKey("enable-gc", nativeToBooleanObject(s.EnableGC))
+			m.SetStrKey("debug-gc", nativeToBooleanObject(s.DebugGC))
+			return m
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_mem_stats` returns the runtime memory stats",

@@ -140,11 +140,11 @@ var CsvBuiltins = []*Builtin{
 				if len(row) != len(headerRow) {
 					return newError("parse error: row length did not match header row length. got=%d, want=%d", len(row), len(headerRow))
 				}
-				m := NewOrderedMap[string, Object]()
+				m := NewMapWithSize(len(row))
 				for i, v := range row {
-					m.Set(headerRow[i], &Stringo{Value: v})
+					m.SetStrKey(headerRow[i], &Stringo{Value: v})
 				}
-				allRows.Elements[i] = CreateMapObjectForGoMap(*m)
+				allRows.Elements[i] = m
 			}
 			return allRows
 		},

@@ -47,7 +47,7 @@ func dbDuckdbOrderedMap(input any, kk, vv dbColumnKind) (Object, bool) {
 	if !ok {
 		return nil, false
 	}
-	m := &Map{Pairs: NewPairsMapWithSize(x.Len())}
+	m := NewMapWithSize(x.Len())
 	for _, k := range x.Keys() {
 		kAsObj := createObjectFromDbInterface(k, kk)
 		v, _ := x.Get(k)
@@ -72,12 +72,12 @@ func dbDuckdbObject(input any) (Object, bool) {
 	case duckdb.Union:
 		return createObjectFromDbInterface(x.Value, dbColumnKind{base: dbColUnknown}), true
 	case duckdb.Interval:
-		m := NewOrderedMapWithSize[string, Object](3)
-		m.Set("days", NewInteger(int64(x.Days)))
-		m.Set("micros", NewInteger(x.Micros))
-		m.Set("months", NewInteger(int64(x.Months)))
-		m.Set("t", NewString("duckdb.Interval"))
-		return CreateMapObjectForGoMap(*m), true
+		m := NewMapWithSize(4)
+		m.SetStrKey("days", NewInteger(int64(x.Days)))
+		m.SetStrKey("micros", NewInteger(x.Micros))
+		m.SetStrKey("months", NewInteger(int64(x.Months)))
+		m.SetStrKey("t", NewString("duckdb.Interval"))
+		return m, true
 	}
 	return nil, false
 }

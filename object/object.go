@@ -694,6 +694,10 @@ func (m *Map) Get(key Object) (MapPair, bool) {
 	return m.Pairs.Get(hk)
 }
 
+func (m *Map) GetStrKey(key string) (MapPair, bool) {
+	return m.Get(&Stringo{Value: key})
+}
+
 func (m *Map) Set(key, value Object) {
 	if m.Pairs.Small() {
 		for i := range m.Pairs.vals {
@@ -708,6 +712,10 @@ func (m *Map) Set(key, value Object) {
 	}
 	hk := HashKey{Type: key.Type(), Value: HashObject(key)}
 	m.Pairs.Set(hk, MapPair{Key: key, Value: value})
+}
+
+func (m *Map) SetStrKey(key string, value Object) {
+	m.Set(&Stringo{Value: key}, value)
 }
 
 func (m *Map) Delete(key Object) {
