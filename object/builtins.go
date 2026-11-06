@@ -400,7 +400,7 @@ var Builtins = []*Builtin{
 			l := args[0].(*List)
 			args = args[1:]
 			l.Elements = append(l.Elements, args...)
-			return &Integer{Value: int64(len(l.Elements))}
+			return NewInteger(int64(len(l.Elements)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`push` puts the given args at the end of the LIST and mutates it. The value returned is the length after pushing",
@@ -452,7 +452,7 @@ var Builtins = []*Builtin{
 			copy(elems, args)
 			copy(elems[argsLength:argsLength+length], l.Elements)
 			l.Elements = elems
-			return &Integer{Value: int64(len(l.Elements))}
+			return NewInteger(int64(len(l.Elements)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`unshift` prepends the LIST with the given arguments and mutates it. The new length is returned",
@@ -772,13 +772,13 @@ var Builtins = []*Builtin{
 			}
 			switch args[0].Type() {
 			case FLOAT_OBJ:
-				return &Integer{Value: int64(args[0].(*Float).Value)}
+				return NewInteger(int64(args[0].(*Float).Value))
 			case UINTEGER_OBJ:
-				return &Integer{Value: int64(args[0].(*UInteger).Value)}
+				return NewInteger(int64(args[0].(*UInteger).Value))
 			case BIG_INTEGER_OBJ:
-				return &Integer{Value: args[0].(*BigInteger).Value.Int64()}
+				return NewInteger(args[0].(*BigInteger).Value.Int64())
 			case BIG_FLOAT_OBJ:
-				return &Integer{Value: args[0].(*BigFloat).Value.IntPart()}
+				return NewInteger(args[0].(*BigFloat).Value.IntPart())
 			case INTEGER_OBJ:
 				return args[0]
 			case STRING_OBJ:
@@ -787,7 +787,7 @@ var Builtins = []*Builtin{
 				if err != nil {
 					return newError("`int` error: %s", err.Error())
 				}
-				return &Integer{Value: i}
+				return NewInteger(i)
 			default:
 				return newError("`int` error: unsupported type '%s'", args[0].Type())
 			}
@@ -2601,13 +2601,13 @@ var Builtins = []*Builtin{
 			}
 			if len(args) == 0 {
 				// Get total count of subscribers
-				return &Integer{Value: int64(PubSubBroker.GetTotalSubscribers())}
+				return NewInteger(int64(PubSubBroker.GetTotalSubscribers()))
 			}
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("get_subscriber_count", 1, STRING_OBJ, args[0].Type())
 			}
 			topic := args[0].(*Stringo).Value
-			return &Integer{Value: int64(PubSubBroker.GetNumSubscribersForTopic(topic))}
+			return NewInteger(int64(PubSubBroker.GetNumSubscribersForTopic(topic)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_subscriber_count` returns the number of subscribers for a topic, if there is no topic passed in the total subscribers are returned",
@@ -2856,7 +2856,7 @@ var Builtins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("num_cpu", len(args), 0, "")
 			}
-			return &Integer{Value: int64(runtime.NumCPU())}
+			return NewInteger(int64(runtime.NumCPU()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`num_cpu` returns the number of cpus available to the blue process",
@@ -2871,7 +2871,7 @@ var Builtins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("num_process", len(args), 0, "")
 			}
-			return &Integer{Value: int64(runtime.NumGoroutine())}
+			return NewInteger(int64(runtime.NumGoroutine()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`num_process` returns the number of processes used by the runtime",
@@ -2886,7 +2886,7 @@ var Builtins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("num_max_cpu", len(args), 0, "")
 			}
-			return &Integer{Value: int64(runtime.GOMAXPROCS(-1))}
+			return NewInteger(int64(runtime.GOMAXPROCS(-1)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`num_max_cpu` returns the max number of cpus available to the runtime",
@@ -2901,7 +2901,7 @@ var Builtins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("num_os_thread", len(args), 0, "")
 			}
-			return &Integer{Value: int64(pprof.Lookup("threadcreate").Count())}
+			return NewInteger(int64(pprof.Lookup("threadcreate").Count()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`num_os_thread` returns the number of os threads being used by the runtime",
@@ -2920,7 +2920,7 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("set_max_cpu", 1, INTEGER_OBJ, args[0].Type())
 			}
 			i := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(runtime.GOMAXPROCS(i))}
+			return NewInteger(int64(runtime.GOMAXPROCS(i)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`set_max_cpu` sets the max number of cpus for the runtime and returns the previous setting. if arg < 1 => defaults to current number of cpus",
@@ -2939,7 +2939,7 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("set_gc_percent", 1, INTEGER_OBJ, args[0].Type())
 			}
 			i := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(debug.SetGCPercent(i))}
+			return NewInteger(int64(debug.SetGCPercent(i)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`set_gc_percent` sets the gc target percentage and returns the previous setting. a lower setting essentially limits the memory, 100 is default, and negative numbers turn gc off",
@@ -3072,7 +3072,7 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("set_max_stack", 1, INTEGER_OBJ, args[0].Type())
 			}
 			i := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(debug.SetMaxStack(i))}
+			return NewInteger(int64(debug.SetMaxStack(i)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`set_max_stack` sets the max amount of memory that can be used by blue process, only limiting future stack sizes and returning previous setting",
@@ -3091,7 +3091,7 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("set_max_threads", 1, INTEGER_OBJ, args[0].Type())
 			}
 			i := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(debug.SetMaxThreads(i))}
+			return NewInteger(int64(debug.SetMaxThreads(i)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`set_max_threads` sets the max number of os threads the program can use and returns the previous setting",
@@ -3110,7 +3110,7 @@ var Builtins = []*Builtin{
 				return newPositionalTypeError("set_mem_limit", 1, INTEGER_OBJ, args[0].Type())
 			}
 			i := args[0].(*Integer).Value
-			return &Integer{Value: debug.SetMemoryLimit(i)}
+			return NewInteger(debug.SetMemoryLimit(i))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`set_mem_limit` sets the soft max memory limit of the program, returning the previous setting, a negative limit retuns the current setting",
@@ -3635,7 +3635,7 @@ var Builtins = []*Builtin{
 			}
 			s := args[0].(*Stringo).Value
 			subs := args[1].(*Stringo).Value
-			return &Integer{Value: int64(strings.Index(s, subs))}
+			return NewInteger(int64(strings.Index(s, subs)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`index_of` returns the INTEGER index of the given STRING substring",

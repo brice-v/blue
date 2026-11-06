@@ -194,7 +194,7 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 		}
 	}()
 	body := &Stringo{Value: string(_body)}
-	contentLength := &Integer{Value: resp.ContentLength}
+	contentLength := NewInteger(resp.ContentLength)
 	headersToMapObj := func(header http.Header) Object {
 		m := NewMapWithSize(len(header))
 		for k, v := range header {
@@ -217,7 +217,7 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 	}
 	request := requestToMapObj(resp.Request)
 	rawStatus := &Stringo{Value: resp.Status}
-	status := &Integer{Value: int64(resp.StatusCode)}
+	status := NewInteger(int64(resp.StatusCode))
 
 	trailer := headersToMapObj(resp.Trailer)
 	transferEncoding := &List{Elements: make([]Object, len(resp.TransferEncoding))}
@@ -232,10 +232,10 @@ func getBlueObjectFromResp(resp *http.Response) Object {
 		m.SetStrKey("value", &Stringo{Value: c.Value})
 		m.SetStrKey("path", &Stringo{Value: c.Path})
 		m.SetStrKey("domain", &Stringo{Value: c.Domain})
-		m.SetStrKey("expires", &Integer{Value: c.Expires.Unix()})
+		m.SetStrKey("expires", NewInteger(c.Expires.Unix()))
 		m.SetStrKey("http_only", nativeToBooleanObject(c.HttpOnly))
 		m.SetStrKey("secure", nativeToBooleanObject(c.Secure))
-		m.SetStrKey("samesite", &Integer{Value: int64(c.SameSite)})
+		m.SetStrKey("samesite", NewInteger(int64(c.SameSite)))
 		m.SetStrKey("raw", &Stringo{Value: c.String()})
 		return m
 	}

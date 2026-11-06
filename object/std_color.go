@@ -67,7 +67,7 @@ var ColorBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("normal", len(args), 0, "")
 			}
-			return &Integer{Value: int64(color.Normal)}
+			return NewInteger(int64(color.Normal))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`normal` returns the int version of the normal color",
@@ -82,7 +82,7 @@ var ColorBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("bold", len(args), 0, "")
 			}
-			return &Integer{Value: int64(color.Bold)}
+			return NewInteger(int64(color.Bold))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`bold` returns the int version of the bold color",
@@ -97,7 +97,7 @@ var ColorBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("italic", len(args), 0, "")
 			}
-			return &Integer{Value: int64(color.OpItalic)}
+			return NewInteger(int64(color.OpItalic))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`italic` returns the int version of the italic color",
@@ -112,7 +112,7 @@ var ColorBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("underlined", len(args), 0, "")
 			}
-			return &Integer{Value: int64(color.OpUnderscore)}
+			return NewInteger(int64(color.OpUnderscore))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`underlined` returns the int version of the underlined color",

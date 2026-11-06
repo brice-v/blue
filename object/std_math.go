@@ -459,7 +459,7 @@ var MathBuiltins = []*Builtin{
 			frac, exp := math.Frexp(args[0].(*Float).Value)
 			m := NewMapWithSize(2)
 			m.SetStrKey("frac", &Float{Value: frac})
-			m.SetStrKey("exp", &Integer{Value: int64(exp)})
+			m.SetStrKey("exp", NewInteger(int64(exp)))
 			return m
 		},
 		HelpStr: helpStrArgs{
@@ -501,7 +501,7 @@ var MathBuiltins = []*Builtin{
 				return newPositionalTypeError("gcd", 2, INTEGER_OBJ, args[1].Type())
 			}
 			a, b := args[0].(*Integer).Value, args[1].(*Integer).Value
-			return &Integer{Value: gcd(a, b)}
+			return NewInteger(gcd(a, b))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`gcd` returns the greatest common divisor (GCD) via Euclidean algorithm",
@@ -543,7 +543,7 @@ var MathBuiltins = []*Builtin{
 				return newPositionalTypeError("ilogb", 1, FLOAT_OBJ, args[0].Type())
 			}
 			x := args[0].(*Float).Value
-			return &Integer{Value: int64(math.Ilogb(x))}
+			return NewInteger(int64(math.Ilogb(x)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`ilogb` returns the binary exponent of x as an INTEGER",
@@ -693,9 +693,9 @@ var MathBuiltins = []*Builtin{
 					ints[i] = e.(*Integer).Value
 				}
 				if len(ints) > 2 {
-					return &Integer{Value: lcm(ints[0], ints[1], ints[2:]...)}
+					return NewInteger(lcm(ints[0], ints[1], ints[2:]...))
 				}
-				return &Integer{Value: lcm(ints[0], ints[1])}
+				return NewInteger(lcm(ints[0], ints[1]))
 			}
 			if len(args) < 2 {
 				return newInvalidArgCountError("lcm", len(args), 2, "or more")
@@ -707,7 +707,7 @@ var MathBuiltins = []*Builtin{
 				if args[1].Type() != INTEGER_OBJ {
 					return newPositionalTypeError("lcm", 2, INTEGER_OBJ, args[1].Type())
 				}
-				return &Integer{Value: lcm(args[0].(*Integer).Value, args[1].(*Integer).Value)}
+				return NewInteger(lcm(args[0].(*Integer).Value, args[1].(*Integer).Value))
 			} else {
 				ints := make([]int64, len(args))
 				for i, e := range args {
@@ -716,7 +716,7 @@ var MathBuiltins = []*Builtin{
 					}
 					ints[i] = e.(*Integer).Value
 				}
-				return &Integer{Value: lcm(ints[0], ints[1], ints[2:]...)}
+				return NewInteger(lcm(ints[0], ints[1], ints[2:]...))
 			}
 		},
 		HelpStr: helpStrArgs{
@@ -761,7 +761,7 @@ var MathBuiltins = []*Builtin{
 			lgamma, sign := math.Lgamma(args[0].(*Float).Value)
 			m := NewMapWithSize(2)
 			m.SetStrKey("lgamma", &Float{Value: lgamma})
-			m.SetStrKey("sign", &Integer{Value: int64(sign)})
+			m.SetStrKey("sign", NewInteger(int64(sign)))
 			return m
 		},
 		HelpStr: helpStrArgs{

@@ -119,7 +119,7 @@ func decodeJsonMap(dec *json.Decoder, depth int) Object {
 func convertJsonNumber(s string) Object {
 	if !strings.ContainsAny(s, ".eE") {
 		if i, err := strconv.ParseInt(s, 10, 64); err == nil {
-			return &Integer{Value: i}
+			return NewInteger(i)
 		}
 		bi, ok := new(big.Int).SetString(s, 10)
 		if ok {

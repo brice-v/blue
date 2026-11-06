@@ -92,7 +92,7 @@ var PsutilBuiltins = []*Builtin{
 			if err != nil {
 				return newError("`cpu_count` error: %s", err.Error())
 			}
-			return &Integer{Value: int64(count)}
+			return NewInteger(int64(count))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`cpu_count` returns the number of cores as an INTEGER",

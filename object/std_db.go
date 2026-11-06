@@ -151,8 +151,8 @@ var DbBuiltins = []*Builtin{
 				return newError("`db_exec` error: %s", err.Error())
 			}
 			m := NewMapWithSize(2)
-			m.SetStrKey("last_insert_id", &Integer{Value: lastInsertId})
-			m.SetStrKey("rows_affected", &Integer{Value: rowsAffected})
+			m.SetStrKey("last_insert_id", NewInteger(lastInsertId))
+			m.SetStrKey("rows_affected", NewInteger(rowsAffected))
 			return m
 		},
 		HelpStr: helpStrArgs{

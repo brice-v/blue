@@ -428,7 +428,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("get_screen_width", len(args), 0, "")
 			}
-			return &Integer{Value: int64(rl.GetScreenWidth())}
+			return NewInteger(int64(rl.GetScreenWidth()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_screen_width` gets the screen width as an int",
@@ -443,7 +443,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("get_screen_height", len(args), 0, "")
 			}
-			return &Integer{Value: int64(rl.GetScreenHeight())}
+			return NewInteger(int64(rl.GetScreenHeight()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_screen_height` gets the screen height as an int",
@@ -458,7 +458,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("get_monitor_count", len(args), 0, "")
 			}
-			return &Integer{Value: int64(rl.GetMonitorCount())}
+			return NewInteger(int64(rl.GetMonitorCount()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_monitor_count` gets the number of monitors as an int",
@@ -473,7 +473,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("get_current_monitor", len(args), 0, "")
 			}
-			return &Integer{Value: int64(rl.GetCurrentMonitor())}
+			return NewInteger(int64(rl.GetCurrentMonitor()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_current_monitor` gets the current connected monitor as an int",
@@ -511,7 +511,7 @@ var GgBuiltins = []*Builtin{
 				return newPositionalTypeError("get_monitor_width", 1, INTEGER_OBJ, args[0].Type())
 			}
 			monitor := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(rl.GetMonitorWidth(monitor))}
+			return NewInteger(int64(rl.GetMonitorWidth(monitor)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_monitor_width` gets the width of the given monitor as an int",
@@ -530,7 +530,7 @@ var GgBuiltins = []*Builtin{
 				return newPositionalTypeError("get_monitor_height", 1, INTEGER_OBJ, args[0].Type())
 			}
 			monitor := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(rl.GetMonitorHeight(monitor))}
+			return NewInteger(int64(rl.GetMonitorHeight(monitor)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_monitor_height` gets the height of the given monitor as an int",
@@ -549,7 +549,7 @@ var GgBuiltins = []*Builtin{
 				return newPositionalTypeError("get_monitor_physical_width", 1, INTEGER_OBJ, args[0].Type())
 			}
 			monitor := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(rl.GetMonitorPhysicalWidth(monitor))}
+			return NewInteger(int64(rl.GetMonitorPhysicalWidth(monitor)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_monitor_physical_width` gets the physical width of the given monitor as an int",
@@ -568,7 +568,7 @@ var GgBuiltins = []*Builtin{
 				return newPositionalTypeError("get_monitor_physical_height", 1, INTEGER_OBJ, args[0].Type())
 			}
 			monitor := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(rl.GetMonitorHeight(monitor))}
+			return NewInteger(int64(rl.GetMonitorHeight(monitor)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_monitor_physical_height` gets the physical height of the given monitor as an int",
@@ -587,7 +587,7 @@ var GgBuiltins = []*Builtin{
 				return newPositionalTypeError("get_monitor_refresh_rate", 1, INTEGER_OBJ, args[0].Type())
 			}
 			monitor := int(args[0].(*Integer).Value)
-			return &Integer{Value: int64(rl.GetMonitorRefreshRate(monitor))}
+			return NewInteger(int64(rl.GetMonitorRefreshRate(monitor)))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_monitor_refresh_rate` gets the refresh rate of the given monitor as an int",
@@ -2483,7 +2483,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("get_fps", len(args), 0, "")
 			}
-			return &Integer{Value: int64(rl.GetFPS())}
+			return NewInteger(int64(rl.GetFPS()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_fps` returns current fps as an integer",
@@ -2696,7 +2696,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("get_mouse_x", len(args), 0, "")
 			}
-			return &Integer{Value: int64(rl.GetMouseX())}
+			return NewInteger(int64(rl.GetMouseX()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_mouse_x` returns mouse x position as int",
@@ -2711,7 +2711,7 @@ var GgBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("get_mouse_y", len(args), 0, "")
 			}
-			return &Integer{Value: int64(rl.GetMouseY())}
+			return NewInteger(int64(rl.GetMouseY()))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`get_mouse_y` returns mouse y position as int",

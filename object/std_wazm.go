@@ -328,7 +328,7 @@ var WazmBuiltins = []*Builtin{
 				return newError("`wasm_run` error: %s", err.Error())
 			}
 			wm.Value = module
-			return &Integer{Value: int64(rc)}
+			return NewInteger(int64(rc))
 		},
 		HelpStr: helpStrArgs{
 			explanation: "`wasm_run` runs the main or _start of the wasm module and returns its return code as an integer",
