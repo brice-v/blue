@@ -580,7 +580,7 @@ var HttpBuiltins = []*Builtin{
 		Name: "_new_server",
 		Fun: func(args ...Object) Object {
 			if len(args) != 5 {
-				return newInvalidArgCountError("new_server", len(args), 4, "")
+				return newInvalidArgCountError("new_server", len(args), 5, "")
 			}
 			if args[0].Type() != STRING_OBJ {
 				return newPositionalTypeError("new_server", 1, STRING_OBJ, args[0].Type())

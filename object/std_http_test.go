@@ -229,11 +229,11 @@ func testFiberApp(app *fiber.App, req *http.Request) (*http.Response, error) {
 }
 
 func newHttpTestOptions(values map[string]Object) *Map {
-	ordered := NewOrderedMap[string, Object]()
+	m := NewMapWithSize(len(values))
 	for k, v := range values {
-		ordered.Set(k, v)
+		m.SetStrKey(k, v)
 	}
-	return CreateMapObjectForGoMap(*ordered)
+	return m
 }
 
 func TestHelmetMiddleware(t *testing.T) {
