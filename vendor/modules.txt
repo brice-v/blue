@@ -111,7 +111,7 @@ github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table
 # github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b
 ## explicit; go 1.15
 github.com/ajstarks/svgo
-# github.com/andybalholm/brotli v1.2.3
+# github.com/andybalholm/brotli v1.2.7
 ## explicit; go 1.22
 github.com/andybalholm/brotli
 github.com/andybalholm/brotli/matchfinder

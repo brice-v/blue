@@ -54,6 +54,11 @@ func GetStdBuiltinWithVm(mod, name string, vm *VM) func(args ...object.Object) o
 			return builtin.Fun
 		}
 		return unresolvableStdBuiltin(mod, name)
+	case "math":
+		if builtin := mathVmBuiltin(name, vm); builtin != nil {
+			return builtin.Fun
+		}
+		return unresolvableStdBuiltin(mod, name)
 	case "plot":
 		if builtin := plotVmBuiltin(name, vm); builtin != nil {
 			return builtin.Fun

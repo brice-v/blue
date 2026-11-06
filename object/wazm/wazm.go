@@ -86,8 +86,8 @@ func WazmInit(wc Config) (*Module, error) {
 	fs := wazero.NewFSConfig()
 	for hostDir, wasmDir := range wc.Mounts {
 		readOnly := false
-		if strings.Contains(wasmDir, ":ro") {
-			wasmDir = strings.Trim(wasmDir, ":ro")
+		if before, ok := strings.CutSuffix(wasmDir, ":ro"); ok {
+			wasmDir = before
 			readOnly = true
 		}
 		hostDir, err := filepath.Abs(hostDir)

@@ -24,6 +24,9 @@ func fl(v float64) Object { return &Float{Value: v} }
 func in(v int64) Object   { return &Integer{Value: v} }
 
 func TestMathRegistry(t *testing.T) {
+	vmImplemented := map[string]bool{
+		"_rand": true, "_seed": true, "_gauss": true, "_weighted_choice": true,
+	}
 	seen := make(map[string]bool)
 	for _, b := range MathBuiltins {
 		if b.Name == "" || b.HelpStr == "" {
@@ -33,8 +36,8 @@ func TestMathRegistry(t *testing.T) {
 			t.Errorf("duplicate math builtin name %q", b.Name)
 		}
 		seen[b.Name] = true
-		if b.Fun == nil {
-			t.Errorf("math builtin %q has nil Fun", b.Name)
+		if b.Fun == nil && !vmImplemented[b.Name] {
+			t.Errorf("math builtin %q has nil Fun but is not known to be VM-implemented", b.Name)
 		}
 	}
 }
@@ -193,16 +196,6 @@ func TestMathMixedArgBuiltins(t *testing.T) {
 	if got := mathBuiltinFn(t, "_signbit")(fl(3)); got.Inspect() != "false" {
 		t.Errorf("_signbit(3) = %s, want false", got.Inspect())
 	}
-	r1 := mathBuiltinFn(t, "_rand")()
-	r2 := mathBuiltinFn(t, "_rand")()
-	for i, r := range []*Float{r1.(*Float), r2.(*Float)} {
-		if r.Value < 0 || r.Value >= 1 {
-			t.Errorf("_rand()[%d] out of range [0,1): %v", i, r.Value)
-		}
-	}
-	if r1.Inspect() == r2.Inspect() {
-		t.Error("_rand returned identical values twice")
-	}
 }
 
 func mapGetString(t *testing.T, m *Map, key string) Object {
@@ -286,8 +279,11 @@ func TestGcdLcmBuiltins(t *testing.T) {
 
 func TestMathErrorPaths(t *testing.T) {
 	for _, b := range MathBuiltins {
+		if b.Fun == nil {
+			continue
+		}
 		switch b.Name {
-		case "_rand", "_NaN":
+		case "_NaN":
 			if _, ok := b.Fun(in(1)).(*Error); !ok {
 				t.Errorf("%s() with extra args should error", b.Name)
 			}
@@ -392,42 +388,5 @@ func TestNewMathBuiltins(t *testing.T) {
 		if f.Value != sc.want {
 			t.Errorf("%s(%v) = %v, want %v", sc.name, sc.args, f.Value, sc.want)
 		}
-	}
-}
-
-func TestRandomBuiltins(t *testing.T) {
-	seed := mathBuiltinFn(t, "_seed")
-	if _, ok := seed(in(42)).(*Boolean); !ok {
-		t.Errorf("_seed returned %T, want *Boolean", seed(in(42)))
-	}
-
-	gaussFn := mathBuiltinFn(t, "_gauss")
-	g := gaussFn(fl(0), fl(1))
-	if _, ok := g.(*Float); !ok {
-		t.Errorf("_gauss returned %T, want *Float", g)
-	}
-	if _, ok := gaussFn(fl(2.5), fl(0.5)).(*Float); !ok {
-		t.Error("_gauss should return a FLOAT")
-	}
-
-	wc := mathBuiltinFn(t, "_weighted_choice")
-	items := &List{Elements: []Object{in(10), in(20), in(30)}}
-	weights := &List{Elements: []Object{fl(1), fl(1), fl(1)}}
-	chosen := wc(items, weights)
-	if chosen.Type() != INTEGER_OBJ {
-		t.Errorf("_weighted_choice returned %T, want an item from items", chosen)
-	}
-
-	badLen := &List{Elements: []Object{in(1), in(2)}}
-	if _, ok := wc(items, badLen).(*Error); !ok {
-		t.Error("_weighted_choice with mismatched lengths should error")
-	}
-	if _, ok := wc(items, &List{Elements: []Object{fl(0), fl(0)}}).(*Error); !ok {
-		t.Error("_weighted_choice with zero-weight sum should error")
-	}
-
-	_, ok := mathBuiltinFn(t, "_seed")(in(1)).(*Boolean)
-	if !ok {
-		t.Error("_seed should return a BOOLEAN indicating success")
 	}
 }

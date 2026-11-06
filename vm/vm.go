@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"math/rand"
 	"slices"
 	"strings"
 )
@@ -62,6 +63,8 @@ type VM struct {
 
 	// Builtins that use vm
 	builtinFuns map[string]func(args ...object.Object) object.Object
+
+	mathRand *rand.Rand
 
 	// Cached vm bound builtin objects, keyed by builtin name. The global
 	// builtin definitions are shared across vms and must never be written to.
@@ -1191,13 +1194,7 @@ func (vm *VM) growStackTo(size int) bool {
 	if size > StackSize {
 		return false
 	}
-	newSize := max(len(vm.stack)*2, size)
-	if newSize < lazyStackFloor {
-		newSize = lazyStackFloor
-	}
-	if newSize > StackSize {
-		newSize = StackSize
-	}
+	newSize := min(max(max(len(vm.stack)*2, size), lazyStackFloor), StackSize)
 	newStack := make([]object.Object, newSize)
 	copy(newStack, vm.stack)
 	vm.stack = newStack

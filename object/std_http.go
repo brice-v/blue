@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/contrib/v3/monitor"
@@ -44,8 +45,51 @@ import (
 
 const fiberNetworkStateKey = "blue.network"
 
-// Used to catch interrupt to shutdown server
-var interruptCh = make(chan os.Signal, 1)
+var (
+	interruptOnce sync.Once
+	shutdownMu    sync.Mutex
+	shutdownApps  = map[*fiber.App]struct{}{}
+)
+
+func listenForInterrupts() {
+	interruptOnce.Do(func() {
+		interruptCh := make(chan os.Signal, 1)
+		signal.Notify(interruptCh, os.Interrupt)
+		go func() {
+			for range interruptCh {
+				shutdownServers()
+			}
+		}()
+	})
+}
+
+func registerShutdown(app *fiber.App) {
+	shutdownMu.Lock()
+	shutdownApps[app] = struct{}{}
+	shutdownMu.Unlock()
+}
+
+func unregisterShutdown(app *fiber.App) {
+	shutdownMu.Lock()
+	delete(shutdownApps, app)
+	shutdownMu.Unlock()
+}
+
+func shutdownServers() {
+	shutdownMu.Lock()
+	apps := make([]*fiber.App, 0, len(shutdownApps))
+	for app := range shutdownApps {
+		apps = append(apps, app)
+	}
+	shutdownMu.Unlock()
+	if len(apps) == 0 {
+		return
+	}
+	fmt.Println("Interupt... Shutting down http server")
+	for _, app := range apps {
+		_ = app.Shutdown()
+	}
+}
 
 type sseStream interface {
 	Event(event sse.Event) error
@@ -641,12 +685,7 @@ var HttpBuiltins = []*Builtin{
 			}
 			useEmbeddedLibWeb := args[2].(*Boolean).Value
 			addrPort := args[1].(*Stringo).Value
-			signal.Notify(interruptCh, os.Interrupt)
-			go func() {
-				<-interruptCh
-				fmt.Println("Interupt... Shutting down http server")
-				_ = app.Value.Shutdown()
-			}()
+			listenForInterrupts()
 			if useEmbeddedLibWeb {
 				sub, err := fs.Sub(lib.WebEmbedFiles, "web")
 				if err != nil {
@@ -664,6 +703,8 @@ var HttpBuiltins = []*Builtin{
 			if err != nil {
 				disableStartupDebug = false
 			}
+			registerShutdown(app.Value)
+			defer unregisterShutdown(app.Value)
 			err = app.Value.Listen(addrPort, fiber.ListenConfig{
 				DisableStartupMessage: disableStartupDebug,
 				EnablePrintRoutes:     !disableStartupDebug,
@@ -687,11 +728,7 @@ var HttpBuiltins = []*Builtin{
 			if len(args) != 0 {
 				return newInvalidArgCountError("shutdown_server", len(args), 0, "")
 			}
-			// shutdown_server may be called more than once, use select to avoid failure
-			select {
-			case interruptCh <- os.Interrupt:
-			default:
-			}
+			shutdownServers()
 			return NULL
 		},
 		HelpStr: helpStrArgs{

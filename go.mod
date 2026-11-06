@@ -33,7 +33,6 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/tdewolff/minify/v2 v2.24.11
 	github.com/tetratelabs/wazero v1.11.0
-	github.com/valyala/fasthttp v1.73.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.62.0
 	golang.org/x/sys v0.49.0
@@ -62,7 +61,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
-	github.com/andybalholm/brotli v1.2.3 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/antchfx/xpath v1.3.6 // indirect
 	github.com/apache/arrow-go/v18 v18.5.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -142,6 +141,7 @@ require (
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.73.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect

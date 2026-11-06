@@ -1,20 +1,6 @@
 package object
 
-import (
-	"math"
-	"math/rand"
-	"sync"
-	"time"
-)
-
-// TODO: Put this and anything that accesses them on the VM
-var mathRand = newRandSeeded()
-var mathRandLock sync.Mutex
-
-func newRandSeeded() *rand.Rand {
-	seed := time.Now().UnixNano()
-	return rand.New(rand.NewSource(seed))
-}
+import "math"
 
 // greatest common divisor (GCD) via Euclidean algorithm
 func gcd(a, b int64) int64 {
@@ -38,12 +24,7 @@ func lcm(a, b int64, integers ...int64) int64 {
 var MathBuiltins = []*Builtin{
 	{
 		Name: "_rand",
-		Fun: func(args ...Object) Object {
-			if len(args) != 0 {
-				return newInvalidArgCountError("rand", len(args), 0, "")
-			}
-			return &Float{Value: mathRand.Float64()}
-		},
+		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`rand` returns a FLOAT a pseudo-random number in the half-open interval [0.0,1.0)",
 			signature:   "rand() -> float",
@@ -1299,19 +1280,7 @@ var MathBuiltins = []*Builtin{
 	},
 	{
 		Name: "_seed",
-		Fun: func(args ...Object) Object {
-			if len(args) != 1 {
-				return newInvalidArgCountError("seed", len(args), 1, "")
-			}
-			if args[0].Type() != INTEGER_OBJ {
-				return newPositionalTypeError("seed", 1, INTEGER_OBJ, args[0].Type())
-			}
-			n := args[0].(*Integer).Value
-			mathRandLock.Lock()
-			mathRand = rand.New(rand.NewSource(n))
-			mathRandLock.Unlock()
-			return TRUE
-		},
+		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`seed` sets the seed for the pseudo-random number generator and returns a BOOLEAN",
 			signature:   "seed(n: int) -> bool",
@@ -1321,21 +1290,7 @@ var MathBuiltins = []*Builtin{
 	},
 	{
 		Name: "_gauss",
-		Fun: func(args ...Object) Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("gauss", len(args), 2, "")
-			}
-			if args[0].Type() != FLOAT_OBJ {
-				return newPositionalTypeError("gauss", 1, FLOAT_OBJ, args[0].Type())
-			}
-			if args[1].Type() != FLOAT_OBJ {
-				return newPositionalTypeError("gauss", 2, FLOAT_OBJ, args[1].Type())
-			}
-			mean := args[0].(*Float).Value
-			stddev := args[1].(*Float).Value
-			v := mathRand.NormFloat64()
-			return &Float{Value: mean + stddev*v}
-		},
+		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`gauss` returns a FLOAT from a normal (Gaussian) distribution with given mean and standard deviation",
 			signature:   "gauss(mean: float, stddev: float) -> float",
@@ -1345,43 +1300,7 @@ var MathBuiltins = []*Builtin{
 	},
 	{
 		Name: "_weighted_choice",
-		Fun: func(args ...Object) Object {
-			if len(args) != 2 {
-				return newInvalidArgCountError("weighted_choice", len(args), 2, "")
-			}
-			items := args[0]
-			weights := args[1]
-			if items.Type() != LIST_OBJ {
-				return newPositionalTypeError("weighted_choice", 1, LIST_OBJ, items.Type())
-			}
-			if weights.Type() != LIST_OBJ {
-				return newPositionalTypeError("weighted_choice", 2, LIST_OBJ, weights.Type())
-			}
-			itemList := items.(*List)
-			weightList := weights.(*List)
-			if len(itemList.Elements) != len(weightList.Elements) {
-				return newError("`weighted_choice` error: items and weights must have the same length")
-			}
-			var totalWeight float64
-			for _, w := range weightList.Elements {
-				if w.Type() != FLOAT_OBJ {
-					return newError("`weighted_choice` error: all weights must be FLOAT")
-				}
-				totalWeight += w.(*Float).Value
-			}
-			if totalWeight == 0 {
-				return newError("`weighted_choice` error: weight sum must not be zero")
-			}
-			r := mathRand.Float64() * totalWeight
-			var cumulative float64
-			for i, w := range weightList.Elements {
-				cumulative += w.(*Float).Value
-				if r <= cumulative {
-					return itemList.Elements[i]
-				}
-			}
-			return itemList.Elements[len(itemList.Elements)-1]
-		},
+		Fun:  nil,
 		HelpStr: helpStrArgs{
 			explanation: "`weighted_choice` returns a randomly chosen item from the items list, weighted by the corresponding weights list",
 			signature:   "weighted_choice(items: list, weights: list[float]) -> any",
